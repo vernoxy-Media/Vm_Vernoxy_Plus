@@ -1,0 +1,41 @@
+{
+  "name": "vernoxy-pulse",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@12.10.1",
+  "scripts": {
+    "db:migrate": "dbmate --env DIRECT_URL --migrations-dir ./database/migrations --migrations-table dbmate.schema_migrations --no-dump-schema up",
+    "db:rollback": "dbmate --env DIRECT_URL --migrations-dir ./database/migrations --migrations-table dbmate.schema_migrations --no-dump-schema down",
+    "db:new": "dbmate --migrations-dir ./database/migrations new",
+    "db:status": "dbmate --env DIRECT_URL --migrations-dir ./database/migrations --migrations-table dbmate.schema_migrations status",
+    "db:status:dev": "dbmate --env-file .env --env DIRECT_URL --migrations-dir ./database/migrations --migrations-table dbmate.schema_migrations status",
+    "db:status:test": "dbmate --env-file .env.test --env DIRECT_URL --migrations-dir ./database/migrations --migrations-table dbmate.schema_migrations status",
+    "db:seed": "tsx database/seeds/run-seeds.ts",
+    "db:test": "tsx database/tests/run-tests.ts",
+    "db:verify-fresh": "tsx database/scripts/verify-fresh.ts",
+    "db:pull": "pnpm --filter @vernoxy-pulse/api db:pull",
+    "db:generate": "pnpm --filter @vernoxy-pulse/api db:generate",
+    "arch:check": "depcruise --config .dependency-cruiser.js apps/api/src",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "bootstrap:admin": "tsx apps/api/src/scripts/bootstrap-admin.ts",
+    "auth:gen-secrets": "tsx apps/api/src/scripts/generate-auth-secrets.ts",
+    "openapi:export": "pnpm --filter @vernoxy-pulse/api openapi:export",
+    "api:generate": "pnpm --filter @vernoxy-pulse/api-client generate",
+    "mailpit": "tsx scripts/mailpit-mock.ts",
+    "dev": "turbo run dev --parallel"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@types/node": "^22.13.0",
+    "@types/pg": "^8.11.10",
+    "argon2": "^0.45.1",
+    "dbmate": "^2.36.0",
+    "dependency-cruiser": "^16.4.0",
+    "dotenv": "^16.4.7",
+    "pg": "^8.13.1",
+    "tsx": "^4.19.2",
+    "turbo": "^2.4.0",
+    "typescript": "^5.7.3"
+  }
+}

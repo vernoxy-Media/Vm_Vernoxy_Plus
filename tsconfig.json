@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "target": "ES2022",
+    "baseUrl": "."
+  },
+  "include": [
+    "apps/api/src/**/*",
+    "apps/api/test/**/*",
+    "database/**/*",
+    "scripts/**/*"
+  ]
+}

@@ -1,0 +1,3568 @@
+{
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/health": {
+      "get": {
+        "operationId": "HealthController_getHealth",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Service and database are healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "status": "ok",
+                    "timestamp": "2026-10-09T10:00:00.000Z",
+                    "database": "connected"
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Database or service unhealthy"
+          }
+        },
+        "summary": "Liveness & readiness probe (including database connection)",
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "operationId": "AuthController_login",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid email or password"
+          }
+        },
+        "summary": "Initiate login with email and password (sends 2FA email OTP)",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/login/verify": {
+      "post": {
+        "operationId": "AuthController_verifyLogin",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifyLoginResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or expired code"
+          }
+        },
+        "summary": "Verify email OTP and establish session",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/login/resend": {
+      "post": {
+        "operationId": "AuthController_resendOtp",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Cooldown or rate limit exceeded"
+          }
+        },
+        "summary": "Resend email OTP for open challenge adhering to cooldown",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "operationId": "AuthController_refresh",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefreshResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid, revoked, or expired refresh token"
+          }
+        },
+        "summary": "Rotate refresh token and issue new access token",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Revoke current session and clear refresh cookie",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/logout-all": {
+      "post": {
+        "operationId": "AuthController_logoutAll",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Revoke all sessions for current employee",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "operationId": "AuthController_getMe",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get profile information of authenticated user",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/password/change": {
+      "post": {
+        "operationId": "AuthController_changePassword",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change password and revoke all other sessions",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/password/forgot": {
+      "post": {
+        "operationId": "AuthController_forgotPassword",
+        "parameters": [],
+        "responses": {
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForgotPasswordResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Request password reset code (always returns 202)",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/password/reset": {
+      "post": {
+        "operationId": "AuthController_resetPassword",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "Invalid email or reset code"
+          }
+        },
+        "summary": "Reset password using email OTP and revoke all sessions",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/.well-known/jwks.json": {
+      "get": {
+        "operationId": "JwksController_getJwks",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "JWKS with RSA public keys"
+          }
+        },
+        "summary": "JSON Web Key Set (public keys for verifying pulse tokens)",
+        "tags": [
+          "JWKS"
+        ]
+      }
+    },
+    "/api/v1/files/profile-photos/{key}": {
+      "get": {
+        "operationId": "FilesController_getProfilePhoto",
+        "parameters": [
+          {
+            "name": "sig",
+            "required": true,
+            "in": "query",
+            "description": "HMAC-SHA256 signature",
+            "schema": {}
+          },
+          {
+            "name": "exp",
+            "required": true,
+            "in": "query",
+            "description": "Unix expiration timestamp",
+            "schema": {}
+          },
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "description": "Photo storage key (hex32.webp)",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Image stream (image/webp)"
+          },
+          "403": {
+            "description": "Forbidden (invalid, tampered, expired or unknown key)"
+          }
+        },
+        "summary": "Public signed profile photo retrieval",
+        "tags": [
+          "Files"
+        ]
+      }
+    },
+    "/api/v1/departments": {
+      "get": {
+        "operationId": "DepartmentController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepartmentListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List departments with keyset pagination",
+        "tags": [
+          "Organization"
+        ]
+      },
+      "post": {
+        "operationId": "DepartmentController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDepartmentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepartmentResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create department",
+        "tags": [
+          "Organization"
+        ]
+      }
+    },
+    "/api/v1/departments/options": {
+      "get": {
+        "operationId": "DepartmentController_getOptions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DepartmentOptionDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get active departments for dropdown select",
+        "tags": [
+          "Organization"
+        ]
+      }
+    },
+    "/api/v1/departments/{id}": {
+      "get": {
+        "operationId": "DepartmentController_getById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Department ID",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepartmentResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get department details by ID",
+        "tags": [
+          "Organization"
+        ]
+      },
+      "patch": {
+        "operationId": "DepartmentController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Department ID",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDepartmentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepartmentResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update department",
+        "tags": [
+          "Organization"
+        ]
+      },
+      "delete": {
+        "operationId": "DepartmentController_delete",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Department ID",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Soft delete department",
+        "tags": [
+          "Organization"
+        ]
+      }
+    },
+    "/api/v1/roles": {
+      "get": {
+        "operationId": "RoleController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List roles with keyset pagination",
+        "tags": [
+          "Organization"
+        ]
+      },
+      "post": {
+        "operationId": "RoleController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRoleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create role",
+        "tags": [
+          "Organization"
+        ]
+      }
+    },
+    "/api/v1/roles/options": {
+      "get": {
+        "operationId": "RoleController_getOptions",
+        "parameters": [
+          {
+            "name": "dep_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RoleOptionDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get active roles for a department",
+        "tags": [
+          "Organization"
+        ]
+      }
+    },
+    "/api/v1/roles/{id}": {
+      "get": {
+        "operationId": "RoleController_getById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Role ID",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get role details by ID",
+        "tags": [
+          "Organization"
+        ]
+      },
+      "patch": {
+        "operationId": "RoleController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Role ID",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRoleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update role",
+        "tags": [
+          "Organization"
+        ]
+      },
+      "delete": {
+        "operationId": "RoleController_delete",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Role ID",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Soft delete role",
+        "tags": [
+          "Organization"
+        ]
+      }
+    },
+    "/api/v1/employees": {
+      "get": {
+        "operationId": "EmployeeController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List employees with keyset pagination",
+        "tags": [
+          "Organization"
+        ]
+      },
+      "post": {
+        "operationId": "EmployeeController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEmployeeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create employee and provision credentials",
+        "tags": [
+          "Organization"
+        ]
+      }
+    },
+    "/api/v1/employees/options": {
+      "get": {
+        "operationId": "EmployeeController_getOptions",
+        "parameters": [
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EmployeeOptionDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get active employees for manager dropdown select",
+        "tags": [
+          "Organization"
+        ]
+      }
+    },
+    "/api/v1/employees/{id}": {
+      "get": {
+        "operationId": "EmployeeController_getById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Employee ID",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get employee details by ID",
+        "tags": [
+          "Organization"
+        ]
+      },
+      "patch": {
+        "operationId": "EmployeeController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Employee ID",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEmployeeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update employee details",
+        "tags": [
+          "Organization"
+        ]
+      },
+      "delete": {
+        "operationId": "EmployeeController_delete",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Employee ID",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Soft delete employee",
+        "tags": [
+          "Organization"
+        ]
+      }
+    },
+    "/api/v1/employees/{id}/photo": {
+      "put": {
+        "operationId": "EmployeeController_uploadPhoto",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Employee ID",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Profile photo image file"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated employee with signed photo URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeResponseDto"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "File size exceeds 5MB limit"
+          },
+          "415": {
+            "description": "Unsupported media type (only JPEG and PNG accepted)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upload employee profile photo (max 5MB, JPEG/PNG)",
+        "tags": [
+          "Organization"
+        ]
+      },
+      "delete": {
+        "operationId": "EmployeeController_removePhoto",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Employee ID",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Photo removed successfully"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove employee profile photo",
+        "tags": [
+          "Organization"
+        ]
+      }
+    },
+    "/api/v1/industries": {
+      "get": {
+        "operationId": "IndustryController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListIndustriesResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List industries with filters and keyset pagination",
+        "tags": [
+          "Master Data - Industries"
+        ]
+      },
+      "post": {
+        "operationId": "IndustryController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateIndustryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndustryDetailResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create an industry or sub-industry",
+        "tags": [
+          "Master Data - Industries"
+        ]
+      }
+    },
+    "/api/v1/industries/options": {
+      "get": {
+        "operationId": "IndustryController_getOptions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IndustryOptionDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get active industry options (top-level or sub-industries of parent_id)",
+        "tags": [
+          "Master Data - Industries"
+        ]
+      }
+    },
+    "/api/v1/industries/{id}": {
+      "get": {
+        "operationId": "IndustryController_getById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndustryDetailResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get industry details by ID",
+        "tags": [
+          "Master Data - Industries"
+        ]
+      },
+      "patch": {
+        "operationId": "IndustryController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateIndustryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndustryDetailResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update industry name or active status",
+        "tags": [
+          "Master Data - Industries"
+        ]
+      },
+      "delete": {
+        "operationId": "IndustryController_delete",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Soft delete an industry",
+        "tags": [
+          "Master Data - Industries"
+        ]
+      }
+    },
+    "/api/v1/customer-types": {
+      "get": {
+        "operationId": "CustomerTypeController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListCustomerTypesResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List customer types with filters and keyset pagination",
+        "tags": [
+          "Master Data - Customer Types"
+        ]
+      },
+      "post": {
+        "operationId": "CustomerTypeController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCustomerTypeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerTypeItemDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a customer type",
+        "tags": [
+          "Master Data - Customer Types"
+        ]
+      }
+    },
+    "/api/v1/customer-types/options": {
+      "get": {
+        "operationId": "CustomerTypeController_getOptions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CustomerTypeOptionDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get active customer type options",
+        "tags": [
+          "Master Data - Customer Types"
+        ]
+      }
+    },
+    "/api/v1/customer-types/{id}": {
+      "get": {
+        "operationId": "CustomerTypeController_getById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerTypeItemDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get customer type details by ID",
+        "tags": [
+          "Master Data - Customer Types"
+        ]
+      },
+      "patch": {
+        "operationId": "CustomerTypeController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCustomerTypeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerTypeItemDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update customer type (name, is_active, or is_default)",
+        "tags": [
+          "Master Data - Customer Types"
+        ]
+      },
+      "delete": {
+        "operationId": "CustomerTypeController_delete",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Soft delete a customer type",
+        "tags": [
+          "Master Data - Customer Types"
+        ]
+      }
+    },
+    "/api/v1/lookups/options": {
+      "get": {
+        "operationId": "LookupController_getOptions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LookupOptionDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get active lookup options by type (e.g. person_department)",
+        "tags": [
+          "Master Data - Lookups"
+        ]
+      }
+    },
+    "/api/v1/companies": {
+      "get": {
+        "operationId": "CompanyController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListCompaniesResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List companies with filters and keyset pagination",
+        "tags": [
+          "CRM - Companies"
+        ]
+      },
+      "post": {
+        "operationId": "CompanyController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCompanyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyDetailResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create company with channels and contacts",
+        "tags": [
+          "CRM - Companies"
+        ]
+      }
+    },
+    "/api/v1/companies/options": {
+      "get": {
+        "operationId": "CompanyController_getOptions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CompanyOptionDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get active company options for parent picker",
+        "tags": [
+          "CRM - Companies"
+        ]
+      }
+    },
+    "/api/v1/companies/duplicate-check": {
+      "get": {
+        "operationId": "CompanyController_checkDuplicates",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CompanyDuplicateMatchDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Check for potential duplicate companies",
+        "tags": [
+          "CRM - Companies"
+        ]
+      }
+    },
+    "/api/v1/companies/{id}": {
+      "get": {
+        "operationId": "CompanyController_getById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyDetailResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get company detail by ID",
+        "tags": [
+          "CRM - Companies"
+        ]
+      },
+      "patch": {
+        "operationId": "CompanyController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCompanyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyDetailResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update company with channels and contacts diff",
+        "tags": [
+          "CRM - Companies"
+        ]
+      },
+      "delete": {
+        "operationId": "CompanyController_delete",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Soft delete company, channels and contacts links",
+        "tags": [
+          "CRM - Companies"
+        ]
+      }
+    },
+    "/api/v1/persons/lookup": {
+      "get": {
+        "operationId": "PersonController_lookup",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PersonLookupMatchDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lookup persons by email or mobile to link existing person",
+        "tags": [
+          "CRM - Persons"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Vernoxy Pulse API",
+    "description": "Sales CRM + HRMS REST API contracts",
+    "version": "1.0.0",
+    "contact": {}
+  },
+  "tags": [
+    {
+      "name": "Auth",
+      "description": "Authentication, 2FA OTP, and session management"
+    },
+    {
+      "name": "JWKS",
+      "description": "JSON Web Key Set public keys"
+    },
+    {
+      "name": "Health",
+      "description": "System and database health check"
+    }
+  ],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      }
+    },
+    "schemas": {
+      "LoginResponseDto": {
+        "type": "object",
+        "properties": {
+          "challenge_id": {
+            "type": "string",
+            "example": "11111111-1111-1111-1111-111111111111"
+          },
+          "masked_email": {
+            "type": "string",
+            "example": "a***n@vernoxy.com"
+          },
+          "expires_in_seconds": {
+            "type": "number",
+            "example": 600
+          },
+          "resend_available_in_seconds": {
+            "type": "number",
+            "example": 60
+          }
+        },
+        "required": [
+          "challenge_id",
+          "masked_email",
+          "expires_in_seconds",
+          "resend_available_in_seconds"
+        ]
+      },
+      "UserSummaryDto": {
+        "type": "object",
+        "properties": {
+          "emp_id": {
+            "type": "number",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Vernoxy Admin"
+          },
+          "email": {
+            "type": "string",
+            "example": "admin@vernoxy.com"
+          }
+        },
+        "required": [
+          "emp_id",
+          "name",
+          "email"
+        ]
+      },
+      "VerifyLoginResponseDto": {
+        "type": "object",
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "example": "eyJhbGciOiJSUzI1NiIs..."
+          },
+          "token_type": {
+            "type": "string",
+            "example": "Bearer"
+          },
+          "expires_in": {
+            "type": "number",
+            "example": 900
+          },
+          "must_change_password": {
+            "type": "boolean",
+            "example": false
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserSummaryDto"
+          }
+        },
+        "required": [
+          "access_token",
+          "token_type",
+          "expires_in",
+          "must_change_password",
+          "user"
+        ]
+      },
+      "RefreshResponseDto": {
+        "type": "object",
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "example": "eyJhbGciOiJSUzI1NiIs..."
+          },
+          "expires_in": {
+            "type": "number",
+            "example": 900
+          }
+        },
+        "required": [
+          "access_token",
+          "expires_in"
+        ]
+      },
+      "RoleSummaryDto": {
+        "type": "object",
+        "properties": {
+          "role_id": {
+            "type": "number",
+            "example": 1
+          },
+          "role_name": {
+            "type": "string",
+            "example": "Admin"
+          }
+        },
+        "required": [
+          "role_id",
+          "role_name"
+        ]
+      },
+      "DepartmentSummaryDto": {
+        "type": "object",
+        "properties": {
+          "dep_id": {
+            "type": "number",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Management"
+          }
+        },
+        "required": [
+          "dep_id",
+          "name"
+        ]
+      },
+      "AccessSummaryDto": {
+        "type": "object",
+        "properties": {
+          "can_manage_organization": {
+            "type": "boolean",
+            "example": true
+          },
+          "can_manage_companies": {
+            "type": "boolean",
+            "example": true
+          }
+        },
+        "required": [
+          "can_manage_organization",
+          "can_manage_companies"
+        ]
+      },
+      "MeResponseDto": {
+        "type": "object",
+        "properties": {
+          "emp_id": {
+            "type": "number",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Vernoxy Admin"
+          },
+          "email": {
+            "type": "string",
+            "example": "admin@vernoxy.com"
+          },
+          "mob": {
+            "type": "string",
+            "example": "9876543210",
+            "nullable": true
+          },
+          "profile_picture_url": {
+            "type": "string",
+            "example": "/api/v1/files/profile-photos/0123456789abcdef0123456789abcdef.webp?exp=1700000000&sig=abc123",
+            "nullable": true
+          },
+          "role": {
+            "$ref": "#/components/schemas/RoleSummaryDto"
+          },
+          "department": {
+            "$ref": "#/components/schemas/DepartmentSummaryDto"
+          },
+          "must_change_password": {
+            "type": "boolean",
+            "example": false
+          },
+          "access": {
+            "$ref": "#/components/schemas/AccessSummaryDto"
+          }
+        },
+        "required": [
+          "emp_id",
+          "name",
+          "email",
+          "mob",
+          "profile_picture_url",
+          "role",
+          "department",
+          "must_change_password",
+          "access"
+        ]
+      },
+      "ForgotPasswordResponseDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "If the email is registered, a password reset code has been sent."
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "DepartmentResponseDto": {
+        "type": "object",
+        "properties": {
+          "dep_id": {
+            "type": "number",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Engineering"
+          },
+          "is_active": {
+            "type": "boolean",
+            "example": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-10-10T12:00:00Z"
+          },
+          "created_by": {
+            "type": "number",
+            "example": 1,
+            "nullable": true
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-10-10T12:00:00Z",
+            "nullable": true
+          },
+          "updated_by": {
+            "type": "number",
+            "example": 1,
+            "nullable": true
+          }
+        },
+        "required": [
+          "dep_id",
+          "name",
+          "is_active",
+          "created_at"
+        ]
+      },
+      "DepartmentListResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DepartmentResponseDto"
+            }
+          },
+          "next_cursor": {
+            "type": "string",
+            "example": "eyJpZCI6MTB9",
+            "nullable": true
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "DepartmentOptionDto": {
+        "type": "object",
+        "properties": {
+          "dep_id": {
+            "type": "number",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Engineering"
+          }
+        },
+        "required": [
+          "dep_id",
+          "name"
+        ]
+      },
+      "CreateDepartmentDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Engineering",
+            "description": "Department name"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateDepartmentDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Product Engineering",
+            "description": "Department name"
+          },
+          "is_active": {
+            "type": "boolean",
+            "example": true,
+            "description": "Department active status"
+          }
+        }
+      },
+      "RoleResponseDto": {
+        "type": "object",
+        "properties": {
+          "role_id": {
+            "type": "number",
+            "example": 1
+          },
+          "role_name": {
+            "type": "string",
+            "example": "Software Engineer"
+          },
+          "dep_id": {
+            "type": "number",
+            "example": 1
+          },
+          "description": {
+            "type": "string",
+            "example": "Develops platform features",
+            "nullable": true
+          },
+          "is_active": {
+            "type": "boolean",
+            "example": true
+          },
+          "is_admin": {
+            "type": "boolean",
+            "example": false
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-10-10T12:00:00Z"
+          },
+          "created_by": {
+            "type": "number",
+            "example": 1,
+            "nullable": true
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-10-10T12:00:00Z",
+            "nullable": true
+          },
+          "updated_by": {
+            "type": "number",
+            "example": 1,
+            "nullable": true
+          }
+        },
+        "required": [
+          "role_id",
+          "role_name",
+          "dep_id",
+          "is_active",
+          "is_admin",
+          "created_at"
+        ]
+      },
+      "RoleListResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoleResponseDto"
+            }
+          },
+          "next_cursor": {
+            "type": "string",
+            "example": "eyJpZCI6MTB9",
+            "nullable": true
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "RoleOptionDto": {
+        "type": "object",
+        "properties": {
+          "role_id": {
+            "type": "number",
+            "example": 1
+          },
+          "role_name": {
+            "type": "string",
+            "example": "Software Engineer"
+          }
+        },
+        "required": [
+          "role_id",
+          "role_name"
+        ]
+      },
+      "CreateRoleDto": {
+        "type": "object",
+        "properties": {
+          "role_name": {
+            "type": "string",
+            "example": "Software Engineer",
+            "description": "Role name"
+          },
+          "dep_id": {
+            "type": "number",
+            "example": 1,
+            "description": "Department ID this role belongs to"
+          },
+          "description": {
+            "type": "string",
+            "example": "Develops platform features",
+            "description": "Role description"
+          }
+        },
+        "required": [
+          "role_name",
+          "dep_id"
+        ]
+      },
+      "UpdateRoleDto": {
+        "type": "object",
+        "properties": {
+          "role_name": {
+            "type": "string",
+            "example": "Senior Software Engineer",
+            "description": "Role name"
+          },
+          "description": {
+            "type": "string",
+            "example": "Leads platform development",
+            "description": "Role description"
+          },
+          "is_active": {
+            "type": "boolean",
+            "example": true,
+            "description": "Role active status"
+          }
+        }
+      },
+      "EmployeeRelationDepartmentDto": {
+        "type": "object",
+        "properties": {
+          "dep_id": {
+            "type": "number",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Engineering"
+          }
+        },
+        "required": [
+          "dep_id",
+          "name"
+        ]
+      },
+      "EmployeeRelationRoleDto": {
+        "type": "object",
+        "properties": {
+          "role_id": {
+            "type": "number",
+            "example": 2
+          },
+          "role_name": {
+            "type": "string",
+            "example": "Software Engineer"
+          }
+        },
+        "required": [
+          "role_id",
+          "role_name"
+        ]
+      },
+      "EmployeeRelationManagerDto": {
+        "type": "object",
+        "properties": {
+          "emp_id": {
+            "type": "number",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Bob Smith"
+          }
+        },
+        "required": [
+          "emp_id",
+          "name"
+        ]
+      },
+      "EmployeeResponseDto": {
+        "type": "object",
+        "properties": {
+          "emp_id": {
+            "type": "number",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Alice Johnson"
+          },
+          "email": {
+            "type": "string",
+            "example": "alice@vernoxy.com"
+          },
+          "mob": {
+            "type": "string",
+            "example": "+919876543210"
+          },
+          "dep_id": {
+            "type": "number",
+            "example": 1
+          },
+          "role_id": {
+            "type": "number",
+            "example": 2,
+            "nullable": true
+          },
+          "reporting_manager": {
+            "type": "number",
+            "example": 1,
+            "nullable": true
+          },
+          "profile_picture_url": {
+            "type": "string",
+            "example": "/api/v1/files/profile-photos/abc123.webp?exp=123&sig=456",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "example": "Active",
+            "enum": [
+              "Active",
+              "Inactive"
+            ]
+          },
+          "joining_date": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-10-01"
+          },
+          "exit_date": {
+            "type": "string",
+            "format": "date",
+            "example": null,
+            "nullable": true
+          },
+          "department": {
+            "$ref": "#/components/schemas/EmployeeRelationDepartmentDto"
+          },
+          "role": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EmployeeRelationRoleDto"
+              }
+            ]
+          },
+          "manager": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EmployeeRelationManagerDto"
+              }
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-10-10T12:00:00Z"
+          },
+          "created_by": {
+            "type": "number",
+            "example": 1,
+            "nullable": true
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-10-10T12:00:00Z",
+            "nullable": true
+          },
+          "updated_by": {
+            "type": "number",
+            "example": 1,
+            "nullable": true
+          }
+        },
+        "required": [
+          "emp_id",
+          "name",
+          "email",
+          "mob",
+          "dep_id",
+          "status",
+          "joining_date",
+          "created_at"
+        ]
+      },
+      "EmployeeListResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmployeeResponseDto"
+            }
+          },
+          "next_cursor": {
+            "type": "string",
+            "example": "eyJpZCI6MTB9",
+            "nullable": true
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "EmployeeOptionDto": {
+        "type": "object",
+        "properties": {
+          "emp_id": {
+            "type": "number",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Alice Johnson"
+          },
+          "email": {
+            "type": "string",
+            "example": "alice@vernoxy.com"
+          }
+        },
+        "required": [
+          "emp_id",
+          "name",
+          "email"
+        ]
+      },
+      "CreateEmployeeDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Alice Johnson",
+            "description": "Employee full name"
+          },
+          "email": {
+            "type": "string",
+            "example": "alice@vernoxy.com",
+            "description": "Corporate email"
+          },
+          "mob": {
+            "type": "string",
+            "example": "+919876543210",
+            "description": "Mobile phone number",
+            "nullable": true
+          },
+          "password": {
+            "type": "string",
+            "example": "P@ssw0rd",
+            "description": "Initial account password (min 6 chars)"
+          },
+          "dep_id": {
+            "type": "number",
+            "example": 1,
+            "description": "Department ID"
+          },
+          "role_id": {
+            "type": "number",
+            "example": 2,
+            "description": "Role ID (optional, must belong to department if provided)",
+            "nullable": true
+          },
+          "reporting_manager": {
+            "type": "number",
+            "example": 1,
+            "description": "Reporting manager employee ID",
+            "nullable": true
+          },
+          "joining_date": {
+            "type": "string",
+            "example": "2026-10-01",
+            "description": "Joining date"
+          }
+        },
+        "required": [
+          "name",
+          "email",
+          "password",
+          "dep_id",
+          "joining_date"
+        ]
+      },
+      "UpdateEmployeeDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Alice Johnson-Smith",
+            "description": "Employee full name"
+          },
+          "mob": {
+            "type": "string",
+            "example": "+919876543211",
+            "description": "Mobile phone number"
+          },
+          "dep_id": {
+            "type": "number",
+            "example": 1,
+            "description": "Department ID"
+          },
+          "role_id": {
+            "type": "number",
+            "example": 2,
+            "description": "Role ID",
+            "nullable": true
+          },
+          "reporting_manager": {
+            "type": "number",
+            "example": 1,
+            "description": "Reporting manager employee ID",
+            "nullable": true
+          },
+          "joining_date": {
+            "type": "string",
+            "example": "2026-10-01",
+            "description": "Joining date"
+          },
+          "exit_date": {
+            "type": "string",
+            "example": "2026-10-31",
+            "description": "Exit date",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "example": "Active",
+            "enum": [
+              "Active",
+              "Inactive"
+            ]
+          }
+        }
+      },
+      "IndustryParentDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Manufacturing"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "IndustryListItemDto": {
+        "type": "object",
+        "properties": {
+          "industry_id": {
+            "type": "number",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Textile and Apparel"
+          },
+          "parent": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IndustryParentDto"
+              }
+            ]
+          },
+          "sub_count": {
+            "type": "number",
+            "example": 5
+          },
+          "company_count": {
+            "type": "number",
+            "example": 12
+          },
+          "is_active": {
+            "type": "boolean",
+            "example": true
+          },
+          "is_default": {
+            "type": "boolean",
+            "example": false
+          }
+        },
+        "required": [
+          "industry_id",
+          "name",
+          "parent",
+          "sub_count",
+          "company_count",
+          "is_active",
+          "is_default"
+        ]
+      },
+      "ListIndustriesResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IndustryListItemDto"
+            }
+          },
+          "next_cursor": {
+            "type": "number",
+            "example": 10,
+            "nullable": true
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "IndustryOptionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Manufacturing"
+          },
+          "is_default": {
+            "type": "boolean",
+            "example": false
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "is_default"
+        ]
+      },
+      "IndustryDetailResponseDto": {
+        "type": "object",
+        "properties": {
+          "industry_id": {
+            "type": "number",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Manufacturing"
+          },
+          "parent_id": {
+            "type": "number",
+            "example": null,
+            "nullable": true
+          },
+          "is_active": {
+            "type": "boolean",
+            "example": true
+          },
+          "is_default": {
+            "type": "boolean",
+            "example": false
+          }
+        },
+        "required": [
+          "industry_id",
+          "name",
+          "is_active",
+          "is_default"
+        ]
+      },
+      "CreateIndustryDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Industry name",
+            "example": "Renewable Energy"
+          },
+          "parent_id": {
+            "type": "number",
+            "description": "Parent industry ID if this is a sub-industry",
+            "example": 1
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateIndustryDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Updated industry name",
+            "example": "Clean Energy"
+          },
+          "is_active": {
+            "type": "boolean",
+            "description": "Active status",
+            "example": true
+          }
+        }
+      },
+      "CustomerTypeItemDto": {
+        "type": "object",
+        "properties": {
+          "customer_type_id": {
+            "type": "number",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Client"
+          },
+          "is_active": {
+            "type": "boolean",
+            "example": true
+          },
+          "is_default": {
+            "type": "boolean",
+            "example": false
+          }
+        },
+        "required": [
+          "customer_type_id",
+          "name",
+          "is_active",
+          "is_default"
+        ]
+      },
+      "ListCustomerTypesResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomerTypeItemDto"
+            }
+          },
+          "next_cursor": {
+            "type": "number",
+            "example": 10,
+            "nullable": true
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "CustomerTypeOptionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Client"
+          },
+          "is_default": {
+            "type": "boolean",
+            "example": false
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "is_default"
+        ]
+      },
+      "CreateCustomerTypeDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Customer type name",
+            "example": "Enterprise"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateCustomerTypeDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Customer type name",
+            "example": "Key Account"
+          },
+          "is_active": {
+            "type": "boolean",
+            "description": "Active status",
+            "example": true
+          },
+          "is_default": {
+            "type": "boolean",
+            "description": "Set as default customer type",
+            "example": true
+          }
+        }
+      },
+      "LookupOptionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "example": 1
+          },
+          "code": {
+            "type": "string",
+            "example": "engineering"
+          },
+          "label": {
+            "type": "string",
+            "example": "Engineering"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "label"
+        ]
+      },
+      "IdNameDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Name"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "OwnerDto": {
+        "type": "object",
+        "properties": {
+          "emp_id": {
+            "type": "number",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "John Doe"
+          }
+        },
+        "required": [
+          "emp_id",
+          "name"
+        ]
+      },
+      "CompanyListItemDto": {
+        "type": "object",
+        "properties": {
+          "company_id": {
+            "type": "number",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Acme Corp"
+          },
+          "customer_type": {
+            "$ref": "#/components/schemas/IdNameDto"
+          },
+          "industry": {
+            "$ref": "#/components/schemas/IdNameDto"
+          },
+          "sub_industry": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IdNameDto"
+              }
+            ]
+          },
+          "city": {
+            "type": "string",
+            "example": "San Francisco",
+            "nullable": true
+          },
+          "state": {
+            "type": "string",
+            "example": "CA",
+            "nullable": true
+          },
+          "owner": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OwnerDto"
+              }
+            ]
+          },
+          "primary_email": {
+            "type": "string",
+            "example": "contact@acme.com",
+            "nullable": true
+          },
+          "primary_phone": {
+            "type": "string",
+            "example": "+1234567890",
+            "nullable": true
+          },
+          "contact_count": {
+            "type": "number",
+            "example": 4
+          },
+          "is_active": {
+            "type": "boolean",
+            "example": true
+          }
+        },
+        "required": [
+          "company_id",
+          "name",
+          "customer_type",
+          "industry",
+          "sub_industry",
+          "city",
+          "state",
+          "owner",
+          "primary_email",
+          "primary_phone",
+          "contact_count",
+          "is_active"
+        ]
+      },
+      "ListCompaniesResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CompanyListItemDto"
+            }
+          },
+          "next_cursor": {
+            "type": "string",
+            "example": "ZXhhbXBsZQ==",
+            "nullable": true
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "CompanyOptionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Acme Corp"
+          },
+          "city": {
+            "type": "string",
+            "example": "San Francisco",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "city"
+        ]
+      },
+      "CompanyDuplicateMatchDto": {
+        "type": "object",
+        "properties": {
+          "company_id": {
+            "type": "number",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Acme Corp"
+          },
+          "city": {
+            "type": "string",
+            "example": "San Francisco",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "example": "Exact name match"
+          }
+        },
+        "required": [
+          "company_id",
+          "name",
+          "city",
+          "reason"
+        ]
+      },
+      "CompanyChannelDetailDto": {
+        "type": "object",
+        "properties": {
+          "channel_id": {
+            "type": "number",
+            "example": 1
+          },
+          "channel_type": {
+            "type": "string",
+            "example": "website"
+          },
+          "value": {
+            "type": "string",
+            "example": "https://acme.com"
+          },
+          "label": {
+            "type": "string",
+            "example": "Main Website",
+            "nullable": true
+          },
+          "is_primary": {
+            "type": "boolean",
+            "example": true
+          }
+        },
+        "required": [
+          "channel_id",
+          "channel_type",
+          "value",
+          "label",
+          "is_primary"
+        ]
+      },
+      "DepartmentLabelDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "example": 1
+          },
+          "label": {
+            "type": "string",
+            "example": "Engineering"
+          }
+        },
+        "required": [
+          "id",
+          "label"
+        ]
+      },
+      "CompanyContactDetailDto": {
+        "type": "object",
+        "properties": {
+          "company_person_id": {
+            "type": "number",
+            "example": 1
+          },
+          "person_id": {
+            "type": "number",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Jane Doe"
+          },
+          "email": {
+            "type": "string",
+            "example": "jane@acme.com",
+            "nullable": true
+          },
+          "mobile": {
+            "type": "string",
+            "example": "+1234567890",
+            "nullable": true
+          },
+          "linkedin_url": {
+            "type": "string",
+            "example": "https://linkedin.com/in/janedoe",
+            "nullable": true
+          },
+          "designation": {
+            "type": "string",
+            "example": "VP Engineering",
+            "nullable": true
+          },
+          "department": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DepartmentLabelDto"
+              }
+            ]
+          },
+          "is_primary": {
+            "type": "boolean",
+            "example": true
+          },
+          "reports_to_company_person_id": {
+            "type": "number",
+            "example": null,
+            "nullable": true
+          },
+          "linked_company_count": {
+            "type": "number",
+            "example": 2
+          }
+        },
+        "required": [
+          "company_person_id",
+          "person_id",
+          "name",
+          "email",
+          "mobile",
+          "linkedin_url",
+          "designation",
+          "department",
+          "is_primary",
+          "reports_to_company_person_id",
+          "linked_company_count"
+        ]
+      },
+      "CompanyDetailResponseDto": {
+        "type": "object",
+        "properties": {
+          "company_id": {
+            "type": "number",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Acme Corp"
+          },
+          "customer_type": {
+            "$ref": "#/components/schemas/IdNameDto"
+          },
+          "industry": {
+            "$ref": "#/components/schemas/IdNameDto"
+          },
+          "sub_industry": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IdNameDto"
+              }
+            ]
+          },
+          "parent": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IdNameDto"
+              }
+            ]
+          },
+          "children": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IdNameDto"
+            }
+          },
+          "address": {
+            "type": "string",
+            "example": "123 Market St",
+            "nullable": true
+          },
+          "city": {
+            "type": "string",
+            "example": "San Francisco",
+            "nullable": true
+          },
+          "state": {
+            "type": "string",
+            "example": "CA",
+            "nullable": true
+          },
+          "country": {
+            "type": "string",
+            "example": "United States",
+            "nullable": true
+          },
+          "owner": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OwnerDto"
+              }
+            ]
+          },
+          "is_active": {
+            "type": "boolean",
+            "example": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-10-12T10:00:00Z"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": null,
+            "nullable": true
+          },
+          "channels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CompanyChannelDetailDto"
+            }
+          },
+          "contacts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CompanyContactDetailDto"
+            }
+          }
+        },
+        "required": [
+          "company_id",
+          "name",
+          "customer_type",
+          "industry",
+          "sub_industry",
+          "parent",
+          "children",
+          "address",
+          "city",
+          "state",
+          "country",
+          "owner",
+          "is_active",
+          "created_at",
+          "channels",
+          "contacts"
+        ]
+      },
+      "CreateCompanyChannelDto": {
+        "type": "object",
+        "properties": {
+          "channel_type": {
+            "type": "string",
+            "example": "email",
+            "enum": [
+              "website",
+              "facebook",
+              "instagram",
+              "x",
+              "linkedin",
+              "email",
+              "phone",
+              "whatsapp"
+            ]
+          },
+          "value": {
+            "type": "string",
+            "example": "contact@acme.com"
+          },
+          "label": {
+            "type": "string",
+            "example": "Support"
+          },
+          "is_primary": {
+            "type": "boolean",
+            "example": true
+          }
+        },
+        "required": [
+          "channel_type",
+          "value"
+        ]
+      },
+      "CreatePersonNestedDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Jane Doe"
+          },
+          "email": {
+            "type": "string",
+            "example": "jane.doe@acme.com"
+          },
+          "mobile": {
+            "type": "string",
+            "example": "+1234567890"
+          },
+          "linkedin_url": {
+            "type": "string",
+            "example": "https://linkedin.com/in/janedoe"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "CreateCompanyContactDto": {
+        "type": "object",
+        "properties": {
+          "person_id": {
+            "type": "number",
+            "example": 1
+          },
+          "person": {
+            "$ref": "#/components/schemas/CreatePersonNestedDto"
+          },
+          "designation": {
+            "type": "string",
+            "example": "VP Engineering"
+          },
+          "department_id": {
+            "type": "number",
+            "example": 1
+          },
+          "is_primary": {
+            "type": "boolean",
+            "example": true
+          },
+          "reports_to_index": {
+            "type": "number",
+            "example": 0,
+            "description": "Index of another contact in the same request who this contact reports to"
+          }
+        }
+      },
+      "CreateCompanyDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Acme Corp"
+          },
+          "parent_company_id": {
+            "type": "number",
+            "example": 1
+          },
+          "customer_type_id": {
+            "type": "number",
+            "example": 1
+          },
+          "industry_id": {
+            "type": "number",
+            "example": 1
+          },
+          "sub_industry_id": {
+            "type": "number",
+            "example": 2
+          },
+          "address": {
+            "type": "string",
+            "example": "123 Market St"
+          },
+          "city": {
+            "type": "string",
+            "example": "San Francisco"
+          },
+          "state": {
+            "type": "string",
+            "example": "CA"
+          },
+          "country": {
+            "type": "string",
+            "example": "United States"
+          },
+          "owner_id": {
+            "type": "number",
+            "example": 1
+          },
+          "channels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateCompanyChannelDto"
+            }
+          },
+          "contacts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateCompanyContactDto"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "customer_type_id",
+          "industry_id"
+        ]
+      },
+      "UpdateCompanyChannelDto": {
+        "type": "object",
+        "properties": {
+          "channel_id": {
+            "type": "number",
+            "example": 1
+          },
+          "channel_type": {
+            "type": "string",
+            "example": "email",
+            "enum": [
+              "website",
+              "facebook",
+              "instagram",
+              "x",
+              "linkedin",
+              "email",
+              "phone",
+              "whatsapp"
+            ]
+          },
+          "value": {
+            "type": "string",
+            "example": "contact@acme.com"
+          },
+          "label": {
+            "type": "string",
+            "example": "Support"
+          },
+          "is_primary": {
+            "type": "boolean",
+            "example": true
+          }
+        },
+        "required": [
+          "channel_type",
+          "value"
+        ]
+      },
+      "UpdateCompanyContactDto": {
+        "type": "object",
+        "properties": {
+          "company_person_id": {
+            "type": "number",
+            "example": 1
+          },
+          "person_id": {
+            "type": "number",
+            "example": 1
+          },
+          "person": {
+            "$ref": "#/components/schemas/CreatePersonNestedDto"
+          },
+          "designation": {
+            "type": "string",
+            "example": "VP Engineering"
+          },
+          "department_id": {
+            "type": "number",
+            "example": 1
+          },
+          "is_primary": {
+            "type": "boolean",
+            "example": true
+          },
+          "reports_to_company_person_id": {
+            "type": "number",
+            "example": 2
+          },
+          "reports_to_index": {
+            "type": "number",
+            "example": 0
+          }
+        }
+      },
+      "UpdateCompanyDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Acme Corp"
+          },
+          "parent_company_id": {
+            "type": "number",
+            "example": 1,
+            "nullable": true
+          },
+          "customer_type_id": {
+            "type": "number",
+            "example": 1
+          },
+          "industry_id": {
+            "type": "number",
+            "example": 1
+          },
+          "sub_industry_id": {
+            "type": "number",
+            "example": 2,
+            "nullable": true
+          },
+          "address": {
+            "type": "string",
+            "example": "123 Market St",
+            "nullable": true
+          },
+          "city": {
+            "type": "string",
+            "example": "San Francisco",
+            "nullable": true
+          },
+          "state": {
+            "type": "string",
+            "example": "CA",
+            "nullable": true
+          },
+          "country": {
+            "type": "string",
+            "example": "United States",
+            "nullable": true
+          },
+          "owner_id": {
+            "type": "number",
+            "example": 1,
+            "nullable": true
+          },
+          "is_active": {
+            "type": "boolean",
+            "example": true
+          },
+          "channels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UpdateCompanyChannelDto"
+            }
+          },
+          "contacts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UpdateCompanyContactDto"
+            }
+          }
+        }
+      },
+      "LinkedCompanyDto": {
+        "type": "object",
+        "properties": {
+          "company_id": {
+            "type": "number",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Acme Corp"
+          }
+        },
+        "required": [
+          "company_id",
+          "name"
+        ]
+      },
+      "PersonLookupMatchDto": {
+        "type": "object",
+        "properties": {
+          "person_id": {
+            "type": "number",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Jane Doe"
+          },
+          "email": {
+            "type": "string",
+            "example": "jane.doe@acme.com",
+            "nullable": true
+          },
+          "mobile": {
+            "type": "string",
+            "example": "+1234567890",
+            "nullable": true
+          },
+          "linked_companies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinkedCompanyDto"
+            }
+          }
+        },
+        "required": [
+          "person_id",
+          "name",
+          "linked_companies"
+        ]
+      }
+    }
+  }
+}

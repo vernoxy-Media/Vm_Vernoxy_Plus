@@ -1,0 +1,502 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model companies {
+  company_id                                       Int                @id(map: "pk_companies") @default(autoincrement())
+  name                                             String             @db.VarChar(255)
+  parent_company_id                                Int?
+  customer_type_id                                 Int
+  industry_id                                      Int
+  sub_industry_id                                  Int?
+  address                                          String?
+  city                                             String?            @db.VarChar(100)
+  state                                            String?            @db.VarChar(100)
+  country                                          String?            @db.VarChar(100)
+  owner_id                                         Int?
+  is_active                                        Boolean            @default(true)
+  created_at                                       DateTime           @default(now()) @db.Timestamptz(6)
+  created_by                                       Int?
+  updated_at                                       DateTime?          @db.Timestamptz(6)
+  updated_by                                       Int?
+  deleted_at                                       DateTime?          @db.Timestamptz(6)
+  deleted_by                                       Int?
+  employees_companies_created_byToemployees        employees?         @relation("companies_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_companies_created_by")
+  customer_types                                   customer_types     @relation(fields: [customer_type_id], references: [customer_type_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_companies_customer_type_id")
+  employees_companies_deleted_byToemployees        employees?         @relation("companies_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_companies_deleted_by")
+  industries_companies_industry_idToindustries     industries         @relation("companies_industry_idToindustries", fields: [industry_id], references: [industry_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_companies_industry_id")
+  employees_companies_owner_idToemployees          employees?         @relation("companies_owner_idToemployees", fields: [owner_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_companies_owner_id")
+  companies                                        companies?         @relation("companiesTocompanies", fields: [parent_company_id], references: [company_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_companies_parent_company_id")
+  other_companies                                  companies[]        @relation("companiesTocompanies")
+  industries_companies_sub_industry_idToindustries industries?        @relation("companies_sub_industry_idToindustries", fields: [sub_industry_id], references: [industry_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_companies_sub_industry_id")
+  employees_companies_updated_byToemployees        employees?         @relation("companies_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_companies_updated_by")
+  company_channels                                 company_channels[]
+  company_persons                                  company_persons[]
+  leads                                            leads[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model company_channels {
+  channel_id                                       Int          @id(map: "pk_company_channels") @default(autoincrement())
+  company_id                                       Int
+  channel_type                                     channel_type
+  value                                            String       @db.VarChar(300)
+  label                                            String?      @db.VarChar(100)
+  is_primary                                       Boolean      @default(false)
+  created_at                                       DateTime     @default(now()) @db.Timestamptz(6)
+  created_by                                       Int?
+  updated_at                                       DateTime?    @db.Timestamptz(6)
+  updated_by                                       Int?
+  deleted_at                                       DateTime?    @db.Timestamptz(6)
+  deleted_by                                       Int?
+  companies                                        companies    @relation(fields: [company_id], references: [company_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_company_channels_company_id")
+  employees_company_channels_created_byToemployees employees?   @relation("company_channels_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_company_channels_created_by")
+  employees_company_channels_deleted_byToemployees employees?   @relation("company_channels_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_company_channels_deleted_by")
+  employees_company_channels_updated_byToemployees employees?   @relation("company_channels_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_company_channels_updated_by")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model company_persons {
+  company_person_id                               Int               @id(map: "pk_company_persons") @default(autoincrement())
+  company_id                                      Int
+  person_id                                       Int
+  designation                                     String?           @db.VarChar(100)
+  department_id                                   Int?
+  is_primary                                      Boolean           @default(false)
+  reports_to_id                                   Int?
+  is_active                                       Boolean           @default(true)
+  created_at                                      DateTime          @default(now()) @db.Timestamptz(6)
+  created_by                                      Int?
+  updated_at                                      DateTime?         @db.Timestamptz(6)
+  updated_by                                      Int?
+  deleted_at                                      DateTime?         @db.Timestamptz(6)
+  deleted_by                                      Int?
+  companies                                       companies         @relation(fields: [company_id], references: [company_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_company_persons_company_id")
+  employees_company_persons_created_byToemployees employees?        @relation("company_persons_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_company_persons_created_by")
+  employees_company_persons_deleted_byToemployees employees?        @relation("company_persons_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_company_persons_deleted_by")
+  departments                                     master_lookup?    @relation(fields: [department_id], references: [lookup_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_company_persons_department_id")
+  persons                                         persons           @relation(fields: [person_id], references: [person_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_company_persons_person_id")
+  company_persons                                 company_persons?  @relation("company_personsTocompany_persons", fields: [reports_to_id], references: [company_person_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_company_persons_reports_to_id")
+  other_company_persons                           company_persons[] @relation("company_personsTocompany_persons")
+  employees_company_persons_updated_byToemployees employees?        @relation("company_persons_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_company_persons_updated_by")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model customer_types {
+  customer_type_id                               Int         @id(map: "pk_customer_types") @default(autoincrement())
+  name                                           String      @db.VarChar(100)
+  is_active                                      Boolean     @default(true)
+  created_at                                     DateTime    @default(now()) @db.Timestamptz(6)
+  created_by                                     Int?
+  updated_at                                     DateTime?   @db.Timestamptz(6)
+  updated_by                                     Int?
+  deleted_at                                     DateTime?   @db.Timestamptz(6)
+  deleted_by                                     Int?
+  is_default                                     Boolean     @default(false)
+  companies                                      companies[]
+  employees_customer_types_created_byToemployees employees?  @relation("customer_types_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_customer_types_created_by")
+  employees_customer_types_deleted_byToemployees employees?  @relation("customer_types_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_customer_types_deleted_by")
+  employees_customer_types_updated_byToemployees employees?  @relation("customer_types_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_customer_types_updated_by")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model departments {
+  dep_id                                      Int         @id(map: "pk_departments") @default(autoincrement())
+  name                                        String      @db.VarChar(255)
+  is_active                                   Boolean     @default(true)
+  created_at                                  DateTime    @default(now()) @db.Timestamptz(6)
+  created_by                                  Int?
+  updated_at                                  DateTime?   @db.Timestamptz(6)
+  updated_by                                  Int?
+  deleted_at                                  DateTime?   @db.Timestamptz(6)
+  deleted_by                                  Int?
+  employees_departments_created_byToemployees employees?  @relation("departments_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_departments_created_by")
+  employees_departments_deleted_byToemployees employees?  @relation("departments_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_departments_deleted_by")
+  employees_departments_updated_byToemployees employees?  @relation("departments_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_departments_updated_by")
+  employees_employees_dep_idTodepartments     employees[] @relation("employees_dep_idTodepartments")
+  roles                                       roles[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model employees {
+  emp_id                                                          Int                    @id(map: "pk_employees") @default(autoincrement())
+  name                                                            String                 @db.VarChar(255)
+  email                                                           String                 @db.VarChar(255)
+  mob                                                             String                 @db.VarChar(20)
+  dep_id                                                          Int
+  role_id                                                         Int?
+  reporting_manager                                               Int?
+  profile_picture                                                 String?                @db.VarChar(500)
+  status                                                          employee_status        @default(Active)
+  joining_date                                                    DateTime               @db.Date
+  exit_date                                                       DateTime?              @db.Date
+  created_at                                                      DateTime               @default(now()) @db.Timestamptz(6)
+  created_by                                                      Int?
+  updated_at                                                      DateTime?              @db.Timestamptz(6)
+  updated_by                                                      Int?
+  deleted_at                                                      DateTime?              @db.Timestamptz(6)
+  deleted_by                                                      Int?
+  auth_events_auth_events_actor_emp_idToemployees                 auth_events[]          @relation("auth_events_actor_emp_idToemployees")
+  auth_events_auth_events_emp_idToemployees                       auth_events[]          @relation("auth_events_emp_idToemployees")
+  auth_sessions_auth_sessions_created_byToemployees               auth_sessions[]        @relation("auth_sessions_created_byToemployees")
+  auth_sessions_auth_sessions_deleted_byToemployees               auth_sessions[]        @relation("auth_sessions_deleted_byToemployees")
+  auth_sessions_auth_sessions_emp_idToemployees                   auth_sessions[]        @relation("auth_sessions_emp_idToemployees")
+  auth_sessions_auth_sessions_updated_byToemployees               auth_sessions[]        @relation("auth_sessions_updated_byToemployees")
+  companies_companies_created_byToemployees                       companies[]            @relation("companies_created_byToemployees")
+  companies_companies_deleted_byToemployees                       companies[]            @relation("companies_deleted_byToemployees")
+  companies_companies_owner_idToemployees                         companies[]            @relation("companies_owner_idToemployees")
+  companies_companies_updated_byToemployees                       companies[]            @relation("companies_updated_byToemployees")
+  company_channels_company_channels_created_byToemployees         company_channels[]     @relation("company_channels_created_byToemployees")
+  company_channels_company_channels_deleted_byToemployees         company_channels[]     @relation("company_channels_deleted_byToemployees")
+  company_channels_company_channels_updated_byToemployees         company_channels[]     @relation("company_channels_updated_byToemployees")
+  company_persons_company_persons_created_byToemployees           company_persons[]      @relation("company_persons_created_byToemployees")
+  company_persons_company_persons_deleted_byToemployees           company_persons[]      @relation("company_persons_deleted_byToemployees")
+  company_persons_company_persons_updated_byToemployees           company_persons[]      @relation("company_persons_updated_byToemployees")
+  customer_types_customer_types_created_byToemployees             customer_types[]       @relation("customer_types_created_byToemployees")
+  customer_types_customer_types_deleted_byToemployees             customer_types[]       @relation("customer_types_deleted_byToemployees")
+  customer_types_customer_types_updated_byToemployees             customer_types[]       @relation("customer_types_updated_byToemployees")
+  departments_departments_created_byToemployees                   departments[]          @relation("departments_created_byToemployees")
+  departments_departments_deleted_byToemployees                   departments[]          @relation("departments_deleted_byToemployees")
+  departments_departments_updated_byToemployees                   departments[]          @relation("departments_updated_byToemployees")
+  employee_credentials_employee_credentials_created_byToemployees employee_credentials[] @relation("employee_credentials_created_byToemployees")
+  employee_credentials_employee_credentials_deleted_byToemployees employee_credentials[] @relation("employee_credentials_deleted_byToemployees")
+  employee_credentials_employee_credentials_emp_idToemployees     employee_credentials[] @relation("employee_credentials_emp_idToemployees")
+  employee_credentials_employee_credentials_updated_byToemployees employee_credentials[] @relation("employee_credentials_updated_byToemployees")
+  employees_employees_created_byToemployees                       employees?             @relation("employees_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_employees_created_by")
+  other_employees_employees_created_byToemployees                 employees[]            @relation("employees_created_byToemployees")
+  employees_employees_deleted_byToemployees                       employees?             @relation("employees_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_employees_deleted_by")
+  other_employees_employees_deleted_byToemployees                 employees[]            @relation("employees_deleted_byToemployees")
+  departments_employees_dep_idTodepartments                       departments            @relation("employees_dep_idTodepartments", fields: [dep_id], references: [dep_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_employees_dep_id")
+  employees_employees_reporting_managerToemployees                employees?             @relation("employees_reporting_managerToemployees", fields: [reporting_manager], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_employees_reporting_manager")
+  other_employees_employees_reporting_managerToemployees          employees[]            @relation("employees_reporting_managerToemployees")
+  roles_employees_role_idToroles                                  roles?                 @relation("employees_role_idToroles", fields: [role_id], references: [role_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_employees_role_id")
+  roles_employees_role_id_dep_idToroles                           roles?                 @relation("employees_role_id_dep_idToroles", fields: [role_id, dep_id], references: [role_id, dep_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_employees_role_in_department")
+  employees_employees_updated_byToemployees                       employees?             @relation("employees_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_employees_updated_by")
+  other_employees_employees_updated_byToemployees                 employees[]            @relation("employees_updated_byToemployees")
+  industries_industries_created_byToemployees                     industries[]           @relation("industries_created_byToemployees")
+  industries_industries_deleted_byToemployees                     industries[]           @relation("industries_deleted_byToemployees")
+  industries_industries_updated_byToemployees                     industries[]           @relation("industries_updated_byToemployees")
+  leads_leads_created_byToemployees                               leads[]                @relation("leads_created_byToemployees")
+  leads_leads_deleted_byToemployees                               leads[]                @relation("leads_deleted_byToemployees")
+  leads_leads_owner_idToemployees                                 leads[]                @relation("leads_owner_idToemployees")
+  leads_leads_updated_byToemployees                               leads[]                @relation("leads_updated_byToemployees")
+  master_lookup_master_lookup_created_byToemployees               master_lookup[]        @relation("master_lookup_created_byToemployees")
+  master_lookup_master_lookup_deleted_byToemployees               master_lookup[]        @relation("master_lookup_deleted_byToemployees")
+  master_lookup_master_lookup_updated_byToemployees               master_lookup[]        @relation("master_lookup_updated_byToemployees")
+  otp_codes_otp_codes_created_byToemployees                       otp_codes[]            @relation("otp_codes_created_byToemployees")
+  otp_codes_otp_codes_deleted_byToemployees                       otp_codes[]            @relation("otp_codes_deleted_byToemployees")
+  otp_codes_otp_codes_emp_idToemployees                           otp_codes[]            @relation("otp_codes_emp_idToemployees")
+  otp_codes_otp_codes_updated_byToemployees                       otp_codes[]            @relation("otp_codes_updated_byToemployees")
+  persons_persons_created_byToemployees                           persons[]              @relation("persons_created_byToemployees")
+  persons_persons_deleted_byToemployees                           persons[]              @relation("persons_deleted_byToemployees")
+  persons_persons_updated_byToemployees                           persons[]              @relation("persons_updated_byToemployees")
+  pipeline_stages_pipeline_stages_created_byToemployees           pipeline_stages[]      @relation("pipeline_stages_created_byToemployees")
+  pipeline_stages_pipeline_stages_deleted_byToemployees           pipeline_stages[]      @relation("pipeline_stages_deleted_byToemployees")
+  pipeline_stages_pipeline_stages_updated_byToemployees           pipeline_stages[]      @relation("pipeline_stages_updated_byToemployees")
+  roles_roles_created_byToemployees                               roles[]                @relation("roles_created_byToemployees")
+  roles_roles_deleted_byToemployees                               roles[]                @relation("roles_deleted_byToemployees")
+  roles_roles_updated_byToemployees                               roles[]                @relation("roles_updated_byToemployees")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model industries {
+  industry_id                                     Int          @id(map: "pk_industries") @default(autoincrement())
+  name                                            String       @db.VarChar(255)
+  parent_id                                       Int?
+  is_active                                       Boolean      @default(true)
+  created_at                                      DateTime     @default(now()) @db.Timestamptz(6)
+  created_by                                      Int?
+  updated_at                                      DateTime?    @db.Timestamptz(6)
+  updated_by                                      Int?
+  deleted_at                                      DateTime?    @db.Timestamptz(6)
+  deleted_by                                      Int?
+  is_default                                      Boolean      @default(false)
+  companies_companies_industry_idToindustries     companies[]  @relation("companies_industry_idToindustries")
+  companies_companies_sub_industry_idToindustries companies[]  @relation("companies_sub_industry_idToindustries")
+  employees_industries_created_byToemployees      employees?   @relation("industries_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_industries_created_by")
+  employees_industries_deleted_byToemployees      employees?   @relation("industries_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_industries_deleted_by")
+  industries                                      industries?  @relation("industriesToindustries", fields: [parent_id], references: [industry_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_industries_parent_id")
+  other_industries                                industries[] @relation("industriesToindustries")
+  employees_industries_updated_byToemployees      employees?   @relation("industries_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_industries_updated_by")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model leads {
+  lead_id                                           Int             @id(map: "pk_leads") @default(autoincrement())
+  company_id                                        Int
+  person_id                                         Int?
+  title                                             String          @db.VarChar(200)
+  pipeline_stage_id                                 Int
+  status                                            lead_status     @default(open)
+  owner_id                                          Int
+  source_id                                         Int?
+  expected_value                                    Decimal?        @db.Decimal(14, 2)
+  actual_value                                      Decimal?        @db.Decimal(14, 2)
+  currency_code                                     String          @default("INR") @db.VarChar(3)
+  expected_close_date                               DateTime?       @db.Date
+  lost_reason_id                                    Int?
+  closed_at                                         DateTime?       @db.Timestamptz(6)
+  created_at                                        DateTime        @default(now()) @db.Timestamptz(6)
+  created_by                                        Int?
+  updated_at                                        DateTime?       @db.Timestamptz(6)
+  updated_by                                        Int?
+  deleted_at                                        DateTime?       @db.Timestamptz(6)
+  deleted_by                                        Int?
+  companies                                         companies       @relation(fields: [company_id], references: [company_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_leads_company_id")
+  employees_leads_created_byToemployees             employees?      @relation("leads_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_leads_created_by")
+  employees_leads_deleted_byToemployees             employees?      @relation("leads_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_leads_deleted_by")
+  master_lookup_leads_lost_reason_idTomaster_lookup master_lookup?  @relation("leads_lost_reason_idTomaster_lookup", fields: [lost_reason_id], references: [lookup_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_leads_lost_reason_id")
+  employees_leads_owner_idToemployees               employees       @relation("leads_owner_idToemployees", fields: [owner_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_leads_owner_id")
+  persons                                           persons?        @relation(fields: [person_id], references: [person_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_leads_person_id")
+  pipeline_stages                                   pipeline_stages @relation(fields: [pipeline_stage_id], references: [pipeline_stage_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_leads_pipeline_stage_id")
+  master_lookup_leads_source_idTomaster_lookup      master_lookup?  @relation("leads_source_idTomaster_lookup", fields: [source_id], references: [lookup_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_leads_source_id")
+  employees_leads_updated_byToemployees             employees?      @relation("leads_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_leads_updated_by")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model master_lookup {
+  lookup_id                                     Int               @id(map: "pk_master_lookup") @default(autoincrement())
+  lookup_type                                   String            @db.VarChar(50)
+  code                                          String            @db.VarChar(50)
+  label                                         String            @db.VarChar(150)
+  sort_order                                    Int               @default(0)
+  is_active                                     Boolean           @default(true)
+  created_at                                    DateTime          @default(now()) @db.Timestamptz(6)
+  created_by                                    Int?
+  updated_at                                    DateTime?         @db.Timestamptz(6)
+  updated_by                                    Int?
+  deleted_at                                    DateTime?         @db.Timestamptz(6)
+  deleted_by                                    Int?
+  company_persons                               company_persons[]
+  leads_leads_lost_reason_idTomaster_lookup     leads[]           @relation("leads_lost_reason_idTomaster_lookup")
+  leads_leads_source_idTomaster_lookup          leads[]           @relation("leads_source_idTomaster_lookup")
+  employees_master_lookup_created_byToemployees employees?        @relation("master_lookup_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_master_lookup_created_by")
+  employees_master_lookup_deleted_byToemployees employees?        @relation("master_lookup_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_master_lookup_deleted_by")
+  employees_master_lookup_updated_byToemployees employees?        @relation("master_lookup_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_master_lookup_updated_by")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model persons {
+  person_id                               Int               @id(map: "pk_persons") @default(autoincrement())
+  name                                    String            @db.VarChar(150)
+  email                                   String?           @db.VarChar(255)
+  mobile                                  String?           @db.VarChar(20)
+  linkedin_url                            String?           @db.VarChar(300)
+  is_active                               Boolean           @default(true)
+  created_at                              DateTime          @default(now()) @db.Timestamptz(6)
+  created_by                              Int?
+  updated_at                              DateTime?         @db.Timestamptz(6)
+  updated_by                              Int?
+  deleted_at                              DateTime?         @db.Timestamptz(6)
+  deleted_by                              Int?
+  company_persons                         company_persons[]
+  leads                                   leads[]
+  employees_persons_created_byToemployees employees?        @relation("persons_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_persons_created_by")
+  employees_persons_deleted_byToemployees employees?        @relation("persons_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_persons_deleted_by")
+  employees_persons_updated_byToemployees employees?        @relation("persons_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_persons_updated_by")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model pipeline_stages {
+  pipeline_stage_id                               Int        @id(map: "pk_pipeline_stages") @default(autoincrement())
+  name                                            String     @db.VarChar(100)
+  sort_order                                      Int
+  win_probability                                 Int        @db.SmallInt
+  is_won                                          Boolean    @default(false)
+  is_lost                                         Boolean    @default(false)
+  is_active                                       Boolean    @default(true)
+  created_at                                      DateTime   @default(now()) @db.Timestamptz(6)
+  created_by                                      Int?
+  updated_at                                      DateTime?  @db.Timestamptz(6)
+  updated_by                                      Int?
+  deleted_at                                      DateTime?  @db.Timestamptz(6)
+  deleted_by                                      Int?
+  leads                                           leads[]
+  employees_pipeline_stages_created_byToemployees employees? @relation("pipeline_stages_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_pipeline_stages_created_by")
+  employees_pipeline_stages_deleted_byToemployees employees? @relation("pipeline_stages_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_pipeline_stages_deleted_by")
+  employees_pipeline_stages_updated_byToemployees employees? @relation("pipeline_stages_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_pipeline_stages_updated_by")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model roles {
+  role_id                                   Int         @id(map: "pk_roles") @default(autoincrement())
+  role_name                                 String      @db.VarChar(100)
+  created_at                                DateTime    @default(now()) @db.Timestamptz(6)
+  created_by                                Int?
+  updated_at                                DateTime?   @db.Timestamptz(6)
+  updated_by                                Int?
+  deleted_at                                DateTime?   @db.Timestamptz(6)
+  deleted_by                                Int?
+  dep_id                                    Int
+  description                               String?     @db.VarChar(300)
+  is_active                                 Boolean     @default(true)
+  is_admin                                  Boolean     @default(false)
+  employees_employees_role_idToroles        employees[] @relation("employees_role_idToroles")
+  employees_employees_role_id_dep_idToroles employees[] @relation("employees_role_id_dep_idToroles")
+  employees_roles_created_byToemployees     employees?  @relation("roles_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_roles_created_by")
+  employees_roles_deleted_byToemployees     employees?  @relation("roles_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_roles_deleted_by")
+  departments                               departments @relation(fields: [dep_id], references: [dep_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_roles_dep_id")
+  employees_roles_updated_byToemployees     employees?  @relation("roles_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_roles_updated_by")
+
+  @@unique([role_id, dep_id], map: "ux_roles_role_dep")
+}
+
+/// This table is a partition table and requires additional setup for migrations. Visit https://pris.ly/d/partition-tables for more info.
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model auth_events {
+  event_id                                      BigInt          @default(autoincrement())
+  created_at                                    DateTime        @default(now()) @db.Timestamptz(6)
+  emp_id                                        Int?
+  actor_emp_id                                  Int?
+  event_type                                    auth_event_type
+  session_id                                    String?         @db.Uuid
+  identifier_hash                               String?         @db.Char(64)
+  ip_address                                    String?         @db.VarChar(45)
+  user_agent                                    String?         @db.VarChar(300)
+  details                                       Json?
+  employees_auth_events_actor_emp_idToemployees employees?      @relation("auth_events_actor_emp_idToemployees", fields: [actor_emp_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_auth_events_actor_emp_id")
+  employees_auth_events_emp_idToemployees       employees?      @relation("auth_events_emp_idToemployees", fields: [emp_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_auth_events_emp_id")
+
+  @@id([event_id, created_at], map: "pk_auth_events")
+  @@index([event_type, created_at(sort: Desc)], map: "ix_auth_events_type_created")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model auth_sessions {
+  session_id                                    String                 @id(map: "pk_auth_sessions") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  emp_id                                        Int
+  refresh_token_hash                            String                 @unique(map: "ux_auth_sessions_refresh_token_hash") @db.Char(64)
+  previous_token_hash                           String?                @db.Char(64)
+  issued_at                                     DateTime               @default(now()) @db.Timestamptz(6)
+  last_used_at                                  DateTime               @default(now()) @db.Timestamptz(6)
+  expires_at                                    DateTime               @db.Timestamptz(6)
+  revoked_at                                    DateTime?              @db.Timestamptz(6)
+  revoked_reason                                session_revoke_reason?
+  ip_address                                    String?                @db.VarChar(45)
+  user_agent                                    String?                @db.VarChar(300)
+  device_label                                  String?                @db.VarChar(100)
+  created_at                                    DateTime               @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  created_by                                    Int?
+  updated_at                                    DateTime?              @db.Timestamptz(6)
+  updated_by                                    Int?
+  deleted_at                                    DateTime?              @db.Timestamptz(6)
+  deleted_by                                    Int?
+  employees_auth_sessions_created_byToemployees employees?             @relation("auth_sessions_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_auth_sessions_created_by")
+  employees_auth_sessions_deleted_byToemployees employees?             @relation("auth_sessions_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_auth_sessions_deleted_by")
+  employees_auth_sessions_emp_idToemployees     employees              @relation("auth_sessions_emp_idToemployees", fields: [emp_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_auth_sessions_emp_id")
+  employees_auth_sessions_updated_byToemployees employees?             @relation("auth_sessions_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_auth_sessions_updated_by")
+
+  @@index([emp_id, issued_at(sort: Desc)], map: "ix_auth_sessions_emp_history")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model employee_credentials {
+  credential_id                                        Int        @id(map: "pk_employee_credentials") @default(autoincrement())
+  emp_id                                               Int
+  password_hash                                        String     @db.VarChar(255)
+  password_changed_at                                  DateTime   @default(now()) @db.Timestamptz(6)
+  must_change_password                                 Boolean    @default(false)
+  failed_attempts                                      Int        @default(0) @db.SmallInt
+  locked_until                                         DateTime?  @db.Timestamptz(6)
+  last_login_at                                        DateTime?  @db.Timestamptz(6)
+  created_at                                           DateTime   @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  created_by                                           Int?
+  updated_at                                           DateTime?  @db.Timestamptz(6)
+  updated_by                                           Int?
+  deleted_at                                           DateTime?  @db.Timestamptz(6)
+  deleted_by                                           Int?
+  employees_employee_credentials_created_byToemployees employees? @relation("employee_credentials_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_employee_credentials_created_by")
+  employees_employee_credentials_deleted_byToemployees employees? @relation("employee_credentials_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_employee_credentials_deleted_by")
+  employees_employee_credentials_emp_idToemployees     employees  @relation("employee_credentials_emp_idToemployees", fields: [emp_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_employee_credentials_emp_id")
+  employees_employee_credentials_updated_byToemployees employees? @relation("employee_credentials_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_employee_credentials_updated_by")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model otp_codes {
+  otp_id                                    String      @id(map: "pk_otp_codes") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  emp_id                                    Int
+  purpose                                   otp_purpose
+  destination                               String      @db.VarChar(255)
+  code_hash                                 String      @db.Char(64)
+  expires_at                                DateTime    @db.Timestamptz(6)
+  attempts                                  Int         @default(0) @db.SmallInt
+  max_attempts                              Int         @default(5) @db.SmallInt
+  consumed_at                               DateTime?   @db.Timestamptz(6)
+  voided_at                                 DateTime?   @db.Timestamptz(6)
+  ip_address                                String?     @db.VarChar(45)
+  created_at                                DateTime    @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  created_by                                Int?
+  updated_at                                DateTime?   @db.Timestamptz(6)
+  updated_by                                Int?
+  deleted_at                                DateTime?   @db.Timestamptz(6)
+  deleted_by                                Int?
+  employees_otp_codes_created_byToemployees employees?  @relation("otp_codes_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_otp_codes_created_by")
+  employees_otp_codes_deleted_byToemployees employees?  @relation("otp_codes_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_otp_codes_deleted_by")
+  employees_otp_codes_emp_idToemployees     employees   @relation("otp_codes_emp_idToemployees", fields: [emp_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_otp_codes_emp_id")
+  employees_otp_codes_updated_byToemployees employees?  @relation("otp_codes_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_otp_codes_updated_by")
+
+  @@index([emp_id, purpose, created_at(sort: Desc)], map: "ix_otp_codes_resend_limit")
+}
+
+enum channel_type {
+  website
+  facebook
+  instagram
+  x
+  linkedin
+  email
+  phone
+  whatsapp
+}
+
+enum employee_status {
+  Active
+  Inactive
+}
+
+enum lead_status {
+  open
+  won
+  lost
+  on_hold
+}
+
+enum auth_event_type {
+  credentials_created
+  credentials_reset_by_admin
+  login_password_failed
+  login_otp_sent
+  login_otp_failed
+  login_succeeded
+  login_locked
+  token_refreshed
+  token_reuse_detected
+  logout
+  logout_all
+  password_changed
+  password_reset_requested
+  password_reset_completed
+  otp_resend_blocked
+}
+
+enum otp_purpose {
+  login_2fa
+  password_reset
+}
+
+enum session_revoke_reason {
+  logout
+  logout_all
+  password_changed
+  password_reset
+  token_reuse_detected
+  deactivated
+  admin_revoked
+}
