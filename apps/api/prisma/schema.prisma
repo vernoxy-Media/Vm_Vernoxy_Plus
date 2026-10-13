@@ -162,6 +162,9 @@ model employees {
   customer_types_customer_types_created_byToemployees             customer_types[]       @relation("customer_types_created_byToemployees")
   customer_types_customer_types_deleted_byToemployees             customer_types[]       @relation("customer_types_deleted_byToemployees")
   customer_types_customer_types_updated_byToemployees             customer_types[]       @relation("customer_types_updated_byToemployees")
+  data_transfer_jobs_data_transfer_jobs_created_byToemployees     data_transfer_jobs[]   @relation("data_transfer_jobs_created_byToemployees")
+  data_transfer_jobs_data_transfer_jobs_deleted_byToemployees     data_transfer_jobs[]   @relation("data_transfer_jobs_deleted_byToemployees")
+  data_transfer_jobs_data_transfer_jobs_updated_byToemployees     data_transfer_jobs[]   @relation("data_transfer_jobs_updated_byToemployees")
   departments_departments_created_byToemployees                   departments[]          @relation("departments_created_byToemployees")
   departments_departments_deleted_byToemployees                   departments[]          @relation("departments_deleted_byToemployees")
   departments_departments_updated_byToemployees                   departments[]          @relation("departments_updated_byToemployees")
@@ -445,6 +448,44 @@ model otp_codes {
   @@index([emp_id, purpose, created_at(sort: Desc)], map: "ix_otp_codes_resend_limit")
 }
 
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model data_transfer_jobs {
+  job_id                                             String             @id(map: "pk_data_transfer_jobs") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  direction                                          transfer_direction
+  entity_type                                        String             @db.VarChar(30)
+  format                                             String             @db.VarChar(10)
+  status                                             transfer_status
+  original_filename                                  String?            @db.VarChar(255)
+  file_key                                           String?            @db.VarChar(100)
+  file_sha256                                        String?            @db.Char(64)
+  file_size_bytes                                    BigInt?
+  report_key                                         String?            @db.VarChar(100)
+  options                                            Json               @default("{}")
+  total_rows                                         Int                @default(0)
+  valid_rows                                         Int                @default(0)
+  warning_rows                                       Int                @default(0)
+  error_rows                                         Int                @default(0)
+  processed_rows                                     Int                @default(0)
+  created_rows                                       Int                @default(0)
+  skipped_rows                                       Int                @default(0)
+  failed_rows                                        Int                @default(0)
+  error_message                                      String?            @db.VarChar(500)
+  cancel_requested                                   Boolean            @default(false)
+  started_at                                         DateTime?          @db.Timestamptz(6)
+  finished_at                                        DateTime?          @db.Timestamptz(6)
+  heartbeat_at                                       DateTime?          @db.Timestamptz(6)
+  expires_at                                         DateTime?          @db.Timestamptz(6)
+  created_at                                         DateTime           @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  created_by                                         Int?
+  updated_at                                         DateTime           @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_by                                         Int?
+  deleted_at                                         DateTime?          @db.Timestamptz(6)
+  deleted_by                                         Int?
+  employees_data_transfer_jobs_created_byToemployees employees?         @relation("data_transfer_jobs_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_data_transfer_jobs_created_by")
+  employees_data_transfer_jobs_deleted_byToemployees employees?         @relation("data_transfer_jobs_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_data_transfer_jobs_deleted_by")
+  employees_data_transfer_jobs_updated_byToemployees employees?         @relation("data_transfer_jobs_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_data_transfer_jobs_updated_by")
+}
+
 enum channel_type {
   website
   facebook
@@ -499,4 +540,20 @@ enum session_revoke_reason {
   token_reuse_detected
   deactivated
   admin_revoked
+}
+
+enum transfer_direction {
+  import
+  export
+}
+
+enum transfer_status {
+  previewed
+  queued
+  running
+  completed
+  completed_with_errors
+  failed
+  cancelled
+  expired
 }

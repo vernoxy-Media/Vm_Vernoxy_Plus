@@ -64,11 +64,11 @@ export const CompanyContactRow: React.FC<CompanyContactRowProps> = ({
                 >
                   <div>
                     <div className="font-semibold text-xs text-slate-900">{p.name}</div>
-                    <div className="text-[11px] text-slate-500">
+                    <div className="text-xs text-slate-500">
                       {[p.email, p.mobile].filter(Boolean).join(' • ')}
                     </div>
                   </div>
-                  <span className="text-[10px] font-semibold text-blue-600">Link Person</span>
+                  <span className="text-xs font-semibold text-blue-600">Link Person</span>
                 </button>
               ))}
             </div>
@@ -87,7 +87,7 @@ export const CompanyContactRow: React.FC<CompanyContactRowProps> = ({
               </span>
             </div>
           </div>
-          <span className="text-[10px] uppercase font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded">
+          <span className="text-xs uppercase font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded">
             Linked Contact
           </span>
         </div>
@@ -97,75 +97,75 @@ export const CompanyContactRow: React.FC<CompanyContactRowProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
         {!isLinked && (
           <div>
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1">Full Name *</label>
+            <label className="block text-sm font-semibold text-slate-600 mb-1">Full Name *</label>
             <input
               type="text"
               {...register(`contacts.${index}.name` as const)}
               placeholder="e.g. Jane Doe"
-              className="w-full px-3 py-2 rounded-xl text-xs border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600"
+              className="w-full px-3 py-2 rounded-xl text-sm border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600"
             />
             {itemErrors?.name && (
-              <p className="text-[10px] text-rose-500 mt-0.5">{itemErrors.name.message}</p>
+              <p className="text-xs text-rose-500 mt-0.5">{itemErrors.name.message}</p>
             )}
           </div>
         )}
 
         {!isLinked && (
           <div>
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1">Email Address</label>
+            <label className="block text-sm font-semibold text-slate-600 mb-1">Email Address</label>
             <input
               type="email"
               {...register(`contacts.${index}.email` as const)}
               placeholder="jane@example.com"
-              className="w-full px-3 py-2 rounded-xl text-xs border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600"
+              className="w-full px-3 py-2 rounded-xl text-sm border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600"
             />
             {itemErrors?.email && (
-              <p className="text-[10px] text-rose-500 mt-0.5">{itemErrors.email.message}</p>
+              <p className="text-xs text-rose-500 mt-0.5">{itemErrors.email.message}</p>
             )}
           </div>
         )}
 
         {!isLinked && (
           <div>
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1">Mobile Number</label>
+            <label className="block text-sm font-semibold text-slate-600 mb-1">Mobile Number</label>
             <input
               type="tel"
               {...register(`contacts.${index}.mobile` as const)}
               placeholder="+1 (555) 019-2834"
-              className="w-full px-3 py-2 rounded-xl text-xs border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600"
+              className="w-full px-3 py-2 rounded-xl text-sm border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600"
             />
           </div>
         )}
 
         {!isLinked && (
           <div>
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1">LinkedIn Profile</label>
+            <label className="block text-sm font-semibold text-slate-600 mb-1">LinkedIn Profile</label>
             <input
               type="text"
               {...register(`contacts.${index}.linkedin_url` as const)}
               placeholder="linkedin.com/in/janedoe"
-              className="w-full px-3 py-2 rounded-xl text-xs border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600"
+              className="w-full px-3 py-2 rounded-xl text-sm border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600"
             />
           </div>
         )}
 
         <div>
-          <label className="block text-[11px] font-semibold text-slate-500 mb-1">Job Title / Designation</label>
+          <label className="block text-sm font-semibold text-slate-600 mb-1">Job Title / Designation</label>
           <input
             type="text"
             {...register(`contacts.${index}.designation` as const)}
             placeholder="e.g. VP of Sales"
-            className="w-full px-3 py-2 rounded-xl text-xs border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600"
+            className="w-full px-3 py-2 rounded-xl text-sm border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600"
           />
         </div>
 
         <div>
-          <label className="block text-[11px] font-semibold text-slate-500 mb-1">Department</label>
+          <label className="block text-sm font-semibold text-slate-600 mb-1">Department</label>
           <select
             {...register(`contacts.${index}.department_id` as const, {
               setValueAs: (v) => (v ? Number(v) : null),
             })}
-            className="w-full appearance-none px-3 py-2 rounded-xl text-xs border border-slate-200 bg-white font-medium"
+            className="w-full appearance-none px-3 py-2 rounded-xl text-sm border border-slate-200 bg-white font-medium"
           >
             <option value="">Select Department</option>
             {deptLookups?.map((d) => (
@@ -177,12 +177,12 @@ export const CompanyContactRow: React.FC<CompanyContactRowProps> = ({
         </div>
 
         <div>
-          <label className="block text-[11px] font-semibold text-slate-500 mb-1">Reports To (In Company)</label>
+          <label className="block text-sm font-semibold text-slate-600 mb-1">Reports To (In Company)</label>
           <select
             {...register(`contacts.${index}.reports_to_index` as const, {
               setValueAs: (v) => (v !== '' && v !== null && v !== undefined ? Number(v) : null),
             })}
-            className="w-full appearance-none px-3 py-2 rounded-xl text-xs border border-slate-200 bg-white font-medium"
+            className="w-full appearance-none px-3 py-2 rounded-xl text-sm border border-slate-200 bg-white font-medium"
           >
             <option value="">None (Top level contact)</option>
             {contactsWatch.map((other, oIdx) => {
@@ -206,7 +206,7 @@ export const CompanyContactRow: React.FC<CompanyContactRowProps> = ({
               onChange={() => onSetPrimary(index)}
               className="h-4 w-4 text-blue-600 focus:ring-blue-500"
             />
-            <span className="text-xs font-semibold text-slate-700">Primary Contact</span>
+            <span className="text-sm font-semibold text-slate-700">Primary Contact</span>
           </label>
         </div>
       </div>

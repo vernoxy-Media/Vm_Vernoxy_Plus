@@ -26,13 +26,13 @@ export const CompanyDetailsSection: React.FC<CompanyDetailsSectionProps> = ({ fo
     <div className="space-y-6">
       {/* Basic Details */}
       <div className="p-6 bg-white rounded-2xl border border-slate-200 shadow-xs space-y-4">
-        <h2 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3">
+        <h2 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-3">
           1. Company Details
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="sm:col-span-2">
-            <label htmlFor="company-name-input" className="block text-xs font-semibold text-slate-700 mb-1.5">
+            <label htmlFor="company-name-input" className="block text-sm font-semibold text-slate-700 mb-1.5">
               Company Name *
             </label>
             <input
@@ -42,11 +42,11 @@ export const CompanyDetailsSection: React.FC<CompanyDetailsSectionProps> = ({ fo
               placeholder="e.g. Acme Corporation"
               className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600"
             />
-            {errors.name && <p className="text-[11px] text-rose-500 mt-1">{errors.name.message}</p>}
+            {errors.name && <p className="text-xs text-rose-500 mt-1">{errors.name.message}</p>}
           </div>
 
           <div>
-            <label htmlFor="company-customer-type-select" className="block text-xs font-semibold text-slate-700 mb-1.5">
+            <label htmlFor="company-customer-type-select" className="block text-sm font-semibold text-slate-700 mb-1.5">
               Customer Type *
             </label>
             <select
@@ -62,12 +62,12 @@ export const CompanyDetailsSection: React.FC<CompanyDetailsSectionProps> = ({ fo
               ))}
             </select>
             {errors.customer_type_id && (
-              <p className="text-[11px] text-rose-500 mt-1">{errors.customer_type_id.message}</p>
+              <p className="text-xs text-rose-500 mt-1">{errors.customer_type_id.message}</p>
             )}
           </div>
 
           <div>
-            <label htmlFor="company-owner-select" className="block text-xs font-semibold text-slate-700 mb-1.5">
+            <label htmlFor="company-owner-select" className="block text-sm font-semibold text-slate-700 mb-1.5">
               Account Owner
             </label>
             <select
@@ -87,7 +87,7 @@ export const CompanyDetailsSection: React.FC<CompanyDetailsSectionProps> = ({ fo
           </div>
 
           <div>
-            <label htmlFor="company-industry-select" className="block text-xs font-semibold text-slate-700 mb-1.5">
+            <label htmlFor="company-industry-select" className="block text-sm font-semibold text-slate-700 mb-1.5">
               Industry *
             </label>
             <select
@@ -107,12 +107,12 @@ export const CompanyDetailsSection: React.FC<CompanyDetailsSectionProps> = ({ fo
               ))}
             </select>
             {errors.industry_id && (
-              <p className="text-[11px] text-rose-500 mt-1">{errors.industry_id.message}</p>
+              <p className="text-xs text-rose-500 mt-1">{errors.industry_id.message}</p>
             )}
           </div>
 
           <div>
-            <label htmlFor="company-sub-industry-select" className="block text-xs font-semibold text-slate-700 mb-1.5">
+            <label htmlFor="company-sub-industry-select" className="block text-sm font-semibold text-slate-700 mb-1.5">
               Sub-industry (Optional)
             </label>
             <DependentSelect
@@ -130,7 +130,7 @@ export const CompanyDetailsSection: React.FC<CompanyDetailsSectionProps> = ({ fo
           </div>
 
           <div className="sm:col-span-2">
-            <label htmlFor="company-parent-select" className="block text-xs font-semibold text-slate-700 mb-1.5">
+            <label htmlFor="company-parent-select" className="block text-sm font-semibold text-slate-700 mb-1.5">
               Parent Company (Optional)
             </label>
             <select
@@ -153,13 +153,13 @@ export const CompanyDetailsSection: React.FC<CompanyDetailsSectionProps> = ({ fo
 
       {/* Address Details */}
       <div className="p-6 bg-white rounded-2xl border border-slate-200 shadow-xs space-y-4">
-        <h2 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3">
+        <h2 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-3">
           2. Address & Location
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="sm:col-span-2">
-            <label htmlFor="company-address-input" className="block text-xs font-semibold text-slate-700 mb-1.5">
+            <label htmlFor="company-address-input" className="block text-sm font-semibold text-slate-700 mb-1.5">
               Street Address
             </label>
             <input
@@ -172,7 +172,7 @@ export const CompanyDetailsSection: React.FC<CompanyDetailsSectionProps> = ({ fo
           </div>
 
           <div>
-            <label htmlFor="company-city-input" className="block text-xs font-semibold text-slate-700 mb-1.5">
+            <label htmlFor="company-city-input" className="block text-sm font-semibold text-slate-700 mb-1.5">
               City
             </label>
             <input
@@ -185,7 +185,7 @@ export const CompanyDetailsSection: React.FC<CompanyDetailsSectionProps> = ({ fo
           </div>
 
           <div>
-            <label htmlFor="company-state-input" className="block text-xs font-semibold text-slate-700 mb-1.5">
+            <label htmlFor="company-state-input" className="block text-sm font-semibold text-slate-700 mb-1.5">
               State / Province
             </label>
             <input
@@ -198,7 +198,7 @@ export const CompanyDetailsSection: React.FC<CompanyDetailsSectionProps> = ({ fo
           </div>
 
           <div className="sm:col-span-2">
-            <label htmlFor="company-country-input" className="block text-xs font-semibold text-slate-700 mb-1.5">
+            <label htmlFor="company-country-input" className="block text-sm font-semibold text-slate-700 mb-1.5">
               Country
             </label>
             <input

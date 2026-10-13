@@ -149,7 +149,7 @@ export function MasterDataPage<T>({
           <div className="py-12 text-center text-rose-600 px-4">
             <AlertCircle className="w-7 h-7 mx-auto mb-2 text-rose-500" />
             <p className="font-semibold text-xs">Failed to load data</p>
-            <p className="text-[11px] text-slate-500 mt-1">{error}</p>
+            <p className="text-xs text-slate-500 mt-1">{error}</p>
           </div>
         ) : items.length === 0 ? (
           <div className="py-16 text-center px-4">
@@ -160,7 +160,7 @@ export function MasterDataPage<T>({
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs" id={tableId}>
-              <thead className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+              <thead className="bg-slate-50/80 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                 <tr>
                   {columns.map((col) => (
                     <th key={col.key} className={`py-3 px-5 ${col.align === 'right' ? 'text-right' : ''}`}>

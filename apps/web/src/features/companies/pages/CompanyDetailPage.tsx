@@ -76,16 +76,16 @@ export const CompanyDetailPage: React.FC = () => {
           </Link>
           <div>
             <div className="flex items-center gap-2.5">
-              <h1 className="text-xl font-bold text-slate-900 tracking-tight">{company.name}</h1>
+              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{company.name}</h1>
               <span
-                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
+                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
                   company.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'
                 }`}
               >
                 {company.is_active ? 'Active' : 'Inactive'}
               </span>
             </div>
-            <div className="flex items-center gap-3 text-xs text-slate-500 mt-0.5">
+            <div className="flex items-center gap-3 text-sm text-slate-500 mt-1">
               {[company.address, company.city, company.state, company.country]
                 .filter(Boolean)
                 .join(', ') || 'No address specified'}
@@ -96,7 +96,7 @@ export const CompanyDetailPage: React.FC = () => {
         <div className="flex items-center gap-2 self-start sm:self-auto">
           <Link
             to={`/companies/${company.company_id}/edit`}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 text-xs font-semibold text-white hover:bg-blue-700 shadow-xs transition-colors"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700 shadow-xs transition-colors"
           >
             <Edit2 className="w-3.5 h-3.5" />
             Edit
@@ -104,7 +104,7 @@ export const CompanyDetailPage: React.FC = () => {
           <button
             type="button"
             onClick={handleDelete}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-slate-200 text-xs font-semibold text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition-colors"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-slate-200 text-sm font-semibold text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition-colors"
           >
             <Trash2 className="w-3.5 h-3.5" />
             Delete
@@ -124,25 +124,25 @@ export const CompanyDetailPage: React.FC = () => {
 
             <div className="space-y-3 text-xs">
               <div>
-                <span className="text-slate-400 block text-[11px]">Customer Type</span>
+                <span className="text-slate-400 block text-xs">Customer Type</span>
                 <span className="font-semibold text-slate-800">{company.customer_type?.name}</span>
               </div>
               <div>
-                <span className="text-slate-400 block text-[11px]">Industry</span>
+                <span className="text-slate-400 block text-xs">Industry</span>
                 <span className="font-semibold text-slate-800">{company.industry?.name}</span>
                 {company.sub_industry && (
-                  <span className="text-slate-500 block text-[11px]">↳ {company.sub_industry.name}</span>
+                  <span className="text-slate-500 block text-xs">↳ {company.sub_industry.name}</span>
                 )}
               </div>
               <div>
-                <span className="text-slate-400 block text-[11px]">Account Owner</span>
+                <span className="text-slate-400 block text-xs">Account Owner</span>
                 <span className="font-semibold text-slate-800">
                   {company.owner?.name || <span className="text-slate-400 italic">Unassigned</span>}
                 </span>
               </div>
               {company.parent && (
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Parent Organization</span>
+                  <span className="text-slate-400 block text-xs">Parent Organization</span>
                   <Link
                     to={`/companies/${company.parent.id}`}
                     className="font-semibold text-blue-600 hover:underline"
@@ -153,7 +153,7 @@ export const CompanyDetailPage: React.FC = () => {
               )}
               {company.children && company.children.length > 0 && (
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Subsidiaries ({company.children.length})</span>
+                  <span className="text-slate-400 block text-xs">Subsidiaries ({company.children.length})</span>
                   <div className="space-y-1 mt-1">
                     {company.children.map((child) => (
                       <Link
@@ -188,15 +188,15 @@ export const CompanyDetailPage: React.FC = () => {
                   >
                     <div className="space-y-0.5 min-w-0 pr-2">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] uppercase font-bold text-slate-400">
+                        <span className="text-xs uppercase font-bold text-slate-400">
                           {ch.channel_type}
                         </span>
                         {ch.is_primary && (
-                          <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-blue-100 text-blue-700">
+                          <span className="px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-700">
                             Primary
                           </span>
                         )}
-                        {ch.label && <span className="text-[10px] text-slate-500">({ch.label})</span>}
+                        {ch.label && <span className="text-xs text-slate-500">({ch.label})</span>}
                       </div>
                       <LinkValue
                         type={ch.channel_type as any}
@@ -214,7 +214,7 @@ export const CompanyDetailPage: React.FC = () => {
         {/* Right Column: Contacts Table (spans 2 columns) */}
         <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
           <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-            <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
               <Users className="w-4 h-4 text-blue-600" />
               Associated Contacts ({company.contacts?.length || 0})
             </h2>
@@ -226,8 +226,8 @@ export const CompanyDetailPage: React.FC = () => {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-slate-50/80 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   <tr>
                     <th className="py-3 px-5">Contact</th>
                     <th className="py-3 px-5">Designation & Dept</th>
@@ -242,20 +242,20 @@ export const CompanyDetailPage: React.FC = () => {
                         <div className="font-semibold text-slate-900 flex items-center gap-1.5">
                           {contact.name}
                           {contact.is_primary && (
-                            <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-100 text-emerald-800">
+                            <span className="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-100 text-emerald-800">
                               Primary
                             </span>
                           )}
                         </div>
                         {contact.linkedin_url && (
                           <div className="mt-0.5">
-                            <LinkValue type="linkedin" value={contact.linkedin_url} className="text-[11px]" />
+                            <LinkValue type="linkedin" value={contact.linkedin_url} className="text-xs" />
                           </div>
                         )}
                       </td>
                       <td className="py-3.5 px-5 text-slate-600">
                         <div className="font-medium text-slate-800">{contact.designation || '—'}</div>
-                        <div className="text-[11px] text-slate-400">{contact.department?.label}</div>
+                        <div className="text-xs text-slate-400">{contact.department?.label}</div>
                       </td>
                       <td className="py-3.5 px-5 space-y-1">
                         {contact.email && (
@@ -271,11 +271,11 @@ export const CompanyDetailPage: React.FC = () => {
                       </td>
                       <td className="py-3.5 px-5">
                         {contact.linked_company_count > 1 ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-[11px] font-medium">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-xs font-medium">
                             {contact.linked_company_count} companies
                           </span>
                         ) : (
-                          <span className="text-slate-400 text-[11px]">1 company</span>
+                          <span className="text-slate-400 text-xs">1 company</span>
                         )}
                       </td>
                     </tr>

@@ -10,10 +10,12 @@ export interface DependentSelectProps {
   label?: string;
   name?: string;
   id?: string;
+  options?: OptionItem[];
   parentValue?: string | number | null;
   parentId?: string | number | null;
   loadOptions?: (parentValue: any) => Promise<OptionItem[]> | OptionItem[];
   fetchOptions?: (parentValue: any) => Promise<OptionItem[]> | OptionItem[];
+  isLoading?: boolean;
   value: string | number | null | undefined;
   onChange: (value: any) => void;
   placeholder?: string;
@@ -31,10 +33,12 @@ export const DependentSelect: React.FC<DependentSelectProps> = ({
   label,
   name,
   id,
+  options: propsOptions,
   parentValue,
   parentId,
   loadOptions,
   fetchOptions,
+  isLoading: propsIsLoading,
   value,
   onChange,
   placeholder = 'Select an option',
@@ -48,57 +52,67 @@ export const DependentSelect: React.FC<DependentSelectProps> = ({
   className = '',
 }) => {
   const effectiveParent = parentValue !== undefined ? parentValue : parentId;
-  const effectiveLoader = loadOptions || fetchOptions || (() => []);
+  const effectiveLoader = loadOptions || fetchOptions;
   const effectiveDisabledMsg = disabledPlaceholder || noParentMessage || 'Select parent first';
   const effectiveEmptyMsg = emptyPlaceholder || emptyParentMessage || 'No options available';
 
-  const [options, setOptions] = useState<OptionItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const prevParentRef = useRef<string | number | null | undefined>(undefined);
+  const [internalOptions, setInternalOptions] = useState<OptionItem[]>([]);
+  const [internalLoading, setInternalLoading] = useState(false);
+
+  const loaderRef = useRef(effectiveLoader);
+  loaderRef.current = effectiveLoader;
+
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+
+  const valueRef = useRef(value);
+  valueRef.current = value;
 
   const inputId = id || name || 'dependent-select';
 
+  const isDirectOptions = propsOptions !== undefined;
+  const options = isDirectOptions ? propsOptions : internalOptions;
+  const isLoading = propsIsLoading !== undefined ? propsIsLoading : internalLoading;
+
   useEffect(() => {
-    if (prevParentRef.current === effectiveParent) {
+    // If options are supplied directly via props or no loader exists, do not fetch
+    if (isDirectOptions || !loaderRef.current) {
       return;
     }
-    const isFirstRun = prevParentRef.current === undefined;
-    prevParentRef.current = effectiveParent;
 
     if (!effectiveParent) {
-      setOptions([]);
-      if (!isFirstRun && value) {
-        onChange('');
-      }
+      setInternalOptions([]);
+      setInternalLoading(false);
       return;
     }
 
     let isCancelled = false;
-    setIsLoading(true);
+    setInternalLoading(true);
 
-    Promise.resolve(effectiveLoader(effectiveParent))
+    Promise.resolve(loaderRef.current(effectiveParent))
       .then((opts) => {
         if (isCancelled) return;
-        setOptions(opts);
-        setIsLoading(false);
-        // Clear if current value is not in new options
-        if (!isFirstRun && value) {
-          const exists = opts.some((o) => String(o.value) === String(value));
+        setInternalOptions(opts || []);
+        setInternalLoading(false);
+
+        // If current value is not in new options, clear it
+        if (valueRef.current) {
+          const exists = (opts || []).some((o) => String(o.value) === String(valueRef.current));
           if (!exists) {
-            onChange('');
+            onChangeRef.current('');
           }
         }
       })
       .catch(() => {
         if (isCancelled) return;
-        setOptions([]);
-        setIsLoading(false);
+        setInternalOptions([]);
+        setInternalLoading(false);
       });
 
     return () => {
       isCancelled = true;
     };
-  }, [effectiveParent, effectiveLoader, value, onChange]);
+  }, [effectiveParent, isDirectOptions]);
 
   const isDisabled = disabled || !effectiveParent || isLoading;
 

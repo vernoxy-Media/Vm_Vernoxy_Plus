@@ -6,12 +6,19 @@
 
 -- 1. Customer Types
 INSERT INTO customer_types (name, is_default)
-VALUES
-    ('Info Only', true),
-    ('Lead', false),
-    ('Prospect', false),
-    ('Client', false),
-    ('Partner', false)
+SELECT v.name, 
+       CASE 
+           WHEN v.is_default AND NOT EXISTS (SELECT 1 FROM customer_types WHERE is_default = true AND deleted_at IS NULL) THEN true 
+           ELSE false 
+       END
+FROM (
+    VALUES
+        ('Info Only', true),
+        ('Lead', false),
+        ('Prospect', false),
+        ('Client', false),
+        ('Partner', false)
+) AS v(name, is_default)
 ON CONFLICT (lower(name)) WHERE deleted_at IS NULL
 DO NOTHING;
 

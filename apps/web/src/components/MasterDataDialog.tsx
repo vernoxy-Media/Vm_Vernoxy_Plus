@@ -100,7 +100,7 @@ export const MasterDataDialog: React.FC<MasterDataDialogProps> = ({
                 >
                   <div>
                     <span className="text-xs font-semibold text-slate-800 block">{field.label}</span>
-                    {field.helpText && <span className="text-[11px] text-slate-500">{field.helpText}</span>}
+                    {field.helpText && <span className="text-xs text-slate-500">{field.helpText}</span>}
                   </div>
                   <input
                     type="checkbox"
@@ -155,7 +155,7 @@ export const MasterDataDialog: React.FC<MasterDataDialogProps> = ({
                     className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all disabled:bg-slate-50 disabled:text-slate-500"
                   />
                 )}
-                {field.helpText && <p className="text-[11px] text-slate-500 mt-1">{field.helpText}</p>}
+                {field.helpText && <p className="text-xs text-slate-500 mt-1">{field.helpText}</p>}
               </div>
             );
           })}

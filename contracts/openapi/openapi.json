@@ -1447,6 +1447,295 @@
         ]
       }
     },
+    "/api/v1/companies/import/template": {
+      "get": {
+        "operationId": "CompanyDataTransferController_downloadTemplate",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Download empty company import template (xlsx or csv)",
+        "tags": [
+          "CRM - Companies Data Transfer"
+        ]
+      }
+    },
+    "/api/v1/companies/import/preview": {
+      "post": {
+        "operationId": "CompanyDataTransferController_preview",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "duplicate_policy": {
+                    "type": "string",
+                    "enum": [
+                      "skip_duplicates",
+                      "import_anyway"
+                    ]
+                  },
+                  "skip_invalid_rows": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyImportPreviewResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upload file for inspection and preview (rate limit 5/min)",
+        "tags": [
+          "CRM - Companies Data Transfer"
+        ]
+      }
+    },
+    "/api/v1/companies/import/{jobId}/confirm": {
+      "post": {
+        "operationId": "CompanyDataTransferController_confirm",
+        "parameters": [
+          {
+            "name": "jobId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyImportConfirmResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Confirm import preview and enqueue background processing (rate limit 5/min)",
+        "tags": [
+          "CRM - Companies Data Transfer"
+        ]
+      }
+    },
+    "/api/v1/companies/import/{jobId}/cancel": {
+      "post": {
+        "operationId": "CompanyDataTransferController_cancel",
+        "parameters": [
+          {
+            "name": "jobId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cancel import job (only if pending)",
+        "tags": [
+          "CRM - Companies Data Transfer"
+        ]
+      }
+    },
+    "/api/v1/companies/import": {
+      "get": {
+        "operationId": "CompanyDataTransferController_listImports",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransferJobListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List recent company import jobs",
+        "tags": [
+          "CRM - Companies Data Transfer"
+        ]
+      }
+    },
+    "/api/v1/companies/import/{jobId}/report": {
+      "get": {
+        "operationId": "CompanyDataTransferController_downloadReport",
+        "parameters": [
+          {
+            "name": "jobId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Download final import results CSV/XLSX report",
+        "tags": [
+          "CRM - Companies Data Transfer"
+        ]
+      }
+    },
+    "/api/v1/companies/import/{jobId}/issues": {
+      "get": {
+        "operationId": "CompanyDataTransferController_getIssues",
+        "parameters": [
+          {
+            "name": "jobId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransferJobIssuesResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get paginated validation issues for import job",
+        "tags": [
+          "CRM - Companies Data Transfer"
+        ]
+      }
+    },
+    "/api/v1/companies/import/{jobId}": {
+      "get": {
+        "operationId": "CompanyDataTransferController_getJob",
+        "parameters": [
+          {
+            "name": "jobId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataTransferJobDetailResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get company import job status and progress",
+        "tags": [
+          "CRM - Companies Data Transfer"
+        ]
+      }
+    },
+    "/api/v1/companies/export": {
+      "get": {
+        "operationId": "CompanyDataTransferController_export",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Export companies list with active filters directly to streaming file (rate limit 5/min)",
+        "tags": [
+          "CRM - Companies Data Transfer"
+        ]
+      }
+    },
     "/api/v1/companies": {
       "get": {
         "operationId": "CompanyController_list",
@@ -2795,6 +3084,381 @@
           "id",
           "code",
           "label"
+        ]
+      },
+      "JobTotalsDto": {
+        "type": "object",
+        "properties": {
+          "total_rows": {
+            "type": "number",
+            "example": 100
+          },
+          "will_create": {
+            "type": "number",
+            "example": 85
+          },
+          "will_skip_duplicates": {
+            "type": "number",
+            "example": 10
+          },
+          "warning_rows": {
+            "type": "number",
+            "example": 5
+          },
+          "error_rows": {
+            "type": "number",
+            "example": 5
+          }
+        },
+        "required": [
+          "total_rows",
+          "will_create",
+          "will_skip_duplicates",
+          "warning_rows",
+          "error_rows"
+        ]
+      },
+      "JobIssueDto": {
+        "type": "object",
+        "properties": {
+          "row_number": {
+            "type": "number",
+            "example": 3
+          },
+          "field_name": {
+            "type": "string",
+            "example": "phone"
+          },
+          "issue_code": {
+            "type": "string",
+            "example": "INVALID_PHONE"
+          },
+          "message": {
+            "type": "string",
+            "example": "Phone number format is invalid"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "warning",
+              "error"
+            ],
+            "example": "error"
+          }
+        },
+        "required": [
+          "row_number",
+          "field_name",
+          "issue_code",
+          "message",
+          "severity"
+        ]
+      },
+      "CompanyImportPreviewResponseDto": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "previewed",
+              "pending",
+              "running",
+              "completed",
+              "failed",
+              "cancelled"
+            ]
+          },
+          "totals": {
+            "$ref": "#/components/schemas/JobTotalsDto"
+          },
+          "sample_issues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JobIssueDto"
+            }
+          },
+          "can_proceed": {
+            "type": "boolean",
+            "example": true
+          }
+        },
+        "required": [
+          "job_id",
+          "status",
+          "totals",
+          "sample_issues",
+          "can_proceed"
+        ]
+      },
+      "CompanyImportConfirmResponseDto": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          },
+          "status": {
+            "type": "string",
+            "example": "queued"
+          },
+          "message": {
+            "type": "string",
+            "example": "Import job scheduled successfully"
+          }
+        },
+        "required": [
+          "job_id",
+          "status",
+          "message"
+        ]
+      },
+      "TransferJobSummaryDto": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "import",
+              "export"
+            ]
+          },
+          "entity_type": {
+            "type": "string",
+            "example": "companies"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "xlsx",
+              "csv"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "running",
+              "completed",
+              "failed",
+              "cancelled"
+            ]
+          },
+          "total_rows": {
+            "type": "number",
+            "example": 100
+          },
+          "processed_rows": {
+            "type": "number",
+            "example": 100
+          },
+          "created_rows": {
+            "type": "number",
+            "example": 95
+          },
+          "skipped_rows": {
+            "type": "number",
+            "example": 5
+          },
+          "failed_rows": {
+            "type": "number",
+            "example": 0
+          },
+          "has_report": {
+            "type": "boolean",
+            "example": false
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "finished_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id",
+          "direction",
+          "entity_type",
+          "format",
+          "status",
+          "total_rows",
+          "processed_rows",
+          "created_rows",
+          "skipped_rows",
+          "failed_rows",
+          "has_report",
+          "created_at"
+        ]
+      },
+      "TransferJobListResponseDto": {
+        "type": "object",
+        "properties": {
+          "jobs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransferJobSummaryDto"
+            }
+          },
+          "next_cursor": {
+            "type": "string",
+            "example": "eyJpZCI6MTB9"
+          }
+        },
+        "required": [
+          "jobs"
+        ]
+      },
+      "TransferJobIssuesResponseDto": {
+        "type": "object",
+        "properties": {
+          "issues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JobIssueDto"
+            }
+          },
+          "next_cursor": {
+            "type": "string",
+            "example": "eyJpZCI6MTB9"
+          },
+          "total_count": {
+            "type": "number",
+            "example": 12
+          }
+        },
+        "required": [
+          "issues",
+          "total_count"
+        ]
+      },
+      "JobCountsDto": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number",
+            "example": 100
+          },
+          "valid": {
+            "type": "number",
+            "example": 90
+          },
+          "warnings": {
+            "type": "number",
+            "example": 5
+          },
+          "errors": {
+            "type": "number",
+            "example": 5
+          },
+          "processed": {
+            "type": "number",
+            "example": 50
+          },
+          "created": {
+            "type": "number",
+            "example": 45
+          },
+          "skipped": {
+            "type": "number",
+            "example": 5
+          },
+          "failed": {
+            "type": "number",
+            "example": 0
+          }
+        },
+        "required": [
+          "total",
+          "valid",
+          "warnings",
+          "errors",
+          "processed",
+          "created",
+          "skipped",
+          "failed"
+        ]
+      },
+      "DataTransferJobDetailResponseDto": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "import",
+              "export"
+            ]
+          },
+          "entity_type": {
+            "type": "string",
+            "example": "companies"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "xlsx",
+              "csv"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "running",
+              "completed",
+              "failed",
+              "cancelled"
+            ]
+          },
+          "counts": {
+            "$ref": "#/components/schemas/JobCountsDto"
+          },
+          "percentage": {
+            "type": "number",
+            "example": 75
+          },
+          "error_message": {
+            "type": "string",
+            "example": null
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "started_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "finished_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "has_report": {
+            "type": "boolean",
+            "example": false
+          }
+        },
+        "required": [
+          "job_id",
+          "direction",
+          "entity_type",
+          "format",
+          "status",
+          "counts",
+          "percentage",
+          "created_at"
         ]
       },
       "IdNameDto": {

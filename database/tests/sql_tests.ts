@@ -1858,6 +1858,171 @@ export async function runFunctionalTests(directUrl: string): Promise<boolean> {
       ctx
     );
     await client.query('RESET ROLE');
+
+    // =========================================================================
+    // TEST 21: Data Transfer Jobs Table Integrity & Security
+    // =========================================================================
+    setGroup('Test 21: Data transfer jobs integrity & security');
+
+    const validKey = '0123456789abcdef0123456789abcdef.xlsx';
+    const validHash = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+
+    // 1. Valid insert succeeds
+    const jobInsertRes = await client.query(`
+      INSERT INTO data_transfer_jobs (
+        direction, entity_type, format, status, file_key, file_sha256,
+        total_rows, processed_rows, created_by
+      ) VALUES (
+        'import', 'companies', 'xlsx', 'previewed', $1, $2,
+        100, 50, $3
+      ) RETURNING job_id;
+    `, [validKey, validHash, empId]);
+    const testJobId = jobInsertRes.rows[0].job_id;
+    logPass('Valid insert into data_transfer_jobs succeeds');
+
+    // 2. Hard DELETE rejected by trigger
+    await expectError(
+      client,
+      "DELETE FROM data_transfer_jobs WHERE job_id = $1",
+      /Hard delete is disabled on table data_transfer_jobs/,
+      'Hard delete on data_transfer_jobs blocked by trigger',
+      ctx,
+      [testJobId]
+    );
+
+    // 3. TRUNCATE rejected by trigger
+    await expectError(
+      client,
+      "TRUNCATE TABLE data_transfer_jobs",
+      /TRUNCATE is disabled on table data_transfer_jobs/,
+      'TRUNCATE on data_transfer_jobs blocked by trigger',
+      ctx
+    );
+
+    // 4. Bad file_key rejected
+    await expectError(
+      client,
+      `INSERT INTO data_transfer_jobs (direction, entity_type, format, status, file_key)
+       VALUES ('import', 'companies', 'xlsx', 'previewed', 'bad-key.txt')`,
+      /ck_data_transfer_jobs_file_key_format/,
+      'Invalid file_key rejected by format check',
+      ctx
+    );
+
+    await expectError(
+      client,
+      `INSERT INTO data_transfer_jobs (direction, entity_type, format, status, file_key)
+       VALUES ('import', 'companies', 'xlsx', 'previewed', '../../evil.xlsx')`,
+      /ck_data_transfer_jobs_file_key_format/,
+      'Path traversal file_key rejected by format check',
+      ctx
+    );
+
+    // 5. Bad report_key rejected
+    await expectError(
+      client,
+      `INSERT INTO data_transfer_jobs (direction, entity_type, format, status, file_key, report_key)
+       VALUES ('import', 'companies', 'xlsx', 'previewed', $1, 'bad-report-key.doc')`,
+      /ck_data_transfer_jobs_report_key_format/,
+      'Invalid report_key rejected by format check',
+      ctx,
+      [validKey]
+    );
+
+    // 6. Bad sha256 hash rejected
+    await expectError(
+      client,
+      `INSERT INTO data_transfer_jobs (direction, entity_type, format, status, file_key, file_sha256)
+       VALUES ('import', 'companies', 'xlsx', 'previewed', $1, 'not-a-valid-64-char-hash')`,
+      /ck_data_transfer_jobs_file_sha256_format/,
+      'Invalid file_sha256 rejected by format check',
+      ctx,
+      [validKey]
+    );
+
+    // 7. processed_rows > total_rows rejected
+    await expectError(
+      client,
+      `INSERT INTO data_transfer_jobs (direction, entity_type, format, status, file_key, total_rows, processed_rows)
+       VALUES ('import', 'companies', 'xlsx', 'previewed', $1, 10, 11)`,
+      /ck_data_transfer_jobs_processed_le_total/,
+      'processed_rows > total_rows rejected by check constraint',
+      ctx,
+      [validKey]
+    );
+
+    // 8. Negative rows rejected
+    await expectError(
+      client,
+      `INSERT INTO data_transfer_jobs (direction, entity_type, format, status, file_key, total_rows)
+       VALUES ('import', 'companies', 'xlsx', 'previewed', $1, -1)`,
+      /ck_data_transfer_jobs_counts_non_negative/,
+      'Negative count rejected by check constraint',
+      ctx,
+      [validKey]
+    );
+
+    // 9. Import missing file_key rejected unless expired
+    await expectError(
+      client,
+      `INSERT INTO data_transfer_jobs (direction, entity_type, format, status, file_key)
+       VALUES ('import', 'companies', 'xlsx', 'queued', NULL)`,
+      /ck_data_transfer_jobs_import_file_key/,
+      'Import job missing file_key rejected unless expired',
+      ctx
+    );
+
+    const expiredJobRes = await client.query(`
+      INSERT INTO data_transfer_jobs (direction, entity_type, format, status, file_key)
+      VALUES ('import', 'companies', 'xlsx', 'expired', NULL)
+      RETURNING job_id;
+    `);
+    if (expiredJobRes.rows.length === 1) {
+      logPass('Import job with status=expired allows NULL file_key');
+    }
+
+    // 10. finished_at < started_at rejected
+    await expectError(
+      client,
+      `INSERT INTO data_transfer_jobs (direction, entity_type, format, status, file_key, started_at, finished_at)
+       VALUES ('import', 'companies', 'xlsx', 'previewed', $1, now(), now() - interval '1 hour')`,
+      /ck_data_transfer_jobs_finished_ge_started/,
+      'finished_at < started_at rejected by check constraint',
+      ctx,
+      [validKey]
+    );
+
+    // 11. pulse_app permissions: SELECT, INSERT, UPDATE allowed; DELETE denied
+    await client.query('GRANT pulse_app TO CURRENT_USER').catch(() => {});
+    await client.query('SET ROLE pulse_app');
+
+    const appJobRes = await client.query(`
+      INSERT INTO data_transfer_jobs (
+        direction, entity_type, format, status, file_key
+      ) VALUES (
+        'export', 'companies', 'csv', 'running', $1
+      ) RETURNING job_id;
+    `, [validKey]);
+    const appJobId = appJobRes.rows[0].job_id;
+    logPass('pulse_app can INSERT into data_transfer_jobs');
+
+    const selectRes = await client.query("SELECT * FROM data_transfer_jobs WHERE job_id = $1", [appJobId]);
+    if (selectRes.rows.length === 1) {
+      logPass('pulse_app can SELECT from data_transfer_jobs');
+    }
+
+    await client.query("UPDATE data_transfer_jobs SET status = 'completed' WHERE job_id = $1", [appJobId]);
+    logPass('pulse_app can UPDATE data_transfer_jobs');
+
+    await expectError(
+      client,
+      "DELETE FROM data_transfer_jobs WHERE job_id = $1",
+      /permission denied for table data_transfer_jobs/,
+      'pulse_app: DELETE on data_transfer_jobs denied',
+      ctx,
+      [appJobId]
+    );
+    await client.query('RESET ROLE');
     console.log('\n=============================================================');
     console.log('SQL Test Breakdown by Group:');
     for (const [groupName, stats] of Object.entries(ctx.groupStats)) {

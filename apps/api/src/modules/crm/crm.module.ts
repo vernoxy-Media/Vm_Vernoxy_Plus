@@ -1,9 +1,26 @@
-import { Module } from '@nestjs/common';
+import { Module, OnModuleInit, Inject } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
 import { MasterDataModule } from '../master-data/master-data.module';
 import { OrganizationModule } from '../organization/organization.module';
+import { StorageModule, STORAGE_TOKENS, FileStoragePort } from '../storage/public-api';
+import {
+  DataTransferModule,
+  DATA_TRANSFER_TOKENS,
+  DataTransferRegistry,
+  FileInspectionService,
+  TransferJobRepository,
+  JobQueuePort,
+  GetTransferJobUseCase,
+  GetTransferJobIssuesUseCase,
+  ListTransferJobsUseCase,
+  CancelTransferJobUseCase,
+  DownloadTransferReportUseCase,
+} from '../data-transfer/public-api';
+import { PrismaModule } from '../../core/prisma/prisma.module';
+import { PrismaService } from '../../core/prisma/prisma.service';
 
 // Controllers
+import { CompanyDataTransferController } from './presentation/controllers/company-data-transfer.controller';
 import { CompanyController } from './presentation/controllers/company.controller';
 import { PersonController } from './presentation/controllers/person.controller';
 import { CompanyAdminGuard } from './presentation/guards/company-admin.guard';
@@ -45,6 +62,10 @@ import { AuthCompanyAccessPolicyAdapter } from './infrastructure/adapters/auth-a
 import { MasterDataCatalogAdapter } from './infrastructure/adapters/master-data-catalog.adapter';
 import { OrganizationEmployeeDirectoryAdapter } from './infrastructure/adapters/organization-employee-directory.adapter';
 
+// Data Transfer Infrastructure & Services
+import { CompanyExportSource } from './infrastructure/export/company-export.source';
+import { CompanyImportHandler } from './infrastructure/import/company-import.handler';
+
 // Use Cases
 import { ListCompaniesUseCase } from './application/use-cases/list-companies.use-case';
 import { GetCompanyOptionsUseCase } from './application/use-cases/get-company-options.use-case';
@@ -54,10 +75,25 @@ import { CreateCompanyUseCase } from './application/use-cases/create-company.use
 import { UpdateCompanyUseCase } from './application/use-cases/update-company.use-case';
 import { DeleteCompanyUseCase } from './application/use-cases/delete-company.use-case';
 import { LookupPersonsUseCase } from './application/use-cases/lookup-persons.use-case';
+import { DownloadCompanyTemplateUseCase } from './application/use-cases/download-company-template.use-case';
+import { PreviewCompanyImportUseCase } from './application/use-cases/preview-company-import.use-case';
+import { ConfirmCompanyImportUseCase } from './application/use-cases/confirm-company-import.use-case';
+import { ExportCompaniesUseCase } from './application/use-cases/export-companies.use-case';
 
 @Module({
-  imports: [AuthModule, MasterDataModule, OrganizationModule],
-  controllers: [CompanyController, PersonController],
+  imports: [
+    PrismaModule,
+    AuthModule,
+    MasterDataModule,
+    OrganizationModule,
+    StorageModule,
+    DataTransferModule,
+  ],
+  controllers: [
+    CompanyDataTransferController,
+    CompanyController,
+    PersonController,
+  ],
   providers: [
     // Repositories & UoW
     {
@@ -93,6 +129,10 @@ import { LookupPersonsUseCase } from './application/use-cases/lookup-persons.use
 
     // Guard
     CompanyAdminGuard,
+
+    // Data Transfer Infrastructure
+    CompanyExportSource,
+    CompanyImportHandler,
 
     // Use cases
     {
@@ -164,10 +204,89 @@ import { LookupPersonsUseCase } from './application/use-cases/lookup-persons.use
       inject: [PERSON_REPOSITORY_PORT_TOKEN],
       useFactory: (pRepo: PersonRepositoryPort) => new LookupPersonsUseCase(pRepo),
     },
+
+    // Data Transfer Use Cases
+    {
+      provide: DownloadCompanyTemplateUseCase,
+      inject: [DATA_TRANSFER_TOKENS.SPREADSHEET_WRITER, PrismaService],
+      useFactory: (writer: any, prisma: PrismaService) =>
+        new DownloadCompanyTemplateUseCase(writer, async () => {
+          const [cts, inds] = await Promise.all([
+            prisma.customer_types.findMany({
+              where: { deleted_at: null, is_active: true },
+              select: { name: true },
+              orderBy: { name: 'asc' },
+            }),
+            prisma.industries.findMany({
+              where: { deleted_at: null, is_active: true },
+              select: { name: true },
+              orderBy: { name: 'asc' },
+            }),
+          ]);
+          return {
+            customerTypes: cts.map((c) => c.name),
+            industries: inds.map((i) => i.name),
+            statuses: ['Active', 'Inactive'],
+          };
+        }),
+    },
+    {
+      provide: PreviewCompanyImportUseCase,
+      inject: [
+        FileInspectionService,
+        STORAGE_TOKENS.FileStoragePort,
+        DATA_TRANSFER_TOKENS.TRANSFER_JOB_REPOSITORY,
+        CompanyImportHandler,
+      ],
+      useFactory: (
+        fileInspection: FileInspectionService,
+        fileStorage: FileStoragePort,
+        jobRepo: TransferJobRepository,
+        importHandler: CompanyImportHandler,
+      ) => new PreviewCompanyImportUseCase(fileInspection, fileStorage, jobRepo, importHandler),
+    },
+    {
+      provide: ConfirmCompanyImportUseCase,
+      inject: [
+        DATA_TRANSFER_TOKENS.TRANSFER_JOB_REPOSITORY,
+        DATA_TRANSFER_TOKENS.JOB_QUEUE,
+      ],
+      useFactory: (
+        jobRepo: TransferJobRepository,
+        jobQueue: JobQueuePort,
+      ) => new ConfirmCompanyImportUseCase(jobRepo, jobQueue),
+    },
+    {
+      provide: ExportCompaniesUseCase,
+      inject: [
+        DATA_TRANSFER_TOKENS.TRANSFER_JOB_REPOSITORY,
+        CompanyExportSource,
+      ],
+      useFactory: (
+        jobRepo: TransferJobRepository,
+        exportSource: CompanyExportSource,
+      ) => new ExportCompaniesUseCase(jobRepo, exportSource),
+    },
   ],
   exports: [
     COMPANY_REPOSITORY_PORT_TOKEN,
     PERSON_REPOSITORY_PORT_TOKEN,
+    CompanyExportSource,
+    CompanyImportHandler,
   ],
 })
-export class CrmModule {}
+export class CrmModule implements OnModuleInit {
+  constructor(
+    @Inject(DataTransferRegistry)
+    private readonly registry: DataTransferRegistry,
+    @Inject(CompanyImportHandler)
+    private readonly importHandler: CompanyImportHandler,
+    @Inject(CompanyExportSource)
+    private readonly exportSource: CompanyExportSource,
+  ) {}
+
+  onModuleInit() {
+    this.registry.registerImportHandler(this.importHandler);
+    this.registry.registerExportSource(this.exportSource);
+  }
+}

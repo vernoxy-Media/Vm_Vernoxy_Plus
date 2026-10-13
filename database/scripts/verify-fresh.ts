@@ -66,10 +66,10 @@ async function runVerifyFresh() {
     // Count applied migrations
     const countRes = await verifyClient.query(`SELECT count(*)::int as count FROM dbmate.schema_migrations;`);
     const count = countRes.rows[0].count;
-    console.log(`   [CONFIRMED] Applied migrations recorded: ${count}/22.`);
+    console.log(`   [CONFIRMED] Applied migrations recorded: ${count}/23.`);
 
-    if (count !== 22) {
-      throw new Error(`FAILED: Expected 22 migrations, found ${count}`);
+    if (count !== 23) {
+      throw new Error(`FAILED: Expected 23 migrations, found ${count}`);
     }
 
     // Count public tables
@@ -80,11 +80,11 @@ async function runVerifyFresh() {
       ORDER BY table_name;
     `);
 
-    console.log(`   [CONFIRMED] Public domain & auth tables created (${publicTablesRes.rows.length}/16):`);
+    console.log(`   [CONFIRMED] Public domain, auth & transfer tables created (${publicTablesRes.rows.length}/17):`);
     publicTablesRes.rows.forEach(r => console.log(`   - ${r.table_name}`));
 
-    if (publicTablesRes.rows.length !== 16) {
-      throw new Error(`FAILED: Expected exactly 16 public tables (12 domain + 4 auth), found ${publicTablesRes.rows.length}`);
+    if (publicTablesRes.rows.length !== 17) {
+      throw new Error(`FAILED: Expected exactly 17 public tables (12 domain + 4 auth + 1 data transfer), found ${publicTablesRes.rows.length}`);
     }
 
     // -------------------------------------------------------------------------

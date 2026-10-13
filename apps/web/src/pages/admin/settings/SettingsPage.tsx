@@ -36,7 +36,7 @@ export const SettingsPage: React.FC = () => {
         <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden flex flex-col md:flex-row min-h-[600px]">
           {/* Left section list (horizontal scrollable row below 768px) */}
           <div className="w-full md:w-64 border-b md:border-b-0 md:border-r border-slate-200/80 bg-slate-50/50 p-3 sm:p-4 shrink-0">
-            <span className="hidden md:block text-[11px] font-bold uppercase tracking-wider text-slate-400 px-3 pb-3">
+            <span className="hidden md:block text-xs font-bold uppercase tracking-wider text-slate-400 px-3 pb-3">
               Master Data
             </span>
 

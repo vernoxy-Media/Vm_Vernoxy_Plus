@@ -18,6 +18,7 @@ import { CompanyRoute } from './features/companies/components/CompanyRoute';
 import { CompaniesListPage } from './features/companies/pages/CompaniesListPage';
 import { CompanyFormPage } from './features/companies/pages/CompanyFormPage';
 import { CompanyDetailPage } from './features/companies/pages/CompanyDetailPage';
+import { CompanyImportPage } from './features/companies/pages/CompanyImportPage';
 import { AppLayout } from './components/AppLayout';
 
 const queryClient = new QueryClient({
@@ -113,7 +114,7 @@ export const App: React.FC = () => {
               path="/companies"
               element={
                 <CompanyRoute>
-                  <AppLayout>
+                  <AppLayout fluid>
                     <CompaniesListPage />
                   </AppLayout>
                 </CompanyRoute>
@@ -130,10 +131,20 @@ export const App: React.FC = () => {
               }
             />
             <Route
-              path="/companies/:id"
+              path="/companies/import"
               element={
                 <CompanyRoute>
                   <AppLayout>
+                    <CompanyImportPage />
+                  </AppLayout>
+                </CompanyRoute>
+              }
+            />
+            <Route
+              path="/companies/:id"
+              element={
+                <CompanyRoute>
+                  <AppLayout fluid>
                     <CompanyDetailPage />
                   </AppLayout>
                 </CompanyRoute>

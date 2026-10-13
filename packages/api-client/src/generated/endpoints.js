@@ -1417,6 +1417,285 @@ export function useLookupControllerGetOptions(options, queryClient) {
     return query;
 }
 ;
+export const getCompanyDataTransferControllerDownloadTemplateUrl = () => {
+    return `/api/v1/companies/import/template`;
+};
+export const companyDataTransferControllerDownloadTemplate = async (options) => {
+    return customFetch(getCompanyDataTransferControllerDownloadTemplateUrl(), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getCompanyDataTransferControllerDownloadTemplateQueryKey = () => {
+    return [
+        `/api/v1/companies/import/template`
+    ];
+};
+export const getCompanyDataTransferControllerDownloadTemplateQueryOptions = (options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getCompanyDataTransferControllerDownloadTemplateQueryKey();
+    const queryFn = ({ signal }) => companyDataTransferControllerDownloadTemplate({ signal, ...requestOptions });
+    return { queryKey, queryFn, ...queryOptions };
+};
+/**
+ * @summary Download empty company import template (xlsx or csv)
+ */
+export function useCompanyDataTransferControllerDownloadTemplate(options, queryClient) {
+    const queryOptions = getCompanyDataTransferControllerDownloadTemplateQueryOptions(options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
+export const getCompanyDataTransferControllerPreviewUrl = () => {
+    return `/api/v1/companies/import/preview`;
+};
+export const companyDataTransferControllerPreview = async (companyDataTransferControllerPreviewBody, options) => {
+    const formData = new FormData();
+    formData.append(`file`, companyDataTransferControllerPreviewBody.file);
+    if (companyDataTransferControllerPreviewBody.duplicate_policy !== undefined) {
+        formData.append(`duplicate_policy`, companyDataTransferControllerPreviewBody.duplicate_policy);
+    }
+    if (companyDataTransferControllerPreviewBody.skip_invalid_rows !== undefined) {
+        formData.append(`skip_invalid_rows`, companyDataTransferControllerPreviewBody.skip_invalid_rows.toString());
+    }
+    return customFetch(getCompanyDataTransferControllerPreviewUrl(), {
+        ...options,
+        method: 'POST',
+        body: formData,
+    });
+};
+export const getCompanyDataTransferControllerPreviewMutationOptions = (options) => {
+    const mutationKey = ['companyDataTransferControllerPreview'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { data } = props ?? {};
+        return companyDataTransferControllerPreview(data, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Upload file for inspection and preview (rate limit 5/min)
+*/
+export const useCompanyDataTransferControllerPreview = (options, queryClient) => {
+    const mutationOptions = getCompanyDataTransferControllerPreviewMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getCompanyDataTransferControllerConfirmUrl = (jobId) => {
+    return `/api/v1/companies/import/${jobId}/confirm`;
+};
+export const companyDataTransferControllerConfirm = async (jobId, options) => {
+    return customFetch(getCompanyDataTransferControllerConfirmUrl(jobId), {
+        ...options,
+        method: 'POST'
+    });
+};
+export const getCompanyDataTransferControllerConfirmMutationOptions = (options) => {
+    const mutationKey = ['companyDataTransferControllerConfirm'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { jobId } = props ?? {};
+        return companyDataTransferControllerConfirm(jobId, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Confirm import preview and enqueue background processing (rate limit 5/min)
+*/
+export const useCompanyDataTransferControllerConfirm = (options, queryClient) => {
+    const mutationOptions = getCompanyDataTransferControllerConfirmMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getCompanyDataTransferControllerCancelUrl = (jobId) => {
+    return `/api/v1/companies/import/${jobId}/cancel`;
+};
+export const companyDataTransferControllerCancel = async (jobId, options) => {
+    return customFetch(getCompanyDataTransferControllerCancelUrl(jobId), {
+        ...options,
+        method: 'POST'
+    });
+};
+export const getCompanyDataTransferControllerCancelMutationOptions = (options) => {
+    const mutationKey = ['companyDataTransferControllerCancel'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { jobId } = props ?? {};
+        return companyDataTransferControllerCancel(jobId, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Cancel import job (only if pending)
+*/
+export const useCompanyDataTransferControllerCancel = (options, queryClient) => {
+    const mutationOptions = getCompanyDataTransferControllerCancelMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getCompanyDataTransferControllerListImportsUrl = () => {
+    return `/api/v1/companies/import`;
+};
+export const companyDataTransferControllerListImports = async (options) => {
+    return customFetch(getCompanyDataTransferControllerListImportsUrl(), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getCompanyDataTransferControllerListImportsQueryKey = () => {
+    return [
+        `/api/v1/companies/import`
+    ];
+};
+export const getCompanyDataTransferControllerListImportsQueryOptions = (options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getCompanyDataTransferControllerListImportsQueryKey();
+    const queryFn = ({ signal }) => companyDataTransferControllerListImports({ signal, ...requestOptions });
+    return { queryKey, queryFn, ...queryOptions };
+};
+/**
+ * @summary List recent company import jobs
+ */
+export function useCompanyDataTransferControllerListImports(options, queryClient) {
+    const queryOptions = getCompanyDataTransferControllerListImportsQueryOptions(options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
+export const getCompanyDataTransferControllerDownloadReportUrl = (jobId) => {
+    return `/api/v1/companies/import/${jobId}/report`;
+};
+export const companyDataTransferControllerDownloadReport = async (jobId, options) => {
+    return customFetch(getCompanyDataTransferControllerDownloadReportUrl(jobId), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getCompanyDataTransferControllerDownloadReportQueryKey = (jobId) => {
+    return [
+        `/api/v1/companies/import/${jobId}/report`
+    ];
+};
+export const getCompanyDataTransferControllerDownloadReportQueryOptions = (jobId, options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getCompanyDataTransferControllerDownloadReportQueryKey(jobId);
+    const queryFn = ({ signal }) => companyDataTransferControllerDownloadReport(jobId, { signal, ...requestOptions });
+    return { queryKey, queryFn, enabled: !!(jobId), ...queryOptions };
+};
+/**
+ * @summary Download final import results CSV/XLSX report
+ */
+export function useCompanyDataTransferControllerDownloadReport(jobId, options, queryClient) {
+    const queryOptions = getCompanyDataTransferControllerDownloadReportQueryOptions(jobId, options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
+export const getCompanyDataTransferControllerGetIssuesUrl = (jobId) => {
+    return `/api/v1/companies/import/${jobId}/issues`;
+};
+export const companyDataTransferControllerGetIssues = async (jobId, options) => {
+    return customFetch(getCompanyDataTransferControllerGetIssuesUrl(jobId), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getCompanyDataTransferControllerGetIssuesQueryKey = (jobId) => {
+    return [
+        `/api/v1/companies/import/${jobId}/issues`
+    ];
+};
+export const getCompanyDataTransferControllerGetIssuesQueryOptions = (jobId, options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getCompanyDataTransferControllerGetIssuesQueryKey(jobId);
+    const queryFn = ({ signal }) => companyDataTransferControllerGetIssues(jobId, { signal, ...requestOptions });
+    return { queryKey, queryFn, enabled: !!(jobId), ...queryOptions };
+};
+/**
+ * @summary Get paginated validation issues for import job
+ */
+export function useCompanyDataTransferControllerGetIssues(jobId, options, queryClient) {
+    const queryOptions = getCompanyDataTransferControllerGetIssuesQueryOptions(jobId, options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
+export const getCompanyDataTransferControllerGetJobUrl = (jobId) => {
+    return `/api/v1/companies/import/${jobId}`;
+};
+export const companyDataTransferControllerGetJob = async (jobId, options) => {
+    return customFetch(getCompanyDataTransferControllerGetJobUrl(jobId), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getCompanyDataTransferControllerGetJobQueryKey = (jobId) => {
+    return [
+        `/api/v1/companies/import/${jobId}`
+    ];
+};
+export const getCompanyDataTransferControllerGetJobQueryOptions = (jobId, options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getCompanyDataTransferControllerGetJobQueryKey(jobId);
+    const queryFn = ({ signal }) => companyDataTransferControllerGetJob(jobId, { signal, ...requestOptions });
+    return { queryKey, queryFn, enabled: !!(jobId), ...queryOptions };
+};
+/**
+ * @summary Get company import job status and progress
+ */
+export function useCompanyDataTransferControllerGetJob(jobId, options, queryClient) {
+    const queryOptions = getCompanyDataTransferControllerGetJobQueryOptions(jobId, options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
+export const getCompanyDataTransferControllerExportUrl = () => {
+    return `/api/v1/companies/export`;
+};
+export const companyDataTransferControllerExport = async (options) => {
+    return customFetch(getCompanyDataTransferControllerExportUrl(), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getCompanyDataTransferControllerExportQueryKey = () => {
+    return [
+        `/api/v1/companies/export`
+    ];
+};
+export const getCompanyDataTransferControllerExportQueryOptions = (options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getCompanyDataTransferControllerExportQueryKey();
+    const queryFn = ({ signal }) => companyDataTransferControllerExport({ signal, ...requestOptions });
+    return { queryKey, queryFn, ...queryOptions };
+};
+/**
+ * @summary Export companies list with active filters directly to streaming file (rate limit 5/min)
+ */
+export function useCompanyDataTransferControllerExport(options, queryClient) {
+    const queryOptions = getCompanyDataTransferControllerExportQueryOptions(options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
 export const getCompanyControllerListUrl = () => {
     return `/api/v1/companies`;
 };

@@ -7,6 +7,7 @@ import {
 } from '../api/companies.api';
 import { useCustomerTypeOptionsQuery, useIndustryOptionsQuery } from '../../../hooks/use-master-data';
 import { useEmployeesQuery } from '../../../hooks/use-organization';
+import { useAuthenticatedDownload } from '../../../hooks/use-authenticated-download';
 import { DependentSelect } from '../../../components/DependentSelect';
 import { LinkValue } from '../../../components/LinkValue';
 import { CompanyCard } from '../components/CompanyCard';
@@ -21,6 +22,8 @@ import {
   AlertCircle,
   ChevronRight,
   Users,
+  Download,
+  Upload,
 } from 'lucide-react';
 
 export const CompaniesListPage: React.FC = () => {
@@ -71,24 +74,96 @@ export const CompaniesListPage: React.FC = () => {
     }
   };
 
+  const { download, isDownloading: isExporting } = useAuthenticatedDownload();
+  const [showExportMenu, setShowExportMenu] = useState(false);
+
+  const handleExport = async (format: 'xlsx' | 'csv') => {
+    setShowExportMenu(false);
+    const params = new URLSearchParams();
+    params.set('format', format);
+    if (search.trim()) params.set('q', search.trim());
+    if (customerTypeId) params.set('customer_type_id', String(customerTypeId));
+    if (effectiveIndustryId) params.set('industry_id', String(effectiveIndustryId));
+    if (ownerParam === 'unassigned') params.set('owner', 'unassigned');
+    else if (ownerIdParam) params.set('owner_id', String(ownerIdParam));
+    if (statusFilter !== undefined) params.set('is_active', String(statusFilter));
+
+    try {
+      await download(`/api/v1/companies/export?${params.toString()}`, `companies.${format}`);
+    } catch (err: any) {
+      alert(err.message || 'Export failed');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-100">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Companies</h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Companies</h1>
+          <p className="text-sm text-slate-500 mt-0.5">
             Manage your CRM client accounts, subsidiaries, communication channels, and contacts.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => navigate('/companies/new')}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 transition-colors focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 shrink-0"
-        >
-          <Plus className="w-4 h-4" />
-          Add Company
-        </button>
+        <div className="flex items-center gap-2.5">
+          {/* Export Dropdown */}
+          <div className="relative">
+            <button
+              type="button"
+              disabled={isExporting}
+              onClick={() => setShowExportMenu(!showExportMenu)}
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-xs shrink-0 disabled:opacity-50"
+            >
+              {isExporting ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Download className="w-3.5 h-3.5 text-slate-500" />
+              )}
+              Export
+            </button>
+            {showExportMenu && (
+              <div
+                className="absolute right-0 mt-1 w-40 bg-white border border-slate-200 rounded-xl shadow-lg z-20 py-1 text-xs"
+                onMouseLeave={() => setShowExportMenu(false)}
+              >
+                <button
+                  type="button"
+                  onClick={() => handleExport('xlsx')}
+                  className="w-full text-left px-3 py-2 text-slate-700 hover:bg-slate-50 font-medium flex items-center gap-2"
+                >
+                  Export as Excel (.xlsx)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleExport('csv')}
+                  className="w-full text-left px-3 py-2 text-slate-700 hover:bg-slate-50 font-medium flex items-center gap-2"
+                >
+                  Export as CSV (.csv)
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Import Button */}
+          <button
+            type="button"
+            onClick={() => navigate('/companies/import')}
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-xs shrink-0"
+          >
+            <Upload className="w-3.5 h-3.5 text-slate-500" />
+            Import
+          </button>
+
+          {/* Add Company Button */}
+          <button
+            type="button"
+            onClick={() => navigate('/companies/new')}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 transition-colors focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 shrink-0"
+          >
+            <Plus className="w-4 h-4" />
+            Add Company
+          </button>
+        </div>
       </div>
 
       {/* Filters Bar */}
@@ -233,7 +308,7 @@ export const CompaniesListPage: React.FC = () => {
         <div className="py-12 text-center text-rose-600 bg-white rounded-2xl border border-slate-200 px-4">
           <AlertCircle className="w-8 h-8 mx-auto mb-2 text-rose-500" />
           <p className="font-semibold text-xs">Failed to load companies</p>
-          <p className="text-[11px] text-slate-500 mt-1">{(error as any)?.message || 'Unknown error'}</p>
+          <p className="text-xs text-slate-500 mt-1">{(error as any)?.message || 'Unknown error'}</p>
         </div>
       ) : data?.items?.length === 0 ? (
         <div className="py-16 text-center bg-white rounded-2xl border border-slate-200 px-4">
@@ -257,8 +332,8 @@ export const CompaniesListPage: React.FC = () => {
           {/* Desktop View: Full Data Table (>=640px) */}
           <div className="hidden sm:block rounded-xl border border-slate-200 overflow-hidden bg-white">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs" id="companies-table">
-                <thead className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+              <table className="w-full text-left text-sm" id="companies-table">
+                <thead className="bg-slate-50/80 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   <tr>
                     <th className="py-3 px-5">Company</th>
                     <th className="py-3 px-5">Type</th>
@@ -284,7 +359,7 @@ export const CompaniesListPage: React.FC = () => {
                         >
                           {company.name}
                         </Link>
-                        <span className="text-[11px] text-slate-400">
+                        <span className="text-xs text-slate-400">
                           {[company.city, company.state].filter(Boolean).join(', ') || '—'}
                         </span>
                       </td>
@@ -294,7 +369,7 @@ export const CompaniesListPage: React.FC = () => {
                       <td className="py-3.5 px-5 text-slate-600">
                         <div>{company.industry?.name}</div>
                         {company.sub_industry && (
-                          <div className="text-[11px] text-slate-400">↳ {company.sub_industry.name}</div>
+                          <div className="text-xs text-slate-400">↳ {company.sub_industry.name}</div>
                         )}
                       </td>
                       <td className="py-3.5 px-5 text-slate-600 space-y-1">
@@ -323,7 +398,7 @@ export const CompaniesListPage: React.FC = () => {
                       </td>
                       <td className="py-3.5 px-5">
                         <span
-                          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium ${
+                          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${
                             company.is_active
                               ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60'
                               : 'bg-slate-100 text-slate-600 border border-slate-200/60'

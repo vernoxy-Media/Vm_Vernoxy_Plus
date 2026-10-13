@@ -144,10 +144,10 @@ export const CompanyFormPage: React.FC = () => {
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
               {isEdit ? 'Edit Company' : 'Create New Company'}
             </h1>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-sm text-slate-500 mt-1">
               Fill in organizational details, communication channels, and associated key contacts.
             </p>
           </div>
@@ -156,7 +156,7 @@ export const CompanyFormPage: React.FC = () => {
 
       {/* Global Error Banner */}
       {formError && (
-        <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-3 text-rose-800 text-xs">
+        <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-3 text-rose-800 text-sm">
           <AlertCircle className="w-4 h-4 text-rose-600 mt-0.5 shrink-0" />
           <span className="font-medium">{formError}</span>
         </div>
@@ -188,7 +188,7 @@ export const CompanyFormPage: React.FC = () => {
           <button
             type="button"
             onClick={() => navigate(isEdit ? `/companies/${companyId}` : '/companies')}
-            className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
+            className="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
           >
             Cancel
           </button>
@@ -196,7 +196,7 @@ export const CompanyFormPage: React.FC = () => {
           <button
             type="submit"
             disabled={isSaving}
-            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-600 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-600 text-sm font-semibold text-white shadow-xs hover:bg-blue-700 disabled:opacity-50 transition-colors"
           >
             {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             {isEdit ? 'Update Company' : 'Save Company'}

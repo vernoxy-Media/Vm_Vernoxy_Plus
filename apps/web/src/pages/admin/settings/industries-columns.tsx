@@ -12,7 +12,7 @@ export function getIndustryColumns(): MasterDataColumn<IndustryListItemDto>[] {
         <div className="flex items-center gap-2">
           <span className="font-semibold text-slate-900">{item.name}</span>
           {item.is_default && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200/60 text-[11px] font-semibold">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200/60 text-xs font-semibold">
               <ShieldCheck className="w-3 h-3" />
               Default
             </span>
@@ -47,7 +47,7 @@ export function getIndustryColumns(): MasterDataColumn<IndustryListItemDto>[] {
       header: 'Status',
       render: (item) => (
         <span
-          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium ${
+          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${
             item.is_active
               ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60'
               : 'bg-slate-100 text-slate-600 border border-slate-200/60'

@@ -124,7 +124,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <p id="sidebar-user-name" className="text-xs font-bold text-slate-900 truncate">
                   {user.name}
                 </p>
-                <p id="sidebar-user-role" className="text-[11px] text-slate-500 truncate">
+                <p id="sidebar-user-role" className="text-xs text-slate-500 truncate">
                   {user.role?.role_name || 'Staff'}
                 </p>
               </div>

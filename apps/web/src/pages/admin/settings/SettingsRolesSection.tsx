@@ -292,7 +292,7 @@ export const SettingsRolesSection: React.FC = () => {
           <div className="py-12 text-center text-rose-600 px-4">
             <AlertCircle className="w-7 h-7 mx-auto mb-2 text-rose-500" />
             <p className="font-semibold text-xs">Failed to load roles</p>
-            <p className="text-[11px] text-slate-500 mt-1">{(error as any)?.message || 'Unknown error'}</p>
+            <p className="text-xs text-slate-500 mt-1">{(error as any)?.message || 'Unknown error'}</p>
           </div>
         ) : data?.items?.length === 0 ? (
           <div className="py-16 text-center px-4">
@@ -307,7 +307,7 @@ export const SettingsRolesSection: React.FC = () => {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs" id="roles-table">
-              <thead className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+              <thead className="bg-slate-50/80 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                 <tr>
                   <th className="py-3 px-5">ID</th>
                   <th className="py-3 px-5">Role Name</th>
@@ -336,7 +336,7 @@ export const SettingsRolesSection: React.FC = () => {
                           {role.is_admin && (
                             <span
                               id={`role-admin-badge-${role.role_id}`}
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200/60 text-[11px] font-semibold"
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200/60 text-xs font-semibold"
                               title="System Protected Role"
                             >
                               <Shield className="w-3 h-3" />
@@ -356,7 +356,7 @@ export const SettingsRolesSection: React.FC = () => {
                       </td>
                       <td className="py-3.5 px-5">
                         <span
-                          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium ${
+                          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${
                             role.is_active
                               ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60'
                               : 'bg-slate-100 text-slate-600 border border-slate-200/60'
@@ -619,7 +619,7 @@ export const SettingsRolesSection: React.FC = () => {
               <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 border border-slate-200">
                 <div>
                   <span className="text-xs font-semibold text-slate-800 block">Role Active</span>
-                  <span className="text-[11px] text-slate-500">
+                  <span className="text-xs text-slate-500">
                     {editingRole.is_admin
                       ? 'Admin roles cannot be deactivated.'
                       : 'Deactivating is blocked if active employees are assigned.'}

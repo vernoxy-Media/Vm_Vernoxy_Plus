@@ -59,7 +59,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
       <aside
         aria-label="Desktop Navigation"
         className={`hidden lg:flex flex-col fixed top-0 bottom-0 left-0 bg-white border-r border-slate-200/80 z-30 transition-all duration-200 ${
-          isCollapsed ? 'w-20' : 'w-64'
+          isCollapsed ? 'w-[4.5rem]' : 'w-64'
         }`}
       >
         <Sidebar
@@ -128,12 +128,12 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
       {/* Main Content Area */}
       <div
         className={`flex-1 flex flex-col min-h-screen transition-all duration-200 ${
-          isCollapsed ? 'lg:pl-20' : 'lg:pl-64'
+          isCollapsed ? 'lg:pl-[4.5rem]' : 'lg:pl-64'
         }`}
       >
         <main
-          className={`flex-1 w-full px-4 sm:px-6 lg:px-8 pt-20 lg:pt-8 pb-12 ${
-            fluid ? 'max-w-none' : 'max-w-7xl'
+          className={`flex-1 w-full mx-auto px-4 sm:px-6 lg:px-8 pt-20 lg:pt-8 pb-12 ${
+            fluid ? 'max-w-page-wide' : 'max-w-page-form'
           }`}
         >
           {children}

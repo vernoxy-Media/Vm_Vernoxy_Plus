@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { customFetch, RoleOptionDto } from '@vernoxy-pulse/api-client';
 import {
   useEmployeeDetailQuery,
   useDepartmentOptionsQuery,
@@ -534,7 +533,7 @@ export const EmployeeFormPage: React.FC = () => {
                 <div className="space-y-1.5">
                   <label
                     htmlFor="employee-name-input"
-                    className="block text-xs font-semibold text-slate-700"
+                    className="block text-sm font-semibold text-slate-700"
                   >
                     Full Name <span className="text-red-500">*</span>
                   </label>
@@ -556,7 +555,7 @@ export const EmployeeFormPage: React.FC = () => {
                   <div className="space-y-1.5">
                     <label
                       htmlFor="employee-email-input"
-                      className="block text-xs font-semibold text-slate-700"
+                      className="block text-sm font-semibold text-slate-700"
                     >
                       Email <span className="text-red-500">*</span>
                     </label>
@@ -568,7 +567,7 @@ export const EmployeeFormPage: React.FC = () => {
                       {...register('email')}
                       className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all"
                     />
-                    <p className="text-[11px] text-slate-500">
+                    <p className="text-xs text-slate-500">
                       Used to log in and receive verification codes
                     </p>
                     {errors.email && (
@@ -581,7 +580,7 @@ export const EmployeeFormPage: React.FC = () => {
                 <div className="space-y-1.5">
                   <label
                     htmlFor="employee-mob-input"
-                    className="block text-xs font-semibold text-slate-700"
+                    className="block text-sm font-semibold text-slate-700"
                   >
                     Mobile
                   </label>
@@ -593,7 +592,7 @@ export const EmployeeFormPage: React.FC = () => {
                     {...register('mob')}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all font-mono"
                   />
-                  <p className="text-[11px] text-slate-500">
+                  <p className="text-xs text-slate-500">
                     Digits with optional +, country code first
                   </p>
                   {errors.mob && (
@@ -617,7 +616,7 @@ export const EmployeeFormPage: React.FC = () => {
                 <div className="space-y-1.5">
                   <label
                     htmlFor="employee-dep-select"
-                    className="block text-xs font-semibold text-slate-700"
+                    className="block text-sm font-semibold text-slate-700"
                   >
                     Department <span className="text-red-500">*</span>
                   </label>
@@ -649,7 +648,7 @@ export const EmployeeFormPage: React.FC = () => {
                 <div className="space-y-1.5">
                   <label
                     htmlFor="employee-role-select"
-                    className="block text-xs font-semibold text-slate-700"
+                    className="block text-sm font-semibold text-slate-700"
                   >
                     Role{' '}
                     {isRolesLoading && (
@@ -666,10 +665,8 @@ export const EmployeeFormPage: React.FC = () => {
                         shouldDirty: true,
                       })
                     }
-                    fetchOptions={async (pid: number | string) => {
-                      const data = await customFetch<RoleOptionDto[]>(`/api/v1/roles/options?dep_id=${pid}`);
-                      return data.map((r) => ({ value: r.role_id, label: r.role_name }));
-                    }}
+                    options={roleOptions?.map((r) => ({ value: r.role_id, label: r.role_name }))}
+                    isLoading={isRolesLoading}
                     placeholder="Select Role"
                     noParentMessage="Select a department first"
                     emptyParentMessage="No roles in this department."
@@ -698,7 +695,7 @@ export const EmployeeFormPage: React.FC = () => {
                 <div className="space-y-1.5">
                   <label
                     htmlFor="employee-manager-select"
-                    className="block text-xs font-semibold text-slate-700"
+                    className="block text-sm font-semibold text-slate-700"
                   >
                     Reporting Manager
                   </label>
@@ -725,7 +722,7 @@ export const EmployeeFormPage: React.FC = () => {
                 <div className="space-y-1.5">
                   <label
                     htmlFor="employee-joining-date-input"
-                    className="block text-xs font-semibold text-slate-700"
+                    className="block text-sm font-semibold text-slate-700"
                   >
                     Joining Date <span className="text-red-500">*</span>
                   </label>
@@ -748,7 +745,7 @@ export const EmployeeFormPage: React.FC = () => {
                     <div className="space-y-1.5">
                       <label
                         htmlFor="employee-exit-date-input"
-                        className="block text-xs font-semibold text-slate-700"
+                        className="block text-sm font-semibold text-slate-700"
                       >
                         Exit Date
                       </label>
@@ -763,7 +760,7 @@ export const EmployeeFormPage: React.FC = () => {
                     <div className="space-y-1.5">
                       <label
                         htmlFor="employee-status-select"
-                        className="block text-xs font-semibold text-slate-700"
+                        className="block text-sm font-semibold text-slate-700"
                       >
                         Status
                       </label>
@@ -801,7 +798,7 @@ export const EmployeeFormPage: React.FC = () => {
                     <div className="flex items-center justify-between">
                       <label
                         htmlFor="employee-password-input"
-                        className="block text-xs font-semibold text-slate-700"
+                        className="block text-sm font-semibold text-slate-700"
                       >
                         Password <span className="text-red-500">*</span>
                       </label>
@@ -858,7 +855,7 @@ export const EmployeeFormPage: React.FC = () => {
                   <div className="space-y-1.5">
                     <label
                       htmlFor="employee-confirm-password-input"
-                      className="block text-xs font-semibold text-slate-700"
+                      className="block text-sm font-semibold text-slate-700"
                     >
                       Confirm Password <span className="text-red-500">*</span>
                     </label>
@@ -883,7 +880,7 @@ export const EmployeeFormPage: React.FC = () => {
                       <span className="text-xs font-semibold text-slate-900 block">
                         Require password change at first login
                       </span>
-                      <span className="text-[11px] text-slate-500">
+                      <span className="text-xs text-slate-500">
                         Employee will be prompted to choose a new password upon first session.
                       </span>
                     </div>
@@ -962,7 +959,7 @@ export const EmployeeFormPage: React.FC = () => {
                   <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                   <div className="flex-1">
                     <p className="font-semibold">Photo upload failed</p>
-                    <p className="text-[11px] text-amber-700 mt-0.5">
+                    <p className="text-xs text-amber-700 mt-0.5">
                       Employee created, but the photo could not be uploaded. You can add it from the edit page.
                     </p>
                     <button
@@ -995,7 +992,7 @@ export const EmployeeFormPage: React.FC = () => {
                 </div>
               </div>
 
-              <p className="text-[11px] text-center text-slate-500 italic">
+              <p className="text-xs text-center text-slate-500 italic">
                 This password will not be shown again.
               </p>
 

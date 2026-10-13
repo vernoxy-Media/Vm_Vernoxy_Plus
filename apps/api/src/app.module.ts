@@ -9,6 +9,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { OrganizationModule } from './modules/organization/organization.module';
 import { StorageModule } from './modules/storage/public-api';
 import { MasterDataModule } from './modules/master-data/master-data.module';
+import { DataTransferModule } from './modules/data-transfer/public-api';
 import { CrmModule } from './modules/crm/crm.module';
 
 @Module({
@@ -24,6 +25,7 @@ import { CrmModule } from './modules/crm/crm.module';
     OrganizationModule,
     StorageModule,
     MasterDataModule,
+    DataTransferModule,
     CrmModule,
   ],
   controllers: [HealthController],

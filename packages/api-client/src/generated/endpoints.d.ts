@@ -1,5 +1,5 @@
 import type { DataTag, DefinedInitialDataOptions, DefinedUseQueryResult, QueryClient, QueryKey, UndefinedInitialDataOptions, UseMutationOptions, UseMutationResult, UseQueryOptions, UseQueryResult } from '@tanstack/react-query';
-import type { CompanyDetailResponseDto, CompanyDuplicateMatchDto, CompanyOptionDto, CreateCompanyDto, CreateCustomerTypeDto, CreateDepartmentDto, CreateEmployeeDto, CreateIndustryDto, CreateRoleDto, CustomerTypeItemDto, CustomerTypeOptionDto, DepartmentListResponseDto, DepartmentOptionDto, DepartmentResponseDto, EmployeeControllerGetOptionsParams, EmployeeControllerUploadPhotoBody, EmployeeListResponseDto, EmployeeOptionDto, EmployeeResponseDto, FilesControllerGetProfilePhotoParams, ForgotPasswordResponseDto, IndustryDetailResponseDto, IndustryOptionDto, ListCompaniesResponseDto, ListCustomerTypesResponseDto, ListIndustriesResponseDto, LoginResponseDto, LookupOptionDto, MeResponseDto, PersonLookupMatchDto, RefreshResponseDto, RoleControllerGetOptionsParams, RoleListResponseDto, RoleOptionDto, RoleResponseDto, UpdateCompanyDto, UpdateCustomerTypeDto, UpdateDepartmentDto, UpdateEmployeeDto, UpdateIndustryDto, UpdateRoleDto, VerifyLoginResponseDto } from './model';
+import type { CompanyDataTransferControllerPreviewBody, CompanyDetailResponseDto, CompanyDuplicateMatchDto, CompanyImportConfirmResponseDto, CompanyImportPreviewResponseDto, CompanyOptionDto, CreateCompanyDto, CreateCustomerTypeDto, CreateDepartmentDto, CreateEmployeeDto, CreateIndustryDto, CreateRoleDto, CustomerTypeItemDto, CustomerTypeOptionDto, DataTransferJobDetailResponseDto, DepartmentListResponseDto, DepartmentOptionDto, DepartmentResponseDto, EmployeeControllerGetOptionsParams, EmployeeControllerUploadPhotoBody, EmployeeListResponseDto, EmployeeOptionDto, EmployeeResponseDto, FilesControllerGetProfilePhotoParams, ForgotPasswordResponseDto, IndustryDetailResponseDto, IndustryOptionDto, ListCompaniesResponseDto, ListCustomerTypesResponseDto, ListIndustriesResponseDto, LoginResponseDto, LookupOptionDto, MeResponseDto, PersonLookupMatchDto, RefreshResponseDto, RoleControllerGetOptionsParams, RoleListResponseDto, RoleOptionDto, RoleResponseDto, TransferJobIssuesResponseDto, TransferJobListResponseDto, UpdateCompanyDto, UpdateCustomerTypeDto, UpdateDepartmentDto, UpdateEmployeeDto, UpdateIndustryDto, UpdateRoleDto, VerifyLoginResponseDto } from './model';
 import { customFetch } from '../custom-fetch';
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 /**
@@ -1705,6 +1705,349 @@ export declare function useLookupControllerGetOptions<TData = Awaited<ReturnType
 };
 export declare function useLookupControllerGetOptions<TData = Awaited<ReturnType<typeof lookupControllerGetOptions>>, TError = unknown>(options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof lookupControllerGetOptions>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Download empty company import template (xlsx or csv)
+ */
+export type companyDataTransferControllerDownloadTemplateResponse200 = {
+    data: void;
+    status: 200;
+};
+export type companyDataTransferControllerDownloadTemplateResponseSuccess = (companyDataTransferControllerDownloadTemplateResponse200) & {
+    headers: Headers;
+};
+export type companyDataTransferControllerDownloadTemplateResponse = (companyDataTransferControllerDownloadTemplateResponseSuccess);
+export declare const getCompanyDataTransferControllerDownloadTemplateUrl: () => string;
+export declare const companyDataTransferControllerDownloadTemplate: (options?: RequestInit) => Promise<companyDataTransferControllerDownloadTemplateResponse>;
+export declare const getCompanyDataTransferControllerDownloadTemplateQueryKey: () => readonly ["/api/v1/companies/import/template"];
+export declare const getCompanyDataTransferControllerDownloadTemplateQueryOptions: <TData = Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError = unknown>(options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export type CompanyDataTransferControllerDownloadTemplateQueryResult = NonNullable<Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>>;
+export type CompanyDataTransferControllerDownloadTemplateQueryError = unknown;
+export declare function useCompanyDataTransferControllerDownloadTemplate<TData = Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError = unknown>(options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError, Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useCompanyDataTransferControllerDownloadTemplate<TData = Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError = unknown>(options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError, Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useCompanyDataTransferControllerDownloadTemplate<TData = Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError = unknown>(options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Upload file for inspection and preview (rate limit 5/min)
+ */
+export type companyDataTransferControllerPreviewResponse200 = {
+    data: CompanyImportPreviewResponseDto;
+    status: 200;
+};
+export type companyDataTransferControllerPreviewResponseSuccess = (companyDataTransferControllerPreviewResponse200) & {
+    headers: Headers;
+};
+export type companyDataTransferControllerPreviewResponse = (companyDataTransferControllerPreviewResponseSuccess);
+export declare const getCompanyDataTransferControllerPreviewUrl: () => string;
+export declare const companyDataTransferControllerPreview: (companyDataTransferControllerPreviewBody: CompanyDataTransferControllerPreviewBody, options?: RequestInit) => Promise<companyDataTransferControllerPreviewResponse>;
+export declare const getCompanyDataTransferControllerPreviewMutationOptions: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof companyDataTransferControllerPreview>>, TError, {
+        data: CompanyDataTransferControllerPreviewBody;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof companyDataTransferControllerPreview>>, TError, {
+    data: CompanyDataTransferControllerPreviewBody;
+}, TContext>;
+export type CompanyDataTransferControllerPreviewMutationResult = NonNullable<Awaited<ReturnType<typeof companyDataTransferControllerPreview>>>;
+export type CompanyDataTransferControllerPreviewMutationBody = CompanyDataTransferControllerPreviewBody;
+export type CompanyDataTransferControllerPreviewMutationError = unknown;
+/**
+* @summary Upload file for inspection and preview (rate limit 5/min)
+*/
+export declare const useCompanyDataTransferControllerPreview: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof companyDataTransferControllerPreview>>, TError, {
+        data: CompanyDataTransferControllerPreviewBody;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient) => UseMutationResult<Awaited<ReturnType<typeof companyDataTransferControllerPreview>>, TError, {
+    data: CompanyDataTransferControllerPreviewBody;
+}, TContext>;
+/**
+ * @summary Confirm import preview and enqueue background processing (rate limit 5/min)
+ */
+export type companyDataTransferControllerConfirmResponse202 = {
+    data: CompanyImportConfirmResponseDto;
+    status: 202;
+};
+export type companyDataTransferControllerConfirmResponseSuccess = (companyDataTransferControllerConfirmResponse202) & {
+    headers: Headers;
+};
+export type companyDataTransferControllerConfirmResponse = (companyDataTransferControllerConfirmResponseSuccess);
+export declare const getCompanyDataTransferControllerConfirmUrl: (jobId: string) => string;
+export declare const companyDataTransferControllerConfirm: (jobId: string, options?: RequestInit) => Promise<companyDataTransferControllerConfirmResponse>;
+export declare const getCompanyDataTransferControllerConfirmMutationOptions: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof companyDataTransferControllerConfirm>>, TError, {
+        jobId: string;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof companyDataTransferControllerConfirm>>, TError, {
+    jobId: string;
+}, TContext>;
+export type CompanyDataTransferControllerConfirmMutationResult = NonNullable<Awaited<ReturnType<typeof companyDataTransferControllerConfirm>>>;
+export type CompanyDataTransferControllerConfirmMutationError = unknown;
+/**
+* @summary Confirm import preview and enqueue background processing (rate limit 5/min)
+*/
+export declare const useCompanyDataTransferControllerConfirm: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof companyDataTransferControllerConfirm>>, TError, {
+        jobId: string;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient) => UseMutationResult<Awaited<ReturnType<typeof companyDataTransferControllerConfirm>>, TError, {
+    jobId: string;
+}, TContext>;
+/**
+ * @summary Cancel import job (only if pending)
+ */
+export type companyDataTransferControllerCancelResponse201 = {
+    data: void;
+    status: 201;
+};
+export type companyDataTransferControllerCancelResponseSuccess = (companyDataTransferControllerCancelResponse201) & {
+    headers: Headers;
+};
+export type companyDataTransferControllerCancelResponse = (companyDataTransferControllerCancelResponseSuccess);
+export declare const getCompanyDataTransferControllerCancelUrl: (jobId: string) => string;
+export declare const companyDataTransferControllerCancel: (jobId: string, options?: RequestInit) => Promise<companyDataTransferControllerCancelResponse>;
+export declare const getCompanyDataTransferControllerCancelMutationOptions: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof companyDataTransferControllerCancel>>, TError, {
+        jobId: string;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof companyDataTransferControllerCancel>>, TError, {
+    jobId: string;
+}, TContext>;
+export type CompanyDataTransferControllerCancelMutationResult = NonNullable<Awaited<ReturnType<typeof companyDataTransferControllerCancel>>>;
+export type CompanyDataTransferControllerCancelMutationError = unknown;
+/**
+* @summary Cancel import job (only if pending)
+*/
+export declare const useCompanyDataTransferControllerCancel: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof companyDataTransferControllerCancel>>, TError, {
+        jobId: string;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient) => UseMutationResult<Awaited<ReturnType<typeof companyDataTransferControllerCancel>>, TError, {
+    jobId: string;
+}, TContext>;
+/**
+ * @summary List recent company import jobs
+ */
+export type companyDataTransferControllerListImportsResponse200 = {
+    data: TransferJobListResponseDto;
+    status: 200;
+};
+export type companyDataTransferControllerListImportsResponseSuccess = (companyDataTransferControllerListImportsResponse200) & {
+    headers: Headers;
+};
+export type companyDataTransferControllerListImportsResponse = (companyDataTransferControllerListImportsResponseSuccess);
+export declare const getCompanyDataTransferControllerListImportsUrl: () => string;
+export declare const companyDataTransferControllerListImports: (options?: RequestInit) => Promise<companyDataTransferControllerListImportsResponse>;
+export declare const getCompanyDataTransferControllerListImportsQueryKey: () => readonly ["/api/v1/companies/import"];
+export declare const getCompanyDataTransferControllerListImportsQueryOptions: <TData = Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError = unknown>(options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export type CompanyDataTransferControllerListImportsQueryResult = NonNullable<Awaited<ReturnType<typeof companyDataTransferControllerListImports>>>;
+export type CompanyDataTransferControllerListImportsQueryError = unknown;
+export declare function useCompanyDataTransferControllerListImports<TData = Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError = unknown>(options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError, Awaited<ReturnType<typeof companyDataTransferControllerListImports>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useCompanyDataTransferControllerListImports<TData = Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError = unknown>(options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError, Awaited<ReturnType<typeof companyDataTransferControllerListImports>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useCompanyDataTransferControllerListImports<TData = Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError = unknown>(options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Download final import results CSV/XLSX report
+ */
+export type companyDataTransferControllerDownloadReportResponse200 = {
+    data: void;
+    status: 200;
+};
+export type companyDataTransferControllerDownloadReportResponseSuccess = (companyDataTransferControllerDownloadReportResponse200) & {
+    headers: Headers;
+};
+export type companyDataTransferControllerDownloadReportResponse = (companyDataTransferControllerDownloadReportResponseSuccess);
+export declare const getCompanyDataTransferControllerDownloadReportUrl: (jobId: string) => string;
+export declare const companyDataTransferControllerDownloadReport: (jobId: string, options?: RequestInit) => Promise<companyDataTransferControllerDownloadReportResponse>;
+export declare const getCompanyDataTransferControllerDownloadReportQueryKey: (jobId?: string) => readonly [`/api/v1/companies/import/${string}/report`];
+export declare const getCompanyDataTransferControllerDownloadReportQueryOptions: <TData = Awaited<ReturnType<typeof companyDataTransferControllerDownloadReport>>, TError = unknown>(jobId: string, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerDownloadReport>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerDownloadReport>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export type CompanyDataTransferControllerDownloadReportQueryResult = NonNullable<Awaited<ReturnType<typeof companyDataTransferControllerDownloadReport>>>;
+export type CompanyDataTransferControllerDownloadReportQueryError = unknown;
+export declare function useCompanyDataTransferControllerDownloadReport<TData = Awaited<ReturnType<typeof companyDataTransferControllerDownloadReport>>, TError = unknown>(jobId: string, options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerDownloadReport>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof companyDataTransferControllerDownloadReport>>, TError, Awaited<ReturnType<typeof companyDataTransferControllerDownloadReport>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useCompanyDataTransferControllerDownloadReport<TData = Awaited<ReturnType<typeof companyDataTransferControllerDownloadReport>>, TError = unknown>(jobId: string, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerDownloadReport>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof companyDataTransferControllerDownloadReport>>, TError, Awaited<ReturnType<typeof companyDataTransferControllerDownloadReport>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useCompanyDataTransferControllerDownloadReport<TData = Awaited<ReturnType<typeof companyDataTransferControllerDownloadReport>>, TError = unknown>(jobId: string, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerDownloadReport>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Get paginated validation issues for import job
+ */
+export type companyDataTransferControllerGetIssuesResponse200 = {
+    data: TransferJobIssuesResponseDto;
+    status: 200;
+};
+export type companyDataTransferControllerGetIssuesResponseSuccess = (companyDataTransferControllerGetIssuesResponse200) & {
+    headers: Headers;
+};
+export type companyDataTransferControllerGetIssuesResponse = (companyDataTransferControllerGetIssuesResponseSuccess);
+export declare const getCompanyDataTransferControllerGetIssuesUrl: (jobId: string) => string;
+export declare const companyDataTransferControllerGetIssues: (jobId: string, options?: RequestInit) => Promise<companyDataTransferControllerGetIssuesResponse>;
+export declare const getCompanyDataTransferControllerGetIssuesQueryKey: (jobId?: string) => readonly [`/api/v1/companies/import/${string}/issues`];
+export declare const getCompanyDataTransferControllerGetIssuesQueryOptions: <TData = Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError = unknown>(jobId: string, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export type CompanyDataTransferControllerGetIssuesQueryResult = NonNullable<Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>>;
+export type CompanyDataTransferControllerGetIssuesQueryError = unknown;
+export declare function useCompanyDataTransferControllerGetIssues<TData = Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError = unknown>(jobId: string, options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError, Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useCompanyDataTransferControllerGetIssues<TData = Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError = unknown>(jobId: string, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError, Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useCompanyDataTransferControllerGetIssues<TData = Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError = unknown>(jobId: string, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Get company import job status and progress
+ */
+export type companyDataTransferControllerGetJobResponse200 = {
+    data: DataTransferJobDetailResponseDto;
+    status: 200;
+};
+export type companyDataTransferControllerGetJobResponseSuccess = (companyDataTransferControllerGetJobResponse200) & {
+    headers: Headers;
+};
+export type companyDataTransferControllerGetJobResponse = (companyDataTransferControllerGetJobResponseSuccess);
+export declare const getCompanyDataTransferControllerGetJobUrl: (jobId: string) => string;
+export declare const companyDataTransferControllerGetJob: (jobId: string, options?: RequestInit) => Promise<companyDataTransferControllerGetJobResponse>;
+export declare const getCompanyDataTransferControllerGetJobQueryKey: (jobId?: string) => readonly [`/api/v1/companies/import/${string}`];
+export declare const getCompanyDataTransferControllerGetJobQueryOptions: <TData = Awaited<ReturnType<typeof companyDataTransferControllerGetJob>>, TError = unknown>(jobId: string, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerGetJob>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerGetJob>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export type CompanyDataTransferControllerGetJobQueryResult = NonNullable<Awaited<ReturnType<typeof companyDataTransferControllerGetJob>>>;
+export type CompanyDataTransferControllerGetJobQueryError = unknown;
+export declare function useCompanyDataTransferControllerGetJob<TData = Awaited<ReturnType<typeof companyDataTransferControllerGetJob>>, TError = unknown>(jobId: string, options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerGetJob>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof companyDataTransferControllerGetJob>>, TError, Awaited<ReturnType<typeof companyDataTransferControllerGetJob>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useCompanyDataTransferControllerGetJob<TData = Awaited<ReturnType<typeof companyDataTransferControllerGetJob>>, TError = unknown>(jobId: string, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerGetJob>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof companyDataTransferControllerGetJob>>, TError, Awaited<ReturnType<typeof companyDataTransferControllerGetJob>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useCompanyDataTransferControllerGetJob<TData = Awaited<ReturnType<typeof companyDataTransferControllerGetJob>>, TError = unknown>(jobId: string, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerGetJob>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Export companies list with active filters directly to streaming file (rate limit 5/min)
+ */
+export type companyDataTransferControllerExportResponse200 = {
+    data: void;
+    status: 200;
+};
+export type companyDataTransferControllerExportResponseSuccess = (companyDataTransferControllerExportResponse200) & {
+    headers: Headers;
+};
+export type companyDataTransferControllerExportResponse = (companyDataTransferControllerExportResponseSuccess);
+export declare const getCompanyDataTransferControllerExportUrl: () => string;
+export declare const companyDataTransferControllerExport: (options?: RequestInit) => Promise<companyDataTransferControllerExportResponse>;
+export declare const getCompanyDataTransferControllerExportQueryKey: () => readonly ["/api/v1/companies/export"];
+export declare const getCompanyDataTransferControllerExportQueryOptions: <TData = Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError = unknown>(options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export type CompanyDataTransferControllerExportQueryResult = NonNullable<Awaited<ReturnType<typeof companyDataTransferControllerExport>>>;
+export type CompanyDataTransferControllerExportQueryError = unknown;
+export declare function useCompanyDataTransferControllerExport<TData = Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError = unknown>(options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError, Awaited<ReturnType<typeof companyDataTransferControllerExport>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useCompanyDataTransferControllerExport<TData = Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError = unknown>(options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError, Awaited<ReturnType<typeof companyDataTransferControllerExport>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useCompanyDataTransferControllerExport<TData = Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError = unknown>(options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
