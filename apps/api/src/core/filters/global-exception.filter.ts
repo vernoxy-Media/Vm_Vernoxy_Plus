@@ -81,6 +81,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       if (respObj.errors) {
         problemDetails.errors = respObj.errors;
       }
+      if (respObj.today) {
+        problemDetails.today = respObj.today;
+      }
     }
 
     if (status >= 500) {

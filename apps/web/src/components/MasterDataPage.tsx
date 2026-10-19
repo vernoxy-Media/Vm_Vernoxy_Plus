@@ -89,8 +89,9 @@ export function MasterDataPage<T>({
         </button>
       </div>
 
-      {/* Filter Row */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-slate-50/70 p-3 rounded-xl border border-slate-200">
+      {/* Filter Row (stitched / sticky to top) */}
+      <div className="sticky top-16 lg:top-0 z-20 bg-[#f4f6fa]/95 backdrop-blur-xs py-1">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1">
           <div className="relative flex-1">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -137,6 +138,7 @@ export function MasterDataPage<T>({
           </div>
         )}
       </div>
+    </div>
 
       {/* Table Container */}
       <div className="rounded-xl border border-slate-200 overflow-hidden bg-white">
@@ -158,9 +160,9 @@ export function MasterDataPage<T>({
             <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">{emptyDescription}</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs" id={tableId}>
-              <thead className="bg-slate-50/80 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+          <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-360px)] min-h-[350px]">
+            <table className="w-full text-left text-xs relative" id={tableId}>
+              <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider shadow-2xs">
                 <tr>
                   {columns.map((col) => (
                     <th key={col.key} className={`py-3 px-5 ${col.align === 'right' ? 'text-right' : ''}`}>

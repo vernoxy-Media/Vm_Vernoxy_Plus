@@ -33,7 +33,7 @@ export async function setupPlaywrightUser(customPassword?: string) {
     const depId = depRes.rows[0]?.dep_id || 1;
 
     // Check if employee exists
-    const empRes = await client.query(`SELECT emp_id FROM employees WHERE email = $1 AND deleted_at IS NULL;`, [email]);
+    const empRes = await client.query(`SELECT emp_id FROM employees WHERE email = $1 AND deleted_at IS NULL ORDER BY emp_id DESC LIMIT 1;`, [email]);
 
     let empId: number;
     if (empRes.rows.length > 0) {
@@ -98,7 +98,7 @@ export async function setupNonAdminPlaywrightUser(customPassword?: string) {
     const roleId = roleRes.rows[0]?.role_id || 16;
     const depId = depRes.rows[0]?.dep_id || 1;
 
-    const empRes = await client.query(`SELECT emp_id FROM employees WHERE email = $1 AND deleted_at IS NULL;`, [email]);
+    const empRes = await client.query(`SELECT emp_id FROM employees WHERE email = $1 AND deleted_at IS NULL ORDER BY emp_id DESC LIMIT 1;`, [email]);
 
     let empId: number;
     if (empRes.rows.length > 0) {

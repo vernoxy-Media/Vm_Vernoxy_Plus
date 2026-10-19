@@ -26,6 +26,7 @@ export class PrismaEmployeeAuthRepository implements EmployeeAuthRepository {
           equals: email.trim().toLowerCase(),
           mode: 'insensitive',
         },
+        deleted_at: null,
       },
       include: {
         roles_employees_role_idToroles: true,

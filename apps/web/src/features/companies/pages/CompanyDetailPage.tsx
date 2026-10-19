@@ -225,9 +225,9 @@ export const CompanyDetailPage: React.FC = () => {
               No contacts associated with this company yet.
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-slate-50/80 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            <div className="overflow-x-auto overflow-y-auto max-h-[400px]">
+              <table className="w-full text-left text-sm relative">
+                <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider shadow-2xs">
                   <tr>
                     <th className="py-3 px-5">Contact</th>
                     <th className="py-3 px-5">Designation & Dept</th>

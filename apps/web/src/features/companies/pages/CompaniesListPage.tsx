@@ -166,8 +166,9 @@ export const CompaniesListPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Filters Bar */}
-      <div className="bg-slate-50/70 p-3 rounded-xl border border-slate-200 space-y-3">
+      {/* Filters Bar (stitched / sticky to top) */}
+      <div className="sticky top-16 lg:top-0 z-20 bg-[#f4f6fa]/95 backdrop-blur-xs py-1">
+        <div className="bg-slate-50/90 p-3 rounded-xl border border-slate-200 shadow-2xs space-y-3">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
           <div className="relative flex-1">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -297,6 +298,7 @@ export const CompaniesListPage: React.FC = () => {
           </div>
         </div>
       </div>
+    </div>
 
       {/* Content Area */}
       {isLoading ? (
@@ -323,17 +325,17 @@ export const CompaniesListPage: React.FC = () => {
       ) : (
         <>
           {/* Mobile View: Stacked Cards (<640px) */}
-          <div className="sm:hidden space-y-3">
+          <div className="sm:hidden space-y-3 overflow-y-auto max-h-[calc(100vh-280px)] pr-1">
             {data?.items.map((c) => (
               <CompanyCard key={c.company_id} company={c} onDelete={handleDelete} />
             ))}
           </div>
 
           {/* Desktop View: Full Data Table (>=640px) */}
-          <div className="hidden sm:block rounded-xl border border-slate-200 overflow-hidden bg-white">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm" id="companies-table">
-                <thead className="bg-slate-50/80 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+          <div className="hidden sm:block rounded-xl border border-slate-200 overflow-hidden bg-white shadow-2xs">
+            <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-340px)] min-h-[380px]">
+              <table className="w-full text-left text-sm relative" id="companies-table">
+                <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider shadow-2xs">
                   <tr>
                     <th className="py-3 px-5">Company</th>
                     <th className="py-3 px-5">Type</th>

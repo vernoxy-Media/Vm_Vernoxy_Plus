@@ -1,8 +1,6 @@
-import { Injectable } from '@nestjs/common';
 import { ImportHandler } from '../ports/import-handler.port';
 import { ExportSource } from '../ports/export-source.port';
 
-@Injectable()
 export class DataTransferRegistry {
   private readonly importHandlers = new Map<string, ImportHandler>();
   private readonly exportSources = new Map<string, ExportSource>();

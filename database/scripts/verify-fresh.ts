@@ -66,10 +66,10 @@ async function runVerifyFresh() {
     // Count applied migrations
     const countRes = await verifyClient.query(`SELECT count(*)::int as count FROM dbmate.schema_migrations;`);
     const count = countRes.rows[0].count;
-    console.log(`   [CONFIRMED] Applied migrations recorded: ${count}/23.`);
+    console.log(`   [CONFIRMED] Applied migrations recorded: ${count}/27.`);
 
-    if (count !== 23) {
-      throw new Error(`FAILED: Expected 23 migrations, found ${count}`);
+    if (count !== 27) {
+      throw new Error(`FAILED: Expected 27 migrations, found ${count}`);
     }
 
     // Count public tables
@@ -80,11 +80,11 @@ async function runVerifyFresh() {
       ORDER BY table_name;
     `);
 
-    console.log(`   [CONFIRMED] Public domain, auth & transfer tables created (${publicTablesRes.rows.length}/17):`);
+    console.log(`   [CONFIRMED] Public domain, auth, transfer & attendance tables created (${publicTablesRes.rows.length}/21):`);
     publicTablesRes.rows.forEach(r => console.log(`   - ${r.table_name}`));
 
-    if (publicTablesRes.rows.length !== 17) {
-      throw new Error(`FAILED: Expected exactly 17 public tables (12 domain + 4 auth + 1 data transfer), found ${publicTablesRes.rows.length}`);
+    if (publicTablesRes.rows.length !== 21) {
+      throw new Error(`FAILED: Expected exactly 21 public tables (12 domain + 4 auth + 1 data transfer + 4 attendance/settings), found ${publicTablesRes.rows.length}`);
     }
 
     // -------------------------------------------------------------------------
@@ -182,12 +182,10 @@ async function runVerifyFresh() {
       // Seed without is_default columns (simulating pre-migration database state)
       // Since 01_baseline_seeds now includes is_default, let's remove is_default for the pre-migration seed
       const legacySeed = seedSql
-        .replace('INSERT INTO customer_types (name, is_default)', 'INSERT INTO customer_types (name)')
-        .replace("('Info Only', true)", "('Info Only')")
-        .replace("('Lead', false)", "('Lead')")
-        .replace("('Prospect', false)", "('Prospect')")
-        .replace("('Client', false)", "('Client')")
-        .replace("('Partner', false)", "('Partner')")
+        .replace(
+          /INSERT INTO customer_types \(name, is_default\)[\s\S]*?AS v\(name, is_default\)/,
+          "INSERT INTO customer_types (name)\nVALUES\n    ('Info Only'),\n    ('Lead'),\n    ('Prospect'),\n    ('Client'),\n    ('Partner')"
+        )
         .replace('INSERT INTO industries (name, parent_id, is_default)', 'INSERT INTO industries (name, parent_id)')
         .replace("('Unclassified', NULL, true)", "('Unclassified', NULL)")
         .replace("('Manufacturing', NULL, false)", "('Manufacturing', NULL)")

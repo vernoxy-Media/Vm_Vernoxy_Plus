@@ -2023,6 +2023,278 @@ export async function runFunctionalTests(directUrl: string): Promise<boolean> {
       [appJobId]
     );
     await client.query('RESET ROLE');
+
+    // =========================================================================
+    // Test 22: Attendance, breaks & app settings integrity & security
+    // =========================================================================
+    ctx.currentGroup = 'Test 22: Attendance, breaks & security';
+    console.log(`\n--- ${ctx.currentGroup} ---`);
+
+    // Setup: Get an active employee
+    const attEmpRes = await client.query(`
+      SELECT emp_id FROM employees WHERE status = 'Active' AND deleted_at IS NULL LIMIT 1;
+    `);
+    const testEmpId = attEmpRes.rows[0].emp_id;
+
+    // 1. Insert attendance_day
+    const attDayRes = await client.query(`
+      INSERT INTO attendance_days (
+        emp_id, work_date, check_in_at
+      ) VALUES (
+        $1, '2026-10-15', '2026-10-15 10:00:00+00'
+      ) RETURNING attendance_id;
+    `, [testEmpId]);
+    const testAttId = attDayRes.rows[0].attendance_id;
+    logPass('Valid attendance_day inserted');
+
+    // 2. ended_at <= started_at rejected
+    await expectError(
+      client,
+      `INSERT INTO attendance_breaks (attendance_id, started_at, ended_at)
+       VALUES ($1, '2026-10-15 11:00:00+00', '2026-10-15 11:00:00+00')`,
+      /ck_attendance_breaks_ended_after_started/,
+      'ended_at <= started_at rejected',
+      ctx,
+      [testAttId]
+    );
+
+    // 3. break before Punch In rejected
+    await expectError(
+      client,
+      `INSERT INTO attendance_breaks (attendance_id, started_at, ended_at)
+       VALUES ($1, '2026-10-15 09:30:00+00', '2026-10-15 09:45:00+00')`,
+      /Break started_at .* cannot be earlier than check_in_at/,
+      'break before Punch In rejected',
+      ctx,
+      [testAttId]
+    );
+
+    // 4. Insert valid open break
+    const openBreakRes = await client.query(`
+      INSERT INTO attendance_breaks (attendance_id, started_at)
+      VALUES ($1, '2026-10-15 11:00:00+00')
+      RETURNING break_id;
+    `, [testAttId]);
+    const break1Id = openBreakRes.rows[0].break_id;
+    logPass('Valid open break inserted');
+
+    // 5. Second open break rejected
+    await expectError(
+      client,
+      `INSERT INTO attendance_breaks (attendance_id, started_at)
+       VALUES ($1, '2026-10-15 12:00:00+00')`,
+      /(duplicate key value violates unique constraint "ux_attendance_breaks_single_open"|conflicting key value violates exclusion constraint "ex_attendance_breaks_no_overlap")/,
+      'second open break rejected',
+      ctx,
+      [testAttId]
+    );
+
+    // Close break 1
+    await client.query(`
+      UPDATE attendance_breaks SET ended_at = '2026-10-15 11:30:00+00' WHERE break_id = $1
+    `, [break1Id]);
+    logPass('Break 1 closed at 11:30:00');
+
+    // 6. Overlapping break rejected
+    await expectError(
+      client,
+      `INSERT INTO attendance_breaks (attendance_id, started_at, ended_at)
+       VALUES ($1, '2026-10-15 11:15:00+00', '2026-10-15 11:45:00+00')`,
+      /conflicting key value violates exclusion constraint "ex_attendance_breaks_no_overlap"/,
+      'overlapping breaks rejected',
+      ctx,
+      [testAttId]
+    );
+
+    // 7. Adjacent break allowed
+    const adjBreakRes = await client.query(`
+      INSERT INTO attendance_breaks (attendance_id, started_at, ended_at)
+      VALUES ($1, '2026-10-15 11:30:00+00', '2026-10-15 12:00:00+00')
+      RETURNING break_id;
+    `, [testAttId]);
+    if (adjBreakRes.rows.length === 1) {
+      logPass('adjacent breaks allowed');
+    }
+
+    // 8. Open break on closed day rejected
+    const openBreak2Res = await client.query(`
+      INSERT INTO attendance_breaks (attendance_id, started_at)
+      VALUES ($1, '2026-10-15 13:00:00+00')
+      RETURNING break_id;
+    `, [testAttId]);
+    const break2Id = openBreak2Res.rows[0].break_id;
+
+    await expectError(
+      client,
+      `UPDATE attendance_days SET check_out_at = '2026-10-15 18:00:00+00' WHERE attendance_id = $1`,
+      /Cannot close attendance day .* while an open break exists/,
+      'an open break on a closed day rejected',
+      ctx,
+      [testAttId]
+    );
+
+    // Close break 2 and then close day
+    await client.query(`
+      UPDATE attendance_breaks SET ended_at = '2026-10-15 13:30:00+00' WHERE break_id = $1
+    `, [break2Id]);
+
+    await client.query(`
+      UPDATE attendance_days
+      SET check_out_at = '2026-10-15 18:00:00+00', break_minutes = 60, production_minutes = 420, day_status = 'present'
+      WHERE attendance_id = $1
+    `, [testAttId]);
+    logPass('Attendance day closed with break_minutes=60, production_minutes=420');
+
+    // 9. New break on closed day rejected
+    await expectError(
+      client,
+      `INSERT INTO attendance_breaks (attendance_id, started_at, ended_at)
+       VALUES ($1, '2026-10-15 14:00:00+00', '2026-10-15 14:30:00+00')`,
+      /Cannot add break to an already closed attendance day/,
+      'break insert on closed day rejected',
+      ctx,
+      [testAttId]
+    );
+
+    // 10. Break after Punch Out rejected
+    await expectError(
+      client,
+      `INSERT INTO attendance_breaks (attendance_id, started_at, ended_at)
+       VALUES ($1, '2026-10-15 18:30:00+00', '2026-10-15 19:00:00+00')`,
+      /Cannot add break to an already closed attendance day/,
+      'break after Punch Out rejected',
+      ctx,
+      [testAttId]
+    );
+
+    // 11. break_minutes cannot exceed session
+    await expectError(
+      client,
+      `UPDATE attendance_days SET break_minutes = 500 WHERE attendance_id = $1`,
+      /ck_attendance_days_break_le_session/,
+      'break_minutes cannot exceed session',
+      ctx,
+      [testAttId]
+    );
+
+    // 12. attendance_corrections requested_break_minutes cannot exceed session
+    await expectError(
+      client,
+      `INSERT INTO attendance_corrections (
+        emp_id, attendance_id, work_date, requested_check_in_at, requested_check_out_at, requested_break_minutes, reason
+      ) VALUES (
+        $1, $2, '2026-10-15', '2026-10-15 10:00:00+00', '2026-10-15 12:00:00+00', 150, 'Forgot to punch'
+      )`,
+      /ck_attendance_corrections_break_le_session/,
+      'correction requested_break_minutes cannot exceed session',
+      ctx,
+      [testEmpId, testAttId]
+    );
+
+    // 13. Hard delete on attendance_breaks rejected
+    await expectError(
+      client,
+      `DELETE FROM attendance_breaks WHERE break_id = $1`,
+      /Hard delete is disabled on table attendance_breaks/,
+      'Hard delete on attendance_breaks rejected',
+      ctx,
+      [break1Id]
+    );
+
+    // 14. Hard delete on attendance_days rejected
+    await expectError(
+      client,
+      `DELETE FROM attendance_days WHERE attendance_id = $1`,
+      /Hard delete is disabled on table attendance_days/,
+      'Hard delete on attendance_days rejected',
+      ctx,
+      [testAttId]
+    );
+
+    // 15. pulse_app and pulse_readonly grants matrix
+    await client.query('GRANT pulse_app TO CURRENT_USER').catch(() => {});
+    await client.query('SET ROLE pulse_app');
+
+    const appAttRes = await client.query(`
+      SELECT attendance_id FROM attendance_days WHERE attendance_id = $1
+    `, [testAttId]);
+    if (appAttRes.rows.length === 1) {
+      logPass('pulse_app can SELECT from attendance_days');
+    }
+
+    const appBreakRes = await client.query(`
+      SELECT break_id FROM attendance_breaks WHERE break_id = $1
+    `, [break1Id]);
+    if (appBreakRes.rows.length === 1) {
+      logPass('pulse_app can SELECT from attendance_breaks');
+    }
+
+    const appSettingRes = await client.query(`
+      SELECT setting_value FROM app_settings WHERE setting_key = 'week_start_day'
+    `);
+    if (appSettingRes.rows.length === 1) {
+      logPass('pulse_app can SELECT from app_settings');
+    }
+
+    await expectError(
+      client,
+      `DELETE FROM attendance_days WHERE attendance_id = $1`,
+      /permission denied for table attendance_days/,
+      'pulse_app: DELETE on attendance_days denied',
+      ctx,
+      [testAttId]
+    );
+
+    await expectError(
+      client,
+      `DELETE FROM attendance_breaks WHERE break_id = $1`,
+      /permission denied for table attendance_breaks/,
+      'pulse_app: DELETE on attendance_breaks denied',
+      ctx,
+      [break1Id]
+    );
+
+    await client.query('RESET ROLE');
+
+    // Test pulse_readonly
+    await client.query('GRANT pulse_readonly TO CURRENT_USER').catch(() => {});
+    await client.query('SET ROLE pulse_readonly');
+
+    const roSettingRes = await client.query(`
+      SELECT setting_value FROM app_settings WHERE setting_key = 'week_start_day'
+    `);
+    if (roSettingRes.rows.length === 1) {
+      logPass('pulse_readonly can SELECT from app_settings');
+    }
+
+    await expectError(
+      client,
+      `SELECT * FROM attendance_days WHERE attendance_id = $1`,
+      /permission denied for table attendance_days/,
+      'pulse_readonly: SELECT on attendance_days denied',
+      ctx,
+      [testAttId]
+    );
+
+    await expectError(
+      client,
+      `SELECT * FROM attendance_breaks WHERE break_id = $1`,
+      /permission denied for table attendance_breaks/,
+      'pulse_readonly: SELECT on attendance_breaks denied',
+      ctx,
+      [break1Id]
+    );
+
+    await expectError(
+      client,
+      `SELECT * FROM attendance_corrections`,
+      /permission denied for table attendance_corrections/,
+      'pulse_readonly: SELECT on attendance_corrections denied',
+      ctx
+    );
+
+    await client.query('RESET ROLE');
+
     console.log('\n=============================================================');
     console.log('SQL Test Breakdown by Group:');
     for (const [groupName, stats] of Object.entries(ctx.groupStats)) {

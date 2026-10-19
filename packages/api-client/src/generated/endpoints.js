@@ -1939,3 +1939,439 @@ export function usePersonControllerLookup(options, queryClient) {
     query.queryKey = queryOptions.queryKey;
     return query;
 }
+;
+export const getAttendanceControllerPunchInUrl = () => {
+    return `/api/v1/attendance/check-in`;
+};
+export const attendanceControllerPunchIn = async (options) => {
+    return customFetch(getAttendanceControllerPunchInUrl(), {
+        ...options,
+        method: 'POST'
+    });
+};
+export const getAttendanceControllerPunchInMutationOptions = (options) => {
+    const mutationKey = ['attendanceControllerPunchIn'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = () => {
+        return attendanceControllerPunchIn(requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Punch in for today
+*/
+export const useAttendanceControllerPunchIn = (options, queryClient) => {
+    const mutationOptions = getAttendanceControllerPunchInMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getAttendanceControllerPunchOutUrl = () => {
+    return `/api/v1/attendance/check-out`;
+};
+export const attendanceControllerPunchOut = async (options) => {
+    return customFetch(getAttendanceControllerPunchOutUrl(), {
+        ...options,
+        method: 'POST'
+    });
+};
+export const getAttendanceControllerPunchOutMutationOptions = (options) => {
+    const mutationKey = ['attendanceControllerPunchOut'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = () => {
+        return attendanceControllerPunchOut(requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Punch out for today
+*/
+export const useAttendanceControllerPunchOut = (options, queryClient) => {
+    const mutationOptions = getAttendanceControllerPunchOutMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getAttendanceControllerStartBreakUrl = () => {
+    return `/api/v1/attendance/break/start`;
+};
+export const attendanceControllerStartBreak = async (options) => {
+    return customFetch(getAttendanceControllerStartBreakUrl(), {
+        ...options,
+        method: 'POST'
+    });
+};
+export const getAttendanceControllerStartBreakMutationOptions = (options) => {
+    const mutationKey = ['attendanceControllerStartBreak'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = () => {
+        return attendanceControllerStartBreak(requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Start a break
+*/
+export const useAttendanceControllerStartBreak = (options, queryClient) => {
+    const mutationOptions = getAttendanceControllerStartBreakMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getAttendanceControllerEndBreakUrl = () => {
+    return `/api/v1/attendance/break/end`;
+};
+export const attendanceControllerEndBreak = async (options) => {
+    return customFetch(getAttendanceControllerEndBreakUrl(), {
+        ...options,
+        method: 'POST'
+    });
+};
+export const getAttendanceControllerEndBreakMutationOptions = (options) => {
+    const mutationKey = ['attendanceControllerEndBreak'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = () => {
+        return attendanceControllerEndBreak(requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary End a break (resume working)
+*/
+export const useAttendanceControllerEndBreak = (options, queryClient) => {
+    const mutationOptions = getAttendanceControllerEndBreakMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getAttendanceControllerGetTodayUrl = () => {
+    return `/api/v1/attendance/today`;
+};
+export const attendanceControllerGetToday = async (options) => {
+    return customFetch(getAttendanceControllerGetTodayUrl(), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getAttendanceControllerGetTodayQueryKey = () => {
+    return [
+        `/api/v1/attendance/today`
+    ];
+};
+export const getAttendanceControllerGetTodayQueryOptions = (options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getAttendanceControllerGetTodayQueryKey();
+    const queryFn = ({ signal }) => attendanceControllerGetToday({ signal, ...requestOptions });
+    return { queryKey, queryFn, ...queryOptions };
+};
+/**
+ * @summary Get current employee attendance status for today
+ */
+export function useAttendanceControllerGetToday(options, queryClient) {
+    const queryOptions = getAttendanceControllerGetTodayQueryOptions(options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
+export const getAttendanceControllerGetDashboardUrl = (params) => {
+    const normalizedParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+        if (value !== undefined) {
+            normalizedParams.append(key, value === null ? 'null' : value.toString());
+        }
+    });
+    const stringifiedParams = normalizedParams.toString();
+    return stringifiedParams.length > 0 ? `/api/v1/attendance/me/dashboard?${stringifiedParams}` : `/api/v1/attendance/me/dashboard`;
+};
+export const attendanceControllerGetDashboard = async (params, options) => {
+    return customFetch(getAttendanceControllerGetDashboardUrl(params), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getAttendanceControllerGetDashboardQueryKey = (params) => {
+    return [
+        `/api/v1/attendance/me/dashboard`, ...(params ? [params] : [])
+    ];
+};
+export const getAttendanceControllerGetDashboardQueryOptions = (params, options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getAttendanceControllerGetDashboardQueryKey(params);
+    const queryFn = ({ signal }) => attendanceControllerGetDashboard(params, { signal, ...requestOptions });
+    return { queryKey, queryFn, ...queryOptions };
+};
+/**
+ * @summary Get full attendance dashboard for current employee and month
+ */
+export function useAttendanceControllerGetDashboard(params, options, queryClient) {
+    const queryOptions = getAttendanceControllerGetDashboardQueryOptions(params, options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
+export const getAttendanceControllerGetMeUrl = (params) => {
+    const normalizedParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+        if (value !== undefined) {
+            normalizedParams.append(key, value === null ? 'null' : value.toString());
+        }
+    });
+    const stringifiedParams = normalizedParams.toString();
+    return stringifiedParams.length > 0 ? `/api/v1/attendance/me?${stringifiedParams}` : `/api/v1/attendance/me`;
+};
+export const attendanceControllerGetMe = async (params, options) => {
+    return customFetch(getAttendanceControllerGetMeUrl(params), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getAttendanceControllerGetMeQueryKey = (params) => {
+    return [
+        `/api/v1/attendance/me`, ...(params ? [params] : [])
+    ];
+};
+export const getAttendanceControllerGetMeQueryOptions = (params, options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getAttendanceControllerGetMeQueryKey(params);
+    const queryFn = ({ signal }) => attendanceControllerGetMe(params, { signal, ...requestOptions });
+    return { queryKey, queryFn, ...queryOptions };
+};
+/**
+ * @summary Get month attendance data for current employee
+ */
+export function useAttendanceControllerGetMe(params, options, queryClient) {
+    const queryOptions = getAttendanceControllerGetMeQueryOptions(params, options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
+export const getAttendanceControllerGetDayDetailUrl = (date) => {
+    return `/api/v1/attendance/me/days/${date}`;
+};
+export const attendanceControllerGetDayDetail = async (date, options) => {
+    return customFetch(getAttendanceControllerGetDayDetailUrl(date), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getAttendanceControllerGetDayDetailQueryKey = (date) => {
+    return [
+        `/api/v1/attendance/me/days/${date}`
+    ];
+};
+export const getAttendanceControllerGetDayDetailQueryOptions = (date, options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getAttendanceControllerGetDayDetailQueryKey(date);
+    const queryFn = ({ signal }) => attendanceControllerGetDayDetail(date, { signal, ...requestOptions });
+    return { queryKey, queryFn, enabled: !!(date), ...queryOptions };
+};
+/**
+ * @summary Get attendance day details by date
+ */
+export function useAttendanceControllerGetDayDetail(date, options, queryClient) {
+    const queryOptions = getAttendanceControllerGetDayDetailQueryOptions(date, options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
+export const getAttendanceControllerCreateCorrectionUrl = () => {
+    return `/api/v1/attendance/corrections`;
+};
+export const attendanceControllerCreateCorrection = async (createCorrectionDto, options) => {
+    return customFetch(getAttendanceControllerCreateCorrectionUrl(), {
+        ...options,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        body: JSON.stringify(createCorrectionDto)
+    });
+};
+export const getAttendanceControllerCreateCorrectionMutationOptions = (options) => {
+    const mutationKey = ['attendanceControllerCreateCorrection'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { data } = props ?? {};
+        return attendanceControllerCreateCorrection(data, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Request attendance correction
+*/
+export const useAttendanceControllerCreateCorrection = (options, queryClient) => {
+    const mutationOptions = getAttendanceControllerCreateCorrectionMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getAttendanceControllerApproveCorrectionUrl = (id) => {
+    return `/api/v1/attendance/corrections/${id}/approve`;
+};
+export const attendanceControllerApproveCorrection = async (id, options) => {
+    return customFetch(getAttendanceControllerApproveCorrectionUrl(id), {
+        ...options,
+        method: 'POST'
+    });
+};
+export const getAttendanceControllerApproveCorrectionMutationOptions = (options) => {
+    const mutationKey = ['attendanceControllerApproveCorrection'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { id } = props ?? {};
+        return attendanceControllerApproveCorrection(id, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Approve attendance correction
+*/
+export const useAttendanceControllerApproveCorrection = (options, queryClient) => {
+    const mutationOptions = getAttendanceControllerApproveCorrectionMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getAttendanceControllerRejectCorrectionUrl = (id) => {
+    return `/api/v1/attendance/corrections/${id}/reject`;
+};
+export const attendanceControllerRejectCorrection = async (id, rejectCorrectionDto, options) => {
+    return customFetch(getAttendanceControllerRejectCorrectionUrl(id), {
+        ...options,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        body: JSON.stringify(rejectCorrectionDto)
+    });
+};
+export const getAttendanceControllerRejectCorrectionMutationOptions = (options) => {
+    const mutationKey = ['attendanceControllerRejectCorrection'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { id, data } = props ?? {};
+        return attendanceControllerRejectCorrection(id, data, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Reject attendance correction
+*/
+export const useAttendanceControllerRejectCorrection = (options, queryClient) => {
+    const mutationOptions = getAttendanceControllerRejectCorrectionMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getAttendanceControllerAdminUpsertDayUrl = (id, date) => {
+    return `/api/v1/attendance/employees/${id}/${date}`;
+};
+export const attendanceControllerAdminUpsertDay = async (id, date, adminUpsertDayDto, options) => {
+    return customFetch(getAttendanceControllerAdminUpsertDayUrl(id, date), {
+        ...options,
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        body: JSON.stringify(adminUpsertDayDto)
+    });
+};
+export const getAttendanceControllerAdminUpsertDayMutationOptions = (options) => {
+    const mutationKey = ['attendanceControllerAdminUpsertDay'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { id, date, data } = props ?? {};
+        return attendanceControllerAdminUpsertDay(id, date, data, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Admin edit attendance day
+*/
+export const useAttendanceControllerAdminUpsertDay = (options, queryClient) => {
+    const mutationOptions = getAttendanceControllerAdminUpsertDayMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getAttendanceControllerGetTeamUrl = () => {
+    return `/api/v1/attendance/team`;
+};
+export const attendanceControllerGetTeam = async (options) => {
+    return customFetch(getAttendanceControllerGetTeamUrl(), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getAttendanceControllerGetTeamQueryKey = () => {
+    return [
+        `/api/v1/attendance/team`
+    ];
+};
+export const getAttendanceControllerGetTeamQueryOptions = (options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getAttendanceControllerGetTeamQueryKey();
+    const queryFn = ({ signal }) => attendanceControllerGetTeam({ signal, ...requestOptions });
+    return { queryKey, queryFn, ...queryOptions };
+};
+/**
+ * @summary Get team attendance records
+ */
+export function useAttendanceControllerGetTeam(options, queryClient) {
+    const queryOptions = getAttendanceControllerGetTeamQueryOptions(options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
+export const getAttendanceControllerGetReportUrl = () => {
+    return `/api/v1/attendance/report/csv`;
+};
+export const attendanceControllerGetReport = async (options) => {
+    return customFetch(getAttendanceControllerGetReportUrl(), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getAttendanceControllerGetReportQueryKey = () => {
+    return [
+        `/api/v1/attendance/report/csv`
+    ];
+};
+export const getAttendanceControllerGetReportQueryOptions = (options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getAttendanceControllerGetReportQueryKey();
+    const queryFn = ({ signal }) => attendanceControllerGetReport({ signal, ...requestOptions });
+    return { queryKey, queryFn, ...queryOptions };
+};
+/**
+ * @summary Export monthly attendance report as CSV
+ */
+export function useAttendanceControllerGetReport(options, queryClient) {
+    const queryOptions = getAttendanceControllerGetReportQueryOptions(options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}

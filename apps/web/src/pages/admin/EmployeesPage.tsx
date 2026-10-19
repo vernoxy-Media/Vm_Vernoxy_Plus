@@ -106,8 +106,9 @@ export const EmployeesPage: React.FC = () => {
           </div>
         )}
 
-        {/* Filter Row: search, department, role [depends on department], status */}
-        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200/90 shadow-xs">
+        {/* Filter Row: search, department, role [depends on department], status (stitched / sticky to top) */}
+        <div className="sticky top-16 lg:top-0 z-20 bg-[#f4f6fa]/95 backdrop-blur-xs py-1">
+          <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs">
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
             {/* Search Input */}
             <div className="relative flex-1">
@@ -222,6 +223,7 @@ export const EmployeesPage: React.FC = () => {
             </button>
           </div>
         </div>
+      </div>
 
         {/* Table Card */}
         <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
@@ -249,9 +251,9 @@ export const EmployeesPage: React.FC = () => {
           ) : (
             <>
               {/* Desktop Table: visible sm and up (>= 640px) */}
-              <div className="hidden sm:block overflow-x-auto">
-                <table className="w-full text-left text-sm" id="employees-table">
-                  <thead className="bg-slate-50/80 border-b border-slate-200/90 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              <div className="hidden sm:block overflow-x-auto overflow-y-auto max-h-[calc(100vh-340px)] min-h-[380px]">
+                <table className="w-full text-left text-sm relative" id="employees-table">
+                  <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200/90 text-xs font-semibold text-slate-500 uppercase tracking-wider shadow-2xs">
                     <tr>
                       <th className="py-3.5 px-6 w-[30%] min-w-[260px]">Employee</th>
                       <th className="py-3.5 px-6 w-[22%] min-w-[180px]">Department & Role</th>
@@ -390,7 +392,7 @@ export const EmployeesPage: React.FC = () => {
               </div>
 
               {/* Mobile Stacked Cards: below 640px */}
-              <div className="sm:hidden divide-y divide-slate-100">
+              <div className="sm:hidden divide-y divide-slate-100 overflow-y-auto max-h-[calc(100vh-280px)]">
                 {data?.items.map((emp) => {
                   const isSelf = currentUser?.emp_id === emp.emp_id;
 

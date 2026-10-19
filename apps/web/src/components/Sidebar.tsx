@@ -12,6 +12,8 @@ import {
   ChevronDown,
   Settings,
   Building2,
+  Clock,
+  CalendarClock,
 } from 'lucide-react';
 
 export interface SidebarProps {
@@ -57,15 +59,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   if (!user) return null;
 
-  // Base navigation items: Profile, Companies, Employees, Settings (only authorized modules)
+  // Base navigation items: Profile, Attendance, Companies, Employees, Settings
   const navItems = [
     { name: 'Profile', path: '/', icon: User },
+    { name: 'Attendance', path: '/attendance', icon: Clock },
     ...(user.access?.can_manage_companies
       ? [{ name: 'Companies', path: '/companies', icon: Building2 }]
       : []),
     ...(user.access?.can_manage_organization
       ? [
           { name: 'Employees', path: '/admin/employees', icon: Users },
+          { name: 'Attendance Settings', path: '/admin/attendance-settings', icon: CalendarClock },
           { name: 'Settings', path: '/admin/settings/departments', icon: Settings },
         ]
       : []),
@@ -182,7 +186,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <Link
                 key={item.path}
                 to={item.path}
-                id={isMobile ? `mobile-nav-${item.name.toLowerCase()}` : `nav-${item.name.toLowerCase()}`}
+                id={isMobile ? `mobile-nav-${item.name.toLowerCase().replace(/\s+/g, '-')}` : `nav-${item.name.toLowerCase().replace(/\s+/g, '-')}`}
                 onClick={isMobile ? onCloseMobile : undefined}
                 title={item.name}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Building2, ShieldCheck, Factory, Users, LucideIcon } from 'lucide-react';
+import { Building2, ShieldCheck, Factory, Users, CalendarDays, LucideIcon } from 'lucide-react';
 import type { MeResponseDto } from '@vernoxy-pulse/api-client';
 
 const SettingsDepartmentsSection = React.lazy(() =>
@@ -13,6 +13,9 @@ const SettingsIndustriesSection = React.lazy(() =>
 );
 const SettingsCustomerTypesSection = React.lazy(() =>
   import('./SettingsCustomerTypesSection').then((m) => ({ default: m.SettingsCustomerTypesSection }))
+);
+const SettingsHrPolicySection = React.lazy(() =>
+  import('./SettingsHrPolicySection').then((m) => ({ default: m.SettingsHrPolicySection }))
 );
 
 export interface SettingsSectionConfig {
@@ -55,6 +58,14 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     path: '/admin/settings/customer-types',
     icon: Users,
     component: SettingsCustomerTypesSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+  },
+  {
+    id: 'hr-policy',
+    label: 'HR Policy',
+    path: '/admin/settings/hr-policy',
+    icon: CalendarDays,
+    component: SettingsHrPolicySection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
   },
 ];

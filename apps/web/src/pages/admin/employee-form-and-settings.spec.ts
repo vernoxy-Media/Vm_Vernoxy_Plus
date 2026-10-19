@@ -148,9 +148,13 @@ describe('Employee Form Validation Schema', () => {
 });
 
 describe('Settings Master Data Registry', () => {
-  it('registers Departments and Roles sections', () => {
+  it('registers all general settings sections', () => {
     const ids = SETTINGS_SECTIONS.map((s) => s.id);
-    assert.deepStrictEqual(ids, ['departments', 'roles']);
+    assert.ok(ids.includes('departments'));
+    assert.ok(ids.includes('roles'));
+    assert.ok(ids.includes('industries'));
+    assert.ok(ids.includes('customer-types'));
+    assert.ok(ids.includes('hr-policy'));
   });
 
   it('visibility predicate shows sections only when user has can_manage_organization', () => {
@@ -164,7 +168,7 @@ describe('Settings Master Data Registry', () => {
     };
 
     const adminSections = getVisibleSettingsSections(adminUser);
-    assert.strictEqual(adminSections.length, 2);
+    assert.strictEqual(adminSections.length, SETTINGS_SECTIONS.length);
 
     const nonAdminSections = getVisibleSettingsSections(regularUser);
     assert.strictEqual(nonAdminSections.length, 0);

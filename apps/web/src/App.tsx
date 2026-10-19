@@ -12,6 +12,7 @@ import { ChangePasswordPage } from './pages/ChangePasswordPage';
 import { HomePage } from './pages/HomePage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { SettingsPage } from './pages/admin/settings/SettingsPage';
+import { AttendanceSettingsPage } from './pages/admin/AttendanceSettingsPage';
 import { EmployeesPage } from './pages/admin/EmployeesPage';
 import { EmployeeFormPage } from './pages/admin/EmployeeFormPage';
 import { CompanyRoute } from './features/companies/components/CompanyRoute';
@@ -19,6 +20,7 @@ import { CompaniesListPage } from './features/companies/pages/CompaniesListPage'
 import { CompanyFormPage } from './features/companies/pages/CompanyFormPage';
 import { CompanyDetailPage } from './features/companies/pages/CompanyDetailPage';
 import { CompanyImportPage } from './features/companies/pages/CompanyImportPage';
+import { AttendancePage } from './features/attendance/pages/AttendancePage';
 import { AppLayout } from './components/AppLayout';
 
 const queryClient = new QueryClient({
@@ -60,6 +62,16 @@ export const App: React.FC = () => {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/attendance"
+              element={
+                <ProtectedRoute>
+                  <AppLayout fluid>
+                    <AttendancePage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
 
             {/* Settings & Master Data */}
             <Route
@@ -73,6 +85,20 @@ export const App: React.FC = () => {
                   <SettingsPage />
                 </AdminRoute>
               }
+            />
+
+            {/* Dedicated Attendance Settings Route */}
+            <Route
+              path="/admin/attendance-settings"
+              element={
+                <AdminRoute>
+                  <AttendanceSettingsPage />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/settings/attendance"
+              element={<Navigate to="/admin/attendance-settings" replace />}
             />
 
             {/* Backward-compatibility redirects for old URLs */}

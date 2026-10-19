@@ -11,7 +11,7 @@ export default defineConfig({
   },
   reporter: 'list',
   use: {
-    baseURL: 'http://localhost:5199',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5173',
     trace: 'retain-on-failure',
   },
   projects: [
