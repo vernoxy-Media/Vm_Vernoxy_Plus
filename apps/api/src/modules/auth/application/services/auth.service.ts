@@ -83,6 +83,7 @@ export interface MeResult {
   access: {
     can_manage_organization: boolean;
     can_manage_companies: boolean;
+    can_manage_tasks: boolean;
   };
 }
 
@@ -525,6 +526,7 @@ export class AuthService {
       access: {
         can_manage_organization: Boolean(emp.is_admin) && emp.status === 'Active',
         can_manage_companies: Boolean(emp.is_admin) && emp.status === 'Active',
+        can_manage_tasks: Boolean(emp.is_admin) && emp.status === 'Active',
       },
     };
   }

@@ -10,6 +10,7 @@ export { Argon2PasswordHasher } from './infrastructure/security/argon2-password-
 export interface AccessPolicy {
   canManageOrganization(empId: number): Promise<boolean>;
   canManageCompanies(empId: number): Promise<boolean>;
+  canManageTasks(empId: number): Promise<boolean>;
 }
 
 export const ACCESS_POLICY_TOKEN = Symbol('AccessPolicy');
@@ -30,6 +31,14 @@ export class AccessPolicyAdapter implements AccessPolicy {
   }
 
   async canManageCompanies(empId: number): Promise<boolean> {
+    const emp = await this.employeeRepo.findById(empId);
+    if (!emp || emp.status !== 'Active' || emp.deleted_at !== null) {
+      return false;
+    }
+    return Boolean(emp.is_admin);
+  }
+
+  async canManageTasks(empId: number): Promise<boolean> {
     const emp = await this.employeeRepo.findById(empId);
     if (!emp || emp.status !== 'Active' || emp.deleted_at !== null) {
       return false;

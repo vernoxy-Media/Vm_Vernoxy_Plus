@@ -148,6 +148,9 @@ export class AccessSummaryDto {
 
   @ApiProperty({ type: Boolean, example: true })
   can_manage_companies!: boolean;
+
+  @ApiProperty({ type: Boolean, example: true })
+  can_manage_tasks!: boolean;
 }
 
 export class MeResponseDto {

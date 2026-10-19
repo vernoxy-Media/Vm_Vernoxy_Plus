@@ -6,6 +6,8 @@ import { Logo } from './Logo';
 import { Avatar } from './Avatar';
 import { Menu, X, ShieldAlert } from 'lucide-react';
 
+import { NotificationBell } from './NotificationBell';
+
 export interface AppLayoutProps {
   children: React.ReactNode;
   title?: string;
@@ -86,12 +88,15 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           </Link>
         </div>
 
-        <Avatar
-          name={user.name}
-          src={user.profile_picture_url}
-          size={32}
-          className="rounded-lg border border-slate-200"
-        />
+        <div className="flex items-center gap-2">
+          <NotificationBell />
+          <Avatar
+            name={user.name}
+            src={user.profile_picture_url}
+            size={32}
+            className="rounded-lg border border-slate-200"
+          />
+        </div>
       </header>
 
       {/* Mobile Drawer Backdrop */}
@@ -131,8 +136,28 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           isCollapsed ? 'lg:pl-[4.5rem]' : 'lg:pl-64'
         }`}
       >
+        {/* Desktop Header with Notification Bell */}
+        <header className="hidden lg:flex items-center justify-end h-16 px-8 border-b border-slate-200/60 bg-white/70 backdrop-blur-xs sticky top-0 z-20">
+          <div className="flex items-center gap-4">
+            <NotificationBell />
+            <div className="h-5 w-px bg-slate-200" />
+            <div className="flex items-center gap-2.5">
+              <Avatar
+                name={user.name}
+                src={user.profile_picture_url}
+                size={32}
+                className="rounded-lg border border-slate-200"
+              />
+              <div className="text-left">
+                <div className="text-xs font-bold text-slate-800 leading-tight">{user.name}</div>
+                <div className="text-[11px] text-slate-400 leading-tight">{user.role?.role_name || 'Employee'}</div>
+              </div>
+            </div>
+          </div>
+        </header>
+
         <main
-          className={`flex-1 w-full mx-auto px-4 sm:px-6 lg:px-8 pt-20 lg:pt-8 pb-12 ${
+          className={`flex-1 w-full mx-auto px-4 sm:px-6 lg:px-8 pt-20 lg:pt-6 pb-12 ${
             fluid ? 'max-w-page-wide' : 'max-w-page-form'
           }`}
         >

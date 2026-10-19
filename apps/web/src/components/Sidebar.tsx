@@ -13,7 +13,10 @@ import {
   Settings,
   Building2,
   Clock,
+  Calendar,
   CalendarClock,
+  CheckSquare,
+  LayoutGrid,
 } from 'lucide-react';
 
 export interface SidebarProps {
@@ -59,15 +62,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   if (!user) return null;
 
-  // Base navigation items: Profile, Attendance, Companies, Employees, Settings
+  // Base navigation items: Profile, My Tasks, Attendance, Companies, Employees, Settings
   const navItems = [
     { name: 'Profile', path: '/', icon: User },
+    { name: 'My Tasks', path: '/my-tasks', icon: CheckSquare },
     { name: 'Attendance', path: '/attendance', icon: Clock },
+    { name: 'Calendar', path: '/attendance/calendar', icon: Calendar },
     ...(user.access?.can_manage_companies
       ? [{ name: 'Companies', path: '/companies', icon: Building2 }]
       : []),
     ...(user.access?.can_manage_organization
       ? [
+          { name: 'Task Management', path: '/admin/tasks', icon: LayoutGrid },
           { name: 'Employees', path: '/admin/employees', icon: Users },
           { name: 'Attendance Settings', path: '/admin/attendance-settings', icon: CalendarClock },
           { name: 'Settings', path: '/admin/settings/departments', icon: Settings },
@@ -180,6 +186,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 ? location.pathname.startsWith('/admin/settings')
                 : item.path === '/'
                 ? location.pathname === '/'
+                : item.path === '/attendance'
+                ? location.pathname === '/attendance'
                 : location.pathname.startsWith(item.path);
 
             return (

@@ -9,4 +9,5 @@
 export interface AccessSummaryDto {
   can_manage_organization: boolean;
   can_manage_companies: boolean;
+  can_manage_tasks: boolean;
 }

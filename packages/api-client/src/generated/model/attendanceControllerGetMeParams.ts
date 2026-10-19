@@ -7,5 +7,5 @@
  */
 
 export type AttendanceControllerGetMeParams = {
-month?: unknown;
+month?: string;
 };

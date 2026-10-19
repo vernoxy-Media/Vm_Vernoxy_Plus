@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsString, IsNotEmpty } from 'class-validator';
 
 export class LookupOptionsQueryDto {
-  @ApiProperty({ type: String, description: 'Lookup type: person_department, lead_source, lost_reason', example: 'person_department' })
+  @ApiProperty({ type: String, description: 'Lookup type: person_department, lead_source, lost_reason, task_type', example: 'task_type' })
   @IsString()
   @IsNotEmpty()
   type!: string;

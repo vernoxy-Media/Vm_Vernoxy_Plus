@@ -12,6 +12,8 @@ import { MasterDataModule } from './modules/master-data/master-data.module';
 import { DataTransferModule } from './modules/data-transfer/public-api';
 import { CrmModule } from './modules/crm/crm.module';
 import { AttendanceModule } from './modules/attendance/public-api';
+import { NotificationsModule } from './modules/notifications/public-api';
+import { TasksModule } from './modules/tasks/public-api';
 
 @Module({
   imports: [
@@ -29,6 +31,8 @@ import { AttendanceModule } from './modules/attendance/public-api';
     DataTransferModule,
     CrmModule,
     AttendanceModule,
+    NotificationsModule,
+    TasksModule,
   ],
   controllers: [HealthController],
   providers: [

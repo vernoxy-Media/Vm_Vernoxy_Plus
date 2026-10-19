@@ -21,6 +21,9 @@ import { CompanyFormPage } from './features/companies/pages/CompanyFormPage';
 import { CompanyDetailPage } from './features/companies/pages/CompanyDetailPage';
 import { CompanyImportPage } from './features/companies/pages/CompanyImportPage';
 import { AttendancePage } from './features/attendance/pages/AttendancePage';
+import { AttendanceCalendarPage } from './features/attendance/pages/AttendanceCalendarPage';
+import { TaskManagementPage } from './pages/admin/TaskManagementPage';
+import { MyTasksPage } from './pages/MyTasksPage';
 import { AppLayout } from './components/AppLayout';
 
 const queryClient = new QueryClient({
@@ -70,6 +73,40 @@ export const App: React.FC = () => {
                     <AttendancePage />
                   </AppLayout>
                 </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/attendance/calendar"
+              element={
+                <ProtectedRoute>
+                  <AppLayout fluid>
+                    <AttendanceCalendarPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/calendar"
+              element={<Navigate to="/attendance/calendar" replace />}
+            />
+            <Route
+              path="/my-tasks"
+              element={
+                <ProtectedRoute>
+                  <AppLayout fluid>
+                    <MyTasksPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/tasks"
+              element={
+                <AdminRoute>
+                  <AppLayout fluid>
+                    <TaskManagementPage />
+                  </AppLayout>
+                </AdminRoute>
               }
             />
 

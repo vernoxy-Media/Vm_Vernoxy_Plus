@@ -7,5 +7,5 @@
  */
 
 export type AttendanceControllerGetDashboardParams = {
-month?: unknown;
+month?: string;
 };

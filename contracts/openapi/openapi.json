@@ -34,6 +34,16 @@
       "post": {
         "operationId": "AuthController_login",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "",
@@ -59,6 +69,16 @@
       "post": {
         "operationId": "AuthController_verifyLogin",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyLoginDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "",
@@ -84,6 +104,16 @@
       "post": {
         "operationId": "AuthController_resendOtp",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResendOtpDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "",
@@ -108,7 +138,16 @@
     "/api/v1/auth/refresh": {
       "post": {
         "operationId": "AuthController_refresh",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-requested-with",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -196,6 +235,16 @@
       "post": {
         "operationId": "AuthController_changePassword",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordDto"
+              }
+            }
+          }
+        },
         "responses": {
           "204": {
             "description": ""
@@ -216,6 +265,16 @@
       "post": {
         "operationId": "AuthController_forgotPassword",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordDto"
+              }
+            }
+          }
+        },
         "responses": {
           "202": {
             "description": "",
@@ -238,6 +297,16 @@
       "post": {
         "operationId": "AuthController_resetPassword",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordDto"
+              }
+            }
+          }
+        },
         "responses": {
           "204": {
             "description": ""
@@ -272,25 +341,31 @@
         "operationId": "FilesController_getProfilePhoto",
         "parameters": [
           {
-            "name": "sig",
+            "name": "key",
             "required": true,
-            "in": "query",
-            "description": "HMAC-SHA256 signature",
-            "schema": {}
+            "in": "path",
+            "description": "Photo storage key (hex32.webp)",
+            "schema": {
+              "type": "string"
+            }
           },
           {
             "name": "exp",
             "required": true,
             "in": "query",
             "description": "Unix expiration timestamp",
-            "schema": {}
+            "schema": {
+              "type": "string"
+            }
           },
           {
-            "name": "key",
+            "name": "sig",
             "required": true,
-            "in": "path",
-            "description": "Photo storage key (hex32.webp)",
-            "schema": {}
+            "in": "query",
+            "description": "HMAC-SHA256 signature",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -310,7 +385,45 @@
     "/api/v1/departments": {
       "get": {
         "operationId": "DepartmentController_list",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Search query for name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "is_active",
+            "required": false,
+            "in": "query",
+            "description": "Filter by active status",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Limit number of results",
+            "schema": {
+              "default": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Keyset cursor for pagination",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -512,7 +625,54 @@
     "/api/v1/roles": {
       "get": {
         "operationId": "RoleController_list",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "dep_id",
+            "required": false,
+            "in": "query",
+            "description": "Filter by department ID",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Search query for role name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "is_active",
+            "required": false,
+            "in": "query",
+            "description": "Filter by active status",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Limit number of results",
+            "schema": {
+              "default": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Keyset cursor for pagination",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -723,7 +883,67 @@
     "/api/v1/employees": {
       "get": {
         "operationId": "EmployeeController_list",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Search name or email",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dep_id",
+            "required": false,
+            "in": "query",
+            "description": "Filter by department ID",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "role_id",
+            "required": false,
+            "in": "query",
+            "description": "Filter by role ID",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Filter by status",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "Active",
+                "Inactive"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Limit results",
+            "schema": {
+              "default": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Keyset pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -1022,7 +1242,67 @@
     "/api/v1/industries": {
       "get": {
         "operationId": "IndustryController_list",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Search term by name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "parent_id",
+            "required": false,
+            "in": "query",
+            "description": "Filter by parent industry ID",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "level",
+            "required": false,
+            "in": "query",
+            "description": "Filter by level: top or sub",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "top",
+                "sub"
+              ]
+            }
+          },
+          {
+            "name": "is_active",
+            "required": false,
+            "in": "query",
+            "description": "Filter by active status",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Pagination limit (1-100)",
+            "schema": {
+              "default": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Keyset pagination cursor",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -1084,7 +1364,17 @@
     "/api/v1/industries/options": {
       "get": {
         "operationId": "IndustryController_getOptions",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "parent_id",
+            "required": false,
+            "in": "query",
+            "description": "Parent industry ID to fetch sub-industries for",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -1221,7 +1511,45 @@
     "/api/v1/customer-types": {
       "get": {
         "operationId": "CustomerTypeController_list",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Search term by name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "is_active",
+            "required": false,
+            "in": "query",
+            "description": "Filter by active status",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Pagination limit (1-100)",
+            "schema": {
+              "default": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Keyset pagination cursor",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -1420,7 +1748,18 @@
     "/api/v1/lookups/options": {
       "get": {
         "operationId": "LookupController_getOptions",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "type",
+            "required": true,
+            "in": "query",
+            "description": "Lookup type: person_department, lead_source, lost_reason, task_type",
+            "schema": {
+              "example": "task_type",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -1450,7 +1789,16 @@
     "/api/v1/companies/import/template": {
       "get": {
         "operationId": "CompanyDataTransferController_downloadTemplate",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "format",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": ""
@@ -1536,6 +1884,16 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyImportConfirmDto"
+              }
+            }
+          }
+        },
         "responses": {
           "202": {
             "description": "",
@@ -1591,7 +1949,25 @@
     "/api/v1/companies/import": {
       "get": {
         "operationId": "CompanyDataTransferController_listImports",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 50,
+              "type": "number"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -1652,6 +2028,14 @@
             "name": "jobId",
             "required": true,
             "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": true,
+            "in": "query",
             "schema": {
               "type": "string"
             }
@@ -1719,7 +2103,72 @@
     "/api/v1/companies/export": {
       "get": {
         "operationId": "CompanyDataTransferController_export",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "format",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "default": "xlsx",
+              "type": "string",
+              "enum": [
+                "xlsx",
+                "csv"
+              ]
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "customer_type_id",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "industry_id",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "owner_id",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "owner",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "unassigned"
+              ]
+            }
+          },
+          {
+            "name": "is_active",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": ""
@@ -1739,7 +2188,84 @@
     "/api/v1/companies": {
       "get": {
         "operationId": "CompanyController_list",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Search term by company name (min 2 chars)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "customer_type_id",
+            "required": false,
+            "in": "query",
+            "description": "Filter by customer type ID",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "industry_id",
+            "required": false,
+            "in": "query",
+            "description": "Filter by industry or sub-industry ID",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "owner_id",
+            "required": false,
+            "in": "query",
+            "description": "Filter by owner employee ID",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "owner",
+            "required": false,
+            "in": "query",
+            "description": "Filter unassigned owner records",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "unassigned"
+              ]
+            }
+          },
+          {
+            "name": "is_active",
+            "required": false,
+            "in": "query",
+            "description": "Filter by active status",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Pagination limit (1-100)",
+            "schema": {
+              "default": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Keyset pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -1801,7 +2327,26 @@
     "/api/v1/companies/options": {
       "get": {
         "operationId": "CompanyController_getOptions",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Search term for company name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "exclude_id",
+            "required": false,
+            "in": "query",
+            "description": "Exclude company ID and its descendants",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -1831,7 +2376,44 @@
     "/api/v1/companies/duplicate-check": {
       "get": {
         "operationId": "CompanyController_checkDuplicates",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "name",
+            "required": false,
+            "in": "query",
+            "description": "Company name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "email",
+            "required": false,
+            "in": "query",
+            "description": "Company email",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "phone",
+            "required": false,
+            "in": "query",
+            "description": "Company phone",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "website",
+            "required": false,
+            "in": "query",
+            "description": "Company website",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -1968,7 +2550,26 @@
     "/api/v1/persons/lookup": {
       "get": {
         "operationId": "PersonController_lookup",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "email",
+            "required": false,
+            "in": "query",
+            "description": "Person email address to search",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mobile",
+            "required": false,
+            "in": "query",
+            "description": "Person mobile number to search",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -2139,7 +2740,8 @@
             "required": false,
             "in": "query",
             "schema": {
-              "example": "2026-10"
+              "example": "2026-10",
+              "type": "string"
             }
           }
         ],
@@ -2175,7 +2777,8 @@
             "required": false,
             "in": "query",
             "schema": {
-              "example": "2026-10"
+              "example": "2026-10",
+              "type": "string"
             }
           }
         ],
@@ -2344,21 +2947,21 @@
         "operationId": "AttendanceController_adminUpsertDay",
         "parameters": [
           {
-            "name": "date",
-            "required": true,
-            "in": "path",
-            "description": "Date in YYYY-MM-DD format",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
             "name": "id",
             "required": true,
             "in": "path",
             "description": "Employee ID",
             "schema": {
               "type": "number"
+            }
+          },
+          {
+            "name": "date",
+            "required": true,
+            "in": "path",
+            "description": "Date in YYYY-MM-DD format",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -2391,7 +2994,35 @@
     "/api/v1/attendance/team": {
       "get": {
         "operationId": "AttendanceController_getTeam",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "date",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-10-16",
+              "type": "string"
+            }
+          },
+          {
+            "name": "month",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-10",
+              "type": "string"
+            }
+          },
+          {
+            "name": "depId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": ""
@@ -2411,7 +3042,16 @@
     "/api/v1/attendance/report/csv": {
       "get": {
         "operationId": "AttendanceController_getReport",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "month",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": ""
@@ -2425,6 +3065,803 @@
         "summary": "Export monthly attendance report as CSV",
         "tags": [
           "Attendance"
+        ]
+      }
+    },
+    "/api/v1/attendance/settings": {
+      "get": {
+        "operationId": "AttendanceController_getSettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get organizational attendance settings",
+        "tags": [
+          "Attendance"
+        ]
+      }
+    },
+    "/api/v1/attendance/settings/working-days": {
+      "put": {
+        "operationId": "AttendanceController_updateWorkingDays",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update working and work off days",
+        "tags": [
+          "Attendance"
+        ]
+      }
+    },
+    "/api/v1/attendance/settings/holidays": {
+      "post": {
+        "operationId": "AttendanceController_addHoliday",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a new company holiday",
+        "tags": [
+          "Attendance"
+        ]
+      }
+    },
+    "/api/v1/attendance/settings/holidays/{id}": {
+      "delete": {
+        "operationId": "AttendanceController_deleteHoliday",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a company holiday",
+        "tags": [
+          "Attendance"
+        ]
+      }
+    },
+    "/api/v1/attendance/settings/working-hours/default": {
+      "put": {
+        "operationId": "AttendanceController_updateDefaultHours",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update default full day and half day working hours",
+        "tags": [
+          "Attendance"
+        ]
+      }
+    },
+    "/api/v1/attendance/settings/working-hours/employee/{id}": {
+      "put": {
+        "operationId": "AttendanceController_updateEmployeeHours",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update or reset employee-specific working hours",
+        "tags": [
+          "Attendance"
+        ]
+      }
+    },
+    "/api/v1/notifications": {
+      "get": {
+        "operationId": "NotificationsController_getNotifications",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 20,
+              "example": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 0,
+              "example": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "unread_only",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": false,
+              "example": false,
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NotificationResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get current user notifications",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/unread-count": {
+      "get": {
+        "operationId": "NotificationsController_getUnreadCount",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnreadCountResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get unread notification count",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/{id}/read": {
+      "post": {
+        "operationId": "NotificationsController_markRead",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarkReadResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark a notification as read",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/read-all": {
+      "post": {
+        "operationId": "NotificationsController_markAllRead",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarkAllReadResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark all notifications as read",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/api/v1/admin/tasks/board": {
+      "get": {
+        "operationId": "TasksController_getBoard",
+        "parameters": [
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search title or task code",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "priority",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "low",
+                "medium",
+                "high",
+                "critical"
+              ]
+            }
+          },
+          {
+            "name": "task_type_id",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "assignee_id",
+            "required": false,
+            "in": "query",
+            "description": "Filter by assignee employee ID",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "overdue_only",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskBoardResultDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get admin task kanban board",
+        "tags": [
+          "Admin Tasks"
+        ]
+      }
+    },
+    "/api/v1/admin/tasks/summary": {
+      "get": {
+        "operationId": "TasksController_getSummary",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskSummaryDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get admin task summary metrics",
+        "tags": [
+          "Admin Tasks"
+        ]
+      }
+    },
+    "/api/v1/admin/tasks/requests/count": {
+      "get": {
+        "operationId": "TasksController_getRequestsCount",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PendingReviewCountDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get count of tasks waiting in review",
+        "tags": [
+          "Admin Tasks"
+        ]
+      }
+    },
+    "/api/v1/admin/tasks/assignable-employees": {
+      "get": {
+        "operationId": "TasksController_getAssignableEmployees",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AssignableEmployeeDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get list of active employees assignable to tasks",
+        "tags": [
+          "Admin Tasks"
+        ]
+      }
+    },
+    "/api/v1/admin/tasks": {
+      "post": {
+        "operationId": "TasksController_createTask",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTaskDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a new task with assignees",
+        "tags": [
+          "Admin Tasks"
+        ]
+      }
+    },
+    "/api/v1/admin/tasks/{id}": {
+      "get": {
+        "operationId": "TasksController_getTaskDetail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get task details by ID with history",
+        "tags": [
+          "Admin Tasks"
+        ]
+      },
+      "patch": {
+        "operationId": "TasksController_updateTask",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTaskDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update task details or assignees",
+        "tags": [
+          "Admin Tasks"
+        ]
+      }
+    },
+    "/api/v1/admin/tasks/{id}/move": {
+      "post": {
+        "operationId": "TasksController_moveStage",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MoveTaskStageDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Move task stage (admin)",
+        "tags": [
+          "Admin Tasks"
+        ]
+      }
+    },
+    "/api/v1/my-tasks/board": {
+      "get": {
+        "operationId": "MyTasksController_getBoard",
+        "parameters": [
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search title or task code",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "priority",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "low",
+                "medium",
+                "high",
+                "critical"
+              ]
+            }
+          },
+          {
+            "name": "task_type_id",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "assignee_id",
+            "required": false,
+            "in": "query",
+            "description": "Filter by assignee employee ID",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "overdue_only",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskBoardResultDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get employee personal task kanban board",
+        "tags": [
+          "My Tasks"
+        ]
+      }
+    },
+    "/api/v1/my-tasks/summary": {
+      "get": {
+        "operationId": "MyTasksController_getSummary",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskSummaryDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get employee personal task summary metrics",
+        "tags": [
+          "My Tasks"
+        ]
+      }
+    },
+    "/api/v1/my-tasks/{id}": {
+      "get": {
+        "operationId": "MyTasksController_getTaskDetail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get details of a task assigned to current employee",
+        "tags": [
+          "My Tasks"
+        ]
+      }
+    },
+    "/api/v1/my-tasks/{id}/move": {
+      "post": {
+        "operationId": "MyTasksController_moveStage",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MoveTaskStageDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Move assigned task stage (e.g. to in_progress or requested)",
+        "tags": [
+          "My Tasks"
         ]
       }
     }
@@ -2459,6 +3896,25 @@
       }
     },
     "schemas": {
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "admin@vernoxy.com",
+            "description": "Employee email address"
+          },
+          "password": {
+            "type": "string",
+            "example": "SecretP@ss123!",
+            "description": "Account password"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
       "LoginResponseDto": {
         "type": "object",
         "properties": {
@@ -2484,6 +3940,25 @@
           "masked_email",
           "expires_in_seconds",
           "resend_available_in_seconds"
+        ]
+      },
+      "VerifyLoginDto": {
+        "type": "object",
+        "properties": {
+          "challenge_id": {
+            "type": "string",
+            "example": "11111111-1111-1111-1111-111111111111",
+            "description": "Challenge UUID from login endpoint"
+          },
+          "code": {
+            "type": "string",
+            "example": "123456",
+            "description": "6-digit OTP received via email"
+          }
+        },
+        "required": [
+          "challenge_id",
+          "code"
         ]
       },
       "UserSummaryDto": {
@@ -2537,6 +4012,19 @@
           "expires_in",
           "must_change_password",
           "user"
+        ]
+      },
+      "ResendOtpDto": {
+        "type": "object",
+        "properties": {
+          "challenge_id": {
+            "type": "string",
+            "example": "11111111-1111-1111-1111-111111111111",
+            "description": "Challenge UUID from login endpoint"
+          }
+        },
+        "required": [
+          "challenge_id"
         ]
       },
       "RefreshResponseDto": {
@@ -2600,11 +4088,16 @@
           "can_manage_companies": {
             "type": "boolean",
             "example": true
+          },
+          "can_manage_tasks": {
+            "type": "boolean",
+            "example": true
           }
         },
         "required": [
           "can_manage_organization",
-          "can_manage_companies"
+          "can_manage_companies",
+          "can_manage_tasks"
         ]
       },
       "MeResponseDto": {
@@ -2658,6 +4151,38 @@
           "access"
         ]
       },
+      "ChangePasswordDto": {
+        "type": "object",
+        "properties": {
+          "current_password": {
+            "type": "string",
+            "example": "OldPassword123!",
+            "description": "Current password"
+          },
+          "new_password": {
+            "type": "string",
+            "example": "NewComplexPassword123!",
+            "description": "New password (min 10 characters)"
+          }
+        },
+        "required": [
+          "current_password",
+          "new_password"
+        ]
+      },
+      "ForgotPasswordDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "user@vernoxy.com",
+            "description": "Employee email address"
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
       "ForgotPasswordResponseDto": {
         "type": "object",
         "properties": {
@@ -2668,6 +4193,31 @@
         },
         "required": [
           "message"
+        ]
+      },
+      "ResetPasswordDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "user@vernoxy.com",
+            "description": "Employee email address"
+          },
+          "code": {
+            "type": "string",
+            "example": "123456",
+            "description": "6-digit OTP code received via email"
+          },
+          "new_password": {
+            "type": "string",
+            "example": "NewComplexPassword123!",
+            "description": "New password (min 10 characters)"
+          }
+        },
+        "required": [
+          "email",
+          "code",
+          "new_password"
         ]
       },
       "DepartmentResponseDto": {
@@ -3626,6 +5176,25 @@
           "sample_issues",
           "can_proceed"
         ]
+      },
+      "CompanyImportConfirmDto": {
+        "type": "object",
+        "properties": {
+          "duplicate_policy": {
+            "type": "string",
+            "description": "Duplicate resolution policy",
+            "enum": [
+              "skip_duplicates",
+              "import_anyway"
+            ],
+            "default": "skip_duplicates"
+          },
+          "skip_invalid_rows": {
+            "type": "boolean",
+            "description": "Whether to import valid rows when some rows have validation errors",
+            "default": false
+          }
+        }
       },
       "CompanyImportConfirmResponseDto": {
         "type": "object",
@@ -5215,6 +6784,675 @@
         "required": [
           "check_in_at",
           "check_out_at"
+        ]
+      },
+      "NotificationResponseDto": {
+        "type": "object",
+        "properties": {
+          "notification_id": {
+            "type": "number",
+            "example": 1
+          },
+          "recipient_id": {
+            "type": "number",
+            "example": 10
+          },
+          "kind": {
+            "type": "string",
+            "example": "task_assigned"
+          },
+          "title": {
+            "type": "string",
+            "example": "New Task Assigned"
+          },
+          "body": {
+            "type": "string",
+            "example": "You have been assigned to task TSK-2026-0001",
+            "nullable": true
+          },
+          "entity_type": {
+            "type": "string",
+            "example": "task",
+            "nullable": true
+          },
+          "entity_id": {
+            "type": "number",
+            "example": 42,
+            "nullable": true
+          },
+          "read_at": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-10-19T10:00:00Z",
+            "nullable": true
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-10-19T09:30:00Z"
+          }
+        },
+        "required": [
+          "notification_id",
+          "recipient_id",
+          "kind",
+          "title",
+          "created_at"
+        ]
+      },
+      "UnreadCountResponseDto": {
+        "type": "object",
+        "properties": {
+          "unread_count": {
+            "type": "number",
+            "example": 3
+          }
+        },
+        "required": [
+          "unread_count"
+        ]
+      },
+      "MarkReadResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          }
+        },
+        "required": [
+          "success"
+        ]
+      },
+      "MarkAllReadResponseDto": {
+        "type": "object",
+        "properties": {
+          "marked_count": {
+            "type": "number",
+            "example": 5
+          }
+        },
+        "required": [
+          "marked_count"
+        ]
+      },
+      "TaskAssigneeSummaryDto": {
+        "type": "object",
+        "properties": {
+          "employee_id": {
+            "type": "number",
+            "example": 5
+          },
+          "name": {
+            "type": "string",
+            "example": "John Doe"
+          },
+          "email": {
+            "type": "string",
+            "example": "john@vernoxy.com"
+          },
+          "avatar_url": {
+            "type": "string",
+            "example": "https://...",
+            "nullable": true
+          }
+        },
+        "required": [
+          "employee_id",
+          "name",
+          "email"
+        ]
+      },
+      "TaskBoardCardDto": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "number",
+            "example": 1
+          },
+          "task_code": {
+            "type": "string",
+            "example": "TSK-2026-0001"
+          },
+          "title": {
+            "type": "string",
+            "example": "Implement Authentication"
+          },
+          "description": {
+            "type": "string",
+            "example": "Setup JWT and argon2",
+            "nullable": true
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ],
+            "example": "high"
+          },
+          "task_type_id": {
+            "type": "number",
+            "example": 2,
+            "nullable": true
+          },
+          "task_type_label": {
+            "type": "string",
+            "example": "Feature",
+            "nullable": true
+          },
+          "due_date": {
+            "type": "string",
+            "example": "2026-10-25",
+            "nullable": true
+          },
+          "allocated_minutes": {
+            "type": "number",
+            "example": 180,
+            "nullable": true
+          },
+          "stage": {
+            "type": "string",
+            "enum": [
+              "assigned",
+              "in_progress",
+              "requested",
+              "completed"
+            ],
+            "example": "assigned"
+          },
+          "is_overdue": {
+            "type": "boolean",
+            "example": false
+          },
+          "requested_at": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "completed_at": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "assignees": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskAssigneeSummaryDto"
+            }
+          }
+        },
+        "required": [
+          "task_id",
+          "task_code",
+          "title",
+          "priority",
+          "stage",
+          "is_overdue",
+          "created_at",
+          "assignees"
+        ]
+      },
+      "TaskBoardColumnsDto": {
+        "type": "object",
+        "properties": {
+          "assigned": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskBoardCardDto"
+            }
+          },
+          "in_progress": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskBoardCardDto"
+            }
+          },
+          "requested": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskBoardCardDto"
+            }
+          },
+          "completed": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskBoardCardDto"
+            }
+          }
+        },
+        "required": [
+          "assigned",
+          "in_progress",
+          "requested",
+          "completed"
+        ]
+      },
+      "TaskBoardCountsDto": {
+        "type": "object",
+        "properties": {
+          "assigned": {
+            "type": "number",
+            "example": 4
+          },
+          "in_progress": {
+            "type": "number",
+            "example": 2
+          },
+          "requested": {
+            "type": "number",
+            "example": 1
+          },
+          "completed": {
+            "type": "number",
+            "example": 10
+          },
+          "total": {
+            "type": "number",
+            "example": 17
+          }
+        },
+        "required": [
+          "assigned",
+          "in_progress",
+          "requested",
+          "completed",
+          "total"
+        ]
+      },
+      "TaskBoardResultDto": {
+        "type": "object",
+        "properties": {
+          "columns": {
+            "$ref": "#/components/schemas/TaskBoardColumnsDto"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/TaskBoardCountsDto"
+          }
+        },
+        "required": [
+          "columns",
+          "counts"
+        ]
+      },
+      "TaskSummaryDto": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number",
+            "example": 17
+          },
+          "assigned": {
+            "type": "number",
+            "example": 4
+          },
+          "in_progress": {
+            "type": "number",
+            "example": 2
+          },
+          "requested": {
+            "type": "number",
+            "example": 1
+          },
+          "overdue": {
+            "type": "number",
+            "example": 0
+          },
+          "completed_today": {
+            "type": "number",
+            "example": 3
+          },
+          "completed_this_month": {
+            "type": "number",
+            "example": 10
+          }
+        },
+        "required": [
+          "total",
+          "assigned",
+          "in_progress",
+          "requested",
+          "overdue",
+          "completed_today",
+          "completed_this_month"
+        ]
+      },
+      "PendingReviewCountDto": {
+        "type": "object",
+        "properties": {
+          "pending_count": {
+            "type": "number",
+            "example": 3
+          }
+        },
+        "required": [
+          "pending_count"
+        ]
+      },
+      "AssignableEmployeeDto": {
+        "type": "object",
+        "properties": {
+          "emp_id": {
+            "type": "number",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Admin User"
+          },
+          "email": {
+            "type": "string",
+            "example": "admin@vernoxy.com"
+          },
+          "avatar_url": {
+            "type": "string",
+            "nullable": true
+          },
+          "role_name": {
+            "type": "string",
+            "example": "Lead Developer"
+          },
+          "department_name": {
+            "type": "string",
+            "example": "Engineering"
+          }
+        },
+        "required": [
+          "emp_id",
+          "name",
+          "email",
+          "role_name",
+          "department_name"
+        ]
+      },
+      "CreateTaskDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "Fix production crash in auth",
+            "maxLength": 150
+          },
+          "description": {
+            "type": "string",
+            "example": "Stacktrace points to token refresh",
+            "maxLength": 10000
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ],
+            "default": "medium"
+          },
+          "task_type_id": {
+            "type": "number",
+            "example": 1
+          },
+          "due_date": {
+            "type": "string",
+            "example": "2026-10-31"
+          },
+          "allocated_minutes": {
+            "type": "number",
+            "example": 120,
+            "description": "Allocated minutes (max 14400)"
+          },
+          "assignee_ids": {
+            "example": [
+              1,
+              2
+            ],
+            "description": "List of 1 to 50 active employee IDs",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "title",
+          "assignee_ids"
+        ]
+      },
+      "TaskHistoryItemDto": {
+        "type": "object",
+        "properties": {
+          "history_id": {
+            "type": "string",
+            "example": "10"
+          },
+          "task_id": {
+            "type": "number",
+            "example": 1
+          },
+          "event_type": {
+            "type": "string",
+            "example": "created"
+          },
+          "actor_id": {
+            "type": "number",
+            "example": 1,
+            "nullable": true
+          },
+          "actor_name": {
+            "type": "string",
+            "example": "Admin User",
+            "nullable": true
+          },
+          "from_stage": {
+            "type": "string",
+            "nullable": true
+          },
+          "to_stage": {
+            "type": "string",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "history_id",
+          "task_id",
+          "event_type",
+          "created_at"
+        ]
+      },
+      "TaskDetailDto": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "number",
+            "example": 1
+          },
+          "task_code": {
+            "type": "string",
+            "example": "TSK-2026-0001"
+          },
+          "title": {
+            "type": "string",
+            "example": "Build Clean UI"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ]
+          },
+          "task_type_id": {
+            "type": "number",
+            "nullable": true
+          },
+          "task_type_label": {
+            "type": "string",
+            "nullable": true
+          },
+          "due_date": {
+            "type": "string",
+            "nullable": true
+          },
+          "allocated_minutes": {
+            "type": "number",
+            "nullable": true
+          },
+          "stage": {
+            "type": "string",
+            "enum": [
+              "assigned",
+              "in_progress",
+              "requested",
+              "completed"
+            ]
+          },
+          "review_note": {
+            "type": "string",
+            "nullable": true
+          },
+          "requested_at": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "completed_at": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "completed_by": {
+            "type": "number",
+            "nullable": true
+          },
+          "completed_by_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "self_approved": {
+            "type": "boolean",
+            "example": false
+          },
+          "row_version": {
+            "type": "number",
+            "example": 1
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "created_by": {
+            "type": "number",
+            "nullable": true
+          },
+          "created_by_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "assignees": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskAssigneeSummaryDto"
+            }
+          },
+          "history": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskHistoryItemDto"
+            }
+          }
+        },
+        "required": [
+          "task_id",
+          "task_code",
+          "title",
+          "priority",
+          "stage",
+          "self_approved",
+          "row_version",
+          "created_at",
+          "assignees",
+          "history"
+        ]
+      },
+      "UpdateTaskDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 150
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 10000
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ]
+          },
+          "task_type_id": {
+            "type": "number"
+          },
+          "due_date": {
+            "type": "string"
+          },
+          "allocated_minutes": {
+            "type": "number"
+          },
+          "assignee_ids": {
+            "description": "Optional new list of 1 to 50 active employee IDs",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        }
+      },
+      "MoveTaskStageDto": {
+        "type": "object",
+        "properties": {
+          "target_stage": {
+            "type": "string",
+            "enum": [
+              "assigned",
+              "in_progress",
+              "requested",
+              "completed"
+            ],
+            "example": "in_progress"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Optional approval/rejection note"
+          }
+        },
+        "required": [
+          "target_stage"
         ]
       }
     }

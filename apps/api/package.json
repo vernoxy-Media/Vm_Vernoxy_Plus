@@ -13,7 +13,7 @@
     "test:e2e": "jest --config test/jest-e2e.json",
     "db:pull": "prisma db pull",
     "db:generate": "prisma generate",
-    "openapi:export": "tsx src/scripts/export-openapi.ts"
+    "openapi:export": "nest build && node dist/scripts/export-openapi.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

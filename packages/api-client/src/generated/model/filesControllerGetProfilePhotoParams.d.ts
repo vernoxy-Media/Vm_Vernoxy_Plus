@@ -7,11 +7,11 @@
  */
 export type FilesControllerGetProfilePhotoParams = {
     /**
-     * HMAC-SHA256 signature
-     */
-    sig: unknown;
-    /**
      * Unix expiration timestamp
      */
-    exp: unknown;
+    exp: string;
+    /**
+     * HMAC-SHA256 signature
+     */
+    sig: string;
 };

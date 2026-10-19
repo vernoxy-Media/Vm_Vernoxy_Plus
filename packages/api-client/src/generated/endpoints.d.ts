@@ -1,5 +1,5 @@
 import type { DataTag, DefinedInitialDataOptions, DefinedUseQueryResult, QueryClient, QueryKey, UndefinedInitialDataOptions, UseMutationOptions, UseMutationResult, UseQueryOptions, UseQueryResult } from '@tanstack/react-query';
-import type { AdminUpsertDayDto, AttendanceControllerGetDashboardParams, AttendanceControllerGetMeParams, CompanyDataTransferControllerPreviewBody, CompanyDetailResponseDto, CompanyDuplicateMatchDto, CompanyImportConfirmResponseDto, CompanyImportPreviewResponseDto, CompanyOptionDto, CreateCompanyDto, CreateCorrectionDto, CreateCustomerTypeDto, CreateDepartmentDto, CreateEmployeeDto, CreateIndustryDto, CreateRoleDto, CustomerTypeItemDto, CustomerTypeOptionDto, DashboardResponseDto, DataTransferJobDetailResponseDto, DayDetailDto, DepartmentListResponseDto, DepartmentOptionDto, DepartmentResponseDto, EmployeeControllerGetOptionsParams, EmployeeControllerUploadPhotoBody, EmployeeListResponseDto, EmployeeOptionDto, EmployeeResponseDto, FilesControllerGetProfilePhotoParams, ForgotPasswordResponseDto, IndustryDetailResponseDto, IndustryOptionDto, ListCompaniesResponseDto, ListCustomerTypesResponseDto, ListIndustriesResponseDto, LoginResponseDto, LookupOptionDto, MeResponseDto, MonthBlockDto, PersonLookupMatchDto, RefreshResponseDto, RejectCorrectionDto, RoleControllerGetOptionsParams, RoleListResponseDto, RoleOptionDto, RoleResponseDto, TodayAttendanceBlockDto, TransferJobIssuesResponseDto, TransferJobListResponseDto, UpdateCompanyDto, UpdateCustomerTypeDto, UpdateDepartmentDto, UpdateEmployeeDto, UpdateIndustryDto, UpdateRoleDto, VerifyLoginResponseDto } from './model';
+import type { AdminUpsertDayDto, AssignableEmployeeDto, AttendanceControllerGetDashboardParams, AttendanceControllerGetMeParams, AttendanceControllerGetReportParams, AttendanceControllerGetTeamParams, ChangePasswordDto, CompanyControllerCheckDuplicatesParams, CompanyControllerGetOptionsParams, CompanyControllerListParams, CompanyDataTransferControllerDownloadTemplateParams, CompanyDataTransferControllerExportParams, CompanyDataTransferControllerGetIssuesParams, CompanyDataTransferControllerListImportsParams, CompanyDataTransferControllerPreviewBody, CompanyDetailResponseDto, CompanyDuplicateMatchDto, CompanyImportConfirmDto, CompanyImportConfirmResponseDto, CompanyImportPreviewResponseDto, CompanyOptionDto, CreateCompanyDto, CreateCorrectionDto, CreateCustomerTypeDto, CreateDepartmentDto, CreateEmployeeDto, CreateIndustryDto, CreateRoleDto, CreateTaskDto, CustomerTypeControllerListParams, CustomerTypeItemDto, CustomerTypeOptionDto, DashboardResponseDto, DataTransferJobDetailResponseDto, DayDetailDto, DepartmentControllerListParams, DepartmentListResponseDto, DepartmentOptionDto, DepartmentResponseDto, EmployeeControllerGetOptionsParams, EmployeeControllerListParams, EmployeeControllerUploadPhotoBody, EmployeeListResponseDto, EmployeeOptionDto, EmployeeResponseDto, FilesControllerGetProfilePhotoParams, ForgotPasswordDto, ForgotPasswordResponseDto, IndustryControllerGetOptionsParams, IndustryControllerListParams, IndustryDetailResponseDto, IndustryOptionDto, ListCompaniesResponseDto, ListCustomerTypesResponseDto, ListIndustriesResponseDto, LoginDto, LoginResponseDto, LookupControllerGetOptionsParams, LookupOptionDto, MarkAllReadResponseDto, MarkReadResponseDto, MeResponseDto, MonthBlockDto, MoveTaskStageDto, MyTasksControllerGetBoardParams, NotificationResponseDto, NotificationsControllerGetNotificationsParams, PendingReviewCountDto, PersonControllerLookupParams, PersonLookupMatchDto, RefreshResponseDto, RejectCorrectionDto, ResendOtpDto, ResetPasswordDto, RoleControllerGetOptionsParams, RoleControllerListParams, RoleListResponseDto, RoleOptionDto, RoleResponseDto, TaskBoardResultDto, TaskDetailDto, TaskSummaryDto, TasksControllerGetBoardParams, TodayAttendanceBlockDto, TransferJobIssuesResponseDto, TransferJobListResponseDto, UnreadCountResponseDto, UpdateCompanyDto, UpdateCustomerTypeDto, UpdateDepartmentDto, UpdateEmployeeDto, UpdateIndustryDto, UpdateRoleDto, UpdateTaskDto, VerifyLoginDto, VerifyLoginResponseDto } from './model';
 import { customFetch } from '../custom-fetch';
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 /**
@@ -68,20 +68,29 @@ export type authControllerLoginResponseError = (authControllerLoginResponse401) 
 };
 export type authControllerLoginResponse = (authControllerLoginResponseSuccess | authControllerLoginResponseError);
 export declare const getAuthControllerLoginUrl: () => string;
-export declare const authControllerLogin: (options?: RequestInit) => Promise<authControllerLoginResponse>;
+export declare const authControllerLogin: (loginDto: LoginDto, options?: RequestInit) => Promise<authControllerLoginResponse>;
 export declare const getAuthControllerLoginMutationOptions: <TError = void, TContext = unknown>(options?: {
-    mutation?: UseMutationOptions<Awaited<ReturnType<typeof authControllerLogin>>, TError, void, TContext>;
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof authControllerLogin>>, TError, {
+        data: LoginDto;
+    }, TContext>;
     request?: SecondParameter<typeof customFetch>;
-}) => UseMutationOptions<Awaited<ReturnType<typeof authControllerLogin>>, TError, void, TContext>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof authControllerLogin>>, TError, {
+    data: LoginDto;
+}, TContext>;
 export type AuthControllerLoginMutationResult = NonNullable<Awaited<ReturnType<typeof authControllerLogin>>>;
+export type AuthControllerLoginMutationBody = LoginDto;
 export type AuthControllerLoginMutationError = void;
 /**
 * @summary Initiate login with email and password (sends 2FA email OTP)
 */
 export declare const useAuthControllerLogin: <TError = void, TContext = unknown>(options?: {
-    mutation?: UseMutationOptions<Awaited<ReturnType<typeof authControllerLogin>>, TError, void, TContext>;
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof authControllerLogin>>, TError, {
+        data: LoginDto;
+    }, TContext>;
     request?: SecondParameter<typeof customFetch>;
-}, queryClient?: QueryClient) => UseMutationResult<Awaited<ReturnType<typeof authControllerLogin>>, TError, void, TContext>;
+}, queryClient?: QueryClient) => UseMutationResult<Awaited<ReturnType<typeof authControllerLogin>>, TError, {
+    data: LoginDto;
+}, TContext>;
 /**
  * @summary Verify email OTP and establish session
  */
@@ -101,20 +110,29 @@ export type authControllerVerifyLoginResponseError = (authControllerVerifyLoginR
 };
 export type authControllerVerifyLoginResponse = (authControllerVerifyLoginResponseSuccess | authControllerVerifyLoginResponseError);
 export declare const getAuthControllerVerifyLoginUrl: () => string;
-export declare const authControllerVerifyLogin: (options?: RequestInit) => Promise<authControllerVerifyLoginResponse>;
+export declare const authControllerVerifyLogin: (verifyLoginDto: VerifyLoginDto, options?: RequestInit) => Promise<authControllerVerifyLoginResponse>;
 export declare const getAuthControllerVerifyLoginMutationOptions: <TError = void, TContext = unknown>(options?: {
-    mutation?: UseMutationOptions<Awaited<ReturnType<typeof authControllerVerifyLogin>>, TError, void, TContext>;
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof authControllerVerifyLogin>>, TError, {
+        data: VerifyLoginDto;
+    }, TContext>;
     request?: SecondParameter<typeof customFetch>;
-}) => UseMutationOptions<Awaited<ReturnType<typeof authControllerVerifyLogin>>, TError, void, TContext>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof authControllerVerifyLogin>>, TError, {
+    data: VerifyLoginDto;
+}, TContext>;
 export type AuthControllerVerifyLoginMutationResult = NonNullable<Awaited<ReturnType<typeof authControllerVerifyLogin>>>;
+export type AuthControllerVerifyLoginMutationBody = VerifyLoginDto;
 export type AuthControllerVerifyLoginMutationError = void;
 /**
 * @summary Verify email OTP and establish session
 */
 export declare const useAuthControllerVerifyLogin: <TError = void, TContext = unknown>(options?: {
-    mutation?: UseMutationOptions<Awaited<ReturnType<typeof authControllerVerifyLogin>>, TError, void, TContext>;
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof authControllerVerifyLogin>>, TError, {
+        data: VerifyLoginDto;
+    }, TContext>;
     request?: SecondParameter<typeof customFetch>;
-}, queryClient?: QueryClient) => UseMutationResult<Awaited<ReturnType<typeof authControllerVerifyLogin>>, TError, void, TContext>;
+}, queryClient?: QueryClient) => UseMutationResult<Awaited<ReturnType<typeof authControllerVerifyLogin>>, TError, {
+    data: VerifyLoginDto;
+}, TContext>;
 /**
  * @summary Resend email OTP for open challenge adhering to cooldown
  */
@@ -134,20 +152,29 @@ export type authControllerResendOtpResponseError = (authControllerResendOtpRespo
 };
 export type authControllerResendOtpResponse = (authControllerResendOtpResponseSuccess | authControllerResendOtpResponseError);
 export declare const getAuthControllerResendOtpUrl: () => string;
-export declare const authControllerResendOtp: (options?: RequestInit) => Promise<authControllerResendOtpResponse>;
+export declare const authControllerResendOtp: (resendOtpDto: ResendOtpDto, options?: RequestInit) => Promise<authControllerResendOtpResponse>;
 export declare const getAuthControllerResendOtpMutationOptions: <TError = void, TContext = unknown>(options?: {
-    mutation?: UseMutationOptions<Awaited<ReturnType<typeof authControllerResendOtp>>, TError, void, TContext>;
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof authControllerResendOtp>>, TError, {
+        data: ResendOtpDto;
+    }, TContext>;
     request?: SecondParameter<typeof customFetch>;
-}) => UseMutationOptions<Awaited<ReturnType<typeof authControllerResendOtp>>, TError, void, TContext>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof authControllerResendOtp>>, TError, {
+    data: ResendOtpDto;
+}, TContext>;
 export type AuthControllerResendOtpMutationResult = NonNullable<Awaited<ReturnType<typeof authControllerResendOtp>>>;
+export type AuthControllerResendOtpMutationBody = ResendOtpDto;
 export type AuthControllerResendOtpMutationError = void;
 /**
 * @summary Resend email OTP for open challenge adhering to cooldown
 */
 export declare const useAuthControllerResendOtp: <TError = void, TContext = unknown>(options?: {
-    mutation?: UseMutationOptions<Awaited<ReturnType<typeof authControllerResendOtp>>, TError, void, TContext>;
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof authControllerResendOtp>>, TError, {
+        data: ResendOtpDto;
+    }, TContext>;
     request?: SecondParameter<typeof customFetch>;
-}, queryClient?: QueryClient) => UseMutationResult<Awaited<ReturnType<typeof authControllerResendOtp>>, TError, void, TContext>;
+}, queryClient?: QueryClient) => UseMutationResult<Awaited<ReturnType<typeof authControllerResendOtp>>, TError, {
+    data: ResendOtpDto;
+}, TContext>;
 /**
  * @summary Rotate refresh token and issue new access token
  */
@@ -285,20 +312,29 @@ export type authControllerChangePasswordResponseSuccess = (authControllerChangeP
 };
 export type authControllerChangePasswordResponse = (authControllerChangePasswordResponseSuccess);
 export declare const getAuthControllerChangePasswordUrl: () => string;
-export declare const authControllerChangePassword: (options?: RequestInit) => Promise<authControllerChangePasswordResponse>;
+export declare const authControllerChangePassword: (changePasswordDto: ChangePasswordDto, options?: RequestInit) => Promise<authControllerChangePasswordResponse>;
 export declare const getAuthControllerChangePasswordMutationOptions: <TError = unknown, TContext = unknown>(options?: {
-    mutation?: UseMutationOptions<Awaited<ReturnType<typeof authControllerChangePassword>>, TError, void, TContext>;
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof authControllerChangePassword>>, TError, {
+        data: ChangePasswordDto;
+    }, TContext>;
     request?: SecondParameter<typeof customFetch>;
-}) => UseMutationOptions<Awaited<ReturnType<typeof authControllerChangePassword>>, TError, void, TContext>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof authControllerChangePassword>>, TError, {
+    data: ChangePasswordDto;
+}, TContext>;
 export type AuthControllerChangePasswordMutationResult = NonNullable<Awaited<ReturnType<typeof authControllerChangePassword>>>;
+export type AuthControllerChangePasswordMutationBody = ChangePasswordDto;
 export type AuthControllerChangePasswordMutationError = unknown;
 /**
 * @summary Change password and revoke all other sessions
 */
 export declare const useAuthControllerChangePassword: <TError = unknown, TContext = unknown>(options?: {
-    mutation?: UseMutationOptions<Awaited<ReturnType<typeof authControllerChangePassword>>, TError, void, TContext>;
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof authControllerChangePassword>>, TError, {
+        data: ChangePasswordDto;
+    }, TContext>;
     request?: SecondParameter<typeof customFetch>;
-}, queryClient?: QueryClient) => UseMutationResult<Awaited<ReturnType<typeof authControllerChangePassword>>, TError, void, TContext>;
+}, queryClient?: QueryClient) => UseMutationResult<Awaited<ReturnType<typeof authControllerChangePassword>>, TError, {
+    data: ChangePasswordDto;
+}, TContext>;
 /**
  * @summary Request password reset code (always returns 202)
  */
@@ -311,20 +347,29 @@ export type authControllerForgotPasswordResponseSuccess = (authControllerForgotP
 };
 export type authControllerForgotPasswordResponse = (authControllerForgotPasswordResponseSuccess);
 export declare const getAuthControllerForgotPasswordUrl: () => string;
-export declare const authControllerForgotPassword: (options?: RequestInit) => Promise<authControllerForgotPasswordResponse>;
+export declare const authControllerForgotPassword: (forgotPasswordDto: ForgotPasswordDto, options?: RequestInit) => Promise<authControllerForgotPasswordResponse>;
 export declare const getAuthControllerForgotPasswordMutationOptions: <TError = unknown, TContext = unknown>(options?: {
-    mutation?: UseMutationOptions<Awaited<ReturnType<typeof authControllerForgotPassword>>, TError, void, TContext>;
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof authControllerForgotPassword>>, TError, {
+        data: ForgotPasswordDto;
+    }, TContext>;
     request?: SecondParameter<typeof customFetch>;
-}) => UseMutationOptions<Awaited<ReturnType<typeof authControllerForgotPassword>>, TError, void, TContext>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof authControllerForgotPassword>>, TError, {
+    data: ForgotPasswordDto;
+}, TContext>;
 export type AuthControllerForgotPasswordMutationResult = NonNullable<Awaited<ReturnType<typeof authControllerForgotPassword>>>;
+export type AuthControllerForgotPasswordMutationBody = ForgotPasswordDto;
 export type AuthControllerForgotPasswordMutationError = unknown;
 /**
 * @summary Request password reset code (always returns 202)
 */
 export declare const useAuthControllerForgotPassword: <TError = unknown, TContext = unknown>(options?: {
-    mutation?: UseMutationOptions<Awaited<ReturnType<typeof authControllerForgotPassword>>, TError, void, TContext>;
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof authControllerForgotPassword>>, TError, {
+        data: ForgotPasswordDto;
+    }, TContext>;
     request?: SecondParameter<typeof customFetch>;
-}, queryClient?: QueryClient) => UseMutationResult<Awaited<ReturnType<typeof authControllerForgotPassword>>, TError, void, TContext>;
+}, queryClient?: QueryClient) => UseMutationResult<Awaited<ReturnType<typeof authControllerForgotPassword>>, TError, {
+    data: ForgotPasswordDto;
+}, TContext>;
 /**
  * @summary Reset password using email OTP and revoke all sessions
  */
@@ -344,20 +389,29 @@ export type authControllerResetPasswordResponseError = (authControllerResetPassw
 };
 export type authControllerResetPasswordResponse = (authControllerResetPasswordResponseSuccess | authControllerResetPasswordResponseError);
 export declare const getAuthControllerResetPasswordUrl: () => string;
-export declare const authControllerResetPassword: (options?: RequestInit) => Promise<authControllerResetPasswordResponse>;
+export declare const authControllerResetPassword: (resetPasswordDto: ResetPasswordDto, options?: RequestInit) => Promise<authControllerResetPasswordResponse>;
 export declare const getAuthControllerResetPasswordMutationOptions: <TError = void, TContext = unknown>(options?: {
-    mutation?: UseMutationOptions<Awaited<ReturnType<typeof authControllerResetPassword>>, TError, void, TContext>;
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof authControllerResetPassword>>, TError, {
+        data: ResetPasswordDto;
+    }, TContext>;
     request?: SecondParameter<typeof customFetch>;
-}) => UseMutationOptions<Awaited<ReturnType<typeof authControllerResetPassword>>, TError, void, TContext>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof authControllerResetPassword>>, TError, {
+    data: ResetPasswordDto;
+}, TContext>;
 export type AuthControllerResetPasswordMutationResult = NonNullable<Awaited<ReturnType<typeof authControllerResetPassword>>>;
+export type AuthControllerResetPasswordMutationBody = ResetPasswordDto;
 export type AuthControllerResetPasswordMutationError = void;
 /**
 * @summary Reset password using email OTP and revoke all sessions
 */
 export declare const useAuthControllerResetPassword: <TError = void, TContext = unknown>(options?: {
-    mutation?: UseMutationOptions<Awaited<ReturnType<typeof authControllerResetPassword>>, TError, void, TContext>;
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof authControllerResetPassword>>, TError, {
+        data: ResetPasswordDto;
+    }, TContext>;
     request?: SecondParameter<typeof customFetch>;
-}, queryClient?: QueryClient) => UseMutationResult<Awaited<ReturnType<typeof authControllerResetPassword>>, TError, void, TContext>;
+}, queryClient?: QueryClient) => UseMutationResult<Awaited<ReturnType<typeof authControllerResetPassword>>, TError, {
+    data: ResetPasswordDto;
+}, TContext>;
 /**
  * @summary JSON Web Key Set (public keys for verifying pulse tokens)
  */
@@ -416,10 +470,10 @@ export type filesControllerGetProfilePhotoResponseError = (filesControllerGetPro
     headers: Headers;
 };
 export type filesControllerGetProfilePhotoResponse = (filesControllerGetProfilePhotoResponseSuccess | filesControllerGetProfilePhotoResponseError);
-export declare const getFilesControllerGetProfilePhotoUrl: (key: unknown, params: FilesControllerGetProfilePhotoParams) => string;
-export declare const filesControllerGetProfilePhoto: (key: unknown, params: FilesControllerGetProfilePhotoParams, options?: RequestInit) => Promise<filesControllerGetProfilePhotoResponse>;
-export declare const getFilesControllerGetProfilePhotoQueryKey: (key?: unknown, params?: FilesControllerGetProfilePhotoParams) => readonly [`/api/v1/files/profile-photos/${string}`, ...FilesControllerGetProfilePhotoParams[]];
-export declare const getFilesControllerGetProfilePhotoQueryOptions: <TData = Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>, TError = void>(key: unknown, params: FilesControllerGetProfilePhotoParams, options?: {
+export declare const getFilesControllerGetProfilePhotoUrl: (key: string, params: FilesControllerGetProfilePhotoParams) => string;
+export declare const filesControllerGetProfilePhoto: (key: string, params: FilesControllerGetProfilePhotoParams, options?: RequestInit) => Promise<filesControllerGetProfilePhotoResponse>;
+export declare const getFilesControllerGetProfilePhotoQueryKey: (key?: string, params?: FilesControllerGetProfilePhotoParams) => readonly [`/api/v1/files/profile-photos/${string}`, ...FilesControllerGetProfilePhotoParams[]];
+export declare const getFilesControllerGetProfilePhotoQueryOptions: <TData = Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>, TError = void>(key: string, params: FilesControllerGetProfilePhotoParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
 }) => UseQueryOptions<Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>, TError, TData> & {
@@ -427,19 +481,19 @@ export declare const getFilesControllerGetProfilePhotoQueryOptions: <TData = Awa
 };
 export type FilesControllerGetProfilePhotoQueryResult = NonNullable<Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>>;
 export type FilesControllerGetProfilePhotoQueryError = void;
-export declare function useFilesControllerGetProfilePhoto<TData = Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>, TError = void>(key: unknown, params: FilesControllerGetProfilePhotoParams, options: {
+export declare function useFilesControllerGetProfilePhoto<TData = Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>, TError = void>(key: string, params: FilesControllerGetProfilePhotoParams, options: {
     query: Partial<UseQueryOptions<Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>, TError, Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>>, 'initialData'>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
 };
-export declare function useFilesControllerGetProfilePhoto<TData = Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>, TError = void>(key: unknown, params: FilesControllerGetProfilePhotoParams, options?: {
+export declare function useFilesControllerGetProfilePhoto<TData = Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>, TError = void>(key: string, params: FilesControllerGetProfilePhotoParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>, TError, Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>>, 'initialData'>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
 };
-export declare function useFilesControllerGetProfilePhoto<TData = Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>, TError = void>(key: unknown, params: FilesControllerGetProfilePhotoParams, options?: {
+export declare function useFilesControllerGetProfilePhoto<TData = Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>, TError = void>(key: string, params: FilesControllerGetProfilePhotoParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
@@ -456,10 +510,10 @@ export type departmentControllerListResponseSuccess = (departmentControllerListR
     headers: Headers;
 };
 export type departmentControllerListResponse = (departmentControllerListResponseSuccess);
-export declare const getDepartmentControllerListUrl: () => string;
-export declare const departmentControllerList: (options?: RequestInit) => Promise<departmentControllerListResponse>;
-export declare const getDepartmentControllerListQueryKey: () => readonly ["/api/v1/departments"];
-export declare const getDepartmentControllerListQueryOptions: <TData = Awaited<ReturnType<typeof departmentControllerList>>, TError = unknown>(options?: {
+export declare const getDepartmentControllerListUrl: (params?: DepartmentControllerListParams) => string;
+export declare const departmentControllerList: (params?: DepartmentControllerListParams, options?: RequestInit) => Promise<departmentControllerListResponse>;
+export declare const getDepartmentControllerListQueryKey: (params?: DepartmentControllerListParams) => readonly ["/api/v1/departments", ...DepartmentControllerListParams[]];
+export declare const getDepartmentControllerListQueryOptions: <TData = Awaited<ReturnType<typeof departmentControllerList>>, TError = unknown>(params?: DepartmentControllerListParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof departmentControllerList>>, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
 }) => UseQueryOptions<Awaited<ReturnType<typeof departmentControllerList>>, TError, TData> & {
@@ -467,19 +521,19 @@ export declare const getDepartmentControllerListQueryOptions: <TData = Awaited<R
 };
 export type DepartmentControllerListQueryResult = NonNullable<Awaited<ReturnType<typeof departmentControllerList>>>;
 export type DepartmentControllerListQueryError = unknown;
-export declare function useDepartmentControllerList<TData = Awaited<ReturnType<typeof departmentControllerList>>, TError = unknown>(options: {
+export declare function useDepartmentControllerList<TData = Awaited<ReturnType<typeof departmentControllerList>>, TError = unknown>(params: undefined | DepartmentControllerListParams, options: {
     query: Partial<UseQueryOptions<Awaited<ReturnType<typeof departmentControllerList>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof departmentControllerList>>, TError, Awaited<ReturnType<typeof departmentControllerList>>>, 'initialData'>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
 };
-export declare function useDepartmentControllerList<TData = Awaited<ReturnType<typeof departmentControllerList>>, TError = unknown>(options?: {
+export declare function useDepartmentControllerList<TData = Awaited<ReturnType<typeof departmentControllerList>>, TError = unknown>(params?: DepartmentControllerListParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof departmentControllerList>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof departmentControllerList>>, TError, Awaited<ReturnType<typeof departmentControllerList>>>, 'initialData'>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
 };
-export declare function useDepartmentControllerList<TData = Awaited<ReturnType<typeof departmentControllerList>>, TError = unknown>(options?: {
+export declare function useDepartmentControllerList<TData = Awaited<ReturnType<typeof departmentControllerList>>, TError = unknown>(params?: DepartmentControllerListParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof departmentControllerList>>, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
@@ -684,10 +738,10 @@ export type roleControllerListResponseSuccess = (roleControllerListResponse200) 
     headers: Headers;
 };
 export type roleControllerListResponse = (roleControllerListResponseSuccess);
-export declare const getRoleControllerListUrl: () => string;
-export declare const roleControllerList: (options?: RequestInit) => Promise<roleControllerListResponse>;
-export declare const getRoleControllerListQueryKey: () => readonly ["/api/v1/roles"];
-export declare const getRoleControllerListQueryOptions: <TData = Awaited<ReturnType<typeof roleControllerList>>, TError = unknown>(options?: {
+export declare const getRoleControllerListUrl: (params?: RoleControllerListParams) => string;
+export declare const roleControllerList: (params?: RoleControllerListParams, options?: RequestInit) => Promise<roleControllerListResponse>;
+export declare const getRoleControllerListQueryKey: (params?: RoleControllerListParams) => readonly ["/api/v1/roles", ...RoleControllerListParams[]];
+export declare const getRoleControllerListQueryOptions: <TData = Awaited<ReturnType<typeof roleControllerList>>, TError = unknown>(params?: RoleControllerListParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof roleControllerList>>, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
 }) => UseQueryOptions<Awaited<ReturnType<typeof roleControllerList>>, TError, TData> & {
@@ -695,19 +749,19 @@ export declare const getRoleControllerListQueryOptions: <TData = Awaited<ReturnT
 };
 export type RoleControllerListQueryResult = NonNullable<Awaited<ReturnType<typeof roleControllerList>>>;
 export type RoleControllerListQueryError = unknown;
-export declare function useRoleControllerList<TData = Awaited<ReturnType<typeof roleControllerList>>, TError = unknown>(options: {
+export declare function useRoleControllerList<TData = Awaited<ReturnType<typeof roleControllerList>>, TError = unknown>(params: undefined | RoleControllerListParams, options: {
     query: Partial<UseQueryOptions<Awaited<ReturnType<typeof roleControllerList>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof roleControllerList>>, TError, Awaited<ReturnType<typeof roleControllerList>>>, 'initialData'>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
 };
-export declare function useRoleControllerList<TData = Awaited<ReturnType<typeof roleControllerList>>, TError = unknown>(options?: {
+export declare function useRoleControllerList<TData = Awaited<ReturnType<typeof roleControllerList>>, TError = unknown>(params?: RoleControllerListParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof roleControllerList>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof roleControllerList>>, TError, Awaited<ReturnType<typeof roleControllerList>>>, 'initialData'>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
 };
-export declare function useRoleControllerList<TData = Awaited<ReturnType<typeof roleControllerList>>, TError = unknown>(options?: {
+export declare function useRoleControllerList<TData = Awaited<ReturnType<typeof roleControllerList>>, TError = unknown>(params?: RoleControllerListParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof roleControllerList>>, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
@@ -912,10 +966,10 @@ export type employeeControllerListResponseSuccess = (employeeControllerListRespo
     headers: Headers;
 };
 export type employeeControllerListResponse = (employeeControllerListResponseSuccess);
-export declare const getEmployeeControllerListUrl: () => string;
-export declare const employeeControllerList: (options?: RequestInit) => Promise<employeeControllerListResponse>;
-export declare const getEmployeeControllerListQueryKey: () => readonly ["/api/v1/employees"];
-export declare const getEmployeeControllerListQueryOptions: <TData = Awaited<ReturnType<typeof employeeControllerList>>, TError = unknown>(options?: {
+export declare const getEmployeeControllerListUrl: (params?: EmployeeControllerListParams) => string;
+export declare const employeeControllerList: (params?: EmployeeControllerListParams, options?: RequestInit) => Promise<employeeControllerListResponse>;
+export declare const getEmployeeControllerListQueryKey: (params?: EmployeeControllerListParams) => readonly ["/api/v1/employees", ...EmployeeControllerListParams[]];
+export declare const getEmployeeControllerListQueryOptions: <TData = Awaited<ReturnType<typeof employeeControllerList>>, TError = unknown>(params?: EmployeeControllerListParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof employeeControllerList>>, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
 }) => UseQueryOptions<Awaited<ReturnType<typeof employeeControllerList>>, TError, TData> & {
@@ -923,19 +977,19 @@ export declare const getEmployeeControllerListQueryOptions: <TData = Awaited<Ret
 };
 export type EmployeeControllerListQueryResult = NonNullable<Awaited<ReturnType<typeof employeeControllerList>>>;
 export type EmployeeControllerListQueryError = unknown;
-export declare function useEmployeeControllerList<TData = Awaited<ReturnType<typeof employeeControllerList>>, TError = unknown>(options: {
+export declare function useEmployeeControllerList<TData = Awaited<ReturnType<typeof employeeControllerList>>, TError = unknown>(params: undefined | EmployeeControllerListParams, options: {
     query: Partial<UseQueryOptions<Awaited<ReturnType<typeof employeeControllerList>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof employeeControllerList>>, TError, Awaited<ReturnType<typeof employeeControllerList>>>, 'initialData'>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
 };
-export declare function useEmployeeControllerList<TData = Awaited<ReturnType<typeof employeeControllerList>>, TError = unknown>(options?: {
+export declare function useEmployeeControllerList<TData = Awaited<ReturnType<typeof employeeControllerList>>, TError = unknown>(params?: EmployeeControllerListParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof employeeControllerList>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof employeeControllerList>>, TError, Awaited<ReturnType<typeof employeeControllerList>>>, 'initialData'>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
 };
-export declare function useEmployeeControllerList<TData = Awaited<ReturnType<typeof employeeControllerList>>, TError = unknown>(options?: {
+export declare function useEmployeeControllerList<TData = Awaited<ReturnType<typeof employeeControllerList>>, TError = unknown>(params?: EmployeeControllerListParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof employeeControllerList>>, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
@@ -1224,10 +1278,10 @@ export type industryControllerListResponseSuccess = (industryControllerListRespo
     headers: Headers;
 };
 export type industryControllerListResponse = (industryControllerListResponseSuccess);
-export declare const getIndustryControllerListUrl: () => string;
-export declare const industryControllerList: (options?: RequestInit) => Promise<industryControllerListResponse>;
-export declare const getIndustryControllerListQueryKey: () => readonly ["/api/v1/industries"];
-export declare const getIndustryControllerListQueryOptions: <TData = Awaited<ReturnType<typeof industryControllerList>>, TError = unknown>(options?: {
+export declare const getIndustryControllerListUrl: (params?: IndustryControllerListParams) => string;
+export declare const industryControllerList: (params?: IndustryControllerListParams, options?: RequestInit) => Promise<industryControllerListResponse>;
+export declare const getIndustryControllerListQueryKey: (params?: IndustryControllerListParams) => readonly ["/api/v1/industries", ...IndustryControllerListParams[]];
+export declare const getIndustryControllerListQueryOptions: <TData = Awaited<ReturnType<typeof industryControllerList>>, TError = unknown>(params?: IndustryControllerListParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof industryControllerList>>, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
 }) => UseQueryOptions<Awaited<ReturnType<typeof industryControllerList>>, TError, TData> & {
@@ -1235,19 +1289,19 @@ export declare const getIndustryControllerListQueryOptions: <TData = Awaited<Ret
 };
 export type IndustryControllerListQueryResult = NonNullable<Awaited<ReturnType<typeof industryControllerList>>>;
 export type IndustryControllerListQueryError = unknown;
-export declare function useIndustryControllerList<TData = Awaited<ReturnType<typeof industryControllerList>>, TError = unknown>(options: {
+export declare function useIndustryControllerList<TData = Awaited<ReturnType<typeof industryControllerList>>, TError = unknown>(params: undefined | IndustryControllerListParams, options: {
     query: Partial<UseQueryOptions<Awaited<ReturnType<typeof industryControllerList>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof industryControllerList>>, TError, Awaited<ReturnType<typeof industryControllerList>>>, 'initialData'>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
 };
-export declare function useIndustryControllerList<TData = Awaited<ReturnType<typeof industryControllerList>>, TError = unknown>(options?: {
+export declare function useIndustryControllerList<TData = Awaited<ReturnType<typeof industryControllerList>>, TError = unknown>(params?: IndustryControllerListParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof industryControllerList>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof industryControllerList>>, TError, Awaited<ReturnType<typeof industryControllerList>>>, 'initialData'>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
 };
-export declare function useIndustryControllerList<TData = Awaited<ReturnType<typeof industryControllerList>>, TError = unknown>(options?: {
+export declare function useIndustryControllerList<TData = Awaited<ReturnType<typeof industryControllerList>>, TError = unknown>(params?: IndustryControllerListParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof industryControllerList>>, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
@@ -1299,10 +1353,10 @@ export type industryControllerGetOptionsResponseSuccess = (industryControllerGet
     headers: Headers;
 };
 export type industryControllerGetOptionsResponse = (industryControllerGetOptionsResponseSuccess);
-export declare const getIndustryControllerGetOptionsUrl: () => string;
-export declare const industryControllerGetOptions: (options?: RequestInit) => Promise<industryControllerGetOptionsResponse>;
-export declare const getIndustryControllerGetOptionsQueryKey: () => readonly ["/api/v1/industries/options"];
-export declare const getIndustryControllerGetOptionsQueryOptions: <TData = Awaited<ReturnType<typeof industryControllerGetOptions>>, TError = unknown>(options?: {
+export declare const getIndustryControllerGetOptionsUrl: (params?: IndustryControllerGetOptionsParams) => string;
+export declare const industryControllerGetOptions: (params?: IndustryControllerGetOptionsParams, options?: RequestInit) => Promise<industryControllerGetOptionsResponse>;
+export declare const getIndustryControllerGetOptionsQueryKey: (params?: IndustryControllerGetOptionsParams) => readonly ["/api/v1/industries/options", ...IndustryControllerGetOptionsParams[]];
+export declare const getIndustryControllerGetOptionsQueryOptions: <TData = Awaited<ReturnType<typeof industryControllerGetOptions>>, TError = unknown>(params?: IndustryControllerGetOptionsParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof industryControllerGetOptions>>, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
 }) => UseQueryOptions<Awaited<ReturnType<typeof industryControllerGetOptions>>, TError, TData> & {
@@ -1310,19 +1364,19 @@ export declare const getIndustryControllerGetOptionsQueryOptions: <TData = Await
 };
 export type IndustryControllerGetOptionsQueryResult = NonNullable<Awaited<ReturnType<typeof industryControllerGetOptions>>>;
 export type IndustryControllerGetOptionsQueryError = unknown;
-export declare function useIndustryControllerGetOptions<TData = Awaited<ReturnType<typeof industryControllerGetOptions>>, TError = unknown>(options: {
+export declare function useIndustryControllerGetOptions<TData = Awaited<ReturnType<typeof industryControllerGetOptions>>, TError = unknown>(params: undefined | IndustryControllerGetOptionsParams, options: {
     query: Partial<UseQueryOptions<Awaited<ReturnType<typeof industryControllerGetOptions>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof industryControllerGetOptions>>, TError, Awaited<ReturnType<typeof industryControllerGetOptions>>>, 'initialData'>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
 };
-export declare function useIndustryControllerGetOptions<TData = Awaited<ReturnType<typeof industryControllerGetOptions>>, TError = unknown>(options?: {
+export declare function useIndustryControllerGetOptions<TData = Awaited<ReturnType<typeof industryControllerGetOptions>>, TError = unknown>(params?: IndustryControllerGetOptionsParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof industryControllerGetOptions>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof industryControllerGetOptions>>, TError, Awaited<ReturnType<typeof industryControllerGetOptions>>>, 'initialData'>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
 };
-export declare function useIndustryControllerGetOptions<TData = Awaited<ReturnType<typeof industryControllerGetOptions>>, TError = unknown>(options?: {
+export declare function useIndustryControllerGetOptions<TData = Awaited<ReturnType<typeof industryControllerGetOptions>>, TError = unknown>(params?: IndustryControllerGetOptionsParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof industryControllerGetOptions>>, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
@@ -1452,10 +1506,10 @@ export type customerTypeControllerListResponseSuccess = (customerTypeControllerL
     headers: Headers;
 };
 export type customerTypeControllerListResponse = (customerTypeControllerListResponseSuccess);
-export declare const getCustomerTypeControllerListUrl: () => string;
-export declare const customerTypeControllerList: (options?: RequestInit) => Promise<customerTypeControllerListResponse>;
-export declare const getCustomerTypeControllerListQueryKey: () => readonly ["/api/v1/customer-types"];
-export declare const getCustomerTypeControllerListQueryOptions: <TData = Awaited<ReturnType<typeof customerTypeControllerList>>, TError = unknown>(options?: {
+export declare const getCustomerTypeControllerListUrl: (params?: CustomerTypeControllerListParams) => string;
+export declare const customerTypeControllerList: (params?: CustomerTypeControllerListParams, options?: RequestInit) => Promise<customerTypeControllerListResponse>;
+export declare const getCustomerTypeControllerListQueryKey: (params?: CustomerTypeControllerListParams) => readonly ["/api/v1/customer-types", ...CustomerTypeControllerListParams[]];
+export declare const getCustomerTypeControllerListQueryOptions: <TData = Awaited<ReturnType<typeof customerTypeControllerList>>, TError = unknown>(params?: CustomerTypeControllerListParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof customerTypeControllerList>>, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
 }) => UseQueryOptions<Awaited<ReturnType<typeof customerTypeControllerList>>, TError, TData> & {
@@ -1463,19 +1517,19 @@ export declare const getCustomerTypeControllerListQueryOptions: <TData = Awaited
 };
 export type CustomerTypeControllerListQueryResult = NonNullable<Awaited<ReturnType<typeof customerTypeControllerList>>>;
 export type CustomerTypeControllerListQueryError = unknown;
-export declare function useCustomerTypeControllerList<TData = Awaited<ReturnType<typeof customerTypeControllerList>>, TError = unknown>(options: {
+export declare function useCustomerTypeControllerList<TData = Awaited<ReturnType<typeof customerTypeControllerList>>, TError = unknown>(params: undefined | CustomerTypeControllerListParams, options: {
     query: Partial<UseQueryOptions<Awaited<ReturnType<typeof customerTypeControllerList>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof customerTypeControllerList>>, TError, Awaited<ReturnType<typeof customerTypeControllerList>>>, 'initialData'>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
 };
-export declare function useCustomerTypeControllerList<TData = Awaited<ReturnType<typeof customerTypeControllerList>>, TError = unknown>(options?: {
+export declare function useCustomerTypeControllerList<TData = Awaited<ReturnType<typeof customerTypeControllerList>>, TError = unknown>(params?: CustomerTypeControllerListParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof customerTypeControllerList>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof customerTypeControllerList>>, TError, Awaited<ReturnType<typeof customerTypeControllerList>>>, 'initialData'>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
 };
-export declare function useCustomerTypeControllerList<TData = Awaited<ReturnType<typeof customerTypeControllerList>>, TError = unknown>(options?: {
+export declare function useCustomerTypeControllerList<TData = Awaited<ReturnType<typeof customerTypeControllerList>>, TError = unknown>(params?: CustomerTypeControllerListParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof customerTypeControllerList>>, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
@@ -1680,10 +1734,10 @@ export type lookupControllerGetOptionsResponseSuccess = (lookupControllerGetOpti
     headers: Headers;
 };
 export type lookupControllerGetOptionsResponse = (lookupControllerGetOptionsResponseSuccess);
-export declare const getLookupControllerGetOptionsUrl: () => string;
-export declare const lookupControllerGetOptions: (options?: RequestInit) => Promise<lookupControllerGetOptionsResponse>;
-export declare const getLookupControllerGetOptionsQueryKey: () => readonly ["/api/v1/lookups/options"];
-export declare const getLookupControllerGetOptionsQueryOptions: <TData = Awaited<ReturnType<typeof lookupControllerGetOptions>>, TError = unknown>(options?: {
+export declare const getLookupControllerGetOptionsUrl: (params: LookupControllerGetOptionsParams) => string;
+export declare const lookupControllerGetOptions: (params: LookupControllerGetOptionsParams, options?: RequestInit) => Promise<lookupControllerGetOptionsResponse>;
+export declare const getLookupControllerGetOptionsQueryKey: (params?: LookupControllerGetOptionsParams) => readonly ["/api/v1/lookups/options", ...LookupControllerGetOptionsParams[]];
+export declare const getLookupControllerGetOptionsQueryOptions: <TData = Awaited<ReturnType<typeof lookupControllerGetOptions>>, TError = unknown>(params: LookupControllerGetOptionsParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof lookupControllerGetOptions>>, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
 }) => UseQueryOptions<Awaited<ReturnType<typeof lookupControllerGetOptions>>, TError, TData> & {
@@ -1691,19 +1745,19 @@ export declare const getLookupControllerGetOptionsQueryOptions: <TData = Awaited
 };
 export type LookupControllerGetOptionsQueryResult = NonNullable<Awaited<ReturnType<typeof lookupControllerGetOptions>>>;
 export type LookupControllerGetOptionsQueryError = unknown;
-export declare function useLookupControllerGetOptions<TData = Awaited<ReturnType<typeof lookupControllerGetOptions>>, TError = unknown>(options: {
+export declare function useLookupControllerGetOptions<TData = Awaited<ReturnType<typeof lookupControllerGetOptions>>, TError = unknown>(params: LookupControllerGetOptionsParams, options: {
     query: Partial<UseQueryOptions<Awaited<ReturnType<typeof lookupControllerGetOptions>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof lookupControllerGetOptions>>, TError, Awaited<ReturnType<typeof lookupControllerGetOptions>>>, 'initialData'>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
 };
-export declare function useLookupControllerGetOptions<TData = Awaited<ReturnType<typeof lookupControllerGetOptions>>, TError = unknown>(options?: {
+export declare function useLookupControllerGetOptions<TData = Awaited<ReturnType<typeof lookupControllerGetOptions>>, TError = unknown>(params: LookupControllerGetOptionsParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof lookupControllerGetOptions>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof lookupControllerGetOptions>>, TError, Awaited<ReturnType<typeof lookupControllerGetOptions>>>, 'initialData'>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
 };
-export declare function useLookupControllerGetOptions<TData = Awaited<ReturnType<typeof lookupControllerGetOptions>>, TError = unknown>(options?: {
+export declare function useLookupControllerGetOptions<TData = Awaited<ReturnType<typeof lookupControllerGetOptions>>, TError = unknown>(params: LookupControllerGetOptionsParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof lookupControllerGetOptions>>, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
@@ -1720,10 +1774,10 @@ export type companyDataTransferControllerDownloadTemplateResponseSuccess = (comp
     headers: Headers;
 };
 export type companyDataTransferControllerDownloadTemplateResponse = (companyDataTransferControllerDownloadTemplateResponseSuccess);
-export declare const getCompanyDataTransferControllerDownloadTemplateUrl: () => string;
-export declare const companyDataTransferControllerDownloadTemplate: (options?: RequestInit) => Promise<companyDataTransferControllerDownloadTemplateResponse>;
-export declare const getCompanyDataTransferControllerDownloadTemplateQueryKey: () => readonly ["/api/v1/companies/import/template"];
-export declare const getCompanyDataTransferControllerDownloadTemplateQueryOptions: <TData = Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError = unknown>(options?: {
+export declare const getCompanyDataTransferControllerDownloadTemplateUrl: (params: CompanyDataTransferControllerDownloadTemplateParams) => string;
+export declare const companyDataTransferControllerDownloadTemplate: (params: CompanyDataTransferControllerDownloadTemplateParams, options?: RequestInit) => Promise<companyDataTransferControllerDownloadTemplateResponse>;
+export declare const getCompanyDataTransferControllerDownloadTemplateQueryKey: (params?: CompanyDataTransferControllerDownloadTemplateParams) => readonly ["/api/v1/companies/import/template", ...CompanyDataTransferControllerDownloadTemplateParams[]];
+export declare const getCompanyDataTransferControllerDownloadTemplateQueryOptions: <TData = Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError = unknown>(params: CompanyDataTransferControllerDownloadTemplateParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
 }) => UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError, TData> & {
@@ -1731,19 +1785,19 @@ export declare const getCompanyDataTransferControllerDownloadTemplateQueryOption
 };
 export type CompanyDataTransferControllerDownloadTemplateQueryResult = NonNullable<Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>>;
 export type CompanyDataTransferControllerDownloadTemplateQueryError = unknown;
-export declare function useCompanyDataTransferControllerDownloadTemplate<TData = Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError = unknown>(options: {
+export declare function useCompanyDataTransferControllerDownloadTemplate<TData = Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError = unknown>(params: CompanyDataTransferControllerDownloadTemplateParams, options: {
     query: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError, Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>>, 'initialData'>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
 };
-export declare function useCompanyDataTransferControllerDownloadTemplate<TData = Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError = unknown>(options?: {
+export declare function useCompanyDataTransferControllerDownloadTemplate<TData = Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError = unknown>(params: CompanyDataTransferControllerDownloadTemplateParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError, Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>>, 'initialData'>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
 };
-export declare function useCompanyDataTransferControllerDownloadTemplate<TData = Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError = unknown>(options?: {
+export declare function useCompanyDataTransferControllerDownloadTemplate<TData = Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError = unknown>(params: CompanyDataTransferControllerDownloadTemplateParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
@@ -1796,16 +1850,19 @@ export type companyDataTransferControllerConfirmResponseSuccess = (companyDataTr
 };
 export type companyDataTransferControllerConfirmResponse = (companyDataTransferControllerConfirmResponseSuccess);
 export declare const getCompanyDataTransferControllerConfirmUrl: (jobId: string) => string;
-export declare const companyDataTransferControllerConfirm: (jobId: string, options?: RequestInit) => Promise<companyDataTransferControllerConfirmResponse>;
+export declare const companyDataTransferControllerConfirm: (jobId: string, companyImportConfirmDto: CompanyImportConfirmDto, options?: RequestInit) => Promise<companyDataTransferControllerConfirmResponse>;
 export declare const getCompanyDataTransferControllerConfirmMutationOptions: <TError = unknown, TContext = unknown>(options?: {
     mutation?: UseMutationOptions<Awaited<ReturnType<typeof companyDataTransferControllerConfirm>>, TError, {
         jobId: string;
+        data: CompanyImportConfirmDto;
     }, TContext>;
     request?: SecondParameter<typeof customFetch>;
 }) => UseMutationOptions<Awaited<ReturnType<typeof companyDataTransferControllerConfirm>>, TError, {
     jobId: string;
+    data: CompanyImportConfirmDto;
 }, TContext>;
 export type CompanyDataTransferControllerConfirmMutationResult = NonNullable<Awaited<ReturnType<typeof companyDataTransferControllerConfirm>>>;
+export type CompanyDataTransferControllerConfirmMutationBody = CompanyImportConfirmDto;
 export type CompanyDataTransferControllerConfirmMutationError = unknown;
 /**
 * @summary Confirm import preview and enqueue background processing (rate limit 5/min)
@@ -1813,10 +1870,12 @@ export type CompanyDataTransferControllerConfirmMutationError = unknown;
 export declare const useCompanyDataTransferControllerConfirm: <TError = unknown, TContext = unknown>(options?: {
     mutation?: UseMutationOptions<Awaited<ReturnType<typeof companyDataTransferControllerConfirm>>, TError, {
         jobId: string;
+        data: CompanyImportConfirmDto;
     }, TContext>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient) => UseMutationResult<Awaited<ReturnType<typeof companyDataTransferControllerConfirm>>, TError, {
     jobId: string;
+    data: CompanyImportConfirmDto;
 }, TContext>;
 /**
  * @summary Cancel import job (only if pending)
@@ -1863,10 +1922,10 @@ export type companyDataTransferControllerListImportsResponseSuccess = (companyDa
     headers: Headers;
 };
 export type companyDataTransferControllerListImportsResponse = (companyDataTransferControllerListImportsResponseSuccess);
-export declare const getCompanyDataTransferControllerListImportsUrl: () => string;
-export declare const companyDataTransferControllerListImports: (options?: RequestInit) => Promise<companyDataTransferControllerListImportsResponse>;
-export declare const getCompanyDataTransferControllerListImportsQueryKey: () => readonly ["/api/v1/companies/import"];
-export declare const getCompanyDataTransferControllerListImportsQueryOptions: <TData = Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError = unknown>(options?: {
+export declare const getCompanyDataTransferControllerListImportsUrl: (params?: CompanyDataTransferControllerListImportsParams) => string;
+export declare const companyDataTransferControllerListImports: (params?: CompanyDataTransferControllerListImportsParams, options?: RequestInit) => Promise<companyDataTransferControllerListImportsResponse>;
+export declare const getCompanyDataTransferControllerListImportsQueryKey: (params?: CompanyDataTransferControllerListImportsParams) => readonly ["/api/v1/companies/import", ...CompanyDataTransferControllerListImportsParams[]];
+export declare const getCompanyDataTransferControllerListImportsQueryOptions: <TData = Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError = unknown>(params?: CompanyDataTransferControllerListImportsParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
 }) => UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError, TData> & {
@@ -1874,19 +1933,19 @@ export declare const getCompanyDataTransferControllerListImportsQueryOptions: <T
 };
 export type CompanyDataTransferControllerListImportsQueryResult = NonNullable<Awaited<ReturnType<typeof companyDataTransferControllerListImports>>>;
 export type CompanyDataTransferControllerListImportsQueryError = unknown;
-export declare function useCompanyDataTransferControllerListImports<TData = Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError = unknown>(options: {
+export declare function useCompanyDataTransferControllerListImports<TData = Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError = unknown>(params: undefined | CompanyDataTransferControllerListImportsParams, options: {
     query: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError, Awaited<ReturnType<typeof companyDataTransferControllerListImports>>>, 'initialData'>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
 };
-export declare function useCompanyDataTransferControllerListImports<TData = Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError = unknown>(options?: {
+export declare function useCompanyDataTransferControllerListImports<TData = Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError = unknown>(params?: CompanyDataTransferControllerListImportsParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError, Awaited<ReturnType<typeof companyDataTransferControllerListImports>>>, 'initialData'>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
 };
-export declare function useCompanyDataTransferControllerListImports<TData = Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError = unknown>(options?: {
+export declare function useCompanyDataTransferControllerListImports<TData = Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError = unknown>(params?: CompanyDataTransferControllerListImportsParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
@@ -1943,10 +2002,10 @@ export type companyDataTransferControllerGetIssuesResponseSuccess = (companyData
     headers: Headers;
 };
 export type companyDataTransferControllerGetIssuesResponse = (companyDataTransferControllerGetIssuesResponseSuccess);
-export declare const getCompanyDataTransferControllerGetIssuesUrl: (jobId: string) => string;
-export declare const companyDataTransferControllerGetIssues: (jobId: string, options?: RequestInit) => Promise<companyDataTransferControllerGetIssuesResponse>;
-export declare const getCompanyDataTransferControllerGetIssuesQueryKey: (jobId?: string) => readonly [`/api/v1/companies/import/${string}/issues`];
-export declare const getCompanyDataTransferControllerGetIssuesQueryOptions: <TData = Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError = unknown>(jobId: string, options?: {
+export declare const getCompanyDataTransferControllerGetIssuesUrl: (jobId: string, params: CompanyDataTransferControllerGetIssuesParams) => string;
+export declare const companyDataTransferControllerGetIssues: (jobId: string, params: CompanyDataTransferControllerGetIssuesParams, options?: RequestInit) => Promise<companyDataTransferControllerGetIssuesResponse>;
+export declare const getCompanyDataTransferControllerGetIssuesQueryKey: (jobId?: string, params?: CompanyDataTransferControllerGetIssuesParams) => readonly [`/api/v1/companies/import/${string}/issues`, ...CompanyDataTransferControllerGetIssuesParams[]];
+export declare const getCompanyDataTransferControllerGetIssuesQueryOptions: <TData = Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError = unknown>(jobId: string, params: CompanyDataTransferControllerGetIssuesParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
 }) => UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError, TData> & {
@@ -1954,19 +2013,19 @@ export declare const getCompanyDataTransferControllerGetIssuesQueryOptions: <TDa
 };
 export type CompanyDataTransferControllerGetIssuesQueryResult = NonNullable<Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>>;
 export type CompanyDataTransferControllerGetIssuesQueryError = unknown;
-export declare function useCompanyDataTransferControllerGetIssues<TData = Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError = unknown>(jobId: string, options: {
+export declare function useCompanyDataTransferControllerGetIssues<TData = Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError = unknown>(jobId: string, params: CompanyDataTransferControllerGetIssuesParams, options: {
     query: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError, Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>>, 'initialData'>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
 };
-export declare function useCompanyDataTransferControllerGetIssues<TData = Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError = unknown>(jobId: string, options?: {
+export declare function useCompanyDataTransferControllerGetIssues<TData = Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError = unknown>(jobId: string, params: CompanyDataTransferControllerGetIssuesParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError, Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>>, 'initialData'>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
 };
-export declare function useCompanyDataTransferControllerGetIssues<TData = Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError = unknown>(jobId: string, options?: {
+export declare function useCompanyDataTransferControllerGetIssues<TData = Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError = unknown>(jobId: string, params: CompanyDataTransferControllerGetIssuesParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
@@ -2023,10 +2082,10 @@ export type companyDataTransferControllerExportResponseSuccess = (companyDataTra
     headers: Headers;
 };
 export type companyDataTransferControllerExportResponse = (companyDataTransferControllerExportResponseSuccess);
-export declare const getCompanyDataTransferControllerExportUrl: () => string;
-export declare const companyDataTransferControllerExport: (options?: RequestInit) => Promise<companyDataTransferControllerExportResponse>;
-export declare const getCompanyDataTransferControllerExportQueryKey: () => readonly ["/api/v1/companies/export"];
-export declare const getCompanyDataTransferControllerExportQueryOptions: <TData = Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError = unknown>(options?: {
+export declare const getCompanyDataTransferControllerExportUrl: (params: CompanyDataTransferControllerExportParams) => string;
+export declare const companyDataTransferControllerExport: (params: CompanyDataTransferControllerExportParams, options?: RequestInit) => Promise<companyDataTransferControllerExportResponse>;
+export declare const getCompanyDataTransferControllerExportQueryKey: (params?: CompanyDataTransferControllerExportParams) => readonly ["/api/v1/companies/export", ...CompanyDataTransferControllerExportParams[]];
+export declare const getCompanyDataTransferControllerExportQueryOptions: <TData = Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError = unknown>(params: CompanyDataTransferControllerExportParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
 }) => UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError, TData> & {
@@ -2034,19 +2093,19 @@ export declare const getCompanyDataTransferControllerExportQueryOptions: <TData 
 };
 export type CompanyDataTransferControllerExportQueryResult = NonNullable<Awaited<ReturnType<typeof companyDataTransferControllerExport>>>;
 export type CompanyDataTransferControllerExportQueryError = unknown;
-export declare function useCompanyDataTransferControllerExport<TData = Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError = unknown>(options: {
+export declare function useCompanyDataTransferControllerExport<TData = Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError = unknown>(params: CompanyDataTransferControllerExportParams, options: {
     query: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError, Awaited<ReturnType<typeof companyDataTransferControllerExport>>>, 'initialData'>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
 };
-export declare function useCompanyDataTransferControllerExport<TData = Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError = unknown>(options?: {
+export declare function useCompanyDataTransferControllerExport<TData = Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError = unknown>(params: CompanyDataTransferControllerExportParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError, Awaited<ReturnType<typeof companyDataTransferControllerExport>>>, 'initialData'>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
 };
-export declare function useCompanyDataTransferControllerExport<TData = Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError = unknown>(options?: {
+export declare function useCompanyDataTransferControllerExport<TData = Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError = unknown>(params: CompanyDataTransferControllerExportParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
@@ -2063,10 +2122,10 @@ export type companyControllerListResponseSuccess = (companyControllerListRespons
     headers: Headers;
 };
 export type companyControllerListResponse = (companyControllerListResponseSuccess);
-export declare const getCompanyControllerListUrl: () => string;
-export declare const companyControllerList: (options?: RequestInit) => Promise<companyControllerListResponse>;
-export declare const getCompanyControllerListQueryKey: () => readonly ["/api/v1/companies"];
-export declare const getCompanyControllerListQueryOptions: <TData = Awaited<ReturnType<typeof companyControllerList>>, TError = unknown>(options?: {
+export declare const getCompanyControllerListUrl: (params?: CompanyControllerListParams) => string;
+export declare const companyControllerList: (params?: CompanyControllerListParams, options?: RequestInit) => Promise<companyControllerListResponse>;
+export declare const getCompanyControllerListQueryKey: (params?: CompanyControllerListParams) => readonly ["/api/v1/companies", ...CompanyControllerListParams[]];
+export declare const getCompanyControllerListQueryOptions: <TData = Awaited<ReturnType<typeof companyControllerList>>, TError = unknown>(params?: CompanyControllerListParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerList>>, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
 }) => UseQueryOptions<Awaited<ReturnType<typeof companyControllerList>>, TError, TData> & {
@@ -2074,19 +2133,19 @@ export declare const getCompanyControllerListQueryOptions: <TData = Awaited<Retu
 };
 export type CompanyControllerListQueryResult = NonNullable<Awaited<ReturnType<typeof companyControllerList>>>;
 export type CompanyControllerListQueryError = unknown;
-export declare function useCompanyControllerList<TData = Awaited<ReturnType<typeof companyControllerList>>, TError = unknown>(options: {
+export declare function useCompanyControllerList<TData = Awaited<ReturnType<typeof companyControllerList>>, TError = unknown>(params: undefined | CompanyControllerListParams, options: {
     query: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerList>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof companyControllerList>>, TError, Awaited<ReturnType<typeof companyControllerList>>>, 'initialData'>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
 };
-export declare function useCompanyControllerList<TData = Awaited<ReturnType<typeof companyControllerList>>, TError = unknown>(options?: {
+export declare function useCompanyControllerList<TData = Awaited<ReturnType<typeof companyControllerList>>, TError = unknown>(params?: CompanyControllerListParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerList>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof companyControllerList>>, TError, Awaited<ReturnType<typeof companyControllerList>>>, 'initialData'>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
 };
-export declare function useCompanyControllerList<TData = Awaited<ReturnType<typeof companyControllerList>>, TError = unknown>(options?: {
+export declare function useCompanyControllerList<TData = Awaited<ReturnType<typeof companyControllerList>>, TError = unknown>(params?: CompanyControllerListParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerList>>, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
@@ -2138,10 +2197,10 @@ export type companyControllerGetOptionsResponseSuccess = (companyControllerGetOp
     headers: Headers;
 };
 export type companyControllerGetOptionsResponse = (companyControllerGetOptionsResponseSuccess);
-export declare const getCompanyControllerGetOptionsUrl: () => string;
-export declare const companyControllerGetOptions: (options?: RequestInit) => Promise<companyControllerGetOptionsResponse>;
-export declare const getCompanyControllerGetOptionsQueryKey: () => readonly ["/api/v1/companies/options"];
-export declare const getCompanyControllerGetOptionsQueryOptions: <TData = Awaited<ReturnType<typeof companyControllerGetOptions>>, TError = unknown>(options?: {
+export declare const getCompanyControllerGetOptionsUrl: (params?: CompanyControllerGetOptionsParams) => string;
+export declare const companyControllerGetOptions: (params?: CompanyControllerGetOptionsParams, options?: RequestInit) => Promise<companyControllerGetOptionsResponse>;
+export declare const getCompanyControllerGetOptionsQueryKey: (params?: CompanyControllerGetOptionsParams) => readonly ["/api/v1/companies/options", ...CompanyControllerGetOptionsParams[]];
+export declare const getCompanyControllerGetOptionsQueryOptions: <TData = Awaited<ReturnType<typeof companyControllerGetOptions>>, TError = unknown>(params?: CompanyControllerGetOptionsParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerGetOptions>>, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
 }) => UseQueryOptions<Awaited<ReturnType<typeof companyControllerGetOptions>>, TError, TData> & {
@@ -2149,19 +2208,19 @@ export declare const getCompanyControllerGetOptionsQueryOptions: <TData = Awaite
 };
 export type CompanyControllerGetOptionsQueryResult = NonNullable<Awaited<ReturnType<typeof companyControllerGetOptions>>>;
 export type CompanyControllerGetOptionsQueryError = unknown;
-export declare function useCompanyControllerGetOptions<TData = Awaited<ReturnType<typeof companyControllerGetOptions>>, TError = unknown>(options: {
+export declare function useCompanyControllerGetOptions<TData = Awaited<ReturnType<typeof companyControllerGetOptions>>, TError = unknown>(params: undefined | CompanyControllerGetOptionsParams, options: {
     query: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerGetOptions>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof companyControllerGetOptions>>, TError, Awaited<ReturnType<typeof companyControllerGetOptions>>>, 'initialData'>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
 };
-export declare function useCompanyControllerGetOptions<TData = Awaited<ReturnType<typeof companyControllerGetOptions>>, TError = unknown>(options?: {
+export declare function useCompanyControllerGetOptions<TData = Awaited<ReturnType<typeof companyControllerGetOptions>>, TError = unknown>(params?: CompanyControllerGetOptionsParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerGetOptions>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof companyControllerGetOptions>>, TError, Awaited<ReturnType<typeof companyControllerGetOptions>>>, 'initialData'>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
 };
-export declare function useCompanyControllerGetOptions<TData = Awaited<ReturnType<typeof companyControllerGetOptions>>, TError = unknown>(options?: {
+export declare function useCompanyControllerGetOptions<TData = Awaited<ReturnType<typeof companyControllerGetOptions>>, TError = unknown>(params?: CompanyControllerGetOptionsParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerGetOptions>>, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
@@ -2178,10 +2237,10 @@ export type companyControllerCheckDuplicatesResponseSuccess = (companyController
     headers: Headers;
 };
 export type companyControllerCheckDuplicatesResponse = (companyControllerCheckDuplicatesResponseSuccess);
-export declare const getCompanyControllerCheckDuplicatesUrl: () => string;
-export declare const companyControllerCheckDuplicates: (options?: RequestInit) => Promise<companyControllerCheckDuplicatesResponse>;
-export declare const getCompanyControllerCheckDuplicatesQueryKey: () => readonly ["/api/v1/companies/duplicate-check"];
-export declare const getCompanyControllerCheckDuplicatesQueryOptions: <TData = Awaited<ReturnType<typeof companyControllerCheckDuplicates>>, TError = unknown>(options?: {
+export declare const getCompanyControllerCheckDuplicatesUrl: (params?: CompanyControllerCheckDuplicatesParams) => string;
+export declare const companyControllerCheckDuplicates: (params?: CompanyControllerCheckDuplicatesParams, options?: RequestInit) => Promise<companyControllerCheckDuplicatesResponse>;
+export declare const getCompanyControllerCheckDuplicatesQueryKey: (params?: CompanyControllerCheckDuplicatesParams) => readonly ["/api/v1/companies/duplicate-check", ...CompanyControllerCheckDuplicatesParams[]];
+export declare const getCompanyControllerCheckDuplicatesQueryOptions: <TData = Awaited<ReturnType<typeof companyControllerCheckDuplicates>>, TError = unknown>(params?: CompanyControllerCheckDuplicatesParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerCheckDuplicates>>, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
 }) => UseQueryOptions<Awaited<ReturnType<typeof companyControllerCheckDuplicates>>, TError, TData> & {
@@ -2189,19 +2248,19 @@ export declare const getCompanyControllerCheckDuplicatesQueryOptions: <TData = A
 };
 export type CompanyControllerCheckDuplicatesQueryResult = NonNullable<Awaited<ReturnType<typeof companyControllerCheckDuplicates>>>;
 export type CompanyControllerCheckDuplicatesQueryError = unknown;
-export declare function useCompanyControllerCheckDuplicates<TData = Awaited<ReturnType<typeof companyControllerCheckDuplicates>>, TError = unknown>(options: {
+export declare function useCompanyControllerCheckDuplicates<TData = Awaited<ReturnType<typeof companyControllerCheckDuplicates>>, TError = unknown>(params: undefined | CompanyControllerCheckDuplicatesParams, options: {
     query: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerCheckDuplicates>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof companyControllerCheckDuplicates>>, TError, Awaited<ReturnType<typeof companyControllerCheckDuplicates>>>, 'initialData'>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
 };
-export declare function useCompanyControllerCheckDuplicates<TData = Awaited<ReturnType<typeof companyControllerCheckDuplicates>>, TError = unknown>(options?: {
+export declare function useCompanyControllerCheckDuplicates<TData = Awaited<ReturnType<typeof companyControllerCheckDuplicates>>, TError = unknown>(params?: CompanyControllerCheckDuplicatesParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerCheckDuplicates>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof companyControllerCheckDuplicates>>, TError, Awaited<ReturnType<typeof companyControllerCheckDuplicates>>>, 'initialData'>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
 };
-export declare function useCompanyControllerCheckDuplicates<TData = Awaited<ReturnType<typeof companyControllerCheckDuplicates>>, TError = unknown>(options?: {
+export declare function useCompanyControllerCheckDuplicates<TData = Awaited<ReturnType<typeof companyControllerCheckDuplicates>>, TError = unknown>(params?: CompanyControllerCheckDuplicatesParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerCheckDuplicates>>, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
@@ -2331,10 +2390,10 @@ export type personControllerLookupResponseSuccess = (personControllerLookupRespo
     headers: Headers;
 };
 export type personControllerLookupResponse = (personControllerLookupResponseSuccess);
-export declare const getPersonControllerLookupUrl: () => string;
-export declare const personControllerLookup: (options?: RequestInit) => Promise<personControllerLookupResponse>;
-export declare const getPersonControllerLookupQueryKey: () => readonly ["/api/v1/persons/lookup"];
-export declare const getPersonControllerLookupQueryOptions: <TData = Awaited<ReturnType<typeof personControllerLookup>>, TError = unknown>(options?: {
+export declare const getPersonControllerLookupUrl: (params?: PersonControllerLookupParams) => string;
+export declare const personControllerLookup: (params?: PersonControllerLookupParams, options?: RequestInit) => Promise<personControllerLookupResponse>;
+export declare const getPersonControllerLookupQueryKey: (params?: PersonControllerLookupParams) => readonly ["/api/v1/persons/lookup", ...PersonControllerLookupParams[]];
+export declare const getPersonControllerLookupQueryOptions: <TData = Awaited<ReturnType<typeof personControllerLookup>>, TError = unknown>(params?: PersonControllerLookupParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof personControllerLookup>>, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
 }) => UseQueryOptions<Awaited<ReturnType<typeof personControllerLookup>>, TError, TData> & {
@@ -2342,19 +2401,19 @@ export declare const getPersonControllerLookupQueryOptions: <TData = Awaited<Ret
 };
 export type PersonControllerLookupQueryResult = NonNullable<Awaited<ReturnType<typeof personControllerLookup>>>;
 export type PersonControllerLookupQueryError = unknown;
-export declare function usePersonControllerLookup<TData = Awaited<ReturnType<typeof personControllerLookup>>, TError = unknown>(options: {
+export declare function usePersonControllerLookup<TData = Awaited<ReturnType<typeof personControllerLookup>>, TError = unknown>(params: undefined | PersonControllerLookupParams, options: {
     query: Partial<UseQueryOptions<Awaited<ReturnType<typeof personControllerLookup>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof personControllerLookup>>, TError, Awaited<ReturnType<typeof personControllerLookup>>>, 'initialData'>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
 };
-export declare function usePersonControllerLookup<TData = Awaited<ReturnType<typeof personControllerLookup>>, TError = unknown>(options?: {
+export declare function usePersonControllerLookup<TData = Awaited<ReturnType<typeof personControllerLookup>>, TError = unknown>(params?: PersonControllerLookupParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof personControllerLookup>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof personControllerLookup>>, TError, Awaited<ReturnType<typeof personControllerLookup>>>, 'initialData'>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
 };
-export declare function usePersonControllerLookup<TData = Awaited<ReturnType<typeof personControllerLookup>>, TError = unknown>(options?: {
+export declare function usePersonControllerLookup<TData = Awaited<ReturnType<typeof personControllerLookup>>, TError = unknown>(params?: PersonControllerLookupParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof personControllerLookup>>, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
@@ -2786,10 +2845,10 @@ export type attendanceControllerGetTeamResponseSuccess = (attendanceControllerGe
     headers: Headers;
 };
 export type attendanceControllerGetTeamResponse = (attendanceControllerGetTeamResponseSuccess);
-export declare const getAttendanceControllerGetTeamUrl: () => string;
-export declare const attendanceControllerGetTeam: (options?: RequestInit) => Promise<attendanceControllerGetTeamResponse>;
-export declare const getAttendanceControllerGetTeamQueryKey: () => readonly ["/api/v1/attendance/team"];
-export declare const getAttendanceControllerGetTeamQueryOptions: <TData = Awaited<ReturnType<typeof attendanceControllerGetTeam>>, TError = unknown>(options?: {
+export declare const getAttendanceControllerGetTeamUrl: (params?: AttendanceControllerGetTeamParams) => string;
+export declare const attendanceControllerGetTeam: (params?: AttendanceControllerGetTeamParams, options?: RequestInit) => Promise<attendanceControllerGetTeamResponse>;
+export declare const getAttendanceControllerGetTeamQueryKey: (params?: AttendanceControllerGetTeamParams) => readonly ["/api/v1/attendance/team", ...AttendanceControllerGetTeamParams[]];
+export declare const getAttendanceControllerGetTeamQueryOptions: <TData = Awaited<ReturnType<typeof attendanceControllerGetTeam>>, TError = unknown>(params?: AttendanceControllerGetTeamParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof attendanceControllerGetTeam>>, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
 }) => UseQueryOptions<Awaited<ReturnType<typeof attendanceControllerGetTeam>>, TError, TData> & {
@@ -2797,19 +2856,19 @@ export declare const getAttendanceControllerGetTeamQueryOptions: <TData = Awaite
 };
 export type AttendanceControllerGetTeamQueryResult = NonNullable<Awaited<ReturnType<typeof attendanceControllerGetTeam>>>;
 export type AttendanceControllerGetTeamQueryError = unknown;
-export declare function useAttendanceControllerGetTeam<TData = Awaited<ReturnType<typeof attendanceControllerGetTeam>>, TError = unknown>(options: {
+export declare function useAttendanceControllerGetTeam<TData = Awaited<ReturnType<typeof attendanceControllerGetTeam>>, TError = unknown>(params: undefined | AttendanceControllerGetTeamParams, options: {
     query: Partial<UseQueryOptions<Awaited<ReturnType<typeof attendanceControllerGetTeam>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof attendanceControllerGetTeam>>, TError, Awaited<ReturnType<typeof attendanceControllerGetTeam>>>, 'initialData'>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
 };
-export declare function useAttendanceControllerGetTeam<TData = Awaited<ReturnType<typeof attendanceControllerGetTeam>>, TError = unknown>(options?: {
+export declare function useAttendanceControllerGetTeam<TData = Awaited<ReturnType<typeof attendanceControllerGetTeam>>, TError = unknown>(params?: AttendanceControllerGetTeamParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof attendanceControllerGetTeam>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof attendanceControllerGetTeam>>, TError, Awaited<ReturnType<typeof attendanceControllerGetTeam>>>, 'initialData'>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
 };
-export declare function useAttendanceControllerGetTeam<TData = Awaited<ReturnType<typeof attendanceControllerGetTeam>>, TError = unknown>(options?: {
+export declare function useAttendanceControllerGetTeam<TData = Awaited<ReturnType<typeof attendanceControllerGetTeam>>, TError = unknown>(params?: AttendanceControllerGetTeamParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof attendanceControllerGetTeam>>, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
@@ -2826,10 +2885,10 @@ export type attendanceControllerGetReportResponseSuccess = (attendanceController
     headers: Headers;
 };
 export type attendanceControllerGetReportResponse = (attendanceControllerGetReportResponseSuccess);
-export declare const getAttendanceControllerGetReportUrl: () => string;
-export declare const attendanceControllerGetReport: (options?: RequestInit) => Promise<attendanceControllerGetReportResponse>;
-export declare const getAttendanceControllerGetReportQueryKey: () => readonly ["/api/v1/attendance/report/csv"];
-export declare const getAttendanceControllerGetReportQueryOptions: <TData = Awaited<ReturnType<typeof attendanceControllerGetReport>>, TError = unknown>(options?: {
+export declare const getAttendanceControllerGetReportUrl: (params: AttendanceControllerGetReportParams) => string;
+export declare const attendanceControllerGetReport: (params: AttendanceControllerGetReportParams, options?: RequestInit) => Promise<attendanceControllerGetReportResponse>;
+export declare const getAttendanceControllerGetReportQueryKey: (params?: AttendanceControllerGetReportParams) => readonly ["/api/v1/attendance/report/csv", ...AttendanceControllerGetReportParams[]];
+export declare const getAttendanceControllerGetReportQueryOptions: <TData = Awaited<ReturnType<typeof attendanceControllerGetReport>>, TError = unknown>(params: AttendanceControllerGetReportParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof attendanceControllerGetReport>>, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
 }) => UseQueryOptions<Awaited<ReturnType<typeof attendanceControllerGetReport>>, TError, TData> & {
@@ -2837,22 +2896,820 @@ export declare const getAttendanceControllerGetReportQueryOptions: <TData = Awai
 };
 export type AttendanceControllerGetReportQueryResult = NonNullable<Awaited<ReturnType<typeof attendanceControllerGetReport>>>;
 export type AttendanceControllerGetReportQueryError = unknown;
-export declare function useAttendanceControllerGetReport<TData = Awaited<ReturnType<typeof attendanceControllerGetReport>>, TError = unknown>(options: {
+export declare function useAttendanceControllerGetReport<TData = Awaited<ReturnType<typeof attendanceControllerGetReport>>, TError = unknown>(params: AttendanceControllerGetReportParams, options: {
     query: Partial<UseQueryOptions<Awaited<ReturnType<typeof attendanceControllerGetReport>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof attendanceControllerGetReport>>, TError, Awaited<ReturnType<typeof attendanceControllerGetReport>>>, 'initialData'>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
 };
-export declare function useAttendanceControllerGetReport<TData = Awaited<ReturnType<typeof attendanceControllerGetReport>>, TError = unknown>(options?: {
+export declare function useAttendanceControllerGetReport<TData = Awaited<ReturnType<typeof attendanceControllerGetReport>>, TError = unknown>(params: AttendanceControllerGetReportParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof attendanceControllerGetReport>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof attendanceControllerGetReport>>, TError, Awaited<ReturnType<typeof attendanceControllerGetReport>>>, 'initialData'>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
 };
-export declare function useAttendanceControllerGetReport<TData = Awaited<ReturnType<typeof attendanceControllerGetReport>>, TError = unknown>(options?: {
+export declare function useAttendanceControllerGetReport<TData = Awaited<ReturnType<typeof attendanceControllerGetReport>>, TError = unknown>(params: AttendanceControllerGetReportParams, options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof attendanceControllerGetReport>>, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
 }, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
 };
+/**
+ * @summary Get organizational attendance settings
+ */
+export type attendanceControllerGetSettingsResponse200 = {
+    data: void;
+    status: 200;
+};
+export type attendanceControllerGetSettingsResponseSuccess = (attendanceControllerGetSettingsResponse200) & {
+    headers: Headers;
+};
+export type attendanceControllerGetSettingsResponse = (attendanceControllerGetSettingsResponseSuccess);
+export declare const getAttendanceControllerGetSettingsUrl: () => string;
+export declare const attendanceControllerGetSettings: (options?: RequestInit) => Promise<attendanceControllerGetSettingsResponse>;
+export declare const getAttendanceControllerGetSettingsQueryKey: () => readonly ["/api/v1/attendance/settings"];
+export declare const getAttendanceControllerGetSettingsQueryOptions: <TData = Awaited<ReturnType<typeof attendanceControllerGetSettings>>, TError = unknown>(options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof attendanceControllerGetSettings>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseQueryOptions<Awaited<ReturnType<typeof attendanceControllerGetSettings>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export type AttendanceControllerGetSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof attendanceControllerGetSettings>>>;
+export type AttendanceControllerGetSettingsQueryError = unknown;
+export declare function useAttendanceControllerGetSettings<TData = Awaited<ReturnType<typeof attendanceControllerGetSettings>>, TError = unknown>(options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof attendanceControllerGetSettings>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof attendanceControllerGetSettings>>, TError, Awaited<ReturnType<typeof attendanceControllerGetSettings>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useAttendanceControllerGetSettings<TData = Awaited<ReturnType<typeof attendanceControllerGetSettings>>, TError = unknown>(options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof attendanceControllerGetSettings>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof attendanceControllerGetSettings>>, TError, Awaited<ReturnType<typeof attendanceControllerGetSettings>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useAttendanceControllerGetSettings<TData = Awaited<ReturnType<typeof attendanceControllerGetSettings>>, TError = unknown>(options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof attendanceControllerGetSettings>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Update working and work off days
+ */
+export type attendanceControllerUpdateWorkingDaysResponse200 = {
+    data: void;
+    status: 200;
+};
+export type attendanceControllerUpdateWorkingDaysResponseSuccess = (attendanceControllerUpdateWorkingDaysResponse200) & {
+    headers: Headers;
+};
+export type attendanceControllerUpdateWorkingDaysResponse = (attendanceControllerUpdateWorkingDaysResponseSuccess);
+export declare const getAttendanceControllerUpdateWorkingDaysUrl: () => string;
+export declare const attendanceControllerUpdateWorkingDays: (options?: RequestInit) => Promise<attendanceControllerUpdateWorkingDaysResponse>;
+export declare const getAttendanceControllerUpdateWorkingDaysMutationOptions: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerUpdateWorkingDays>>, TError, void, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerUpdateWorkingDays>>, TError, void, TContext>;
+export type AttendanceControllerUpdateWorkingDaysMutationResult = NonNullable<Awaited<ReturnType<typeof attendanceControllerUpdateWorkingDays>>>;
+export type AttendanceControllerUpdateWorkingDaysMutationError = unknown;
+/**
+* @summary Update working and work off days
+*/
+export declare const useAttendanceControllerUpdateWorkingDays: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerUpdateWorkingDays>>, TError, void, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient) => UseMutationResult<Awaited<ReturnType<typeof attendanceControllerUpdateWorkingDays>>, TError, void, TContext>;
+/**
+ * @summary Add a new company holiday
+ */
+export type attendanceControllerAddHolidayResponse201 = {
+    data: void;
+    status: 201;
+};
+export type attendanceControllerAddHolidayResponseSuccess = (attendanceControllerAddHolidayResponse201) & {
+    headers: Headers;
+};
+export type attendanceControllerAddHolidayResponse = (attendanceControllerAddHolidayResponseSuccess);
+export declare const getAttendanceControllerAddHolidayUrl: () => string;
+export declare const attendanceControllerAddHoliday: (options?: RequestInit) => Promise<attendanceControllerAddHolidayResponse>;
+export declare const getAttendanceControllerAddHolidayMutationOptions: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerAddHoliday>>, TError, void, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerAddHoliday>>, TError, void, TContext>;
+export type AttendanceControllerAddHolidayMutationResult = NonNullable<Awaited<ReturnType<typeof attendanceControllerAddHoliday>>>;
+export type AttendanceControllerAddHolidayMutationError = unknown;
+/**
+* @summary Add a new company holiday
+*/
+export declare const useAttendanceControllerAddHoliday: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerAddHoliday>>, TError, void, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient) => UseMutationResult<Awaited<ReturnType<typeof attendanceControllerAddHoliday>>, TError, void, TContext>;
+/**
+ * @summary Delete a company holiday
+ */
+export type attendanceControllerDeleteHolidayResponse200 = {
+    data: void;
+    status: 200;
+};
+export type attendanceControllerDeleteHolidayResponseSuccess = (attendanceControllerDeleteHolidayResponse200) & {
+    headers: Headers;
+};
+export type attendanceControllerDeleteHolidayResponse = (attendanceControllerDeleteHolidayResponseSuccess);
+export declare const getAttendanceControllerDeleteHolidayUrl: (id: string) => string;
+export declare const attendanceControllerDeleteHoliday: (id: string, options?: RequestInit) => Promise<attendanceControllerDeleteHolidayResponse>;
+export declare const getAttendanceControllerDeleteHolidayMutationOptions: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerDeleteHoliday>>, TError, {
+        id: string;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerDeleteHoliday>>, TError, {
+    id: string;
+}, TContext>;
+export type AttendanceControllerDeleteHolidayMutationResult = NonNullable<Awaited<ReturnType<typeof attendanceControllerDeleteHoliday>>>;
+export type AttendanceControllerDeleteHolidayMutationError = unknown;
+/**
+* @summary Delete a company holiday
+*/
+export declare const useAttendanceControllerDeleteHoliday: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerDeleteHoliday>>, TError, {
+        id: string;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient) => UseMutationResult<Awaited<ReturnType<typeof attendanceControllerDeleteHoliday>>, TError, {
+    id: string;
+}, TContext>;
+/**
+ * @summary Update default full day and half day working hours
+ */
+export type attendanceControllerUpdateDefaultHoursResponse200 = {
+    data: void;
+    status: 200;
+};
+export type attendanceControllerUpdateDefaultHoursResponseSuccess = (attendanceControllerUpdateDefaultHoursResponse200) & {
+    headers: Headers;
+};
+export type attendanceControllerUpdateDefaultHoursResponse = (attendanceControllerUpdateDefaultHoursResponseSuccess);
+export declare const getAttendanceControllerUpdateDefaultHoursUrl: () => string;
+export declare const attendanceControllerUpdateDefaultHours: (options?: RequestInit) => Promise<attendanceControllerUpdateDefaultHoursResponse>;
+export declare const getAttendanceControllerUpdateDefaultHoursMutationOptions: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerUpdateDefaultHours>>, TError, void, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerUpdateDefaultHours>>, TError, void, TContext>;
+export type AttendanceControllerUpdateDefaultHoursMutationResult = NonNullable<Awaited<ReturnType<typeof attendanceControllerUpdateDefaultHours>>>;
+export type AttendanceControllerUpdateDefaultHoursMutationError = unknown;
+/**
+* @summary Update default full day and half day working hours
+*/
+export declare const useAttendanceControllerUpdateDefaultHours: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerUpdateDefaultHours>>, TError, void, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient) => UseMutationResult<Awaited<ReturnType<typeof attendanceControllerUpdateDefaultHours>>, TError, void, TContext>;
+/**
+ * @summary Update or reset employee-specific working hours
+ */
+export type attendanceControllerUpdateEmployeeHoursResponse200 = {
+    data: void;
+    status: 200;
+};
+export type attendanceControllerUpdateEmployeeHoursResponseSuccess = (attendanceControllerUpdateEmployeeHoursResponse200) & {
+    headers: Headers;
+};
+export type attendanceControllerUpdateEmployeeHoursResponse = (attendanceControllerUpdateEmployeeHoursResponseSuccess);
+export declare const getAttendanceControllerUpdateEmployeeHoursUrl: (id: number) => string;
+export declare const attendanceControllerUpdateEmployeeHours: (id: number, options?: RequestInit) => Promise<attendanceControllerUpdateEmployeeHoursResponse>;
+export declare const getAttendanceControllerUpdateEmployeeHoursMutationOptions: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerUpdateEmployeeHours>>, TError, {
+        id: number;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerUpdateEmployeeHours>>, TError, {
+    id: number;
+}, TContext>;
+export type AttendanceControllerUpdateEmployeeHoursMutationResult = NonNullable<Awaited<ReturnType<typeof attendanceControllerUpdateEmployeeHours>>>;
+export type AttendanceControllerUpdateEmployeeHoursMutationError = unknown;
+/**
+* @summary Update or reset employee-specific working hours
+*/
+export declare const useAttendanceControllerUpdateEmployeeHours: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerUpdateEmployeeHours>>, TError, {
+        id: number;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient) => UseMutationResult<Awaited<ReturnType<typeof attendanceControllerUpdateEmployeeHours>>, TError, {
+    id: number;
+}, TContext>;
+/**
+ * @summary Get current user notifications
+ */
+export type notificationsControllerGetNotificationsResponse200 = {
+    data: NotificationResponseDto[];
+    status: 200;
+};
+export type notificationsControllerGetNotificationsResponseSuccess = (notificationsControllerGetNotificationsResponse200) & {
+    headers: Headers;
+};
+export type notificationsControllerGetNotificationsResponse = (notificationsControllerGetNotificationsResponseSuccess);
+export declare const getNotificationsControllerGetNotificationsUrl: (params?: NotificationsControllerGetNotificationsParams) => string;
+export declare const notificationsControllerGetNotifications: (params?: NotificationsControllerGetNotificationsParams, options?: RequestInit) => Promise<notificationsControllerGetNotificationsResponse>;
+export declare const getNotificationsControllerGetNotificationsQueryKey: (params?: NotificationsControllerGetNotificationsParams) => readonly ["/api/v1/notifications", ...NotificationsControllerGetNotificationsParams[]];
+export declare const getNotificationsControllerGetNotificationsQueryOptions: <TData = Awaited<ReturnType<typeof notificationsControllerGetNotifications>>, TError = unknown>(params?: NotificationsControllerGetNotificationsParams, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof notificationsControllerGetNotifications>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseQueryOptions<Awaited<ReturnType<typeof notificationsControllerGetNotifications>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export type NotificationsControllerGetNotificationsQueryResult = NonNullable<Awaited<ReturnType<typeof notificationsControllerGetNotifications>>>;
+export type NotificationsControllerGetNotificationsQueryError = unknown;
+export declare function useNotificationsControllerGetNotifications<TData = Awaited<ReturnType<typeof notificationsControllerGetNotifications>>, TError = unknown>(params: undefined | NotificationsControllerGetNotificationsParams, options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof notificationsControllerGetNotifications>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof notificationsControllerGetNotifications>>, TError, Awaited<ReturnType<typeof notificationsControllerGetNotifications>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useNotificationsControllerGetNotifications<TData = Awaited<ReturnType<typeof notificationsControllerGetNotifications>>, TError = unknown>(params?: NotificationsControllerGetNotificationsParams, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof notificationsControllerGetNotifications>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof notificationsControllerGetNotifications>>, TError, Awaited<ReturnType<typeof notificationsControllerGetNotifications>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useNotificationsControllerGetNotifications<TData = Awaited<ReturnType<typeof notificationsControllerGetNotifications>>, TError = unknown>(params?: NotificationsControllerGetNotificationsParams, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof notificationsControllerGetNotifications>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Get unread notification count
+ */
+export type notificationsControllerGetUnreadCountResponse200 = {
+    data: UnreadCountResponseDto;
+    status: 200;
+};
+export type notificationsControllerGetUnreadCountResponseSuccess = (notificationsControllerGetUnreadCountResponse200) & {
+    headers: Headers;
+};
+export type notificationsControllerGetUnreadCountResponse = (notificationsControllerGetUnreadCountResponseSuccess);
+export declare const getNotificationsControllerGetUnreadCountUrl: () => string;
+export declare const notificationsControllerGetUnreadCount: (options?: RequestInit) => Promise<notificationsControllerGetUnreadCountResponse>;
+export declare const getNotificationsControllerGetUnreadCountQueryKey: () => readonly ["/api/v1/notifications/unread-count"];
+export declare const getNotificationsControllerGetUnreadCountQueryOptions: <TData = Awaited<ReturnType<typeof notificationsControllerGetUnreadCount>>, TError = unknown>(options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof notificationsControllerGetUnreadCount>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseQueryOptions<Awaited<ReturnType<typeof notificationsControllerGetUnreadCount>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export type NotificationsControllerGetUnreadCountQueryResult = NonNullable<Awaited<ReturnType<typeof notificationsControllerGetUnreadCount>>>;
+export type NotificationsControllerGetUnreadCountQueryError = unknown;
+export declare function useNotificationsControllerGetUnreadCount<TData = Awaited<ReturnType<typeof notificationsControllerGetUnreadCount>>, TError = unknown>(options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof notificationsControllerGetUnreadCount>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof notificationsControllerGetUnreadCount>>, TError, Awaited<ReturnType<typeof notificationsControllerGetUnreadCount>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useNotificationsControllerGetUnreadCount<TData = Awaited<ReturnType<typeof notificationsControllerGetUnreadCount>>, TError = unknown>(options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof notificationsControllerGetUnreadCount>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof notificationsControllerGetUnreadCount>>, TError, Awaited<ReturnType<typeof notificationsControllerGetUnreadCount>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useNotificationsControllerGetUnreadCount<TData = Awaited<ReturnType<typeof notificationsControllerGetUnreadCount>>, TError = unknown>(options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof notificationsControllerGetUnreadCount>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Mark a notification as read
+ */
+export type notificationsControllerMarkReadResponse200 = {
+    data: MarkReadResponseDto;
+    status: 200;
+};
+export type notificationsControllerMarkReadResponseSuccess = (notificationsControllerMarkReadResponse200) & {
+    headers: Headers;
+};
+export type notificationsControllerMarkReadResponse = (notificationsControllerMarkReadResponseSuccess);
+export declare const getNotificationsControllerMarkReadUrl: (id: number) => string;
+export declare const notificationsControllerMarkRead: (id: number, options?: RequestInit) => Promise<notificationsControllerMarkReadResponse>;
+export declare const getNotificationsControllerMarkReadMutationOptions: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof notificationsControllerMarkRead>>, TError, {
+        id: number;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof notificationsControllerMarkRead>>, TError, {
+    id: number;
+}, TContext>;
+export type NotificationsControllerMarkReadMutationResult = NonNullable<Awaited<ReturnType<typeof notificationsControllerMarkRead>>>;
+export type NotificationsControllerMarkReadMutationError = unknown;
+/**
+* @summary Mark a notification as read
+*/
+export declare const useNotificationsControllerMarkRead: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof notificationsControllerMarkRead>>, TError, {
+        id: number;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient) => UseMutationResult<Awaited<ReturnType<typeof notificationsControllerMarkRead>>, TError, {
+    id: number;
+}, TContext>;
+/**
+ * @summary Mark all notifications as read
+ */
+export type notificationsControllerMarkAllReadResponse200 = {
+    data: MarkAllReadResponseDto;
+    status: 200;
+};
+export type notificationsControllerMarkAllReadResponseSuccess = (notificationsControllerMarkAllReadResponse200) & {
+    headers: Headers;
+};
+export type notificationsControllerMarkAllReadResponse = (notificationsControllerMarkAllReadResponseSuccess);
+export declare const getNotificationsControllerMarkAllReadUrl: () => string;
+export declare const notificationsControllerMarkAllRead: (options?: RequestInit) => Promise<notificationsControllerMarkAllReadResponse>;
+export declare const getNotificationsControllerMarkAllReadMutationOptions: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof notificationsControllerMarkAllRead>>, TError, void, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof notificationsControllerMarkAllRead>>, TError, void, TContext>;
+export type NotificationsControllerMarkAllReadMutationResult = NonNullable<Awaited<ReturnType<typeof notificationsControllerMarkAllRead>>>;
+export type NotificationsControllerMarkAllReadMutationError = unknown;
+/**
+* @summary Mark all notifications as read
+*/
+export declare const useNotificationsControllerMarkAllRead: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof notificationsControllerMarkAllRead>>, TError, void, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient) => UseMutationResult<Awaited<ReturnType<typeof notificationsControllerMarkAllRead>>, TError, void, TContext>;
+/**
+ * @summary Get admin task kanban board
+ */
+export type tasksControllerGetBoardResponse200 = {
+    data: TaskBoardResultDto;
+    status: 200;
+};
+export type tasksControllerGetBoardResponseSuccess = (tasksControllerGetBoardResponse200) & {
+    headers: Headers;
+};
+export type tasksControllerGetBoardResponse = (tasksControllerGetBoardResponseSuccess);
+export declare const getTasksControllerGetBoardUrl: (params?: TasksControllerGetBoardParams) => string;
+export declare const tasksControllerGetBoard: (params?: TasksControllerGetBoardParams, options?: RequestInit) => Promise<tasksControllerGetBoardResponse>;
+export declare const getTasksControllerGetBoardQueryKey: (params?: TasksControllerGetBoardParams) => readonly ["/api/v1/admin/tasks/board", ...TasksControllerGetBoardParams[]];
+export declare const getTasksControllerGetBoardQueryOptions: <TData = Awaited<ReturnType<typeof tasksControllerGetBoard>>, TError = unknown>(params?: TasksControllerGetBoardParams, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetBoard>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetBoard>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export type TasksControllerGetBoardQueryResult = NonNullable<Awaited<ReturnType<typeof tasksControllerGetBoard>>>;
+export type TasksControllerGetBoardQueryError = unknown;
+export declare function useTasksControllerGetBoard<TData = Awaited<ReturnType<typeof tasksControllerGetBoard>>, TError = unknown>(params: undefined | TasksControllerGetBoardParams, options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetBoard>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof tasksControllerGetBoard>>, TError, Awaited<ReturnType<typeof tasksControllerGetBoard>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useTasksControllerGetBoard<TData = Awaited<ReturnType<typeof tasksControllerGetBoard>>, TError = unknown>(params?: TasksControllerGetBoardParams, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetBoard>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof tasksControllerGetBoard>>, TError, Awaited<ReturnType<typeof tasksControllerGetBoard>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useTasksControllerGetBoard<TData = Awaited<ReturnType<typeof tasksControllerGetBoard>>, TError = unknown>(params?: TasksControllerGetBoardParams, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetBoard>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Get admin task summary metrics
+ */
+export type tasksControllerGetSummaryResponse200 = {
+    data: TaskSummaryDto;
+    status: 200;
+};
+export type tasksControllerGetSummaryResponseSuccess = (tasksControllerGetSummaryResponse200) & {
+    headers: Headers;
+};
+export type tasksControllerGetSummaryResponse = (tasksControllerGetSummaryResponseSuccess);
+export declare const getTasksControllerGetSummaryUrl: () => string;
+export declare const tasksControllerGetSummary: (options?: RequestInit) => Promise<tasksControllerGetSummaryResponse>;
+export declare const getTasksControllerGetSummaryQueryKey: () => readonly ["/api/v1/admin/tasks/summary"];
+export declare const getTasksControllerGetSummaryQueryOptions: <TData = Awaited<ReturnType<typeof tasksControllerGetSummary>>, TError = unknown>(options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetSummary>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetSummary>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export type TasksControllerGetSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof tasksControllerGetSummary>>>;
+export type TasksControllerGetSummaryQueryError = unknown;
+export declare function useTasksControllerGetSummary<TData = Awaited<ReturnType<typeof tasksControllerGetSummary>>, TError = unknown>(options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetSummary>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof tasksControllerGetSummary>>, TError, Awaited<ReturnType<typeof tasksControllerGetSummary>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useTasksControllerGetSummary<TData = Awaited<ReturnType<typeof tasksControllerGetSummary>>, TError = unknown>(options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetSummary>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof tasksControllerGetSummary>>, TError, Awaited<ReturnType<typeof tasksControllerGetSummary>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useTasksControllerGetSummary<TData = Awaited<ReturnType<typeof tasksControllerGetSummary>>, TError = unknown>(options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetSummary>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Get count of tasks waiting in review
+ */
+export type tasksControllerGetRequestsCountResponse200 = {
+    data: PendingReviewCountDto;
+    status: 200;
+};
+export type tasksControllerGetRequestsCountResponseSuccess = (tasksControllerGetRequestsCountResponse200) & {
+    headers: Headers;
+};
+export type tasksControllerGetRequestsCountResponse = (tasksControllerGetRequestsCountResponseSuccess);
+export declare const getTasksControllerGetRequestsCountUrl: () => string;
+export declare const tasksControllerGetRequestsCount: (options?: RequestInit) => Promise<tasksControllerGetRequestsCountResponse>;
+export declare const getTasksControllerGetRequestsCountQueryKey: () => readonly ["/api/v1/admin/tasks/requests/count"];
+export declare const getTasksControllerGetRequestsCountQueryOptions: <TData = Awaited<ReturnType<typeof tasksControllerGetRequestsCount>>, TError = unknown>(options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetRequestsCount>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetRequestsCount>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export type TasksControllerGetRequestsCountQueryResult = NonNullable<Awaited<ReturnType<typeof tasksControllerGetRequestsCount>>>;
+export type TasksControllerGetRequestsCountQueryError = unknown;
+export declare function useTasksControllerGetRequestsCount<TData = Awaited<ReturnType<typeof tasksControllerGetRequestsCount>>, TError = unknown>(options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetRequestsCount>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof tasksControllerGetRequestsCount>>, TError, Awaited<ReturnType<typeof tasksControllerGetRequestsCount>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useTasksControllerGetRequestsCount<TData = Awaited<ReturnType<typeof tasksControllerGetRequestsCount>>, TError = unknown>(options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetRequestsCount>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof tasksControllerGetRequestsCount>>, TError, Awaited<ReturnType<typeof tasksControllerGetRequestsCount>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useTasksControllerGetRequestsCount<TData = Awaited<ReturnType<typeof tasksControllerGetRequestsCount>>, TError = unknown>(options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetRequestsCount>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Get list of active employees assignable to tasks
+ */
+export type tasksControllerGetAssignableEmployeesResponse200 = {
+    data: AssignableEmployeeDto[];
+    status: 200;
+};
+export type tasksControllerGetAssignableEmployeesResponseSuccess = (tasksControllerGetAssignableEmployeesResponse200) & {
+    headers: Headers;
+};
+export type tasksControllerGetAssignableEmployeesResponse = (tasksControllerGetAssignableEmployeesResponseSuccess);
+export declare const getTasksControllerGetAssignableEmployeesUrl: () => string;
+export declare const tasksControllerGetAssignableEmployees: (options?: RequestInit) => Promise<tasksControllerGetAssignableEmployeesResponse>;
+export declare const getTasksControllerGetAssignableEmployeesQueryKey: () => readonly ["/api/v1/admin/tasks/assignable-employees"];
+export declare const getTasksControllerGetAssignableEmployeesQueryOptions: <TData = Awaited<ReturnType<typeof tasksControllerGetAssignableEmployees>>, TError = unknown>(options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetAssignableEmployees>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetAssignableEmployees>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export type TasksControllerGetAssignableEmployeesQueryResult = NonNullable<Awaited<ReturnType<typeof tasksControllerGetAssignableEmployees>>>;
+export type TasksControllerGetAssignableEmployeesQueryError = unknown;
+export declare function useTasksControllerGetAssignableEmployees<TData = Awaited<ReturnType<typeof tasksControllerGetAssignableEmployees>>, TError = unknown>(options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetAssignableEmployees>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof tasksControllerGetAssignableEmployees>>, TError, Awaited<ReturnType<typeof tasksControllerGetAssignableEmployees>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useTasksControllerGetAssignableEmployees<TData = Awaited<ReturnType<typeof tasksControllerGetAssignableEmployees>>, TError = unknown>(options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetAssignableEmployees>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof tasksControllerGetAssignableEmployees>>, TError, Awaited<ReturnType<typeof tasksControllerGetAssignableEmployees>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useTasksControllerGetAssignableEmployees<TData = Awaited<ReturnType<typeof tasksControllerGetAssignableEmployees>>, TError = unknown>(options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetAssignableEmployees>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Create a new task with assignees
+ */
+export type tasksControllerCreateTaskResponse201 = {
+    data: TaskDetailDto;
+    status: 201;
+};
+export type tasksControllerCreateTaskResponseSuccess = (tasksControllerCreateTaskResponse201) & {
+    headers: Headers;
+};
+export type tasksControllerCreateTaskResponse = (tasksControllerCreateTaskResponseSuccess);
+export declare const getTasksControllerCreateTaskUrl: () => string;
+export declare const tasksControllerCreateTask: (createTaskDto: CreateTaskDto, options?: RequestInit) => Promise<tasksControllerCreateTaskResponse>;
+export declare const getTasksControllerCreateTaskMutationOptions: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof tasksControllerCreateTask>>, TError, {
+        data: CreateTaskDto;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof tasksControllerCreateTask>>, TError, {
+    data: CreateTaskDto;
+}, TContext>;
+export type TasksControllerCreateTaskMutationResult = NonNullable<Awaited<ReturnType<typeof tasksControllerCreateTask>>>;
+export type TasksControllerCreateTaskMutationBody = CreateTaskDto;
+export type TasksControllerCreateTaskMutationError = unknown;
+/**
+* @summary Create a new task with assignees
+*/
+export declare const useTasksControllerCreateTask: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof tasksControllerCreateTask>>, TError, {
+        data: CreateTaskDto;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient) => UseMutationResult<Awaited<ReturnType<typeof tasksControllerCreateTask>>, TError, {
+    data: CreateTaskDto;
+}, TContext>;
+/**
+ * @summary Get task details by ID with history
+ */
+export type tasksControllerGetTaskDetailResponse200 = {
+    data: TaskDetailDto;
+    status: 200;
+};
+export type tasksControllerGetTaskDetailResponseSuccess = (tasksControllerGetTaskDetailResponse200) & {
+    headers: Headers;
+};
+export type tasksControllerGetTaskDetailResponse = (tasksControllerGetTaskDetailResponseSuccess);
+export declare const getTasksControllerGetTaskDetailUrl: (id: number) => string;
+export declare const tasksControllerGetTaskDetail: (id: number, options?: RequestInit) => Promise<tasksControllerGetTaskDetailResponse>;
+export declare const getTasksControllerGetTaskDetailQueryKey: (id?: number) => readonly ["/api/v1/admin/tasks/undefined" | `/api/v1/admin/tasks/${number}`];
+export declare const getTasksControllerGetTaskDetailQueryOptions: <TData = Awaited<ReturnType<typeof tasksControllerGetTaskDetail>>, TError = unknown>(id: number, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetTaskDetail>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetTaskDetail>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export type TasksControllerGetTaskDetailQueryResult = NonNullable<Awaited<ReturnType<typeof tasksControllerGetTaskDetail>>>;
+export type TasksControllerGetTaskDetailQueryError = unknown;
+export declare function useTasksControllerGetTaskDetail<TData = Awaited<ReturnType<typeof tasksControllerGetTaskDetail>>, TError = unknown>(id: number, options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetTaskDetail>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof tasksControllerGetTaskDetail>>, TError, Awaited<ReturnType<typeof tasksControllerGetTaskDetail>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useTasksControllerGetTaskDetail<TData = Awaited<ReturnType<typeof tasksControllerGetTaskDetail>>, TError = unknown>(id: number, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetTaskDetail>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof tasksControllerGetTaskDetail>>, TError, Awaited<ReturnType<typeof tasksControllerGetTaskDetail>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useTasksControllerGetTaskDetail<TData = Awaited<ReturnType<typeof tasksControllerGetTaskDetail>>, TError = unknown>(id: number, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetTaskDetail>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Update task details or assignees
+ */
+export type tasksControllerUpdateTaskResponse200 = {
+    data: TaskDetailDto;
+    status: 200;
+};
+export type tasksControllerUpdateTaskResponseSuccess = (tasksControllerUpdateTaskResponse200) & {
+    headers: Headers;
+};
+export type tasksControllerUpdateTaskResponse = (tasksControllerUpdateTaskResponseSuccess);
+export declare const getTasksControllerUpdateTaskUrl: (id: number) => string;
+export declare const tasksControllerUpdateTask: (id: number, updateTaskDto: UpdateTaskDto, options?: RequestInit) => Promise<tasksControllerUpdateTaskResponse>;
+export declare const getTasksControllerUpdateTaskMutationOptions: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof tasksControllerUpdateTask>>, TError, {
+        id: number;
+        data: UpdateTaskDto;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof tasksControllerUpdateTask>>, TError, {
+    id: number;
+    data: UpdateTaskDto;
+}, TContext>;
+export type TasksControllerUpdateTaskMutationResult = NonNullable<Awaited<ReturnType<typeof tasksControllerUpdateTask>>>;
+export type TasksControllerUpdateTaskMutationBody = UpdateTaskDto;
+export type TasksControllerUpdateTaskMutationError = unknown;
+/**
+* @summary Update task details or assignees
+*/
+export declare const useTasksControllerUpdateTask: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof tasksControllerUpdateTask>>, TError, {
+        id: number;
+        data: UpdateTaskDto;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient) => UseMutationResult<Awaited<ReturnType<typeof tasksControllerUpdateTask>>, TError, {
+    id: number;
+    data: UpdateTaskDto;
+}, TContext>;
+/**
+ * @summary Move task stage (admin)
+ */
+export type tasksControllerMoveStageResponse200 = {
+    data: TaskDetailDto;
+    status: 200;
+};
+export type tasksControllerMoveStageResponseSuccess = (tasksControllerMoveStageResponse200) & {
+    headers: Headers;
+};
+export type tasksControllerMoveStageResponse = (tasksControllerMoveStageResponseSuccess);
+export declare const getTasksControllerMoveStageUrl: (id: number) => string;
+export declare const tasksControllerMoveStage: (id: number, moveTaskStageDto: MoveTaskStageDto, options?: RequestInit) => Promise<tasksControllerMoveStageResponse>;
+export declare const getTasksControllerMoveStageMutationOptions: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof tasksControllerMoveStage>>, TError, {
+        id: number;
+        data: MoveTaskStageDto;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof tasksControllerMoveStage>>, TError, {
+    id: number;
+    data: MoveTaskStageDto;
+}, TContext>;
+export type TasksControllerMoveStageMutationResult = NonNullable<Awaited<ReturnType<typeof tasksControllerMoveStage>>>;
+export type TasksControllerMoveStageMutationBody = MoveTaskStageDto;
+export type TasksControllerMoveStageMutationError = unknown;
+/**
+* @summary Move task stage (admin)
+*/
+export declare const useTasksControllerMoveStage: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof tasksControllerMoveStage>>, TError, {
+        id: number;
+        data: MoveTaskStageDto;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient) => UseMutationResult<Awaited<ReturnType<typeof tasksControllerMoveStage>>, TError, {
+    id: number;
+    data: MoveTaskStageDto;
+}, TContext>;
+/**
+ * @summary Get employee personal task kanban board
+ */
+export type myTasksControllerGetBoardResponse200 = {
+    data: TaskBoardResultDto;
+    status: 200;
+};
+export type myTasksControllerGetBoardResponseSuccess = (myTasksControllerGetBoardResponse200) & {
+    headers: Headers;
+};
+export type myTasksControllerGetBoardResponse = (myTasksControllerGetBoardResponseSuccess);
+export declare const getMyTasksControllerGetBoardUrl: (params?: MyTasksControllerGetBoardParams) => string;
+export declare const myTasksControllerGetBoard: (params?: MyTasksControllerGetBoardParams, options?: RequestInit) => Promise<myTasksControllerGetBoardResponse>;
+export declare const getMyTasksControllerGetBoardQueryKey: (params?: MyTasksControllerGetBoardParams) => readonly ["/api/v1/my-tasks/board", ...MyTasksControllerGetBoardParams[]];
+export declare const getMyTasksControllerGetBoardQueryOptions: <TData = Awaited<ReturnType<typeof myTasksControllerGetBoard>>, TError = unknown>(params?: MyTasksControllerGetBoardParams, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof myTasksControllerGetBoard>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseQueryOptions<Awaited<ReturnType<typeof myTasksControllerGetBoard>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export type MyTasksControllerGetBoardQueryResult = NonNullable<Awaited<ReturnType<typeof myTasksControllerGetBoard>>>;
+export type MyTasksControllerGetBoardQueryError = unknown;
+export declare function useMyTasksControllerGetBoard<TData = Awaited<ReturnType<typeof myTasksControllerGetBoard>>, TError = unknown>(params: undefined | MyTasksControllerGetBoardParams, options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof myTasksControllerGetBoard>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof myTasksControllerGetBoard>>, TError, Awaited<ReturnType<typeof myTasksControllerGetBoard>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useMyTasksControllerGetBoard<TData = Awaited<ReturnType<typeof myTasksControllerGetBoard>>, TError = unknown>(params?: MyTasksControllerGetBoardParams, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof myTasksControllerGetBoard>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof myTasksControllerGetBoard>>, TError, Awaited<ReturnType<typeof myTasksControllerGetBoard>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useMyTasksControllerGetBoard<TData = Awaited<ReturnType<typeof myTasksControllerGetBoard>>, TError = unknown>(params?: MyTasksControllerGetBoardParams, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof myTasksControllerGetBoard>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Get employee personal task summary metrics
+ */
+export type myTasksControllerGetSummaryResponse200 = {
+    data: TaskSummaryDto;
+    status: 200;
+};
+export type myTasksControllerGetSummaryResponseSuccess = (myTasksControllerGetSummaryResponse200) & {
+    headers: Headers;
+};
+export type myTasksControllerGetSummaryResponse = (myTasksControllerGetSummaryResponseSuccess);
+export declare const getMyTasksControllerGetSummaryUrl: () => string;
+export declare const myTasksControllerGetSummary: (options?: RequestInit) => Promise<myTasksControllerGetSummaryResponse>;
+export declare const getMyTasksControllerGetSummaryQueryKey: () => readonly ["/api/v1/my-tasks/summary"];
+export declare const getMyTasksControllerGetSummaryQueryOptions: <TData = Awaited<ReturnType<typeof myTasksControllerGetSummary>>, TError = unknown>(options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof myTasksControllerGetSummary>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseQueryOptions<Awaited<ReturnType<typeof myTasksControllerGetSummary>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export type MyTasksControllerGetSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof myTasksControllerGetSummary>>>;
+export type MyTasksControllerGetSummaryQueryError = unknown;
+export declare function useMyTasksControllerGetSummary<TData = Awaited<ReturnType<typeof myTasksControllerGetSummary>>, TError = unknown>(options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof myTasksControllerGetSummary>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof myTasksControllerGetSummary>>, TError, Awaited<ReturnType<typeof myTasksControllerGetSummary>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useMyTasksControllerGetSummary<TData = Awaited<ReturnType<typeof myTasksControllerGetSummary>>, TError = unknown>(options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof myTasksControllerGetSummary>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof myTasksControllerGetSummary>>, TError, Awaited<ReturnType<typeof myTasksControllerGetSummary>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useMyTasksControllerGetSummary<TData = Awaited<ReturnType<typeof myTasksControllerGetSummary>>, TError = unknown>(options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof myTasksControllerGetSummary>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Get details of a task assigned to current employee
+ */
+export type myTasksControllerGetTaskDetailResponse200 = {
+    data: TaskDetailDto;
+    status: 200;
+};
+export type myTasksControllerGetTaskDetailResponseSuccess = (myTasksControllerGetTaskDetailResponse200) & {
+    headers: Headers;
+};
+export type myTasksControllerGetTaskDetailResponse = (myTasksControllerGetTaskDetailResponseSuccess);
+export declare const getMyTasksControllerGetTaskDetailUrl: (id: number) => string;
+export declare const myTasksControllerGetTaskDetail: (id: number, options?: RequestInit) => Promise<myTasksControllerGetTaskDetailResponse>;
+export declare const getMyTasksControllerGetTaskDetailQueryKey: (id?: number) => readonly ["/api/v1/my-tasks/undefined" | `/api/v1/my-tasks/${number}`];
+export declare const getMyTasksControllerGetTaskDetailQueryOptions: <TData = Awaited<ReturnType<typeof myTasksControllerGetTaskDetail>>, TError = unknown>(id: number, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof myTasksControllerGetTaskDetail>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseQueryOptions<Awaited<ReturnType<typeof myTasksControllerGetTaskDetail>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export type MyTasksControllerGetTaskDetailQueryResult = NonNullable<Awaited<ReturnType<typeof myTasksControllerGetTaskDetail>>>;
+export type MyTasksControllerGetTaskDetailQueryError = unknown;
+export declare function useMyTasksControllerGetTaskDetail<TData = Awaited<ReturnType<typeof myTasksControllerGetTaskDetail>>, TError = unknown>(id: number, options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof myTasksControllerGetTaskDetail>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof myTasksControllerGetTaskDetail>>, TError, Awaited<ReturnType<typeof myTasksControllerGetTaskDetail>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useMyTasksControllerGetTaskDetail<TData = Awaited<ReturnType<typeof myTasksControllerGetTaskDetail>>, TError = unknown>(id: number, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof myTasksControllerGetTaskDetail>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof myTasksControllerGetTaskDetail>>, TError, Awaited<ReturnType<typeof myTasksControllerGetTaskDetail>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useMyTasksControllerGetTaskDetail<TData = Awaited<ReturnType<typeof myTasksControllerGetTaskDetail>>, TError = unknown>(id: number, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof myTasksControllerGetTaskDetail>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Move assigned task stage (e.g. to in_progress or requested)
+ */
+export type myTasksControllerMoveStageResponse200 = {
+    data: TaskDetailDto;
+    status: 200;
+};
+export type myTasksControllerMoveStageResponseSuccess = (myTasksControllerMoveStageResponse200) & {
+    headers: Headers;
+};
+export type myTasksControllerMoveStageResponse = (myTasksControllerMoveStageResponseSuccess);
+export declare const getMyTasksControllerMoveStageUrl: (id: number) => string;
+export declare const myTasksControllerMoveStage: (id: number, moveTaskStageDto: MoveTaskStageDto, options?: RequestInit) => Promise<myTasksControllerMoveStageResponse>;
+export declare const getMyTasksControllerMoveStageMutationOptions: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof myTasksControllerMoveStage>>, TError, {
+        id: number;
+        data: MoveTaskStageDto;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof myTasksControllerMoveStage>>, TError, {
+    id: number;
+    data: MoveTaskStageDto;
+}, TContext>;
+export type MyTasksControllerMoveStageMutationResult = NonNullable<Awaited<ReturnType<typeof myTasksControllerMoveStage>>>;
+export type MyTasksControllerMoveStageMutationBody = MoveTaskStageDto;
+export type MyTasksControllerMoveStageMutationError = unknown;
+/**
+* @summary Move assigned task stage (e.g. to in_progress or requested)
+*/
+export declare const useMyTasksControllerMoveStage: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof myTasksControllerMoveStage>>, TError, {
+        id: number;
+        data: MoveTaskStageDto;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient) => UseMutationResult<Awaited<ReturnType<typeof myTasksControllerMoveStage>>, TError, {
+    id: number;
+    data: MoveTaskStageDto;
+}, TContext>;
 export {};

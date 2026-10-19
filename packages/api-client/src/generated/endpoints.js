@@ -39,10 +39,12 @@ export function useHealthControllerGetHealth(options, queryClient) {
 export const getAuthControllerLoginUrl = () => {
     return `/api/v1/auth/login`;
 };
-export const authControllerLogin = async (options) => {
+export const authControllerLogin = async (loginDto, options) => {
     return customFetch(getAuthControllerLoginUrl(), {
         ...options,
-        method: 'POST'
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        body: JSON.stringify(loginDto)
     });
 };
 export const getAuthControllerLoginMutationOptions = (options) => {
@@ -52,8 +54,9 @@ export const getAuthControllerLoginMutationOptions = (options) => {
             options
             : { ...options, mutation: { ...options.mutation, mutationKey } }
         : { mutation: { mutationKey, }, request: undefined };
-    const mutationFn = () => {
-        return authControllerLogin(requestOptions);
+    const mutationFn = (props) => {
+        const { data } = props ?? {};
+        return authControllerLogin(data, requestOptions);
     };
     return { mutationFn, ...mutationOptions };
 };
@@ -67,10 +70,12 @@ export const useAuthControllerLogin = (options, queryClient) => {
 export const getAuthControllerVerifyLoginUrl = () => {
     return `/api/v1/auth/login/verify`;
 };
-export const authControllerVerifyLogin = async (options) => {
+export const authControllerVerifyLogin = async (verifyLoginDto, options) => {
     return customFetch(getAuthControllerVerifyLoginUrl(), {
         ...options,
-        method: 'POST'
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        body: JSON.stringify(verifyLoginDto)
     });
 };
 export const getAuthControllerVerifyLoginMutationOptions = (options) => {
@@ -80,8 +85,9 @@ export const getAuthControllerVerifyLoginMutationOptions = (options) => {
             options
             : { ...options, mutation: { ...options.mutation, mutationKey } }
         : { mutation: { mutationKey, }, request: undefined };
-    const mutationFn = () => {
-        return authControllerVerifyLogin(requestOptions);
+    const mutationFn = (props) => {
+        const { data } = props ?? {};
+        return authControllerVerifyLogin(data, requestOptions);
     };
     return { mutationFn, ...mutationOptions };
 };
@@ -95,10 +101,12 @@ export const useAuthControllerVerifyLogin = (options, queryClient) => {
 export const getAuthControllerResendOtpUrl = () => {
     return `/api/v1/auth/login/resend`;
 };
-export const authControllerResendOtp = async (options) => {
+export const authControllerResendOtp = async (resendOtpDto, options) => {
     return customFetch(getAuthControllerResendOtpUrl(), {
         ...options,
-        method: 'POST'
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        body: JSON.stringify(resendOtpDto)
     });
 };
 export const getAuthControllerResendOtpMutationOptions = (options) => {
@@ -108,8 +116,9 @@ export const getAuthControllerResendOtpMutationOptions = (options) => {
             options
             : { ...options, mutation: { ...options.mutation, mutationKey } }
         : { mutation: { mutationKey, }, request: undefined };
-    const mutationFn = () => {
-        return authControllerResendOtp(requestOptions);
+    const mutationFn = (props) => {
+        const { data } = props ?? {};
+        return authControllerResendOtp(data, requestOptions);
     };
     return { mutationFn, ...mutationOptions };
 };
@@ -240,10 +249,12 @@ export function useAuthControllerGetMe(options, queryClient) {
 export const getAuthControllerChangePasswordUrl = () => {
     return `/api/v1/auth/password/change`;
 };
-export const authControllerChangePassword = async (options) => {
+export const authControllerChangePassword = async (changePasswordDto, options) => {
     return customFetch(getAuthControllerChangePasswordUrl(), {
         ...options,
-        method: 'POST'
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        body: JSON.stringify(changePasswordDto)
     });
 };
 export const getAuthControllerChangePasswordMutationOptions = (options) => {
@@ -253,8 +264,9 @@ export const getAuthControllerChangePasswordMutationOptions = (options) => {
             options
             : { ...options, mutation: { ...options.mutation, mutationKey } }
         : { mutation: { mutationKey, }, request: undefined };
-    const mutationFn = () => {
-        return authControllerChangePassword(requestOptions);
+    const mutationFn = (props) => {
+        const { data } = props ?? {};
+        return authControllerChangePassword(data, requestOptions);
     };
     return { mutationFn, ...mutationOptions };
 };
@@ -269,10 +281,12 @@ export const useAuthControllerChangePassword = (options, queryClient) => {
 export const getAuthControllerForgotPasswordUrl = () => {
     return `/api/v1/auth/password/forgot`;
 };
-export const authControllerForgotPassword = async (options) => {
+export const authControllerForgotPassword = async (forgotPasswordDto, options) => {
     return customFetch(getAuthControllerForgotPasswordUrl(), {
         ...options,
-        method: 'POST'
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        body: JSON.stringify(forgotPasswordDto)
     });
 };
 export const getAuthControllerForgotPasswordMutationOptions = (options) => {
@@ -282,8 +296,9 @@ export const getAuthControllerForgotPasswordMutationOptions = (options) => {
             options
             : { ...options, mutation: { ...options.mutation, mutationKey } }
         : { mutation: { mutationKey, }, request: undefined };
-    const mutationFn = () => {
-        return authControllerForgotPassword(requestOptions);
+    const mutationFn = (props) => {
+        const { data } = props ?? {};
+        return authControllerForgotPassword(data, requestOptions);
     };
     return { mutationFn, ...mutationOptions };
 };
@@ -297,10 +312,12 @@ export const useAuthControllerForgotPassword = (options, queryClient) => {
 export const getAuthControllerResetPasswordUrl = () => {
     return `/api/v1/auth/password/reset`;
 };
-export const authControllerResetPassword = async (options) => {
+export const authControllerResetPassword = async (resetPasswordDto, options) => {
     return customFetch(getAuthControllerResetPasswordUrl(), {
         ...options,
-        method: 'POST'
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        body: JSON.stringify(resetPasswordDto)
     });
 };
 export const getAuthControllerResetPasswordMutationOptions = (options) => {
@@ -310,8 +327,9 @@ export const getAuthControllerResetPasswordMutationOptions = (options) => {
             options
             : { ...options, mutation: { ...options.mutation, mutationKey } }
         : { mutation: { mutationKey, }, request: undefined };
-    const mutationFn = () => {
-        return authControllerResetPassword(requestOptions);
+    const mutationFn = (props) => {
+        const { data } = props ?? {};
+        return authControllerResetPassword(data, requestOptions);
     };
     return { mutationFn, ...mutationOptions };
 };
@@ -389,31 +407,38 @@ export function useFilesControllerGetProfilePhoto(key, params, options, queryCli
     return query;
 }
 ;
-export const getDepartmentControllerListUrl = () => {
-    return `/api/v1/departments`;
+export const getDepartmentControllerListUrl = (params) => {
+    const normalizedParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+        if (value !== undefined) {
+            normalizedParams.append(key, value === null ? 'null' : value.toString());
+        }
+    });
+    const stringifiedParams = normalizedParams.toString();
+    return stringifiedParams.length > 0 ? `/api/v1/departments?${stringifiedParams}` : `/api/v1/departments`;
 };
-export const departmentControllerList = async (options) => {
-    return customFetch(getDepartmentControllerListUrl(), {
+export const departmentControllerList = async (params, options) => {
+    return customFetch(getDepartmentControllerListUrl(params), {
         ...options,
         method: 'GET'
     });
 };
-export const getDepartmentControllerListQueryKey = () => {
+export const getDepartmentControllerListQueryKey = (params) => {
     return [
-        `/api/v1/departments`
+        `/api/v1/departments`, ...(params ? [params] : [])
     ];
 };
-export const getDepartmentControllerListQueryOptions = (options) => {
+export const getDepartmentControllerListQueryOptions = (params, options) => {
     const { query: queryOptions, request: requestOptions } = options ?? {};
-    const queryKey = queryOptions?.queryKey ?? getDepartmentControllerListQueryKey();
-    const queryFn = ({ signal }) => departmentControllerList({ signal, ...requestOptions });
+    const queryKey = queryOptions?.queryKey ?? getDepartmentControllerListQueryKey(params);
+    const queryFn = ({ signal }) => departmentControllerList(params, { signal, ...requestOptions });
     return { queryKey, queryFn, ...queryOptions };
 };
 /**
  * @summary List departments with keyset pagination
  */
-export function useDepartmentControllerList(options, queryClient) {
-    const queryOptions = getDepartmentControllerListQueryOptions(options);
+export function useDepartmentControllerList(params, options, queryClient) {
+    const queryOptions = getDepartmentControllerListQueryOptions(params, options);
     const query = useQuery(queryOptions, queryClient);
     query.queryKey = queryOptions.queryKey;
     return query;
@@ -573,31 +598,38 @@ export const useDepartmentControllerDelete = (options, queryClient) => {
     return useMutation(mutationOptions, queryClient);
 };
 ;
-export const getRoleControllerListUrl = () => {
-    return `/api/v1/roles`;
+export const getRoleControllerListUrl = (params) => {
+    const normalizedParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+        if (value !== undefined) {
+            normalizedParams.append(key, value === null ? 'null' : value.toString());
+        }
+    });
+    const stringifiedParams = normalizedParams.toString();
+    return stringifiedParams.length > 0 ? `/api/v1/roles?${stringifiedParams}` : `/api/v1/roles`;
 };
-export const roleControllerList = async (options) => {
-    return customFetch(getRoleControllerListUrl(), {
+export const roleControllerList = async (params, options) => {
+    return customFetch(getRoleControllerListUrl(params), {
         ...options,
         method: 'GET'
     });
 };
-export const getRoleControllerListQueryKey = () => {
+export const getRoleControllerListQueryKey = (params) => {
     return [
-        `/api/v1/roles`
+        `/api/v1/roles`, ...(params ? [params] : [])
     ];
 };
-export const getRoleControllerListQueryOptions = (options) => {
+export const getRoleControllerListQueryOptions = (params, options) => {
     const { query: queryOptions, request: requestOptions } = options ?? {};
-    const queryKey = queryOptions?.queryKey ?? getRoleControllerListQueryKey();
-    const queryFn = ({ signal }) => roleControllerList({ signal, ...requestOptions });
+    const queryKey = queryOptions?.queryKey ?? getRoleControllerListQueryKey(params);
+    const queryFn = ({ signal }) => roleControllerList(params, { signal, ...requestOptions });
     return { queryKey, queryFn, ...queryOptions };
 };
 /**
  * @summary List roles with keyset pagination
  */
-export function useRoleControllerList(options, queryClient) {
-    const queryOptions = getRoleControllerListQueryOptions(options);
+export function useRoleControllerList(params, options, queryClient) {
+    const queryOptions = getRoleControllerListQueryOptions(params, options);
     const query = useQuery(queryOptions, queryClient);
     query.queryKey = queryOptions.queryKey;
     return query;
@@ -764,31 +796,38 @@ export const useRoleControllerDelete = (options, queryClient) => {
     return useMutation(mutationOptions, queryClient);
 };
 ;
-export const getEmployeeControllerListUrl = () => {
-    return `/api/v1/employees`;
+export const getEmployeeControllerListUrl = (params) => {
+    const normalizedParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+        if (value !== undefined) {
+            normalizedParams.append(key, value === null ? 'null' : value.toString());
+        }
+    });
+    const stringifiedParams = normalizedParams.toString();
+    return stringifiedParams.length > 0 ? `/api/v1/employees?${stringifiedParams}` : `/api/v1/employees`;
 };
-export const employeeControllerList = async (options) => {
-    return customFetch(getEmployeeControllerListUrl(), {
+export const employeeControllerList = async (params, options) => {
+    return customFetch(getEmployeeControllerListUrl(params), {
         ...options,
         method: 'GET'
     });
 };
-export const getEmployeeControllerListQueryKey = () => {
+export const getEmployeeControllerListQueryKey = (params) => {
     return [
-        `/api/v1/employees`
+        `/api/v1/employees`, ...(params ? [params] : [])
     ];
 };
-export const getEmployeeControllerListQueryOptions = (options) => {
+export const getEmployeeControllerListQueryOptions = (params, options) => {
     const { query: queryOptions, request: requestOptions } = options ?? {};
-    const queryKey = queryOptions?.queryKey ?? getEmployeeControllerListQueryKey();
-    const queryFn = ({ signal }) => employeeControllerList({ signal, ...requestOptions });
+    const queryKey = queryOptions?.queryKey ?? getEmployeeControllerListQueryKey(params);
+    const queryFn = ({ signal }) => employeeControllerList(params, { signal, ...requestOptions });
     return { queryKey, queryFn, ...queryOptions };
 };
 /**
  * @summary List employees with keyset pagination
  */
-export function useEmployeeControllerList(options, queryClient) {
-    const queryOptions = getEmployeeControllerListQueryOptions(options);
+export function useEmployeeControllerList(params, options, queryClient) {
+    const queryOptions = getEmployeeControllerListQueryOptions(params, options);
     const query = useQuery(queryOptions, queryClient);
     query.queryKey = queryOptions.queryKey;
     return query;
@@ -1019,31 +1058,38 @@ export const useEmployeeControllerRemovePhoto = (options, queryClient) => {
     return useMutation(mutationOptions, queryClient);
 };
 ;
-export const getIndustryControllerListUrl = () => {
-    return `/api/v1/industries`;
+export const getIndustryControllerListUrl = (params) => {
+    const normalizedParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+        if (value !== undefined) {
+            normalizedParams.append(key, value === null ? 'null' : value.toString());
+        }
+    });
+    const stringifiedParams = normalizedParams.toString();
+    return stringifiedParams.length > 0 ? `/api/v1/industries?${stringifiedParams}` : `/api/v1/industries`;
 };
-export const industryControllerList = async (options) => {
-    return customFetch(getIndustryControllerListUrl(), {
+export const industryControllerList = async (params, options) => {
+    return customFetch(getIndustryControllerListUrl(params), {
         ...options,
         method: 'GET'
     });
 };
-export const getIndustryControllerListQueryKey = () => {
+export const getIndustryControllerListQueryKey = (params) => {
     return [
-        `/api/v1/industries`
+        `/api/v1/industries`, ...(params ? [params] : [])
     ];
 };
-export const getIndustryControllerListQueryOptions = (options) => {
+export const getIndustryControllerListQueryOptions = (params, options) => {
     const { query: queryOptions, request: requestOptions } = options ?? {};
-    const queryKey = queryOptions?.queryKey ?? getIndustryControllerListQueryKey();
-    const queryFn = ({ signal }) => industryControllerList({ signal, ...requestOptions });
+    const queryKey = queryOptions?.queryKey ?? getIndustryControllerListQueryKey(params);
+    const queryFn = ({ signal }) => industryControllerList(params, { signal, ...requestOptions });
     return { queryKey, queryFn, ...queryOptions };
 };
 /**
  * @summary List industries with filters and keyset pagination
  */
-export function useIndustryControllerList(options, queryClient) {
-    const queryOptions = getIndustryControllerListQueryOptions(options);
+export function useIndustryControllerList(params, options, queryClient) {
+    const queryOptions = getIndustryControllerListQueryOptions(params, options);
     const query = useQuery(queryOptions, queryClient);
     query.queryKey = queryOptions.queryKey;
     return query;
@@ -1081,31 +1127,38 @@ export const useIndustryControllerCreate = (options, queryClient) => {
     return useMutation(mutationOptions, queryClient);
 };
 ;
-export const getIndustryControllerGetOptionsUrl = () => {
-    return `/api/v1/industries/options`;
+export const getIndustryControllerGetOptionsUrl = (params) => {
+    const normalizedParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+        if (value !== undefined) {
+            normalizedParams.append(key, value === null ? 'null' : value.toString());
+        }
+    });
+    const stringifiedParams = normalizedParams.toString();
+    return stringifiedParams.length > 0 ? `/api/v1/industries/options?${stringifiedParams}` : `/api/v1/industries/options`;
 };
-export const industryControllerGetOptions = async (options) => {
-    return customFetch(getIndustryControllerGetOptionsUrl(), {
+export const industryControllerGetOptions = async (params, options) => {
+    return customFetch(getIndustryControllerGetOptionsUrl(params), {
         ...options,
         method: 'GET'
     });
 };
-export const getIndustryControllerGetOptionsQueryKey = () => {
+export const getIndustryControllerGetOptionsQueryKey = (params) => {
     return [
-        `/api/v1/industries/options`
+        `/api/v1/industries/options`, ...(params ? [params] : [])
     ];
 };
-export const getIndustryControllerGetOptionsQueryOptions = (options) => {
+export const getIndustryControllerGetOptionsQueryOptions = (params, options) => {
     const { query: queryOptions, request: requestOptions } = options ?? {};
-    const queryKey = queryOptions?.queryKey ?? getIndustryControllerGetOptionsQueryKey();
-    const queryFn = ({ signal }) => industryControllerGetOptions({ signal, ...requestOptions });
+    const queryKey = queryOptions?.queryKey ?? getIndustryControllerGetOptionsQueryKey(params);
+    const queryFn = ({ signal }) => industryControllerGetOptions(params, { signal, ...requestOptions });
     return { queryKey, queryFn, ...queryOptions };
 };
 /**
  * @summary Get active industry options (top-level or sub-industries of parent_id)
  */
-export function useIndustryControllerGetOptions(options, queryClient) {
-    const queryOptions = getIndustryControllerGetOptionsQueryOptions(options);
+export function useIndustryControllerGetOptions(params, options, queryClient) {
+    const queryOptions = getIndustryControllerGetOptionsQueryOptions(params, options);
     const query = useQuery(queryOptions, queryClient);
     query.queryKey = queryOptions.queryKey;
     return query;
@@ -1203,31 +1256,38 @@ export const useIndustryControllerDelete = (options, queryClient) => {
     return useMutation(mutationOptions, queryClient);
 };
 ;
-export const getCustomerTypeControllerListUrl = () => {
-    return `/api/v1/customer-types`;
+export const getCustomerTypeControllerListUrl = (params) => {
+    const normalizedParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+        if (value !== undefined) {
+            normalizedParams.append(key, value === null ? 'null' : value.toString());
+        }
+    });
+    const stringifiedParams = normalizedParams.toString();
+    return stringifiedParams.length > 0 ? `/api/v1/customer-types?${stringifiedParams}` : `/api/v1/customer-types`;
 };
-export const customerTypeControllerList = async (options) => {
-    return customFetch(getCustomerTypeControllerListUrl(), {
+export const customerTypeControllerList = async (params, options) => {
+    return customFetch(getCustomerTypeControllerListUrl(params), {
         ...options,
         method: 'GET'
     });
 };
-export const getCustomerTypeControllerListQueryKey = () => {
+export const getCustomerTypeControllerListQueryKey = (params) => {
     return [
-        `/api/v1/customer-types`
+        `/api/v1/customer-types`, ...(params ? [params] : [])
     ];
 };
-export const getCustomerTypeControllerListQueryOptions = (options) => {
+export const getCustomerTypeControllerListQueryOptions = (params, options) => {
     const { query: queryOptions, request: requestOptions } = options ?? {};
-    const queryKey = queryOptions?.queryKey ?? getCustomerTypeControllerListQueryKey();
-    const queryFn = ({ signal }) => customerTypeControllerList({ signal, ...requestOptions });
+    const queryKey = queryOptions?.queryKey ?? getCustomerTypeControllerListQueryKey(params);
+    const queryFn = ({ signal }) => customerTypeControllerList(params, { signal, ...requestOptions });
     return { queryKey, queryFn, ...queryOptions };
 };
 /**
  * @summary List customer types with filters and keyset pagination
  */
-export function useCustomerTypeControllerList(options, queryClient) {
-    const queryOptions = getCustomerTypeControllerListQueryOptions(options);
+export function useCustomerTypeControllerList(params, options, queryClient) {
+    const queryOptions = getCustomerTypeControllerListQueryOptions(params, options);
     const query = useQuery(queryOptions, queryClient);
     query.queryKey = queryOptions.queryKey;
     return query;
@@ -1387,61 +1447,75 @@ export const useCustomerTypeControllerDelete = (options, queryClient) => {
     return useMutation(mutationOptions, queryClient);
 };
 ;
-export const getLookupControllerGetOptionsUrl = () => {
-    return `/api/v1/lookups/options`;
+export const getLookupControllerGetOptionsUrl = (params) => {
+    const normalizedParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+        if (value !== undefined) {
+            normalizedParams.append(key, value === null ? 'null' : value.toString());
+        }
+    });
+    const stringifiedParams = normalizedParams.toString();
+    return stringifiedParams.length > 0 ? `/api/v1/lookups/options?${stringifiedParams}` : `/api/v1/lookups/options`;
 };
-export const lookupControllerGetOptions = async (options) => {
-    return customFetch(getLookupControllerGetOptionsUrl(), {
+export const lookupControllerGetOptions = async (params, options) => {
+    return customFetch(getLookupControllerGetOptionsUrl(params), {
         ...options,
         method: 'GET'
     });
 };
-export const getLookupControllerGetOptionsQueryKey = () => {
+export const getLookupControllerGetOptionsQueryKey = (params) => {
     return [
-        `/api/v1/lookups/options`
+        `/api/v1/lookups/options`, ...(params ? [params] : [])
     ];
 };
-export const getLookupControllerGetOptionsQueryOptions = (options) => {
+export const getLookupControllerGetOptionsQueryOptions = (params, options) => {
     const { query: queryOptions, request: requestOptions } = options ?? {};
-    const queryKey = queryOptions?.queryKey ?? getLookupControllerGetOptionsQueryKey();
-    const queryFn = ({ signal }) => lookupControllerGetOptions({ signal, ...requestOptions });
+    const queryKey = queryOptions?.queryKey ?? getLookupControllerGetOptionsQueryKey(params);
+    const queryFn = ({ signal }) => lookupControllerGetOptions(params, { signal, ...requestOptions });
     return { queryKey, queryFn, ...queryOptions };
 };
 /**
  * @summary Get active lookup options by type (e.g. person_department)
  */
-export function useLookupControllerGetOptions(options, queryClient) {
-    const queryOptions = getLookupControllerGetOptionsQueryOptions(options);
+export function useLookupControllerGetOptions(params, options, queryClient) {
+    const queryOptions = getLookupControllerGetOptionsQueryOptions(params, options);
     const query = useQuery(queryOptions, queryClient);
     query.queryKey = queryOptions.queryKey;
     return query;
 }
 ;
-export const getCompanyDataTransferControllerDownloadTemplateUrl = () => {
-    return `/api/v1/companies/import/template`;
+export const getCompanyDataTransferControllerDownloadTemplateUrl = (params) => {
+    const normalizedParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+        if (value !== undefined) {
+            normalizedParams.append(key, value === null ? 'null' : value.toString());
+        }
+    });
+    const stringifiedParams = normalizedParams.toString();
+    return stringifiedParams.length > 0 ? `/api/v1/companies/import/template?${stringifiedParams}` : `/api/v1/companies/import/template`;
 };
-export const companyDataTransferControllerDownloadTemplate = async (options) => {
-    return customFetch(getCompanyDataTransferControllerDownloadTemplateUrl(), {
+export const companyDataTransferControllerDownloadTemplate = async (params, options) => {
+    return customFetch(getCompanyDataTransferControllerDownloadTemplateUrl(params), {
         ...options,
         method: 'GET'
     });
 };
-export const getCompanyDataTransferControllerDownloadTemplateQueryKey = () => {
+export const getCompanyDataTransferControllerDownloadTemplateQueryKey = (params) => {
     return [
-        `/api/v1/companies/import/template`
+        `/api/v1/companies/import/template`, ...(params ? [params] : [])
     ];
 };
-export const getCompanyDataTransferControllerDownloadTemplateQueryOptions = (options) => {
+export const getCompanyDataTransferControllerDownloadTemplateQueryOptions = (params, options) => {
     const { query: queryOptions, request: requestOptions } = options ?? {};
-    const queryKey = queryOptions?.queryKey ?? getCompanyDataTransferControllerDownloadTemplateQueryKey();
-    const queryFn = ({ signal }) => companyDataTransferControllerDownloadTemplate({ signal, ...requestOptions });
+    const queryKey = queryOptions?.queryKey ?? getCompanyDataTransferControllerDownloadTemplateQueryKey(params);
+    const queryFn = ({ signal }) => companyDataTransferControllerDownloadTemplate(params, { signal, ...requestOptions });
     return { queryKey, queryFn, ...queryOptions };
 };
 /**
  * @summary Download empty company import template (xlsx or csv)
  */
-export function useCompanyDataTransferControllerDownloadTemplate(options, queryClient) {
-    const queryOptions = getCompanyDataTransferControllerDownloadTemplateQueryOptions(options);
+export function useCompanyDataTransferControllerDownloadTemplate(params, options, queryClient) {
+    const queryOptions = getCompanyDataTransferControllerDownloadTemplateQueryOptions(params, options);
     const query = useQuery(queryOptions, queryClient);
     query.queryKey = queryOptions.queryKey;
     return query;
@@ -1489,10 +1563,12 @@ export const useCompanyDataTransferControllerPreview = (options, queryClient) =>
 export const getCompanyDataTransferControllerConfirmUrl = (jobId) => {
     return `/api/v1/companies/import/${jobId}/confirm`;
 };
-export const companyDataTransferControllerConfirm = async (jobId, options) => {
+export const companyDataTransferControllerConfirm = async (jobId, companyImportConfirmDto, options) => {
     return customFetch(getCompanyDataTransferControllerConfirmUrl(jobId), {
         ...options,
-        method: 'POST'
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        body: JSON.stringify(companyImportConfirmDto)
     });
 };
 export const getCompanyDataTransferControllerConfirmMutationOptions = (options) => {
@@ -1503,8 +1579,8 @@ export const getCompanyDataTransferControllerConfirmMutationOptions = (options) 
             : { ...options, mutation: { ...options.mutation, mutationKey } }
         : { mutation: { mutationKey, }, request: undefined };
     const mutationFn = (props) => {
-        const { jobId } = props ?? {};
-        return companyDataTransferControllerConfirm(jobId, requestOptions);
+        const { jobId, data } = props ?? {};
+        return companyDataTransferControllerConfirm(jobId, data, requestOptions);
     };
     return { mutationFn, ...mutationOptions };
 };
@@ -1546,31 +1622,38 @@ export const useCompanyDataTransferControllerCancel = (options, queryClient) => 
     return useMutation(mutationOptions, queryClient);
 };
 ;
-export const getCompanyDataTransferControllerListImportsUrl = () => {
-    return `/api/v1/companies/import`;
+export const getCompanyDataTransferControllerListImportsUrl = (params) => {
+    const normalizedParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+        if (value !== undefined) {
+            normalizedParams.append(key, value === null ? 'null' : value.toString());
+        }
+    });
+    const stringifiedParams = normalizedParams.toString();
+    return stringifiedParams.length > 0 ? `/api/v1/companies/import?${stringifiedParams}` : `/api/v1/companies/import`;
 };
-export const companyDataTransferControllerListImports = async (options) => {
-    return customFetch(getCompanyDataTransferControllerListImportsUrl(), {
+export const companyDataTransferControllerListImports = async (params, options) => {
+    return customFetch(getCompanyDataTransferControllerListImportsUrl(params), {
         ...options,
         method: 'GET'
     });
 };
-export const getCompanyDataTransferControllerListImportsQueryKey = () => {
+export const getCompanyDataTransferControllerListImportsQueryKey = (params) => {
     return [
-        `/api/v1/companies/import`
+        `/api/v1/companies/import`, ...(params ? [params] : [])
     ];
 };
-export const getCompanyDataTransferControllerListImportsQueryOptions = (options) => {
+export const getCompanyDataTransferControllerListImportsQueryOptions = (params, options) => {
     const { query: queryOptions, request: requestOptions } = options ?? {};
-    const queryKey = queryOptions?.queryKey ?? getCompanyDataTransferControllerListImportsQueryKey();
-    const queryFn = ({ signal }) => companyDataTransferControllerListImports({ signal, ...requestOptions });
+    const queryKey = queryOptions?.queryKey ?? getCompanyDataTransferControllerListImportsQueryKey(params);
+    const queryFn = ({ signal }) => companyDataTransferControllerListImports(params, { signal, ...requestOptions });
     return { queryKey, queryFn, ...queryOptions };
 };
 /**
  * @summary List recent company import jobs
  */
-export function useCompanyDataTransferControllerListImports(options, queryClient) {
-    const queryOptions = getCompanyDataTransferControllerListImportsQueryOptions(options);
+export function useCompanyDataTransferControllerListImports(params, options, queryClient) {
+    const queryOptions = getCompanyDataTransferControllerListImportsQueryOptions(params, options);
     const query = useQuery(queryOptions, queryClient);
     query.queryKey = queryOptions.queryKey;
     return query;
@@ -1606,31 +1689,38 @@ export function useCompanyDataTransferControllerDownloadReport(jobId, options, q
     return query;
 }
 ;
-export const getCompanyDataTransferControllerGetIssuesUrl = (jobId) => {
-    return `/api/v1/companies/import/${jobId}/issues`;
+export const getCompanyDataTransferControllerGetIssuesUrl = (jobId, params) => {
+    const normalizedParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+        if (value !== undefined) {
+            normalizedParams.append(key, value === null ? 'null' : value.toString());
+        }
+    });
+    const stringifiedParams = normalizedParams.toString();
+    return stringifiedParams.length > 0 ? `/api/v1/companies/import/${jobId}/issues?${stringifiedParams}` : `/api/v1/companies/import/${jobId}/issues`;
 };
-export const companyDataTransferControllerGetIssues = async (jobId, options) => {
-    return customFetch(getCompanyDataTransferControllerGetIssuesUrl(jobId), {
+export const companyDataTransferControllerGetIssues = async (jobId, params, options) => {
+    return customFetch(getCompanyDataTransferControllerGetIssuesUrl(jobId, params), {
         ...options,
         method: 'GET'
     });
 };
-export const getCompanyDataTransferControllerGetIssuesQueryKey = (jobId) => {
+export const getCompanyDataTransferControllerGetIssuesQueryKey = (jobId, params) => {
     return [
-        `/api/v1/companies/import/${jobId}/issues`
+        `/api/v1/companies/import/${jobId}/issues`, ...(params ? [params] : [])
     ];
 };
-export const getCompanyDataTransferControllerGetIssuesQueryOptions = (jobId, options) => {
+export const getCompanyDataTransferControllerGetIssuesQueryOptions = (jobId, params, options) => {
     const { query: queryOptions, request: requestOptions } = options ?? {};
-    const queryKey = queryOptions?.queryKey ?? getCompanyDataTransferControllerGetIssuesQueryKey(jobId);
-    const queryFn = ({ signal }) => companyDataTransferControllerGetIssues(jobId, { signal, ...requestOptions });
+    const queryKey = queryOptions?.queryKey ?? getCompanyDataTransferControllerGetIssuesQueryKey(jobId, params);
+    const queryFn = ({ signal }) => companyDataTransferControllerGetIssues(jobId, params, { signal, ...requestOptions });
     return { queryKey, queryFn, enabled: !!(jobId), ...queryOptions };
 };
 /**
  * @summary Get paginated validation issues for import job
  */
-export function useCompanyDataTransferControllerGetIssues(jobId, options, queryClient) {
-    const queryOptions = getCompanyDataTransferControllerGetIssuesQueryOptions(jobId, options);
+export function useCompanyDataTransferControllerGetIssues(jobId, params, options, queryClient) {
+    const queryOptions = getCompanyDataTransferControllerGetIssuesQueryOptions(jobId, params, options);
     const query = useQuery(queryOptions, queryClient);
     query.queryKey = queryOptions.queryKey;
     return query;
@@ -1666,61 +1756,75 @@ export function useCompanyDataTransferControllerGetJob(jobId, options, queryClie
     return query;
 }
 ;
-export const getCompanyDataTransferControllerExportUrl = () => {
-    return `/api/v1/companies/export`;
+export const getCompanyDataTransferControllerExportUrl = (params) => {
+    const normalizedParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+        if (value !== undefined) {
+            normalizedParams.append(key, value === null ? 'null' : value.toString());
+        }
+    });
+    const stringifiedParams = normalizedParams.toString();
+    return stringifiedParams.length > 0 ? `/api/v1/companies/export?${stringifiedParams}` : `/api/v1/companies/export`;
 };
-export const companyDataTransferControllerExport = async (options) => {
-    return customFetch(getCompanyDataTransferControllerExportUrl(), {
+export const companyDataTransferControllerExport = async (params, options) => {
+    return customFetch(getCompanyDataTransferControllerExportUrl(params), {
         ...options,
         method: 'GET'
     });
 };
-export const getCompanyDataTransferControllerExportQueryKey = () => {
+export const getCompanyDataTransferControllerExportQueryKey = (params) => {
     return [
-        `/api/v1/companies/export`
+        `/api/v1/companies/export`, ...(params ? [params] : [])
     ];
 };
-export const getCompanyDataTransferControllerExportQueryOptions = (options) => {
+export const getCompanyDataTransferControllerExportQueryOptions = (params, options) => {
     const { query: queryOptions, request: requestOptions } = options ?? {};
-    const queryKey = queryOptions?.queryKey ?? getCompanyDataTransferControllerExportQueryKey();
-    const queryFn = ({ signal }) => companyDataTransferControllerExport({ signal, ...requestOptions });
+    const queryKey = queryOptions?.queryKey ?? getCompanyDataTransferControllerExportQueryKey(params);
+    const queryFn = ({ signal }) => companyDataTransferControllerExport(params, { signal, ...requestOptions });
     return { queryKey, queryFn, ...queryOptions };
 };
 /**
  * @summary Export companies list with active filters directly to streaming file (rate limit 5/min)
  */
-export function useCompanyDataTransferControllerExport(options, queryClient) {
-    const queryOptions = getCompanyDataTransferControllerExportQueryOptions(options);
+export function useCompanyDataTransferControllerExport(params, options, queryClient) {
+    const queryOptions = getCompanyDataTransferControllerExportQueryOptions(params, options);
     const query = useQuery(queryOptions, queryClient);
     query.queryKey = queryOptions.queryKey;
     return query;
 }
 ;
-export const getCompanyControllerListUrl = () => {
-    return `/api/v1/companies`;
+export const getCompanyControllerListUrl = (params) => {
+    const normalizedParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+        if (value !== undefined) {
+            normalizedParams.append(key, value === null ? 'null' : value.toString());
+        }
+    });
+    const stringifiedParams = normalizedParams.toString();
+    return stringifiedParams.length > 0 ? `/api/v1/companies?${stringifiedParams}` : `/api/v1/companies`;
 };
-export const companyControllerList = async (options) => {
-    return customFetch(getCompanyControllerListUrl(), {
+export const companyControllerList = async (params, options) => {
+    return customFetch(getCompanyControllerListUrl(params), {
         ...options,
         method: 'GET'
     });
 };
-export const getCompanyControllerListQueryKey = () => {
+export const getCompanyControllerListQueryKey = (params) => {
     return [
-        `/api/v1/companies`
+        `/api/v1/companies`, ...(params ? [params] : [])
     ];
 };
-export const getCompanyControllerListQueryOptions = (options) => {
+export const getCompanyControllerListQueryOptions = (params, options) => {
     const { query: queryOptions, request: requestOptions } = options ?? {};
-    const queryKey = queryOptions?.queryKey ?? getCompanyControllerListQueryKey();
-    const queryFn = ({ signal }) => companyControllerList({ signal, ...requestOptions });
+    const queryKey = queryOptions?.queryKey ?? getCompanyControllerListQueryKey(params);
+    const queryFn = ({ signal }) => companyControllerList(params, { signal, ...requestOptions });
     return { queryKey, queryFn, ...queryOptions };
 };
 /**
  * @summary List companies with filters and keyset pagination
  */
-export function useCompanyControllerList(options, queryClient) {
-    const queryOptions = getCompanyControllerListQueryOptions(options);
+export function useCompanyControllerList(params, options, queryClient) {
+    const queryOptions = getCompanyControllerListQueryOptions(params, options);
     const query = useQuery(queryOptions, queryClient);
     query.queryKey = queryOptions.queryKey;
     return query;
@@ -1758,61 +1862,75 @@ export const useCompanyControllerCreate = (options, queryClient) => {
     return useMutation(mutationOptions, queryClient);
 };
 ;
-export const getCompanyControllerGetOptionsUrl = () => {
-    return `/api/v1/companies/options`;
+export const getCompanyControllerGetOptionsUrl = (params) => {
+    const normalizedParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+        if (value !== undefined) {
+            normalizedParams.append(key, value === null ? 'null' : value.toString());
+        }
+    });
+    const stringifiedParams = normalizedParams.toString();
+    return stringifiedParams.length > 0 ? `/api/v1/companies/options?${stringifiedParams}` : `/api/v1/companies/options`;
 };
-export const companyControllerGetOptions = async (options) => {
-    return customFetch(getCompanyControllerGetOptionsUrl(), {
+export const companyControllerGetOptions = async (params, options) => {
+    return customFetch(getCompanyControllerGetOptionsUrl(params), {
         ...options,
         method: 'GET'
     });
 };
-export const getCompanyControllerGetOptionsQueryKey = () => {
+export const getCompanyControllerGetOptionsQueryKey = (params) => {
     return [
-        `/api/v1/companies/options`
+        `/api/v1/companies/options`, ...(params ? [params] : [])
     ];
 };
-export const getCompanyControllerGetOptionsQueryOptions = (options) => {
+export const getCompanyControllerGetOptionsQueryOptions = (params, options) => {
     const { query: queryOptions, request: requestOptions } = options ?? {};
-    const queryKey = queryOptions?.queryKey ?? getCompanyControllerGetOptionsQueryKey();
-    const queryFn = ({ signal }) => companyControllerGetOptions({ signal, ...requestOptions });
+    const queryKey = queryOptions?.queryKey ?? getCompanyControllerGetOptionsQueryKey(params);
+    const queryFn = ({ signal }) => companyControllerGetOptions(params, { signal, ...requestOptions });
     return { queryKey, queryFn, ...queryOptions };
 };
 /**
  * @summary Get active company options for parent picker
  */
-export function useCompanyControllerGetOptions(options, queryClient) {
-    const queryOptions = getCompanyControllerGetOptionsQueryOptions(options);
+export function useCompanyControllerGetOptions(params, options, queryClient) {
+    const queryOptions = getCompanyControllerGetOptionsQueryOptions(params, options);
     const query = useQuery(queryOptions, queryClient);
     query.queryKey = queryOptions.queryKey;
     return query;
 }
 ;
-export const getCompanyControllerCheckDuplicatesUrl = () => {
-    return `/api/v1/companies/duplicate-check`;
+export const getCompanyControllerCheckDuplicatesUrl = (params) => {
+    const normalizedParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+        if (value !== undefined) {
+            normalizedParams.append(key, value === null ? 'null' : value.toString());
+        }
+    });
+    const stringifiedParams = normalizedParams.toString();
+    return stringifiedParams.length > 0 ? `/api/v1/companies/duplicate-check?${stringifiedParams}` : `/api/v1/companies/duplicate-check`;
 };
-export const companyControllerCheckDuplicates = async (options) => {
-    return customFetch(getCompanyControllerCheckDuplicatesUrl(), {
+export const companyControllerCheckDuplicates = async (params, options) => {
+    return customFetch(getCompanyControllerCheckDuplicatesUrl(params), {
         ...options,
         method: 'GET'
     });
 };
-export const getCompanyControllerCheckDuplicatesQueryKey = () => {
+export const getCompanyControllerCheckDuplicatesQueryKey = (params) => {
     return [
-        `/api/v1/companies/duplicate-check`
+        `/api/v1/companies/duplicate-check`, ...(params ? [params] : [])
     ];
 };
-export const getCompanyControllerCheckDuplicatesQueryOptions = (options) => {
+export const getCompanyControllerCheckDuplicatesQueryOptions = (params, options) => {
     const { query: queryOptions, request: requestOptions } = options ?? {};
-    const queryKey = queryOptions?.queryKey ?? getCompanyControllerCheckDuplicatesQueryKey();
-    const queryFn = ({ signal }) => companyControllerCheckDuplicates({ signal, ...requestOptions });
+    const queryKey = queryOptions?.queryKey ?? getCompanyControllerCheckDuplicatesQueryKey(params);
+    const queryFn = ({ signal }) => companyControllerCheckDuplicates(params, { signal, ...requestOptions });
     return { queryKey, queryFn, ...queryOptions };
 };
 /**
  * @summary Check for potential duplicate companies
  */
-export function useCompanyControllerCheckDuplicates(options, queryClient) {
-    const queryOptions = getCompanyControllerCheckDuplicatesQueryOptions(options);
+export function useCompanyControllerCheckDuplicates(params, options, queryClient) {
+    const queryOptions = getCompanyControllerCheckDuplicatesQueryOptions(params, options);
     const query = useQuery(queryOptions, queryClient);
     query.queryKey = queryOptions.queryKey;
     return query;
@@ -1910,31 +2028,38 @@ export const useCompanyControllerDelete = (options, queryClient) => {
     return useMutation(mutationOptions, queryClient);
 };
 ;
-export const getPersonControllerLookupUrl = () => {
-    return `/api/v1/persons/lookup`;
+export const getPersonControllerLookupUrl = (params) => {
+    const normalizedParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+        if (value !== undefined) {
+            normalizedParams.append(key, value === null ? 'null' : value.toString());
+        }
+    });
+    const stringifiedParams = normalizedParams.toString();
+    return stringifiedParams.length > 0 ? `/api/v1/persons/lookup?${stringifiedParams}` : `/api/v1/persons/lookup`;
 };
-export const personControllerLookup = async (options) => {
-    return customFetch(getPersonControllerLookupUrl(), {
+export const personControllerLookup = async (params, options) => {
+    return customFetch(getPersonControllerLookupUrl(params), {
         ...options,
         method: 'GET'
     });
 };
-export const getPersonControllerLookupQueryKey = () => {
+export const getPersonControllerLookupQueryKey = (params) => {
     return [
-        `/api/v1/persons/lookup`
+        `/api/v1/persons/lookup`, ...(params ? [params] : [])
     ];
 };
-export const getPersonControllerLookupQueryOptions = (options) => {
+export const getPersonControllerLookupQueryOptions = (params, options) => {
     const { query: queryOptions, request: requestOptions } = options ?? {};
-    const queryKey = queryOptions?.queryKey ?? getPersonControllerLookupQueryKey();
-    const queryFn = ({ signal }) => personControllerLookup({ signal, ...requestOptions });
+    const queryKey = queryOptions?.queryKey ?? getPersonControllerLookupQueryKey(params);
+    const queryFn = ({ signal }) => personControllerLookup(params, { signal, ...requestOptions });
     return { queryKey, queryFn, ...queryOptions };
 };
 /**
  * @summary Lookup persons by email or mobile to link existing person
  */
-export function usePersonControllerLookup(options, queryClient) {
-    const queryOptions = getPersonControllerLookupQueryOptions(options);
+export function usePersonControllerLookup(params, options, queryClient) {
+    const queryOptions = getPersonControllerLookupQueryOptions(params, options);
     const query = useQuery(queryOptions, queryClient);
     query.queryKey = queryOptions.queryKey;
     return query;
@@ -2316,62 +2441,761 @@ export const useAttendanceControllerAdminUpsertDay = (options, queryClient) => {
     return useMutation(mutationOptions, queryClient);
 };
 ;
-export const getAttendanceControllerGetTeamUrl = () => {
-    return `/api/v1/attendance/team`;
+export const getAttendanceControllerGetTeamUrl = (params) => {
+    const normalizedParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+        if (value !== undefined) {
+            normalizedParams.append(key, value === null ? 'null' : value.toString());
+        }
+    });
+    const stringifiedParams = normalizedParams.toString();
+    return stringifiedParams.length > 0 ? `/api/v1/attendance/team?${stringifiedParams}` : `/api/v1/attendance/team`;
 };
-export const attendanceControllerGetTeam = async (options) => {
-    return customFetch(getAttendanceControllerGetTeamUrl(), {
+export const attendanceControllerGetTeam = async (params, options) => {
+    return customFetch(getAttendanceControllerGetTeamUrl(params), {
         ...options,
         method: 'GET'
     });
 };
-export const getAttendanceControllerGetTeamQueryKey = () => {
+export const getAttendanceControllerGetTeamQueryKey = (params) => {
     return [
-        `/api/v1/attendance/team`
+        `/api/v1/attendance/team`, ...(params ? [params] : [])
     ];
 };
-export const getAttendanceControllerGetTeamQueryOptions = (options) => {
+export const getAttendanceControllerGetTeamQueryOptions = (params, options) => {
     const { query: queryOptions, request: requestOptions } = options ?? {};
-    const queryKey = queryOptions?.queryKey ?? getAttendanceControllerGetTeamQueryKey();
-    const queryFn = ({ signal }) => attendanceControllerGetTeam({ signal, ...requestOptions });
+    const queryKey = queryOptions?.queryKey ?? getAttendanceControllerGetTeamQueryKey(params);
+    const queryFn = ({ signal }) => attendanceControllerGetTeam(params, { signal, ...requestOptions });
     return { queryKey, queryFn, ...queryOptions };
 };
 /**
  * @summary Get team attendance records
  */
-export function useAttendanceControllerGetTeam(options, queryClient) {
-    const queryOptions = getAttendanceControllerGetTeamQueryOptions(options);
+export function useAttendanceControllerGetTeam(params, options, queryClient) {
+    const queryOptions = getAttendanceControllerGetTeamQueryOptions(params, options);
     const query = useQuery(queryOptions, queryClient);
     query.queryKey = queryOptions.queryKey;
     return query;
 }
 ;
-export const getAttendanceControllerGetReportUrl = () => {
-    return `/api/v1/attendance/report/csv`;
+export const getAttendanceControllerGetReportUrl = (params) => {
+    const normalizedParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+        if (value !== undefined) {
+            normalizedParams.append(key, value === null ? 'null' : value.toString());
+        }
+    });
+    const stringifiedParams = normalizedParams.toString();
+    return stringifiedParams.length > 0 ? `/api/v1/attendance/report/csv?${stringifiedParams}` : `/api/v1/attendance/report/csv`;
 };
-export const attendanceControllerGetReport = async (options) => {
-    return customFetch(getAttendanceControllerGetReportUrl(), {
+export const attendanceControllerGetReport = async (params, options) => {
+    return customFetch(getAttendanceControllerGetReportUrl(params), {
         ...options,
         method: 'GET'
     });
 };
-export const getAttendanceControllerGetReportQueryKey = () => {
+export const getAttendanceControllerGetReportQueryKey = (params) => {
     return [
-        `/api/v1/attendance/report/csv`
+        `/api/v1/attendance/report/csv`, ...(params ? [params] : [])
     ];
 };
-export const getAttendanceControllerGetReportQueryOptions = (options) => {
+export const getAttendanceControllerGetReportQueryOptions = (params, options) => {
     const { query: queryOptions, request: requestOptions } = options ?? {};
-    const queryKey = queryOptions?.queryKey ?? getAttendanceControllerGetReportQueryKey();
-    const queryFn = ({ signal }) => attendanceControllerGetReport({ signal, ...requestOptions });
+    const queryKey = queryOptions?.queryKey ?? getAttendanceControllerGetReportQueryKey(params);
+    const queryFn = ({ signal }) => attendanceControllerGetReport(params, { signal, ...requestOptions });
     return { queryKey, queryFn, ...queryOptions };
 };
 /**
  * @summary Export monthly attendance report as CSV
  */
-export function useAttendanceControllerGetReport(options, queryClient) {
-    const queryOptions = getAttendanceControllerGetReportQueryOptions(options);
+export function useAttendanceControllerGetReport(params, options, queryClient) {
+    const queryOptions = getAttendanceControllerGetReportQueryOptions(params, options);
     const query = useQuery(queryOptions, queryClient);
     query.queryKey = queryOptions.queryKey;
     return query;
 }
+;
+export const getAttendanceControllerGetSettingsUrl = () => {
+    return `/api/v1/attendance/settings`;
+};
+export const attendanceControllerGetSettings = async (options) => {
+    return customFetch(getAttendanceControllerGetSettingsUrl(), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getAttendanceControllerGetSettingsQueryKey = () => {
+    return [
+        `/api/v1/attendance/settings`
+    ];
+};
+export const getAttendanceControllerGetSettingsQueryOptions = (options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getAttendanceControllerGetSettingsQueryKey();
+    const queryFn = ({ signal }) => attendanceControllerGetSettings({ signal, ...requestOptions });
+    return { queryKey, queryFn, ...queryOptions };
+};
+/**
+ * @summary Get organizational attendance settings
+ */
+export function useAttendanceControllerGetSettings(options, queryClient) {
+    const queryOptions = getAttendanceControllerGetSettingsQueryOptions(options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
+export const getAttendanceControllerUpdateWorkingDaysUrl = () => {
+    return `/api/v1/attendance/settings/working-days`;
+};
+export const attendanceControllerUpdateWorkingDays = async (options) => {
+    return customFetch(getAttendanceControllerUpdateWorkingDaysUrl(), {
+        ...options,
+        method: 'PUT'
+    });
+};
+export const getAttendanceControllerUpdateWorkingDaysMutationOptions = (options) => {
+    const mutationKey = ['attendanceControllerUpdateWorkingDays'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = () => {
+        return attendanceControllerUpdateWorkingDays(requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Update working and work off days
+*/
+export const useAttendanceControllerUpdateWorkingDays = (options, queryClient) => {
+    const mutationOptions = getAttendanceControllerUpdateWorkingDaysMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getAttendanceControllerAddHolidayUrl = () => {
+    return `/api/v1/attendance/settings/holidays`;
+};
+export const attendanceControllerAddHoliday = async (options) => {
+    return customFetch(getAttendanceControllerAddHolidayUrl(), {
+        ...options,
+        method: 'POST'
+    });
+};
+export const getAttendanceControllerAddHolidayMutationOptions = (options) => {
+    const mutationKey = ['attendanceControllerAddHoliday'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = () => {
+        return attendanceControllerAddHoliday(requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Add a new company holiday
+*/
+export const useAttendanceControllerAddHoliday = (options, queryClient) => {
+    const mutationOptions = getAttendanceControllerAddHolidayMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getAttendanceControllerDeleteHolidayUrl = (id) => {
+    return `/api/v1/attendance/settings/holidays/${id}`;
+};
+export const attendanceControllerDeleteHoliday = async (id, options) => {
+    return customFetch(getAttendanceControllerDeleteHolidayUrl(id), {
+        ...options,
+        method: 'DELETE'
+    });
+};
+export const getAttendanceControllerDeleteHolidayMutationOptions = (options) => {
+    const mutationKey = ['attendanceControllerDeleteHoliday'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { id } = props ?? {};
+        return attendanceControllerDeleteHoliday(id, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Delete a company holiday
+*/
+export const useAttendanceControllerDeleteHoliday = (options, queryClient) => {
+    const mutationOptions = getAttendanceControllerDeleteHolidayMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getAttendanceControllerUpdateDefaultHoursUrl = () => {
+    return `/api/v1/attendance/settings/working-hours/default`;
+};
+export const attendanceControllerUpdateDefaultHours = async (options) => {
+    return customFetch(getAttendanceControllerUpdateDefaultHoursUrl(), {
+        ...options,
+        method: 'PUT'
+    });
+};
+export const getAttendanceControllerUpdateDefaultHoursMutationOptions = (options) => {
+    const mutationKey = ['attendanceControllerUpdateDefaultHours'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = () => {
+        return attendanceControllerUpdateDefaultHours(requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Update default full day and half day working hours
+*/
+export const useAttendanceControllerUpdateDefaultHours = (options, queryClient) => {
+    const mutationOptions = getAttendanceControllerUpdateDefaultHoursMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getAttendanceControllerUpdateEmployeeHoursUrl = (id) => {
+    return `/api/v1/attendance/settings/working-hours/employee/${id}`;
+};
+export const attendanceControllerUpdateEmployeeHours = async (id, options) => {
+    return customFetch(getAttendanceControllerUpdateEmployeeHoursUrl(id), {
+        ...options,
+        method: 'PUT'
+    });
+};
+export const getAttendanceControllerUpdateEmployeeHoursMutationOptions = (options) => {
+    const mutationKey = ['attendanceControllerUpdateEmployeeHours'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { id } = props ?? {};
+        return attendanceControllerUpdateEmployeeHours(id, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Update or reset employee-specific working hours
+*/
+export const useAttendanceControllerUpdateEmployeeHours = (options, queryClient) => {
+    const mutationOptions = getAttendanceControllerUpdateEmployeeHoursMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getNotificationsControllerGetNotificationsUrl = (params) => {
+    const normalizedParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+        if (value !== undefined) {
+            normalizedParams.append(key, value === null ? 'null' : value.toString());
+        }
+    });
+    const stringifiedParams = normalizedParams.toString();
+    return stringifiedParams.length > 0 ? `/api/v1/notifications?${stringifiedParams}` : `/api/v1/notifications`;
+};
+export const notificationsControllerGetNotifications = async (params, options) => {
+    return customFetch(getNotificationsControllerGetNotificationsUrl(params), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getNotificationsControllerGetNotificationsQueryKey = (params) => {
+    return [
+        `/api/v1/notifications`, ...(params ? [params] : [])
+    ];
+};
+export const getNotificationsControllerGetNotificationsQueryOptions = (params, options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getNotificationsControllerGetNotificationsQueryKey(params);
+    const queryFn = ({ signal }) => notificationsControllerGetNotifications(params, { signal, ...requestOptions });
+    return { queryKey, queryFn, ...queryOptions };
+};
+/**
+ * @summary Get current user notifications
+ */
+export function useNotificationsControllerGetNotifications(params, options, queryClient) {
+    const queryOptions = getNotificationsControllerGetNotificationsQueryOptions(params, options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
+export const getNotificationsControllerGetUnreadCountUrl = () => {
+    return `/api/v1/notifications/unread-count`;
+};
+export const notificationsControllerGetUnreadCount = async (options) => {
+    return customFetch(getNotificationsControllerGetUnreadCountUrl(), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getNotificationsControllerGetUnreadCountQueryKey = () => {
+    return [
+        `/api/v1/notifications/unread-count`
+    ];
+};
+export const getNotificationsControllerGetUnreadCountQueryOptions = (options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getNotificationsControllerGetUnreadCountQueryKey();
+    const queryFn = ({ signal }) => notificationsControllerGetUnreadCount({ signal, ...requestOptions });
+    return { queryKey, queryFn, ...queryOptions };
+};
+/**
+ * @summary Get unread notification count
+ */
+export function useNotificationsControllerGetUnreadCount(options, queryClient) {
+    const queryOptions = getNotificationsControllerGetUnreadCountQueryOptions(options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
+export const getNotificationsControllerMarkReadUrl = (id) => {
+    return `/api/v1/notifications/${id}/read`;
+};
+export const notificationsControllerMarkRead = async (id, options) => {
+    return customFetch(getNotificationsControllerMarkReadUrl(id), {
+        ...options,
+        method: 'POST'
+    });
+};
+export const getNotificationsControllerMarkReadMutationOptions = (options) => {
+    const mutationKey = ['notificationsControllerMarkRead'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { id } = props ?? {};
+        return notificationsControllerMarkRead(id, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Mark a notification as read
+*/
+export const useNotificationsControllerMarkRead = (options, queryClient) => {
+    const mutationOptions = getNotificationsControllerMarkReadMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getNotificationsControllerMarkAllReadUrl = () => {
+    return `/api/v1/notifications/read-all`;
+};
+export const notificationsControllerMarkAllRead = async (options) => {
+    return customFetch(getNotificationsControllerMarkAllReadUrl(), {
+        ...options,
+        method: 'POST'
+    });
+};
+export const getNotificationsControllerMarkAllReadMutationOptions = (options) => {
+    const mutationKey = ['notificationsControllerMarkAllRead'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = () => {
+        return notificationsControllerMarkAllRead(requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Mark all notifications as read
+*/
+export const useNotificationsControllerMarkAllRead = (options, queryClient) => {
+    const mutationOptions = getNotificationsControllerMarkAllReadMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getTasksControllerGetBoardUrl = (params) => {
+    const normalizedParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+        if (value !== undefined) {
+            normalizedParams.append(key, value === null ? 'null' : value.toString());
+        }
+    });
+    const stringifiedParams = normalizedParams.toString();
+    return stringifiedParams.length > 0 ? `/api/v1/admin/tasks/board?${stringifiedParams}` : `/api/v1/admin/tasks/board`;
+};
+export const tasksControllerGetBoard = async (params, options) => {
+    return customFetch(getTasksControllerGetBoardUrl(params), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getTasksControllerGetBoardQueryKey = (params) => {
+    return [
+        `/api/v1/admin/tasks/board`, ...(params ? [params] : [])
+    ];
+};
+export const getTasksControllerGetBoardQueryOptions = (params, options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getTasksControllerGetBoardQueryKey(params);
+    const queryFn = ({ signal }) => tasksControllerGetBoard(params, { signal, ...requestOptions });
+    return { queryKey, queryFn, ...queryOptions };
+};
+/**
+ * @summary Get admin task kanban board
+ */
+export function useTasksControllerGetBoard(params, options, queryClient) {
+    const queryOptions = getTasksControllerGetBoardQueryOptions(params, options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
+export const getTasksControllerGetSummaryUrl = () => {
+    return `/api/v1/admin/tasks/summary`;
+};
+export const tasksControllerGetSummary = async (options) => {
+    return customFetch(getTasksControllerGetSummaryUrl(), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getTasksControllerGetSummaryQueryKey = () => {
+    return [
+        `/api/v1/admin/tasks/summary`
+    ];
+};
+export const getTasksControllerGetSummaryQueryOptions = (options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getTasksControllerGetSummaryQueryKey();
+    const queryFn = ({ signal }) => tasksControllerGetSummary({ signal, ...requestOptions });
+    return { queryKey, queryFn, ...queryOptions };
+};
+/**
+ * @summary Get admin task summary metrics
+ */
+export function useTasksControllerGetSummary(options, queryClient) {
+    const queryOptions = getTasksControllerGetSummaryQueryOptions(options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
+export const getTasksControllerGetRequestsCountUrl = () => {
+    return `/api/v1/admin/tasks/requests/count`;
+};
+export const tasksControllerGetRequestsCount = async (options) => {
+    return customFetch(getTasksControllerGetRequestsCountUrl(), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getTasksControllerGetRequestsCountQueryKey = () => {
+    return [
+        `/api/v1/admin/tasks/requests/count`
+    ];
+};
+export const getTasksControllerGetRequestsCountQueryOptions = (options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getTasksControllerGetRequestsCountQueryKey();
+    const queryFn = ({ signal }) => tasksControllerGetRequestsCount({ signal, ...requestOptions });
+    return { queryKey, queryFn, ...queryOptions };
+};
+/**
+ * @summary Get count of tasks waiting in review
+ */
+export function useTasksControllerGetRequestsCount(options, queryClient) {
+    const queryOptions = getTasksControllerGetRequestsCountQueryOptions(options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
+export const getTasksControllerGetAssignableEmployeesUrl = () => {
+    return `/api/v1/admin/tasks/assignable-employees`;
+};
+export const tasksControllerGetAssignableEmployees = async (options) => {
+    return customFetch(getTasksControllerGetAssignableEmployeesUrl(), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getTasksControllerGetAssignableEmployeesQueryKey = () => {
+    return [
+        `/api/v1/admin/tasks/assignable-employees`
+    ];
+};
+export const getTasksControllerGetAssignableEmployeesQueryOptions = (options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getTasksControllerGetAssignableEmployeesQueryKey();
+    const queryFn = ({ signal }) => tasksControllerGetAssignableEmployees({ signal, ...requestOptions });
+    return { queryKey, queryFn, ...queryOptions };
+};
+/**
+ * @summary Get list of active employees assignable to tasks
+ */
+export function useTasksControllerGetAssignableEmployees(options, queryClient) {
+    const queryOptions = getTasksControllerGetAssignableEmployeesQueryOptions(options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
+export const getTasksControllerCreateTaskUrl = () => {
+    return `/api/v1/admin/tasks`;
+};
+export const tasksControllerCreateTask = async (createTaskDto, options) => {
+    return customFetch(getTasksControllerCreateTaskUrl(), {
+        ...options,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        body: JSON.stringify(createTaskDto)
+    });
+};
+export const getTasksControllerCreateTaskMutationOptions = (options) => {
+    const mutationKey = ['tasksControllerCreateTask'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { data } = props ?? {};
+        return tasksControllerCreateTask(data, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Create a new task with assignees
+*/
+export const useTasksControllerCreateTask = (options, queryClient) => {
+    const mutationOptions = getTasksControllerCreateTaskMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getTasksControllerGetTaskDetailUrl = (id) => {
+    return `/api/v1/admin/tasks/${id}`;
+};
+export const tasksControllerGetTaskDetail = async (id, options) => {
+    return customFetch(getTasksControllerGetTaskDetailUrl(id), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getTasksControllerGetTaskDetailQueryKey = (id) => {
+    return [
+        `/api/v1/admin/tasks/${id}`
+    ];
+};
+export const getTasksControllerGetTaskDetailQueryOptions = (id, options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getTasksControllerGetTaskDetailQueryKey(id);
+    const queryFn = ({ signal }) => tasksControllerGetTaskDetail(id, { signal, ...requestOptions });
+    return { queryKey, queryFn, enabled: !!(id), ...queryOptions };
+};
+/**
+ * @summary Get task details by ID with history
+ */
+export function useTasksControllerGetTaskDetail(id, options, queryClient) {
+    const queryOptions = getTasksControllerGetTaskDetailQueryOptions(id, options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
+export const getTasksControllerUpdateTaskUrl = (id) => {
+    return `/api/v1/admin/tasks/${id}`;
+};
+export const tasksControllerUpdateTask = async (id, updateTaskDto, options) => {
+    return customFetch(getTasksControllerUpdateTaskUrl(id), {
+        ...options,
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        body: JSON.stringify(updateTaskDto)
+    });
+};
+export const getTasksControllerUpdateTaskMutationOptions = (options) => {
+    const mutationKey = ['tasksControllerUpdateTask'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { id, data } = props ?? {};
+        return tasksControllerUpdateTask(id, data, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Update task details or assignees
+*/
+export const useTasksControllerUpdateTask = (options, queryClient) => {
+    const mutationOptions = getTasksControllerUpdateTaskMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getTasksControllerMoveStageUrl = (id) => {
+    return `/api/v1/admin/tasks/${id}/move`;
+};
+export const tasksControllerMoveStage = async (id, moveTaskStageDto, options) => {
+    return customFetch(getTasksControllerMoveStageUrl(id), {
+        ...options,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        body: JSON.stringify(moveTaskStageDto)
+    });
+};
+export const getTasksControllerMoveStageMutationOptions = (options) => {
+    const mutationKey = ['tasksControllerMoveStage'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { id, data } = props ?? {};
+        return tasksControllerMoveStage(id, data, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Move task stage (admin)
+*/
+export const useTasksControllerMoveStage = (options, queryClient) => {
+    const mutationOptions = getTasksControllerMoveStageMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getMyTasksControllerGetBoardUrl = (params) => {
+    const normalizedParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+        if (value !== undefined) {
+            normalizedParams.append(key, value === null ? 'null' : value.toString());
+        }
+    });
+    const stringifiedParams = normalizedParams.toString();
+    return stringifiedParams.length > 0 ? `/api/v1/my-tasks/board?${stringifiedParams}` : `/api/v1/my-tasks/board`;
+};
+export const myTasksControllerGetBoard = async (params, options) => {
+    return customFetch(getMyTasksControllerGetBoardUrl(params), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getMyTasksControllerGetBoardQueryKey = (params) => {
+    return [
+        `/api/v1/my-tasks/board`, ...(params ? [params] : [])
+    ];
+};
+export const getMyTasksControllerGetBoardQueryOptions = (params, options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getMyTasksControllerGetBoardQueryKey(params);
+    const queryFn = ({ signal }) => myTasksControllerGetBoard(params, { signal, ...requestOptions });
+    return { queryKey, queryFn, ...queryOptions };
+};
+/**
+ * @summary Get employee personal task kanban board
+ */
+export function useMyTasksControllerGetBoard(params, options, queryClient) {
+    const queryOptions = getMyTasksControllerGetBoardQueryOptions(params, options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
+export const getMyTasksControllerGetSummaryUrl = () => {
+    return `/api/v1/my-tasks/summary`;
+};
+export const myTasksControllerGetSummary = async (options) => {
+    return customFetch(getMyTasksControllerGetSummaryUrl(), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getMyTasksControllerGetSummaryQueryKey = () => {
+    return [
+        `/api/v1/my-tasks/summary`
+    ];
+};
+export const getMyTasksControllerGetSummaryQueryOptions = (options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getMyTasksControllerGetSummaryQueryKey();
+    const queryFn = ({ signal }) => myTasksControllerGetSummary({ signal, ...requestOptions });
+    return { queryKey, queryFn, ...queryOptions };
+};
+/**
+ * @summary Get employee personal task summary metrics
+ */
+export function useMyTasksControllerGetSummary(options, queryClient) {
+    const queryOptions = getMyTasksControllerGetSummaryQueryOptions(options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
+export const getMyTasksControllerGetTaskDetailUrl = (id) => {
+    return `/api/v1/my-tasks/${id}`;
+};
+export const myTasksControllerGetTaskDetail = async (id, options) => {
+    return customFetch(getMyTasksControllerGetTaskDetailUrl(id), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getMyTasksControllerGetTaskDetailQueryKey = (id) => {
+    return [
+        `/api/v1/my-tasks/${id}`
+    ];
+};
+export const getMyTasksControllerGetTaskDetailQueryOptions = (id, options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getMyTasksControllerGetTaskDetailQueryKey(id);
+    const queryFn = ({ signal }) => myTasksControllerGetTaskDetail(id, { signal, ...requestOptions });
+    return { queryKey, queryFn, enabled: !!(id), ...queryOptions };
+};
+/**
+ * @summary Get details of a task assigned to current employee
+ */
+export function useMyTasksControllerGetTaskDetail(id, options, queryClient) {
+    const queryOptions = getMyTasksControllerGetTaskDetailQueryOptions(id, options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
+export const getMyTasksControllerMoveStageUrl = (id) => {
+    return `/api/v1/my-tasks/${id}/move`;
+};
+export const myTasksControllerMoveStage = async (id, moveTaskStageDto, options) => {
+    return customFetch(getMyTasksControllerMoveStageUrl(id), {
+        ...options,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        body: JSON.stringify(moveTaskStageDto)
+    });
+};
+export const getMyTasksControllerMoveStageMutationOptions = (options) => {
+    const mutationKey = ['myTasksControllerMoveStage'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { id, data } = props ?? {};
+        return myTasksControllerMoveStage(id, data, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Move assigned task stage (e.g. to in_progress or requested)
+*/
+export const useMyTasksControllerMoveStage = (options, queryClient) => {
+    const mutationOptions = getMyTasksControllerMoveStageMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};

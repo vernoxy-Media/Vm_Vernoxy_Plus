@@ -74,6 +74,35 @@ async function expectError(
   }
 }
 
+async function expectDeferredError(
+  client: Client,
+  sql: string,
+  expectedPattern: RegExp | string,
+  testTitle: string,
+  ctx: TestContext,
+  params: unknown[] = [],
+) {
+  try {
+    await client.query('SAVEPOINT sp_test');
+    await client.query(sql, params);
+    await client.query('SET CONSTRAINTS ALL IMMEDIATE');
+    await client.query('RELEASE SAVEPOINT sp_test');
+    ctx.failCount++;
+    logFail(testTitle, new Error('Expected query to fail, but it succeeded'));
+  } catch (error: any) {
+    await client.query('ROLLBACK TO SAVEPOINT sp_test');
+    const msg = error.message || '';
+    const matches = typeof expectedPattern === 'string' ? msg.includes(expectedPattern) : expectedPattern.test(msg);
+    if (matches) {
+      ctx.passCount++;
+      logPass(testTitle, msg.split('\n')[0]);
+    } else {
+      ctx.failCount++;
+      logFail(testTitle, new Error(`Expected pattern ${expectedPattern}, but got: ${msg}`));
+    }
+  }
+}
+
 export async function runFunctionalTests(directUrl: string): Promise<boolean> {
   const client = new Client({ connectionString: directUrl });
   await client.connect();
@@ -2293,6 +2322,476 @@ export async function runFunctionalTests(directUrl: string): Promise<boolean> {
       ctx
     );
 
+    await client.query('RESET ROLE');
+
+    // =========================================================================
+    // Test 23: Task management, integrity triggers, deferred assignees & security
+    // =========================================================================
+    ctx.currentGroup = 'Test 23: Task management, integrity triggers & security';
+    console.log(`\n--- ${ctx.currentGroup} ---`);
+
+    // Setup active employees
+    const empRows = await client.query(`
+      SELECT emp_id FROM employees WHERE status = 'Active' AND deleted_at IS NULL ORDER BY emp_id LIMIT 2;
+    `);
+    const taskEmp1Id = empRows.rows[0].emp_id;
+    const taskEmp2Id = empRows.rows[1].emp_id;
+
+    // Get or create an inactive employee
+    let inactEmpRes = await client.query(`
+      SELECT emp_id FROM employees WHERE status = 'Inactive' AND deleted_at IS NULL LIMIT 1;
+    `);
+    let taskInactiveEmpId: number;
+    if (inactEmpRes.rows.length === 0) {
+      const depRes = await client.query(`SELECT dep_id FROM departments WHERE deleted_at IS NULL LIMIT 1;`);
+      const createInact = await client.query(`
+        INSERT INTO employees (name, email, dep_id, joining_date, status)
+        VALUES ('Inactive Tester', 'inact_test_task@example.com', $1, '2026-01-01', 'Inactive')
+        RETURNING emp_id;
+      `, [depRes.rows[0].dep_id]);
+      taskInactiveEmpId = createInact.rows[0].emp_id;
+    } else {
+      taskInactiveEmpId = inactEmpRes.rows[0].emp_id;
+    }
+
+    // Get a valid task_type lookup_id
+    const taskTypeRes = await client.query(`
+      SELECT lookup_id FROM master_lookup WHERE lookup_type = 'task_type' AND is_active = true AND deleted_at IS NULL LIMIT 1;
+    `);
+    const validTaskTypeId = taskTypeRes.rows[0].lookup_id;
+
+    // 1. task_counters
+    await client.query(`
+      INSERT INTO task_counters (counter_year, last_number)
+      VALUES (2099, 0)
+      ON CONFLICT (counter_year) DO UPDATE SET last_number = task_counters.last_number + 1;
+    `);
+    logPass('Valid insert/update into task_counters');
+
+    await expectError(
+      client,
+      `INSERT INTO task_counters (counter_year, last_number) VALUES (2098, -1)`,
+      /ck_task_counters_last_number_ge_zero/,
+      'task_counters last_number >= 0 enforced',
+      ctx
+    );
+
+    await expectError(
+      client,
+      `DELETE FROM task_counters WHERE counter_year = 2099`,
+      /Hard delete is disabled on table task_counters/,
+      'DELETE rejected on task_counters by trigger',
+      ctx
+    );
+
+    await expectError(
+      client,
+      `TRUNCATE task_counters`,
+      /TRUNCATE is disabled on table task_counters/,
+      'TRUNCATE rejected on task_counters by trigger',
+      ctx
+    );
+
+    // 2. tasks & task_assignees: Deferred constraint check (at least one assignee)
+    await expectDeferredError(
+      client,
+      `INSERT INTO tasks (task_code, title) VALUES ('TSK-TEST-001', 'Task without assignee')`,
+      /Task .* must have at least one active assignee/,
+      'Create task without assignee fails at commit',
+      ctx
+    );
+
+    // Create task with assignee in one subtransaction
+    let testTaskId: number;
+    {
+      await client.query('SAVEPOINT sp_create_task');
+      const tRes = await client.query(`
+        INSERT INTO tasks (task_code, title, task_type_id, allocated_minutes)
+        VALUES ('TSK-TEST-002', 'Valid Task With Assignee', $1, 120)
+        RETURNING task_id;
+      `, [validTaskTypeId]);
+      testTaskId = tRes.rows[0].task_id;
+
+      await client.query(`
+        INSERT INTO task_assignees (task_id, employee_id)
+        VALUES ($1, $2);
+      `, [testTaskId, taskEmp1Id]);
+      await client.query('RELEASE SAVEPOINT sp_create_task');
+      logPass('Task created with active assignee successfully');
+    }
+
+    // Assigning inactive employee fails
+    await expectError(
+      client,
+      `INSERT INTO task_assignees (task_id, employee_id) VALUES ($1, $2)`,
+      /Assigned employee .* must be Active and not deleted/,
+      'Assigning inactive employee rejected by trigger',
+      ctx,
+      [testTaskId, taskInactiveEmpId]
+    );
+
+    // Duplicate active assignee rejected
+    await expectError(
+      client,
+      `INSERT INTO task_assignees (task_id, employee_id) VALUES ($1, $2)`,
+      /duplicate key value violates unique constraint "ux_task_assignees_task_emp"/,
+      'Duplicate active assignee on same task rejected',
+      ctx,
+      [testTaskId, taskEmp1Id]
+    );
+
+    // Check constraints on tasks
+    await expectError(
+      client,
+      `INSERT INTO tasks (task_code, title) VALUES ('TSK-TEST-003', '   ')`,
+      /ck_tasks_title_non_blank/,
+      'Blank title rejected by check constraint',
+      ctx
+    );
+
+    await expectError(
+      client,
+      `INSERT INTO tasks (task_code, title, allocated_minutes) VALUES ('TSK-TEST-004', 'Bad Minutes', 0)`,
+      /ck_tasks_allocated_minutes/,
+      'allocated_minutes <= 0 rejected',
+      ctx
+    );
+
+    await expectError(
+      client,
+      `INSERT INTO tasks (task_code, title, allocated_minutes) VALUES ('TSK-TEST-005', 'Too Many Minutes', 14401)`,
+      /ck_tasks_allocated_minutes/,
+      'allocated_minutes > 14400 rejected',
+      ctx
+    );
+
+    await expectError(
+      client,
+      `INSERT INTO tasks (task_code, title) VALUES ('TSK-TEST-002', 'Duplicate Code')`,
+      /duplicate key value violates unique constraint "ux_tasks_task_code"/,
+      'Duplicate task_code rejected',
+      ctx
+    );
+
+    // Removing last assignee fails at commit
+    await expectDeferredError(
+      client,
+      `UPDATE task_assignees SET deleted_at = now(), deleted_by = $1 WHERE task_id = $2`,
+      /Task .* must have at least one active assignee/,
+      'Removing last assignee fails at commit',
+      ctx,
+      [taskEmp1Id, testTaskId]
+    );
+
+    // Add a second assignee
+    await client.query(`
+      INSERT INTO task_assignees (task_id, employee_id) VALUES ($1, $2);
+    `, [testTaskId, taskEmp2Id]);
+    logPass('Second assignee added successfully');
+
+    // Now removing first assignee succeeds
+    await client.query(`
+      UPDATE task_assignees SET deleted_at = now(), deleted_by = $1 WHERE task_id = $2 AND employee_id = $1;
+    `, [taskEmp1Id, testTaskId]);
+    logPass('Removing one assignee when another remains succeeds');
+
+    // 3. Stage transition matrix & row_version
+    // Initial stage is assigned, row_version is 1
+    const v1Res = await client.query(`SELECT stage, row_version FROM tasks WHERE task_id = $1;`, [testTaskId]);
+    const initStage = v1Res.rows[0].stage;
+    const initVer = v1Res.rows[0].row_version;
+
+    // Illegal: assigned -> completed
+    await expectError(
+      client,
+      `UPDATE tasks SET stage = 'completed', completed_at = now(), completed_by = $1 WHERE task_id = $2`,
+      /Invalid stage transition from assigned to completed/,
+      'Illegal transition assigned -> completed rejected',
+      ctx,
+      [taskEmp2Id, testTaskId]
+    );
+
+    // Illegal: assigned -> requested
+    await expectError(
+      client,
+      `UPDATE tasks SET stage = 'requested' WHERE task_id = $1`,
+      /Invalid stage transition from assigned to requested/,
+      'Illegal transition assigned -> requested rejected',
+      ctx,
+      [testTaskId]
+    );
+
+    // Legal: assigned -> in_progress
+    await client.query(`UPDATE tasks SET stage = 'in_progress' WHERE task_id = $1;`, [testTaskId]);
+    const v2Res = await client.query(`SELECT stage, row_version FROM tasks WHERE task_id = $1;`, [testTaskId]);
+    if (v2Res.rows[0].stage === 'in_progress' && v2Res.rows[0].row_version === initVer + 1) {
+      logPass('Legal transition assigned -> in_progress succeeds; row_version increments');
+    } else {
+      logFail('assigned -> in_progress verification', `stage=${v2Res.rows[0].stage}, version=${v2Res.rows[0].row_version}`);
+    }
+
+    // Legal: in_progress -> assigned
+    await client.query(`UPDATE tasks SET stage = 'assigned' WHERE task_id = $1;`, [testTaskId]);
+    logPass('Legal transition in_progress -> assigned succeeds');
+
+    // in_progress -> requested
+    await client.query(`UPDATE tasks SET stage = 'in_progress' WHERE task_id = $1;`, [testTaskId]);
+    await client.query(`UPDATE tasks SET stage = 'requested' WHERE task_id = $1;`, [testTaskId]);
+    const reqRes = await client.query(`SELECT requested_at FROM tasks WHERE task_id = $1;`, [testTaskId]);
+    if (reqRes.rows[0].requested_at !== null) {
+      logPass('Legal transition in_progress -> requested succeeds and sets requested_at');
+    } else {
+      logFail('requested_at check', 'requested_at is null');
+    }
+
+    // Illegal: requested -> assigned
+    await expectError(
+      client,
+      `UPDATE tasks SET stage = 'assigned' WHERE task_id = $1`,
+      /Invalid stage transition from requested to assigned/,
+      'Illegal transition requested -> assigned rejected',
+      ctx,
+      [testTaskId]
+    );
+
+    // Legal: requested -> in_progress (withdraw)
+    await client.query(`UPDATE tasks SET stage = 'in_progress' WHERE task_id = $1;`, [testTaskId]);
+    logPass('Legal transition requested -> in_progress (withdraw) succeeds');
+
+    // Move to requested and then approve (completed)
+    await client.query(`UPDATE tasks SET stage = 'requested' WHERE task_id = $1;`, [testTaskId]);
+    await client.query(`
+      UPDATE tasks
+      SET stage = 'completed', completed_at = clock_timestamp(), completed_by = $1
+      WHERE task_id = $2;
+    `, [taskEmp2Id, testTaskId]);
+    logPass('Legal transition requested -> completed (approve) succeeds');
+
+    // Completed task is locked: ANY update with stage = completed is rejected
+    await expectError(
+      client,
+      `UPDATE tasks SET title = 'New Title On Completed' WHERE task_id = $1`,
+      /Completed task is locked: cannot be updated/,
+      'Completed task is locked for updates',
+      ctx,
+      [testTaskId]
+    );
+
+    // Cannot add assignee to completed task
+    await expectError(
+      client,
+      `INSERT INTO task_assignees (task_id, employee_id) VALUES ($1, $2)`,
+      /Cannot modify assignees of completed task/,
+      'Cannot add assignee to completed task',
+      ctx,
+      [testTaskId, taskEmp1Id]
+    );
+
+    // Cannot soft-delete assignee of completed task
+    await expectError(
+      client,
+      `UPDATE task_assignees SET deleted_at = now() WHERE task_id = $1`,
+      /Cannot modify assignees of completed task/,
+      'Cannot soft-delete assignee of completed task',
+      ctx,
+      [testTaskId]
+    );
+
+    // Legal: completed -> in_progress (reopen)
+    await client.query(`
+      UPDATE tasks
+      SET stage = 'in_progress'
+      WHERE task_id = $1;
+    `, [testTaskId]);
+    const reopenedRes = await client.query(`SELECT stage, completed_at, completed_by FROM tasks WHERE task_id = $1;`, [testTaskId]);
+    if (reopenedRes.rows[0].stage === 'in_progress' && reopenedRes.rows[0].completed_at === null && reopenedRes.rows[0].completed_by === null) {
+      logPass('Legal transition completed -> in_progress (reopen) clears completed_at and completed_by');
+    } else {
+      logFail('reopen check', reopenedRes.rows[0]);
+    }
+
+    // 4. task_history append-only
+    const histRes = await client.query(`
+      INSERT INTO task_history (task_id, event_type, actor_id, from_stage, to_stage, note)
+      VALUES ($1, 'stage_changed', $2, 'assigned', 'in_progress', 'Started work')
+      RETURNING history_id;
+    `, [testTaskId, taskEmp2Id]);
+    const testHistId = histRes.rows[0].history_id;
+    logPass('Valid insert into task_history');
+
+    await expectError(
+      client,
+      `UPDATE task_history SET note = 'Tampered' WHERE history_id = $1`,
+      /task_history is append-only/,
+      'UPDATE on task_history rejected (append-only)',
+      ctx,
+      [testHistId]
+    );
+
+    await expectError(
+      client,
+      `DELETE FROM task_history WHERE history_id = $1`,
+      /task_history is append-only/,
+      'DELETE on task_history rejected (append-only)',
+      ctx,
+      [testHistId]
+    );
+
+    await expectError(
+      client,
+      `TRUNCATE task_history`,
+      /TRUNCATE is disabled on table task_history/,
+      'TRUNCATE on task_history rejected',
+      ctx
+    );
+
+    // 5. master_lookup protection
+    await expectError(
+      client,
+      `UPDATE master_lookup SET deleted_at = now(), deleted_by = $1 WHERE lookup_id = $2`,
+      /Cannot soft-delete task_type lookup .* while active tasks reference it/,
+      'Cannot soft-delete task_type lookup used by active task',
+      ctx,
+      [taskEmp2Id, validTaskTypeId]
+    );
+
+    // Deactivation is allowed
+    await client.query(`UPDATE master_lookup SET is_active = false WHERE lookup_id = $1;`, [validTaskTypeId]);
+    logPass('Deactivating task_type lookup is allowed');
+    await client.query(`UPDATE master_lookup SET is_active = true WHERE lookup_id = $1;`, [validTaskTypeId]);
+
+    // 6. notifications
+    const notifRes = await client.query(`
+      INSERT INTO notifications (recipient_id, kind, title, body, entity_type, entity_id)
+      VALUES ($1, 'task_assigned', 'New Task Assigned', 'You have been assigned to TSK-TEST-002', 'task', $2)
+      RETURNING notification_id;
+    `, [taskEmp2Id, testTaskId]);
+    const testNotifId = notifRes.rows[0].notification_id;
+    logPass('Valid insert into notifications');
+
+    await expectError(
+      client,
+      `INSERT INTO notifications (recipient_id, kind, title) VALUES ($1, 'Invalid-Kind', 'Title')`,
+      /ck_notifications_kind_format/,
+      'Invalid notification kind rejected by regex check',
+      ctx,
+      [taskEmp2Id]
+    );
+
+    await expectError(
+      client,
+      `DELETE FROM notifications WHERE notification_id = $1`,
+      /Hard delete is disabled on table notifications/,
+      'DELETE rejected on notifications by trigger',
+      ctx,
+      [testNotifId]
+    );
+
+    await expectError(
+      client,
+      `TRUNCATE notifications`,
+      /TRUNCATE is disabled on table notifications/,
+      'TRUNCATE rejected on notifications by trigger',
+      ctx
+    );
+
+    // 7. Role grants
+    await client.query('SET ROLE pulse_app');
+    await client.query(`SELECT count(*) FROM task_counters;`);
+    await client.query(`SELECT count(*) FROM tasks;`);
+    await client.query(`SELECT count(*) FROM task_assignees;`);
+    await client.query(`SELECT count(*) FROM task_history;`);
+    await client.query(`SELECT count(*) FROM notifications;`);
+    logPass('pulse_app can SELECT from all task & notification tables');
+
+    await expectError(
+      client,
+      `DELETE FROM tasks WHERE task_id = $1`,
+      /permission denied for table tasks/,
+      'pulse_app: DELETE on tasks denied',
+      ctx,
+      [testTaskId]
+    );
+
+    await expectError(
+      client,
+      `DELETE FROM task_assignees WHERE task_id = $1`,
+      /permission denied for table task_assignees/,
+      'pulse_app: DELETE on task_assignees denied',
+      ctx,
+      [testTaskId]
+    );
+
+    await expectError(
+      client,
+      `UPDATE task_history SET note = 'hack' WHERE history_id = $1`,
+      /permission denied for table task_history/,
+      'pulse_app: UPDATE on task_history denied',
+      ctx,
+      [testHistId]
+    );
+
+    await expectError(
+      client,
+      `DELETE FROM task_history WHERE history_id = $1`,
+      /permission denied for table task_history/,
+      'pulse_app: DELETE on task_history denied',
+      ctx,
+      [testHistId]
+    );
+
+    await expectError(
+      client,
+      `DELETE FROM notifications WHERE notification_id = $1`,
+      /permission denied for table notifications/,
+      'pulse_app: DELETE on notifications denied',
+      ctx,
+      [testNotifId]
+    );
+
+    await client.query('RESET ROLE');
+
+    // pulse_readonly role tests
+    await client.query('SET ROLE pulse_readonly');
+    await expectError(
+      client,
+      `SELECT * FROM task_counters`,
+      /permission denied for table task_counters/,
+      'pulse_readonly: SELECT on task_counters denied',
+      ctx
+    );
+
+    await expectError(
+      client,
+      `SELECT * FROM tasks`,
+      /permission denied for table tasks/,
+      'pulse_readonly: SELECT on tasks denied',
+      ctx
+    );
+
+    await expectError(
+      client,
+      `SELECT * FROM task_assignees`,
+      /permission denied for table task_assignees/,
+      'pulse_readonly: SELECT on task_assignees denied',
+      ctx
+    );
+
+    await expectError(
+      client,
+      `SELECT * FROM task_history`,
+      /permission denied for table task_history/,
+      'pulse_readonly: SELECT on task_history denied',
+      ctx
+    );
+
+    await expectError(
+      client,
+      `SELECT * FROM notifications`,
+      /permission denied for table notifications/,
+      'pulse_readonly: SELECT on notifications denied',
+      ctx
+    );
     await client.query('RESET ROLE');
 
     console.log('\n=============================================================');

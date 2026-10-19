@@ -26,11 +26,23 @@ import type {
 
 import type {
   AdminUpsertDayDto,
+  AssignableEmployeeDto,
   AttendanceControllerGetDashboardParams,
   AttendanceControllerGetMeParams,
+  AttendanceControllerGetReportParams,
+  AttendanceControllerGetTeamParams,
+  ChangePasswordDto,
+  CompanyControllerCheckDuplicatesParams,
+  CompanyControllerGetOptionsParams,
+  CompanyControllerListParams,
+  CompanyDataTransferControllerDownloadTemplateParams,
+  CompanyDataTransferControllerExportParams,
+  CompanyDataTransferControllerGetIssuesParams,
+  CompanyDataTransferControllerListImportsParams,
   CompanyDataTransferControllerPreviewBody,
   CompanyDetailResponseDto,
   CompanyDuplicateMatchDto,
+  CompanyImportConfirmDto,
   CompanyImportConfirmResponseDto,
   CompanyImportPreviewResponseDto,
   CompanyOptionDto,
@@ -41,46 +53,73 @@ import type {
   CreateEmployeeDto,
   CreateIndustryDto,
   CreateRoleDto,
+  CreateTaskDto,
+  CustomerTypeControllerListParams,
   CustomerTypeItemDto,
   CustomerTypeOptionDto,
   DashboardResponseDto,
   DataTransferJobDetailResponseDto,
   DayDetailDto,
+  DepartmentControllerListParams,
   DepartmentListResponseDto,
   DepartmentOptionDto,
   DepartmentResponseDto,
   EmployeeControllerGetOptionsParams,
+  EmployeeControllerListParams,
   EmployeeControllerUploadPhotoBody,
   EmployeeListResponseDto,
   EmployeeOptionDto,
   EmployeeResponseDto,
   FilesControllerGetProfilePhotoParams,
+  ForgotPasswordDto,
   ForgotPasswordResponseDto,
+  IndustryControllerGetOptionsParams,
+  IndustryControllerListParams,
   IndustryDetailResponseDto,
   IndustryOptionDto,
   ListCompaniesResponseDto,
   ListCustomerTypesResponseDto,
   ListIndustriesResponseDto,
+  LoginDto,
   LoginResponseDto,
+  LookupControllerGetOptionsParams,
   LookupOptionDto,
+  MarkAllReadResponseDto,
+  MarkReadResponseDto,
   MeResponseDto,
   MonthBlockDto,
+  MoveTaskStageDto,
+  MyTasksControllerGetBoardParams,
+  NotificationResponseDto,
+  NotificationsControllerGetNotificationsParams,
+  PendingReviewCountDto,
+  PersonControllerLookupParams,
   PersonLookupMatchDto,
   RefreshResponseDto,
   RejectCorrectionDto,
+  ResendOtpDto,
+  ResetPasswordDto,
   RoleControllerGetOptionsParams,
+  RoleControllerListParams,
   RoleListResponseDto,
   RoleOptionDto,
   RoleResponseDto,
+  TaskBoardResultDto,
+  TaskDetailDto,
+  TaskSummaryDto,
+  TasksControllerGetBoardParams,
   TodayAttendanceBlockDto,
   TransferJobIssuesResponseDto,
   TransferJobListResponseDto,
+  UnreadCountResponseDto,
   UpdateCompanyDto,
   UpdateCustomerTypeDto,
   UpdateDepartmentDto,
   UpdateEmployeeDto,
   UpdateIndustryDto,
   UpdateRoleDto,
+  UpdateTaskDto,
+  VerifyLoginDto,
   VerifyLoginResponseDto
 } from './model';
 
@@ -241,14 +280,15 @@ export const getAuthControllerLoginUrl = () => {
   return `/api/v1/auth/login`
 }
 
-export const authControllerLogin = async ( options?: RequestInit): Promise<authControllerLoginResponse> => {
+export const authControllerLogin = async (loginDto: LoginDto, options?: RequestInit): Promise<authControllerLoginResponse> => {
   
   return customFetch<authControllerLoginResponse>(getAuthControllerLoginUrl(),
   {      
     ...options,
-    method: 'POST'
-    
-    
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      loginDto,)
   }
 );}
 
@@ -256,8 +296,8 @@ export const authControllerLogin = async ( options?: RequestInit): Promise<authC
 
 
 export const getAuthControllerLoginMutationOptions = <TError = void,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authControllerLogin>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof authControllerLogin>>, TError,void, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authControllerLogin>>, TError,{data: LoginDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof authControllerLogin>>, TError,{data: LoginDto}, TContext> => {
 
 const mutationKey = ['authControllerLogin'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -269,10 +309,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof authControllerLogin>>, void> = () => {
-          
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof authControllerLogin>>, {data: LoginDto}> = (props) => {
+          const {data} = props ?? {};
 
-          return  authControllerLogin(requestOptions)
+          return  authControllerLogin(data,requestOptions)
         }
 
         
@@ -281,18 +321,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type AuthControllerLoginMutationResult = NonNullable<Awaited<ReturnType<typeof authControllerLogin>>>
-    
+    export type AuthControllerLoginMutationBody = LoginDto
     export type AuthControllerLoginMutationError = void
 
     /**
  * @summary Initiate login with email and password (sends 2FA email OTP)
  */
 export const useAuthControllerLogin = <TError = void,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authControllerLogin>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authControllerLogin>>, TError,{data: LoginDto}, TContext>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof authControllerLogin>>,
         TError,
-        void,
+        {data: LoginDto},
         TContext
       > => {
 
@@ -331,14 +371,15 @@ export const getAuthControllerVerifyLoginUrl = () => {
   return `/api/v1/auth/login/verify`
 }
 
-export const authControllerVerifyLogin = async ( options?: RequestInit): Promise<authControllerVerifyLoginResponse> => {
+export const authControllerVerifyLogin = async (verifyLoginDto: VerifyLoginDto, options?: RequestInit): Promise<authControllerVerifyLoginResponse> => {
   
   return customFetch<authControllerVerifyLoginResponse>(getAuthControllerVerifyLoginUrl(),
   {      
     ...options,
-    method: 'POST'
-    
-    
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      verifyLoginDto,)
   }
 );}
 
@@ -346,8 +387,8 @@ export const authControllerVerifyLogin = async ( options?: RequestInit): Promise
 
 
 export const getAuthControllerVerifyLoginMutationOptions = <TError = void,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authControllerVerifyLogin>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof authControllerVerifyLogin>>, TError,void, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authControllerVerifyLogin>>, TError,{data: VerifyLoginDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof authControllerVerifyLogin>>, TError,{data: VerifyLoginDto}, TContext> => {
 
 const mutationKey = ['authControllerVerifyLogin'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -359,10 +400,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof authControllerVerifyLogin>>, void> = () => {
-          
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof authControllerVerifyLogin>>, {data: VerifyLoginDto}> = (props) => {
+          const {data} = props ?? {};
 
-          return  authControllerVerifyLogin(requestOptions)
+          return  authControllerVerifyLogin(data,requestOptions)
         }
 
         
@@ -371,18 +412,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type AuthControllerVerifyLoginMutationResult = NonNullable<Awaited<ReturnType<typeof authControllerVerifyLogin>>>
-    
+    export type AuthControllerVerifyLoginMutationBody = VerifyLoginDto
     export type AuthControllerVerifyLoginMutationError = void
 
     /**
  * @summary Verify email OTP and establish session
  */
 export const useAuthControllerVerifyLogin = <TError = void,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authControllerVerifyLogin>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authControllerVerifyLogin>>, TError,{data: VerifyLoginDto}, TContext>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof authControllerVerifyLogin>>,
         TError,
-        void,
+        {data: VerifyLoginDto},
         TContext
       > => {
 
@@ -421,14 +462,15 @@ export const getAuthControllerResendOtpUrl = () => {
   return `/api/v1/auth/login/resend`
 }
 
-export const authControllerResendOtp = async ( options?: RequestInit): Promise<authControllerResendOtpResponse> => {
+export const authControllerResendOtp = async (resendOtpDto: ResendOtpDto, options?: RequestInit): Promise<authControllerResendOtpResponse> => {
   
   return customFetch<authControllerResendOtpResponse>(getAuthControllerResendOtpUrl(),
   {      
     ...options,
-    method: 'POST'
-    
-    
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      resendOtpDto,)
   }
 );}
 
@@ -436,8 +478,8 @@ export const authControllerResendOtp = async ( options?: RequestInit): Promise<a
 
 
 export const getAuthControllerResendOtpMutationOptions = <TError = void,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authControllerResendOtp>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof authControllerResendOtp>>, TError,void, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authControllerResendOtp>>, TError,{data: ResendOtpDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof authControllerResendOtp>>, TError,{data: ResendOtpDto}, TContext> => {
 
 const mutationKey = ['authControllerResendOtp'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -449,10 +491,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof authControllerResendOtp>>, void> = () => {
-          
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof authControllerResendOtp>>, {data: ResendOtpDto}> = (props) => {
+          const {data} = props ?? {};
 
-          return  authControllerResendOtp(requestOptions)
+          return  authControllerResendOtp(data,requestOptions)
         }
 
         
@@ -461,18 +503,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type AuthControllerResendOtpMutationResult = NonNullable<Awaited<ReturnType<typeof authControllerResendOtp>>>
-    
+    export type AuthControllerResendOtpMutationBody = ResendOtpDto
     export type AuthControllerResendOtpMutationError = void
 
     /**
  * @summary Resend email OTP for open challenge adhering to cooldown
  */
 export const useAuthControllerResendOtp = <TError = void,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authControllerResendOtp>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authControllerResendOtp>>, TError,{data: ResendOtpDto}, TContext>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof authControllerResendOtp>>,
         TError,
-        void,
+        {data: ResendOtpDto},
         TContext
       > => {
 
@@ -873,14 +915,15 @@ export const getAuthControllerChangePasswordUrl = () => {
   return `/api/v1/auth/password/change`
 }
 
-export const authControllerChangePassword = async ( options?: RequestInit): Promise<authControllerChangePasswordResponse> => {
+export const authControllerChangePassword = async (changePasswordDto: ChangePasswordDto, options?: RequestInit): Promise<authControllerChangePasswordResponse> => {
   
   return customFetch<authControllerChangePasswordResponse>(getAuthControllerChangePasswordUrl(),
   {      
     ...options,
-    method: 'POST'
-    
-    
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      changePasswordDto,)
   }
 );}
 
@@ -888,8 +931,8 @@ export const authControllerChangePassword = async ( options?: RequestInit): Prom
 
 
 export const getAuthControllerChangePasswordMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authControllerChangePassword>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof authControllerChangePassword>>, TError,void, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authControllerChangePassword>>, TError,{data: ChangePasswordDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof authControllerChangePassword>>, TError,{data: ChangePasswordDto}, TContext> => {
 
 const mutationKey = ['authControllerChangePassword'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -901,10 +944,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof authControllerChangePassword>>, void> = () => {
-          
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof authControllerChangePassword>>, {data: ChangePasswordDto}> = (props) => {
+          const {data} = props ?? {};
 
-          return  authControllerChangePassword(requestOptions)
+          return  authControllerChangePassword(data,requestOptions)
         }
 
         
@@ -913,18 +956,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type AuthControllerChangePasswordMutationResult = NonNullable<Awaited<ReturnType<typeof authControllerChangePassword>>>
-    
+    export type AuthControllerChangePasswordMutationBody = ChangePasswordDto
     export type AuthControllerChangePasswordMutationError = unknown
 
     /**
  * @summary Change password and revoke all other sessions
  */
 export const useAuthControllerChangePassword = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authControllerChangePassword>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authControllerChangePassword>>, TError,{data: ChangePasswordDto}, TContext>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof authControllerChangePassword>>,
         TError,
-        void,
+        {data: ChangePasswordDto},
         TContext
       > => {
 
@@ -956,14 +999,15 @@ export const getAuthControllerForgotPasswordUrl = () => {
   return `/api/v1/auth/password/forgot`
 }
 
-export const authControllerForgotPassword = async ( options?: RequestInit): Promise<authControllerForgotPasswordResponse> => {
+export const authControllerForgotPassword = async (forgotPasswordDto: ForgotPasswordDto, options?: RequestInit): Promise<authControllerForgotPasswordResponse> => {
   
   return customFetch<authControllerForgotPasswordResponse>(getAuthControllerForgotPasswordUrl(),
   {      
     ...options,
-    method: 'POST'
-    
-    
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      forgotPasswordDto,)
   }
 );}
 
@@ -971,8 +1015,8 @@ export const authControllerForgotPassword = async ( options?: RequestInit): Prom
 
 
 export const getAuthControllerForgotPasswordMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authControllerForgotPassword>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof authControllerForgotPassword>>, TError,void, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authControllerForgotPassword>>, TError,{data: ForgotPasswordDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof authControllerForgotPassword>>, TError,{data: ForgotPasswordDto}, TContext> => {
 
 const mutationKey = ['authControllerForgotPassword'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -984,10 +1028,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof authControllerForgotPassword>>, void> = () => {
-          
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof authControllerForgotPassword>>, {data: ForgotPasswordDto}> = (props) => {
+          const {data} = props ?? {};
 
-          return  authControllerForgotPassword(requestOptions)
+          return  authControllerForgotPassword(data,requestOptions)
         }
 
         
@@ -996,18 +1040,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type AuthControllerForgotPasswordMutationResult = NonNullable<Awaited<ReturnType<typeof authControllerForgotPassword>>>
-    
+    export type AuthControllerForgotPasswordMutationBody = ForgotPasswordDto
     export type AuthControllerForgotPasswordMutationError = unknown
 
     /**
  * @summary Request password reset code (always returns 202)
  */
 export const useAuthControllerForgotPassword = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authControllerForgotPassword>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authControllerForgotPassword>>, TError,{data: ForgotPasswordDto}, TContext>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof authControllerForgotPassword>>,
         TError,
-        void,
+        {data: ForgotPasswordDto},
         TContext
       > => {
 
@@ -1046,14 +1090,15 @@ export const getAuthControllerResetPasswordUrl = () => {
   return `/api/v1/auth/password/reset`
 }
 
-export const authControllerResetPassword = async ( options?: RequestInit): Promise<authControllerResetPasswordResponse> => {
+export const authControllerResetPassword = async (resetPasswordDto: ResetPasswordDto, options?: RequestInit): Promise<authControllerResetPasswordResponse> => {
   
   return customFetch<authControllerResetPasswordResponse>(getAuthControllerResetPasswordUrl(),
   {      
     ...options,
-    method: 'POST'
-    
-    
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      resetPasswordDto,)
   }
 );}
 
@@ -1061,8 +1106,8 @@ export const authControllerResetPassword = async ( options?: RequestInit): Promi
 
 
 export const getAuthControllerResetPasswordMutationOptions = <TError = void,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authControllerResetPassword>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof authControllerResetPassword>>, TError,void, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authControllerResetPassword>>, TError,{data: ResetPasswordDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof authControllerResetPassword>>, TError,{data: ResetPasswordDto}, TContext> => {
 
 const mutationKey = ['authControllerResetPassword'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -1074,10 +1119,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof authControllerResetPassword>>, void> = () => {
-          
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof authControllerResetPassword>>, {data: ResetPasswordDto}> = (props) => {
+          const {data} = props ?? {};
 
-          return  authControllerResetPassword(requestOptions)
+          return  authControllerResetPassword(data,requestOptions)
         }
 
         
@@ -1086,18 +1131,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type AuthControllerResetPasswordMutationResult = NonNullable<Awaited<ReturnType<typeof authControllerResetPassword>>>
-    
+    export type AuthControllerResetPasswordMutationBody = ResetPasswordDto
     export type AuthControllerResetPasswordMutationError = void
 
     /**
  * @summary Reset password using email OTP and revoke all sessions
  */
 export const useAuthControllerResetPassword = <TError = void,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authControllerResetPassword>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authControllerResetPassword>>, TError,{data: ResetPasswordDto}, TContext>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof authControllerResetPassword>>,
         TError,
-        void,
+        {data: ResetPasswordDto},
         TContext
       > => {
 
@@ -1241,7 +1286,7 @@ export type filesControllerGetProfilePhotoResponseError = (filesControllerGetPro
 
 export type filesControllerGetProfilePhotoResponse = (filesControllerGetProfilePhotoResponseSuccess | filesControllerGetProfilePhotoResponseError)
 
-export const getFilesControllerGetProfilePhotoUrl = (key: unknown,
+export const getFilesControllerGetProfilePhotoUrl = (key: string,
     params: FilesControllerGetProfilePhotoParams,) => {
   const normalizedParams = new URLSearchParams();
 
@@ -1257,7 +1302,7 @@ export const getFilesControllerGetProfilePhotoUrl = (key: unknown,
   return stringifiedParams.length > 0 ? `/api/v1/files/profile-photos/${key}?${stringifiedParams}` : `/api/v1/files/profile-photos/${key}`
 }
 
-export const filesControllerGetProfilePhoto = async (key: unknown,
+export const filesControllerGetProfilePhoto = async (key: string,
     params: FilesControllerGetProfilePhotoParams, options?: RequestInit): Promise<filesControllerGetProfilePhotoResponse> => {
   
   return customFetch<filesControllerGetProfilePhotoResponse>(getFilesControllerGetProfilePhotoUrl(key,params),
@@ -1273,7 +1318,7 @@ export const filesControllerGetProfilePhoto = async (key: unknown,
 
 
 
-export const getFilesControllerGetProfilePhotoQueryKey = (key?: unknown,
+export const getFilesControllerGetProfilePhotoQueryKey = (key?: string,
     params?: FilesControllerGetProfilePhotoParams,) => {
     return [
     `/api/v1/files/profile-photos/${key}`, ...(params ? [params]: [])
@@ -1281,7 +1326,7 @@ export const getFilesControllerGetProfilePhotoQueryKey = (key?: unknown,
     }
 
     
-export const getFilesControllerGetProfilePhotoQueryOptions = <TData = Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>, TError = void>(key: unknown,
+export const getFilesControllerGetProfilePhotoQueryOptions = <TData = Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>, TError = void>(key: string,
     params: FilesControllerGetProfilePhotoParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
@@ -1305,7 +1350,7 @@ export type FilesControllerGetProfilePhotoQueryError = void
 
 
 export function useFilesControllerGetProfilePhoto<TData = Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>, TError = void>(
- key: unknown,
+ key: string,
     params: FilesControllerGetProfilePhotoParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>,
@@ -1316,7 +1361,7 @@ export function useFilesControllerGetProfilePhoto<TData = Awaited<ReturnType<typ
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useFilesControllerGetProfilePhoto<TData = Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>, TError = void>(
- key: unknown,
+ key: string,
     params: FilesControllerGetProfilePhotoParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>,
@@ -1327,7 +1372,7 @@ export function useFilesControllerGetProfilePhoto<TData = Awaited<ReturnType<typ
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useFilesControllerGetProfilePhoto<TData = Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>, TError = void>(
- key: unknown,
+ key: string,
     params: FilesControllerGetProfilePhotoParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
@@ -1336,7 +1381,7 @@ export function useFilesControllerGetProfilePhoto<TData = Awaited<ReturnType<typ
  */
 
 export function useFilesControllerGetProfilePhoto<TData = Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>, TError = void>(
- key: unknown,
+ key: string,
     params: FilesControllerGetProfilePhotoParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
@@ -1369,17 +1414,24 @@ export type departmentControllerListResponseSuccess = (departmentControllerListR
 
 export type departmentControllerListResponse = (departmentControllerListResponseSuccess)
 
-export const getDepartmentControllerListUrl = () => {
+export const getDepartmentControllerListUrl = (params?: DepartmentControllerListParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
 
-  
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/v1/departments`
+  return stringifiedParams.length > 0 ? `/api/v1/departments?${stringifiedParams}` : `/api/v1/departments`
 }
 
-export const departmentControllerList = async ( options?: RequestInit): Promise<departmentControllerListResponse> => {
+export const departmentControllerList = async (params?: DepartmentControllerListParams, options?: RequestInit): Promise<departmentControllerListResponse> => {
   
-  return customFetch<departmentControllerListResponse>(getDepartmentControllerListUrl(),
+  return customFetch<departmentControllerListResponse>(getDepartmentControllerListUrl(params),
   {      
     ...options,
     method: 'GET'
@@ -1392,23 +1444,23 @@ export const departmentControllerList = async ( options?: RequestInit): Promise<
 
 
 
-export const getDepartmentControllerListQueryKey = () => {
+export const getDepartmentControllerListQueryKey = (params?: DepartmentControllerListParams,) => {
     return [
-    `/api/v1/departments`
+    `/api/v1/departments`, ...(params ? [params]: [])
     ] as const;
     }
 
     
-export const getDepartmentControllerListQueryOptions = <TData = Awaited<ReturnType<typeof departmentControllerList>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof departmentControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export const getDepartmentControllerListQueryOptions = <TData = Awaited<ReturnType<typeof departmentControllerList>>, TError = unknown>(params?: DepartmentControllerListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof departmentControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getDepartmentControllerListQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getDepartmentControllerListQueryKey(params);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof departmentControllerList>>> = ({ signal }) => departmentControllerList({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof departmentControllerList>>> = ({ signal }) => departmentControllerList(params, { signal, ...requestOptions });
 
       
 
@@ -1422,7 +1474,7 @@ export type DepartmentControllerListQueryError = unknown
 
 
 export function useDepartmentControllerList<TData = Awaited<ReturnType<typeof departmentControllerList>>, TError = unknown>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof departmentControllerList>>, TError, TData>> & Pick<
+ params: undefined |  DepartmentControllerListParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof departmentControllerList>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof departmentControllerList>>,
           TError,
@@ -1432,7 +1484,7 @@ export function useDepartmentControllerList<TData = Awaited<ReturnType<typeof de
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useDepartmentControllerList<TData = Awaited<ReturnType<typeof departmentControllerList>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof departmentControllerList>>, TError, TData>> & Pick<
+ params?: DepartmentControllerListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof departmentControllerList>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof departmentControllerList>>,
           TError,
@@ -1442,7 +1494,7 @@ export function useDepartmentControllerList<TData = Awaited<ReturnType<typeof de
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useDepartmentControllerList<TData = Awaited<ReturnType<typeof departmentControllerList>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof departmentControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ params?: DepartmentControllerListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof departmentControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -1450,11 +1502,11 @@ export function useDepartmentControllerList<TData = Awaited<ReturnType<typeof de
  */
 
 export function useDepartmentControllerList<TData = Awaited<ReturnType<typeof departmentControllerList>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof departmentControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ params?: DepartmentControllerListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof departmentControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getDepartmentControllerListQueryOptions(options)
+  const queryOptions = getDepartmentControllerListQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -1960,17 +2012,24 @@ export type roleControllerListResponseSuccess = (roleControllerListResponse200) 
 
 export type roleControllerListResponse = (roleControllerListResponseSuccess)
 
-export const getRoleControllerListUrl = () => {
+export const getRoleControllerListUrl = (params?: RoleControllerListParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
 
-  
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/v1/roles`
+  return stringifiedParams.length > 0 ? `/api/v1/roles?${stringifiedParams}` : `/api/v1/roles`
 }
 
-export const roleControllerList = async ( options?: RequestInit): Promise<roleControllerListResponse> => {
+export const roleControllerList = async (params?: RoleControllerListParams, options?: RequestInit): Promise<roleControllerListResponse> => {
   
-  return customFetch<roleControllerListResponse>(getRoleControllerListUrl(),
+  return customFetch<roleControllerListResponse>(getRoleControllerListUrl(params),
   {      
     ...options,
     method: 'GET'
@@ -1983,23 +2042,23 @@ export const roleControllerList = async ( options?: RequestInit): Promise<roleCo
 
 
 
-export const getRoleControllerListQueryKey = () => {
+export const getRoleControllerListQueryKey = (params?: RoleControllerListParams,) => {
     return [
-    `/api/v1/roles`
+    `/api/v1/roles`, ...(params ? [params]: [])
     ] as const;
     }
 
     
-export const getRoleControllerListQueryOptions = <TData = Awaited<ReturnType<typeof roleControllerList>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof roleControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export const getRoleControllerListQueryOptions = <TData = Awaited<ReturnType<typeof roleControllerList>>, TError = unknown>(params?: RoleControllerListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof roleControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getRoleControllerListQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getRoleControllerListQueryKey(params);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof roleControllerList>>> = ({ signal }) => roleControllerList({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof roleControllerList>>> = ({ signal }) => roleControllerList(params, { signal, ...requestOptions });
 
       
 
@@ -2013,7 +2072,7 @@ export type RoleControllerListQueryError = unknown
 
 
 export function useRoleControllerList<TData = Awaited<ReturnType<typeof roleControllerList>>, TError = unknown>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof roleControllerList>>, TError, TData>> & Pick<
+ params: undefined |  RoleControllerListParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof roleControllerList>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof roleControllerList>>,
           TError,
@@ -2023,7 +2082,7 @@ export function useRoleControllerList<TData = Awaited<ReturnType<typeof roleCont
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useRoleControllerList<TData = Awaited<ReturnType<typeof roleControllerList>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof roleControllerList>>, TError, TData>> & Pick<
+ params?: RoleControllerListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof roleControllerList>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof roleControllerList>>,
           TError,
@@ -2033,7 +2092,7 @@ export function useRoleControllerList<TData = Awaited<ReturnType<typeof roleCont
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useRoleControllerList<TData = Awaited<ReturnType<typeof roleControllerList>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof roleControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ params?: RoleControllerListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof roleControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -2041,11 +2100,11 @@ export function useRoleControllerList<TData = Awaited<ReturnType<typeof roleCont
  */
 
 export function useRoleControllerList<TData = Awaited<ReturnType<typeof roleControllerList>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof roleControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ params?: RoleControllerListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof roleControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getRoleControllerListQueryOptions(options)
+  const queryOptions = getRoleControllerListQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -2558,17 +2617,24 @@ export type employeeControllerListResponseSuccess = (employeeControllerListRespo
 
 export type employeeControllerListResponse = (employeeControllerListResponseSuccess)
 
-export const getEmployeeControllerListUrl = () => {
+export const getEmployeeControllerListUrl = (params?: EmployeeControllerListParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
 
-  
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/v1/employees`
+  return stringifiedParams.length > 0 ? `/api/v1/employees?${stringifiedParams}` : `/api/v1/employees`
 }
 
-export const employeeControllerList = async ( options?: RequestInit): Promise<employeeControllerListResponse> => {
+export const employeeControllerList = async (params?: EmployeeControllerListParams, options?: RequestInit): Promise<employeeControllerListResponse> => {
   
-  return customFetch<employeeControllerListResponse>(getEmployeeControllerListUrl(),
+  return customFetch<employeeControllerListResponse>(getEmployeeControllerListUrl(params),
   {      
     ...options,
     method: 'GET'
@@ -2581,23 +2647,23 @@ export const employeeControllerList = async ( options?: RequestInit): Promise<em
 
 
 
-export const getEmployeeControllerListQueryKey = () => {
+export const getEmployeeControllerListQueryKey = (params?: EmployeeControllerListParams,) => {
     return [
-    `/api/v1/employees`
+    `/api/v1/employees`, ...(params ? [params]: [])
     ] as const;
     }
 
     
-export const getEmployeeControllerListQueryOptions = <TData = Awaited<ReturnType<typeof employeeControllerList>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof employeeControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export const getEmployeeControllerListQueryOptions = <TData = Awaited<ReturnType<typeof employeeControllerList>>, TError = unknown>(params?: EmployeeControllerListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof employeeControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getEmployeeControllerListQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getEmployeeControllerListQueryKey(params);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof employeeControllerList>>> = ({ signal }) => employeeControllerList({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof employeeControllerList>>> = ({ signal }) => employeeControllerList(params, { signal, ...requestOptions });
 
       
 
@@ -2611,7 +2677,7 @@ export type EmployeeControllerListQueryError = unknown
 
 
 export function useEmployeeControllerList<TData = Awaited<ReturnType<typeof employeeControllerList>>, TError = unknown>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof employeeControllerList>>, TError, TData>> & Pick<
+ params: undefined |  EmployeeControllerListParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof employeeControllerList>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof employeeControllerList>>,
           TError,
@@ -2621,7 +2687,7 @@ export function useEmployeeControllerList<TData = Awaited<ReturnType<typeof empl
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useEmployeeControllerList<TData = Awaited<ReturnType<typeof employeeControllerList>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof employeeControllerList>>, TError, TData>> & Pick<
+ params?: EmployeeControllerListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof employeeControllerList>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof employeeControllerList>>,
           TError,
@@ -2631,7 +2697,7 @@ export function useEmployeeControllerList<TData = Awaited<ReturnType<typeof empl
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useEmployeeControllerList<TData = Awaited<ReturnType<typeof employeeControllerList>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof employeeControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ params?: EmployeeControllerListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof employeeControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -2639,11 +2705,11 @@ export function useEmployeeControllerList<TData = Awaited<ReturnType<typeof empl
  */
 
 export function useEmployeeControllerList<TData = Awaited<ReturnType<typeof employeeControllerList>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof employeeControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ params?: EmployeeControllerListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof employeeControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getEmployeeControllerListQueryOptions(options)
+  const queryOptions = getEmployeeControllerListQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -3340,17 +3406,24 @@ export type industryControllerListResponseSuccess = (industryControllerListRespo
 
 export type industryControllerListResponse = (industryControllerListResponseSuccess)
 
-export const getIndustryControllerListUrl = () => {
+export const getIndustryControllerListUrl = (params?: IndustryControllerListParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
 
-  
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/v1/industries`
+  return stringifiedParams.length > 0 ? `/api/v1/industries?${stringifiedParams}` : `/api/v1/industries`
 }
 
-export const industryControllerList = async ( options?: RequestInit): Promise<industryControllerListResponse> => {
+export const industryControllerList = async (params?: IndustryControllerListParams, options?: RequestInit): Promise<industryControllerListResponse> => {
   
-  return customFetch<industryControllerListResponse>(getIndustryControllerListUrl(),
+  return customFetch<industryControllerListResponse>(getIndustryControllerListUrl(params),
   {      
     ...options,
     method: 'GET'
@@ -3363,23 +3436,23 @@ export const industryControllerList = async ( options?: RequestInit): Promise<in
 
 
 
-export const getIndustryControllerListQueryKey = () => {
+export const getIndustryControllerListQueryKey = (params?: IndustryControllerListParams,) => {
     return [
-    `/api/v1/industries`
+    `/api/v1/industries`, ...(params ? [params]: [])
     ] as const;
     }
 
     
-export const getIndustryControllerListQueryOptions = <TData = Awaited<ReturnType<typeof industryControllerList>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof industryControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export const getIndustryControllerListQueryOptions = <TData = Awaited<ReturnType<typeof industryControllerList>>, TError = unknown>(params?: IndustryControllerListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof industryControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getIndustryControllerListQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getIndustryControllerListQueryKey(params);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof industryControllerList>>> = ({ signal }) => industryControllerList({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof industryControllerList>>> = ({ signal }) => industryControllerList(params, { signal, ...requestOptions });
 
       
 
@@ -3393,7 +3466,7 @@ export type IndustryControllerListQueryError = unknown
 
 
 export function useIndustryControllerList<TData = Awaited<ReturnType<typeof industryControllerList>>, TError = unknown>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof industryControllerList>>, TError, TData>> & Pick<
+ params: undefined |  IndustryControllerListParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof industryControllerList>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof industryControllerList>>,
           TError,
@@ -3403,7 +3476,7 @@ export function useIndustryControllerList<TData = Awaited<ReturnType<typeof indu
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useIndustryControllerList<TData = Awaited<ReturnType<typeof industryControllerList>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof industryControllerList>>, TError, TData>> & Pick<
+ params?: IndustryControllerListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof industryControllerList>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof industryControllerList>>,
           TError,
@@ -3413,7 +3486,7 @@ export function useIndustryControllerList<TData = Awaited<ReturnType<typeof indu
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useIndustryControllerList<TData = Awaited<ReturnType<typeof industryControllerList>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof industryControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ params?: IndustryControllerListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof industryControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -3421,11 +3494,11 @@ export function useIndustryControllerList<TData = Awaited<ReturnType<typeof indu
  */
 
 export function useIndustryControllerList<TData = Awaited<ReturnType<typeof industryControllerList>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof industryControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ params?: IndustryControllerListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof industryControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getIndustryControllerListQueryOptions(options)
+  const queryOptions = getIndustryControllerListQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -3537,17 +3610,24 @@ export type industryControllerGetOptionsResponseSuccess = (industryControllerGet
 
 export type industryControllerGetOptionsResponse = (industryControllerGetOptionsResponseSuccess)
 
-export const getIndustryControllerGetOptionsUrl = () => {
+export const getIndustryControllerGetOptionsUrl = (params?: IndustryControllerGetOptionsParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
 
-  
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/v1/industries/options`
+  return stringifiedParams.length > 0 ? `/api/v1/industries/options?${stringifiedParams}` : `/api/v1/industries/options`
 }
 
-export const industryControllerGetOptions = async ( options?: RequestInit): Promise<industryControllerGetOptionsResponse> => {
+export const industryControllerGetOptions = async (params?: IndustryControllerGetOptionsParams, options?: RequestInit): Promise<industryControllerGetOptionsResponse> => {
   
-  return customFetch<industryControllerGetOptionsResponse>(getIndustryControllerGetOptionsUrl(),
+  return customFetch<industryControllerGetOptionsResponse>(getIndustryControllerGetOptionsUrl(params),
   {      
     ...options,
     method: 'GET'
@@ -3560,23 +3640,23 @@ export const industryControllerGetOptions = async ( options?: RequestInit): Prom
 
 
 
-export const getIndustryControllerGetOptionsQueryKey = () => {
+export const getIndustryControllerGetOptionsQueryKey = (params?: IndustryControllerGetOptionsParams,) => {
     return [
-    `/api/v1/industries/options`
+    `/api/v1/industries/options`, ...(params ? [params]: [])
     ] as const;
     }
 
     
-export const getIndustryControllerGetOptionsQueryOptions = <TData = Awaited<ReturnType<typeof industryControllerGetOptions>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof industryControllerGetOptions>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export const getIndustryControllerGetOptionsQueryOptions = <TData = Awaited<ReturnType<typeof industryControllerGetOptions>>, TError = unknown>(params?: IndustryControllerGetOptionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof industryControllerGetOptions>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getIndustryControllerGetOptionsQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getIndustryControllerGetOptionsQueryKey(params);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof industryControllerGetOptions>>> = ({ signal }) => industryControllerGetOptions({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof industryControllerGetOptions>>> = ({ signal }) => industryControllerGetOptions(params, { signal, ...requestOptions });
 
       
 
@@ -3590,7 +3670,7 @@ export type IndustryControllerGetOptionsQueryError = unknown
 
 
 export function useIndustryControllerGetOptions<TData = Awaited<ReturnType<typeof industryControllerGetOptions>>, TError = unknown>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof industryControllerGetOptions>>, TError, TData>> & Pick<
+ params: undefined |  IndustryControllerGetOptionsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof industryControllerGetOptions>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof industryControllerGetOptions>>,
           TError,
@@ -3600,7 +3680,7 @@ export function useIndustryControllerGetOptions<TData = Awaited<ReturnType<typeo
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useIndustryControllerGetOptions<TData = Awaited<ReturnType<typeof industryControllerGetOptions>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof industryControllerGetOptions>>, TError, TData>> & Pick<
+ params?: IndustryControllerGetOptionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof industryControllerGetOptions>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof industryControllerGetOptions>>,
           TError,
@@ -3610,7 +3690,7 @@ export function useIndustryControllerGetOptions<TData = Awaited<ReturnType<typeo
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useIndustryControllerGetOptions<TData = Awaited<ReturnType<typeof industryControllerGetOptions>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof industryControllerGetOptions>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ params?: IndustryControllerGetOptionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof industryControllerGetOptions>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -3618,11 +3698,11 @@ export function useIndustryControllerGetOptions<TData = Awaited<ReturnType<typeo
  */
 
 export function useIndustryControllerGetOptions<TData = Awaited<ReturnType<typeof industryControllerGetOptions>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof industryControllerGetOptions>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ params?: IndustryControllerGetOptionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof industryControllerGetOptions>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getIndustryControllerGetOptionsQueryOptions(options)
+  const queryOptions = getIndustryControllerGetOptionsQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -3931,17 +4011,24 @@ export type customerTypeControllerListResponseSuccess = (customerTypeControllerL
 
 export type customerTypeControllerListResponse = (customerTypeControllerListResponseSuccess)
 
-export const getCustomerTypeControllerListUrl = () => {
+export const getCustomerTypeControllerListUrl = (params?: CustomerTypeControllerListParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
 
-  
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/v1/customer-types`
+  return stringifiedParams.length > 0 ? `/api/v1/customer-types?${stringifiedParams}` : `/api/v1/customer-types`
 }
 
-export const customerTypeControllerList = async ( options?: RequestInit): Promise<customerTypeControllerListResponse> => {
+export const customerTypeControllerList = async (params?: CustomerTypeControllerListParams, options?: RequestInit): Promise<customerTypeControllerListResponse> => {
   
-  return customFetch<customerTypeControllerListResponse>(getCustomerTypeControllerListUrl(),
+  return customFetch<customerTypeControllerListResponse>(getCustomerTypeControllerListUrl(params),
   {      
     ...options,
     method: 'GET'
@@ -3954,23 +4041,23 @@ export const customerTypeControllerList = async ( options?: RequestInit): Promis
 
 
 
-export const getCustomerTypeControllerListQueryKey = () => {
+export const getCustomerTypeControllerListQueryKey = (params?: CustomerTypeControllerListParams,) => {
     return [
-    `/api/v1/customer-types`
+    `/api/v1/customer-types`, ...(params ? [params]: [])
     ] as const;
     }
 
     
-export const getCustomerTypeControllerListQueryOptions = <TData = Awaited<ReturnType<typeof customerTypeControllerList>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof customerTypeControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export const getCustomerTypeControllerListQueryOptions = <TData = Awaited<ReturnType<typeof customerTypeControllerList>>, TError = unknown>(params?: CustomerTypeControllerListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof customerTypeControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getCustomerTypeControllerListQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getCustomerTypeControllerListQueryKey(params);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof customerTypeControllerList>>> = ({ signal }) => customerTypeControllerList({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof customerTypeControllerList>>> = ({ signal }) => customerTypeControllerList(params, { signal, ...requestOptions });
 
       
 
@@ -3984,7 +4071,7 @@ export type CustomerTypeControllerListQueryError = unknown
 
 
 export function useCustomerTypeControllerList<TData = Awaited<ReturnType<typeof customerTypeControllerList>>, TError = unknown>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof customerTypeControllerList>>, TError, TData>> & Pick<
+ params: undefined |  CustomerTypeControllerListParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof customerTypeControllerList>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof customerTypeControllerList>>,
           TError,
@@ -3994,7 +4081,7 @@ export function useCustomerTypeControllerList<TData = Awaited<ReturnType<typeof 
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useCustomerTypeControllerList<TData = Awaited<ReturnType<typeof customerTypeControllerList>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof customerTypeControllerList>>, TError, TData>> & Pick<
+ params?: CustomerTypeControllerListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof customerTypeControllerList>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof customerTypeControllerList>>,
           TError,
@@ -4004,7 +4091,7 @@ export function useCustomerTypeControllerList<TData = Awaited<ReturnType<typeof 
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useCustomerTypeControllerList<TData = Awaited<ReturnType<typeof customerTypeControllerList>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof customerTypeControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ params?: CustomerTypeControllerListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof customerTypeControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -4012,11 +4099,11 @@ export function useCustomerTypeControllerList<TData = Awaited<ReturnType<typeof 
  */
 
 export function useCustomerTypeControllerList<TData = Awaited<ReturnType<typeof customerTypeControllerList>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof customerTypeControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ params?: CustomerTypeControllerListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof customerTypeControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getCustomerTypeControllerListQueryOptions(options)
+  const queryOptions = getCustomerTypeControllerListQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -4522,17 +4609,24 @@ export type lookupControllerGetOptionsResponseSuccess = (lookupControllerGetOpti
 
 export type lookupControllerGetOptionsResponse = (lookupControllerGetOptionsResponseSuccess)
 
-export const getLookupControllerGetOptionsUrl = () => {
+export const getLookupControllerGetOptionsUrl = (params: LookupControllerGetOptionsParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
 
-  
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/v1/lookups/options`
+  return stringifiedParams.length > 0 ? `/api/v1/lookups/options?${stringifiedParams}` : `/api/v1/lookups/options`
 }
 
-export const lookupControllerGetOptions = async ( options?: RequestInit): Promise<lookupControllerGetOptionsResponse> => {
+export const lookupControllerGetOptions = async (params: LookupControllerGetOptionsParams, options?: RequestInit): Promise<lookupControllerGetOptionsResponse> => {
   
-  return customFetch<lookupControllerGetOptionsResponse>(getLookupControllerGetOptionsUrl(),
+  return customFetch<lookupControllerGetOptionsResponse>(getLookupControllerGetOptionsUrl(params),
   {      
     ...options,
     method: 'GET'
@@ -4545,23 +4639,23 @@ export const lookupControllerGetOptions = async ( options?: RequestInit): Promis
 
 
 
-export const getLookupControllerGetOptionsQueryKey = () => {
+export const getLookupControllerGetOptionsQueryKey = (params?: LookupControllerGetOptionsParams,) => {
     return [
-    `/api/v1/lookups/options`
+    `/api/v1/lookups/options`, ...(params ? [params]: [])
     ] as const;
     }
 
     
-export const getLookupControllerGetOptionsQueryOptions = <TData = Awaited<ReturnType<typeof lookupControllerGetOptions>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof lookupControllerGetOptions>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export const getLookupControllerGetOptionsQueryOptions = <TData = Awaited<ReturnType<typeof lookupControllerGetOptions>>, TError = unknown>(params: LookupControllerGetOptionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof lookupControllerGetOptions>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getLookupControllerGetOptionsQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getLookupControllerGetOptionsQueryKey(params);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof lookupControllerGetOptions>>> = ({ signal }) => lookupControllerGetOptions({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof lookupControllerGetOptions>>> = ({ signal }) => lookupControllerGetOptions(params, { signal, ...requestOptions });
 
       
 
@@ -4575,7 +4669,7 @@ export type LookupControllerGetOptionsQueryError = unknown
 
 
 export function useLookupControllerGetOptions<TData = Awaited<ReturnType<typeof lookupControllerGetOptions>>, TError = unknown>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof lookupControllerGetOptions>>, TError, TData>> & Pick<
+ params: LookupControllerGetOptionsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof lookupControllerGetOptions>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof lookupControllerGetOptions>>,
           TError,
@@ -4585,7 +4679,7 @@ export function useLookupControllerGetOptions<TData = Awaited<ReturnType<typeof 
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useLookupControllerGetOptions<TData = Awaited<ReturnType<typeof lookupControllerGetOptions>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof lookupControllerGetOptions>>, TError, TData>> & Pick<
+ params: LookupControllerGetOptionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof lookupControllerGetOptions>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof lookupControllerGetOptions>>,
           TError,
@@ -4595,7 +4689,7 @@ export function useLookupControllerGetOptions<TData = Awaited<ReturnType<typeof 
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useLookupControllerGetOptions<TData = Awaited<ReturnType<typeof lookupControllerGetOptions>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof lookupControllerGetOptions>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ params: LookupControllerGetOptionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof lookupControllerGetOptions>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -4603,11 +4697,11 @@ export function useLookupControllerGetOptions<TData = Awaited<ReturnType<typeof 
  */
 
 export function useLookupControllerGetOptions<TData = Awaited<ReturnType<typeof lookupControllerGetOptions>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof lookupControllerGetOptions>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ params: LookupControllerGetOptionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof lookupControllerGetOptions>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getLookupControllerGetOptionsQueryOptions(options)
+  const queryOptions = getLookupControllerGetOptionsQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -4635,17 +4729,24 @@ export type companyDataTransferControllerDownloadTemplateResponseSuccess = (comp
 
 export type companyDataTransferControllerDownloadTemplateResponse = (companyDataTransferControllerDownloadTemplateResponseSuccess)
 
-export const getCompanyDataTransferControllerDownloadTemplateUrl = () => {
+export const getCompanyDataTransferControllerDownloadTemplateUrl = (params: CompanyDataTransferControllerDownloadTemplateParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
 
-  
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/v1/companies/import/template`
+  return stringifiedParams.length > 0 ? `/api/v1/companies/import/template?${stringifiedParams}` : `/api/v1/companies/import/template`
 }
 
-export const companyDataTransferControllerDownloadTemplate = async ( options?: RequestInit): Promise<companyDataTransferControllerDownloadTemplateResponse> => {
+export const companyDataTransferControllerDownloadTemplate = async (params: CompanyDataTransferControllerDownloadTemplateParams, options?: RequestInit): Promise<companyDataTransferControllerDownloadTemplateResponse> => {
   
-  return customFetch<companyDataTransferControllerDownloadTemplateResponse>(getCompanyDataTransferControllerDownloadTemplateUrl(),
+  return customFetch<companyDataTransferControllerDownloadTemplateResponse>(getCompanyDataTransferControllerDownloadTemplateUrl(params),
   {      
     ...options,
     method: 'GET'
@@ -4658,23 +4759,23 @@ export const companyDataTransferControllerDownloadTemplate = async ( options?: R
 
 
 
-export const getCompanyDataTransferControllerDownloadTemplateQueryKey = () => {
+export const getCompanyDataTransferControllerDownloadTemplateQueryKey = (params?: CompanyDataTransferControllerDownloadTemplateParams,) => {
     return [
-    `/api/v1/companies/import/template`
+    `/api/v1/companies/import/template`, ...(params ? [params]: [])
     ] as const;
     }
 
     
-export const getCompanyDataTransferControllerDownloadTemplateQueryOptions = <TData = Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export const getCompanyDataTransferControllerDownloadTemplateQueryOptions = <TData = Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError = unknown>(params: CompanyDataTransferControllerDownloadTemplateParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getCompanyDataTransferControllerDownloadTemplateQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getCompanyDataTransferControllerDownloadTemplateQueryKey(params);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>> = ({ signal }) => companyDataTransferControllerDownloadTemplate({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>> = ({ signal }) => companyDataTransferControllerDownloadTemplate(params, { signal, ...requestOptions });
 
       
 
@@ -4688,7 +4789,7 @@ export type CompanyDataTransferControllerDownloadTemplateQueryError = unknown
 
 
 export function useCompanyDataTransferControllerDownloadTemplate<TData = Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError = unknown>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError, TData>> & Pick<
+ params: CompanyDataTransferControllerDownloadTemplateParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>,
           TError,
@@ -4698,7 +4799,7 @@ export function useCompanyDataTransferControllerDownloadTemplate<TData = Awaited
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useCompanyDataTransferControllerDownloadTemplate<TData = Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError, TData>> & Pick<
+ params: CompanyDataTransferControllerDownloadTemplateParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>,
           TError,
@@ -4708,7 +4809,7 @@ export function useCompanyDataTransferControllerDownloadTemplate<TData = Awaited
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useCompanyDataTransferControllerDownloadTemplate<TData = Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ params: CompanyDataTransferControllerDownloadTemplateParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -4716,11 +4817,11 @@ export function useCompanyDataTransferControllerDownloadTemplate<TData = Awaited
  */
 
 export function useCompanyDataTransferControllerDownloadTemplate<TData = Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ params: CompanyDataTransferControllerDownloadTemplateParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerDownloadTemplate>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getCompanyDataTransferControllerDownloadTemplateQueryOptions(options)
+  const queryOptions = getCompanyDataTransferControllerDownloadTemplateQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -4848,14 +4949,16 @@ export const getCompanyDataTransferControllerConfirmUrl = (jobId: string,) => {
   return `/api/v1/companies/import/${jobId}/confirm`
 }
 
-export const companyDataTransferControllerConfirm = async (jobId: string, options?: RequestInit): Promise<companyDataTransferControllerConfirmResponse> => {
+export const companyDataTransferControllerConfirm = async (jobId: string,
+    companyImportConfirmDto: CompanyImportConfirmDto, options?: RequestInit): Promise<companyDataTransferControllerConfirmResponse> => {
   
   return customFetch<companyDataTransferControllerConfirmResponse>(getCompanyDataTransferControllerConfirmUrl(jobId),
   {      
     ...options,
-    method: 'POST'
-    
-    
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      companyImportConfirmDto,)
   }
 );}
 
@@ -4863,8 +4966,8 @@ export const companyDataTransferControllerConfirm = async (jobId: string, option
 
 
 export const getCompanyDataTransferControllerConfirmMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof companyDataTransferControllerConfirm>>, TError,{jobId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof companyDataTransferControllerConfirm>>, TError,{jobId: string}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof companyDataTransferControllerConfirm>>, TError,{jobId: string;data: CompanyImportConfirmDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof companyDataTransferControllerConfirm>>, TError,{jobId: string;data: CompanyImportConfirmDto}, TContext> => {
 
 const mutationKey = ['companyDataTransferControllerConfirm'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -4876,10 +4979,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof companyDataTransferControllerConfirm>>, {jobId: string}> = (props) => {
-          const {jobId} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof companyDataTransferControllerConfirm>>, {jobId: string;data: CompanyImportConfirmDto}> = (props) => {
+          const {jobId,data} = props ?? {};
 
-          return  companyDataTransferControllerConfirm(jobId,requestOptions)
+          return  companyDataTransferControllerConfirm(jobId,data,requestOptions)
         }
 
         
@@ -4888,18 +4991,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type CompanyDataTransferControllerConfirmMutationResult = NonNullable<Awaited<ReturnType<typeof companyDataTransferControllerConfirm>>>
-    
+    export type CompanyDataTransferControllerConfirmMutationBody = CompanyImportConfirmDto
     export type CompanyDataTransferControllerConfirmMutationError = unknown
 
     /**
  * @summary Confirm import preview and enqueue background processing (rate limit 5/min)
  */
 export const useCompanyDataTransferControllerConfirm = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof companyDataTransferControllerConfirm>>, TError,{jobId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof companyDataTransferControllerConfirm>>, TError,{jobId: string;data: CompanyImportConfirmDto}, TContext>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof companyDataTransferControllerConfirm>>,
         TError,
-        {jobId: string},
+        {jobId: string;data: CompanyImportConfirmDto},
         TContext
       > => {
 
@@ -5006,17 +5109,24 @@ export type companyDataTransferControllerListImportsResponseSuccess = (companyDa
 
 export type companyDataTransferControllerListImportsResponse = (companyDataTransferControllerListImportsResponseSuccess)
 
-export const getCompanyDataTransferControllerListImportsUrl = () => {
+export const getCompanyDataTransferControllerListImportsUrl = (params?: CompanyDataTransferControllerListImportsParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
 
-  
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/v1/companies/import`
+  return stringifiedParams.length > 0 ? `/api/v1/companies/import?${stringifiedParams}` : `/api/v1/companies/import`
 }
 
-export const companyDataTransferControllerListImports = async ( options?: RequestInit): Promise<companyDataTransferControllerListImportsResponse> => {
+export const companyDataTransferControllerListImports = async (params?: CompanyDataTransferControllerListImportsParams, options?: RequestInit): Promise<companyDataTransferControllerListImportsResponse> => {
   
-  return customFetch<companyDataTransferControllerListImportsResponse>(getCompanyDataTransferControllerListImportsUrl(),
+  return customFetch<companyDataTransferControllerListImportsResponse>(getCompanyDataTransferControllerListImportsUrl(params),
   {      
     ...options,
     method: 'GET'
@@ -5029,23 +5139,23 @@ export const companyDataTransferControllerListImports = async ( options?: Reques
 
 
 
-export const getCompanyDataTransferControllerListImportsQueryKey = () => {
+export const getCompanyDataTransferControllerListImportsQueryKey = (params?: CompanyDataTransferControllerListImportsParams,) => {
     return [
-    `/api/v1/companies/import`
+    `/api/v1/companies/import`, ...(params ? [params]: [])
     ] as const;
     }
 
     
-export const getCompanyDataTransferControllerListImportsQueryOptions = <TData = Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export const getCompanyDataTransferControllerListImportsQueryOptions = <TData = Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError = unknown>(params?: CompanyDataTransferControllerListImportsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getCompanyDataTransferControllerListImportsQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getCompanyDataTransferControllerListImportsQueryKey(params);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof companyDataTransferControllerListImports>>> = ({ signal }) => companyDataTransferControllerListImports({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof companyDataTransferControllerListImports>>> = ({ signal }) => companyDataTransferControllerListImports(params, { signal, ...requestOptions });
 
       
 
@@ -5059,7 +5169,7 @@ export type CompanyDataTransferControllerListImportsQueryError = unknown
 
 
 export function useCompanyDataTransferControllerListImports<TData = Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError = unknown>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError, TData>> & Pick<
+ params: undefined |  CompanyDataTransferControllerListImportsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof companyDataTransferControllerListImports>>,
           TError,
@@ -5069,7 +5179,7 @@ export function useCompanyDataTransferControllerListImports<TData = Awaited<Retu
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useCompanyDataTransferControllerListImports<TData = Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError, TData>> & Pick<
+ params?: CompanyDataTransferControllerListImportsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof companyDataTransferControllerListImports>>,
           TError,
@@ -5079,7 +5189,7 @@ export function useCompanyDataTransferControllerListImports<TData = Awaited<Retu
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useCompanyDataTransferControllerListImports<TData = Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ params?: CompanyDataTransferControllerListImportsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -5087,11 +5197,11 @@ export function useCompanyDataTransferControllerListImports<TData = Awaited<Retu
  */
 
 export function useCompanyDataTransferControllerListImports<TData = Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ params?: CompanyDataTransferControllerListImportsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerListImports>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getCompanyDataTransferControllerListImportsQueryOptions(options)
+  const queryOptions = getCompanyDataTransferControllerListImportsQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -5232,17 +5342,26 @@ export type companyDataTransferControllerGetIssuesResponseSuccess = (companyData
 
 export type companyDataTransferControllerGetIssuesResponse = (companyDataTransferControllerGetIssuesResponseSuccess)
 
-export const getCompanyDataTransferControllerGetIssuesUrl = (jobId: string,) => {
+export const getCompanyDataTransferControllerGetIssuesUrl = (jobId: string,
+    params: CompanyDataTransferControllerGetIssuesParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
 
-  
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/v1/companies/import/${jobId}/issues`
+  return stringifiedParams.length > 0 ? `/api/v1/companies/import/${jobId}/issues?${stringifiedParams}` : `/api/v1/companies/import/${jobId}/issues`
 }
 
-export const companyDataTransferControllerGetIssues = async (jobId: string, options?: RequestInit): Promise<companyDataTransferControllerGetIssuesResponse> => {
+export const companyDataTransferControllerGetIssues = async (jobId: string,
+    params: CompanyDataTransferControllerGetIssuesParams, options?: RequestInit): Promise<companyDataTransferControllerGetIssuesResponse> => {
   
-  return customFetch<companyDataTransferControllerGetIssuesResponse>(getCompanyDataTransferControllerGetIssuesUrl(jobId),
+  return customFetch<companyDataTransferControllerGetIssuesResponse>(getCompanyDataTransferControllerGetIssuesUrl(jobId,params),
   {      
     ...options,
     method: 'GET'
@@ -5255,23 +5374,25 @@ export const companyDataTransferControllerGetIssues = async (jobId: string, opti
 
 
 
-export const getCompanyDataTransferControllerGetIssuesQueryKey = (jobId?: string,) => {
+export const getCompanyDataTransferControllerGetIssuesQueryKey = (jobId?: string,
+    params?: CompanyDataTransferControllerGetIssuesParams,) => {
     return [
-    `/api/v1/companies/import/${jobId}/issues`
+    `/api/v1/companies/import/${jobId}/issues`, ...(params ? [params]: [])
     ] as const;
     }
 
     
-export const getCompanyDataTransferControllerGetIssuesQueryOptions = <TData = Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError = unknown>(jobId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export const getCompanyDataTransferControllerGetIssuesQueryOptions = <TData = Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError = unknown>(jobId: string,
+    params: CompanyDataTransferControllerGetIssuesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getCompanyDataTransferControllerGetIssuesQueryKey(jobId);
+  const queryKey =  queryOptions?.queryKey ?? getCompanyDataTransferControllerGetIssuesQueryKey(jobId,params);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>> = ({ signal }) => companyDataTransferControllerGetIssues(jobId, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>> = ({ signal }) => companyDataTransferControllerGetIssues(jobId,params, { signal, ...requestOptions });
 
       
 
@@ -5285,7 +5406,8 @@ export type CompanyDataTransferControllerGetIssuesQueryError = unknown
 
 
 export function useCompanyDataTransferControllerGetIssues<TData = Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError = unknown>(
- jobId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError, TData>> & Pick<
+ jobId: string,
+    params: CompanyDataTransferControllerGetIssuesParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>,
           TError,
@@ -5295,7 +5417,8 @@ export function useCompanyDataTransferControllerGetIssues<TData = Awaited<Return
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useCompanyDataTransferControllerGetIssues<TData = Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError = unknown>(
- jobId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError, TData>> & Pick<
+ jobId: string,
+    params: CompanyDataTransferControllerGetIssuesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>,
           TError,
@@ -5305,7 +5428,8 @@ export function useCompanyDataTransferControllerGetIssues<TData = Awaited<Return
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useCompanyDataTransferControllerGetIssues<TData = Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError = unknown>(
- jobId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ jobId: string,
+    params: CompanyDataTransferControllerGetIssuesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -5313,11 +5437,12 @@ export function useCompanyDataTransferControllerGetIssues<TData = Awaited<Return
  */
 
 export function useCompanyDataTransferControllerGetIssues<TData = Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError = unknown>(
- jobId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ jobId: string,
+    params: CompanyDataTransferControllerGetIssuesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerGetIssues>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getCompanyDataTransferControllerGetIssuesQueryOptions(jobId,options)
+  const queryOptions = getCompanyDataTransferControllerGetIssuesQueryOptions(jobId,params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -5458,17 +5583,24 @@ export type companyDataTransferControllerExportResponseSuccess = (companyDataTra
 
 export type companyDataTransferControllerExportResponse = (companyDataTransferControllerExportResponseSuccess)
 
-export const getCompanyDataTransferControllerExportUrl = () => {
+export const getCompanyDataTransferControllerExportUrl = (params: CompanyDataTransferControllerExportParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
 
-  
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/v1/companies/export`
+  return stringifiedParams.length > 0 ? `/api/v1/companies/export?${stringifiedParams}` : `/api/v1/companies/export`
 }
 
-export const companyDataTransferControllerExport = async ( options?: RequestInit): Promise<companyDataTransferControllerExportResponse> => {
+export const companyDataTransferControllerExport = async (params: CompanyDataTransferControllerExportParams, options?: RequestInit): Promise<companyDataTransferControllerExportResponse> => {
   
-  return customFetch<companyDataTransferControllerExportResponse>(getCompanyDataTransferControllerExportUrl(),
+  return customFetch<companyDataTransferControllerExportResponse>(getCompanyDataTransferControllerExportUrl(params),
   {      
     ...options,
     method: 'GET'
@@ -5481,23 +5613,23 @@ export const companyDataTransferControllerExport = async ( options?: RequestInit
 
 
 
-export const getCompanyDataTransferControllerExportQueryKey = () => {
+export const getCompanyDataTransferControllerExportQueryKey = (params?: CompanyDataTransferControllerExportParams,) => {
     return [
-    `/api/v1/companies/export`
+    `/api/v1/companies/export`, ...(params ? [params]: [])
     ] as const;
     }
 
     
-export const getCompanyDataTransferControllerExportQueryOptions = <TData = Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export const getCompanyDataTransferControllerExportQueryOptions = <TData = Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError = unknown>(params: CompanyDataTransferControllerExportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getCompanyDataTransferControllerExportQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getCompanyDataTransferControllerExportQueryKey(params);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof companyDataTransferControllerExport>>> = ({ signal }) => companyDataTransferControllerExport({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof companyDataTransferControllerExport>>> = ({ signal }) => companyDataTransferControllerExport(params, { signal, ...requestOptions });
 
       
 
@@ -5511,7 +5643,7 @@ export type CompanyDataTransferControllerExportQueryError = unknown
 
 
 export function useCompanyDataTransferControllerExport<TData = Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError = unknown>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError, TData>> & Pick<
+ params: CompanyDataTransferControllerExportParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof companyDataTransferControllerExport>>,
           TError,
@@ -5521,7 +5653,7 @@ export function useCompanyDataTransferControllerExport<TData = Awaited<ReturnTyp
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useCompanyDataTransferControllerExport<TData = Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError, TData>> & Pick<
+ params: CompanyDataTransferControllerExportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof companyDataTransferControllerExport>>,
           TError,
@@ -5531,7 +5663,7 @@ export function useCompanyDataTransferControllerExport<TData = Awaited<ReturnTyp
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useCompanyDataTransferControllerExport<TData = Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ params: CompanyDataTransferControllerExportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -5539,11 +5671,11 @@ export function useCompanyDataTransferControllerExport<TData = Awaited<ReturnTyp
  */
 
 export function useCompanyDataTransferControllerExport<TData = Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ params: CompanyDataTransferControllerExportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyDataTransferControllerExport>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getCompanyDataTransferControllerExportQueryOptions(options)
+  const queryOptions = getCompanyDataTransferControllerExportQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -5571,17 +5703,24 @@ export type companyControllerListResponseSuccess = (companyControllerListRespons
 
 export type companyControllerListResponse = (companyControllerListResponseSuccess)
 
-export const getCompanyControllerListUrl = () => {
+export const getCompanyControllerListUrl = (params?: CompanyControllerListParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
 
-  
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/v1/companies`
+  return stringifiedParams.length > 0 ? `/api/v1/companies?${stringifiedParams}` : `/api/v1/companies`
 }
 
-export const companyControllerList = async ( options?: RequestInit): Promise<companyControllerListResponse> => {
+export const companyControllerList = async (params?: CompanyControllerListParams, options?: RequestInit): Promise<companyControllerListResponse> => {
   
-  return customFetch<companyControllerListResponse>(getCompanyControllerListUrl(),
+  return customFetch<companyControllerListResponse>(getCompanyControllerListUrl(params),
   {      
     ...options,
     method: 'GET'
@@ -5594,23 +5733,23 @@ export const companyControllerList = async ( options?: RequestInit): Promise<com
 
 
 
-export const getCompanyControllerListQueryKey = () => {
+export const getCompanyControllerListQueryKey = (params?: CompanyControllerListParams,) => {
     return [
-    `/api/v1/companies`
+    `/api/v1/companies`, ...(params ? [params]: [])
     ] as const;
     }
 
     
-export const getCompanyControllerListQueryOptions = <TData = Awaited<ReturnType<typeof companyControllerList>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export const getCompanyControllerListQueryOptions = <TData = Awaited<ReturnType<typeof companyControllerList>>, TError = unknown>(params?: CompanyControllerListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getCompanyControllerListQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getCompanyControllerListQueryKey(params);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof companyControllerList>>> = ({ signal }) => companyControllerList({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof companyControllerList>>> = ({ signal }) => companyControllerList(params, { signal, ...requestOptions });
 
       
 
@@ -5624,7 +5763,7 @@ export type CompanyControllerListQueryError = unknown
 
 
 export function useCompanyControllerList<TData = Awaited<ReturnType<typeof companyControllerList>>, TError = unknown>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerList>>, TError, TData>> & Pick<
+ params: undefined |  CompanyControllerListParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerList>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof companyControllerList>>,
           TError,
@@ -5634,7 +5773,7 @@ export function useCompanyControllerList<TData = Awaited<ReturnType<typeof compa
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useCompanyControllerList<TData = Awaited<ReturnType<typeof companyControllerList>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerList>>, TError, TData>> & Pick<
+ params?: CompanyControllerListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerList>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof companyControllerList>>,
           TError,
@@ -5644,7 +5783,7 @@ export function useCompanyControllerList<TData = Awaited<ReturnType<typeof compa
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useCompanyControllerList<TData = Awaited<ReturnType<typeof companyControllerList>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ params?: CompanyControllerListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -5652,11 +5791,11 @@ export function useCompanyControllerList<TData = Awaited<ReturnType<typeof compa
  */
 
 export function useCompanyControllerList<TData = Awaited<ReturnType<typeof companyControllerList>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ params?: CompanyControllerListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getCompanyControllerListQueryOptions(options)
+  const queryOptions = getCompanyControllerListQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -5768,17 +5907,24 @@ export type companyControllerGetOptionsResponseSuccess = (companyControllerGetOp
 
 export type companyControllerGetOptionsResponse = (companyControllerGetOptionsResponseSuccess)
 
-export const getCompanyControllerGetOptionsUrl = () => {
+export const getCompanyControllerGetOptionsUrl = (params?: CompanyControllerGetOptionsParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
 
-  
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/v1/companies/options`
+  return stringifiedParams.length > 0 ? `/api/v1/companies/options?${stringifiedParams}` : `/api/v1/companies/options`
 }
 
-export const companyControllerGetOptions = async ( options?: RequestInit): Promise<companyControllerGetOptionsResponse> => {
+export const companyControllerGetOptions = async (params?: CompanyControllerGetOptionsParams, options?: RequestInit): Promise<companyControllerGetOptionsResponse> => {
   
-  return customFetch<companyControllerGetOptionsResponse>(getCompanyControllerGetOptionsUrl(),
+  return customFetch<companyControllerGetOptionsResponse>(getCompanyControllerGetOptionsUrl(params),
   {      
     ...options,
     method: 'GET'
@@ -5791,23 +5937,23 @@ export const companyControllerGetOptions = async ( options?: RequestInit): Promi
 
 
 
-export const getCompanyControllerGetOptionsQueryKey = () => {
+export const getCompanyControllerGetOptionsQueryKey = (params?: CompanyControllerGetOptionsParams,) => {
     return [
-    `/api/v1/companies/options`
+    `/api/v1/companies/options`, ...(params ? [params]: [])
     ] as const;
     }
 
     
-export const getCompanyControllerGetOptionsQueryOptions = <TData = Awaited<ReturnType<typeof companyControllerGetOptions>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerGetOptions>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export const getCompanyControllerGetOptionsQueryOptions = <TData = Awaited<ReturnType<typeof companyControllerGetOptions>>, TError = unknown>(params?: CompanyControllerGetOptionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerGetOptions>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getCompanyControllerGetOptionsQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getCompanyControllerGetOptionsQueryKey(params);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof companyControllerGetOptions>>> = ({ signal }) => companyControllerGetOptions({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof companyControllerGetOptions>>> = ({ signal }) => companyControllerGetOptions(params, { signal, ...requestOptions });
 
       
 
@@ -5821,7 +5967,7 @@ export type CompanyControllerGetOptionsQueryError = unknown
 
 
 export function useCompanyControllerGetOptions<TData = Awaited<ReturnType<typeof companyControllerGetOptions>>, TError = unknown>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerGetOptions>>, TError, TData>> & Pick<
+ params: undefined |  CompanyControllerGetOptionsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerGetOptions>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof companyControllerGetOptions>>,
           TError,
@@ -5831,7 +5977,7 @@ export function useCompanyControllerGetOptions<TData = Awaited<ReturnType<typeof
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useCompanyControllerGetOptions<TData = Awaited<ReturnType<typeof companyControllerGetOptions>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerGetOptions>>, TError, TData>> & Pick<
+ params?: CompanyControllerGetOptionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerGetOptions>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof companyControllerGetOptions>>,
           TError,
@@ -5841,7 +5987,7 @@ export function useCompanyControllerGetOptions<TData = Awaited<ReturnType<typeof
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useCompanyControllerGetOptions<TData = Awaited<ReturnType<typeof companyControllerGetOptions>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerGetOptions>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ params?: CompanyControllerGetOptionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerGetOptions>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -5849,11 +5995,11 @@ export function useCompanyControllerGetOptions<TData = Awaited<ReturnType<typeof
  */
 
 export function useCompanyControllerGetOptions<TData = Awaited<ReturnType<typeof companyControllerGetOptions>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerGetOptions>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ params?: CompanyControllerGetOptionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerGetOptions>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getCompanyControllerGetOptionsQueryOptions(options)
+  const queryOptions = getCompanyControllerGetOptionsQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -5881,17 +6027,24 @@ export type companyControllerCheckDuplicatesResponseSuccess = (companyController
 
 export type companyControllerCheckDuplicatesResponse = (companyControllerCheckDuplicatesResponseSuccess)
 
-export const getCompanyControllerCheckDuplicatesUrl = () => {
+export const getCompanyControllerCheckDuplicatesUrl = (params?: CompanyControllerCheckDuplicatesParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
 
-  
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/v1/companies/duplicate-check`
+  return stringifiedParams.length > 0 ? `/api/v1/companies/duplicate-check?${stringifiedParams}` : `/api/v1/companies/duplicate-check`
 }
 
-export const companyControllerCheckDuplicates = async ( options?: RequestInit): Promise<companyControllerCheckDuplicatesResponse> => {
+export const companyControllerCheckDuplicates = async (params?: CompanyControllerCheckDuplicatesParams, options?: RequestInit): Promise<companyControllerCheckDuplicatesResponse> => {
   
-  return customFetch<companyControllerCheckDuplicatesResponse>(getCompanyControllerCheckDuplicatesUrl(),
+  return customFetch<companyControllerCheckDuplicatesResponse>(getCompanyControllerCheckDuplicatesUrl(params),
   {      
     ...options,
     method: 'GET'
@@ -5904,23 +6057,23 @@ export const companyControllerCheckDuplicates = async ( options?: RequestInit): 
 
 
 
-export const getCompanyControllerCheckDuplicatesQueryKey = () => {
+export const getCompanyControllerCheckDuplicatesQueryKey = (params?: CompanyControllerCheckDuplicatesParams,) => {
     return [
-    `/api/v1/companies/duplicate-check`
+    `/api/v1/companies/duplicate-check`, ...(params ? [params]: [])
     ] as const;
     }
 
     
-export const getCompanyControllerCheckDuplicatesQueryOptions = <TData = Awaited<ReturnType<typeof companyControllerCheckDuplicates>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerCheckDuplicates>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export const getCompanyControllerCheckDuplicatesQueryOptions = <TData = Awaited<ReturnType<typeof companyControllerCheckDuplicates>>, TError = unknown>(params?: CompanyControllerCheckDuplicatesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerCheckDuplicates>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getCompanyControllerCheckDuplicatesQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getCompanyControllerCheckDuplicatesQueryKey(params);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof companyControllerCheckDuplicates>>> = ({ signal }) => companyControllerCheckDuplicates({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof companyControllerCheckDuplicates>>> = ({ signal }) => companyControllerCheckDuplicates(params, { signal, ...requestOptions });
 
       
 
@@ -5934,7 +6087,7 @@ export type CompanyControllerCheckDuplicatesQueryError = unknown
 
 
 export function useCompanyControllerCheckDuplicates<TData = Awaited<ReturnType<typeof companyControllerCheckDuplicates>>, TError = unknown>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerCheckDuplicates>>, TError, TData>> & Pick<
+ params: undefined |  CompanyControllerCheckDuplicatesParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerCheckDuplicates>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof companyControllerCheckDuplicates>>,
           TError,
@@ -5944,7 +6097,7 @@ export function useCompanyControllerCheckDuplicates<TData = Awaited<ReturnType<t
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useCompanyControllerCheckDuplicates<TData = Awaited<ReturnType<typeof companyControllerCheckDuplicates>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerCheckDuplicates>>, TError, TData>> & Pick<
+ params?: CompanyControllerCheckDuplicatesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerCheckDuplicates>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof companyControllerCheckDuplicates>>,
           TError,
@@ -5954,7 +6107,7 @@ export function useCompanyControllerCheckDuplicates<TData = Awaited<ReturnType<t
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useCompanyControllerCheckDuplicates<TData = Awaited<ReturnType<typeof companyControllerCheckDuplicates>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerCheckDuplicates>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ params?: CompanyControllerCheckDuplicatesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerCheckDuplicates>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -5962,11 +6115,11 @@ export function useCompanyControllerCheckDuplicates<TData = Awaited<ReturnType<t
  */
 
 export function useCompanyControllerCheckDuplicates<TData = Awaited<ReturnType<typeof companyControllerCheckDuplicates>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerCheckDuplicates>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ params?: CompanyControllerCheckDuplicatesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof companyControllerCheckDuplicates>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getCompanyControllerCheckDuplicatesQueryOptions(options)
+  const queryOptions = getCompanyControllerCheckDuplicatesQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -6275,17 +6428,24 @@ export type personControllerLookupResponseSuccess = (personControllerLookupRespo
 
 export type personControllerLookupResponse = (personControllerLookupResponseSuccess)
 
-export const getPersonControllerLookupUrl = () => {
+export const getPersonControllerLookupUrl = (params?: PersonControllerLookupParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
 
-  
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/v1/persons/lookup`
+  return stringifiedParams.length > 0 ? `/api/v1/persons/lookup?${stringifiedParams}` : `/api/v1/persons/lookup`
 }
 
-export const personControllerLookup = async ( options?: RequestInit): Promise<personControllerLookupResponse> => {
+export const personControllerLookup = async (params?: PersonControllerLookupParams, options?: RequestInit): Promise<personControllerLookupResponse> => {
   
-  return customFetch<personControllerLookupResponse>(getPersonControllerLookupUrl(),
+  return customFetch<personControllerLookupResponse>(getPersonControllerLookupUrl(params),
   {      
     ...options,
     method: 'GET'
@@ -6298,23 +6458,23 @@ export const personControllerLookup = async ( options?: RequestInit): Promise<pe
 
 
 
-export const getPersonControllerLookupQueryKey = () => {
+export const getPersonControllerLookupQueryKey = (params?: PersonControllerLookupParams,) => {
     return [
-    `/api/v1/persons/lookup`
+    `/api/v1/persons/lookup`, ...(params ? [params]: [])
     ] as const;
     }
 
     
-export const getPersonControllerLookupQueryOptions = <TData = Awaited<ReturnType<typeof personControllerLookup>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof personControllerLookup>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export const getPersonControllerLookupQueryOptions = <TData = Awaited<ReturnType<typeof personControllerLookup>>, TError = unknown>(params?: PersonControllerLookupParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof personControllerLookup>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getPersonControllerLookupQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getPersonControllerLookupQueryKey(params);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof personControllerLookup>>> = ({ signal }) => personControllerLookup({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof personControllerLookup>>> = ({ signal }) => personControllerLookup(params, { signal, ...requestOptions });
 
       
 
@@ -6328,7 +6488,7 @@ export type PersonControllerLookupQueryError = unknown
 
 
 export function usePersonControllerLookup<TData = Awaited<ReturnType<typeof personControllerLookup>>, TError = unknown>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof personControllerLookup>>, TError, TData>> & Pick<
+ params: undefined |  PersonControllerLookupParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof personControllerLookup>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof personControllerLookup>>,
           TError,
@@ -6338,7 +6498,7 @@ export function usePersonControllerLookup<TData = Awaited<ReturnType<typeof pers
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function usePersonControllerLookup<TData = Awaited<ReturnType<typeof personControllerLookup>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof personControllerLookup>>, TError, TData>> & Pick<
+ params?: PersonControllerLookupParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof personControllerLookup>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof personControllerLookup>>,
           TError,
@@ -6348,7 +6508,7 @@ export function usePersonControllerLookup<TData = Awaited<ReturnType<typeof pers
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function usePersonControllerLookup<TData = Awaited<ReturnType<typeof personControllerLookup>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof personControllerLookup>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ params?: PersonControllerLookupParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof personControllerLookup>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -6356,11 +6516,11 @@ export function usePersonControllerLookup<TData = Awaited<ReturnType<typeof pers
  */
 
 export function usePersonControllerLookup<TData = Awaited<ReturnType<typeof personControllerLookup>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof personControllerLookup>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ params?: PersonControllerLookupParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof personControllerLookup>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getPersonControllerLookupQueryOptions(options)
+  const queryOptions = getPersonControllerLookupQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -7525,17 +7685,24 @@ export type attendanceControllerGetTeamResponseSuccess = (attendanceControllerGe
 
 export type attendanceControllerGetTeamResponse = (attendanceControllerGetTeamResponseSuccess)
 
-export const getAttendanceControllerGetTeamUrl = () => {
+export const getAttendanceControllerGetTeamUrl = (params?: AttendanceControllerGetTeamParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
 
-  
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/v1/attendance/team`
+  return stringifiedParams.length > 0 ? `/api/v1/attendance/team?${stringifiedParams}` : `/api/v1/attendance/team`
 }
 
-export const attendanceControllerGetTeam = async ( options?: RequestInit): Promise<attendanceControllerGetTeamResponse> => {
+export const attendanceControllerGetTeam = async (params?: AttendanceControllerGetTeamParams, options?: RequestInit): Promise<attendanceControllerGetTeamResponse> => {
   
-  return customFetch<attendanceControllerGetTeamResponse>(getAttendanceControllerGetTeamUrl(),
+  return customFetch<attendanceControllerGetTeamResponse>(getAttendanceControllerGetTeamUrl(params),
   {      
     ...options,
     method: 'GET'
@@ -7548,23 +7715,23 @@ export const attendanceControllerGetTeam = async ( options?: RequestInit): Promi
 
 
 
-export const getAttendanceControllerGetTeamQueryKey = () => {
+export const getAttendanceControllerGetTeamQueryKey = (params?: AttendanceControllerGetTeamParams,) => {
     return [
-    `/api/v1/attendance/team`
+    `/api/v1/attendance/team`, ...(params ? [params]: [])
     ] as const;
     }
 
     
-export const getAttendanceControllerGetTeamQueryOptions = <TData = Awaited<ReturnType<typeof attendanceControllerGetTeam>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof attendanceControllerGetTeam>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export const getAttendanceControllerGetTeamQueryOptions = <TData = Awaited<ReturnType<typeof attendanceControllerGetTeam>>, TError = unknown>(params?: AttendanceControllerGetTeamParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof attendanceControllerGetTeam>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getAttendanceControllerGetTeamQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getAttendanceControllerGetTeamQueryKey(params);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof attendanceControllerGetTeam>>> = ({ signal }) => attendanceControllerGetTeam({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof attendanceControllerGetTeam>>> = ({ signal }) => attendanceControllerGetTeam(params, { signal, ...requestOptions });
 
       
 
@@ -7578,7 +7745,7 @@ export type AttendanceControllerGetTeamQueryError = unknown
 
 
 export function useAttendanceControllerGetTeam<TData = Awaited<ReturnType<typeof attendanceControllerGetTeam>>, TError = unknown>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof attendanceControllerGetTeam>>, TError, TData>> & Pick<
+ params: undefined |  AttendanceControllerGetTeamParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof attendanceControllerGetTeam>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof attendanceControllerGetTeam>>,
           TError,
@@ -7588,7 +7755,7 @@ export function useAttendanceControllerGetTeam<TData = Awaited<ReturnType<typeof
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useAttendanceControllerGetTeam<TData = Awaited<ReturnType<typeof attendanceControllerGetTeam>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof attendanceControllerGetTeam>>, TError, TData>> & Pick<
+ params?: AttendanceControllerGetTeamParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof attendanceControllerGetTeam>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof attendanceControllerGetTeam>>,
           TError,
@@ -7598,7 +7765,7 @@ export function useAttendanceControllerGetTeam<TData = Awaited<ReturnType<typeof
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useAttendanceControllerGetTeam<TData = Awaited<ReturnType<typeof attendanceControllerGetTeam>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof attendanceControllerGetTeam>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ params?: AttendanceControllerGetTeamParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof attendanceControllerGetTeam>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -7606,11 +7773,11 @@ export function useAttendanceControllerGetTeam<TData = Awaited<ReturnType<typeof
  */
 
 export function useAttendanceControllerGetTeam<TData = Awaited<ReturnType<typeof attendanceControllerGetTeam>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof attendanceControllerGetTeam>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ params?: AttendanceControllerGetTeamParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof attendanceControllerGetTeam>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getAttendanceControllerGetTeamQueryOptions(options)
+  const queryOptions = getAttendanceControllerGetTeamQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -7638,17 +7805,24 @@ export type attendanceControllerGetReportResponseSuccess = (attendanceController
 
 export type attendanceControllerGetReportResponse = (attendanceControllerGetReportResponseSuccess)
 
-export const getAttendanceControllerGetReportUrl = () => {
+export const getAttendanceControllerGetReportUrl = (params: AttendanceControllerGetReportParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
 
-  
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/v1/attendance/report/csv`
+  return stringifiedParams.length > 0 ? `/api/v1/attendance/report/csv?${stringifiedParams}` : `/api/v1/attendance/report/csv`
 }
 
-export const attendanceControllerGetReport = async ( options?: RequestInit): Promise<attendanceControllerGetReportResponse> => {
+export const attendanceControllerGetReport = async (params: AttendanceControllerGetReportParams, options?: RequestInit): Promise<attendanceControllerGetReportResponse> => {
   
-  return customFetch<attendanceControllerGetReportResponse>(getAttendanceControllerGetReportUrl(),
+  return customFetch<attendanceControllerGetReportResponse>(getAttendanceControllerGetReportUrl(params),
   {      
     ...options,
     method: 'GET'
@@ -7661,23 +7835,23 @@ export const attendanceControllerGetReport = async ( options?: RequestInit): Pro
 
 
 
-export const getAttendanceControllerGetReportQueryKey = () => {
+export const getAttendanceControllerGetReportQueryKey = (params?: AttendanceControllerGetReportParams,) => {
     return [
-    `/api/v1/attendance/report/csv`
+    `/api/v1/attendance/report/csv`, ...(params ? [params]: [])
     ] as const;
     }
 
     
-export const getAttendanceControllerGetReportQueryOptions = <TData = Awaited<ReturnType<typeof attendanceControllerGetReport>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof attendanceControllerGetReport>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export const getAttendanceControllerGetReportQueryOptions = <TData = Awaited<ReturnType<typeof attendanceControllerGetReport>>, TError = unknown>(params: AttendanceControllerGetReportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof attendanceControllerGetReport>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getAttendanceControllerGetReportQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getAttendanceControllerGetReportQueryKey(params);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof attendanceControllerGetReport>>> = ({ signal }) => attendanceControllerGetReport({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof attendanceControllerGetReport>>> = ({ signal }) => attendanceControllerGetReport(params, { signal, ...requestOptions });
 
       
 
@@ -7691,7 +7865,7 @@ export type AttendanceControllerGetReportQueryError = unknown
 
 
 export function useAttendanceControllerGetReport<TData = Awaited<ReturnType<typeof attendanceControllerGetReport>>, TError = unknown>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof attendanceControllerGetReport>>, TError, TData>> & Pick<
+ params: AttendanceControllerGetReportParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof attendanceControllerGetReport>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof attendanceControllerGetReport>>,
           TError,
@@ -7701,7 +7875,7 @@ export function useAttendanceControllerGetReport<TData = Awaited<ReturnType<type
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useAttendanceControllerGetReport<TData = Awaited<ReturnType<typeof attendanceControllerGetReport>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof attendanceControllerGetReport>>, TError, TData>> & Pick<
+ params: AttendanceControllerGetReportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof attendanceControllerGetReport>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof attendanceControllerGetReport>>,
           TError,
@@ -7711,7 +7885,7 @@ export function useAttendanceControllerGetReport<TData = Awaited<ReturnType<type
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useAttendanceControllerGetReport<TData = Awaited<ReturnType<typeof attendanceControllerGetReport>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof attendanceControllerGetReport>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ params: AttendanceControllerGetReportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof attendanceControllerGetReport>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -7719,11 +7893,11 @@ export function useAttendanceControllerGetReport<TData = Awaited<ReturnType<type
  */
 
 export function useAttendanceControllerGetReport<TData = Awaited<ReturnType<typeof attendanceControllerGetReport>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof attendanceControllerGetReport>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ params: AttendanceControllerGetReportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof attendanceControllerGetReport>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getAttendanceControllerGetReportQueryOptions(options)
+  const queryOptions = getAttendanceControllerGetReportQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -7736,3 +7910,2187 @@ export function useAttendanceControllerGetReport<TData = Awaited<ReturnType<type
 
 
 
+/**
+ * @summary Get organizational attendance settings
+ */
+export type attendanceControllerGetSettingsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type attendanceControllerGetSettingsResponseSuccess = (attendanceControllerGetSettingsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type attendanceControllerGetSettingsResponse = (attendanceControllerGetSettingsResponseSuccess)
+
+export const getAttendanceControllerGetSettingsUrl = () => {
+
+
+  
+
+  return `/api/v1/attendance/settings`
+}
+
+export const attendanceControllerGetSettings = async ( options?: RequestInit): Promise<attendanceControllerGetSettingsResponse> => {
+  
+  return customFetch<attendanceControllerGetSettingsResponse>(getAttendanceControllerGetSettingsUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getAttendanceControllerGetSettingsQueryKey = () => {
+    return [
+    `/api/v1/attendance/settings`
+    ] as const;
+    }
+
+    
+export const getAttendanceControllerGetSettingsQueryOptions = <TData = Awaited<ReturnType<typeof attendanceControllerGetSettings>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof attendanceControllerGetSettings>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAttendanceControllerGetSettingsQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof attendanceControllerGetSettings>>> = ({ signal }) => attendanceControllerGetSettings({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof attendanceControllerGetSettings>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type AttendanceControllerGetSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof attendanceControllerGetSettings>>>
+export type AttendanceControllerGetSettingsQueryError = unknown
+
+
+export function useAttendanceControllerGetSettings<TData = Awaited<ReturnType<typeof attendanceControllerGetSettings>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof attendanceControllerGetSettings>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof attendanceControllerGetSettings>>,
+          TError,
+          Awaited<ReturnType<typeof attendanceControllerGetSettings>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAttendanceControllerGetSettings<TData = Awaited<ReturnType<typeof attendanceControllerGetSettings>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof attendanceControllerGetSettings>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof attendanceControllerGetSettings>>,
+          TError,
+          Awaited<ReturnType<typeof attendanceControllerGetSettings>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAttendanceControllerGetSettings<TData = Awaited<ReturnType<typeof attendanceControllerGetSettings>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof attendanceControllerGetSettings>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get organizational attendance settings
+ */
+
+export function useAttendanceControllerGetSettings<TData = Awaited<ReturnType<typeof attendanceControllerGetSettings>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof attendanceControllerGetSettings>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getAttendanceControllerGetSettingsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Update working and work off days
+ */
+export type attendanceControllerUpdateWorkingDaysResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type attendanceControllerUpdateWorkingDaysResponseSuccess = (attendanceControllerUpdateWorkingDaysResponse200) & {
+  headers: Headers;
+};
+;
+
+export type attendanceControllerUpdateWorkingDaysResponse = (attendanceControllerUpdateWorkingDaysResponseSuccess)
+
+export const getAttendanceControllerUpdateWorkingDaysUrl = () => {
+
+
+  
+
+  return `/api/v1/attendance/settings/working-days`
+}
+
+export const attendanceControllerUpdateWorkingDays = async ( options?: RequestInit): Promise<attendanceControllerUpdateWorkingDaysResponse> => {
+  
+  return customFetch<attendanceControllerUpdateWorkingDaysResponse>(getAttendanceControllerUpdateWorkingDaysUrl(),
+  {      
+    ...options,
+    method: 'PUT'
+    
+    
+  }
+);}
+
+
+
+
+export const getAttendanceControllerUpdateWorkingDaysMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerUpdateWorkingDays>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerUpdateWorkingDays>>, TError,void, TContext> => {
+
+const mutationKey = ['attendanceControllerUpdateWorkingDays'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof attendanceControllerUpdateWorkingDays>>, void> = () => {
+          
+
+          return  attendanceControllerUpdateWorkingDays(requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AttendanceControllerUpdateWorkingDaysMutationResult = NonNullable<Awaited<ReturnType<typeof attendanceControllerUpdateWorkingDays>>>
+    
+    export type AttendanceControllerUpdateWorkingDaysMutationError = unknown
+
+    /**
+ * @summary Update working and work off days
+ */
+export const useAttendanceControllerUpdateWorkingDays = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerUpdateWorkingDays>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof attendanceControllerUpdateWorkingDays>>,
+        TError,
+        void,
+        TContext
+      > => {
+
+      const mutationOptions = getAttendanceControllerUpdateWorkingDaysMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Add a new company holiday
+ */
+export type attendanceControllerAddHolidayResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type attendanceControllerAddHolidayResponseSuccess = (attendanceControllerAddHolidayResponse201) & {
+  headers: Headers;
+};
+;
+
+export type attendanceControllerAddHolidayResponse = (attendanceControllerAddHolidayResponseSuccess)
+
+export const getAttendanceControllerAddHolidayUrl = () => {
+
+
+  
+
+  return `/api/v1/attendance/settings/holidays`
+}
+
+export const attendanceControllerAddHoliday = async ( options?: RequestInit): Promise<attendanceControllerAddHolidayResponse> => {
+  
+  return customFetch<attendanceControllerAddHolidayResponse>(getAttendanceControllerAddHolidayUrl(),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getAttendanceControllerAddHolidayMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerAddHoliday>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerAddHoliday>>, TError,void, TContext> => {
+
+const mutationKey = ['attendanceControllerAddHoliday'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof attendanceControllerAddHoliday>>, void> = () => {
+          
+
+          return  attendanceControllerAddHoliday(requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AttendanceControllerAddHolidayMutationResult = NonNullable<Awaited<ReturnType<typeof attendanceControllerAddHoliday>>>
+    
+    export type AttendanceControllerAddHolidayMutationError = unknown
+
+    /**
+ * @summary Add a new company holiday
+ */
+export const useAttendanceControllerAddHoliday = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerAddHoliday>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof attendanceControllerAddHoliday>>,
+        TError,
+        void,
+        TContext
+      > => {
+
+      const mutationOptions = getAttendanceControllerAddHolidayMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Delete a company holiday
+ */
+export type attendanceControllerDeleteHolidayResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type attendanceControllerDeleteHolidayResponseSuccess = (attendanceControllerDeleteHolidayResponse200) & {
+  headers: Headers;
+};
+;
+
+export type attendanceControllerDeleteHolidayResponse = (attendanceControllerDeleteHolidayResponseSuccess)
+
+export const getAttendanceControllerDeleteHolidayUrl = (id: string,) => {
+
+
+  
+
+  return `/api/v1/attendance/settings/holidays/${id}`
+}
+
+export const attendanceControllerDeleteHoliday = async (id: string, options?: RequestInit): Promise<attendanceControllerDeleteHolidayResponse> => {
+  
+  return customFetch<attendanceControllerDeleteHolidayResponse>(getAttendanceControllerDeleteHolidayUrl(id),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+);}
+
+
+
+
+export const getAttendanceControllerDeleteHolidayMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerDeleteHoliday>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerDeleteHoliday>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['attendanceControllerDeleteHoliday'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof attendanceControllerDeleteHoliday>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  attendanceControllerDeleteHoliday(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AttendanceControllerDeleteHolidayMutationResult = NonNullable<Awaited<ReturnType<typeof attendanceControllerDeleteHoliday>>>
+    
+    export type AttendanceControllerDeleteHolidayMutationError = unknown
+
+    /**
+ * @summary Delete a company holiday
+ */
+export const useAttendanceControllerDeleteHoliday = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerDeleteHoliday>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof attendanceControllerDeleteHoliday>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+
+      const mutationOptions = getAttendanceControllerDeleteHolidayMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Update default full day and half day working hours
+ */
+export type attendanceControllerUpdateDefaultHoursResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type attendanceControllerUpdateDefaultHoursResponseSuccess = (attendanceControllerUpdateDefaultHoursResponse200) & {
+  headers: Headers;
+};
+;
+
+export type attendanceControllerUpdateDefaultHoursResponse = (attendanceControllerUpdateDefaultHoursResponseSuccess)
+
+export const getAttendanceControllerUpdateDefaultHoursUrl = () => {
+
+
+  
+
+  return `/api/v1/attendance/settings/working-hours/default`
+}
+
+export const attendanceControllerUpdateDefaultHours = async ( options?: RequestInit): Promise<attendanceControllerUpdateDefaultHoursResponse> => {
+  
+  return customFetch<attendanceControllerUpdateDefaultHoursResponse>(getAttendanceControllerUpdateDefaultHoursUrl(),
+  {      
+    ...options,
+    method: 'PUT'
+    
+    
+  }
+);}
+
+
+
+
+export const getAttendanceControllerUpdateDefaultHoursMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerUpdateDefaultHours>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerUpdateDefaultHours>>, TError,void, TContext> => {
+
+const mutationKey = ['attendanceControllerUpdateDefaultHours'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof attendanceControllerUpdateDefaultHours>>, void> = () => {
+          
+
+          return  attendanceControllerUpdateDefaultHours(requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AttendanceControllerUpdateDefaultHoursMutationResult = NonNullable<Awaited<ReturnType<typeof attendanceControllerUpdateDefaultHours>>>
+    
+    export type AttendanceControllerUpdateDefaultHoursMutationError = unknown
+
+    /**
+ * @summary Update default full day and half day working hours
+ */
+export const useAttendanceControllerUpdateDefaultHours = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerUpdateDefaultHours>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof attendanceControllerUpdateDefaultHours>>,
+        TError,
+        void,
+        TContext
+      > => {
+
+      const mutationOptions = getAttendanceControllerUpdateDefaultHoursMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Update or reset employee-specific working hours
+ */
+export type attendanceControllerUpdateEmployeeHoursResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type attendanceControllerUpdateEmployeeHoursResponseSuccess = (attendanceControllerUpdateEmployeeHoursResponse200) & {
+  headers: Headers;
+};
+;
+
+export type attendanceControllerUpdateEmployeeHoursResponse = (attendanceControllerUpdateEmployeeHoursResponseSuccess)
+
+export const getAttendanceControllerUpdateEmployeeHoursUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/attendance/settings/working-hours/employee/${id}`
+}
+
+export const attendanceControllerUpdateEmployeeHours = async (id: number, options?: RequestInit): Promise<attendanceControllerUpdateEmployeeHoursResponse> => {
+  
+  return customFetch<attendanceControllerUpdateEmployeeHoursResponse>(getAttendanceControllerUpdateEmployeeHoursUrl(id),
+  {      
+    ...options,
+    method: 'PUT'
+    
+    
+  }
+);}
+
+
+
+
+export const getAttendanceControllerUpdateEmployeeHoursMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerUpdateEmployeeHours>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerUpdateEmployeeHours>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['attendanceControllerUpdateEmployeeHours'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof attendanceControllerUpdateEmployeeHours>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  attendanceControllerUpdateEmployeeHours(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AttendanceControllerUpdateEmployeeHoursMutationResult = NonNullable<Awaited<ReturnType<typeof attendanceControllerUpdateEmployeeHours>>>
+    
+    export type AttendanceControllerUpdateEmployeeHoursMutationError = unknown
+
+    /**
+ * @summary Update or reset employee-specific working hours
+ */
+export const useAttendanceControllerUpdateEmployeeHours = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerUpdateEmployeeHours>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof attendanceControllerUpdateEmployeeHours>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+
+      const mutationOptions = getAttendanceControllerUpdateEmployeeHoursMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Get current user notifications
+ */
+export type notificationsControllerGetNotificationsResponse200 = {
+  data: NotificationResponseDto[]
+  status: 200
+}
+    
+export type notificationsControllerGetNotificationsResponseSuccess = (notificationsControllerGetNotificationsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type notificationsControllerGetNotificationsResponse = (notificationsControllerGetNotificationsResponseSuccess)
+
+export const getNotificationsControllerGetNotificationsUrl = (params?: NotificationsControllerGetNotificationsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/notifications?${stringifiedParams}` : `/api/v1/notifications`
+}
+
+export const notificationsControllerGetNotifications = async (params?: NotificationsControllerGetNotificationsParams, options?: RequestInit): Promise<notificationsControllerGetNotificationsResponse> => {
+  
+  return customFetch<notificationsControllerGetNotificationsResponse>(getNotificationsControllerGetNotificationsUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getNotificationsControllerGetNotificationsQueryKey = (params?: NotificationsControllerGetNotificationsParams,) => {
+    return [
+    `/api/v1/notifications`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getNotificationsControllerGetNotificationsQueryOptions = <TData = Awaited<ReturnType<typeof notificationsControllerGetNotifications>>, TError = unknown>(params?: NotificationsControllerGetNotificationsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof notificationsControllerGetNotifications>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getNotificationsControllerGetNotificationsQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof notificationsControllerGetNotifications>>> = ({ signal }) => notificationsControllerGetNotifications(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof notificationsControllerGetNotifications>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type NotificationsControllerGetNotificationsQueryResult = NonNullable<Awaited<ReturnType<typeof notificationsControllerGetNotifications>>>
+export type NotificationsControllerGetNotificationsQueryError = unknown
+
+
+export function useNotificationsControllerGetNotifications<TData = Awaited<ReturnType<typeof notificationsControllerGetNotifications>>, TError = unknown>(
+ params: undefined |  NotificationsControllerGetNotificationsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof notificationsControllerGetNotifications>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof notificationsControllerGetNotifications>>,
+          TError,
+          Awaited<ReturnType<typeof notificationsControllerGetNotifications>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useNotificationsControllerGetNotifications<TData = Awaited<ReturnType<typeof notificationsControllerGetNotifications>>, TError = unknown>(
+ params?: NotificationsControllerGetNotificationsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof notificationsControllerGetNotifications>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof notificationsControllerGetNotifications>>,
+          TError,
+          Awaited<ReturnType<typeof notificationsControllerGetNotifications>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useNotificationsControllerGetNotifications<TData = Awaited<ReturnType<typeof notificationsControllerGetNotifications>>, TError = unknown>(
+ params?: NotificationsControllerGetNotificationsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof notificationsControllerGetNotifications>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get current user notifications
+ */
+
+export function useNotificationsControllerGetNotifications<TData = Awaited<ReturnType<typeof notificationsControllerGetNotifications>>, TError = unknown>(
+ params?: NotificationsControllerGetNotificationsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof notificationsControllerGetNotifications>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getNotificationsControllerGetNotificationsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Get unread notification count
+ */
+export type notificationsControllerGetUnreadCountResponse200 = {
+  data: UnreadCountResponseDto
+  status: 200
+}
+    
+export type notificationsControllerGetUnreadCountResponseSuccess = (notificationsControllerGetUnreadCountResponse200) & {
+  headers: Headers;
+};
+;
+
+export type notificationsControllerGetUnreadCountResponse = (notificationsControllerGetUnreadCountResponseSuccess)
+
+export const getNotificationsControllerGetUnreadCountUrl = () => {
+
+
+  
+
+  return `/api/v1/notifications/unread-count`
+}
+
+export const notificationsControllerGetUnreadCount = async ( options?: RequestInit): Promise<notificationsControllerGetUnreadCountResponse> => {
+  
+  return customFetch<notificationsControllerGetUnreadCountResponse>(getNotificationsControllerGetUnreadCountUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getNotificationsControllerGetUnreadCountQueryKey = () => {
+    return [
+    `/api/v1/notifications/unread-count`
+    ] as const;
+    }
+
+    
+export const getNotificationsControllerGetUnreadCountQueryOptions = <TData = Awaited<ReturnType<typeof notificationsControllerGetUnreadCount>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof notificationsControllerGetUnreadCount>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getNotificationsControllerGetUnreadCountQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof notificationsControllerGetUnreadCount>>> = ({ signal }) => notificationsControllerGetUnreadCount({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof notificationsControllerGetUnreadCount>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type NotificationsControllerGetUnreadCountQueryResult = NonNullable<Awaited<ReturnType<typeof notificationsControllerGetUnreadCount>>>
+export type NotificationsControllerGetUnreadCountQueryError = unknown
+
+
+export function useNotificationsControllerGetUnreadCount<TData = Awaited<ReturnType<typeof notificationsControllerGetUnreadCount>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof notificationsControllerGetUnreadCount>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof notificationsControllerGetUnreadCount>>,
+          TError,
+          Awaited<ReturnType<typeof notificationsControllerGetUnreadCount>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useNotificationsControllerGetUnreadCount<TData = Awaited<ReturnType<typeof notificationsControllerGetUnreadCount>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof notificationsControllerGetUnreadCount>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof notificationsControllerGetUnreadCount>>,
+          TError,
+          Awaited<ReturnType<typeof notificationsControllerGetUnreadCount>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useNotificationsControllerGetUnreadCount<TData = Awaited<ReturnType<typeof notificationsControllerGetUnreadCount>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof notificationsControllerGetUnreadCount>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get unread notification count
+ */
+
+export function useNotificationsControllerGetUnreadCount<TData = Awaited<ReturnType<typeof notificationsControllerGetUnreadCount>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof notificationsControllerGetUnreadCount>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getNotificationsControllerGetUnreadCountQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Mark a notification as read
+ */
+export type notificationsControllerMarkReadResponse200 = {
+  data: MarkReadResponseDto
+  status: 200
+}
+    
+export type notificationsControllerMarkReadResponseSuccess = (notificationsControllerMarkReadResponse200) & {
+  headers: Headers;
+};
+;
+
+export type notificationsControllerMarkReadResponse = (notificationsControllerMarkReadResponseSuccess)
+
+export const getNotificationsControllerMarkReadUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/notifications/${id}/read`
+}
+
+export const notificationsControllerMarkRead = async (id: number, options?: RequestInit): Promise<notificationsControllerMarkReadResponse> => {
+  
+  return customFetch<notificationsControllerMarkReadResponse>(getNotificationsControllerMarkReadUrl(id),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getNotificationsControllerMarkReadMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof notificationsControllerMarkRead>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof notificationsControllerMarkRead>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['notificationsControllerMarkRead'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof notificationsControllerMarkRead>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  notificationsControllerMarkRead(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type NotificationsControllerMarkReadMutationResult = NonNullable<Awaited<ReturnType<typeof notificationsControllerMarkRead>>>
+    
+    export type NotificationsControllerMarkReadMutationError = unknown
+
+    /**
+ * @summary Mark a notification as read
+ */
+export const useNotificationsControllerMarkRead = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof notificationsControllerMarkRead>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof notificationsControllerMarkRead>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+
+      const mutationOptions = getNotificationsControllerMarkReadMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Mark all notifications as read
+ */
+export type notificationsControllerMarkAllReadResponse200 = {
+  data: MarkAllReadResponseDto
+  status: 200
+}
+    
+export type notificationsControllerMarkAllReadResponseSuccess = (notificationsControllerMarkAllReadResponse200) & {
+  headers: Headers;
+};
+;
+
+export type notificationsControllerMarkAllReadResponse = (notificationsControllerMarkAllReadResponseSuccess)
+
+export const getNotificationsControllerMarkAllReadUrl = () => {
+
+
+  
+
+  return `/api/v1/notifications/read-all`
+}
+
+export const notificationsControllerMarkAllRead = async ( options?: RequestInit): Promise<notificationsControllerMarkAllReadResponse> => {
+  
+  return customFetch<notificationsControllerMarkAllReadResponse>(getNotificationsControllerMarkAllReadUrl(),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getNotificationsControllerMarkAllReadMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof notificationsControllerMarkAllRead>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof notificationsControllerMarkAllRead>>, TError,void, TContext> => {
+
+const mutationKey = ['notificationsControllerMarkAllRead'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof notificationsControllerMarkAllRead>>, void> = () => {
+          
+
+          return  notificationsControllerMarkAllRead(requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type NotificationsControllerMarkAllReadMutationResult = NonNullable<Awaited<ReturnType<typeof notificationsControllerMarkAllRead>>>
+    
+    export type NotificationsControllerMarkAllReadMutationError = unknown
+
+    /**
+ * @summary Mark all notifications as read
+ */
+export const useNotificationsControllerMarkAllRead = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof notificationsControllerMarkAllRead>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof notificationsControllerMarkAllRead>>,
+        TError,
+        void,
+        TContext
+      > => {
+
+      const mutationOptions = getNotificationsControllerMarkAllReadMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Get admin task kanban board
+ */
+export type tasksControllerGetBoardResponse200 = {
+  data: TaskBoardResultDto
+  status: 200
+}
+    
+export type tasksControllerGetBoardResponseSuccess = (tasksControllerGetBoardResponse200) & {
+  headers: Headers;
+};
+;
+
+export type tasksControllerGetBoardResponse = (tasksControllerGetBoardResponseSuccess)
+
+export const getTasksControllerGetBoardUrl = (params?: TasksControllerGetBoardParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/admin/tasks/board?${stringifiedParams}` : `/api/v1/admin/tasks/board`
+}
+
+export const tasksControllerGetBoard = async (params?: TasksControllerGetBoardParams, options?: RequestInit): Promise<tasksControllerGetBoardResponse> => {
+  
+  return customFetch<tasksControllerGetBoardResponse>(getTasksControllerGetBoardUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getTasksControllerGetBoardQueryKey = (params?: TasksControllerGetBoardParams,) => {
+    return [
+    `/api/v1/admin/tasks/board`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getTasksControllerGetBoardQueryOptions = <TData = Awaited<ReturnType<typeof tasksControllerGetBoard>>, TError = unknown>(params?: TasksControllerGetBoardParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetBoard>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getTasksControllerGetBoardQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof tasksControllerGetBoard>>> = ({ signal }) => tasksControllerGetBoard(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetBoard>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type TasksControllerGetBoardQueryResult = NonNullable<Awaited<ReturnType<typeof tasksControllerGetBoard>>>
+export type TasksControllerGetBoardQueryError = unknown
+
+
+export function useTasksControllerGetBoard<TData = Awaited<ReturnType<typeof tasksControllerGetBoard>>, TError = unknown>(
+ params: undefined |  TasksControllerGetBoardParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetBoard>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tasksControllerGetBoard>>,
+          TError,
+          Awaited<ReturnType<typeof tasksControllerGetBoard>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useTasksControllerGetBoard<TData = Awaited<ReturnType<typeof tasksControllerGetBoard>>, TError = unknown>(
+ params?: TasksControllerGetBoardParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetBoard>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tasksControllerGetBoard>>,
+          TError,
+          Awaited<ReturnType<typeof tasksControllerGetBoard>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useTasksControllerGetBoard<TData = Awaited<ReturnType<typeof tasksControllerGetBoard>>, TError = unknown>(
+ params?: TasksControllerGetBoardParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetBoard>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get admin task kanban board
+ */
+
+export function useTasksControllerGetBoard<TData = Awaited<ReturnType<typeof tasksControllerGetBoard>>, TError = unknown>(
+ params?: TasksControllerGetBoardParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetBoard>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getTasksControllerGetBoardQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Get admin task summary metrics
+ */
+export type tasksControllerGetSummaryResponse200 = {
+  data: TaskSummaryDto
+  status: 200
+}
+    
+export type tasksControllerGetSummaryResponseSuccess = (tasksControllerGetSummaryResponse200) & {
+  headers: Headers;
+};
+;
+
+export type tasksControllerGetSummaryResponse = (tasksControllerGetSummaryResponseSuccess)
+
+export const getTasksControllerGetSummaryUrl = () => {
+
+
+  
+
+  return `/api/v1/admin/tasks/summary`
+}
+
+export const tasksControllerGetSummary = async ( options?: RequestInit): Promise<tasksControllerGetSummaryResponse> => {
+  
+  return customFetch<tasksControllerGetSummaryResponse>(getTasksControllerGetSummaryUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getTasksControllerGetSummaryQueryKey = () => {
+    return [
+    `/api/v1/admin/tasks/summary`
+    ] as const;
+    }
+
+    
+export const getTasksControllerGetSummaryQueryOptions = <TData = Awaited<ReturnType<typeof tasksControllerGetSummary>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetSummary>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getTasksControllerGetSummaryQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof tasksControllerGetSummary>>> = ({ signal }) => tasksControllerGetSummary({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetSummary>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type TasksControllerGetSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof tasksControllerGetSummary>>>
+export type TasksControllerGetSummaryQueryError = unknown
+
+
+export function useTasksControllerGetSummary<TData = Awaited<ReturnType<typeof tasksControllerGetSummary>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetSummary>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tasksControllerGetSummary>>,
+          TError,
+          Awaited<ReturnType<typeof tasksControllerGetSummary>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useTasksControllerGetSummary<TData = Awaited<ReturnType<typeof tasksControllerGetSummary>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetSummary>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tasksControllerGetSummary>>,
+          TError,
+          Awaited<ReturnType<typeof tasksControllerGetSummary>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useTasksControllerGetSummary<TData = Awaited<ReturnType<typeof tasksControllerGetSummary>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetSummary>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get admin task summary metrics
+ */
+
+export function useTasksControllerGetSummary<TData = Awaited<ReturnType<typeof tasksControllerGetSummary>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetSummary>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getTasksControllerGetSummaryQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Get count of tasks waiting in review
+ */
+export type tasksControllerGetRequestsCountResponse200 = {
+  data: PendingReviewCountDto
+  status: 200
+}
+    
+export type tasksControllerGetRequestsCountResponseSuccess = (tasksControllerGetRequestsCountResponse200) & {
+  headers: Headers;
+};
+;
+
+export type tasksControllerGetRequestsCountResponse = (tasksControllerGetRequestsCountResponseSuccess)
+
+export const getTasksControllerGetRequestsCountUrl = () => {
+
+
+  
+
+  return `/api/v1/admin/tasks/requests/count`
+}
+
+export const tasksControllerGetRequestsCount = async ( options?: RequestInit): Promise<tasksControllerGetRequestsCountResponse> => {
+  
+  return customFetch<tasksControllerGetRequestsCountResponse>(getTasksControllerGetRequestsCountUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getTasksControllerGetRequestsCountQueryKey = () => {
+    return [
+    `/api/v1/admin/tasks/requests/count`
+    ] as const;
+    }
+
+    
+export const getTasksControllerGetRequestsCountQueryOptions = <TData = Awaited<ReturnType<typeof tasksControllerGetRequestsCount>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetRequestsCount>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getTasksControllerGetRequestsCountQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof tasksControllerGetRequestsCount>>> = ({ signal }) => tasksControllerGetRequestsCount({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetRequestsCount>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type TasksControllerGetRequestsCountQueryResult = NonNullable<Awaited<ReturnType<typeof tasksControllerGetRequestsCount>>>
+export type TasksControllerGetRequestsCountQueryError = unknown
+
+
+export function useTasksControllerGetRequestsCount<TData = Awaited<ReturnType<typeof tasksControllerGetRequestsCount>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetRequestsCount>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tasksControllerGetRequestsCount>>,
+          TError,
+          Awaited<ReturnType<typeof tasksControllerGetRequestsCount>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useTasksControllerGetRequestsCount<TData = Awaited<ReturnType<typeof tasksControllerGetRequestsCount>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetRequestsCount>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tasksControllerGetRequestsCount>>,
+          TError,
+          Awaited<ReturnType<typeof tasksControllerGetRequestsCount>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useTasksControllerGetRequestsCount<TData = Awaited<ReturnType<typeof tasksControllerGetRequestsCount>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetRequestsCount>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get count of tasks waiting in review
+ */
+
+export function useTasksControllerGetRequestsCount<TData = Awaited<ReturnType<typeof tasksControllerGetRequestsCount>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetRequestsCount>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getTasksControllerGetRequestsCountQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Get list of active employees assignable to tasks
+ */
+export type tasksControllerGetAssignableEmployeesResponse200 = {
+  data: AssignableEmployeeDto[]
+  status: 200
+}
+    
+export type tasksControllerGetAssignableEmployeesResponseSuccess = (tasksControllerGetAssignableEmployeesResponse200) & {
+  headers: Headers;
+};
+;
+
+export type tasksControllerGetAssignableEmployeesResponse = (tasksControllerGetAssignableEmployeesResponseSuccess)
+
+export const getTasksControllerGetAssignableEmployeesUrl = () => {
+
+
+  
+
+  return `/api/v1/admin/tasks/assignable-employees`
+}
+
+export const tasksControllerGetAssignableEmployees = async ( options?: RequestInit): Promise<tasksControllerGetAssignableEmployeesResponse> => {
+  
+  return customFetch<tasksControllerGetAssignableEmployeesResponse>(getTasksControllerGetAssignableEmployeesUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getTasksControllerGetAssignableEmployeesQueryKey = () => {
+    return [
+    `/api/v1/admin/tasks/assignable-employees`
+    ] as const;
+    }
+
+    
+export const getTasksControllerGetAssignableEmployeesQueryOptions = <TData = Awaited<ReturnType<typeof tasksControllerGetAssignableEmployees>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetAssignableEmployees>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getTasksControllerGetAssignableEmployeesQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof tasksControllerGetAssignableEmployees>>> = ({ signal }) => tasksControllerGetAssignableEmployees({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetAssignableEmployees>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type TasksControllerGetAssignableEmployeesQueryResult = NonNullable<Awaited<ReturnType<typeof tasksControllerGetAssignableEmployees>>>
+export type TasksControllerGetAssignableEmployeesQueryError = unknown
+
+
+export function useTasksControllerGetAssignableEmployees<TData = Awaited<ReturnType<typeof tasksControllerGetAssignableEmployees>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetAssignableEmployees>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tasksControllerGetAssignableEmployees>>,
+          TError,
+          Awaited<ReturnType<typeof tasksControllerGetAssignableEmployees>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useTasksControllerGetAssignableEmployees<TData = Awaited<ReturnType<typeof tasksControllerGetAssignableEmployees>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetAssignableEmployees>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tasksControllerGetAssignableEmployees>>,
+          TError,
+          Awaited<ReturnType<typeof tasksControllerGetAssignableEmployees>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useTasksControllerGetAssignableEmployees<TData = Awaited<ReturnType<typeof tasksControllerGetAssignableEmployees>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetAssignableEmployees>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get list of active employees assignable to tasks
+ */
+
+export function useTasksControllerGetAssignableEmployees<TData = Awaited<ReturnType<typeof tasksControllerGetAssignableEmployees>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetAssignableEmployees>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getTasksControllerGetAssignableEmployeesQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Create a new task with assignees
+ */
+export type tasksControllerCreateTaskResponse201 = {
+  data: TaskDetailDto
+  status: 201
+}
+    
+export type tasksControllerCreateTaskResponseSuccess = (tasksControllerCreateTaskResponse201) & {
+  headers: Headers;
+};
+;
+
+export type tasksControllerCreateTaskResponse = (tasksControllerCreateTaskResponseSuccess)
+
+export const getTasksControllerCreateTaskUrl = () => {
+
+
+  
+
+  return `/api/v1/admin/tasks`
+}
+
+export const tasksControllerCreateTask = async (createTaskDto: CreateTaskDto, options?: RequestInit): Promise<tasksControllerCreateTaskResponse> => {
+  
+  return customFetch<tasksControllerCreateTaskResponse>(getTasksControllerCreateTaskUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createTaskDto,)
+  }
+);}
+
+
+
+
+export const getTasksControllerCreateTaskMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tasksControllerCreateTask>>, TError,{data: CreateTaskDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof tasksControllerCreateTask>>, TError,{data: CreateTaskDto}, TContext> => {
+
+const mutationKey = ['tasksControllerCreateTask'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof tasksControllerCreateTask>>, {data: CreateTaskDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  tasksControllerCreateTask(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TasksControllerCreateTaskMutationResult = NonNullable<Awaited<ReturnType<typeof tasksControllerCreateTask>>>
+    export type TasksControllerCreateTaskMutationBody = CreateTaskDto
+    export type TasksControllerCreateTaskMutationError = unknown
+
+    /**
+ * @summary Create a new task with assignees
+ */
+export const useTasksControllerCreateTask = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tasksControllerCreateTask>>, TError,{data: CreateTaskDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof tasksControllerCreateTask>>,
+        TError,
+        {data: CreateTaskDto},
+        TContext
+      > => {
+
+      const mutationOptions = getTasksControllerCreateTaskMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Get task details by ID with history
+ */
+export type tasksControllerGetTaskDetailResponse200 = {
+  data: TaskDetailDto
+  status: 200
+}
+    
+export type tasksControllerGetTaskDetailResponseSuccess = (tasksControllerGetTaskDetailResponse200) & {
+  headers: Headers;
+};
+;
+
+export type tasksControllerGetTaskDetailResponse = (tasksControllerGetTaskDetailResponseSuccess)
+
+export const getTasksControllerGetTaskDetailUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/admin/tasks/${id}`
+}
+
+export const tasksControllerGetTaskDetail = async (id: number, options?: RequestInit): Promise<tasksControllerGetTaskDetailResponse> => {
+  
+  return customFetch<tasksControllerGetTaskDetailResponse>(getTasksControllerGetTaskDetailUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getTasksControllerGetTaskDetailQueryKey = (id?: number,) => {
+    return [
+    `/api/v1/admin/tasks/${id}`
+    ] as const;
+    }
+
+    
+export const getTasksControllerGetTaskDetailQueryOptions = <TData = Awaited<ReturnType<typeof tasksControllerGetTaskDetail>>, TError = unknown>(id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetTaskDetail>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getTasksControllerGetTaskDetailQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof tasksControllerGetTaskDetail>>> = ({ signal }) => tasksControllerGetTaskDetail(id, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetTaskDetail>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type TasksControllerGetTaskDetailQueryResult = NonNullable<Awaited<ReturnType<typeof tasksControllerGetTaskDetail>>>
+export type TasksControllerGetTaskDetailQueryError = unknown
+
+
+export function useTasksControllerGetTaskDetail<TData = Awaited<ReturnType<typeof tasksControllerGetTaskDetail>>, TError = unknown>(
+ id: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetTaskDetail>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tasksControllerGetTaskDetail>>,
+          TError,
+          Awaited<ReturnType<typeof tasksControllerGetTaskDetail>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useTasksControllerGetTaskDetail<TData = Awaited<ReturnType<typeof tasksControllerGetTaskDetail>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetTaskDetail>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tasksControllerGetTaskDetail>>,
+          TError,
+          Awaited<ReturnType<typeof tasksControllerGetTaskDetail>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useTasksControllerGetTaskDetail<TData = Awaited<ReturnType<typeof tasksControllerGetTaskDetail>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetTaskDetail>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get task details by ID with history
+ */
+
+export function useTasksControllerGetTaskDetail<TData = Awaited<ReturnType<typeof tasksControllerGetTaskDetail>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetTaskDetail>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getTasksControllerGetTaskDetailQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Update task details or assignees
+ */
+export type tasksControllerUpdateTaskResponse200 = {
+  data: TaskDetailDto
+  status: 200
+}
+    
+export type tasksControllerUpdateTaskResponseSuccess = (tasksControllerUpdateTaskResponse200) & {
+  headers: Headers;
+};
+;
+
+export type tasksControllerUpdateTaskResponse = (tasksControllerUpdateTaskResponseSuccess)
+
+export const getTasksControllerUpdateTaskUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/admin/tasks/${id}`
+}
+
+export const tasksControllerUpdateTask = async (id: number,
+    updateTaskDto: UpdateTaskDto, options?: RequestInit): Promise<tasksControllerUpdateTaskResponse> => {
+  
+  return customFetch<tasksControllerUpdateTaskResponse>(getTasksControllerUpdateTaskUrl(id),
+  {      
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateTaskDto,)
+  }
+);}
+
+
+
+
+export const getTasksControllerUpdateTaskMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tasksControllerUpdateTask>>, TError,{id: number;data: UpdateTaskDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof tasksControllerUpdateTask>>, TError,{id: number;data: UpdateTaskDto}, TContext> => {
+
+const mutationKey = ['tasksControllerUpdateTask'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof tasksControllerUpdateTask>>, {id: number;data: UpdateTaskDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  tasksControllerUpdateTask(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TasksControllerUpdateTaskMutationResult = NonNullable<Awaited<ReturnType<typeof tasksControllerUpdateTask>>>
+    export type TasksControllerUpdateTaskMutationBody = UpdateTaskDto
+    export type TasksControllerUpdateTaskMutationError = unknown
+
+    /**
+ * @summary Update task details or assignees
+ */
+export const useTasksControllerUpdateTask = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tasksControllerUpdateTask>>, TError,{id: number;data: UpdateTaskDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof tasksControllerUpdateTask>>,
+        TError,
+        {id: number;data: UpdateTaskDto},
+        TContext
+      > => {
+
+      const mutationOptions = getTasksControllerUpdateTaskMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Move task stage (admin)
+ */
+export type tasksControllerMoveStageResponse200 = {
+  data: TaskDetailDto
+  status: 200
+}
+    
+export type tasksControllerMoveStageResponseSuccess = (tasksControllerMoveStageResponse200) & {
+  headers: Headers;
+};
+;
+
+export type tasksControllerMoveStageResponse = (tasksControllerMoveStageResponseSuccess)
+
+export const getTasksControllerMoveStageUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/admin/tasks/${id}/move`
+}
+
+export const tasksControllerMoveStage = async (id: number,
+    moveTaskStageDto: MoveTaskStageDto, options?: RequestInit): Promise<tasksControllerMoveStageResponse> => {
+  
+  return customFetch<tasksControllerMoveStageResponse>(getTasksControllerMoveStageUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      moveTaskStageDto,)
+  }
+);}
+
+
+
+
+export const getTasksControllerMoveStageMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tasksControllerMoveStage>>, TError,{id: number;data: MoveTaskStageDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof tasksControllerMoveStage>>, TError,{id: number;data: MoveTaskStageDto}, TContext> => {
+
+const mutationKey = ['tasksControllerMoveStage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof tasksControllerMoveStage>>, {id: number;data: MoveTaskStageDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  tasksControllerMoveStage(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TasksControllerMoveStageMutationResult = NonNullable<Awaited<ReturnType<typeof tasksControllerMoveStage>>>
+    export type TasksControllerMoveStageMutationBody = MoveTaskStageDto
+    export type TasksControllerMoveStageMutationError = unknown
+
+    /**
+ * @summary Move task stage (admin)
+ */
+export const useTasksControllerMoveStage = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tasksControllerMoveStage>>, TError,{id: number;data: MoveTaskStageDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof tasksControllerMoveStage>>,
+        TError,
+        {id: number;data: MoveTaskStageDto},
+        TContext
+      > => {
+
+      const mutationOptions = getTasksControllerMoveStageMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Get employee personal task kanban board
+ */
+export type myTasksControllerGetBoardResponse200 = {
+  data: TaskBoardResultDto
+  status: 200
+}
+    
+export type myTasksControllerGetBoardResponseSuccess = (myTasksControllerGetBoardResponse200) & {
+  headers: Headers;
+};
+;
+
+export type myTasksControllerGetBoardResponse = (myTasksControllerGetBoardResponseSuccess)
+
+export const getMyTasksControllerGetBoardUrl = (params?: MyTasksControllerGetBoardParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/my-tasks/board?${stringifiedParams}` : `/api/v1/my-tasks/board`
+}
+
+export const myTasksControllerGetBoard = async (params?: MyTasksControllerGetBoardParams, options?: RequestInit): Promise<myTasksControllerGetBoardResponse> => {
+  
+  return customFetch<myTasksControllerGetBoardResponse>(getMyTasksControllerGetBoardUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getMyTasksControllerGetBoardQueryKey = (params?: MyTasksControllerGetBoardParams,) => {
+    return [
+    `/api/v1/my-tasks/board`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getMyTasksControllerGetBoardQueryOptions = <TData = Awaited<ReturnType<typeof myTasksControllerGetBoard>>, TError = unknown>(params?: MyTasksControllerGetBoardParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myTasksControllerGetBoard>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getMyTasksControllerGetBoardQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof myTasksControllerGetBoard>>> = ({ signal }) => myTasksControllerGetBoard(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof myTasksControllerGetBoard>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type MyTasksControllerGetBoardQueryResult = NonNullable<Awaited<ReturnType<typeof myTasksControllerGetBoard>>>
+export type MyTasksControllerGetBoardQueryError = unknown
+
+
+export function useMyTasksControllerGetBoard<TData = Awaited<ReturnType<typeof myTasksControllerGetBoard>>, TError = unknown>(
+ params: undefined |  MyTasksControllerGetBoardParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof myTasksControllerGetBoard>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof myTasksControllerGetBoard>>,
+          TError,
+          Awaited<ReturnType<typeof myTasksControllerGetBoard>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useMyTasksControllerGetBoard<TData = Awaited<ReturnType<typeof myTasksControllerGetBoard>>, TError = unknown>(
+ params?: MyTasksControllerGetBoardParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myTasksControllerGetBoard>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof myTasksControllerGetBoard>>,
+          TError,
+          Awaited<ReturnType<typeof myTasksControllerGetBoard>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useMyTasksControllerGetBoard<TData = Awaited<ReturnType<typeof myTasksControllerGetBoard>>, TError = unknown>(
+ params?: MyTasksControllerGetBoardParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myTasksControllerGetBoard>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get employee personal task kanban board
+ */
+
+export function useMyTasksControllerGetBoard<TData = Awaited<ReturnType<typeof myTasksControllerGetBoard>>, TError = unknown>(
+ params?: MyTasksControllerGetBoardParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myTasksControllerGetBoard>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getMyTasksControllerGetBoardQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Get employee personal task summary metrics
+ */
+export type myTasksControllerGetSummaryResponse200 = {
+  data: TaskSummaryDto
+  status: 200
+}
+    
+export type myTasksControllerGetSummaryResponseSuccess = (myTasksControllerGetSummaryResponse200) & {
+  headers: Headers;
+};
+;
+
+export type myTasksControllerGetSummaryResponse = (myTasksControllerGetSummaryResponseSuccess)
+
+export const getMyTasksControllerGetSummaryUrl = () => {
+
+
+  
+
+  return `/api/v1/my-tasks/summary`
+}
+
+export const myTasksControllerGetSummary = async ( options?: RequestInit): Promise<myTasksControllerGetSummaryResponse> => {
+  
+  return customFetch<myTasksControllerGetSummaryResponse>(getMyTasksControllerGetSummaryUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getMyTasksControllerGetSummaryQueryKey = () => {
+    return [
+    `/api/v1/my-tasks/summary`
+    ] as const;
+    }
+
+    
+export const getMyTasksControllerGetSummaryQueryOptions = <TData = Awaited<ReturnType<typeof myTasksControllerGetSummary>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myTasksControllerGetSummary>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getMyTasksControllerGetSummaryQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof myTasksControllerGetSummary>>> = ({ signal }) => myTasksControllerGetSummary({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof myTasksControllerGetSummary>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type MyTasksControllerGetSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof myTasksControllerGetSummary>>>
+export type MyTasksControllerGetSummaryQueryError = unknown
+
+
+export function useMyTasksControllerGetSummary<TData = Awaited<ReturnType<typeof myTasksControllerGetSummary>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof myTasksControllerGetSummary>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof myTasksControllerGetSummary>>,
+          TError,
+          Awaited<ReturnType<typeof myTasksControllerGetSummary>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useMyTasksControllerGetSummary<TData = Awaited<ReturnType<typeof myTasksControllerGetSummary>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myTasksControllerGetSummary>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof myTasksControllerGetSummary>>,
+          TError,
+          Awaited<ReturnType<typeof myTasksControllerGetSummary>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useMyTasksControllerGetSummary<TData = Awaited<ReturnType<typeof myTasksControllerGetSummary>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myTasksControllerGetSummary>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get employee personal task summary metrics
+ */
+
+export function useMyTasksControllerGetSummary<TData = Awaited<ReturnType<typeof myTasksControllerGetSummary>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myTasksControllerGetSummary>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getMyTasksControllerGetSummaryQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Get details of a task assigned to current employee
+ */
+export type myTasksControllerGetTaskDetailResponse200 = {
+  data: TaskDetailDto
+  status: 200
+}
+    
+export type myTasksControllerGetTaskDetailResponseSuccess = (myTasksControllerGetTaskDetailResponse200) & {
+  headers: Headers;
+};
+;
+
+export type myTasksControllerGetTaskDetailResponse = (myTasksControllerGetTaskDetailResponseSuccess)
+
+export const getMyTasksControllerGetTaskDetailUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/my-tasks/${id}`
+}
+
+export const myTasksControllerGetTaskDetail = async (id: number, options?: RequestInit): Promise<myTasksControllerGetTaskDetailResponse> => {
+  
+  return customFetch<myTasksControllerGetTaskDetailResponse>(getMyTasksControllerGetTaskDetailUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getMyTasksControllerGetTaskDetailQueryKey = (id?: number,) => {
+    return [
+    `/api/v1/my-tasks/${id}`
+    ] as const;
+    }
+
+    
+export const getMyTasksControllerGetTaskDetailQueryOptions = <TData = Awaited<ReturnType<typeof myTasksControllerGetTaskDetail>>, TError = unknown>(id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myTasksControllerGetTaskDetail>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getMyTasksControllerGetTaskDetailQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof myTasksControllerGetTaskDetail>>> = ({ signal }) => myTasksControllerGetTaskDetail(id, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof myTasksControllerGetTaskDetail>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type MyTasksControllerGetTaskDetailQueryResult = NonNullable<Awaited<ReturnType<typeof myTasksControllerGetTaskDetail>>>
+export type MyTasksControllerGetTaskDetailQueryError = unknown
+
+
+export function useMyTasksControllerGetTaskDetail<TData = Awaited<ReturnType<typeof myTasksControllerGetTaskDetail>>, TError = unknown>(
+ id: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof myTasksControllerGetTaskDetail>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof myTasksControllerGetTaskDetail>>,
+          TError,
+          Awaited<ReturnType<typeof myTasksControllerGetTaskDetail>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useMyTasksControllerGetTaskDetail<TData = Awaited<ReturnType<typeof myTasksControllerGetTaskDetail>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myTasksControllerGetTaskDetail>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof myTasksControllerGetTaskDetail>>,
+          TError,
+          Awaited<ReturnType<typeof myTasksControllerGetTaskDetail>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useMyTasksControllerGetTaskDetail<TData = Awaited<ReturnType<typeof myTasksControllerGetTaskDetail>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myTasksControllerGetTaskDetail>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get details of a task assigned to current employee
+ */
+
+export function useMyTasksControllerGetTaskDetail<TData = Awaited<ReturnType<typeof myTasksControllerGetTaskDetail>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myTasksControllerGetTaskDetail>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getMyTasksControllerGetTaskDetailQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Move assigned task stage (e.g. to in_progress or requested)
+ */
+export type myTasksControllerMoveStageResponse200 = {
+  data: TaskDetailDto
+  status: 200
+}
+    
+export type myTasksControllerMoveStageResponseSuccess = (myTasksControllerMoveStageResponse200) & {
+  headers: Headers;
+};
+;
+
+export type myTasksControllerMoveStageResponse = (myTasksControllerMoveStageResponseSuccess)
+
+export const getMyTasksControllerMoveStageUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/my-tasks/${id}/move`
+}
+
+export const myTasksControllerMoveStage = async (id: number,
+    moveTaskStageDto: MoveTaskStageDto, options?: RequestInit): Promise<myTasksControllerMoveStageResponse> => {
+  
+  return customFetch<myTasksControllerMoveStageResponse>(getMyTasksControllerMoveStageUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      moveTaskStageDto,)
+  }
+);}
+
+
+
+
+export const getMyTasksControllerMoveStageMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof myTasksControllerMoveStage>>, TError,{id: number;data: MoveTaskStageDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof myTasksControllerMoveStage>>, TError,{id: number;data: MoveTaskStageDto}, TContext> => {
+
+const mutationKey = ['myTasksControllerMoveStage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof myTasksControllerMoveStage>>, {id: number;data: MoveTaskStageDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  myTasksControllerMoveStage(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MyTasksControllerMoveStageMutationResult = NonNullable<Awaited<ReturnType<typeof myTasksControllerMoveStage>>>
+    export type MyTasksControllerMoveStageMutationBody = MoveTaskStageDto
+    export type MyTasksControllerMoveStageMutationError = unknown
+
+    /**
+ * @summary Move assigned task stage (e.g. to in_progress or requested)
+ */
+export const useMyTasksControllerMoveStage = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof myTasksControllerMoveStage>>, TError,{id: number;data: MoveTaskStageDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof myTasksControllerMoveStage>>,
+        TError,
+        {id: number;data: MoveTaskStageDto},
+        TContext
+      > => {
+
+      const mutationOptions = getMyTasksControllerMoveStageMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    

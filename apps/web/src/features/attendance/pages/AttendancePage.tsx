@@ -1,12 +1,9 @@
-import React, { useState, Suspense } from 'react';
+import React, { useState } from 'react';
 import { useAttendanceDashboard, usePunchActions } from '../hooks/use-attendance';
 import { MonthNavigator } from '../components/MonthNavigator';
-import { AttendanceCalendar } from '../components/AttendanceCalendar';
 import { AttendanceSkeleton } from '../components/AttendanceSkeleton';
 import { AttendanceDashboardCards } from '../components/AttendanceDashboardCards';
 import { AttendanceNavTabs } from '../components/AttendanceNavTabs';
-
-const DayDetailPanel = React.lazy(() => import('../components/DayDetailPanel'));
 
 export const AttendancePage: React.FC = () => {
   const currentMonthStr = new Date().toISOString().slice(0, 7);
@@ -14,7 +11,6 @@ export const AttendancePage: React.FC = () => {
   const [announcement, setAnnouncement] = useState<string>('');
   const [infoToast, setInfoToast] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [selectedDetailDate, setSelectedDetailDate] = useState<string | null>(null);
 
   const { data, isLoading, error } = useAttendanceDashboard(selectedMonth);
 
@@ -49,18 +45,6 @@ export const AttendancePage: React.FC = () => {
   const handlePunchOut = () => runAction(() => punchOutMutation.mutateAsync(), 'Failed to punch out');
   const handleStartBreak = () => runAction(() => startBreakMutation.mutateAsync(), 'Failed to start break');
   const handleResumeBreak = () => runAction(() => resumeBreakMutation.mutateAsync(), 'Failed to resume break');
-
-  const handlePreviousMonth = () => {
-    const [y, m] = selectedMonth.split('-');
-    const prevDate = new Date(parseInt(y || '2026', 10), parseInt(m || '10', 10) - 2, 1);
-    setSelectedMonth(`${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`);
-  };
-
-  const handleNextMonth = () => {
-    const [y, m] = selectedMonth.split('-');
-    const nextDate = new Date(parseInt(y || '2026', 10), parseInt(m || '10', 10), 1);
-    setSelectedMonth(`${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, '0')}`);
-  };
 
   if (isLoading && !data) return <AttendanceSkeleton />;
 
@@ -112,25 +96,6 @@ export const AttendancePage: React.FC = () => {
         onDismissToast={() => setInfoToast(null)}
         onSuccessCorrection={(msg) => setInfoToast(msg)}
       />
-
-      <AttendanceCalendar
-        currentMonth={selectedMonth}
-        records={records}
-        onSelectDate={(date) => setSelectedDetailDate(date)}
-        onPreviousMonth={handlePreviousMonth}
-        onNextMonth={handleNextMonth}
-      />
-
-      {selectedDetailDate && (
-        <Suspense fallback={null}>
-          <DayDetailPanel
-            isOpen={Boolean(selectedDetailDate)}
-            date={selectedDetailDate}
-            onClose={() => setSelectedDetailDate(null)}
-            onOpenCorrection={() => {}}
-          />
-        </Suspense>
-      )}
     </div>
   );
 };

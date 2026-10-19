@@ -41,7 +41,9 @@ import { RejectCorrectionUseCase } from '../application/use-cases/reject-correct
 import { AdminUpsertDayUseCase } from '../application/use-cases/admin-upsert-day.use-case';
 import { GetTeamAttendanceUseCase } from '../application/use-cases/get-team-attendance.use-case';
 import { GetAttendanceReportUseCase } from '../application/use-cases/get-attendance-report.use-case';
-import { PrismaAppSettingsRepository } from '../infrastructure/repositories/prisma-app-settings.repository';
+import { AppSettingsRepository } from '../domain/ports/app-settings.repository.port';
+import { ATTENDANCE_TOKENS } from '../domain/ports/tokens';
+import { Inject } from '@nestjs/common';
 import { mapAttendanceErrorToHttp } from './attendance-error.mapper';
 import {
   TodayAttendanceBlockDto,
@@ -73,7 +75,8 @@ export class AttendanceController {
     private readonly adminUpsertDayUseCase: AdminUpsertDayUseCase,
     private readonly getTeamAttendanceUseCase: GetTeamAttendanceUseCase,
     private readonly getAttendanceReportUseCase: GetAttendanceReportUseCase,
-    private readonly appSettingsRepo: PrismaAppSettingsRepository,
+    @Inject(ATTENDANCE_TOKENS.APP_SETTINGS_REPOSITORY)
+    private readonly appSettingsRepo: AppSettingsRepository,
   ) {}
 
   @Post('check-in')
