@@ -3548,3 +3548,438 @@ export function useCalendarControllerGetUnscheduledTasks(options, queryClient) {
     query.queryKey = queryOptions.queryKey;
     return query;
 }
+;
+export const getCalendarControllerGetMonthTasksUrl = (params) => {
+    const normalizedParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+        if (value !== undefined) {
+            normalizedParams.append(key, value === null ? 'null' : value.toString());
+        }
+    });
+    const stringifiedParams = normalizedParams.toString();
+    return stringifiedParams.length > 0 ? `/api/v1/calendar/month-tasks?${stringifiedParams}` : `/api/v1/calendar/month-tasks`;
+};
+export const calendarControllerGetMonthTasks = async (params, options) => {
+    return customFetch(getCalendarControllerGetMonthTasksUrl(params), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getCalendarControllerGetMonthTasksQueryKey = (params) => {
+    return [
+        `/api/v1/calendar/month-tasks`, ...(params ? [params] : [])
+    ];
+};
+export const getCalendarControllerGetMonthTasksQueryOptions = (params, options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getCalendarControllerGetMonthTasksQueryKey(params);
+    const queryFn = ({ signal }) => calendarControllerGetMonthTasks(params, { signal, ...requestOptions });
+    return { queryKey, queryFn, ...queryOptions };
+};
+/**
+ * @summary Get completed and submitted tasks for calendar month view
+ */
+export function useCalendarControllerGetMonthTasks(params, options, queryClient) {
+    const queryOptions = getCalendarControllerGetMonthTasksQueryOptions(params, options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
+export const getCalendarControllerGetSummaryUrl = (params) => {
+    const normalizedParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+        if (value !== undefined) {
+            normalizedParams.append(key, value === null ? 'null' : value.toString());
+        }
+    });
+    const stringifiedParams = normalizedParams.toString();
+    return stringifiedParams.length > 0 ? `/api/v1/calendar/summary?${stringifiedParams}` : `/api/v1/calendar/summary`;
+};
+export const calendarControllerGetSummary = async (params, options) => {
+    return customFetch(getCalendarControllerGetSummaryUrl(params), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getCalendarControllerGetSummaryQueryKey = (params) => {
+    return [
+        `/api/v1/calendar/summary`, ...(params ? [params] : [])
+    ];
+};
+export const getCalendarControllerGetSummaryQueryOptions = (params, options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getCalendarControllerGetSummaryQueryKey(params);
+    const queryFn = ({ signal }) => calendarControllerGetSummary(params, { signal, ...requestOptions });
+    return { queryKey, queryFn, ...queryOptions };
+};
+/**
+ * @summary Get calendar 4 KPI summary cards for month
+ */
+export function useCalendarControllerGetSummary(params, options, queryClient) {
+    const queryOptions = getCalendarControllerGetSummaryQueryOptions(params, options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
+export const getCalendarControllerGetHolidaysUrl = (params) => {
+    const normalizedParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+        if (value !== undefined) {
+            normalizedParams.append(key, value === null ? 'null' : value.toString());
+        }
+    });
+    const stringifiedParams = normalizedParams.toString();
+    return stringifiedParams.length > 0 ? `/api/v1/calendar/holidays?${stringifiedParams}` : `/api/v1/calendar/holidays`;
+};
+export const calendarControllerGetHolidays = async (params, options) => {
+    return customFetch(getCalendarControllerGetHolidaysUrl(params), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getCalendarControllerGetHolidaysQueryKey = (params) => {
+    return [
+        `/api/v1/calendar/holidays`, ...(params ? [params] : [])
+    ];
+};
+export const getCalendarControllerGetHolidaysQueryOptions = (params, options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getCalendarControllerGetHolidaysQueryKey(params);
+    const queryFn = ({ signal }) => calendarControllerGetHolidays(params, { signal, ...requestOptions });
+    return { queryKey, queryFn, ...queryOptions };
+};
+/**
+ * @summary Get holidays for calendar range
+ */
+export function useCalendarControllerGetHolidays(params, options, queryClient) {
+    const queryOptions = getCalendarControllerGetHolidaysQueryOptions(params, options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
+export const getProjectsControllerGetProjectsUrl = (params) => {
+    const normalizedParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+        if (value !== undefined) {
+            normalizedParams.append(key, value === null ? 'null' : value.toString());
+        }
+    });
+    const stringifiedParams = normalizedParams.toString();
+    return stringifiedParams.length > 0 ? `/api/v1/projects?${stringifiedParams}` : `/api/v1/projects`;
+};
+export const projectsControllerGetProjects = async (params, options) => {
+    return customFetch(getProjectsControllerGetProjectsUrl(params), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getProjectsControllerGetProjectsQueryKey = (params) => {
+    return [
+        `/api/v1/projects`, ...(params ? [params] : [])
+    ];
+};
+export const getProjectsControllerGetProjectsQueryOptions = (params, options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getProjectsControllerGetProjectsQueryKey(params);
+    const queryFn = ({ signal }) => projectsControllerGetProjects(params, { signal, ...requestOptions });
+    return { queryKey, queryFn, ...queryOptions };
+};
+/**
+ * @summary Get projects with filtering and role-based scope
+ */
+export function useProjectsControllerGetProjects(params, options, queryClient) {
+    const queryOptions = getProjectsControllerGetProjectsQueryOptions(params, options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
+export const getProjectsControllerCreateProjectUrl = () => {
+    return `/api/v1/projects`;
+};
+export const projectsControllerCreateProject = async (createProjectDto, options) => {
+    return customFetch(getProjectsControllerCreateProjectUrl(), {
+        ...options,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        body: JSON.stringify(createProjectDto)
+    });
+};
+export const getProjectsControllerCreateProjectMutationOptions = (options) => {
+    const mutationKey = ['projectsControllerCreateProject'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { data } = props ?? {};
+        return projectsControllerCreateProject(data, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Create a new project (Admin only)
+*/
+export const useProjectsControllerCreateProject = (options, queryClient) => {
+    const mutationOptions = getProjectsControllerCreateProjectMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getProjectsControllerGetAssignableEmployeesUrl = () => {
+    return `/api/v1/projects/assignable-employees`;
+};
+export const projectsControllerGetAssignableEmployees = async (options) => {
+    return customFetch(getProjectsControllerGetAssignableEmployeesUrl(), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getProjectsControllerGetAssignableEmployeesQueryKey = () => {
+    return [
+        `/api/v1/projects/assignable-employees`
+    ];
+};
+export const getProjectsControllerGetAssignableEmployeesQueryOptions = (options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getProjectsControllerGetAssignableEmployeesQueryKey();
+    const queryFn = ({ signal }) => projectsControllerGetAssignableEmployees({ signal, ...requestOptions });
+    return { queryKey, queryFn, ...queryOptions };
+};
+/**
+ * @summary Get active employees assignable as PM or team members
+ */
+export function useProjectsControllerGetAssignableEmployees(options, queryClient) {
+    const queryOptions = getProjectsControllerGetAssignableEmployeesQueryOptions(options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
+export const getProjectsControllerGetProjectDetailUrl = (id) => {
+    return `/api/v1/projects/${id}`;
+};
+export const projectsControllerGetProjectDetail = async (id, options) => {
+    return customFetch(getProjectsControllerGetProjectDetailUrl(id), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getProjectsControllerGetProjectDetailQueryKey = (id) => {
+    return [
+        `/api/v1/projects/${id}`
+    ];
+};
+export const getProjectsControllerGetProjectDetailQueryOptions = (id, options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getProjectsControllerGetProjectDetailQueryKey(id);
+    const queryFn = ({ signal }) => projectsControllerGetProjectDetail(id, { signal, ...requestOptions });
+    return { queryKey, queryFn, enabled: !!(id), ...queryOptions };
+};
+/**
+ * @summary Get project details by ID
+ */
+export function useProjectsControllerGetProjectDetail(id, options, queryClient) {
+    const queryOptions = getProjectsControllerGetProjectDetailQueryOptions(id, options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
+export const getProjectsControllerUpdateProjectStatusUrl = (id) => {
+    return `/api/v1/projects/${id}/status`;
+};
+export const projectsControllerUpdateProjectStatus = async (id, updateProjectStatusDto, options) => {
+    return customFetch(getProjectsControllerUpdateProjectStatusUrl(id), {
+        ...options,
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        body: JSON.stringify(updateProjectStatusDto)
+    });
+};
+export const getProjectsControllerUpdateProjectStatusMutationOptions = (options) => {
+    const mutationKey = ['projectsControllerUpdateProjectStatus'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { id, data } = props ?? {};
+        return projectsControllerUpdateProjectStatus(id, data, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Update project status (Admin and Project Manager)
+*/
+export const useProjectsControllerUpdateProjectStatus = (options, queryClient) => {
+    const mutationOptions = getProjectsControllerUpdateProjectStatusMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getProjectsControllerGetProjectSprintsUrl = (id) => {
+    return `/api/v1/projects/${id}/sprints`;
+};
+export const projectsControllerGetProjectSprints = async (id, options) => {
+    return customFetch(getProjectsControllerGetProjectSprintsUrl(id), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getProjectsControllerGetProjectSprintsQueryKey = (id) => {
+    return [
+        `/api/v1/projects/${id}/sprints`
+    ];
+};
+export const getProjectsControllerGetProjectSprintsQueryOptions = (id, options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getProjectsControllerGetProjectSprintsQueryKey(id);
+    const queryFn = ({ signal }) => projectsControllerGetProjectSprints(id, { signal, ...requestOptions });
+    return { queryKey, queryFn, enabled: !!(id), ...queryOptions };
+};
+/**
+ * @summary Get all sprints for a project
+ */
+export function useProjectsControllerGetProjectSprints(id, options, queryClient) {
+    const queryOptions = getProjectsControllerGetProjectSprintsQueryOptions(id, options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
+export const getProjectsControllerCreateSprintUrl = (id) => {
+    return `/api/v1/projects/${id}/sprints`;
+};
+export const projectsControllerCreateSprint = async (id, createSprintDto, options) => {
+    return customFetch(getProjectsControllerCreateSprintUrl(id), {
+        ...options,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        body: JSON.stringify(createSprintDto)
+    });
+};
+export const getProjectsControllerCreateSprintMutationOptions = (options) => {
+    const mutationKey = ['projectsControllerCreateSprint'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { id, data } = props ?? {};
+        return projectsControllerCreateSprint(id, data, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Create a new sprint for a project (Admin and PM)
+*/
+export const useProjectsControllerCreateSprint = (options, queryClient) => {
+    const mutationOptions = getProjectsControllerCreateSprintMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getProjectsControllerUpdateSprintUrl = (id, sprintId) => {
+    return `/api/v1/projects/${id}/sprints/${sprintId}`;
+};
+export const projectsControllerUpdateSprint = async (id, sprintId, updateSprintDto, options) => {
+    return customFetch(getProjectsControllerUpdateSprintUrl(id, sprintId), {
+        ...options,
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        body: JSON.stringify(updateSprintDto)
+    });
+};
+export const getProjectsControllerUpdateSprintMutationOptions = (options) => {
+    const mutationKey = ['projectsControllerUpdateSprint'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { id, sprintId, data } = props ?? {};
+        return projectsControllerUpdateSprint(id, sprintId, data, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Update sprint details or status
+*/
+export const useProjectsControllerUpdateSprint = (options, queryClient) => {
+    const mutationOptions = getProjectsControllerUpdateSprintMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getProjectsControllerGetProjectTasksUrl = (id, params) => {
+    const normalizedParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+        if (value !== undefined) {
+            normalizedParams.append(key, value === null ? 'null' : value.toString());
+        }
+    });
+    const stringifiedParams = normalizedParams.toString();
+    return stringifiedParams.length > 0 ? `/api/v1/projects/${id}/tasks?${stringifiedParams}` : `/api/v1/projects/${id}/tasks`;
+};
+export const projectsControllerGetProjectTasks = async (id, params, options) => {
+    return customFetch(getProjectsControllerGetProjectTasksUrl(id, params), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getProjectsControllerGetProjectTasksQueryKey = (id, params) => {
+    return [
+        `/api/v1/projects/${id}/tasks`, ...(params ? [params] : [])
+    ];
+};
+export const getProjectsControllerGetProjectTasksQueryOptions = (id, params, options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getProjectsControllerGetProjectTasksQueryKey(id, params);
+    const queryFn = ({ signal }) => projectsControllerGetProjectTasks(id, params, { signal, ...requestOptions });
+    return { queryKey, queryFn, enabled: !!(id), ...queryOptions };
+};
+/**
+ * @summary Get project tasks (optionally filtered by sprint_id)
+ */
+export function useProjectsControllerGetProjectTasks(id, params, options, queryClient) {
+    const queryOptions = getProjectsControllerGetProjectTasksQueryOptions(id, params, options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
+export const getProjectsControllerCreateProjectTaskUrl = (id) => {
+    return `/api/v1/projects/${id}/tasks`;
+};
+export const projectsControllerCreateProjectTask = async (id, createProjectTaskDto, options) => {
+    return customFetch(getProjectsControllerCreateProjectTaskUrl(id), {
+        ...options,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        body: JSON.stringify(createProjectTaskDto)
+    });
+};
+export const getProjectsControllerCreateProjectTaskMutationOptions = (options) => {
+    const mutationKey = ['projectsControllerCreateProjectTask'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { id, data } = props ?? {};
+        return projectsControllerCreateProjectTask(id, data, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Create a task under this project and optional sprint
+*/
+export const useProjectsControllerCreateProjectTask = (options, queryClient) => {
+    const mutationOptions = getProjectsControllerCreateProjectTaskMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};

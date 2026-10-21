@@ -1,5 +1,5 @@
 import type { DataTag, DefinedInitialDataOptions, DefinedUseQueryResult, QueryClient, QueryKey, UndefinedInitialDataOptions, UseMutationOptions, UseMutationResult, UseQueryOptions, UseQueryResult } from '@tanstack/react-query';
-import type { AdminUpsertDayDto, AssignableEmployeeDto, AttendanceControllerGetDashboardParams, AttendanceControllerGetMeParams, AttendanceControllerGetReportParams, AttendanceControllerGetTeamParams, CalendarControllerGetEventsParams, CalendarEventResponseDto, ChangePasswordDto, CompanyControllerCheckDuplicatesParams, CompanyControllerGetOptionsParams, CompanyControllerListParams, CompanyDataTransferControllerDownloadTemplateParams, CompanyDataTransferControllerExportParams, CompanyDataTransferControllerGetIssuesParams, CompanyDataTransferControllerListImportsParams, CompanyDataTransferControllerPreviewBody, CompanyDetailResponseDto, CompanyDuplicateMatchDto, CompanyImportConfirmDto, CompanyImportConfirmResponseDto, CompanyImportPreviewResponseDto, CompanyOptionDto, CreateCalendarEventDto, CreateCompanyDto, CreateCorrectionDto, CreateCustomerTypeDto, CreateDepartmentDto, CreateEmployeeDto, CreateIndustryDto, CreateRoleDto, CreateTaskDto, CustomerTypeControllerListParams, CustomerTypeItemDto, CustomerTypeOptionDto, DashboardResponseDto, DataTransferJobDetailResponseDto, DayDetailDto, DepartmentControllerListParams, DepartmentListResponseDto, DepartmentOptionDto, DepartmentResponseDto, EmployeeControllerGetOptionsParams, EmployeeControllerListParams, EmployeeControllerUploadPhotoBody, EmployeeListResponseDto, EmployeeOptionDto, EmployeeResponseDto, FilesControllerGetProfilePhotoParams, ForgotPasswordDto, ForgotPasswordResponseDto, IndustryControllerGetOptionsParams, IndustryControllerListParams, IndustryDetailResponseDto, IndustryOptionDto, ListCompaniesResponseDto, ListCustomerTypesResponseDto, ListIndustriesResponseDto, LoginDto, LoginResponseDto, LookupControllerGetOptionsParams, LookupOptionDto, MarkAllReadResponseDto, MarkReadResponseDto, MeResponseDto, MonthBlockDto, MoveTaskStageDto, MyTasksControllerGetBoardParams, NotificationResponseDto, NotificationsControllerGetNotificationsParams, PendingReviewCountDto, PersonControllerLookupParams, PersonLookupMatchDto, RefreshResponseDto, RejectCorrectionDto, ResendOtpDto, ResetPasswordDto, RespondRsvpDto, RoleControllerGetOptionsParams, RoleControllerListParams, RoleListResponseDto, RoleOptionDto, RoleResponseDto, TaskBoardResultDto, TaskDetailDto, TaskSummaryDto, TasksControllerGetBoardParams, TodayAttendanceBlockDto, TrackWorkSessionDto, TransferJobIssuesResponseDto, TransferJobListResponseDto, UnreadCountResponseDto, UnscheduledTaskDto, UpdateCalendarEventDto, UpdateCompanyDto, UpdateCustomerTypeDto, UpdateDepartmentDto, UpdateEmployeeDto, UpdateIndustryDto, UpdateRoleDto, UpdateTaskDto, VerifyLoginDto, VerifyLoginResponseDto } from './model';
+import type { AdminUpsertDayDto, AssignableEmployeeDto, AttendanceControllerGetDashboardParams, AttendanceControllerGetMeParams, AttendanceControllerGetReportParams, AttendanceControllerGetTeamParams, CalendarControllerGetEventsParams, CalendarControllerGetHolidaysParams, CalendarControllerGetMonthTasksParams, CalendarControllerGetSummaryParams, CalendarEventResponseDto, ChangePasswordDto, CompanyControllerCheckDuplicatesParams, CompanyControllerGetOptionsParams, CompanyControllerListParams, CompanyDataTransferControllerDownloadTemplateParams, CompanyDataTransferControllerExportParams, CompanyDataTransferControllerGetIssuesParams, CompanyDataTransferControllerListImportsParams, CompanyDataTransferControllerPreviewBody, CompanyDetailResponseDto, CompanyDuplicateMatchDto, CompanyImportConfirmDto, CompanyImportConfirmResponseDto, CompanyImportPreviewResponseDto, CompanyOptionDto, CreateCalendarEventDto, CreateCompanyDto, CreateCorrectionDto, CreateCustomerTypeDto, CreateDepartmentDto, CreateEmployeeDto, CreateIndustryDto, CreateProjectDto, CreateProjectTaskDto, CreateRoleDto, CreateSprintDto, CreateTaskDto, CustomerTypeControllerListParams, CustomerTypeItemDto, CustomerTypeOptionDto, DashboardResponseDto, DataTransferJobDetailResponseDto, DayDetailDto, DepartmentControllerListParams, DepartmentListResponseDto, DepartmentOptionDto, DepartmentResponseDto, EmployeeControllerGetOptionsParams, EmployeeControllerListParams, EmployeeControllerUploadPhotoBody, EmployeeListResponseDto, EmployeeOptionDto, EmployeeResponseDto, FilesControllerGetProfilePhotoParams, ForgotPasswordDto, ForgotPasswordResponseDto, IndustryControllerGetOptionsParams, IndustryControllerListParams, IndustryDetailResponseDto, IndustryOptionDto, ListCompaniesResponseDto, ListCustomerTypesResponseDto, ListIndustriesResponseDto, LoginDto, LoginResponseDto, LookupControllerGetOptionsParams, LookupOptionDto, MarkAllReadResponseDto, MarkReadResponseDto, MeResponseDto, MonthBlockDto, MoveTaskStageDto, MyTasksControllerGetBoardParams, NotificationResponseDto, NotificationsControllerGetNotificationsParams, PendingReviewCountDto, PersonControllerLookupParams, PersonLookupMatchDto, ProjectsControllerGetProjectTasksParams, ProjectsControllerGetProjectsParams, RefreshResponseDto, RejectCorrectionDto, ResendOtpDto, ResetPasswordDto, RespondRsvpDto, RoleControllerGetOptionsParams, RoleControllerListParams, RoleListResponseDto, RoleOptionDto, RoleResponseDto, TaskBoardResultDto, TaskDetailDto, TaskSummaryDto, TasksControllerGetBoardParams, TodayAttendanceBlockDto, TrackWorkSessionDto, TransferJobIssuesResponseDto, TransferJobListResponseDto, UnreadCountResponseDto, UnscheduledTaskDto, UpdateCalendarEventDto, UpdateCompanyDto, UpdateCustomerTypeDto, UpdateDepartmentDto, UpdateEmployeeDto, UpdateIndustryDto, UpdateProjectStatusDto, UpdateRoleDto, UpdateSprintDto, UpdateTaskDto, VerifyLoginDto, VerifyLoginResponseDto } from './model';
 import { customFetch } from '../custom-fetch';
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 /**
@@ -4132,4 +4132,519 @@ export declare function useCalendarControllerGetUnscheduledTasks<TData = Awaited
 }, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
 };
+/**
+ * @summary Get completed and submitted tasks for calendar month view
+ */
+export type calendarControllerGetMonthTasksResponse200 = {
+    data: void;
+    status: 200;
+};
+export type calendarControllerGetMonthTasksResponseSuccess = (calendarControllerGetMonthTasksResponse200) & {
+    headers: Headers;
+};
+export type calendarControllerGetMonthTasksResponse = (calendarControllerGetMonthTasksResponseSuccess);
+export declare const getCalendarControllerGetMonthTasksUrl: (params: CalendarControllerGetMonthTasksParams) => string;
+export declare const calendarControllerGetMonthTasks: (params: CalendarControllerGetMonthTasksParams, options?: RequestInit) => Promise<calendarControllerGetMonthTasksResponse>;
+export declare const getCalendarControllerGetMonthTasksQueryKey: (params?: CalendarControllerGetMonthTasksParams) => readonly ["/api/v1/calendar/month-tasks", ...CalendarControllerGetMonthTasksParams[]];
+export declare const getCalendarControllerGetMonthTasksQueryOptions: <TData = Awaited<ReturnType<typeof calendarControllerGetMonthTasks>>, TError = unknown>(params: CalendarControllerGetMonthTasksParams, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof calendarControllerGetMonthTasks>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseQueryOptions<Awaited<ReturnType<typeof calendarControllerGetMonthTasks>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export type CalendarControllerGetMonthTasksQueryResult = NonNullable<Awaited<ReturnType<typeof calendarControllerGetMonthTasks>>>;
+export type CalendarControllerGetMonthTasksQueryError = unknown;
+export declare function useCalendarControllerGetMonthTasks<TData = Awaited<ReturnType<typeof calendarControllerGetMonthTasks>>, TError = unknown>(params: CalendarControllerGetMonthTasksParams, options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof calendarControllerGetMonthTasks>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof calendarControllerGetMonthTasks>>, TError, Awaited<ReturnType<typeof calendarControllerGetMonthTasks>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useCalendarControllerGetMonthTasks<TData = Awaited<ReturnType<typeof calendarControllerGetMonthTasks>>, TError = unknown>(params: CalendarControllerGetMonthTasksParams, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof calendarControllerGetMonthTasks>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof calendarControllerGetMonthTasks>>, TError, Awaited<ReturnType<typeof calendarControllerGetMonthTasks>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useCalendarControllerGetMonthTasks<TData = Awaited<ReturnType<typeof calendarControllerGetMonthTasks>>, TError = unknown>(params: CalendarControllerGetMonthTasksParams, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof calendarControllerGetMonthTasks>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Get calendar 4 KPI summary cards for month
+ */
+export type calendarControllerGetSummaryResponse200 = {
+    data: void;
+    status: 200;
+};
+export type calendarControllerGetSummaryResponseSuccess = (calendarControllerGetSummaryResponse200) & {
+    headers: Headers;
+};
+export type calendarControllerGetSummaryResponse = (calendarControllerGetSummaryResponseSuccess);
+export declare const getCalendarControllerGetSummaryUrl: (params: CalendarControllerGetSummaryParams) => string;
+export declare const calendarControllerGetSummary: (params: CalendarControllerGetSummaryParams, options?: RequestInit) => Promise<calendarControllerGetSummaryResponse>;
+export declare const getCalendarControllerGetSummaryQueryKey: (params?: CalendarControllerGetSummaryParams) => readonly ["/api/v1/calendar/summary", ...CalendarControllerGetSummaryParams[]];
+export declare const getCalendarControllerGetSummaryQueryOptions: <TData = Awaited<ReturnType<typeof calendarControllerGetSummary>>, TError = unknown>(params: CalendarControllerGetSummaryParams, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof calendarControllerGetSummary>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseQueryOptions<Awaited<ReturnType<typeof calendarControllerGetSummary>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export type CalendarControllerGetSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof calendarControllerGetSummary>>>;
+export type CalendarControllerGetSummaryQueryError = unknown;
+export declare function useCalendarControllerGetSummary<TData = Awaited<ReturnType<typeof calendarControllerGetSummary>>, TError = unknown>(params: CalendarControllerGetSummaryParams, options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof calendarControllerGetSummary>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof calendarControllerGetSummary>>, TError, Awaited<ReturnType<typeof calendarControllerGetSummary>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useCalendarControllerGetSummary<TData = Awaited<ReturnType<typeof calendarControllerGetSummary>>, TError = unknown>(params: CalendarControllerGetSummaryParams, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof calendarControllerGetSummary>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof calendarControllerGetSummary>>, TError, Awaited<ReturnType<typeof calendarControllerGetSummary>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useCalendarControllerGetSummary<TData = Awaited<ReturnType<typeof calendarControllerGetSummary>>, TError = unknown>(params: CalendarControllerGetSummaryParams, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof calendarControllerGetSummary>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Get holidays for calendar range
+ */
+export type calendarControllerGetHolidaysResponse200 = {
+    data: void;
+    status: 200;
+};
+export type calendarControllerGetHolidaysResponseSuccess = (calendarControllerGetHolidaysResponse200) & {
+    headers: Headers;
+};
+export type calendarControllerGetHolidaysResponse = (calendarControllerGetHolidaysResponseSuccess);
+export declare const getCalendarControllerGetHolidaysUrl: (params: CalendarControllerGetHolidaysParams) => string;
+export declare const calendarControllerGetHolidays: (params: CalendarControllerGetHolidaysParams, options?: RequestInit) => Promise<calendarControllerGetHolidaysResponse>;
+export declare const getCalendarControllerGetHolidaysQueryKey: (params?: CalendarControllerGetHolidaysParams) => readonly ["/api/v1/calendar/holidays", ...CalendarControllerGetHolidaysParams[]];
+export declare const getCalendarControllerGetHolidaysQueryOptions: <TData = Awaited<ReturnType<typeof calendarControllerGetHolidays>>, TError = unknown>(params: CalendarControllerGetHolidaysParams, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof calendarControllerGetHolidays>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseQueryOptions<Awaited<ReturnType<typeof calendarControllerGetHolidays>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export type CalendarControllerGetHolidaysQueryResult = NonNullable<Awaited<ReturnType<typeof calendarControllerGetHolidays>>>;
+export type CalendarControllerGetHolidaysQueryError = unknown;
+export declare function useCalendarControllerGetHolidays<TData = Awaited<ReturnType<typeof calendarControllerGetHolidays>>, TError = unknown>(params: CalendarControllerGetHolidaysParams, options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof calendarControllerGetHolidays>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof calendarControllerGetHolidays>>, TError, Awaited<ReturnType<typeof calendarControllerGetHolidays>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useCalendarControllerGetHolidays<TData = Awaited<ReturnType<typeof calendarControllerGetHolidays>>, TError = unknown>(params: CalendarControllerGetHolidaysParams, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof calendarControllerGetHolidays>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof calendarControllerGetHolidays>>, TError, Awaited<ReturnType<typeof calendarControllerGetHolidays>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useCalendarControllerGetHolidays<TData = Awaited<ReturnType<typeof calendarControllerGetHolidays>>, TError = unknown>(params: CalendarControllerGetHolidaysParams, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof calendarControllerGetHolidays>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Get projects with filtering and role-based scope
+ */
+export type projectsControllerGetProjectsResponse200 = {
+    data: void;
+    status: 200;
+};
+export type projectsControllerGetProjectsResponseSuccess = (projectsControllerGetProjectsResponse200) & {
+    headers: Headers;
+};
+export type projectsControllerGetProjectsResponse = (projectsControllerGetProjectsResponseSuccess);
+export declare const getProjectsControllerGetProjectsUrl: (params?: ProjectsControllerGetProjectsParams) => string;
+export declare const projectsControllerGetProjects: (params?: ProjectsControllerGetProjectsParams, options?: RequestInit) => Promise<projectsControllerGetProjectsResponse>;
+export declare const getProjectsControllerGetProjectsQueryKey: (params?: ProjectsControllerGetProjectsParams) => readonly ["/api/v1/projects", ...ProjectsControllerGetProjectsParams[]];
+export declare const getProjectsControllerGetProjectsQueryOptions: <TData = Awaited<ReturnType<typeof projectsControllerGetProjects>>, TError = unknown>(params?: ProjectsControllerGetProjectsParams, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof projectsControllerGetProjects>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseQueryOptions<Awaited<ReturnType<typeof projectsControllerGetProjects>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export type ProjectsControllerGetProjectsQueryResult = NonNullable<Awaited<ReturnType<typeof projectsControllerGetProjects>>>;
+export type ProjectsControllerGetProjectsQueryError = unknown;
+export declare function useProjectsControllerGetProjects<TData = Awaited<ReturnType<typeof projectsControllerGetProjects>>, TError = unknown>(params: undefined | ProjectsControllerGetProjectsParams, options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof projectsControllerGetProjects>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof projectsControllerGetProjects>>, TError, Awaited<ReturnType<typeof projectsControllerGetProjects>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useProjectsControllerGetProjects<TData = Awaited<ReturnType<typeof projectsControllerGetProjects>>, TError = unknown>(params?: ProjectsControllerGetProjectsParams, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof projectsControllerGetProjects>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof projectsControllerGetProjects>>, TError, Awaited<ReturnType<typeof projectsControllerGetProjects>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useProjectsControllerGetProjects<TData = Awaited<ReturnType<typeof projectsControllerGetProjects>>, TError = unknown>(params?: ProjectsControllerGetProjectsParams, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof projectsControllerGetProjects>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Create a new project (Admin only)
+ */
+export type projectsControllerCreateProjectResponse201 = {
+    data: void;
+    status: 201;
+};
+export type projectsControllerCreateProjectResponseSuccess = (projectsControllerCreateProjectResponse201) & {
+    headers: Headers;
+};
+export type projectsControllerCreateProjectResponse = (projectsControllerCreateProjectResponseSuccess);
+export declare const getProjectsControllerCreateProjectUrl: () => string;
+export declare const projectsControllerCreateProject: (createProjectDto: CreateProjectDto, options?: RequestInit) => Promise<projectsControllerCreateProjectResponse>;
+export declare const getProjectsControllerCreateProjectMutationOptions: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof projectsControllerCreateProject>>, TError, {
+        data: CreateProjectDto;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof projectsControllerCreateProject>>, TError, {
+    data: CreateProjectDto;
+}, TContext>;
+export type ProjectsControllerCreateProjectMutationResult = NonNullable<Awaited<ReturnType<typeof projectsControllerCreateProject>>>;
+export type ProjectsControllerCreateProjectMutationBody = CreateProjectDto;
+export type ProjectsControllerCreateProjectMutationError = unknown;
+/**
+* @summary Create a new project (Admin only)
+*/
+export declare const useProjectsControllerCreateProject: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof projectsControllerCreateProject>>, TError, {
+        data: CreateProjectDto;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient) => UseMutationResult<Awaited<ReturnType<typeof projectsControllerCreateProject>>, TError, {
+    data: CreateProjectDto;
+}, TContext>;
+/**
+ * @summary Get active employees assignable as PM or team members
+ */
+export type projectsControllerGetAssignableEmployeesResponse200 = {
+    data: void;
+    status: 200;
+};
+export type projectsControllerGetAssignableEmployeesResponseSuccess = (projectsControllerGetAssignableEmployeesResponse200) & {
+    headers: Headers;
+};
+export type projectsControllerGetAssignableEmployeesResponse = (projectsControllerGetAssignableEmployeesResponseSuccess);
+export declare const getProjectsControllerGetAssignableEmployeesUrl: () => string;
+export declare const projectsControllerGetAssignableEmployees: (options?: RequestInit) => Promise<projectsControllerGetAssignableEmployeesResponse>;
+export declare const getProjectsControllerGetAssignableEmployeesQueryKey: () => readonly ["/api/v1/projects/assignable-employees"];
+export declare const getProjectsControllerGetAssignableEmployeesQueryOptions: <TData = Awaited<ReturnType<typeof projectsControllerGetAssignableEmployees>>, TError = unknown>(options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof projectsControllerGetAssignableEmployees>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseQueryOptions<Awaited<ReturnType<typeof projectsControllerGetAssignableEmployees>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export type ProjectsControllerGetAssignableEmployeesQueryResult = NonNullable<Awaited<ReturnType<typeof projectsControllerGetAssignableEmployees>>>;
+export type ProjectsControllerGetAssignableEmployeesQueryError = unknown;
+export declare function useProjectsControllerGetAssignableEmployees<TData = Awaited<ReturnType<typeof projectsControllerGetAssignableEmployees>>, TError = unknown>(options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof projectsControllerGetAssignableEmployees>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof projectsControllerGetAssignableEmployees>>, TError, Awaited<ReturnType<typeof projectsControllerGetAssignableEmployees>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useProjectsControllerGetAssignableEmployees<TData = Awaited<ReturnType<typeof projectsControllerGetAssignableEmployees>>, TError = unknown>(options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof projectsControllerGetAssignableEmployees>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof projectsControllerGetAssignableEmployees>>, TError, Awaited<ReturnType<typeof projectsControllerGetAssignableEmployees>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useProjectsControllerGetAssignableEmployees<TData = Awaited<ReturnType<typeof projectsControllerGetAssignableEmployees>>, TError = unknown>(options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof projectsControllerGetAssignableEmployees>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Get project details by ID
+ */
+export type projectsControllerGetProjectDetailResponse200 = {
+    data: void;
+    status: 200;
+};
+export type projectsControllerGetProjectDetailResponseSuccess = (projectsControllerGetProjectDetailResponse200) & {
+    headers: Headers;
+};
+export type projectsControllerGetProjectDetailResponse = (projectsControllerGetProjectDetailResponseSuccess);
+export declare const getProjectsControllerGetProjectDetailUrl: (id: number) => string;
+export declare const projectsControllerGetProjectDetail: (id: number, options?: RequestInit) => Promise<projectsControllerGetProjectDetailResponse>;
+export declare const getProjectsControllerGetProjectDetailQueryKey: (id?: number) => readonly ["/api/v1/projects/undefined" | `/api/v1/projects/${number}`];
+export declare const getProjectsControllerGetProjectDetailQueryOptions: <TData = Awaited<ReturnType<typeof projectsControllerGetProjectDetail>>, TError = unknown>(id: number, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof projectsControllerGetProjectDetail>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseQueryOptions<Awaited<ReturnType<typeof projectsControllerGetProjectDetail>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export type ProjectsControllerGetProjectDetailQueryResult = NonNullable<Awaited<ReturnType<typeof projectsControllerGetProjectDetail>>>;
+export type ProjectsControllerGetProjectDetailQueryError = unknown;
+export declare function useProjectsControllerGetProjectDetail<TData = Awaited<ReturnType<typeof projectsControllerGetProjectDetail>>, TError = unknown>(id: number, options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof projectsControllerGetProjectDetail>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof projectsControllerGetProjectDetail>>, TError, Awaited<ReturnType<typeof projectsControllerGetProjectDetail>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useProjectsControllerGetProjectDetail<TData = Awaited<ReturnType<typeof projectsControllerGetProjectDetail>>, TError = unknown>(id: number, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof projectsControllerGetProjectDetail>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof projectsControllerGetProjectDetail>>, TError, Awaited<ReturnType<typeof projectsControllerGetProjectDetail>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useProjectsControllerGetProjectDetail<TData = Awaited<ReturnType<typeof projectsControllerGetProjectDetail>>, TError = unknown>(id: number, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof projectsControllerGetProjectDetail>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Update project status (Admin and Project Manager)
+ */
+export type projectsControllerUpdateProjectStatusResponse200 = {
+    data: void;
+    status: 200;
+};
+export type projectsControllerUpdateProjectStatusResponseSuccess = (projectsControllerUpdateProjectStatusResponse200) & {
+    headers: Headers;
+};
+export type projectsControllerUpdateProjectStatusResponse = (projectsControllerUpdateProjectStatusResponseSuccess);
+export declare const getProjectsControllerUpdateProjectStatusUrl: (id: number) => string;
+export declare const projectsControllerUpdateProjectStatus: (id: number, updateProjectStatusDto: UpdateProjectStatusDto, options?: RequestInit) => Promise<projectsControllerUpdateProjectStatusResponse>;
+export declare const getProjectsControllerUpdateProjectStatusMutationOptions: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof projectsControllerUpdateProjectStatus>>, TError, {
+        id: number;
+        data: UpdateProjectStatusDto;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof projectsControllerUpdateProjectStatus>>, TError, {
+    id: number;
+    data: UpdateProjectStatusDto;
+}, TContext>;
+export type ProjectsControllerUpdateProjectStatusMutationResult = NonNullable<Awaited<ReturnType<typeof projectsControllerUpdateProjectStatus>>>;
+export type ProjectsControllerUpdateProjectStatusMutationBody = UpdateProjectStatusDto;
+export type ProjectsControllerUpdateProjectStatusMutationError = unknown;
+/**
+* @summary Update project status (Admin and Project Manager)
+*/
+export declare const useProjectsControllerUpdateProjectStatus: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof projectsControllerUpdateProjectStatus>>, TError, {
+        id: number;
+        data: UpdateProjectStatusDto;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient) => UseMutationResult<Awaited<ReturnType<typeof projectsControllerUpdateProjectStatus>>, TError, {
+    id: number;
+    data: UpdateProjectStatusDto;
+}, TContext>;
+/**
+ * @summary Get all sprints for a project
+ */
+export type projectsControllerGetProjectSprintsResponse200 = {
+    data: void;
+    status: 200;
+};
+export type projectsControllerGetProjectSprintsResponseSuccess = (projectsControllerGetProjectSprintsResponse200) & {
+    headers: Headers;
+};
+export type projectsControllerGetProjectSprintsResponse = (projectsControllerGetProjectSprintsResponseSuccess);
+export declare const getProjectsControllerGetProjectSprintsUrl: (id: number) => string;
+export declare const projectsControllerGetProjectSprints: (id: number, options?: RequestInit) => Promise<projectsControllerGetProjectSprintsResponse>;
+export declare const getProjectsControllerGetProjectSprintsQueryKey: (id?: number) => readonly ["/api/v1/projects/undefined/sprints" | `/api/v1/projects/${number}/sprints`];
+export declare const getProjectsControllerGetProjectSprintsQueryOptions: <TData = Awaited<ReturnType<typeof projectsControllerGetProjectSprints>>, TError = unknown>(id: number, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof projectsControllerGetProjectSprints>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseQueryOptions<Awaited<ReturnType<typeof projectsControllerGetProjectSprints>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export type ProjectsControllerGetProjectSprintsQueryResult = NonNullable<Awaited<ReturnType<typeof projectsControllerGetProjectSprints>>>;
+export type ProjectsControllerGetProjectSprintsQueryError = unknown;
+export declare function useProjectsControllerGetProjectSprints<TData = Awaited<ReturnType<typeof projectsControllerGetProjectSprints>>, TError = unknown>(id: number, options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof projectsControllerGetProjectSprints>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof projectsControllerGetProjectSprints>>, TError, Awaited<ReturnType<typeof projectsControllerGetProjectSprints>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useProjectsControllerGetProjectSprints<TData = Awaited<ReturnType<typeof projectsControllerGetProjectSprints>>, TError = unknown>(id: number, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof projectsControllerGetProjectSprints>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof projectsControllerGetProjectSprints>>, TError, Awaited<ReturnType<typeof projectsControllerGetProjectSprints>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useProjectsControllerGetProjectSprints<TData = Awaited<ReturnType<typeof projectsControllerGetProjectSprints>>, TError = unknown>(id: number, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof projectsControllerGetProjectSprints>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Create a new sprint for a project (Admin and PM)
+ */
+export type projectsControllerCreateSprintResponse201 = {
+    data: void;
+    status: 201;
+};
+export type projectsControllerCreateSprintResponseSuccess = (projectsControllerCreateSprintResponse201) & {
+    headers: Headers;
+};
+export type projectsControllerCreateSprintResponse = (projectsControllerCreateSprintResponseSuccess);
+export declare const getProjectsControllerCreateSprintUrl: (id: number) => string;
+export declare const projectsControllerCreateSprint: (id: number, createSprintDto: CreateSprintDto, options?: RequestInit) => Promise<projectsControllerCreateSprintResponse>;
+export declare const getProjectsControllerCreateSprintMutationOptions: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof projectsControllerCreateSprint>>, TError, {
+        id: number;
+        data: CreateSprintDto;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof projectsControllerCreateSprint>>, TError, {
+    id: number;
+    data: CreateSprintDto;
+}, TContext>;
+export type ProjectsControllerCreateSprintMutationResult = NonNullable<Awaited<ReturnType<typeof projectsControllerCreateSprint>>>;
+export type ProjectsControllerCreateSprintMutationBody = CreateSprintDto;
+export type ProjectsControllerCreateSprintMutationError = unknown;
+/**
+* @summary Create a new sprint for a project (Admin and PM)
+*/
+export declare const useProjectsControllerCreateSprint: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof projectsControllerCreateSprint>>, TError, {
+        id: number;
+        data: CreateSprintDto;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient) => UseMutationResult<Awaited<ReturnType<typeof projectsControllerCreateSprint>>, TError, {
+    id: number;
+    data: CreateSprintDto;
+}, TContext>;
+/**
+ * @summary Update sprint details or status
+ */
+export type projectsControllerUpdateSprintResponse200 = {
+    data: void;
+    status: 200;
+};
+export type projectsControllerUpdateSprintResponseSuccess = (projectsControllerUpdateSprintResponse200) & {
+    headers: Headers;
+};
+export type projectsControllerUpdateSprintResponse = (projectsControllerUpdateSprintResponseSuccess);
+export declare const getProjectsControllerUpdateSprintUrl: (id: number, sprintId: number) => string;
+export declare const projectsControllerUpdateSprint: (id: number, sprintId: number, updateSprintDto: UpdateSprintDto, options?: RequestInit) => Promise<projectsControllerUpdateSprintResponse>;
+export declare const getProjectsControllerUpdateSprintMutationOptions: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof projectsControllerUpdateSprint>>, TError, {
+        id: number;
+        sprintId: number;
+        data: UpdateSprintDto;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof projectsControllerUpdateSprint>>, TError, {
+    id: number;
+    sprintId: number;
+    data: UpdateSprintDto;
+}, TContext>;
+export type ProjectsControllerUpdateSprintMutationResult = NonNullable<Awaited<ReturnType<typeof projectsControllerUpdateSprint>>>;
+export type ProjectsControllerUpdateSprintMutationBody = UpdateSprintDto;
+export type ProjectsControllerUpdateSprintMutationError = unknown;
+/**
+* @summary Update sprint details or status
+*/
+export declare const useProjectsControllerUpdateSprint: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof projectsControllerUpdateSprint>>, TError, {
+        id: number;
+        sprintId: number;
+        data: UpdateSprintDto;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient) => UseMutationResult<Awaited<ReturnType<typeof projectsControllerUpdateSprint>>, TError, {
+    id: number;
+    sprintId: number;
+    data: UpdateSprintDto;
+}, TContext>;
+/**
+ * @summary Get project tasks (optionally filtered by sprint_id)
+ */
+export type projectsControllerGetProjectTasksResponse200 = {
+    data: void;
+    status: 200;
+};
+export type projectsControllerGetProjectTasksResponseSuccess = (projectsControllerGetProjectTasksResponse200) & {
+    headers: Headers;
+};
+export type projectsControllerGetProjectTasksResponse = (projectsControllerGetProjectTasksResponseSuccess);
+export declare const getProjectsControllerGetProjectTasksUrl: (id: number, params: ProjectsControllerGetProjectTasksParams) => string;
+export declare const projectsControllerGetProjectTasks: (id: number, params: ProjectsControllerGetProjectTasksParams, options?: RequestInit) => Promise<projectsControllerGetProjectTasksResponse>;
+export declare const getProjectsControllerGetProjectTasksQueryKey: (id?: number, params?: ProjectsControllerGetProjectTasksParams) => readonly ["/api/v1/projects/undefined/tasks" | `/api/v1/projects/${number}/tasks`, ...ProjectsControllerGetProjectTasksParams[]];
+export declare const getProjectsControllerGetProjectTasksQueryOptions: <TData = Awaited<ReturnType<typeof projectsControllerGetProjectTasks>>, TError = unknown>(id: number, params: ProjectsControllerGetProjectTasksParams, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof projectsControllerGetProjectTasks>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseQueryOptions<Awaited<ReturnType<typeof projectsControllerGetProjectTasks>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export type ProjectsControllerGetProjectTasksQueryResult = NonNullable<Awaited<ReturnType<typeof projectsControllerGetProjectTasks>>>;
+export type ProjectsControllerGetProjectTasksQueryError = unknown;
+export declare function useProjectsControllerGetProjectTasks<TData = Awaited<ReturnType<typeof projectsControllerGetProjectTasks>>, TError = unknown>(id: number, params: ProjectsControllerGetProjectTasksParams, options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof projectsControllerGetProjectTasks>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof projectsControllerGetProjectTasks>>, TError, Awaited<ReturnType<typeof projectsControllerGetProjectTasks>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useProjectsControllerGetProjectTasks<TData = Awaited<ReturnType<typeof projectsControllerGetProjectTasks>>, TError = unknown>(id: number, params: ProjectsControllerGetProjectTasksParams, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof projectsControllerGetProjectTasks>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof projectsControllerGetProjectTasks>>, TError, Awaited<ReturnType<typeof projectsControllerGetProjectTasks>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useProjectsControllerGetProjectTasks<TData = Awaited<ReturnType<typeof projectsControllerGetProjectTasks>>, TError = unknown>(id: number, params: ProjectsControllerGetProjectTasksParams, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof projectsControllerGetProjectTasks>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Create a task under this project and optional sprint
+ */
+export type projectsControllerCreateProjectTaskResponse201 = {
+    data: void;
+    status: 201;
+};
+export type projectsControllerCreateProjectTaskResponseSuccess = (projectsControllerCreateProjectTaskResponse201) & {
+    headers: Headers;
+};
+export type projectsControllerCreateProjectTaskResponse = (projectsControllerCreateProjectTaskResponseSuccess);
+export declare const getProjectsControllerCreateProjectTaskUrl: (id: number) => string;
+export declare const projectsControllerCreateProjectTask: (id: number, createProjectTaskDto: CreateProjectTaskDto, options?: RequestInit) => Promise<projectsControllerCreateProjectTaskResponse>;
+export declare const getProjectsControllerCreateProjectTaskMutationOptions: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof projectsControllerCreateProjectTask>>, TError, {
+        id: number;
+        data: CreateProjectTaskDto;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof projectsControllerCreateProjectTask>>, TError, {
+    id: number;
+    data: CreateProjectTaskDto;
+}, TContext>;
+export type ProjectsControllerCreateProjectTaskMutationResult = NonNullable<Awaited<ReturnType<typeof projectsControllerCreateProjectTask>>>;
+export type ProjectsControllerCreateProjectTaskMutationBody = CreateProjectTaskDto;
+export type ProjectsControllerCreateProjectTaskMutationError = unknown;
+/**
+* @summary Create a task under this project and optional sprint
+*/
+export declare const useProjectsControllerCreateProjectTask: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof projectsControllerCreateProjectTask>>, TError, {
+        id: number;
+        data: CreateProjectTaskDto;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient) => UseMutationResult<Awaited<ReturnType<typeof projectsControllerCreateProjectTask>>, TError, {
+    id: number;
+    data: CreateProjectTaskDto;
+}, TContext>;
 export {};

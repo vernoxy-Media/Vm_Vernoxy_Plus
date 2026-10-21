@@ -4,7 +4,15 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "target": "ES2022",
-    "baseUrl": "."
+    "baseUrl": ".",
+    "typeRoots": [
+      "./node_modules/@types",
+      "./apps/api/node_modules/@types"
+    ],
+    "types": ["node", "jest", "multer"],
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noUncheckedIndexedAccess": false
   },
   "include": [
     "apps/api/src/**/*",
