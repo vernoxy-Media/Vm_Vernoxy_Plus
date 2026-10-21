@@ -1,6 +1,7 @@
 import { Client } from 'pg';
 import { execSync } from 'child_process';
 import * as fs from 'fs';
+import * as path from 'path';
 import * as dotenv from 'dotenv';
 
 if (fs.existsSync('.env.test')) {
@@ -63,13 +64,15 @@ async function runVerifyFresh() {
     }
     console.log('   [CONFIRMED] Ledger table was created in "dbmate" schema only.');
 
-    // Count applied migrations
+    // Count applied migrations dynamically from database/migrations
+    const allMigrationsDir = path.resolve(__dirname, '../migrations');
+    const expectedMigrationsCount = fs.readdirSync(allMigrationsDir).filter((f) => f.endsWith('.sql')).length;
     const countRes = await verifyClient.query(`SELECT count(*)::int as count FROM dbmate.schema_migrations;`);
     const count = countRes.rows[0].count;
-    console.log(`   [CONFIRMED] Applied migrations recorded: ${count}/32.`);
+    console.log(`   [CONFIRMED] Applied migrations recorded: ${count}/${expectedMigrationsCount}.`);
 
-    if (count !== 32) {
-      throw new Error(`FAILED: Expected 32 migrations, found ${count}`);
+    if (count !== expectedMigrationsCount) {
+      throw new Error(`FAILED: Expected ${expectedMigrationsCount} migrations, found ${count}`);
     }
 
     // Count public tables
@@ -80,19 +83,17 @@ async function runVerifyFresh() {
       ORDER BY table_name;
     `);
 
-    console.log(`   [CONFIRMED] Public domain, auth, transfer, attendance & task tables created (${publicTablesRes.rows.length}/26):`);
+    console.log(`   [CONFIRMED] Public tables created (${publicTablesRes.rows.length}):`);
     publicTablesRes.rows.forEach(r => console.log(`   - ${r.table_name}`));
 
-    if (publicTablesRes.rows.length !== 26) {
-      throw new Error(`FAILED: Expected exactly 26 public tables (12 domain + 4 auth + 1 data transfer + 4 attendance/settings + 5 task/notification), found ${publicTablesRes.rows.length}`);
+    if (publicTablesRes.rows.length !== 41) {
+      throw new Error(`FAILED: Expected 41 public tables, found ${publicTablesRes.rows.length}`);
     }
 
     // -------------------------------------------------------------------------
     // 4. Test Seed Idempotency (Run seed twice on fresh DB, assert counts invariant)
     // -------------------------------------------------------------------------
     console.log('\n4. Testing seed idempotency on fresh database (Double Seed Run)...');
-    const fs = await import('fs');
-    const path = await import('path');
     const seedSql = fs.readFileSync(path.resolve(__dirname, '../seeds/01_baseline_seeds.sql'), 'utf-8');
 
     // Run 1
