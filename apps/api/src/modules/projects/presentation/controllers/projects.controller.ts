@@ -155,6 +155,7 @@ export class ProjectsController {
   @ApiOperation({ summary: 'Update sprint details or status' })
   async updateSprint(
     @Req() req: Request,
+    @Param('id', ParseIntPipe) id: number,
     @Param('sprintId', ParseIntPipe) sprintId: number,
     @Body() dto: UpdateSprintDto,
   ) {

@@ -4353,6 +4353,537 @@
           "Calendar"
         ]
       }
+    },
+    "/api/v1/calendar/month-tasks": {
+      "get": {
+        "operationId": "CalendarController_getMonthTasks",
+        "parameters": [
+          {
+            "name": "start",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "end",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "employee_ids",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "project_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stage",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "task_type_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "priority",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get completed and submitted tasks for calendar month view",
+        "tags": [
+          "Calendar"
+        ]
+      }
+    },
+    "/api/v1/calendar/summary": {
+      "get": {
+        "operationId": "CalendarController_getSummary",
+        "parameters": [
+          {
+            "name": "month",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "employee_ids",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "project_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get calendar 4 KPI summary cards for month",
+        "tags": [
+          "Calendar"
+        ]
+      }
+    },
+    "/api/v1/calendar/holidays": {
+      "get": {
+        "operationId": "CalendarController_getHolidays",
+        "parameters": [
+          {
+            "name": "start",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "end",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get holidays for calendar range",
+        "tags": [
+          "Calendar"
+        ]
+      }
+    },
+    "/api/v1/projects": {
+      "get": {
+        "operationId": "ProjectsController_getProjects",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "project_type",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "project_manager_id",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "start_date",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "end_date",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get projects with filtering and role-based scope",
+        "tags": [
+          "Projects"
+        ]
+      },
+      "post": {
+        "operationId": "ProjectsController_createProject",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProjectDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a new project (Admin only)",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/api/v1/projects/assignable-employees": {
+      "get": {
+        "operationId": "ProjectsController_getAssignableEmployees",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get active employees assignable as PM or team members",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/api/v1/projects/{id}": {
+      "get": {
+        "operationId": "ProjectsController_getProjectDetail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get project details by ID",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/api/v1/projects/{id}/status": {
+      "patch": {
+        "operationId": "ProjectsController_updateProjectStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProjectStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update project status (Admin and Project Manager)",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/api/v1/projects/{id}/sprints": {
+      "get": {
+        "operationId": "ProjectsController_getProjectSprints",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all sprints for a project",
+        "tags": [
+          "Projects"
+        ]
+      },
+      "post": {
+        "operationId": "ProjectsController_createSprint",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSprintDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a new sprint for a project (Admin and PM)",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/api/v1/projects/{id}/sprints/{sprintId}": {
+      "patch": {
+        "operationId": "ProjectsController_updateSprint",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "sprintId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSprintDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update sprint details or status",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/api/v1/projects/{id}/tasks": {
+      "get": {
+        "operationId": "ProjectsController_getProjectTasks",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "sprint_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get project tasks (optionally filtered by sprint_id)",
+        "tags": [
+          "Projects"
+        ]
+      },
+      "post": {
+        "operationId": "ProjectsController_createProjectTask",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProjectTaskDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a task under this project and optional sprint",
+        "tags": [
+          "Projects"
+        ]
+      }
     }
   },
   "info": {
@@ -8583,6 +9114,281 @@
           "title",
           "priority",
           "stage"
+        ]
+      },
+      "CreateDeploymentDto": {
+        "type": "object",
+        "properties": {
+          "vercel_account": {
+            "type": "string"
+          },
+          "vercel_link": {
+            "type": "string"
+          },
+          "domain_link": {
+            "type": "string"
+          },
+          "storage_account": {
+            "type": "string"
+          },
+          "deployment_date": {
+            "type": "string"
+          },
+          "go_live_date": {
+            "type": "string"
+          },
+          "deployment_done_by": {
+            "type": "number"
+          },
+          "admin_login_link": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateCredentialDto": {
+        "type": "object",
+        "properties": {
+          "admin_label": {
+            "type": "string"
+          },
+          "admin_id": {
+            "type": "string"
+          },
+          "admin_password": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "admin_id",
+          "admin_password"
+        ]
+      },
+      "CreateProjectDto": {
+        "type": "object",
+        "properties": {
+          "project_name": {
+            "type": "string"
+          },
+          "project_type": {
+            "type": "string",
+            "enum": [
+              "client",
+              "internal",
+              "product",
+              "maintenance"
+            ]
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "ecom_website",
+              "portfolio_website",
+              "seo",
+              "social_media",
+              "crm",
+              "erp",
+              "brochure",
+              "other"
+            ]
+          },
+          "other_category": {
+            "type": "string"
+          },
+          "start_date": {
+            "type": "string"
+          },
+          "deadline": {
+            "type": "string"
+          },
+          "project_manager_id": {
+            "type": "number"
+          },
+          "project_status": {
+            "type": "string",
+            "enum": [
+              "new",
+              "planning",
+              "in_progress",
+              "pending",
+              "review",
+              "delivered",
+              "on_hold",
+              "cancelled"
+            ]
+          },
+          "member_ids": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "client_name": {
+            "type": "string"
+          },
+          "lead_received_date": {
+            "type": "string"
+          },
+          "project_approved_date": {
+            "type": "string"
+          },
+          "tech_frontend": {
+            "type": "string"
+          },
+          "tech_backend": {
+            "type": "string"
+          },
+          "tech_cloud": {
+            "type": "string"
+          },
+          "deployment": {
+            "$ref": "#/components/schemas/CreateDeploymentDto"
+          },
+          "credentials": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateCredentialDto"
+            }
+          }
+        },
+        "required": [
+          "project_name",
+          "project_type",
+          "category",
+          "start_date",
+          "deadline",
+          "project_manager_id",
+          "member_ids"
+        ]
+      },
+      "UpdateProjectStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "new",
+              "planning",
+              "in_progress",
+              "pending",
+              "review",
+              "delivered",
+              "on_hold",
+              "cancelled"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "CreateSprintDto": {
+        "type": "object",
+        "properties": {
+          "sprint_name": {
+            "type": "string",
+            "example": "Sprint 1 - Foundation"
+          },
+          "start_date": {
+            "type": "string",
+            "example": "2026-10-21"
+          },
+          "end_date": {
+            "type": "string",
+            "example": "2026-11-04"
+          },
+          "sprint_goal": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "planned",
+              "active",
+              "completed"
+            ],
+            "default": "planned"
+          }
+        },
+        "required": [
+          "sprint_name",
+          "start_date",
+          "end_date"
+        ]
+      },
+      "UpdateSprintDto": {
+        "type": "object",
+        "properties": {
+          "sprint_name": {
+            "type": "string"
+          },
+          "start_date": {
+            "type": "string"
+          },
+          "end_date": {
+            "type": "string"
+          },
+          "sprint_goal": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "planned",
+              "active",
+              "completed"
+            ]
+          }
+        }
+      },
+      "CreateProjectTaskDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "Design Homepage UI"
+          },
+          "description": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ],
+            "default": "medium"
+          },
+          "sprint_id": {
+            "type": "number",
+            "example": 1
+          },
+          "due_date": {
+            "type": "string",
+            "example": "2026-10-31"
+          },
+          "allocated_minutes": {
+            "type": "number",
+            "example": 180
+          },
+          "assignee_ids": {
+            "example": [
+              1,
+              2
+            ],
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "title",
+          "assignee_ids"
         ]
       }
     }
