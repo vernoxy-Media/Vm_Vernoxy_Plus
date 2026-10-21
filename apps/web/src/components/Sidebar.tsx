@@ -17,6 +17,7 @@ import {
   CalendarClock,
   CheckSquare,
   LayoutGrid,
+  FolderKanban,
 } from 'lucide-react';
 
 export interface SidebarProps {
@@ -65,6 +66,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   // Base navigation items: Profile, My Tasks, Attendance, Companies, Employees, Settings
   const navItems = [
     { name: 'Profile', path: '/', icon: User },
+    { name: 'Projects', path: '/projects', icon: FolderKanban },
     { name: 'My Tasks', path: '/my-tasks', icon: CheckSquare },
     { name: 'Attendance', path: '/attendance', icon: Clock },
     { name: 'Calendar', path: '/calendar', icon: Calendar },

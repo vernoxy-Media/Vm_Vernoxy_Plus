@@ -15,6 +15,7 @@ import { AttendanceModule } from './modules/attendance/public-api';
 import { NotificationsModule } from './modules/notifications/public-api';
 import { TasksModule } from './modules/tasks/public-api';
 import { CalendarModule } from './modules/calendar/public-api';
+import { ProjectsModule } from './modules/projects/public-api';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { CalendarModule } from './modules/calendar/public-api';
     NotificationsModule,
     TasksModule,
     CalendarModule,
+    ProjectsModule,
   ],
   controllers: [HealthController],
   providers: [

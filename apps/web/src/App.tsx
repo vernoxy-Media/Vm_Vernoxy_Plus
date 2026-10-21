@@ -23,6 +23,7 @@ import { CompanyImportPage } from './features/companies/pages/CompanyImportPage'
 import { AttendancePage } from './features/attendance/pages/AttendancePage';
 import { AttendanceCalendarPage } from './features/attendance/pages/AttendanceCalendarPage';
 import { CalendarPage } from './features/calendar/pages/CalendarPage';
+import { ProjectsPage } from './features/projects/pages/ProjectsPage';
 import { TaskManagementPage } from './pages/admin/TaskManagementPage';
 import { MyTasksPage } from './pages/MyTasksPage';
 import { AppLayout } from './components/AppLayout';
@@ -92,6 +93,16 @@ export const App: React.FC = () => {
                 <ProtectedRoute>
                   <AppLayout fluid>
                     <CalendarPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/projects"
+              element={
+                <ProtectedRoute>
+                  <AppLayout fluid>
+                    <ProjectsPage />
                   </AppLayout>
                 </ProtectedRoute>
               }

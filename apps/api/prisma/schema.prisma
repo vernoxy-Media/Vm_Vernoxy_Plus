@@ -164,6 +164,8 @@ model employees {
   auth_sessions_auth_sessions_deleted_byToemployees                        auth_sessions[]            @relation("auth_sessions_deleted_byToemployees")
   auth_sessions_auth_sessions_emp_idToemployees                            auth_sessions[]            @relation("auth_sessions_emp_idToemployees")
   auth_sessions_auth_sessions_updated_byToemployees                        auth_sessions[]            @relation("auth_sessions_updated_byToemployees")
+  bug_comments                                                             bug_comments[]
+  bug_history                                                              bug_history[]
   calendar_event_attendees_calendar_event_attendees_created_byToemployees  calendar_event_attendees[] @relation("calendar_event_attendees_created_byToemployees")
   calendar_event_attendees_calendar_event_attendees_deleted_byToemployees  calendar_event_attendees[] @relation("calendar_event_attendees_deleted_byToemployees")
   calendar_event_attendees_calendar_event_attendees_employee_idToemployees calendar_event_attendees[] @relation("calendar_event_attendees_employee_idToemployees")
@@ -233,6 +235,30 @@ model employees {
   pipeline_stages_pipeline_stages_created_byToemployees                    pipeline_stages[]          @relation("pipeline_stages_created_byToemployees")
   pipeline_stages_pipeline_stages_deleted_byToemployees                    pipeline_stages[]          @relation("pipeline_stages_deleted_byToemployees")
   pipeline_stages_pipeline_stages_updated_byToemployees                    pipeline_stages[]          @relation("pipeline_stages_updated_byToemployees")
+  project_activity_logs                                                    project_activity_logs[]
+  project_bugs_project_bugs_assigned_toToemployees                         project_bugs[]             @relation("project_bugs_assigned_toToemployees")
+  project_bugs_project_bugs_created_byToemployees                          project_bugs[]             @relation("project_bugs_created_byToemployees")
+  project_bugs_project_bugs_deleted_byToemployees                          project_bugs[]             @relation("project_bugs_deleted_byToemployees")
+  project_bugs_project_bugs_reported_byToemployees                         project_bugs[]             @relation("project_bugs_reported_byToemployees")
+  project_bugs_project_bugs_updated_byToemployees                          project_bugs[]             @relation("project_bugs_updated_byToemployees")
+  project_credentials_project_credentials_created_byToemployees            project_credentials[]      @relation("project_credentials_created_byToemployees")
+  project_credentials_project_credentials_deleted_byToemployees            project_credentials[]      @relation("project_credentials_deleted_byToemployees")
+  project_credentials_project_credentials_updated_byToemployees            project_credentials[]      @relation("project_credentials_updated_byToemployees")
+  project_deployments_project_deployments_created_byToemployees            project_deployments[]      @relation("project_deployments_created_byToemployees")
+  project_deployments_project_deployments_deleted_byToemployees            project_deployments[]      @relation("project_deployments_deleted_byToemployees")
+  project_deployments_project_deployments_deployment_done_byToemployees    project_deployments[]      @relation("project_deployments_deployment_done_byToemployees")
+  project_deployments_project_deployments_updated_byToemployees            project_deployments[]      @relation("project_deployments_updated_byToemployees")
+  project_discussions                                                      project_discussions[]
+  project_members_project_members_created_byToemployees                    project_members[]          @relation("project_members_created_byToemployees")
+  project_members_project_members_deleted_byToemployees                    project_members[]          @relation("project_members_deleted_byToemployees")
+  project_members_project_members_employee_idToemployees                   project_members[]          @relation("project_members_employee_idToemployees")
+  project_sprints_project_sprints_created_byToemployees                    project_sprints[]          @relation("project_sprints_created_byToemployees")
+  project_sprints_project_sprints_deleted_byToemployees                    project_sprints[]          @relation("project_sprints_deleted_byToemployees")
+  project_sprints_project_sprints_updated_byToemployees                    project_sprints[]          @relation("project_sprints_updated_byToemployees")
+  projects_projects_created_byToemployees                                  projects[]                 @relation("projects_created_byToemployees")
+  projects_projects_deleted_byToemployees                                  projects[]                 @relation("projects_deleted_byToemployees")
+  projects_projects_project_manager_idToemployees                          projects[]                 @relation("projects_project_manager_idToemployees")
+  projects_projects_updated_byToemployees                                  projects[]                 @relation("projects_updated_byToemployees")
   roles_roles_created_byToemployees                                        roles[]                    @relation("roles_created_byToemployees")
   roles_roles_deleted_byToemployees                                        roles[]                    @relation("roles_deleted_byToemployees")
   roles_roles_updated_byToemployees                                        roles[]                    @relation("roles_updated_byToemployees")
@@ -715,7 +741,9 @@ model tasks {
   is_timer_running                            Boolean           @default(false)
   timer_started_at                            DateTime?         @db.Timestamptz(6)
   work_logs                                   Json              @default("[]")
+  sprint_id                                   Int?
   calendar_events                             calendar_events[]
+  project_bugs                                project_bugs[]
   task_assignees                              task_assignees[]
   task_history                                task_history[]
   employees_tasks_completed_byToemployees     employees?        @relation("tasks_completed_byToemployees", fields: [completed_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tasks_completed_by")
@@ -724,6 +752,8 @@ model tasks {
   employees_tasks_lead_employee_idToemployees employees?        @relation("tasks_lead_employee_idToemployees", fields: [lead_employee_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tasks_lead_employee_id")
   tasks                                       tasks?            @relation("tasksTotasks", fields: [parent_task_id], references: [task_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_tasks_parent_task_id")
   other_tasks                                 tasks[]           @relation("tasksTotasks")
+  projects                                    projects?         @relation(fields: [project_id], references: [project_id], onUpdate: NoAction, map: "fk_tasks_project_id")
+  project_sprints                             project_sprints?  @relation(fields: [sprint_id], references: [sprint_id], onUpdate: NoAction, map: "fk_tasks_sprint_id")
   master_lookup                               master_lookup?    @relation(fields: [task_type_id], references: [lookup_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tasks_task_type_id")
   employees_tasks_updated_byToemployees       employees?        @relation("tasks_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tasks_updated_by")
 }
@@ -797,6 +827,234 @@ model company_holidays {
   employees_company_holidays_created_byToemployees employees? @relation("company_holidays_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_company_holidays_created_by")
   employees_company_holidays_deleted_byToemployees employees? @relation("company_holidays_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_company_holidays_deleted_by")
   employees_company_holidays_updated_byToemployees employees? @relation("company_holidays_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_company_holidays_updated_by")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model bug_comments {
+  comment_id   Int          @id(map: "pk_bug_comments") @default(autoincrement())
+  bug_id       Int
+  emp_id       Int
+  comment      String
+  created_at   DateTime     @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  deleted_at   DateTime?    @db.Timestamptz(6)
+  project_bugs project_bugs @relation(fields: [bug_id], references: [bug_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_bug_comments_bug_id")
+  employees    employees    @relation(fields: [emp_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_bug_comments_emp_id")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model bug_counters {
+  counter_year Int @id(map: "pk_bug_counters")
+  last_number  Int @default(0)
+}
+
+model bug_history {
+  history_id   BigInt       @id(map: "pk_bug_history") @default(autoincrement())
+  bug_id       Int
+  actor_emp_id Int
+  from_status  bug_status?
+  to_status    bug_status
+  note         String?
+  created_at   DateTime     @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  employees    employees    @relation(fields: [actor_emp_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_bug_history_actor_emp_id")
+  project_bugs project_bugs @relation(fields: [bug_id], references: [bug_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_bug_history_bug_id")
+
+  @@index([bug_id, created_at(sort: Desc)], map: "ix_bug_history_bug_id")
+}
+
+model project_activity_logs {
+  log_id       BigInt    @id(map: "pk_project_activity_logs") @default(autoincrement())
+  project_id   Int
+  actor_emp_id Int
+  action_type  String    @db.VarChar(50)
+  description  String
+  metadata     Json?
+  created_at   DateTime  @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  employees    employees @relation(fields: [actor_emp_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_project_activity_logs_actor_emp_id")
+  projects     projects  @relation(fields: [project_id], references: [project_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_project_activity_logs_project_id")
+
+  @@index([project_id, created_at(sort: Desc)], map: "ix_project_activity_logs_project")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model project_bugs {
+  bug_id                                        Int            @id(map: "pk_project_bugs") @default(autoincrement())
+  bug_code                                      String         @db.VarChar(30)
+  project_id                                    Int
+  task_id                                       Int?
+  title                                         String         @db.VarChar(200)
+  description                                   String
+  steps_to_reproduce                            String
+  expected_result                               String
+  actual_result                                 String
+  assigned_to                                   Int
+  reported_by                                   Int
+  priority                                      bug_priority   @default(low)
+  status                                        bug_status     @default(new)
+  bug_type                                      bug_type
+  other_bug_type                                String?        @db.VarChar(100)
+  attachment_url                                String?        @db.VarChar(500)
+  dev_started_at                                DateTime?      @db.Timestamptz(6)
+  dev_ended_at                                  DateTime?      @db.Timestamptz(6)
+  qa_started_at                                 DateTime?      @db.Timestamptz(6)
+  qa_ended_at                                   DateTime?      @db.Timestamptz(6)
+  total_time_minutes                            Int            @default(0)
+  row_version                                   Int            @default(1)
+  created_at                                    DateTime       @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  created_by                                    Int?
+  updated_at                                    DateTime?      @db.Timestamptz(6)
+  updated_by                                    Int?
+  deleted_at                                    DateTime?      @db.Timestamptz(6)
+  deleted_by                                    Int?
+  bug_comments                                  bug_comments[]
+  bug_history                                   bug_history[]
+  employees_project_bugs_assigned_toToemployees employees      @relation("project_bugs_assigned_toToemployees", fields: [assigned_to], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_project_bugs_assigned_to")
+  employees_project_bugs_created_byToemployees  employees?     @relation("project_bugs_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_project_bugs_created_by")
+  employees_project_bugs_deleted_byToemployees  employees?     @relation("project_bugs_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_project_bugs_deleted_by")
+  projects                                      projects       @relation(fields: [project_id], references: [project_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_project_bugs_project_id")
+  employees_project_bugs_reported_byToemployees employees      @relation("project_bugs_reported_byToemployees", fields: [reported_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_project_bugs_reported_by")
+  tasks                                         tasks?         @relation(fields: [task_id], references: [task_id], onUpdate: NoAction, map: "fk_project_bugs_task_id")
+  employees_project_bugs_updated_byToemployees  employees?     @relation("project_bugs_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_project_bugs_updated_by")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model project_counters {
+  project_type project_type @id(map: "pk_project_counters")
+  last_number  Int          @default(0)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model project_credentials {
+  credential_id                                       Int        @id(map: "pk_project_credentials") @default(autoincrement())
+  project_id                                          Int
+  admin_label                                         String?    @db.VarChar(100)
+  admin_id                                            String     @db.VarChar(150)
+  admin_password_encrypted                            String     @db.VarChar(500)
+  created_at                                          DateTime   @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  created_by                                          Int?
+  updated_at                                          DateTime?  @db.Timestamptz(6)
+  updated_by                                          Int?
+  deleted_at                                          DateTime?  @db.Timestamptz(6)
+  deleted_by                                          Int?
+  employees_project_credentials_created_byToemployees employees? @relation("project_credentials_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_project_credentials_created_by")
+  employees_project_credentials_deleted_byToemployees employees? @relation("project_credentials_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_project_credentials_deleted_by")
+  projects                                            projects   @relation(fields: [project_id], references: [project_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_project_credentials_project_id")
+  employees_project_credentials_updated_byToemployees employees? @relation("project_credentials_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_project_credentials_updated_by")
+}
+
+model project_deployments {
+  deployment_id                                               Int        @id(map: "pk_project_deployments") @default(autoincrement())
+  project_id                                                  Int        @unique(map: "ux_project_deployments_project")
+  vercel_account                                              String?    @db.VarChar(100)
+  vercel_link                                                 String?    @db.VarChar(500)
+  domain_link                                                 String?    @db.VarChar(500)
+  storage_account                                             String?    @db.VarChar(100)
+  deployment_date                                             DateTime?  @db.Date
+  go_live_date                                                DateTime?  @db.Date
+  deployment_done_by                                          Int?
+  admin_login_link                                            String?    @db.VarChar(500)
+  created_at                                                  DateTime   @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  created_by                                                  Int?
+  updated_at                                                  DateTime?  @db.Timestamptz(6)
+  updated_by                                                  Int?
+  deleted_at                                                  DateTime?  @db.Timestamptz(6)
+  deleted_by                                                  Int?
+  employees_project_deployments_created_byToemployees         employees? @relation("project_deployments_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_project_deployments_created_by")
+  employees_project_deployments_deleted_byToemployees         employees? @relation("project_deployments_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_project_deployments_deleted_by")
+  employees_project_deployments_deployment_done_byToemployees employees? @relation("project_deployments_deployment_done_byToemployees", fields: [deployment_done_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_project_deployments_deployment_done_by")
+  projects                                                    projects   @relation(fields: [project_id], references: [project_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_project_deployments_project_id")
+  employees_project_deployments_updated_byToemployees         employees? @relation("project_deployments_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_project_deployments_updated_by")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model project_discussions {
+  message_id    BigInt    @id(map: "pk_project_discussions") @default(autoincrement())
+  project_id    Int
+  sender_emp_id Int
+  message       String
+  attachments   Json      @default("[]")
+  created_at    DateTime  @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at    DateTime? @db.Timestamptz(6)
+  deleted_at    DateTime? @db.Timestamptz(6)
+  projects      projects  @relation(fields: [project_id], references: [project_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_project_discussions_project_id")
+  employees     employees @relation(fields: [sender_emp_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_project_discussions_sender_emp_id")
+}
+
+model project_members {
+  member_id                                        Int        @id(map: "pk_project_members") @default(autoincrement())
+  project_id                                       Int
+  employee_id                                      Int
+  role_in_project                                  String     @default("member") @db.VarChar(50)
+  created_at                                       DateTime   @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  created_by                                       Int?
+  deleted_at                                       DateTime?  @db.Timestamptz(6)
+  deleted_by                                       Int?
+  employees_project_members_created_byToemployees  employees? @relation("project_members_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_project_members_created_by")
+  employees_project_members_deleted_byToemployees  employees? @relation("project_members_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_project_members_deleted_by")
+  employees_project_members_employee_idToemployees employees  @relation("project_members_employee_idToemployees", fields: [employee_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_project_members_employee_id")
+  projects                                         projects   @relation(fields: [project_id], references: [project_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_project_members_project_id")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model project_sprints {
+  sprint_id                                       Int           @id(map: "pk_project_sprints") @default(autoincrement())
+  project_id                                      Int
+  sprint_name                                     String        @db.VarChar(100)
+  start_date                                      DateTime      @db.Date
+  end_date                                        DateTime      @db.Date
+  sprint_goal                                     String?
+  status                                          sprint_status @default(planned)
+  created_at                                      DateTime      @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  created_by                                      Int?
+  updated_at                                      DateTime?     @db.Timestamptz(6)
+  updated_by                                      Int?
+  deleted_at                                      DateTime?     @db.Timestamptz(6)
+  deleted_by                                      Int?
+  employees_project_sprints_created_byToemployees employees?    @relation("project_sprints_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_project_sprints_created_by")
+  employees_project_sprints_deleted_byToemployees employees?    @relation("project_sprints_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_project_sprints_deleted_by")
+  projects                                        projects      @relation(fields: [project_id], references: [project_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_project_sprints_project_id")
+  employees_project_sprints_updated_byToemployees employees?    @relation("project_sprints_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_project_sprints_updated_by")
+  tasks                                           tasks[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model projects {
+  project_id                                       Int                     @id(map: "pk_projects") @default(autoincrement())
+  project_no                                       String                  @db.VarChar(30)
+  project_name                                     String                  @db.VarChar(150)
+  project_type                                     project_type
+  category                                         project_category
+  other_category                                   String?                 @db.VarChar(100)
+  project_status                                   project_status          @default(new)
+  start_date                                       DateTime                @db.Date
+  deadline                                         DateTime                @db.Date
+  actual_end_date                                  DateTime?               @db.Date
+  project_manager_id                               Int
+  status_change_reason                             String?
+  client_name                                      String?                 @db.VarChar(150)
+  lead_received_date                               DateTime?               @db.Date
+  project_approved_date                            DateTime?               @db.Date
+  tech_frontend                                    String?
+  tech_backend                                     String?
+  tech_cloud                                       String?
+  row_version                                      Int                     @default(1)
+  created_at                                       DateTime                @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  created_by                                       Int?
+  updated_at                                       DateTime?               @db.Timestamptz(6)
+  updated_by                                       Int?
+  deleted_at                                       DateTime?               @db.Timestamptz(6)
+  deleted_by                                       Int?
+  project_activity_logs                            project_activity_logs[]
+  project_bugs                                     project_bugs[]
+  project_credentials                              project_credentials[]
+  project_deployments                              project_deployments?
+  project_discussions                              project_discussions[]
+  project_members                                  project_members[]
+  project_sprints                                  project_sprints[]
+  employees_projects_created_byToemployees         employees?              @relation("projects_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_projects_created_by")
+  employees_projects_deleted_byToemployees         employees?              @relation("projects_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_projects_deleted_by")
+  employees_projects_project_manager_idToemployees employees               @relation("projects_project_manager_idToemployees", fields: [project_manager_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_projects_project_manager_id")
+  employees_projects_updated_byToemployees         employees?              @relation("projects_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_projects_updated_by")
+  tasks                                            tasks[]
 }
 
 enum channel_type {
@@ -937,4 +1195,64 @@ enum calendar_rsvp_status {
   accepted
   declined
   tentative
+}
+
+enum bug_priority {
+  high
+  medium
+  low
+}
+
+enum bug_status {
+  new
+  open
+  ready_for_dev
+  dev_in_progress
+  ready_for_qa
+  qa_in_progress
+  done
+  not_a_bug
+}
+
+enum bug_type {
+  frontend
+  backend
+  ui
+  database
+  other
+}
+
+enum project_category {
+  ecom_website
+  portfolio_website
+  seo
+  social_media
+  crm
+  erp
+  brochure
+  other
+}
+
+enum project_status {
+  new
+  planning
+  in_progress
+  pending
+  review
+  delivered
+  on_hold
+  cancelled
+}
+
+enum project_type {
+  client
+  internal
+  product
+  maintenance
+}
+
+enum sprint_status {
+  planned
+  active
+  completed
 }
