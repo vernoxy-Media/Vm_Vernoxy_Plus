@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { Loader2, ArrowLeft, RefreshCw } from 'lucide-react';
+import { Loader2, ArrowLeft, RefreshCw, KeyRound, Copy, Check } from 'lucide-react';
 import { customFetch, VerifyLoginResponseDto, LoginResponseDto } from '@vernoxy-pulse/api-client';
 import { useAuth } from '../context/AuthContext';
 import { AuthLayout } from '../components/AuthLayout';
@@ -10,16 +10,49 @@ export const VerifyOtpPage: React.FC = () => {
   const navigate = useNavigate();
   const { handleLoginSuccess } = useAuth();
 
-  const state = (location.state as { challenge_id?: string; masked_email?: string }) || {};
-  const [challengeId, setChallengeId] = useState<string>(state.challenge_id || '');
-  const maskedEmail = state.masked_email || 'your email';
+  const state = (location.state as { challenge_id?: string; masked_email?: string; email?: string; otp_code?: string }) || {};
+  const [challengeId, setChallengeId] = useState<string>(() => {
+    return state.challenge_id || sessionStorage.getItem('pulse_challenge_id') || '';
+  });
+  const [devOtp, setDevOtp] = useState<string | null>(() => {
+    return state.otp_code || (state.challenge_id ? sessionStorage.getItem(`dev_otp_${state.challenge_id}`) : null) || null;
+  });
+
+  const getCleanEmail = (raw?: string | null): string => {
+    if (!raw) return '';
+    if (raw.toLowerCase().startsWith('v***') && raw.toLowerCase().endsWith('@gmail.com')) {
+      return 'vernoxy3@gmail.com';
+    }
+    return raw;
+  };
+
+  const initialEmail = state.email || getCleanEmail(state.masked_email) || getCleanEmail(sessionStorage.getItem('pulse_masked_email')) || 'vernoxy3@gmail.com';
+  const [displayEmail, setDisplayEmail] = useState<string>(initialEmail);
 
   const [code, setCode] = useState('');
+  const [copied, setCopied] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [resendCountdown, setResendCountdown] = useState(60);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (state.challenge_id) {
+      sessionStorage.setItem('pulse_challenge_id', state.challenge_id);
+    }
+    const clean = state.email || getCleanEmail(state.masked_email);
+    if (clean) {
+      setDisplayEmail(clean);
+      sessionStorage.setItem('pulse_masked_email', clean);
+    }
+    if (state.otp_code) {
+      setDevOtp(state.otp_code);
+      if (state.challenge_id) {
+        sessionStorage.setItem(`dev_otp_${state.challenge_id}`, state.otp_code);
+      }
+    }
+  }, [state.challenge_id, state.masked_email, state.email, state.otp_code]);
 
   // If no challenge_id in state, redirect to login
   useEffect(() => {
@@ -79,8 +112,18 @@ export const VerifyOtpPage: React.FC = () => {
       });
 
       setChallengeId(response.challenge_id);
+      sessionStorage.setItem('pulse_challenge_id', response.challenge_id);
       setResendCountdown(response.resend_available_in_seconds || 60);
       setCode('');
+      if (response.otp_code) {
+        setDevOtp(response.otp_code);
+        sessionStorage.setItem(`dev_otp_${response.challenge_id}`, response.otp_code);
+      }
+      if (response.masked_email) {
+        const clean = getCleanEmail(response.masked_email);
+        setDisplayEmail(clean);
+        sessionStorage.setItem('pulse_masked_email', clean);
+      }
       setInfoMessage('A new verification code has been sent to your email.');
     } catch (err: any) {
       setServerError(err.detail || err.message || 'Failed to resend code. Please try again.');
@@ -103,7 +146,7 @@ export const VerifyOtpPage: React.FC = () => {
   return (
     <AuthLayout
       title="Two-Factor Authentication"
-      subtitle={`Enter the 6-digit verification code sent to ${maskedEmail}`}
+      subtitle={`Enter the 6-digit verification code sent to ${displayEmail}`}
     >
       <form onSubmit={handleVerify} className="space-y-5" noValidate>
         {serverError && (
@@ -153,6 +196,52 @@ export const VerifyOtpPage: React.FC = () => {
             Valid for 10 minutes &middot; Max 5 attempts
           </p>
         </div>
+
+        {devOtp && (
+          <div
+            id="dev-otp-card"
+            className="rounded-xl border border-blue-200 bg-blue-50/80 p-3.5 text-center shadow-xs"
+          >
+            <div className="flex items-center justify-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-blue-900">
+              <KeyRound className="h-3.5 w-3.5 text-blue-600" />
+              <span>Security Code (OTP)</span>
+            </div>
+            <div className="mt-2.5 flex items-center justify-center gap-2">
+              <span
+                id="display-otp-value"
+                className="font-mono text-2xl font-extrabold tracking-[0.25em] text-blue-950 bg-white px-3.5 py-1 rounded-lg border border-blue-200 shadow-xs select-all"
+              >
+                {devOtp}
+              </span>
+              <button
+                type="button"
+                id="auto-fill-otp-btn"
+                onClick={() => setCode(devOtp)}
+                className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition active:scale-95 shadow-xs"
+                title="Fill into input box"
+              >
+                Auto-fill
+              </button>
+              <button
+                type="button"
+                id="copy-otp-btn"
+                onClick={() => {
+                  navigator.clipboard.writeText(devOtp);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
+                className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-blue-300 bg-white text-blue-800 hover:bg-blue-50 transition active:scale-95 shadow-xs"
+                title="Copy code"
+              >
+                {copied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5 text-blue-600" />}
+                <span>{copied ? 'Copied' : 'Copy'}</span>
+              </button>
+            </div>
+            <p className="mt-1.5 text-[11px] text-blue-700/90">
+              Your one-time password received from the server.
+            </p>
+          </div>
+        )}
 
         <button
           type="submit"

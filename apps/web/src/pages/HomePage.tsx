@@ -44,7 +44,7 @@ export const HomePage: React.FC = () => {
   if (!user) return null;
 
   return (
-    <AppLayout title="Profile">
+    <AppLayout title="Profile" fluid>
       <div className="space-y-6">
         {/* Page Header */}
         <PageHeader

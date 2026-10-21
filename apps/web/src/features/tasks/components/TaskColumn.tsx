@@ -17,6 +17,8 @@ export interface TaskColumnProps {
   onReject?: (taskId: number) => void;
   onStart?: (taskId: number) => void;
   onRequestReview?: (taskId: number) => void;
+  onHold?: (taskId: number) => void;
+  onResume?: (taskId: number) => void;
   isDraggingAny?: boolean;
 }
 
@@ -32,11 +34,16 @@ export const TaskColumn: React.FC<TaskColumnProps> = ({
   onReject,
   onStart,
   onRequestReview,
+  onHold,
+  onResume,
   isDraggingAny = false,
 }) => {
+  const isCompletedColumn = stage === 'completed';
   const { setNodeRef, isOver } = useDroppable({
     id: stage,
     data: { type: 'Column', stage },
+    // If not admin, completed column is not a valid droppable target directly
+    disabled: !isAdmin && isCompletedColumn,
   });
 
   const taskIds = tasks.map((t) => t.task_id.toString());
@@ -88,6 +95,8 @@ export const TaskColumn: React.FC<TaskColumnProps> = ({
                   onReject={onReject}
                   onStart={onStart}
                   onRequestReview={onRequestReview}
+                  onHold={onHold}
+                  onResume={onResume}
                 />
               ))}
               {isOver && (

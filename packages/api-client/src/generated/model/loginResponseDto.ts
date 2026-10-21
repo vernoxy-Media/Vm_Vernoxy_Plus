@@ -11,4 +11,5 @@ export interface LoginResponseDto {
   masked_email: string;
   expires_in_seconds: number;
   resend_available_in_seconds: number;
+  otp_code?: string;
 }

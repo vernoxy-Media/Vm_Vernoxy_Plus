@@ -24,7 +24,9 @@ type ResetFormValues = z.infer<typeof resetSchema>;
 export const ResetPasswordPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const prefilledEmail = (location.state as { email?: string })?.email || '';
+  const state = (location.state as { email?: string; otp_code?: string }) || {};
+  const prefilledEmail = state.email || '';
+  const prefilledOtp = state.otp_code || '';
 
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -33,12 +35,13 @@ export const ResetPasswordPage: React.FC = () => {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<ResetFormValues>({
     resolver: zodResolver(resetSchema),
     defaultValues: {
       email: prefilledEmail,
-      code: '',
+      code: prefilledOtp,
       new_password: '',
       confirm_password: '',
     },
@@ -157,6 +160,18 @@ export const ResetPasswordPage: React.FC = () => {
             <p id="reset-code-error" className="mt-1 text-xs text-red-600" aria-live="polite">
               {errors.code.message}
             </p>
+          )}
+          {prefilledOtp && (
+            <div className="mt-2 flex items-center justify-between p-2 rounded-lg bg-blue-50 border border-blue-200 text-xs text-blue-900">
+              <span>Security Code (OTP): <strong className="font-mono text-sm tracking-widest">{prefilledOtp}</strong></span>
+              <button
+                type="button"
+                onClick={() => setValue('code', prefilledOtp)}
+                className="font-medium text-blue-700 hover:text-blue-900 underline"
+              >
+                Auto-fill
+              </button>
+            </div>
           )}
         </div>
 

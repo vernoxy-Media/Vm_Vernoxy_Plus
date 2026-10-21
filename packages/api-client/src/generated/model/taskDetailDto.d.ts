@@ -7,6 +7,8 @@
  */
 import type { TaskDetailDtoPriority } from './taskDetailDtoPriority';
 import type { TaskDetailDtoStage } from './taskDetailDtoStage';
+import type { TaskDetailDtoSource } from './taskDetailDtoSource';
+import type { TaskWorkLogItemDto } from './taskWorkLogItemDto';
 import type { TaskAssigneeSummaryDto } from './taskAssigneeSummaryDto';
 import type { TaskHistoryItemDto } from './taskHistoryItemDto';
 export interface TaskDetailDto {
@@ -25,8 +27,34 @@ export interface TaskDetailDto {
     /** @nullable */
     allocated_minutes?: number | null;
     stage: TaskDetailDtoStage;
+    source: TaskDetailDtoSource;
     /** @nullable */
     review_note?: string | null;
+    /** @nullable */
+    hold_reason?: string | null;
+    has_sub_tasks: boolean;
+    /** @nullable */
+    lead_employee_id?: number | null;
+    /** @nullable */
+    lead_employee_name?: string | null;
+    /** @nullable */
+    other_task_type?: string | null;
+    /** @nullable */
+    parent_task_id?: number | null;
+    /** @nullable */
+    parent_task_code?: string | null;
+    /** @nullable */
+    parent_task_title?: string | null;
+    sub_tasks_count: number;
+    /** @nullable */
+    sub_tasks?: TaskDetailDto[] | null;
+    /** @nullable */
+    started_at?: string | null;
+    actual_minutes: number;
+    is_timer_running: boolean;
+    /** @nullable */
+    timer_started_at?: string | null;
+    work_logs: TaskWorkLogItemDto[];
     /** @nullable */
     requested_at?: string | null;
     /** @nullable */

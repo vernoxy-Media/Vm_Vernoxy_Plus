@@ -91,7 +91,10 @@ export const AttendanceSettingsPage: React.FC = () => {
         ) : (
           <div className="space-y-6">
             {(activeSection === 'all' || activeSection === 'working_days') && (
-              <AttendanceWorkingDaysCard initialWorkingDays={data.working_days} />
+              <AttendanceWorkingDaysCard
+                initialWorkingDays={data.working_days}
+                holidays={data.holidays}
+              />
             )}
 
             {(activeSection === 'all' || activeSection === 'holidays') && (

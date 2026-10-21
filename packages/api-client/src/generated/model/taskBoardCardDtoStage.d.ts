@@ -9,6 +9,7 @@ export type TaskBoardCardDtoStage = typeof TaskBoardCardDtoStage[keyof typeof Ta
 export declare const TaskBoardCardDtoStage: {
     readonly assigned: "assigned";
     readonly in_progress: "in_progress";
+    readonly hold: "hold";
     readonly requested: "requested";
     readonly completed: "completed";
 };

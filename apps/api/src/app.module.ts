@@ -14,6 +14,7 @@ import { CrmModule } from './modules/crm/crm.module';
 import { AttendanceModule } from './modules/attendance/public-api';
 import { NotificationsModule } from './modules/notifications/public-api';
 import { TasksModule } from './modules/tasks/public-api';
+import { CalendarModule } from './modules/calendar/public-api';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { TasksModule } from './modules/tasks/public-api';
     AttendanceModule,
     NotificationsModule,
     TasksModule,
+    CalendarModule,
   ],
   controllers: [HealthController],
   providers: [

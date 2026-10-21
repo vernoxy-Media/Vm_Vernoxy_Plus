@@ -7,6 +7,7 @@
  */
 import type { TaskBoardCardDtoPriority } from './taskBoardCardDtoPriority';
 import type { TaskBoardCardDtoStage } from './taskBoardCardDtoStage';
+import type { TaskBoardCardDtoSource } from './taskBoardCardDtoSource';
 import type { TaskAssigneeSummaryDto } from './taskAssigneeSummaryDto';
 
 export interface TaskBoardCardDto {
@@ -25,7 +26,30 @@ export interface TaskBoardCardDto {
   /** @nullable */
   allocated_minutes?: number | null;
   stage: TaskBoardCardDtoStage;
+  source: TaskBoardCardDtoSource;
+  /** @nullable */
+  hold_reason?: string | null;
+  has_sub_tasks: boolean;
+  sub_tasks_count: number;
+  /** @nullable */
+  lead_employee_id?: number | null;
+  /** @nullable */
+  lead_employee_name?: string | null;
+  /** @nullable */
+  other_task_type?: string | null;
+  /** @nullable */
+  parent_task_id?: number | null;
+  /** @nullable */
+  parent_task_code?: string | null;
+  /** @nullable */
+  parent_task_title?: string | null;
   is_overdue: boolean;
+  /** @nullable */
+  started_at?: string | null;
+  actual_minutes?: number;
+  is_timer_running?: boolean;
+  /** @nullable */
+  timer_started_at?: string | null;
   /** @nullable */
   requested_at?: string | null;
   /** @nullable */

@@ -31,14 +31,14 @@ export const TimesheetActionButtons: React.FC<TimesheetActionButtonsProps> = ({
   let primaryBtnLabel = 'Punch In';
   let PrimaryBtnIcon = LogIn;
   let primaryBtnClass =
-    'bg-emerald-600 hover:bg-emerald-700 text-white focus:ring-emerald-500 shadow-xs';
+    'bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-sm shadow-emerald-500/25 active:scale-[0.98] border border-emerald-400/30';
   let primaryDisabled = isPending || (isFullDayLeave && today.state === 'not_started');
 
   if (today.state === 'working' || today.state === 'on_break') {
     primaryBtnLabel = 'Punch Out';
     PrimaryBtnIcon = LogOut;
     primaryBtnClass =
-      'bg-rose-600 hover:bg-rose-700 text-white focus:ring-rose-500 shadow-xs';
+      'bg-gradient-to-r from-rose-600 via-rose-500 to-red-600 hover:from-rose-500 hover:to-red-500 text-white shadow-sm shadow-rose-500/25 active:scale-[0.98] border border-rose-400/30';
   } else if (today.state === 'done') {
     primaryBtnLabel = 'Done for today';
     PrimaryBtnIcon = CheckCircle2;
@@ -46,10 +46,10 @@ export const TimesheetActionButtons: React.FC<TimesheetActionButtonsProps> = ({
     primaryDisabled = true;
   }
 
-  let secondaryBtnLabel = 'Break';
+  let secondaryBtnLabel = 'Take Break';
   let SecondaryBtnIcon = Coffee;
   let secondaryBtnClass =
-    'bg-amber-500 hover:bg-amber-600 text-white focus:ring-amber-500 shadow-xs';
+    'bg-gradient-to-r from-amber-500 via-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white shadow-sm shadow-amber-500/25 active:scale-[0.98] border border-amber-400/30';
   let secondaryDisabled = isPending;
   let secondaryTooltip = '';
 
@@ -60,10 +60,10 @@ export const TimesheetActionButtons: React.FC<TimesheetActionButtonsProps> = ({
     secondaryDisabled = true;
     secondaryTooltip = 'Punch in first';
   } else if (today.state === 'on_break') {
-    secondaryBtnLabel = 'Resume';
+    secondaryBtnLabel = 'Resume Work';
     SecondaryBtnIcon = Play;
     secondaryBtnClass =
-      'bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500 shadow-xs';
+      'bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 text-white shadow-sm shadow-blue-500/25 active:scale-[0.98] border border-blue-400/30';
   } else if (today.state === 'done') {
     secondaryBtnLabel = 'Break';
     SecondaryBtnIcon = Coffee;
@@ -78,12 +78,12 @@ export const TimesheetActionButtons: React.FC<TimesheetActionButtonsProps> = ({
         id={today.state === 'not_started' ? 'punch-in-button' : 'punch-out-button'}
         onClick={today.state === 'not_started' ? onPunchIn : onPunchOutClick}
         disabled={primaryDisabled}
-        className={`min-h-[44px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed ${primaryBtnClass}`}
+        className={`min-h-[44px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:shadow-none disabled:scale-100 disabled:cursor-not-allowed cursor-pointer ${primaryBtnClass}`}
       >
         {isPending ? (
           <Loader2 className="w-4 h-4 animate-spin" />
         ) : (
-          <PrimaryBtnIcon className="w-4 h-4" />
+          <PrimaryBtnIcon className="w-4 h-4 shrink-0" />
         )}
         <span>{primaryBtnLabel}</span>
       </button>
@@ -95,17 +95,17 @@ export const TimesheetActionButtons: React.FC<TimesheetActionButtonsProps> = ({
           onClick={today.state === 'working' ? onStartBreak : onResumeBreak}
           disabled={secondaryDisabled}
           title={secondaryTooltip || undefined}
-          className={`w-full min-h-[44px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed ${secondaryBtnClass}`}
+          className={`w-full min-h-[44px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:shadow-none disabled:scale-100 disabled:cursor-not-allowed cursor-pointer ${secondaryBtnClass}`}
         >
           {isPending ? (
             <Loader2 className="w-4 h-4 animate-spin" />
           ) : (
-            <SecondaryBtnIcon className="w-4 h-4" />
+            <SecondaryBtnIcon className="w-4 h-4 shrink-0" />
           )}
           <span>{secondaryBtnLabel}</span>
         </button>
         {secondaryTooltip && (
-          <div className="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 rounded bg-slate-800 text-white text-xs whitespace-nowrap z-10">
+          <div className="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2.5 py-1 rounded-lg bg-slate-900 text-white text-xs font-medium shadow-md whitespace-nowrap z-10">
             {secondaryTooltip}
           </div>
         )}
@@ -113,3 +113,4 @@ export const TimesheetActionButtons: React.FC<TimesheetActionButtonsProps> = ({
     </div>
   );
 };
+

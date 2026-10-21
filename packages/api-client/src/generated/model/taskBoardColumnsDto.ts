@@ -10,6 +10,7 @@ import type { TaskBoardCardDto } from './taskBoardCardDto';
 export interface TaskBoardColumnsDto {
   assigned: TaskBoardCardDto[];
   in_progress: TaskBoardCardDto[];
+  hold: TaskBoardCardDto[];
   requested: TaskBoardCardDto[];
   completed: TaskBoardCardDto[];
 }

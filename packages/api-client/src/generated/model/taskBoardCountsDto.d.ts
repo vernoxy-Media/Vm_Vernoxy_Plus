@@ -8,6 +8,7 @@
 export interface TaskBoardCountsDto {
     assigned: number;
     in_progress: number;
+    hold: number;
     requested: number;
     completed: number;
     total: number;

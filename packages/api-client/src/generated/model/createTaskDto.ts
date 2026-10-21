@@ -6,6 +6,8 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { CreateTaskDtoPriority } from './createTaskDtoPriority';
+import type { CreateTaskDtoSource } from './createTaskDtoSource';
+import type { CreateSubTaskDto } from './createSubTaskDto';
 
 export interface CreateTaskDto {
   /** @maxLength 150 */
@@ -17,6 +19,13 @@ export interface CreateTaskDto {
   due_date?: string;
   /** Allocated minutes (max 14400) */
   allocated_minutes?: number;
-  /** List of 1 to 50 active employee IDs */
-  assignee_ids: number[];
+  /** List of active employee IDs */
+  assignee_ids?: number[];
+  source?: CreateTaskDtoSource;
+  has_sub_tasks?: boolean;
+  /** Lead employee ID if has_sub_tasks is true */
+  lead_employee_id?: number;
+  /** @maxLength 100 */
+  other_task_type?: string;
+  sub_tasks?: CreateSubTaskDto[];
 }

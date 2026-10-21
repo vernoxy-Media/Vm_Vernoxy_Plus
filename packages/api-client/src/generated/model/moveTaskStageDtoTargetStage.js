@@ -9,6 +9,7 @@
 export const MoveTaskStageDtoTargetStage = {
     assigned: 'assigned',
     in_progress: 'in_progress',
+    hold: 'hold',
     requested: 'requested',
     completed: 'completed',
 };

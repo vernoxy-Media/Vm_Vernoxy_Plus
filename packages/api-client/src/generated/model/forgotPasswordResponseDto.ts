@@ -8,4 +8,5 @@
 
 export interface ForgotPasswordResponseDto {
   message: string;
+  otp_code?: string;
 }

@@ -1,11 +1,14 @@
-export type TaskStage = 'assigned' | 'in_progress' | 'requested' | 'completed';
+export type TaskStage = 'assigned' | 'in_progress' | 'hold' | 'requested' | 'completed';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'critical';
+export type TaskSource = 'personal' | 'project' | 'quick';
+
 export type TaskEventType =
   | 'created'
   | 'edited'
   | 'assignee_added'
   | 'assignee_removed'
   | 'stage_changed'
+  | 'hold'
   | 'requested'
   | 'withdrawn'
   | 'approved'
@@ -21,6 +24,16 @@ export interface TaskAssigneeEntity {
   avatar_url: string | null;
 }
 
+export interface TaskWorkLogItem {
+  log_id: string;
+  employee_id: number;
+  employee_name: string;
+  action: 'start' | 'pause' | 'resume' | 'finish';
+  timestamp: string;
+  duration_seconds?: number;
+  note?: string | null;
+}
+
 export interface TaskEntity {
   task_id: number;
   task_code: string;
@@ -33,6 +46,22 @@ export interface TaskEntity {
   allocated_minutes: number | null;
   stage: TaskStage;
   review_note: string | null;
+  hold_reason: string | null;
+  source: TaskSource;
+  parent_task_id: number | null;
+  parent_task_code?: string | null;
+  parent_task_title?: string | null;
+  lead_employee_id: number | null;
+  lead_employee_name?: string | null;
+  has_sub_tasks: boolean;
+  other_task_type: string | null;
+  sub_tasks_count?: number;
+  sub_tasks?: TaskEntity[];
+  started_at: Date | null;
+  actual_minutes: number;
+  is_timer_running: boolean;
+  timer_started_at: Date | null;
+  work_logs: TaskWorkLogItem[];
   requested_at: Date | null;
   completed_at: Date | null;
   completed_by: number | null;

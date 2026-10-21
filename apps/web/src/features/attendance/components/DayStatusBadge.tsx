@@ -28,49 +28,49 @@ export const DayStatusBadge: React.FC<DayStatusBadgeProps> = ({
 
   switch (status) {
     case 'present':
-      badgeClass = 'bg-emerald-50 text-emerald-800 border-emerald-200';
+      badgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200/90 shadow-2xs';
       Icon = CheckCircle2;
       text = label || 'Present';
       break;
     case 'half_day':
-      badgeClass = 'bg-amber-50 text-amber-800 border-amber-200';
+      badgeClass = 'bg-amber-50 text-amber-700 border-amber-200/90 shadow-2xs';
       Icon = Clock;
       text = label || 'Half Day';
       break;
     case 'short_hours':
-      badgeClass = 'bg-orange-50 text-orange-800 border-orange-200';
+      badgeClass = 'bg-orange-50 text-orange-700 border-orange-200/90 shadow-2xs';
       Icon = Clock;
       text = label || 'Short Hours';
       break;
     case 'incomplete':
-      badgeClass = 'bg-rose-50 text-rose-800 border-rose-200';
+      badgeClass = 'bg-amber-50 text-amber-700 border-amber-200/90 shadow-2xs';
       Icon = AlertTriangle;
       text = label || 'Incomplete';
       break;
     case 'leave':
-      badgeClass = 'bg-violet-50 text-violet-800 border-violet-200';
+      badgeClass = 'bg-amber-50 text-amber-800 border-amber-200/90 shadow-2xs';
       Icon = CalendarOff;
-      text = label || 'Leave';
+      text = label || 'On Leave';
       break;
     case 'holiday':
-      badgeClass = 'bg-emerald-50 text-emerald-900 border-emerald-200';
+      badgeClass = 'bg-rose-50 text-rose-700 border-rose-200/90 shadow-2xs';
       Icon = Sun;
       text = label || 'Holiday';
       break;
     case 'weekly_off':
-      badgeClass = 'bg-slate-100 text-slate-700 border-slate-200';
+      badgeClass = 'bg-slate-100 text-slate-600 border-slate-200 shadow-2xs';
       Icon = Coffee;
-      text = label || 'Off';
+      text = label || 'Weekly Off';
       break;
     case 'absent':
-      badgeClass = 'bg-red-50 text-red-800 border-red-200';
+      badgeClass = 'bg-rose-50 text-rose-700 border-rose-200/90 shadow-2xs';
       Icon = XCircle;
       text = label || 'Absent';
       break;
   }
 
   const sizeClasses =
-    size === 'sm' ? 'px-2 py-0.5 text-xs gap-1' : 'px-2.5 py-1 text-xs gap-1.5 font-semibold';
+    size === 'sm' ? 'px-2 py-0.5 text-[11px] gap-1' : 'px-2.5 py-1 text-xs gap-1.5 font-bold';
 
   return (
     <span
@@ -81,3 +81,4 @@ export const DayStatusBadge: React.FC<DayStatusBadgeProps> = ({
     </span>
   );
 };
+

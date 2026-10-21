@@ -19,19 +19,21 @@ import type { TaskStage } from '../types';
 import { TaskColumn } from './TaskColumn';
 import { TaskCard } from './TaskCard';
 import { StageDecisionDialog } from './StageDecisionDialog';
+import { HoldReasonModal } from './HoldReasonModal';
 
 export interface TaskBoardProps {
   board: TaskBoardResultDto;
   isAdmin: boolean;
   onCardClick: (taskId: number) => void;
-  onMoveStage: (taskId: number, targetStage: TaskStage, note?: string) => void;
+  onMoveStage: (taskId: number, targetStage: TaskStage, note?: string, holdReason?: string) => void;
 }
 
 const STAGE_CONFIGS: { stage: TaskStage; title: string; color: string }[] = [
-  { stage: 'assigned', title: 'Assigned', color: 'bg-slate-400' },
+  { stage: 'assigned', title: 'To Do', color: 'bg-slate-400' },
   { stage: 'in_progress', title: 'In Progress', color: 'bg-blue-500' },
-  { stage: 'requested', title: 'In Review', color: 'bg-amber-500' },
-  { stage: 'completed', title: 'Completed', color: 'bg-emerald-500' },
+  { stage: 'hold', title: 'Hold', color: 'bg-amber-500' },
+  { stage: 'requested', title: 'Submitted', color: 'bg-purple-500' },
+  { stage: 'completed', title: 'Approved', color: 'bg-emerald-500' },
 ];
 
 const dropAnimationConfig: DropAnimation = {
@@ -52,16 +54,15 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
   onCardClick,
   onMoveStage,
 }) => {
-  // Optimistic local state for instantaneous, zero-latency drag-and-drop feedback
   const [localBoard, setLocalBoard] = useState<TaskBoardResultDto>(board);
   const [activeTask, setActiveTask] = useState<TaskBoardCardDto | null>(null);
   const [rejectDialogTask, setRejectDialogTask] = useState<number | null>(null);
+  const [holdModalTaskId, setHoldModalTaskId] = useState<number | null>(null);
 
   useEffect(() => {
     setLocalBoard(board);
   }, [board]);
 
-  // Pointer sensor with 8px threshold: prevents clicks on cards from triggering an accidental drag
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -71,7 +72,7 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
   );
 
   const findTaskById = (taskId: number): TaskBoardCardDto | undefined => {
-    const stages: TaskStage[] = ['assigned', 'in_progress', 'requested', 'completed'];
+    const stages: TaskStage[] = ['assigned', 'in_progress', 'hold', 'requested', 'completed'];
     for (const stage of stages) {
       const found = localBoard.columns[stage]?.find((t: TaskBoardCardDto) => t.task_id === taskId);
       if (found) return found;
@@ -79,12 +80,9 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
     return undefined;
   };
 
-  /**
-   * Resolves the target stage whether dropped onto a column droppable or directly onto another card
-   */
   const getStageFromDroppable = (over: Over | null): TaskStage | null => {
     if (!over) return null;
-    const stages: TaskStage[] = ['assigned', 'in_progress', 'requested', 'completed'];
+    const stages: TaskStage[] = ['assigned', 'in_progress', 'hold', 'requested', 'completed'];
     const overIdStr = over.id.toString();
 
     // 1. Direct column drop
@@ -117,9 +115,6 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
     return null;
   };
 
-  /**
-   * Custom collision detection: checks pointer position first, falling back to closest corners
-   */
   const collisionDetectionStrategy: CollisionDetection = (args) => {
     const pointerCollisions = pointerWithin(args);
     if (pointerCollisions.length > 0) {
@@ -153,13 +148,27 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
     const task = findTaskById(taskId);
     if (!task || task.stage === targetStage) return;
 
-    // If moving from requested to in_progress (rejection / revision), prompt for note
+    // BFD Section 3.3: Approved tasks cannot be moved
+    if (task.stage === 'completed') return;
+
+    // Moving to Hold requires mandatory hold reason modal
+    if (targetStage === 'hold') {
+      setHoldModalTaskId(taskId);
+      return;
+    }
+
+    // Moving from requested (Submitted) to in_progress (Rejection), prompt for note
     if (task.stage === 'requested' && targetStage === 'in_progress' && isAdmin) {
       setRejectDialogTask(taskId);
       return;
     }
 
-    // Optimistically update local board immediately for buttery-smooth visual response
+    // Non-admin cannot drop directly to completed
+    if (targetStage === 'completed' && !isAdmin) {
+      return;
+    }
+
+    // Optimistically update local board immediately
     setLocalBoard((prev) => {
       const currentStage = task.stage as TaskStage;
       const sourceList = (prev.columns[currentStage] || []).filter((t) => t.task_id !== taskId);
@@ -200,6 +209,16 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
     onMoveStage(taskId, 'requested');
   };
 
+  const handleHoldPrompt = (taskId: number) => {
+    setHoldModalTaskId(taskId);
+  };
+
+  const handleResume = (taskId: number) => {
+    onMoveStage(taskId, 'in_progress');
+  };
+
+  const taskForHoldModal = holdModalTaskId !== null ? findTaskById(holdModalTaskId) : null;
+
   return (
     <>
       <DndContext
@@ -209,7 +228,7 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3.5">
           {STAGE_CONFIGS.map((col) => (
             <TaskColumn
               key={col.stage}
@@ -224,12 +243,13 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
               onReject={handleRejectPrompt}
               onStart={handleStart}
               onRequestReview={handleRequestReview}
+              onHold={handleHoldPrompt}
+              onResume={handleResume}
               isDraggingAny={activeTask !== null}
             />
           ))}
         </div>
 
-        {/* Silky-smooth elevated floating overlay while dragging */}
         <DragOverlay dropAnimation={dropAnimationConfig}>
           {activeTask ? (
             <TaskCard
@@ -241,6 +261,7 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
         </DragOverlay>
       </DndContext>
 
+      {/* Reject / Revision Dialog */}
       <StageDecisionDialog
         isOpen={rejectDialogTask !== null}
         title="Request Changes & Return to Progress"
@@ -255,6 +276,19 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
           }
         }}
         onClose={() => setRejectDialogTask(null)}
+      />
+
+      {/* Mandatory Hold Reason Modal (BFD Section 3.3) */}
+      <HoldReasonModal
+        isOpen={holdModalTaskId !== null}
+        taskTitle={taskForHoldModal?.title || `Task #${holdModalTaskId}`}
+        onConfirm={(reason) => {
+          if (holdModalTaskId !== null) {
+            onMoveStage(holdModalTaskId, 'hold', undefined, reason);
+            setHoldModalTaskId(null);
+          }
+        }}
+        onClose={() => setHoldModalTaskId(null)}
       />
     </>
   );

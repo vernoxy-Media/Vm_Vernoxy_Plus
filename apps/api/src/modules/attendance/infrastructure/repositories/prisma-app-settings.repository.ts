@@ -60,11 +60,14 @@ export class PrismaAppSettingsRepository implements AppSettingsRepository {
   }
 
   async getAttendanceSettings() {
-    const [workingDaysStr, holidaysStr, defaultHoursStr, empHoursStr] = await Promise.all([
+    const [workingDaysStr, defaultHoursStr, empHoursStr, dbHolidays] = await Promise.all([
       this.getSetting('attendance_working_days'),
-      this.getSetting('attendance_holidays'),
       this.getSetting('attendance_default_hours'),
       this.getSetting('attendance_employee_hours'),
+      this.prisma.company_holidays.findMany({
+        where: { deleted_at: null },
+        orderBy: { holiday_date: 'asc' },
+      }),
     ]);
 
     // Default working days: Monday (1) to Saturday (6). Sunday (0) is off.
@@ -78,15 +81,14 @@ export class PrismaAppSettingsRepository implements AppSettingsRepository {
       } catch {}
     }
 
-    let holidays: any[] = [];
-    if (holidaysStr) {
-      try {
-        const parsed = JSON.parse(holidaysStr);
-        if (Array.isArray(parsed)) {
-          holidays = parsed;
-        }
-      } catch {}
-    }
+    const holidays = dbHolidays.map((h) => ({
+      id: String(h.holiday_id),
+      date: typeof h.holiday_date === 'string'
+        ? (h.holiday_date as string).slice(0, 10)
+        : (h.holiday_date as Date).toISOString().slice(0, 10),
+      name: h.name,
+      type: h.type,
+    }));
 
     let default_working_hours = { full_day_hours: 8, half_day_hours: 4 };
     if (defaultHoursStr) {
@@ -124,24 +126,99 @@ export class PrismaAppSettingsRepository implements AppSettingsRepository {
   }
 
   async addHoliday(holiday: { date: string; name: string; type?: string }, userId?: number) {
-    const settings = await this.getAttendanceSettings();
+    const targetDate = new Date(`${holiday.date}T00:00:00.000Z`);
+    const year = parseInt(holiday.date.slice(0, 4), 10) || targetDate.getFullYear();
+
+    const existing = await this.prisma.company_holidays.findFirst({
+      where: {
+        holiday_date: targetDate,
+        deleted_at: null,
+      },
+    });
+
+    let saved;
+    if (existing) {
+      saved = await this.prisma.company_holidays.update({
+        where: { holiday_id: existing.holiday_id },
+        data: {
+          name: holiday.name,
+          type: holiday.type || 'Public Holiday',
+          updated_by: userId,
+          updated_at: new Date(),
+        },
+      });
+    } else {
+      saved = await this.prisma.company_holidays.create({
+        data: {
+          holiday_date: targetDate,
+          name: holiday.name,
+          type: holiday.type || 'Public Holiday',
+          year,
+          created_by: userId,
+        },
+      });
+    }
+
     const newHoliday = {
-      id: `hol_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      id: String(saved.holiday_id),
       date: holiday.date,
-      name: holiday.name,
-      type: holiday.type || 'Public Holiday',
+      name: saved.name,
+      type: saved.type,
     };
-    const updated = [...settings.holidays.filter((h) => h.date !== holiday.date), newHoliday].sort(
-      (a, b) => a.date.localeCompare(b.date),
-    );
-    await this.setSetting('attendance_holidays', JSON.stringify(updated), userId);
+
+    // Keep app_settings in sync for compatibility
+    const allHolidays = await this.prisma.company_holidays.findMany({
+      where: { deleted_at: null },
+      orderBy: { holiday_date: 'asc' },
+    });
+    const formatted = allHolidays.map((h) => ({
+      id: String(h.holiday_id),
+      date: typeof h.holiday_date === 'string'
+        ? (h.holiday_date as string).slice(0, 10)
+        : (h.holiday_date as Date).toISOString().slice(0, 10),
+      name: h.name,
+      type: h.type,
+    }));
+    await this.setSetting('attendance_holidays', JSON.stringify(formatted), userId);
+
     return newHoliday;
   }
 
   async deleteHoliday(id: string, userId?: number): Promise<void> {
-    const settings = await this.getAttendanceSettings();
-    const updated = settings.holidays.filter((h) => h.id !== id && h.date !== id);
-    await this.setSetting('attendance_holidays', JSON.stringify(updated), userId);
+    const idNum = parseInt(id, 10);
+    if (!isNaN(idNum)) {
+      await this.prisma.company_holidays.updateMany({
+        where: { holiday_id: idNum },
+        data: {
+          deleted_at: new Date(),
+          deleted_by: userId,
+        },
+      });
+    } else {
+      const targetDate = new Date(`${id}T00:00:00.000Z`);
+      await this.prisma.company_holidays.updateMany({
+        where: { holiday_date: targetDate, deleted_at: null },
+        data: {
+          deleted_at: new Date(),
+          deleted_by: userId,
+        },
+      });
+    }
+
+    // Keep app_settings in sync for compatibility
+    const allHolidays = await this.prisma.company_holidays.findMany({
+      where: { deleted_at: null },
+      orderBy: { holiday_date: 'asc' },
+    });
+    const formatted = allHolidays.map((h) => ({
+      id: String(h.holiday_id),
+      date: typeof h.holiday_date === 'string'
+        ? (h.holiday_date as string).slice(0, 10)
+        : (h.holiday_date as Date).toISOString().slice(0, 10),
+      name: h.name,
+      type: h.type,
+    }));
+    await this.setSetting('attendance_holidays', JSON.stringify(formatted), userId);
   }
 
   async saveDefaultWorkingHours(config: { full_day_hours: number; half_day_hours: number }, userId?: number): Promise<void> {

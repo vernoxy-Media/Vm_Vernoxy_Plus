@@ -18,4 +18,7 @@ export interface UpdateTaskDto {
   allocated_minutes?: number;
   /** Optional new list of 1 to 50 active employee IDs */
   assignee_ids?: number[];
+  lead_employee_id?: number;
+  /** @maxLength 100 */
+  other_task_type?: string;
 }

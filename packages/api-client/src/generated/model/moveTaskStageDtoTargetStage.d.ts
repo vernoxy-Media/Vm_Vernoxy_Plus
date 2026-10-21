@@ -9,6 +9,7 @@ export type MoveTaskStageDtoTargetStage = typeof MoveTaskStageDtoTargetStage[key
 export declare const MoveTaskStageDtoTargetStage: {
     readonly assigned: "assigned";
     readonly in_progress: "in_progress";
+    readonly hold: "hold";
     readonly requested: "requested";
     readonly completed: "completed";
 };

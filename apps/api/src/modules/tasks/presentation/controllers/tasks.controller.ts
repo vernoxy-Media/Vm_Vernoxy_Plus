@@ -21,7 +21,9 @@ import { GetAdminSummaryUseCase } from '../../application/use-cases/get-admin-su
 import { GetAssignableEmployeesUseCase } from '../../application/use-cases/get-assignable-employees.use-case';
 import { GetPendingRequestsCountUseCase } from '../../application/use-cases/get-pending-requests-count.use-case';
 import { GetTaskDetailUseCase } from '../../application/use-cases/get-task-detail.use-case';
+import { GetSubTasksUseCase } from '../../application/use-cases/get-sub-tasks.use-case';
 import { MoveTaskStageUseCase } from '../../application/use-cases/move-task-stage.use-case';
+import { TrackWorkSessionUseCase } from '../../application/use-cases/track-work-session.use-case';
 import { UpdateTaskUseCase } from '../../application/use-cases/update-task.use-case';
 import {
   AssignableEmployeeDto,
@@ -32,6 +34,7 @@ import {
   TaskBoardResultDto,
   TaskDetailDto,
   TaskSummaryDto,
+  TrackWorkSessionDto,
   UpdateTaskDto,
 } from '../dto/task.dto';
 import { TaskAdminGuard } from '../guards/task-admin.guard';
@@ -49,8 +52,10 @@ export class TasksController {
     private readonly getAssignableEmployeesUseCase: GetAssignableEmployeesUseCase,
     private readonly createTaskUseCase: CreateTaskUseCase,
     private readonly getTaskDetailUseCase: GetTaskDetailUseCase,
+    private readonly getSubTasksUseCase: GetSubTasksUseCase,
     private readonly updateTaskUseCase: UpdateTaskUseCase,
     private readonly moveTaskStageUseCase: MoveTaskStageUseCase,
+    private readonly trackWorkSessionUseCase: TrackWorkSessionUseCase,
   ) {}
 
   @Get('board')
@@ -105,7 +110,11 @@ export class TasksController {
   async createTask(@Req() req: Request, @Body() dto: CreateTaskDto): Promise<any> {
     try {
       const empId = req.user!.emp_id;
-      return await this.createTaskUseCase.execute({ ...dto, creator_emp_id: empId });
+      return await this.createTaskUseCase.execute({
+        ...dto,
+        assignee_ids: dto.assignee_ids || [],
+        creator_emp_id: empId,
+      });
     } catch (err) {
       throw mapTaskErrorToHttp(err);
     }
@@ -122,6 +131,17 @@ export class TasksController {
       const empId = req.user!.emp_id;
       const res = await this.getTaskDetailUseCase.execute(id, empId, true);
       return { ...res.task, history: res.history } as any;
+    } catch (err) {
+      throw mapTaskErrorToHttp(err);
+    }
+  }
+
+  @Get(':id/subtasks')
+  @ApiOperation({ summary: 'Get sub tasks for a parent task' })
+  @ApiResponse({ status: 200, type: [TaskDetailDto] })
+  async getSubTasks(@Param('id', ParseIntPipe) id: number): Promise<any> {
+    try {
+      return await this.getSubTasksUseCase.execute(id);
     } catch (err) {
       throw mapTaskErrorToHttp(err);
     }
@@ -161,6 +181,31 @@ export class TasksController {
       return await this.moveTaskStageUseCase.execute({
         taskId: id,
         targetStage: dto.target_stage,
+        actorEmpId: user.emp_id,
+        actorName: (user as any).name || 'Admin',
+        isAdmin: true,
+        note: dto.note,
+        hold_reason: dto.hold_reason,
+      });
+    } catch (err) {
+      throw mapTaskErrorToHttp(err);
+    }
+  }
+
+  @Post(':id/work-session')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Track work session (start, pause, finish)' })
+  @ApiResponse({ status: 200, type: TaskDetailDto })
+  async trackWorkSession(
+    @Req() req: Request,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: TrackWorkSessionDto,
+  ): Promise<any> {
+    try {
+      const user = req.user!;
+      return await this.trackWorkSessionUseCase.execute({
+        taskId: id,
+        action: dto.action,
         actorEmpId: user.emp_id,
         actorName: (user as any).name || 'Admin',
         isAdmin: true,

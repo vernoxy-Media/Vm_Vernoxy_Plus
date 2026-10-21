@@ -13,6 +13,7 @@ export type TaskDetailDtoStage = typeof TaskDetailDtoStage[keyof typeof TaskDeta
 export const TaskDetailDtoStage = {
   assigned: 'assigned',
   in_progress: 'in_progress',
+  hold: 'hold',
   requested: 'requested',
   completed: 'completed',
 } as const;

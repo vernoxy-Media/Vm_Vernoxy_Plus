@@ -48,6 +48,11 @@ export const MultiEmployeeSelect: React.FC<MultiEmployeeSelectProps> = ({
     if (selectedIds.includes(id)) {
       onChange(selectedIds.filter((item) => item !== id));
     } else {
+      if (max === 1) {
+        onChange([id]);
+        setIsOpen(false);
+        return;
+      }
       if (selectedIds.length >= max) return;
       onChange([...selectedIds, id]);
     }
@@ -72,7 +77,7 @@ export const MultiEmployeeSelect: React.FC<MultiEmployeeSelectProps> = ({
       {label && (
         <div className="flex items-center justify-between">
           <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
-            {label} ({selectedIds.length}/{max})
+            {label} {selectedIds.length > 0 ? `(${selectedIds.length})` : ''}
           </label>
           <span className="text-xs text-slate-400">At least 1 required</span>
         </div>

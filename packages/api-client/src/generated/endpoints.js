@@ -3039,6 +3039,36 @@ export const useTasksControllerUpdateTask = (options, queryClient) => {
     return useMutation(mutationOptions, queryClient);
 };
 ;
+export const getTasksControllerGetSubTasksUrl = (id) => {
+    return `/api/v1/admin/tasks/${id}/subtasks`;
+};
+export const tasksControllerGetSubTasks = async (id, options) => {
+    return customFetch(getTasksControllerGetSubTasksUrl(id), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getTasksControllerGetSubTasksQueryKey = (id) => {
+    return [
+        `/api/v1/admin/tasks/${id}/subtasks`
+    ];
+};
+export const getTasksControllerGetSubTasksQueryOptions = (id, options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getTasksControllerGetSubTasksQueryKey(id);
+    const queryFn = ({ signal }) => tasksControllerGetSubTasks(id, { signal, ...requestOptions });
+    return { queryKey, queryFn, enabled: !!(id), ...queryOptions };
+};
+/**
+ * @summary Get sub tasks for a parent task
+ */
+export function useTasksControllerGetSubTasks(id, options, queryClient) {
+    const queryOptions = getTasksControllerGetSubTasksQueryOptions(id, options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
 export const getTasksControllerMoveStageUrl = (id) => {
     return `/api/v1/admin/tasks/${id}/move`;
 };
@@ -3068,6 +3098,38 @@ export const getTasksControllerMoveStageMutationOptions = (options) => {
 */
 export const useTasksControllerMoveStage = (options, queryClient) => {
     const mutationOptions = getTasksControllerMoveStageMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getTasksControllerTrackWorkSessionUrl = (id) => {
+    return `/api/v1/admin/tasks/${id}/work-session`;
+};
+export const tasksControllerTrackWorkSession = async (id, trackWorkSessionDto, options) => {
+    return customFetch(getTasksControllerTrackWorkSessionUrl(id), {
+        ...options,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        body: JSON.stringify(trackWorkSessionDto)
+    });
+};
+export const getTasksControllerTrackWorkSessionMutationOptions = (options) => {
+    const mutationKey = ['tasksControllerTrackWorkSession'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { id, data } = props ?? {};
+        return tasksControllerTrackWorkSession(id, data, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Track work session (start, pause, finish)
+*/
+export const useTasksControllerTrackWorkSession = (options, queryClient) => {
+    const mutationOptions = getTasksControllerTrackWorkSessionMutationOptions(options);
     return useMutation(mutationOptions, queryClient);
 };
 ;
@@ -3138,6 +3200,38 @@ export function useMyTasksControllerGetSummary(options, queryClient) {
     return query;
 }
 ;
+export const getMyTasksControllerCreateQuickTaskUrl = () => {
+    return `/api/v1/my-tasks/quick-task`;
+};
+export const myTasksControllerCreateQuickTask = async (createTaskDto, options) => {
+    return customFetch(getMyTasksControllerCreateQuickTaskUrl(), {
+        ...options,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        body: JSON.stringify(createTaskDto)
+    });
+};
+export const getMyTasksControllerCreateQuickTaskMutationOptions = (options) => {
+    const mutationKey = ['myTasksControllerCreateQuickTask'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { data } = props ?? {};
+        return myTasksControllerCreateQuickTask(data, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Create a quick task for the current employee (Section 3.5 BFD)
+*/
+export const useMyTasksControllerCreateQuickTask = (options, queryClient) => {
+    const mutationOptions = getMyTasksControllerCreateQuickTaskMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
 export const getMyTasksControllerGetTaskDetailUrl = (id) => {
     return `/api/v1/my-tasks/${id}`;
 };
@@ -3168,6 +3262,36 @@ export function useMyTasksControllerGetTaskDetail(id, options, queryClient) {
     return query;
 }
 ;
+export const getMyTasksControllerGetSubTasksUrl = (id) => {
+    return `/api/v1/my-tasks/${id}/subtasks`;
+};
+export const myTasksControllerGetSubTasks = async (id, options) => {
+    return customFetch(getMyTasksControllerGetSubTasksUrl(id), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getMyTasksControllerGetSubTasksQueryKey = (id) => {
+    return [
+        `/api/v1/my-tasks/${id}/subtasks`
+    ];
+};
+export const getMyTasksControllerGetSubTasksQueryOptions = (id, options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getMyTasksControllerGetSubTasksQueryKey(id);
+    const queryFn = ({ signal }) => myTasksControllerGetSubTasks(id, { signal, ...requestOptions });
+    return { queryKey, queryFn, enabled: !!(id), ...queryOptions };
+};
+/**
+ * @summary Get sub tasks for a parent task
+ */
+export function useMyTasksControllerGetSubTasks(id, options, queryClient) {
+    const queryOptions = getMyTasksControllerGetSubTasksQueryOptions(id, options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
 export const getMyTasksControllerMoveStageUrl = (id) => {
     return `/api/v1/my-tasks/${id}/move`;
 };
@@ -3193,9 +3317,234 @@ export const getMyTasksControllerMoveStageMutationOptions = (options) => {
     return { mutationFn, ...mutationOptions };
 };
 /**
-* @summary Move assigned task stage (e.g. to in_progress or requested)
+* @summary Move assigned task stage (e.g. to in_progress, hold, or requested)
 */
 export const useMyTasksControllerMoveStage = (options, queryClient) => {
     const mutationOptions = getMyTasksControllerMoveStageMutationOptions(options);
     return useMutation(mutationOptions, queryClient);
 };
+;
+export const getMyTasksControllerTrackWorkSessionUrl = (id) => {
+    return `/api/v1/my-tasks/${id}/work-session`;
+};
+export const myTasksControllerTrackWorkSession = async (id, trackWorkSessionDto, options) => {
+    return customFetch(getMyTasksControllerTrackWorkSessionUrl(id), {
+        ...options,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        body: JSON.stringify(trackWorkSessionDto)
+    });
+};
+export const getMyTasksControllerTrackWorkSessionMutationOptions = (options) => {
+    const mutationKey = ['myTasksControllerTrackWorkSession'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { id, data } = props ?? {};
+        return myTasksControllerTrackWorkSession(id, data, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Track work session (start, pause, finish)
+*/
+export const useMyTasksControllerTrackWorkSession = (options, queryClient) => {
+    const mutationOptions = getMyTasksControllerTrackWorkSessionMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getCalendarControllerGetEventsUrl = (params) => {
+    const normalizedParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+        if (value !== undefined) {
+            normalizedParams.append(key, value === null ? 'null' : value.toString());
+        }
+    });
+    const stringifiedParams = normalizedParams.toString();
+    return stringifiedParams.length > 0 ? `/api/v1/calendar/events?${stringifiedParams}` : `/api/v1/calendar/events`;
+};
+export const calendarControllerGetEvents = async (params, options) => {
+    return customFetch(getCalendarControllerGetEventsUrl(params), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getCalendarControllerGetEventsQueryKey = (params) => {
+    return [
+        `/api/v1/calendar/events`, ...(params ? [params] : [])
+    ];
+};
+export const getCalendarControllerGetEventsQueryOptions = (params, options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getCalendarControllerGetEventsQueryKey(params);
+    const queryFn = ({ signal }) => calendarControllerGetEvents(params, { signal, ...requestOptions });
+    return { queryKey, queryFn, ...queryOptions };
+};
+/**
+ * @summary Get calendar events in time window for current employee
+ */
+export function useCalendarControllerGetEvents(params, options, queryClient) {
+    const queryOptions = getCalendarControllerGetEventsQueryOptions(params, options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
+export const getCalendarControllerCreateEventUrl = () => {
+    return `/api/v1/calendar/events`;
+};
+export const calendarControllerCreateEvent = async (createCalendarEventDto, options) => {
+    return customFetch(getCalendarControllerCreateEventUrl(), {
+        ...options,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        body: JSON.stringify(createCalendarEventDto)
+    });
+};
+export const getCalendarControllerCreateEventMutationOptions = (options) => {
+    const mutationKey = ['calendarControllerCreateEvent'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { data } = props ?? {};
+        return calendarControllerCreateEvent(data, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Create a meeting or task time-block
+*/
+export const useCalendarControllerCreateEvent = (options, queryClient) => {
+    const mutationOptions = getCalendarControllerCreateEventMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getCalendarControllerUpdateEventUrl = (id) => {
+    return `/api/v1/calendar/events/${id}`;
+};
+export const calendarControllerUpdateEvent = async (id, updateCalendarEventDto, options) => {
+    return customFetch(getCalendarControllerUpdateEventUrl(id), {
+        ...options,
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        body: JSON.stringify(updateCalendarEventDto)
+    });
+};
+export const getCalendarControllerUpdateEventMutationOptions = (options) => {
+    const mutationKey = ['calendarControllerUpdateEvent'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { id, data } = props ?? {};
+        return calendarControllerUpdateEvent(id, data, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Update an existing calendar event
+*/
+export const useCalendarControllerUpdateEvent = (options, queryClient) => {
+    const mutationOptions = getCalendarControllerUpdateEventMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getCalendarControllerDeleteEventUrl = (id) => {
+    return `/api/v1/calendar/events/${id}`;
+};
+export const calendarControllerDeleteEvent = async (id, options) => {
+    return customFetch(getCalendarControllerDeleteEventUrl(id), {
+        ...options,
+        method: 'DELETE'
+    });
+};
+export const getCalendarControllerDeleteEventMutationOptions = (options) => {
+    const mutationKey = ['calendarControllerDeleteEvent'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { id } = props ?? {};
+        return calendarControllerDeleteEvent(id, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Delete (soft-delete) a calendar event
+*/
+export const useCalendarControllerDeleteEvent = (options, queryClient) => {
+    const mutationOptions = getCalendarControllerDeleteEventMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getCalendarControllerRespondRsvpUrl = (id) => {
+    return `/api/v1/calendar/events/${id}/rsvp`;
+};
+export const calendarControllerRespondRsvp = async (id, respondRsvpDto, options) => {
+    return customFetch(getCalendarControllerRespondRsvpUrl(id), {
+        ...options,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        body: JSON.stringify(respondRsvpDto)
+    });
+};
+export const getCalendarControllerRespondRsvpMutationOptions = (options) => {
+    const mutationKey = ['calendarControllerRespondRsvp'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { id, data } = props ?? {};
+        return calendarControllerRespondRsvp(id, data, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Respond to a meeting invitation (accept, decline, tentative)
+*/
+export const useCalendarControllerRespondRsvp = (options, queryClient) => {
+    const mutationOptions = getCalendarControllerRespondRsvpMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getCalendarControllerGetUnscheduledTasksUrl = () => {
+    return `/api/v1/calendar/unscheduled-tasks`;
+};
+export const calendarControllerGetUnscheduledTasks = async (options) => {
+    return customFetch(getCalendarControllerGetUnscheduledTasksUrl(), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getCalendarControllerGetUnscheduledTasksQueryKey = () => {
+    return [
+        `/api/v1/calendar/unscheduled-tasks`
+    ];
+};
+export const getCalendarControllerGetUnscheduledTasksQueryOptions = (options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getCalendarControllerGetUnscheduledTasksQueryKey();
+    const queryFn = ({ signal }) => calendarControllerGetUnscheduledTasks({ signal, ...requestOptions });
+    return { queryKey, queryFn, ...queryOptions };
+};
+/**
+ * @summary Get active tasks ready for time-blocking on calendar
+ */
+export function useCalendarControllerGetUnscheduledTasks(options, queryClient) {
+    const queryOptions = getCalendarControllerGetUnscheduledTasksQueryOptions(options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}

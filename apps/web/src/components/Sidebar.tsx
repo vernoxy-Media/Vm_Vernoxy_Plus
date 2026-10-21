@@ -67,7 +67,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { name: 'Profile', path: '/', icon: User },
     { name: 'My Tasks', path: '/my-tasks', icon: CheckSquare },
     { name: 'Attendance', path: '/attendance', icon: Clock },
-    { name: 'Calendar', path: '/attendance/calendar', icon: Calendar },
+    { name: 'Calendar', path: '/calendar', icon: Calendar },
     ...(user.access?.can_manage_companies
       ? [{ name: 'Companies', path: '/companies', icon: Building2 }]
       : []),

@@ -7,6 +7,10 @@
  */
 export interface TaskSummaryDto {
     total: number;
+    todo_or_in_progress: number;
+    on_hold: number;
+    submitted: number;
+    approved: number;
     assigned: number;
     in_progress: number;
     requested: number;

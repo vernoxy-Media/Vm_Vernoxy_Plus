@@ -16,6 +16,7 @@ export interface MoveTaskStageCommand {
   actorName: string;
   isAdmin: boolean;
   note?: string | null;
+  hold_reason?: string | null;
 }
 
 export class MoveTaskStageUseCase {
@@ -43,10 +44,31 @@ export class MoveTaskStageUseCase {
       throw new InvalidStageTransitionError(check.reason || 'Invalid stage transition');
     }
 
+    // Mandatory hold reason validation
+    if (command.targetStage === 'hold') {
+      const reason = command.hold_reason?.trim() || command.note?.trim();
+      if (!reason) {
+        throw new InvalidStageTransitionError('Hold reason is mandatory when placing a task on hold');
+      }
+    }
+
+    // Section 3.6: Main task approval requires all sub tasks to be approved
+    if (command.targetStage === 'completed' && existing.has_sub_tasks) {
+      const subTasks = await this.taskRepo.getSubTasks(existing.task_id);
+      const unapprovedSubTasks = subTasks.filter((st) => st.stage !== 'completed');
+      if (unapprovedSubTasks.length > 0) {
+        throw new InvalidStageTransitionError(
+          `Cannot approve main task: ${unapprovedSubTasks.length} sub task(s) are not yet approved`,
+        );
+      }
+    }
+
     const updated = await this.taskRepo.moveStage(command.taskId, {
       target_stage: command.targetStage,
       actor_emp_id: command.actorEmpId,
       note: command.note?.trim() || null,
+      hold_reason: command.targetStage === 'hold' ? (command.hold_reason?.trim() || command.note?.trim() || null) : null,
+      self_approved: command.isAdmin,
     });
 
     // Handle notifications asynchronously without failing the stage transition
@@ -61,7 +83,7 @@ export class MoveTaskStageUseCase {
     task: TaskEntity,
     command: MoveTaskStageCommand,
   ): Promise<void> {
-    // 1. Moving to requested (review requested) -> notify admin approvers
+    // 1. Moving to requested (Submitted) -> notify admin approvers
     if (toStage === 'requested') {
       const approverIds = await this.approverResolver.getAdminApproverIds();
       const notifyApprovers = approverIds
@@ -80,7 +102,7 @@ export class MoveTaskStageUseCase {
       }
     }
 
-    // 2. Moving to completed (approved) -> notify assignees
+    // 2. Moving to completed (Approved) -> notify assignees
     if (toStage === 'completed') {
       const notifyAssignees = task.assignees
         .filter((a) => a.employee_id !== command.actorEmpId)
@@ -88,7 +110,7 @@ export class MoveTaskStageUseCase {
           recipient_id: a.employee_id,
           kind: 'task_approved',
           title: `Task Approved: ${task.task_code}`,
-          body: `Task "${task.title}" was approved and marked complete`,
+          body: `Task "${task.title}" was approved and closed`,
           entity_type: 'task',
           entity_id: task.task_id,
           created_by: command.actorEmpId,
@@ -108,7 +130,25 @@ export class MoveTaskStageUseCase {
           title: `Changes Requested: ${task.task_code}`,
           body: command.note
             ? `Review note: "${command.note}"`
-            : `Task "${task.title}" was returned to In Progress`,
+            : `Task "${task.title}" was returned to In Progress for rework`,
+          entity_type: 'task',
+          entity_id: task.task_id,
+          created_by: command.actorEmpId,
+        }));
+      if (notifyAssignees.length) {
+        await this.createNotificationUseCase.executeMany(notifyAssignees);
+      }
+    }
+
+    // 4. Moving to hold -> notify assignees & admin
+    if (toStage === 'hold') {
+      const notifyAssignees = task.assignees
+        .filter((a) => a.employee_id !== command.actorEmpId)
+        .map((a) => ({
+          recipient_id: a.employee_id,
+          kind: 'task_held',
+          title: `Task on Hold: ${task.task_code}`,
+          body: `Task "${task.title}" was placed on hold. Reason: ${task.hold_reason || 'Work paused'}`,
           entity_type: 'task',
           entity_id: task.task_id,
           created_by: command.actorEmpId,

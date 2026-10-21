@@ -23,8 +23,17 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({
   onSelect,
   className = '',
 }) => {
+  const gridColsClass =
+    items.length === 5
+      ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-5'
+      : items.length === 4
+      ? 'grid-cols-2 md:grid-cols-4'
+      : items.length === 3
+      ? 'grid-cols-1 md:grid-cols-3'
+      : 'grid-cols-2 md:grid-cols-4 lg:grid-cols-5';
+
   return (
-    <div className={`grid grid-cols-2 md:grid-cols-4 gap-4 ${className}`}>
+    <div className={`grid ${gridColsClass} gap-4 mb-4 ${className}`}>
       {items.map((item) => {
         const Icon = item.icon;
         const isSelected = item.isActive;

@@ -46,7 +46,7 @@ export const SettingsAttendanceSection: React.FC = () => {
       </div>
 
       {/* 1. Working & Work Off Days */}
-      <AttendanceWorkingDaysCard initialWorkingDays={data.working_days} />
+      <AttendanceWorkingDaysCard initialWorkingDays={data.working_days} holidays={data.holidays} />
 
       {/* 2. Official Holidays */}
       <AttendanceHolidaysCard holidays={data.holidays} />

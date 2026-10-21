@@ -1,53 +1,84 @@
 import React from 'react';
+import { BarChart3, Sun, Calendar, Clock, Compass, Zap } from 'lucide-react';
 import type { AttendanceStatistics } from '../types/attendance.types';
 import { ProgressStatRow } from './ProgressStatRow';
 
 export interface StatisticsCardProps {
   statistics: AttendanceStatistics;
+  dayLabel?: string;
+  weekLabel?: string;
+  monthLabel?: string;
+  selectedDate?: string;
 }
 
-export const StatisticsCard: React.FC<StatisticsCardProps> = ({ statistics }) => {
+export const StatisticsCard: React.FC<StatisticsCardProps> = ({
+  statistics,
+  dayLabel = 'Today',
+  weekLabel = 'This Week',
+  monthLabel = 'This Month',
+}) => {
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-6 flex flex-col justify-between">
+    <div id="statistics-card" className="bg-white rounded-2xl border border-slate-300 shadow-sm hover:shadow-md transition-shadow p-6 flex flex-col justify-between">
       <div>
-        {/* Card Header: Title in blue */}
-        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-          <h2 className="text-lg font-bold text-blue-600 tracking-tight">Statistics</h2>
-          <span className="text-xs font-semibold text-slate-500">Work Metrics</span>
+        {/* Card Header */}
+        <div className="flex items-center justify-between pb-3.5 border-b border-slate-200">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center">
+              <BarChart3 className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-slate-900 tracking-tight">Work Statistics</h2>
+            </div>
+          </div>
+          <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-slate-50 text-slate-600 border border-slate-200">
+            Work Metrics
+          </span>
         </div>
 
-        {/* 4 progress rows with coloured bars + numeric text as in mockup */}
+        {/* 4-5 progress rows with rich gradients and icons */}
         <div className="mt-4 space-y-2.5">
-          {/* Today - Teal/emerald */}
+          {/* Day Metric - Teal/emerald gradient */}
           <ProgressStatRow
-            label="Today"
+            label={dayLabel}
             current={statistics.today.worked_hours}
             target={statistics.today.target_hours}
-            barColor="bg-emerald-400"
+            gradientClass="bg-gradient-to-r from-emerald-500 to-teal-400"
+            icon={Sun}
+            badgeBgColor="bg-emerald-50"
+            badgeTextColor="text-emerald-600"
           />
 
-          {/* This Week - Coral/Red-Orange */}
+          {/* Week Metric - Blue/indigo gradient */}
           <ProgressStatRow
-            label="This Week"
+            label={weekLabel}
             current={statistics.this_week.worked_hours}
             target={statistics.this_week.target_hours}
-            barColor="bg-rose-500"
+            gradientClass="bg-gradient-to-r from-blue-500 to-indigo-500"
+            icon={Calendar}
+            badgeBgColor="bg-blue-50"
+            badgeTextColor="text-blue-600"
           />
 
-          {/* This Month - Amber/Orange */}
+          {/* Month Metric - Violet/purple gradient */}
           <ProgressStatRow
-            label="This Month"
+            label={monthLabel}
             current={statistics.this_month.worked_hours}
             target={statistics.this_month.target_hours}
-            barColor="bg-amber-400"
+            gradientClass="bg-gradient-to-r from-indigo-500 via-purple-500 to-violet-500"
+            icon={Clock}
+            badgeBgColor="bg-indigo-50"
+            badgeTextColor="text-indigo-600"
           />
 
-          {/* Remaining - Blue */}
+          {/* Remaining - Amber/orange gradient */}
           <ProgressStatRow
-            label="Remaining"
+            label="Remaining Hours"
             current={statistics.remaining.worked_hours}
             target={statistics.remaining.target_hours}
-            barColor="bg-blue-500"
+            gradientClass="bg-gradient-to-r from-amber-500 to-orange-400"
+            icon={Compass}
+            badgeBgColor="bg-amber-50"
+            badgeTextColor="text-amber-600"
           />
 
           {/* Overtime (optional mockup row) */}
@@ -56,16 +87,22 @@ export const StatisticsCard: React.FC<StatisticsCardProps> = ({ statistics }) =>
               label="Overtime"
               current={statistics.overtime_hours}
               target={undefined}
-              barColor="bg-yellow-400"
+              gradientClass="bg-gradient-to-r from-rose-500 to-pink-500"
+              icon={Zap}
+              badgeBgColor="bg-rose-50"
+              badgeTextColor="text-rose-600"
             />
           )}
         </div>
       </div>
 
-      <div className="pt-4 mt-6 border-t border-slate-100 text-xs text-slate-500 flex items-center justify-between">
-        <span>Standard work target: 8 hrs / day</span>
-        <span className="font-semibold text-slate-700">40 hrs / week</span>
+      <div className="pt-4 mt-6 border-t border-slate-200 text-xs text-slate-500 flex items-center justify-between">
+        <span className="font-medium text-slate-500">Target: 8 hrs / day</span>
+        <span className="font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-md">
+          40 hrs / week
+        </span>
       </div>
     </div>
   );
 };
+

@@ -200,6 +200,7 @@ export function useDayDetail(date: string | null) {
       };
     },
     enabled: Boolean(date),
+    retry: false,
     staleTime: 60 * 1000,
   });
 }

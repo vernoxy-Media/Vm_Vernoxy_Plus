@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsEmail,
   IsNotEmpty,
@@ -88,6 +88,9 @@ export class LoginResponseDto {
 
   @ApiProperty({ type: Number, example: 60 })
   resend_available_in_seconds!: number;
+
+  @ApiPropertyOptional({ type: String, example: '123456' })
+  otp_code?: string;
 }
 
 export class UserSummaryDto {
@@ -189,4 +192,7 @@ export class MeResponseDto {
 export class ForgotPasswordResponseDto {
   @ApiProperty({ type: String, example: 'If the email is registered, a password reset code has been sent.' })
   message!: string;
+
+  @ApiPropertyOptional({ type: String, example: '123456' })
+  otp_code?: string;
 }

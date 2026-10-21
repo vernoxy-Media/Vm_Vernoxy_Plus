@@ -44,6 +44,7 @@ export interface LoginResult {
   masked_email: string;
   expires_in_seconds: number;
   resend_available_in_seconds: number;
+  otp_code?: string;
 }
 
 export interface VerifyLoginResult {
@@ -202,9 +203,10 @@ export class AuthService {
 
     return {
       challenge_id: otpId,
-      masked_email: maskEmail(emp.email),
+      masked_email: emp.email,
       expires_in_seconds: OTP_EXPIRY_SECONDS,
       resend_available_in_seconds: OTP_RESEND_COOLDOWN_SECONDS,
+      otp_code: code,
     };
   }
 
@@ -366,9 +368,10 @@ export class AuthService {
 
     return {
       challenge_id: newOtpId,
-      masked_email: maskEmail(emp.email),
+      masked_email: emp.email,
       expires_in_seconds: OTP_EXPIRY_SECONDS,
       resend_available_in_seconds: OTP_RESEND_COOLDOWN_SECONDS,
+      otp_code: newCode,
     };
   }
 
@@ -573,7 +576,7 @@ export class AuthService {
     email: string,
     clientIp?: string,
     userAgent?: string,
-  ): Promise<{ message: string }> {
+  ): Promise<{ message: string; otp_code?: string }> {
     const normalizedEmail = email.trim().toLowerCase();
     const identifierHash = crypto.createHash('sha256').update(normalizedEmail).digest('hex');
 
@@ -624,7 +627,10 @@ export class AuthService {
       user_agent: userAgent,
     });
 
-    return { message: 'If the email is registered, a password reset code has been sent.' };
+    return {
+      message: 'If the email is registered, a password reset code has been sent.',
+      otp_code: code,
+    };
   }
 
   async resetPassword(

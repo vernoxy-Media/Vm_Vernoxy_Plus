@@ -6,6 +6,8 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { MyTasksControllerGetBoardPriority } from './myTasksControllerGetBoardPriority';
+import type { MyTasksControllerGetBoardStage } from './myTasksControllerGetBoardStage';
+import type { MyTasksControllerGetBoardSource } from './myTasksControllerGetBoardSource';
 export type MyTasksControllerGetBoardParams = {
     /**
      * Search title or task code
@@ -17,5 +19,7 @@ export type MyTasksControllerGetBoardParams = {
      * Filter by assignee employee ID
      */
     assignee_id?: number;
+    stage?: MyTasksControllerGetBoardStage;
+    source?: MyTasksControllerGetBoardSource;
     overdue_only?: boolean;
 };

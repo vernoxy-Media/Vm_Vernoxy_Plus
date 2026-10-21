@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { Plus, CheckSquare, Clock, AlertCircle, CheckCircle2 } from 'lucide-react';
+import {
+  Plus,
+  CheckSquare,
+  Clock,
+  AlertTriangle,
+  Send,
+  CheckCircle2,
+  LayoutGrid,
+  List,
+} from 'lucide-react';
 import {
   useTasksControllerGetBoard,
   useTasksControllerGetSummary,
@@ -7,6 +16,7 @@ import {
   useTasksControllerCreateTask,
   useTasksControllerUpdateTask,
   useTasksControllerMoveStage,
+  useTasksControllerTrackWorkSession,
   useTasksControllerGetTaskDetail,
   type CreateTaskDto,
 } from '@vernoxy-pulse/api-client';
@@ -22,11 +32,13 @@ import { useLookupsQuery } from '../../hooks/use-master-data';
 import { SummaryCards } from '../../components/SummaryCards';
 import { TaskFiltersBar } from '../../features/tasks/components/TaskFiltersBar';
 import { TaskBoard } from '../../features/tasks/components/TaskBoard';
+import { TaskListView } from '../../features/tasks/components/TaskListView';
 import { TaskDrawer } from '../../features/tasks/components/TaskDrawer';
 import { TaskFormModal } from '../../features/tasks/components/TaskFormModal';
 
 export const TaskManagementPage: React.FC = () => {
   const [filters, setFilters] = useState<TaskBoardQueryDto>({});
+  const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<TaskDetailDto | null>(null);
@@ -40,9 +52,11 @@ export const TaskManagementPage: React.FC = () => {
     (rawSummary?.data as TaskSummaryDto | undefined) ?? (rawSummary as unknown as TaskSummaryDto | undefined);
 
   const { data: rawEmployees } = useTasksControllerGetAssignableEmployees();
-  const employees: AssignableEmployee[] =
-    (rawEmployees?.data as AssignableEmployee[] | undefined) ??
-    (Array.isArray(rawEmployees) ? (rawEmployees as unknown as AssignableEmployee[]) : []);
+  const employees: AssignableEmployee[] = Array.isArray(rawEmployees)
+    ? (rawEmployees as unknown as AssignableEmployee[])
+    : Array.isArray((rawEmployees as any)?.data)
+    ? ((rawEmployees as any).data as AssignableEmployee[])
+    : [];
 
   const { data: taskTypeLookups = [] } = useLookupsQuery('task_type');
 
@@ -56,6 +70,7 @@ export const TaskManagementPage: React.FC = () => {
   const createMutation = useTasksControllerCreateTask();
   const updateMutation = useTasksControllerUpdateTask();
   const moveMutation = useTasksControllerMoveStage();
+  const trackSessionMutation = useTasksControllerTrackWorkSession();
 
   const handleRefresh = () => {
     refetchBoard();
@@ -63,16 +78,40 @@ export const TaskManagementPage: React.FC = () => {
     if (selectedTaskId !== null) refetchDetail();
   };
 
-  const handleMoveStage = async (taskId: number, targetStage: TaskStage, note?: string) => {
+  const handleMoveStage = async (taskId: number, targetStage: TaskStage, note?: string, holdReason?: string) => {
     try {
       await moveMutation.mutateAsync({
         id: taskId,
-        data: { target_stage: targetStage, note },
+        data: {
+          target_stage: targetStage,
+          note,
+          hold_reason: holdReason,
+        },
       });
       handleRefresh();
     } catch (err: unknown) {
       const e = err as { detail?: string; message?: string };
       alert(e.detail || e.message || 'Failed to move task stage');
+    }
+  };
+
+  const handleTrackWorkSession = async (
+    taskId: number,
+    action: 'start' | 'pause' | 'finish',
+    note?: string,
+  ) => {
+    try {
+      await trackSessionMutation.mutateAsync({
+        id: taskId,
+        data: {
+          action,
+          note,
+        },
+      });
+      handleRefresh();
+    } catch (err: unknown) {
+      const e = err as { detail?: string; message?: string };
+      alert(e.detail || e.message || `Failed to ${action} work session`);
     }
   };
 
@@ -85,6 +124,13 @@ export const TaskManagementPage: React.FC = () => {
     handleRefresh();
   };
 
+  // 5 KPI Cards aligned with BFD Section 3.1
+  const todoOrInProgress =
+    summary?.todo_or_in_progress ?? ((summary?.assigned ?? 0) + (summary?.in_progress ?? 0));
+  const onHoldCount = summary?.on_hold ?? 0;
+  const submittedCount = summary?.submitted ?? (summary?.requested ?? 0);
+  const approvedCount = summary?.approved ?? 0;
+
   const summaryItems = [
     {
       id: 'total',
@@ -95,26 +141,32 @@ export const TaskManagementPage: React.FC = () => {
     },
     {
       id: 'in_progress',
-      label: 'In Progress',
-      count: summary?.in_progress ?? 0,
+      label: 'To Do / In Progress',
+      count: todoOrInProgress,
       icon: Clock,
       colorClass: 'bg-blue-50 text-blue-700',
     },
     {
-      id: 'requested',
-      label: 'In Review',
-      count: summary?.requested ?? 0,
-      icon: AlertCircle,
+      id: 'hold',
+      label: 'On Hold',
+      count: onHoldCount,
+      icon: AlertTriangle,
       colorClass: 'bg-amber-50 text-amber-700',
-      badge: summary?.requested ? `${summary.requested} pending` : undefined,
     },
     {
-      id: 'completed_today',
-      label: 'Completed Today',
-      count: summary?.completed_today ?? 0,
+      id: 'submitted',
+      label: 'Submitted',
+      count: submittedCount,
+      icon: Send,
+      colorClass: 'bg-purple-50 text-purple-700',
+      badge: submittedCount > 0 ? `${submittedCount} pending` : undefined,
+    },
+    {
+      id: 'approved',
+      label: 'Approved',
+      count: approvedCount,
       icon: CheckCircle2,
       colorClass: 'bg-emerald-50 text-emerald-700',
-      subtitle: `${summary?.completed_this_month ?? 0} this month`,
     },
   ];
 
@@ -128,19 +180,50 @@ export const TaskManagementPage: React.FC = () => {
             Organize, assign, and track team tasks across workflow stages.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            setEditingTask(null);
-            setIsFormOpen(true);
-          }}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 text-sm font-semibold text-white shadow-xs hover:bg-blue-700 transition-colors"
-        >
-          <Plus className="w-4 h-4" /> New Task
-        </button>
+
+        <div className="flex items-center gap-3">
+          {/* Dual View Toggle (Kanban / List) */}
+          <div className="inline-flex rounded-xl bg-slate-100 p-1 border border-slate-200">
+            <button
+              type="button"
+              onClick={() => setViewMode('kanban')}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                viewMode === 'kanban'
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              Kanban
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('list')}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                viewMode === 'list'
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <List className="w-3.5 h-3.5" />
+              List
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setEditingTask(null);
+              setIsFormOpen(true);
+            }}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 text-sm font-semibold text-white shadow-xs hover:bg-blue-700 transition-colors cursor-pointer"
+          >
+            <Plus className="w-4 h-4" /> New Task
+          </button>
+        </div>
       </div>
 
-      {/* Summary KPI Cards */}
+      {/* 5 Summary KPI Cards */}
       <SummaryCards items={summaryItems} />
 
       {/* Filter Bar */}
@@ -151,13 +234,20 @@ export const TaskManagementPage: React.FC = () => {
         assigneeOptions={employees}
       />
 
-      {/* Kanban Board */}
+      {/* Main View: Kanban or List */}
       {isBoardLoading || !board ? (
         <div className="flex h-64 items-center justify-center rounded-2xl bg-white border border-slate-200/80">
           <div className="text-sm font-medium text-slate-400">Loading tasks board...</div>
         </div>
-      ) : (
+      ) : viewMode === 'kanban' ? (
         <TaskBoard
+          board={board}
+          isAdmin={true}
+          onCardClick={(id) => setSelectedTaskId(id)}
+          onMoveStage={handleMoveStage}
+        />
+      ) : (
+        <TaskListView
           board={board}
           isAdmin={true}
           onCardClick={(id) => setSelectedTaskId(id)}
@@ -171,6 +261,8 @@ export const TaskManagementPage: React.FC = () => {
         isOpen={selectedTaskId !== null}
         isAdmin={true}
         onClose={() => setSelectedTaskId(null)}
+        onMoveStage={handleMoveStage}
+        onTrackWorkSession={handleTrackWorkSession}
         onEdit={(task) => {
           setEditingTask(task);
           setIsFormOpen(true);

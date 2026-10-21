@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, CheckCircle2, Loader2 } from 'lucide-react';
 import { useUpdateWorkingDaysMutation } from '../../../../features/attendance/hooks/use-attendance-settings';
+import type { AttendanceHoliday } from '../../../../features/attendance/types/attendance.types';
 
 const DAYS_OF_WEEK = [
   { dow: 1, label: 'Monday', short: 'Mon' },
@@ -12,22 +13,31 @@ const DAYS_OF_WEEK = [
   { dow: 0, label: 'Sunday', short: 'Sun' },
 ];
 
-function getWeekDate(dow: number): string {
+function getWeekDateInfo(dow: number) {
   const now = new Date();
   const currentDay = now.getDay();
   const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
   const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + diffToMonday);
   const offset = dow === 0 ? 6 : dow - 1;
   const target = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + offset);
-  return target.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+  const year = target.getFullYear();
+  const month = String(target.getMonth() + 1).padStart(2, '0');
+  const day = String(target.getDate()).padStart(2, '0');
+  const dateStr = `${year}-${month}-${day}`;
+  const formatted = target.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+  return { formatted, dateStr };
 }
 
 export interface AttendanceWorkingDaysCardProps {
   initialWorkingDays?: number[];
+  holidays?: AttendanceHoliday[];
 }
 
 export const AttendanceWorkingDaysCard: React.FC<AttendanceWorkingDaysCardProps> = ({
   initialWorkingDays = [1, 2, 3, 4, 5, 6],
+  holidays = [],
 }) => {
   const [selectedDays, setSelectedDays] = useState<number[]>(initialWorkingDays);
   const [successMsg, setSuccessMsg] = useState(false);
@@ -50,6 +60,22 @@ export const AttendanceWorkingDaysCard: React.FC<AttendanceWorkingDaysCardProps>
     setTimeout(() => setSuccessMsg(false), 3000);
   };
 
+  // Find holidays that occur during this current week
+  const weekDaysInfo = DAYS_OF_WEEK.map((d) => {
+    const { formatted, dateStr } = getWeekDateInfo(d.dow);
+    const holiday = holidays.find((h) => h.date === dateStr);
+    const isWorking = selectedDays.includes(d.dow);
+    return {
+      ...d,
+      formatted,
+      dateStr,
+      holiday,
+      isWorking,
+    };
+  });
+
+  const holidaysInCurrentWeek = weekDaysInfo.filter((d) => Boolean(d.holiday));
+
   return (
     <div className="p-6 bg-white rounded-2xl border border-slate-200/90 shadow-xs space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-3 border-b border-slate-100">
@@ -62,9 +88,17 @@ export const AttendanceWorkingDaysCard: React.FC<AttendanceWorkingDaysCardProps>
             </p>
           </div>
         </div>
-        <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 self-start sm:self-auto">
-          {selectedDays.length} Working Days
-        </span>
+        <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+          {holidaysInCurrentWeek.length > 0 && (
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+              {holidaysInCurrentWeek.length} Holiday this week
+            </span>
+          )}
+          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700">
+            {selectedDays.length} Working Days
+          </span>
+        </div>
       </div>
 
       {successMsg && (
@@ -76,45 +110,74 @@ export const AttendanceWorkingDaysCard: React.FC<AttendanceWorkingDaysCardProps>
 
       <form onSubmit={handleSave} className="space-y-4">
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
-          {DAYS_OF_WEEK.map((day) => {
-            const isWorking = selectedDays.includes(day.dow);
+          {weekDaysInfo.map((day) => {
+            const isHoliday = Boolean(day.holiday);
+
+            let cardClasses = 'border-slate-200 bg-slate-50/50 hover:bg-slate-100/60';
+            if (isHoliday) {
+              cardClasses = 'border-rose-300 bg-rose-50/50 shadow-xs';
+            } else if (day.isWorking) {
+              cardClasses = 'border-blue-500/80 bg-blue-50/50 shadow-xs';
+            }
+
             return (
               <button
                 type="button"
                 key={day.dow}
                 id={`working-day-toggle-${day.short.toLowerCase()}`}
-                title={day.label}
+                title={isHoliday ? `${day.label}: Holiday (${day.holiday?.name})` : day.label}
                 onClick={() => toggleDay(day.dow)}
-                className={`p-3.5 rounded-xl border text-left transition-all flex flex-col justify-between h-24 ${
-                  isWorking
-                    ? 'border-blue-500/80 bg-blue-50/50 shadow-xs'
-                    : 'border-slate-200 bg-slate-50/50 hover:bg-slate-100/60'
-                }`}
+                className={`p-3.5 rounded-xl border text-left transition-all flex flex-col justify-between min-h-[105px] ${cardClasses}`}
               >
                 <div className="flex items-center justify-between w-full">
-                  <span className="text-xs font-bold text-slate-800">{day.short}</span>
-                  <div
-                    className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center transition-all ${
-                      isWorking ? 'bg-blue-600 border-blue-600' : 'border-slate-300 bg-white'
+                  <span
+                    className={`text-xs font-bold ${
+                      isHoliday ? 'text-rose-700' : 'text-slate-800'
                     }`}
                   >
-                    {isWorking && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+                    {day.short}
+                  </span>
+                  <div
+                    className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center transition-all ${
+                      isHoliday
+                        ? 'bg-rose-500 border-rose-500'
+                        : day.isWorking
+                        ? 'bg-blue-600 border-blue-600'
+                        : 'border-slate-300 bg-white'
+                    }`}
+                  >
+                    {(day.isWorking || isHoliday) && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                    )}
                   </div>
                 </div>
 
-                <div>
-                  <span className="text-xs font-semibold text-slate-700 block">
-                    {getWeekDate(day.dow)}
-                  </span>
+                <div className="space-y-1 mt-2">
                   <span
-                    className={`inline-block mt-1 text-[11px] font-bold px-1.5 py-0.2 rounded-md ${
-                      isWorking
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'bg-slate-200/80 text-slate-600'
+                    className={`text-xs font-semibold block ${
+                      isHoliday ? 'text-rose-900 font-bold' : 'text-slate-700'
                     }`}
                   >
-                    {isWorking ? 'Working' : 'Work Off'}
+                    {day.formatted}
                   </span>
+                  {isHoliday ? (
+                    <span
+                      className="inline-block text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-rose-100 text-rose-700 border border-rose-200 truncate max-w-full"
+                      title={day.holiday?.name}
+                    >
+                      Holiday: {day.holiday?.name}
+                    </span>
+                  ) : (
+                    <span
+                      className={`inline-block text-[11px] font-bold px-1.5 py-0.5 rounded-md ${
+                        day.isWorking
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'bg-slate-200/80 text-slate-600'
+                      }`}
+                    >
+                      {day.isWorking ? 'Working' : 'Work Off'}
+                    </span>
+                  )}
                 </div>
               </button>
             );

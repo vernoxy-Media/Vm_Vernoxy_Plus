@@ -20,6 +20,7 @@ export const TaskFiltersBar: React.FC<TaskFiltersBarProps> = ({
       filters.priority ||
       filters.task_type_id ||
       filters.assignee_id ||
+      filters.stage ||
       filters.overdue_only,
   );
 
@@ -30,7 +31,7 @@ export const TaskFiltersBar: React.FC<TaskFiltersBarProps> = ({
   return (
     <div className="flex flex-wrap items-center gap-2.5 rounded-2xl bg-white p-3 border border-slate-200/80 shadow-xs mb-4">
       {/* Search Bar */}
-      <div className="relative min-w-[200px] flex-1">
+      <div className="relative min-w-[180px] flex-1">
         <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
         <input
           type="text"
@@ -40,6 +41,25 @@ export const TaskFiltersBar: React.FC<TaskFiltersBarProps> = ({
           className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500"
         />
       </div>
+
+      {/* Stage Dropdown (5 stages) */}
+      <select
+        value={filters.stage || ''}
+        onChange={(e) =>
+          onChange({
+            ...filters,
+            stage: (e.target.value as any) || undefined,
+          })
+        }
+        className="rounded-xl border border-slate-200 bg-white py-1.5 px-2.5 text-xs text-slate-700 focus:outline-none focus:border-blue-500"
+      >
+        <option value="">All Stages</option>
+        <option value="assigned">To Do</option>
+        <option value="in_progress">In Progress</option>
+        <option value="hold">Hold</option>
+        <option value="requested">Submitted</option>
+        <option value="completed">Approved</option>
+      </select>
 
       {/* Priority Dropdown */}
       <select
@@ -53,10 +73,9 @@ export const TaskFiltersBar: React.FC<TaskFiltersBarProps> = ({
         className="rounded-xl border border-slate-200 bg-white py-1.5 px-2.5 text-xs text-slate-700 focus:outline-none focus:border-blue-500"
       >
         <option value="">All Priorities</option>
-        <option value="low">Low</option>
-        <option value="medium">Medium</option>
         <option value="high">High</option>
-        <option value="critical">Critical</option>
+        <option value="medium">Medium</option>
+        <option value="low">Low</option>
       </select>
 
       {/* Task Type Dropdown */}
@@ -105,7 +124,7 @@ export const TaskFiltersBar: React.FC<TaskFiltersBarProps> = ({
       <button
         type="button"
         onClick={() => onChange({ ...filters, overdue_only: !filters.overdue_only })}
-        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-medium transition-colors ${
+        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-medium transition-colors cursor-pointer ${
           filters.overdue_only
             ? 'bg-rose-50 border-rose-300 text-rose-700'
             : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
@@ -120,7 +139,7 @@ export const TaskFiltersBar: React.FC<TaskFiltersBarProps> = ({
         <button
           type="button"
           onClick={resetFilters}
-          className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 px-2 py-1 transition-colors"
+          className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 px-2 py-1 transition-colors cursor-pointer"
         >
           <X className="w-3.5 h-3.5" /> Reset
         </button>

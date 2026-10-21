@@ -23,7 +23,7 @@ export interface AppLayoutProps {
 
 export const AppLayout: React.FC<AppLayoutProps> = ({
   children,
-  fluid = false,
+  fluid = true,
   requireAdmin = false,
 }) => {
   const { user } = useAuth();
@@ -157,8 +157,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
         </header>
 
         <main
-          className={`flex-1 w-full mx-auto px-4 sm:px-6 lg:px-8 pt-20 lg:pt-6 pb-12 ${
-            fluid ? 'max-w-page-wide' : 'max-w-page-form'
+          className={`flex-1 w-full px-4 sm:px-6 lg:px-8 pt-20 lg:pt-6 pb-12 ${
+            fluid ? 'max-w-full' : 'max-w-7xl'
           }`}
         >
           {children}

@@ -1,5 +1,5 @@
 import type { DataTag, DefinedInitialDataOptions, DefinedUseQueryResult, QueryClient, QueryKey, UndefinedInitialDataOptions, UseMutationOptions, UseMutationResult, UseQueryOptions, UseQueryResult } from '@tanstack/react-query';
-import type { AdminUpsertDayDto, AssignableEmployeeDto, AttendanceControllerGetDashboardParams, AttendanceControllerGetMeParams, AttendanceControllerGetReportParams, AttendanceControllerGetTeamParams, ChangePasswordDto, CompanyControllerCheckDuplicatesParams, CompanyControllerGetOptionsParams, CompanyControllerListParams, CompanyDataTransferControllerDownloadTemplateParams, CompanyDataTransferControllerExportParams, CompanyDataTransferControllerGetIssuesParams, CompanyDataTransferControllerListImportsParams, CompanyDataTransferControllerPreviewBody, CompanyDetailResponseDto, CompanyDuplicateMatchDto, CompanyImportConfirmDto, CompanyImportConfirmResponseDto, CompanyImportPreviewResponseDto, CompanyOptionDto, CreateCompanyDto, CreateCorrectionDto, CreateCustomerTypeDto, CreateDepartmentDto, CreateEmployeeDto, CreateIndustryDto, CreateRoleDto, CreateTaskDto, CustomerTypeControllerListParams, CustomerTypeItemDto, CustomerTypeOptionDto, DashboardResponseDto, DataTransferJobDetailResponseDto, DayDetailDto, DepartmentControllerListParams, DepartmentListResponseDto, DepartmentOptionDto, DepartmentResponseDto, EmployeeControllerGetOptionsParams, EmployeeControllerListParams, EmployeeControllerUploadPhotoBody, EmployeeListResponseDto, EmployeeOptionDto, EmployeeResponseDto, FilesControllerGetProfilePhotoParams, ForgotPasswordDto, ForgotPasswordResponseDto, IndustryControllerGetOptionsParams, IndustryControllerListParams, IndustryDetailResponseDto, IndustryOptionDto, ListCompaniesResponseDto, ListCustomerTypesResponseDto, ListIndustriesResponseDto, LoginDto, LoginResponseDto, LookupControllerGetOptionsParams, LookupOptionDto, MarkAllReadResponseDto, MarkReadResponseDto, MeResponseDto, MonthBlockDto, MoveTaskStageDto, MyTasksControllerGetBoardParams, NotificationResponseDto, NotificationsControllerGetNotificationsParams, PendingReviewCountDto, PersonControllerLookupParams, PersonLookupMatchDto, RefreshResponseDto, RejectCorrectionDto, ResendOtpDto, ResetPasswordDto, RoleControllerGetOptionsParams, RoleControllerListParams, RoleListResponseDto, RoleOptionDto, RoleResponseDto, TaskBoardResultDto, TaskDetailDto, TaskSummaryDto, TasksControllerGetBoardParams, TodayAttendanceBlockDto, TransferJobIssuesResponseDto, TransferJobListResponseDto, UnreadCountResponseDto, UpdateCompanyDto, UpdateCustomerTypeDto, UpdateDepartmentDto, UpdateEmployeeDto, UpdateIndustryDto, UpdateRoleDto, UpdateTaskDto, VerifyLoginDto, VerifyLoginResponseDto } from './model';
+import type { AdminUpsertDayDto, AssignableEmployeeDto, AttendanceControllerGetDashboardParams, AttendanceControllerGetMeParams, AttendanceControllerGetReportParams, AttendanceControllerGetTeamParams, CalendarControllerGetEventsParams, CalendarEventResponseDto, ChangePasswordDto, CompanyControllerCheckDuplicatesParams, CompanyControllerGetOptionsParams, CompanyControllerListParams, CompanyDataTransferControllerDownloadTemplateParams, CompanyDataTransferControllerExportParams, CompanyDataTransferControllerGetIssuesParams, CompanyDataTransferControllerListImportsParams, CompanyDataTransferControllerPreviewBody, CompanyDetailResponseDto, CompanyDuplicateMatchDto, CompanyImportConfirmDto, CompanyImportConfirmResponseDto, CompanyImportPreviewResponseDto, CompanyOptionDto, CreateCalendarEventDto, CreateCompanyDto, CreateCorrectionDto, CreateCustomerTypeDto, CreateDepartmentDto, CreateEmployeeDto, CreateIndustryDto, CreateRoleDto, CreateTaskDto, CustomerTypeControllerListParams, CustomerTypeItemDto, CustomerTypeOptionDto, DashboardResponseDto, DataTransferJobDetailResponseDto, DayDetailDto, DepartmentControllerListParams, DepartmentListResponseDto, DepartmentOptionDto, DepartmentResponseDto, EmployeeControllerGetOptionsParams, EmployeeControllerListParams, EmployeeControllerUploadPhotoBody, EmployeeListResponseDto, EmployeeOptionDto, EmployeeResponseDto, FilesControllerGetProfilePhotoParams, ForgotPasswordDto, ForgotPasswordResponseDto, IndustryControllerGetOptionsParams, IndustryControllerListParams, IndustryDetailResponseDto, IndustryOptionDto, ListCompaniesResponseDto, ListCustomerTypesResponseDto, ListIndustriesResponseDto, LoginDto, LoginResponseDto, LookupControllerGetOptionsParams, LookupOptionDto, MarkAllReadResponseDto, MarkReadResponseDto, MeResponseDto, MonthBlockDto, MoveTaskStageDto, MyTasksControllerGetBoardParams, NotificationResponseDto, NotificationsControllerGetNotificationsParams, PendingReviewCountDto, PersonControllerLookupParams, PersonLookupMatchDto, RefreshResponseDto, RejectCorrectionDto, ResendOtpDto, ResetPasswordDto, RespondRsvpDto, RoleControllerGetOptionsParams, RoleControllerListParams, RoleListResponseDto, RoleOptionDto, RoleResponseDto, TaskBoardResultDto, TaskDetailDto, TaskSummaryDto, TasksControllerGetBoardParams, TodayAttendanceBlockDto, TrackWorkSessionDto, TransferJobIssuesResponseDto, TransferJobListResponseDto, UnreadCountResponseDto, UnscheduledTaskDto, UpdateCalendarEventDto, UpdateCompanyDto, UpdateCustomerTypeDto, UpdateDepartmentDto, UpdateEmployeeDto, UpdateIndustryDto, UpdateRoleDto, UpdateTaskDto, VerifyLoginDto, VerifyLoginResponseDto } from './model';
 import { customFetch } from '../custom-fetch';
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 /**
@@ -3515,6 +3515,46 @@ export declare const useTasksControllerUpdateTask: <TError = unknown, TContext =
     data: UpdateTaskDto;
 }, TContext>;
 /**
+ * @summary Get sub tasks for a parent task
+ */
+export type tasksControllerGetSubTasksResponse200 = {
+    data: TaskDetailDto[];
+    status: 200;
+};
+export type tasksControllerGetSubTasksResponseSuccess = (tasksControllerGetSubTasksResponse200) & {
+    headers: Headers;
+};
+export type tasksControllerGetSubTasksResponse = (tasksControllerGetSubTasksResponseSuccess);
+export declare const getTasksControllerGetSubTasksUrl: (id: number) => string;
+export declare const tasksControllerGetSubTasks: (id: number, options?: RequestInit) => Promise<tasksControllerGetSubTasksResponse>;
+export declare const getTasksControllerGetSubTasksQueryKey: (id?: number) => readonly ["/api/v1/admin/tasks/undefined/subtasks" | `/api/v1/admin/tasks/${number}/subtasks`];
+export declare const getTasksControllerGetSubTasksQueryOptions: <TData = Awaited<ReturnType<typeof tasksControllerGetSubTasks>>, TError = unknown>(id: number, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetSubTasks>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetSubTasks>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export type TasksControllerGetSubTasksQueryResult = NonNullable<Awaited<ReturnType<typeof tasksControllerGetSubTasks>>>;
+export type TasksControllerGetSubTasksQueryError = unknown;
+export declare function useTasksControllerGetSubTasks<TData = Awaited<ReturnType<typeof tasksControllerGetSubTasks>>, TError = unknown>(id: number, options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetSubTasks>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof tasksControllerGetSubTasks>>, TError, Awaited<ReturnType<typeof tasksControllerGetSubTasks>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useTasksControllerGetSubTasks<TData = Awaited<ReturnType<typeof tasksControllerGetSubTasks>>, TError = unknown>(id: number, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetSubTasks>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof tasksControllerGetSubTasks>>, TError, Awaited<ReturnType<typeof tasksControllerGetSubTasks>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useTasksControllerGetSubTasks<TData = Awaited<ReturnType<typeof tasksControllerGetSubTasks>>, TError = unknown>(id: number, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof tasksControllerGetSubTasks>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
  * @summary Move task stage (admin)
  */
 export type tasksControllerMoveStageResponse200 = {
@@ -3552,6 +3592,45 @@ export declare const useTasksControllerMoveStage: <TError = unknown, TContext = 
 }, queryClient?: QueryClient) => UseMutationResult<Awaited<ReturnType<typeof tasksControllerMoveStage>>, TError, {
     id: number;
     data: MoveTaskStageDto;
+}, TContext>;
+/**
+ * @summary Track work session (start, pause, finish)
+ */
+export type tasksControllerTrackWorkSessionResponse200 = {
+    data: TaskDetailDto;
+    status: 200;
+};
+export type tasksControllerTrackWorkSessionResponseSuccess = (tasksControllerTrackWorkSessionResponse200) & {
+    headers: Headers;
+};
+export type tasksControllerTrackWorkSessionResponse = (tasksControllerTrackWorkSessionResponseSuccess);
+export declare const getTasksControllerTrackWorkSessionUrl: (id: number) => string;
+export declare const tasksControllerTrackWorkSession: (id: number, trackWorkSessionDto: TrackWorkSessionDto, options?: RequestInit) => Promise<tasksControllerTrackWorkSessionResponse>;
+export declare const getTasksControllerTrackWorkSessionMutationOptions: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof tasksControllerTrackWorkSession>>, TError, {
+        id: number;
+        data: TrackWorkSessionDto;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof tasksControllerTrackWorkSession>>, TError, {
+    id: number;
+    data: TrackWorkSessionDto;
+}, TContext>;
+export type TasksControllerTrackWorkSessionMutationResult = NonNullable<Awaited<ReturnType<typeof tasksControllerTrackWorkSession>>>;
+export type TasksControllerTrackWorkSessionMutationBody = TrackWorkSessionDto;
+export type TasksControllerTrackWorkSessionMutationError = unknown;
+/**
+* @summary Track work session (start, pause, finish)
+*/
+export declare const useTasksControllerTrackWorkSession: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof tasksControllerTrackWorkSession>>, TError, {
+        id: number;
+        data: TrackWorkSessionDto;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient) => UseMutationResult<Awaited<ReturnType<typeof tasksControllerTrackWorkSession>>, TError, {
+    id: number;
+    data: TrackWorkSessionDto;
 }, TContext>;
 /**
  * @summary Get employee personal task kanban board
@@ -3634,6 +3713,41 @@ export declare function useMyTasksControllerGetSummary<TData = Awaited<ReturnTyp
     queryKey: DataTag<QueryKey, TData, TError>;
 };
 /**
+ * @summary Create a quick task for the current employee (Section 3.5 BFD)
+ */
+export type myTasksControllerCreateQuickTaskResponse201 = {
+    data: TaskDetailDto;
+    status: 201;
+};
+export type myTasksControllerCreateQuickTaskResponseSuccess = (myTasksControllerCreateQuickTaskResponse201) & {
+    headers: Headers;
+};
+export type myTasksControllerCreateQuickTaskResponse = (myTasksControllerCreateQuickTaskResponseSuccess);
+export declare const getMyTasksControllerCreateQuickTaskUrl: () => string;
+export declare const myTasksControllerCreateQuickTask: (createTaskDto: CreateTaskDto, options?: RequestInit) => Promise<myTasksControllerCreateQuickTaskResponse>;
+export declare const getMyTasksControllerCreateQuickTaskMutationOptions: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof myTasksControllerCreateQuickTask>>, TError, {
+        data: CreateTaskDto;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof myTasksControllerCreateQuickTask>>, TError, {
+    data: CreateTaskDto;
+}, TContext>;
+export type MyTasksControllerCreateQuickTaskMutationResult = NonNullable<Awaited<ReturnType<typeof myTasksControllerCreateQuickTask>>>;
+export type MyTasksControllerCreateQuickTaskMutationBody = CreateTaskDto;
+export type MyTasksControllerCreateQuickTaskMutationError = unknown;
+/**
+* @summary Create a quick task for the current employee (Section 3.5 BFD)
+*/
+export declare const useMyTasksControllerCreateQuickTask: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof myTasksControllerCreateQuickTask>>, TError, {
+        data: CreateTaskDto;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient) => UseMutationResult<Awaited<ReturnType<typeof myTasksControllerCreateQuickTask>>, TError, {
+    data: CreateTaskDto;
+}, TContext>;
+/**
  * @summary Get details of a task assigned to current employee
  */
 export type myTasksControllerGetTaskDetailResponse200 = {
@@ -3674,7 +3788,47 @@ export declare function useMyTasksControllerGetTaskDetail<TData = Awaited<Return
     queryKey: DataTag<QueryKey, TData, TError>;
 };
 /**
- * @summary Move assigned task stage (e.g. to in_progress or requested)
+ * @summary Get sub tasks for a parent task
+ */
+export type myTasksControllerGetSubTasksResponse200 = {
+    data: TaskDetailDto[];
+    status: 200;
+};
+export type myTasksControllerGetSubTasksResponseSuccess = (myTasksControllerGetSubTasksResponse200) & {
+    headers: Headers;
+};
+export type myTasksControllerGetSubTasksResponse = (myTasksControllerGetSubTasksResponseSuccess);
+export declare const getMyTasksControllerGetSubTasksUrl: (id: number) => string;
+export declare const myTasksControllerGetSubTasks: (id: number, options?: RequestInit) => Promise<myTasksControllerGetSubTasksResponse>;
+export declare const getMyTasksControllerGetSubTasksQueryKey: (id?: number) => readonly ["/api/v1/my-tasks/undefined/subtasks" | `/api/v1/my-tasks/${number}/subtasks`];
+export declare const getMyTasksControllerGetSubTasksQueryOptions: <TData = Awaited<ReturnType<typeof myTasksControllerGetSubTasks>>, TError = unknown>(id: number, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof myTasksControllerGetSubTasks>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseQueryOptions<Awaited<ReturnType<typeof myTasksControllerGetSubTasks>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export type MyTasksControllerGetSubTasksQueryResult = NonNullable<Awaited<ReturnType<typeof myTasksControllerGetSubTasks>>>;
+export type MyTasksControllerGetSubTasksQueryError = unknown;
+export declare function useMyTasksControllerGetSubTasks<TData = Awaited<ReturnType<typeof myTasksControllerGetSubTasks>>, TError = unknown>(id: number, options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof myTasksControllerGetSubTasks>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof myTasksControllerGetSubTasks>>, TError, Awaited<ReturnType<typeof myTasksControllerGetSubTasks>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useMyTasksControllerGetSubTasks<TData = Awaited<ReturnType<typeof myTasksControllerGetSubTasks>>, TError = unknown>(id: number, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof myTasksControllerGetSubTasks>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof myTasksControllerGetSubTasks>>, TError, Awaited<ReturnType<typeof myTasksControllerGetSubTasks>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useMyTasksControllerGetSubTasks<TData = Awaited<ReturnType<typeof myTasksControllerGetSubTasks>>, TError = unknown>(id: number, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof myTasksControllerGetSubTasks>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Move assigned task stage (e.g. to in_progress, hold, or requested)
  */
 export type myTasksControllerMoveStageResponse200 = {
     data: TaskDetailDto;
@@ -3700,7 +3854,7 @@ export type MyTasksControllerMoveStageMutationResult = NonNullable<Awaited<Retur
 export type MyTasksControllerMoveStageMutationBody = MoveTaskStageDto;
 export type MyTasksControllerMoveStageMutationError = unknown;
 /**
-* @summary Move assigned task stage (e.g. to in_progress or requested)
+* @summary Move assigned task stage (e.g. to in_progress, hold, or requested)
 */
 export declare const useMyTasksControllerMoveStage: <TError = unknown, TContext = unknown>(options?: {
     mutation?: UseMutationOptions<Awaited<ReturnType<typeof myTasksControllerMoveStage>>, TError, {
@@ -3712,4 +3866,270 @@ export declare const useMyTasksControllerMoveStage: <TError = unknown, TContext 
     id: number;
     data: MoveTaskStageDto;
 }, TContext>;
+/**
+ * @summary Track work session (start, pause, finish)
+ */
+export type myTasksControllerTrackWorkSessionResponse200 = {
+    data: TaskDetailDto;
+    status: 200;
+};
+export type myTasksControllerTrackWorkSessionResponseSuccess = (myTasksControllerTrackWorkSessionResponse200) & {
+    headers: Headers;
+};
+export type myTasksControllerTrackWorkSessionResponse = (myTasksControllerTrackWorkSessionResponseSuccess);
+export declare const getMyTasksControllerTrackWorkSessionUrl: (id: number) => string;
+export declare const myTasksControllerTrackWorkSession: (id: number, trackWorkSessionDto: TrackWorkSessionDto, options?: RequestInit) => Promise<myTasksControllerTrackWorkSessionResponse>;
+export declare const getMyTasksControllerTrackWorkSessionMutationOptions: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof myTasksControllerTrackWorkSession>>, TError, {
+        id: number;
+        data: TrackWorkSessionDto;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof myTasksControllerTrackWorkSession>>, TError, {
+    id: number;
+    data: TrackWorkSessionDto;
+}, TContext>;
+export type MyTasksControllerTrackWorkSessionMutationResult = NonNullable<Awaited<ReturnType<typeof myTasksControllerTrackWorkSession>>>;
+export type MyTasksControllerTrackWorkSessionMutationBody = TrackWorkSessionDto;
+export type MyTasksControllerTrackWorkSessionMutationError = unknown;
+/**
+* @summary Track work session (start, pause, finish)
+*/
+export declare const useMyTasksControllerTrackWorkSession: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof myTasksControllerTrackWorkSession>>, TError, {
+        id: number;
+        data: TrackWorkSessionDto;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient) => UseMutationResult<Awaited<ReturnType<typeof myTasksControllerTrackWorkSession>>, TError, {
+    id: number;
+    data: TrackWorkSessionDto;
+}, TContext>;
+/**
+ * @summary Get calendar events in time window for current employee
+ */
+export type calendarControllerGetEventsResponse200 = {
+    data: CalendarEventResponseDto[];
+    status: 200;
+};
+export type calendarControllerGetEventsResponseSuccess = (calendarControllerGetEventsResponse200) & {
+    headers: Headers;
+};
+export type calendarControllerGetEventsResponse = (calendarControllerGetEventsResponseSuccess);
+export declare const getCalendarControllerGetEventsUrl: (params: CalendarControllerGetEventsParams) => string;
+export declare const calendarControllerGetEvents: (params: CalendarControllerGetEventsParams, options?: RequestInit) => Promise<calendarControllerGetEventsResponse>;
+export declare const getCalendarControllerGetEventsQueryKey: (params?: CalendarControllerGetEventsParams) => readonly ["/api/v1/calendar/events", ...CalendarControllerGetEventsParams[]];
+export declare const getCalendarControllerGetEventsQueryOptions: <TData = Awaited<ReturnType<typeof calendarControllerGetEvents>>, TError = unknown>(params: CalendarControllerGetEventsParams, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof calendarControllerGetEvents>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseQueryOptions<Awaited<ReturnType<typeof calendarControllerGetEvents>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export type CalendarControllerGetEventsQueryResult = NonNullable<Awaited<ReturnType<typeof calendarControllerGetEvents>>>;
+export type CalendarControllerGetEventsQueryError = unknown;
+export declare function useCalendarControllerGetEvents<TData = Awaited<ReturnType<typeof calendarControllerGetEvents>>, TError = unknown>(params: CalendarControllerGetEventsParams, options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof calendarControllerGetEvents>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof calendarControllerGetEvents>>, TError, Awaited<ReturnType<typeof calendarControllerGetEvents>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useCalendarControllerGetEvents<TData = Awaited<ReturnType<typeof calendarControllerGetEvents>>, TError = unknown>(params: CalendarControllerGetEventsParams, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof calendarControllerGetEvents>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof calendarControllerGetEvents>>, TError, Awaited<ReturnType<typeof calendarControllerGetEvents>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useCalendarControllerGetEvents<TData = Awaited<ReturnType<typeof calendarControllerGetEvents>>, TError = unknown>(params: CalendarControllerGetEventsParams, options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof calendarControllerGetEvents>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Create a meeting or task time-block
+ */
+export type calendarControllerCreateEventResponse201 = {
+    data: CalendarEventResponseDto;
+    status: 201;
+};
+export type calendarControllerCreateEventResponseSuccess = (calendarControllerCreateEventResponse201) & {
+    headers: Headers;
+};
+export type calendarControllerCreateEventResponse = (calendarControllerCreateEventResponseSuccess);
+export declare const getCalendarControllerCreateEventUrl: () => string;
+export declare const calendarControllerCreateEvent: (createCalendarEventDto: CreateCalendarEventDto, options?: RequestInit) => Promise<calendarControllerCreateEventResponse>;
+export declare const getCalendarControllerCreateEventMutationOptions: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof calendarControllerCreateEvent>>, TError, {
+        data: CreateCalendarEventDto;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof calendarControllerCreateEvent>>, TError, {
+    data: CreateCalendarEventDto;
+}, TContext>;
+export type CalendarControllerCreateEventMutationResult = NonNullable<Awaited<ReturnType<typeof calendarControllerCreateEvent>>>;
+export type CalendarControllerCreateEventMutationBody = CreateCalendarEventDto;
+export type CalendarControllerCreateEventMutationError = unknown;
+/**
+* @summary Create a meeting or task time-block
+*/
+export declare const useCalendarControllerCreateEvent: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof calendarControllerCreateEvent>>, TError, {
+        data: CreateCalendarEventDto;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient) => UseMutationResult<Awaited<ReturnType<typeof calendarControllerCreateEvent>>, TError, {
+    data: CreateCalendarEventDto;
+}, TContext>;
+/**
+ * @summary Update an existing calendar event
+ */
+export type calendarControllerUpdateEventResponse200 = {
+    data: CalendarEventResponseDto;
+    status: 200;
+};
+export type calendarControllerUpdateEventResponseSuccess = (calendarControllerUpdateEventResponse200) & {
+    headers: Headers;
+};
+export type calendarControllerUpdateEventResponse = (calendarControllerUpdateEventResponseSuccess);
+export declare const getCalendarControllerUpdateEventUrl: (id: number) => string;
+export declare const calendarControllerUpdateEvent: (id: number, updateCalendarEventDto: UpdateCalendarEventDto, options?: RequestInit) => Promise<calendarControllerUpdateEventResponse>;
+export declare const getCalendarControllerUpdateEventMutationOptions: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof calendarControllerUpdateEvent>>, TError, {
+        id: number;
+        data: UpdateCalendarEventDto;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof calendarControllerUpdateEvent>>, TError, {
+    id: number;
+    data: UpdateCalendarEventDto;
+}, TContext>;
+export type CalendarControllerUpdateEventMutationResult = NonNullable<Awaited<ReturnType<typeof calendarControllerUpdateEvent>>>;
+export type CalendarControllerUpdateEventMutationBody = UpdateCalendarEventDto;
+export type CalendarControllerUpdateEventMutationError = unknown;
+/**
+* @summary Update an existing calendar event
+*/
+export declare const useCalendarControllerUpdateEvent: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof calendarControllerUpdateEvent>>, TError, {
+        id: number;
+        data: UpdateCalendarEventDto;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient) => UseMutationResult<Awaited<ReturnType<typeof calendarControllerUpdateEvent>>, TError, {
+    id: number;
+    data: UpdateCalendarEventDto;
+}, TContext>;
+/**
+ * @summary Delete (soft-delete) a calendar event
+ */
+export type calendarControllerDeleteEventResponse204 = {
+    data: void;
+    status: 204;
+};
+export type calendarControllerDeleteEventResponseSuccess = (calendarControllerDeleteEventResponse204) & {
+    headers: Headers;
+};
+export type calendarControllerDeleteEventResponse = (calendarControllerDeleteEventResponseSuccess);
+export declare const getCalendarControllerDeleteEventUrl: (id: number) => string;
+export declare const calendarControllerDeleteEvent: (id: number, options?: RequestInit) => Promise<calendarControllerDeleteEventResponse>;
+export declare const getCalendarControllerDeleteEventMutationOptions: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof calendarControllerDeleteEvent>>, TError, {
+        id: number;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof calendarControllerDeleteEvent>>, TError, {
+    id: number;
+}, TContext>;
+export type CalendarControllerDeleteEventMutationResult = NonNullable<Awaited<ReturnType<typeof calendarControllerDeleteEvent>>>;
+export type CalendarControllerDeleteEventMutationError = unknown;
+/**
+* @summary Delete (soft-delete) a calendar event
+*/
+export declare const useCalendarControllerDeleteEvent: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof calendarControllerDeleteEvent>>, TError, {
+        id: number;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient) => UseMutationResult<Awaited<ReturnType<typeof calendarControllerDeleteEvent>>, TError, {
+    id: number;
+}, TContext>;
+/**
+ * @summary Respond to a meeting invitation (accept, decline, tentative)
+ */
+export type calendarControllerRespondRsvpResponse200 = {
+    data: void;
+    status: 200;
+};
+export type calendarControllerRespondRsvpResponseSuccess = (calendarControllerRespondRsvpResponse200) & {
+    headers: Headers;
+};
+export type calendarControllerRespondRsvpResponse = (calendarControllerRespondRsvpResponseSuccess);
+export declare const getCalendarControllerRespondRsvpUrl: (id: number) => string;
+export declare const calendarControllerRespondRsvp: (id: number, respondRsvpDto: RespondRsvpDto, options?: RequestInit) => Promise<calendarControllerRespondRsvpResponse>;
+export declare const getCalendarControllerRespondRsvpMutationOptions: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof calendarControllerRespondRsvp>>, TError, {
+        id: number;
+        data: RespondRsvpDto;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof calendarControllerRespondRsvp>>, TError, {
+    id: number;
+    data: RespondRsvpDto;
+}, TContext>;
+export type CalendarControllerRespondRsvpMutationResult = NonNullable<Awaited<ReturnType<typeof calendarControllerRespondRsvp>>>;
+export type CalendarControllerRespondRsvpMutationBody = RespondRsvpDto;
+export type CalendarControllerRespondRsvpMutationError = unknown;
+/**
+* @summary Respond to a meeting invitation (accept, decline, tentative)
+*/
+export declare const useCalendarControllerRespondRsvp: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof calendarControllerRespondRsvp>>, TError, {
+        id: number;
+        data: RespondRsvpDto;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient) => UseMutationResult<Awaited<ReturnType<typeof calendarControllerRespondRsvp>>, TError, {
+    id: number;
+    data: RespondRsvpDto;
+}, TContext>;
+/**
+ * @summary Get active tasks ready for time-blocking on calendar
+ */
+export type calendarControllerGetUnscheduledTasksResponse200 = {
+    data: UnscheduledTaskDto[];
+    status: 200;
+};
+export type calendarControllerGetUnscheduledTasksResponseSuccess = (calendarControllerGetUnscheduledTasksResponse200) & {
+    headers: Headers;
+};
+export type calendarControllerGetUnscheduledTasksResponse = (calendarControllerGetUnscheduledTasksResponseSuccess);
+export declare const getCalendarControllerGetUnscheduledTasksUrl: () => string;
+export declare const calendarControllerGetUnscheduledTasks: (options?: RequestInit) => Promise<calendarControllerGetUnscheduledTasksResponse>;
+export declare const getCalendarControllerGetUnscheduledTasksQueryKey: () => readonly ["/api/v1/calendar/unscheduled-tasks"];
+export declare const getCalendarControllerGetUnscheduledTasksQueryOptions: <TData = Awaited<ReturnType<typeof calendarControllerGetUnscheduledTasks>>, TError = unknown>(options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof calendarControllerGetUnscheduledTasks>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseQueryOptions<Awaited<ReturnType<typeof calendarControllerGetUnscheduledTasks>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export type CalendarControllerGetUnscheduledTasksQueryResult = NonNullable<Awaited<ReturnType<typeof calendarControllerGetUnscheduledTasks>>>;
+export type CalendarControllerGetUnscheduledTasksQueryError = unknown;
+export declare function useCalendarControllerGetUnscheduledTasks<TData = Awaited<ReturnType<typeof calendarControllerGetUnscheduledTasks>>, TError = unknown>(options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof calendarControllerGetUnscheduledTasks>>, TError, TData>> & Pick<DefinedInitialDataOptions<Awaited<ReturnType<typeof calendarControllerGetUnscheduledTasks>>, TError, Awaited<ReturnType<typeof calendarControllerGetUnscheduledTasks>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): DefinedUseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useCalendarControllerGetUnscheduledTasks<TData = Awaited<ReturnType<typeof calendarControllerGetUnscheduledTasks>>, TError = unknown>(options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof calendarControllerGetUnscheduledTasks>>, TError, TData>> & Pick<UndefinedInitialDataOptions<Awaited<ReturnType<typeof calendarControllerGetUnscheduledTasks>>, TError, Awaited<ReturnType<typeof calendarControllerGetUnscheduledTasks>>>, 'initialData'>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
+export declare function useCalendarControllerGetUnscheduledTasks<TData = Awaited<ReturnType<typeof calendarControllerGetUnscheduledTasks>>, TError = unknown>(options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof calendarControllerGetUnscheduledTasks>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+};
 export {};

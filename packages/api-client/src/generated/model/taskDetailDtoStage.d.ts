@@ -9,6 +9,7 @@ export type TaskDetailDtoStage = typeof TaskDetailDtoStage[keyof typeof TaskDeta
 export declare const TaskDetailDtoStage: {
     readonly assigned: "assigned";
     readonly in_progress: "in_progress";
+    readonly hold: "hold";
     readonly requested: "requested";
     readonly completed: "completed";
 };

@@ -1,10 +1,9 @@
-import { TaskEntity, TaskPriority } from '../../domain/entities/task.entity';
+import { TaskEntity, TaskPriority, TaskSource } from '../../domain/entities/task.entity';
 import { AssigneeValidationError } from '../../domain/errors/task.errors';
-import { ApproverResolverPort } from '../../domain/ports/approver-resolver.port';
 import { TaskClockPort } from '../../domain/ports/clock.port';
 import { EmployeeDirectoryPort } from '../../domain/ports/employee-directory.port';
-import { TaskRepositoryPort } from '../../domain/ports/task.repository.port';
-import { validateAssigneeIds } from '../../domain/services/task-rules';
+import { CreateSubTaskRepoInput, TaskRepositoryPort } from '../../domain/ports/task.repository.port';
+import { validateAssigneeIds, validateSubTasks } from '../../domain/services/task-rules';
 import { CreateNotificationUseCase } from '../../../notifications/public-api';
 
 export interface CreateTaskCommand {
@@ -16,6 +15,11 @@ export interface CreateTaskCommand {
   allocated_minutes?: number | null;
   assignee_ids: number[];
   creator_emp_id: number;
+  source?: TaskSource;
+  lead_employee_id?: number | null;
+  has_sub_tasks?: boolean;
+  other_task_type?: string | null;
+  sub_tasks?: CreateSubTaskRepoInput[];
 }
 
 export class CreateTaskUseCase {
@@ -31,15 +35,51 @@ export class CreateTaskUseCase {
     if (!title) {
       throw new AssigneeValidationError('Task title cannot be blank');
     }
+    if (title.length > 150) {
+      throw new AssigneeValidationError('Task title cannot exceed 150 characters');
+    }
 
-    const validation = validateAssigneeIds(command.assignee_ids);
+    // For Quick Task (created by employee for themselves), automatically assign to creator
+    let assignees = command.assignee_ids;
+    if (command.source === 'quick') {
+      assignees = [command.creator_emp_id];
+    }
+
+    const validation = validateAssigneeIds(assignees);
     if (!validation.valid) {
       throw new AssigneeValidationError(validation.error!);
     }
 
-    const allActive = await this.employeeDirectory.validateActiveEmployees(command.assignee_ids);
+    const allActive = await this.employeeDirectory.validateActiveEmployees(assignees);
     if (!allActive) {
       throw new AssigneeValidationError('One or more assignees are inactive or deleted');
+    }
+
+    // Lead employee validation when has_sub_tasks is checked
+    if (command.has_sub_tasks) {
+      if (!command.lead_employee_id) {
+        throw new AssigneeValidationError('Lead employee is mandatory when task has sub tasks');
+      }
+      if (!assignees.includes(command.lead_employee_id)) {
+        throw new AssigneeValidationError('Lead employee must be selected from the assigned employees list');
+      }
+
+      // Validate sub tasks time rules & assignees
+      if (command.sub_tasks && command.sub_tasks.length > 0) {
+        const subValidation = validateSubTasks(
+          command.allocated_minutes,
+          command.sub_tasks,
+          assignees,
+        );
+        if (!subValidation.valid) {
+          throw new AssigneeValidationError(subValidation.error!);
+        }
+      }
+    }
+
+    // Other Task Type validation
+    if (command.other_task_type && command.other_task_type.length > 100) {
+      throw new AssigneeValidationError('Other task type cannot exceed 100 characters');
     }
 
     const now = this.clock.now();
@@ -54,8 +94,13 @@ export class CreateTaskUseCase {
       task_type_id: command.task_type_id || null,
       due_date: command.due_date || null,
       allocated_minutes: command.allocated_minutes || null,
-      assignee_ids: Array.from(new Set(command.assignee_ids)),
+      assignee_ids: Array.from(new Set(assignees)),
       created_by: command.creator_emp_id,
+      source: command.source || 'personal',
+      lead_employee_id: command.has_sub_tasks ? command.lead_employee_id : null,
+      has_sub_tasks: Boolean(command.has_sub_tasks),
+      other_task_type: command.other_task_type?.trim() || null,
+      sub_tasks: command.has_sub_tasks ? command.sub_tasks : undefined,
     });
 
     // Notify assignees (except creator if they assigned themselves)

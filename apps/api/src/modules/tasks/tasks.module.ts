@@ -20,7 +20,9 @@ import { GetMyBoardUseCase } from './application/use-cases/get-my-board.use-case
 import { GetMySummaryUseCase } from './application/use-cases/get-my-summary.use-case';
 import { GetPendingRequestsCountUseCase } from './application/use-cases/get-pending-requests-count.use-case';
 import { GetTaskDetailUseCase } from './application/use-cases/get-task-detail.use-case';
+import { GetSubTasksUseCase } from './application/use-cases/get-sub-tasks.use-case';
 import { MoveTaskStageUseCase } from './application/use-cases/move-task-stage.use-case';
+import { TrackWorkSessionUseCase } from './application/use-cases/track-work-session.use-case';
 import { UpdateTaskUseCase } from './application/use-cases/update-task.use-case';
 import { TasksController } from './presentation/controllers/tasks.controller';
 import { MyTasksController } from './presentation/controllers/my-tasks.controller';
@@ -68,6 +70,11 @@ import { TaskAdminGuard } from './presentation/guards/task-admin.guard';
       inject: [TASK_TOKENS.TaskRepository],
     },
     {
+      provide: GetSubTasksUseCase,
+      useFactory: (repo: TaskRepositoryPort) => new GetSubTasksUseCase(repo),
+      inject: [TASK_TOKENS.TaskRepository],
+    },
+    {
       provide: UpdateTaskUseCase,
       useFactory: (
         repo: TaskRepositoryPort,
@@ -87,6 +94,19 @@ import { TaskAdminGuard } from './presentation/guards/task-admin.guard';
         resolver: ApproverResolverPort,
         notif: CreateNotificationUseCase,
       ) => new MoveTaskStageUseCase(repo, resolver, notif),
+      inject: [
+        TASK_TOKENS.TaskRepository,
+        TASK_TOKENS.ApproverResolver,
+        CreateNotificationUseCase,
+      ],
+    },
+    {
+      provide: TrackWorkSessionUseCase,
+      useFactory: (
+        repo: TaskRepositoryPort,
+        resolver: ApproverResolverPort,
+        notif: CreateNotificationUseCase,
+      ) => new TrackWorkSessionUseCase(repo, resolver, notif),
       inject: [
         TASK_TOKENS.TaskRepository,
         TASK_TOKENS.ApproverResolver,

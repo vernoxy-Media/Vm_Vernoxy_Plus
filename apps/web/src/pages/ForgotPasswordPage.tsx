@@ -17,6 +17,7 @@ export const ForgotPasswordPage: React.FC = () => {
   const navigate = useNavigate();
   const [isSuccess, setIsSuccess] = useState(false);
   const [submittedEmail, setSubmittedEmail] = useState('');
+  const [devOtp, setDevOtp] = useState<string | null>(null);
 
   const {
     register,
@@ -27,15 +28,18 @@ export const ForgotPasswordPage: React.FC = () => {
   });
 
   const onSubmit = async (values: ForgotFormValues) => {
+    let receivedOtp: string | undefined;
     try {
-      await customFetch<ForgotPasswordResponseDto>('/api/v1/auth/password/forgot', {
+      const res = await customFetch<ForgotPasswordResponseDto>('/api/v1/auth/password/forgot', {
         method: 'POST',
         body: JSON.stringify(values),
       });
+      receivedOtp = res?.otp_code;
     } catch {
       // Intentionally ignore failure to preserve generic response
     } finally {
       setSubmittedEmail(values.email);
+      setDevOtp(receivedOtp || null);
       setIsSuccess(true);
     }
   };
@@ -53,11 +57,19 @@ export const ForgotPasswordPage: React.FC = () => {
           <p className="text-sm text-slate-600">
             Check your spam folder if you do not receive the email within a couple of minutes.
           </p>
+          {devOtp && (
+            <div className="w-full rounded-xl border border-blue-200 bg-blue-50/80 p-3 text-center">
+              <span className="text-xs font-semibold text-blue-900 block mb-1">Your Reset Code (OTP):</span>
+              <span className="font-mono text-xl font-bold tracking-widest text-blue-950 bg-white px-3 py-1 rounded border border-blue-200 select-all">
+                {devOtp}
+              </span>
+            </div>
+          )}
           <div className="w-full pt-2 space-y-2">
             <button
               type="button"
               id="proceed-to-reset-button"
-              onClick={() => navigate('/reset-password', { state: { email: submittedEmail } })}
+              onClick={() => navigate('/reset-password', { state: { email: submittedEmail, otp_code: devOtp } })}
               className="w-full rounded-lg bg-slate-900 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 transition"
             >
               Enter Reset Code

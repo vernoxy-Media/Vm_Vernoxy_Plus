@@ -42,7 +42,9 @@ export const LoginPage: React.FC = () => {
       navigate('/login/verify', {
         state: {
           challenge_id: response.challenge_id,
-          masked_email: response.masked_email,
+          masked_email: values.email || response.masked_email,
+          email: values.email,
+          otp_code: response.otp_code,
         },
       });
     } catch (err: any) {
@@ -84,7 +86,7 @@ export const LoginPage: React.FC = () => {
               className={`block w-full rounded-lg border px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900 ${
                 errors.email ? 'border-red-500' : 'border-slate-300'
               }`}
-              placeholder="admin@vernoxy.com"
+              placeholder="vernoxy3@gmail.com"
             />
           </div>
           {errors.email && (

@@ -67,31 +67,75 @@ export const TickingWorkedTimer: React.FC<TickingWorkedTimerProps> = ({
   const progress = targetSeconds > 0 ? currentSeconds / targetSeconds : 0;
   const timeFormatted = formatHoursMinutes(currentSeconds);
 
-  // Status text under timer
-  let statusText = 'Working';
-  if (state === 'not_started') statusText = 'Not started';
-  else if (state === 'on_break') statusText = 'On break';
-  else if (state === 'done') statusText = 'Done for today';
+  // Status badge styling & gradient mapping
+  let statusBadge = (
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+      Working
+    </span>
+  );
+  let gradFrom = '#2563eb';
+  let gradTo = '#4f46e5';
+
+  if (state === 'not_started') {
+    statusBadge = (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+        <span className="w-2 h-2 rounded-full bg-slate-400" />
+        Ready
+      </span>
+    );
+    gradFrom = '#94a3b8';
+    gradTo = '#64748b';
+  } else if (state === 'on_break') {
+    statusBadge = (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200/80">
+        <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+        On Break
+      </span>
+    );
+    gradFrom = '#f59e0b';
+    gradTo = '#ea580c';
+  } else if (state === 'done') {
+    statusBadge = (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200/80">
+        <span className="w-2 h-2 rounded-full bg-blue-500" />
+        Completed
+      </span>
+    );
+    gradFrom = '#10b981';
+    gradTo = '#059669';
+  }
 
   return (
-    <div id="live-session-timer" className="flex flex-col items-center justify-center my-3">
-      <ProgressRing progress={progress} size={180} strokeWidth={12}>
-        <div className="px-2">
-          <span
-            className="text-3xl font-extrabold tracking-tight text-slate-900 block"
-            aria-label={`Worked ${timeFormatted} hours`}
-          >
-            {timeFormatted}{' '}
-            <span className="text-lg font-semibold text-slate-500">hrs</span>
-          </span>
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 mt-1 block">
-            {statusText}
-          </span>
-        </div>
-      </ProgressRing>
+    <div id="live-session-timer" className="flex flex-col items-center justify-center my-4">
+      <div className="relative p-2 rounded-full bg-radial from-slate-50/60 to-white">
+        <ProgressRing
+          progress={progress}
+          size={190}
+          strokeWidth={12}
+          gradientFrom={gradFrom}
+          gradientTo={gradTo}
+        >
+          <div className="px-2 flex flex-col items-center">
+            <span
+              className="text-3xl sm:text-4xl font-extrabold tracking-tight font-mono text-slate-900 block select-none"
+              aria-label={`Worked ${timeFormatted} hours`}
+            >
+              {timeFormatted}
+            </span>
+            <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mt-0.5 block">
+              HOURS LOGGED
+            </span>
+            <div className="mt-2">
+              {statusBadge}
+            </div>
+          </div>
+        </ProgressRing>
+      </div>
       <div className="sr-only" aria-live="polite">
-        Current worked time {timeFormatted} hours, status {statusText}
+        Current worked time {timeFormatted} hours, status {state}
       </div>
     </div>
   );
 };
+

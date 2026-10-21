@@ -13,4 +13,9 @@ export interface MoveTaskStageDto {
      * @maxLength 500
      */
     note?: string;
+    /**
+     * Mandatory reason when moving to hold
+     * @maxLength 500
+     */
+    hold_reason?: string;
 }

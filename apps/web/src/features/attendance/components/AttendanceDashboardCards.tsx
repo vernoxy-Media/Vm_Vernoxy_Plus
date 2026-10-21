@@ -25,6 +25,15 @@ export interface AttendanceDashboardCardsProps {
   infoToast: string | null;
   onDismissToast: () => void;
   onSuccessCorrection: (msg: string) => void;
+  selectedDate?: string;
+  isSelectedToday?: boolean;
+  onRequestCorrection?: (date: string) => void;
+  onReturnToToday?: () => void;
+  onSelectDate?: (date: string) => void;
+  dayLabel?: string;
+  weekLabel?: string;
+  monthLabel?: string;
+  statusLabel?: string;
 }
 
 export const AttendanceDashboardCards: React.FC<AttendanceDashboardCardsProps> = ({
@@ -41,6 +50,15 @@ export const AttendanceDashboardCards: React.FC<AttendanceDashboardCardsProps> =
   infoToast,
   onDismissToast,
   onSuccessCorrection,
+  selectedDate,
+  isSelectedToday = true,
+  onRequestCorrection,
+  onReturnToToday,
+  onSelectDate,
+  dayLabel = 'Today',
+  weekLabel = 'This Week',
+  monthLabel = 'This Month',
+  statusLabel,
 }) => {
   return (
     <>
@@ -56,29 +74,43 @@ export const AttendanceDashboardCards: React.FC<AttendanceDashboardCardsProps> =
           errorMessage={actionError}
           infoToast={infoToast}
           onDismissToast={onDismissToast}
+          isSelectedToday={isSelectedToday}
+          onRequestCorrection={onRequestCorrection}
+          onReturnToToday={onReturnToToday}
         />
 
         <TodayActivityCard
           timeline={today.timeline}
           state={today.state}
           activeBreakStart={today.active_break_start}
+          selectedDate={selectedDate}
+          isSelectedToday={isSelectedToday}
+          statusLabel={statusLabel}
         />
 
         <div className="md:col-span-2 lg:col-span-1">
-          <StatisticsCard statistics={statistics} />
+          <StatisticsCard
+            statistics={statistics}
+            dayLabel={dayLabel}
+            weekLabel={weekLabel}
+            monthLabel={monthLabel}
+            selectedDate={selectedDate}
+          />
         </div>
       </div>
 
       {/* Row 2: Attendance List & Month Details */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        <div className="lg:col-span-2">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
+        <div className="xl:col-span-2">
           <AttendanceListCard
             records={records}
             onSuccessCorrection={onSuccessCorrection}
+            selectedDate={selectedDate}
+            onSelectDate={onSelectDate}
           />
         </div>
 
-        <div className="lg:col-span-1">
+        <div className="xl:col-span-1">
           <MonthDetailsCard summary={monthSummary} />
         </div>
       </div>

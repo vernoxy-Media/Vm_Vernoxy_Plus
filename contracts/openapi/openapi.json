@@ -3402,6 +3402,34 @@
             }
           },
           {
+            "name": "stage",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "assigned",
+                "in_progress",
+                "hold",
+                "requested",
+                "completed"
+              ]
+            }
+          },
+          {
+            "name": "source",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "personal",
+                "project",
+                "quick"
+              ]
+            }
+          },
+          {
             "name": "overdue_only",
             "required": false,
             "in": "query",
@@ -3634,6 +3662,45 @@
         ]
       }
     },
+    "/api/v1/admin/tasks/{id}/subtasks": {
+      "get": {
+        "operationId": "TasksController_getSubTasks",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TaskDetailDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get sub tasks for a parent task",
+        "tags": [
+          "Admin Tasks"
+        ]
+      }
+    },
     "/api/v1/admin/tasks/{id}/move": {
       "post": {
         "operationId": "TasksController_moveStage",
@@ -3675,6 +3742,52 @@
           }
         ],
         "summary": "Move task stage (admin)",
+        "tags": [
+          "Admin Tasks"
+        ]
+      }
+    },
+    "/api/v1/admin/tasks/{id}/work-session": {
+      "post": {
+        "operationId": "TasksController_trackWorkSession",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrackWorkSessionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Track work session (start, pause, finish)",
         "tags": [
           "Admin Tasks"
         ]
@@ -3722,6 +3835,34 @@
             "description": "Filter by assignee employee ID",
             "schema": {
               "type": "number"
+            }
+          },
+          {
+            "name": "stage",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "assigned",
+                "in_progress",
+                "hold",
+                "requested",
+                "completed"
+              ]
+            }
+          },
+          {
+            "name": "source",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "personal",
+                "project",
+                "quick"
+              ]
             }
           },
           {
@@ -3783,6 +3924,43 @@
         ]
       }
     },
+    "/api/v1/my-tasks/quick-task": {
+      "post": {
+        "operationId": "MyTasksController_createQuickTask",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTaskDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a quick task for the current employee (Section 3.5 BFD)",
+        "tags": [
+          "My Tasks"
+        ]
+      }
+    },
     "/api/v1/my-tasks/{id}": {
       "get": {
         "operationId": "MyTasksController_getTaskDetail",
@@ -3814,6 +3992,45 @@
           }
         ],
         "summary": "Get details of a task assigned to current employee",
+        "tags": [
+          "My Tasks"
+        ]
+      }
+    },
+    "/api/v1/my-tasks/{id}/subtasks": {
+      "get": {
+        "operationId": "MyTasksController_getSubTasks",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TaskDetailDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get sub tasks for a parent task",
         "tags": [
           "My Tasks"
         ]
@@ -3859,9 +4076,281 @@
             "bearer": []
           }
         ],
-        "summary": "Move assigned task stage (e.g. to in_progress or requested)",
+        "summary": "Move assigned task stage (e.g. to in_progress, hold, or requested)",
         "tags": [
           "My Tasks"
+        ]
+      }
+    },
+    "/api/v1/my-tasks/{id}/work-session": {
+      "post": {
+        "operationId": "MyTasksController_trackWorkSession",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrackWorkSessionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Track work session (start, pause, finish)",
+        "tags": [
+          "My Tasks"
+        ]
+      }
+    },
+    "/api/v1/calendar/events": {
+      "get": {
+        "operationId": "CalendarController_getEvents",
+        "parameters": [
+          {
+            "name": "start",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-10-18T00:00:00.000Z",
+              "type": "string"
+            }
+          },
+          {
+            "name": "end",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-10-25T23:59:59.999Z",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CalendarEventResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get calendar events in time window for current employee",
+        "tags": [
+          "Calendar"
+        ]
+      },
+      "post": {
+        "operationId": "CalendarController_createEvent",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCalendarEventDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarEventResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a meeting or task time-block",
+        "tags": [
+          "Calendar"
+        ]
+      }
+    },
+    "/api/v1/calendar/events/{id}": {
+      "patch": {
+        "operationId": "CalendarController_updateEvent",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCalendarEventDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarEventResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update an existing calendar event",
+        "tags": [
+          "Calendar"
+        ]
+      },
+      "delete": {
+        "operationId": "CalendarController_deleteEvent",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete (soft-delete) a calendar event",
+        "tags": [
+          "Calendar"
+        ]
+      }
+    },
+    "/api/v1/calendar/events/{id}/rsvp": {
+      "post": {
+        "operationId": "CalendarController_respondRsvp",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RespondRsvpDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Respond to a meeting invitation (accept, decline, tentative)",
+        "tags": [
+          "Calendar"
+        ]
+      }
+    },
+    "/api/v1/calendar/unscheduled-tasks": {
+      "get": {
+        "operationId": "CalendarController_getUnscheduledTasks",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UnscheduledTaskDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get active tasks ready for time-blocking on calendar",
+        "tags": [
+          "Calendar"
         ]
       }
     }
@@ -3933,6 +4422,10 @@
           "resend_available_in_seconds": {
             "type": "number",
             "example": 60
+          },
+          "otp_code": {
+            "type": "string",
+            "example": "123456"
           }
         },
         "required": [
@@ -4189,6 +4682,10 @@
           "message": {
             "type": "string",
             "example": "If the email is registered, a password reset code has been sent."
+          },
+          "otp_code": {
+            "type": "string",
+            "example": "123456"
           }
         },
         "required": [
@@ -6940,7 +7437,7 @@
           },
           "task_type_label": {
             "type": "string",
-            "example": "Feature",
+            "example": "Development",
             "nullable": true
           },
           "due_date": {
@@ -6958,14 +7455,79 @@
             "enum": [
               "assigned",
               "in_progress",
+              "hold",
               "requested",
               "completed"
             ],
             "example": "assigned"
           },
+          "source": {
+            "type": "string",
+            "enum": [
+              "personal",
+              "project",
+              "quick"
+            ],
+            "example": "personal"
+          },
+          "hold_reason": {
+            "type": "string",
+            "example": "Awaiting client approval",
+            "nullable": true
+          },
+          "has_sub_tasks": {
+            "type": "boolean",
+            "example": false
+          },
+          "sub_tasks_count": {
+            "type": "number",
+            "example": 0
+          },
+          "lead_employee_id": {
+            "type": "number",
+            "nullable": true
+          },
+          "lead_employee_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "other_task_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "parent_task_id": {
+            "type": "number",
+            "nullable": true
+          },
+          "parent_task_code": {
+            "type": "string",
+            "nullable": true
+          },
+          "parent_task_title": {
+            "type": "string",
+            "nullable": true
+          },
           "is_overdue": {
             "type": "boolean",
             "example": false
+          },
+          "started_at": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "actual_minutes": {
+            "type": "number",
+            "example": 0
+          },
+          "is_timer_running": {
+            "type": "boolean",
+            "example": false
+          },
+          "timer_started_at": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
           },
           "requested_at": {
             "format": "date-time",
@@ -6994,6 +7556,9 @@
           "title",
           "priority",
           "stage",
+          "source",
+          "has_sub_tasks",
+          "sub_tasks_count",
           "is_overdue",
           "created_at",
           "assignees"
@@ -7014,6 +7579,12 @@
               "$ref": "#/components/schemas/TaskBoardCardDto"
             }
           },
+          "hold": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskBoardCardDto"
+            }
+          },
           "requested": {
             "type": "array",
             "items": {
@@ -7030,6 +7601,7 @@
         "required": [
           "assigned",
           "in_progress",
+          "hold",
           "requested",
           "completed"
         ]
@@ -7045,22 +7617,27 @@
             "type": "number",
             "example": 2
           },
+          "hold": {
+            "type": "number",
+            "example": 1
+          },
           "requested": {
             "type": "number",
             "example": 1
           },
           "completed": {
             "type": "number",
-            "example": 10
+            "example": 5
           },
           "total": {
             "type": "number",
-            "example": 17
+            "example": 13
           }
         },
         "required": [
           "assigned",
           "in_progress",
+          "hold",
           "requested",
           "completed",
           "total"
@@ -7086,7 +7663,23 @@
         "properties": {
           "total": {
             "type": "number",
-            "example": 17
+            "example": 13
+          },
+          "todo_or_in_progress": {
+            "type": "number",
+            "example": 6
+          },
+          "on_hold": {
+            "type": "number",
+            "example": 1
+          },
+          "submitted": {
+            "type": "number",
+            "example": 1
+          },
+          "approved": {
+            "type": "number",
+            "example": 5
           },
           "assigned": {
             "type": "number",
@@ -7106,15 +7699,19 @@
           },
           "completed_today": {
             "type": "number",
-            "example": 3
+            "example": 1
           },
           "completed_this_month": {
             "type": "number",
-            "example": 10
+            "example": 5
           }
         },
         "required": [
           "total",
+          "todo_or_in_progress",
+          "on_hold",
+          "submitted",
+          "approved",
           "assigned",
           "in_progress",
           "requested",
@@ -7171,6 +7768,34 @@
           "department_name"
         ]
       },
+      "CreateSubTaskDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "Frontend UI layout",
+            "maxLength": 150
+          },
+          "allocated_minutes": {
+            "type": "number",
+            "example": 60,
+            "description": "Allocated minutes for sub task"
+          },
+          "assignee_ids": {
+            "example": [
+              1
+            ],
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "title",
+          "assignee_ids"
+        ]
+      },
       "CreateTaskDto": {
         "type": "object",
         "properties": {
@@ -7212,16 +7837,90 @@
               1,
               2
             ],
-            "description": "List of 1 to 50 active employee IDs",
+            "description": "List of active employee IDs",
             "type": "array",
             "items": {
               "type": "number"
             }
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "personal",
+              "project",
+              "quick"
+            ],
+            "default": "personal"
+          },
+          "has_sub_tasks": {
+            "type": "boolean",
+            "default": false
+          },
+          "lead_employee_id": {
+            "type": "number",
+            "example": 1,
+            "description": "Lead employee ID if has_sub_tasks is true"
+          },
+          "other_task_type": {
+            "type": "string",
+            "example": "Security Audit",
+            "maxLength": 100
+          },
+          "sub_tasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateSubTaskDto"
+            }
           }
         },
         "required": [
-          "title",
-          "assignee_ids"
+          "title"
+        ]
+      },
+      "TaskWorkLogItemDto": {
+        "type": "object",
+        "properties": {
+          "log_id": {
+            "type": "string",
+            "example": "log_12345"
+          },
+          "employee_id": {
+            "type": "number",
+            "example": 1
+          },
+          "employee_name": {
+            "type": "string",
+            "example": "Admin User"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "start",
+              "pause",
+              "resume",
+              "finish"
+            ],
+            "example": "start"
+          },
+          "timestamp": {
+            "type": "string",
+            "example": "2026-10-21T10:00:00.000Z"
+          },
+          "duration_seconds": {
+            "type": "number",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "log_id",
+          "employee_id",
+          "employee_name",
+          "action",
+          "timestamp"
         ]
       },
       "TaskHistoryItemDto": {
@@ -7229,7 +7928,7 @@
         "properties": {
           "history_id": {
             "type": "string",
-            "example": "10"
+            "example": "1"
           },
           "task_id": {
             "type": "number",
@@ -7237,16 +7936,14 @@
           },
           "event_type": {
             "type": "string",
-            "example": "created"
+            "example": "stage_changed"
           },
           "actor_id": {
             "type": "number",
-            "example": 1,
             "nullable": true
           },
           "actor_name": {
             "type": "string",
-            "example": "Admin User",
             "nullable": true
           },
           "from_stage": {
@@ -7286,7 +7983,7 @@
           },
           "title": {
             "type": "string",
-            "example": "Build Clean UI"
+            "example": "Implement Authentication"
           },
           "description": {
             "type": "string",
@@ -7322,13 +8019,89 @@
             "enum": [
               "assigned",
               "in_progress",
+              "hold",
               "requested",
               "completed"
+            ]
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "personal",
+              "project",
+              "quick"
             ]
           },
           "review_note": {
             "type": "string",
             "nullable": true
+          },
+          "hold_reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "has_sub_tasks": {
+            "type": "boolean",
+            "example": false
+          },
+          "lead_employee_id": {
+            "type": "number",
+            "nullable": true
+          },
+          "lead_employee_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "other_task_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "parent_task_id": {
+            "type": "number",
+            "nullable": true
+          },
+          "parent_task_code": {
+            "type": "string",
+            "nullable": true
+          },
+          "parent_task_title": {
+            "type": "string",
+            "nullable": true
+          },
+          "sub_tasks_count": {
+            "type": "number",
+            "example": 0
+          },
+          "sub_tasks": {
+            "nullable": true,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskDetailDto"
+            }
+          },
+          "started_at": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "actual_minutes": {
+            "type": "number",
+            "example": 0
+          },
+          "is_timer_running": {
+            "type": "boolean",
+            "example": false
+          },
+          "timer_started_at": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "work_logs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskWorkLogItemDto"
+            }
           },
           "requested_at": {
             "format": "date-time",
@@ -7387,6 +8160,12 @@
           "title",
           "priority",
           "stage",
+          "source",
+          "has_sub_tasks",
+          "sub_tasks_count",
+          "actual_minutes",
+          "is_timer_running",
+          "work_logs",
           "self_approved",
           "row_version",
           "created_at",
@@ -7429,6 +8208,13 @@
             "items": {
               "type": "number"
             }
+          },
+          "lead_employee_id": {
+            "type": "number"
+          },
+          "other_task_type": {
+            "type": "string",
+            "maxLength": 100
           }
         }
       },
@@ -7440,6 +8226,7 @@
             "enum": [
               "assigned",
               "in_progress",
+              "hold",
               "requested",
               "completed"
             ],
@@ -7449,10 +8236,353 @@
             "type": "string",
             "maxLength": 500,
             "description": "Optional approval/rejection note"
+          },
+          "hold_reason": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Mandatory reason when moving to hold"
           }
         },
         "required": [
           "target_stage"
+        ]
+      },
+      "TrackWorkSessionDto": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "start",
+              "pause",
+              "finish"
+            ],
+            "example": "start"
+          },
+          "note": {
+            "type": "string",
+            "example": "Completed initial draft",
+            "nullable": true
+          }
+        },
+        "required": [
+          "action"
+        ]
+      },
+      "CalendarAttendeeDto": {
+        "type": "object",
+        "properties": {
+          "attendee_id": {
+            "type": "number"
+          },
+          "event_id": {
+            "type": "number"
+          },
+          "employee_id": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "profile_picture_url": {
+            "type": "object",
+            "nullable": true
+          },
+          "response_status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "accepted",
+              "declined",
+              "tentative"
+            ]
+          },
+          "is_optional": {
+            "type": "boolean"
+          },
+          "responded_at": {
+            "type": "object",
+            "nullable": true
+          }
+        },
+        "required": [
+          "attendee_id",
+          "event_id",
+          "employee_id",
+          "name",
+          "email",
+          "response_status",
+          "is_optional"
+        ]
+      },
+      "CalendarEventResponseDto": {
+        "type": "object",
+        "properties": {
+          "event_id": {
+            "type": "number"
+          },
+          "event_type": {
+            "type": "string",
+            "enum": [
+              "meeting",
+              "task_block",
+              "appointment",
+              "reminder"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "object",
+            "nullable": true
+          },
+          "start_time": {
+            "type": "string"
+          },
+          "end_time": {
+            "type": "string"
+          },
+          "is_all_day": {
+            "type": "boolean"
+          },
+          "location": {
+            "type": "object",
+            "nullable": true
+          },
+          "meeting_link": {
+            "type": "object",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "scheduled",
+              "in_progress",
+              "completed",
+              "cancelled"
+            ]
+          },
+          "task_id": {
+            "type": "object",
+            "nullable": true
+          },
+          "task_code": {
+            "type": "object",
+            "nullable": true
+          },
+          "task_stage": {
+            "type": "object",
+            "nullable": true
+          },
+          "organizer_id": {
+            "type": "number"
+          },
+          "organizer_name": {
+            "type": "string"
+          },
+          "attendees": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CalendarAttendeeDto"
+            }
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "row_version": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "event_id",
+          "event_type",
+          "title",
+          "start_time",
+          "end_time",
+          "is_all_day",
+          "status",
+          "organizer_id",
+          "organizer_name",
+          "attendees",
+          "created_at",
+          "row_version"
+        ]
+      },
+      "CreateCalendarEventDto": {
+        "type": "object",
+        "properties": {
+          "event_type": {
+            "type": "string",
+            "enum": [
+              "meeting",
+              "task_block",
+              "appointment",
+              "reminder"
+            ],
+            "default": "meeting"
+          },
+          "title": {
+            "type": "string",
+            "example": "Sprint Planning Meeting"
+          },
+          "description": {
+            "type": "string",
+            "example": "Discussing goals and backlog for Sprint 42"
+          },
+          "start_time": {
+            "type": "string",
+            "example": "2026-10-21T10:00:00.000Z"
+          },
+          "end_time": {
+            "type": "string",
+            "example": "2026-10-21T11:00:00.000Z"
+          },
+          "is_all_day": {
+            "type": "boolean",
+            "default": false
+          },
+          "location": {
+            "type": "string",
+            "example": "Conference Room 3A"
+          },
+          "meeting_link": {
+            "type": "string",
+            "example": "https://meet.google.com/abc-defg-hij"
+          },
+          "task_id": {
+            "type": "number",
+            "example": 42,
+            "description": "Task ID to time-block on calendar"
+          },
+          "attendee_ids": {
+            "example": [
+              2,
+              3,
+              5
+            ],
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "event_type",
+          "title",
+          "start_time",
+          "end_time"
+        ]
+      },
+      "UpdateCalendarEventDto": {
+        "type": "object",
+        "properties": {
+          "event_type": {
+            "type": "string",
+            "enum": [
+              "meeting",
+              "task_block",
+              "appointment",
+              "reminder"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "example": "Updated Sprint Planning"
+          },
+          "description": {
+            "type": "string"
+          },
+          "start_time": {
+            "type": "string",
+            "example": "2026-10-21T10:30:00.000Z"
+          },
+          "end_time": {
+            "type": "string",
+            "example": "2026-10-21T11:30:00.000Z"
+          },
+          "is_all_day": {
+            "type": "boolean"
+          },
+          "location": {
+            "type": "string"
+          },
+          "meeting_link": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "scheduled",
+              "in_progress",
+              "completed",
+              "cancelled"
+            ]
+          },
+          "task_id": {
+            "type": "object"
+          },
+          "attendee_ids": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        }
+      },
+      "RespondRsvpDto": {
+        "type": "object",
+        "properties": {
+          "response_status": {
+            "type": "string",
+            "enum": [
+              "accepted",
+              "declined",
+              "tentative"
+            ],
+            "example": "accepted"
+          }
+        },
+        "required": [
+          "response_status"
+        ]
+      },
+      "UnscheduledTaskDto": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "number"
+          },
+          "task_code": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string"
+          },
+          "stage": {
+            "type": "string"
+          },
+          "allocated_minutes": {
+            "type": "object",
+            "nullable": true
+          },
+          "due_date": {
+            "type": "object",
+            "nullable": true
+          }
+        },
+        "required": [
+          "task_id",
+          "task_code",
+          "title",
+          "priority",
+          "stage"
         ]
       }
     }

@@ -22,8 +22,20 @@ export class GetTaskDetailUseCase {
 
     if (!isAdmin) {
       const isAssignee = task.assignees.some((a) => a.employee_id === requestingEmpId);
-      if (!isAssignee) {
+      const isLead = task.lead_employee_id === requestingEmpId;
+      const isSubTaskAssignee = task.sub_tasks?.some((st) =>
+        st.assignees.some((a) => a.employee_id === requestingEmpId)
+      );
+
+      if (!isAssignee && !isLead && !isSubTaskAssignee) {
         throw new TaskPermissionDeniedError('You do not have access to view this task');
+      }
+
+      // Employee should only see their own sub-task details unless they are the Lead (BFD Section 3.6)
+      if (!isLead && task.sub_tasks) {
+        task.sub_tasks = task.sub_tasks.filter((st) =>
+          st.assignees.some((a) => a.employee_id === requestingEmpId)
+        );
       }
     }
 

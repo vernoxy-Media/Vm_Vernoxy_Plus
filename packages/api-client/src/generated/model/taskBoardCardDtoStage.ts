@@ -13,6 +13,7 @@ export type TaskBoardCardDtoStage = typeof TaskBoardCardDtoStage[keyof typeof Ta
 export const TaskBoardCardDtoStage = {
   assigned: 'assigned',
   in_progress: 'in_progress',
+  hold: 'hold',
   requested: 'requested',
   completed: 'completed',
 } as const;
