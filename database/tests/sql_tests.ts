@@ -2530,9 +2530,15 @@ export async function runFunctionalTests(directUrl: string): Promise<boolean> {
       logFail('assigned -> in_progress verification', `stage=${v2Res.rows[0].stage}, version=${v2Res.rows[0].row_version}`);
     }
 
-    // Legal: in_progress -> assigned
-    await client.query(`UPDATE tasks SET stage = 'assigned' WHERE task_id = $1;`, [testTaskId]);
-    logPass('Legal transition in_progress -> assigned succeeds');
+    // Illegal: in_progress -> assigned (BFD Section 3.3: in_progress can only move to hold or requested)
+    await expectError(
+      client,
+      `UPDATE tasks SET stage = 'assigned' WHERE task_id = $1`,
+      /Invalid stage transition from in_progress to assigned/,
+      'Illegal transition in_progress -> assigned rejected per BFD rules',
+      ctx,
+      [testTaskId]
+    );
 
     // in_progress -> requested
     await client.query(`UPDATE tasks SET stage = 'in_progress' WHERE task_id = $1;`, [testTaskId]);
@@ -2558,20 +2564,39 @@ export async function runFunctionalTests(directUrl: string): Promise<boolean> {
     await client.query(`UPDATE tasks SET stage = 'in_progress' WHERE task_id = $1;`, [testTaskId]);
     logPass('Legal transition requested -> in_progress (withdraw) succeeds');
 
-    // Move to requested and then approve (completed)
+    // Move to requested
     await client.query(`UPDATE tasks SET stage = 'requested' WHERE task_id = $1;`, [testTaskId]);
+
+    // Self-approval rejection: assignee cannot approve their own task per BFD Section 3.3
+    await expectError(
+      client,
+      `UPDATE tasks SET stage = 'completed', completed_at = clock_timestamp(), completed_by = $1 WHERE task_id = $2;`,
+      /Assignee cannot approve their own task/,
+      'Assignee self-approval rejected per BFD rules',
+      ctx,
+      [taskEmp2Id, testTaskId]
+    );
+
+    // Non-assignee approval succeeds
+    const approverRes = await client.query(`
+      SELECT emp_id FROM employees
+      WHERE status = 'Active' AND deleted_at IS NULL AND emp_id NOT IN ($1, $2)
+      ORDER BY emp_id LIMIT 1;
+    `, [taskEmp1Id, taskEmp2Id]);
+    const approverEmpId = approverRes.rows[0].emp_id;
+
     await client.query(`
       UPDATE tasks
       SET stage = 'completed', completed_at = clock_timestamp(), completed_by = $1
       WHERE task_id = $2;
-    `, [taskEmp2Id, testTaskId]);
-    logPass('Legal transition requested -> completed (approve) succeeds');
+    `, [approverEmpId, testTaskId]);
+    logPass('Legal transition requested -> completed (approve by non-assignee) succeeds');
 
     // Completed task is locked: ANY update with stage = completed is rejected
     await expectError(
       client,
       `UPDATE tasks SET title = 'New Title On Completed' WHERE task_id = $1`,
-      /Completed task is locked: cannot be updated/,
+      /Approved task is locked: cannot be updated/,
       'Completed task is locked for updates',
       ctx,
       [testTaskId]
@@ -2597,18 +2622,15 @@ export async function runFunctionalTests(directUrl: string): Promise<boolean> {
       [testTaskId]
     );
 
-    // Legal: completed -> in_progress (reopen)
-    await client.query(`
-      UPDATE tasks
-      SET stage = 'in_progress'
-      WHERE task_id = $1;
-    `, [testTaskId]);
-    const reopenedRes = await client.query(`SELECT stage, completed_at, completed_by FROM tasks WHERE task_id = $1;`, [testTaskId]);
-    if (reopenedRes.rows[0].stage === 'in_progress' && reopenedRes.rows[0].completed_at === null && reopenedRes.rows[0].completed_by === null) {
-      logPass('Legal transition completed -> in_progress (reopen) clears completed_at and completed_by');
-    } else {
-      logFail('reopen check', reopenedRes.rows[0]);
-    }
+    // Illegal: completed -> in_progress (reopen) rejected per BFD rules
+    await expectError(
+      client,
+      `UPDATE tasks SET stage = 'in_progress' WHERE task_id = $1;`,
+      /Approved task is locked and cannot be moved to any other stage/,
+      'Completed task cannot be reopened or moved to another stage',
+      ctx,
+      [testTaskId]
+    );
 
     // 4. task_history append-only
     const histRes = await client.query(`
