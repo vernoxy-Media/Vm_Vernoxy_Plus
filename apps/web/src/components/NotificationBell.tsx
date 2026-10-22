@@ -21,13 +21,17 @@ function timeAgo(dateInput: string | Date): string {
   return `${days}d ago`;
 }
 
+import { useSocket } from '../core/socket/SocketContext';
+
 export const NotificationBell: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const { socket } = useSocket();
 
   const { data: countData, refetch: refetchCount } = useNotificationsControllerGetUnreadCount({
-    query: { refetchInterval: 15_000 },
+    query: { refetchInterval: 30_000 },
   });
+
   const unreadCount =
     (countData?.data as UnreadCountResponseDto | undefined)?.unread_count ??
     (countData as unknown as UnreadCountResponseDto | undefined)?.unread_count ??
@@ -53,6 +57,18 @@ export const NotificationBell: React.FC = () => {
     document.addEventListener('mousedown', handleOutside);
     return () => document.removeEventListener('mousedown', handleOutside);
   }, []);
+
+  useEffect(() => {
+    if (!socket) return;
+    const handleNotification = () => {
+      refetchCount();
+      refetchList();
+    };
+    socket.on('notification:received', handleNotification);
+    return () => {
+      socket.off('notification:received', handleNotification);
+    };
+  }, [socket, refetchCount, refetchList]);
 
   const handleMarkOne = async (id: number) => {
     await markReadMutation.mutateAsync({ id });

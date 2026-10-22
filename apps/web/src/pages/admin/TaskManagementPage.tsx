@@ -35,6 +35,7 @@ import { TaskBoard } from '../../features/tasks/components/TaskBoard';
 import { TaskListView } from '../../features/tasks/components/TaskListView';
 import { TaskDrawer } from '../../features/tasks/components/TaskDrawer';
 import { TaskFormModal } from '../../features/tasks/components/TaskFormModal';
+import { useSocket } from '../../core/socket/SocketContext';
 
 export const TaskManagementPage: React.FC = () => {
   const [filters, setFilters] = useState<TaskBoardQueryDto>({});
@@ -42,6 +43,8 @@ export const TaskManagementPage: React.FC = () => {
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<TaskDetailDto | null>(null);
+  const { socket } = useSocket();
+
 
   const { data: rawBoard, refetch: refetchBoard, isLoading: isBoardLoading } = useTasksControllerGetBoard(filters);
   const board: TaskBoardResultDto | undefined =
@@ -77,6 +80,25 @@ export const TaskManagementPage: React.FC = () => {
     refetchSummary();
     if (selectedTaskId !== null) refetchDetail();
   };
+
+  React.useEffect(() => {
+    if (!socket) return;
+    const handleTaskEvent = () => {
+      refetchBoard();
+      refetchSummary();
+      if (selectedTaskId !== null) refetchDetail();
+    };
+
+    socket.on('task:created', handleTaskEvent);
+    socket.on('task:stage_changed', handleTaskEvent);
+    socket.on('task:updated', handleTaskEvent);
+
+    return () => {
+      socket.off('task:created', handleTaskEvent);
+      socket.off('task:stage_changed', handleTaskEvent);
+      socket.off('task:updated', handleTaskEvent);
+    };
+  }, [socket, selectedTaskId, refetchBoard, refetchSummary, refetchDetail]);
 
   const handleMoveStage = async (taskId: number, targetStage: TaskStage, note?: string, holdReason?: string) => {
     try {

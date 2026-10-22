@@ -16,8 +16,10 @@ import { NotificationsModule } from './modules/notifications/public-api';
 import { TasksModule } from './modules/tasks/public-api';
 import { CalendarModule } from './modules/calendar/public-api';
 import { ProjectsModule } from './modules/projects/public-api';
+import { WebsocketsModule } from './modules/websockets/public-api';
 
 @Module({
+
   imports: [
     ThrottlerModule.forRoot([
       {
@@ -37,6 +39,7 @@ import { ProjectsModule } from './modules/projects/public-api';
     TasksModule,
     CalendarModule,
     ProjectsModule,
+    WebsocketsModule,
   ],
   controllers: [HealthController],
   providers: [

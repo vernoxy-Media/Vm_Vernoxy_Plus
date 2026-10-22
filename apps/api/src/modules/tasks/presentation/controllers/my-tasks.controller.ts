@@ -31,6 +31,7 @@ import {
   TrackWorkSessionDto,
 } from '../dto/task.dto';
 import { mapTaskErrorToHttp } from '../tasks-error.mapper';
+import { EventsService } from '../../../websockets/public-api';
 
 @ApiTags('My Tasks')
 @ApiBearerAuth()
@@ -38,6 +39,7 @@ import { mapTaskErrorToHttp } from '../tasks-error.mapper';
 @Controller('my-tasks')
 export class MyTasksController {
   constructor(
+    private readonly eventsService: EventsService,
     private readonly getMyBoardUseCase: GetMyBoardUseCase,
     private readonly getMySummaryUseCase: GetMySummaryUseCase,
     private readonly getTaskDetailUseCase: GetTaskDetailUseCase,
@@ -84,12 +86,18 @@ export class MyTasksController {
   ): Promise<any> {
     try {
       const empId = req.user!.emp_id;
-      return await this.createTaskUseCase.execute({
+      const res = await this.createTaskUseCase.execute({
         ...dto,
         creator_emp_id: empId,
         source: 'quick',
         assignee_ids: [empId],
       });
+      this.eventsService.emitToBoard('task:created', res);
+      this.eventsService.emitToUser(empId, 'task:assigned', res);
+      if ((res as any)?.project_id) {
+        this.eventsService.emitToProject((res as any).project_id, 'task:created', res);
+      }
+      return res;
     } catch (err) {
       throw mapTaskErrorToHttp(err);
     }
@@ -133,7 +141,7 @@ export class MyTasksController {
   ): Promise<any> {
     try {
       const user = req.user!;
-      return await this.moveTaskStageUseCase.execute({
+      const res = await this.moveTaskStageUseCase.execute({
         taskId: id,
         targetStage: dto.target_stage,
         actorEmpId: user.emp_id,
@@ -142,6 +150,11 @@ export class MyTasksController {
         note: dto.note,
         hold_reason: dto.hold_reason,
       });
+      this.eventsService.emitToBoard('task:stage_changed', res);
+      if ((res as any)?.project_id) {
+        this.eventsService.emitToProject((res as any).project_id, 'task:stage_changed', res);
+      }
+      return res;
     } catch (err) {
       throw mapTaskErrorToHttp(err);
     }
@@ -158,7 +171,7 @@ export class MyTasksController {
   ): Promise<any> {
     try {
       const user = req.user!;
-      return await this.trackWorkSessionUseCase.execute({
+      const res = await this.trackWorkSessionUseCase.execute({
         taskId: id,
         action: dto.action,
         actorEmpId: user.emp_id,
@@ -166,6 +179,11 @@ export class MyTasksController {
         isAdmin: false,
         note: dto.note,
       });
+      this.eventsService.emitToBoard('task:stage_changed', res);
+      if ((res as any)?.project_id) {
+        this.eventsService.emitToProject((res as any).project_id, 'task:stage_changed', res);
+      }
+      return res;
     } catch (err) {
       throw mapTaskErrorToHttp(err);
     }

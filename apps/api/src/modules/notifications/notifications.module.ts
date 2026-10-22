@@ -11,6 +11,7 @@ import { NotificationsController } from './presentation/controllers/notification
 import { NotificationRepositoryPort } from './domain/ports/notification.repository.port';
 
 import { AuthModule } from '../auth/auth.module';
+import { EventsService } from '../websockets/public-api';
 
 @Module({
   imports: [PrismaModule, AuthModule],
@@ -42,8 +43,9 @@ import { AuthModule } from '../auth/auth.module';
     },
     {
       provide: CreateNotificationUseCase,
-      useFactory: (repo: NotificationRepositoryPort) => new CreateNotificationUseCase(repo),
-      inject: [NOTIFICATION_TOKENS.NotificationRepository],
+      useFactory: (repo: NotificationRepositoryPort, eventsService: EventsService) =>
+        new CreateNotificationUseCase(repo, eventsService),
+      inject: [NOTIFICATION_TOKENS.NotificationRepository, EventsService],
     },
   ],
   exports: [

@@ -39,6 +39,7 @@ import {
 } from '../dto/task.dto';
 import { TaskAdminGuard } from '../guards/task-admin.guard';
 import { mapTaskErrorToHttp } from '../tasks-error.mapper';
+import { EventsService } from '../../../websockets/public-api';
 
 @ApiTags('Admin Tasks')
 @ApiBearerAuth()
@@ -46,6 +47,7 @@ import { mapTaskErrorToHttp } from '../tasks-error.mapper';
 @Controller('admin/tasks')
 export class TasksController {
   constructor(
+    private readonly eventsService: EventsService,
     private readonly getAdminBoardUseCase: GetAdminBoardUseCase,
     private readonly getAdminSummaryUseCase: GetAdminSummaryUseCase,
     private readonly getPendingRequestsCountUseCase: GetPendingRequestsCountUseCase,
@@ -110,11 +112,19 @@ export class TasksController {
   async createTask(@Req() req: Request, @Body() dto: CreateTaskDto): Promise<any> {
     try {
       const empId = req.user!.emp_id;
-      return await this.createTaskUseCase.execute({
+      const res = await this.createTaskUseCase.execute({
         ...dto,
         assignee_ids: dto.assignee_ids || [],
         creator_emp_id: empId,
       });
+      this.eventsService.emitToBoard('task:created', res);
+      if ((res as any)?.project_id) {
+        this.eventsService.emitToProject((res as any).project_id, 'task:created', res);
+      }
+      if (dto.assignee_ids?.length) {
+        dto.assignee_ids.forEach((aId) => this.eventsService.emitToUser(aId, 'task:assigned', res));
+      }
+      return res;
     } catch (err) {
       throw mapTaskErrorToHttp(err);
     }
@@ -157,11 +167,19 @@ export class TasksController {
   ): Promise<any> {
     try {
       const empId = req.user!.emp_id;
-      return await this.updateTaskUseCase.execute({
+      const res = await this.updateTaskUseCase.execute({
         taskId: id,
         ...dto,
         actor_emp_id: empId,
       });
+      this.eventsService.emitToBoard('task:updated', res);
+      if ((res as any)?.project_id) {
+        this.eventsService.emitToProject((res as any).project_id, 'task:updated', res);
+      }
+      if (dto.assignee_ids?.length) {
+        dto.assignee_ids.forEach((aId) => this.eventsService.emitToUser(aId, 'task:assigned', res));
+      }
+      return res;
     } catch (err) {
       throw mapTaskErrorToHttp(err);
     }
@@ -178,7 +196,7 @@ export class TasksController {
   ): Promise<any> {
     try {
       const user = req.user!;
-      return await this.moveTaskStageUseCase.execute({
+      const res = await this.moveTaskStageUseCase.execute({
         taskId: id,
         targetStage: dto.target_stage,
         actorEmpId: user.emp_id,
@@ -187,6 +205,11 @@ export class TasksController {
         note: dto.note,
         hold_reason: dto.hold_reason,
       });
+      this.eventsService.emitToBoard('task:stage_changed', res);
+      if ((res as any)?.project_id) {
+        this.eventsService.emitToProject((res as any).project_id, 'task:stage_changed', res);
+      }
+      return res;
     } catch (err) {
       throw mapTaskErrorToHttp(err);
     }
@@ -203,7 +226,7 @@ export class TasksController {
   ): Promise<any> {
     try {
       const user = req.user!;
-      return await this.trackWorkSessionUseCase.execute({
+      const res = await this.trackWorkSessionUseCase.execute({
         taskId: id,
         action: dto.action,
         actorEmpId: user.emp_id,
@@ -211,6 +234,11 @@ export class TasksController {
         isAdmin: true,
         note: dto.note,
       });
+      this.eventsService.emitToBoard('task:stage_changed', res);
+      if ((res as any)?.project_id) {
+        this.eventsService.emitToProject((res as any).project_id, 'task:stage_changed', res);
+      }
+      return res;
     } catch (err) {
       throw mapTaskErrorToHttp(err);
     }

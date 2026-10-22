@@ -46,12 +46,15 @@ import {
   UpdateSprintDto,
 } from '../dto/project.dto';
 
+import { EventsService } from '../../../websockets/public-api';
+
 @ApiTags('Projects')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('projects')
 export class ProjectsController {
   constructor(
+    private readonly eventsService: EventsService,
     @Inject(PROJECT_TOKENS.ProjectRepository)
     private readonly projectRepo: ProjectRepositoryPort,
     private readonly createProjectUseCase: CreateProjectUseCase,
@@ -170,11 +173,13 @@ export class ProjectsController {
     @Body() dto: CreateSprintDto,
   ) {
     const user = req.user!;
-    return this.createSprintUseCase.execute({
+    const sprint = await this.createSprintUseCase.execute({
       project_id: id,
       ...dto,
       created_by: user.emp_id,
     });
+    this.eventsService.emitToProject(id, 'sprint:created', sprint);
+    return sprint;
   }
 
   @Patch(':id/sprints/:sprintId')
@@ -186,10 +191,12 @@ export class ProjectsController {
     @Body() dto: UpdateSprintDto,
   ) {
     const user = req.user!;
-    return this.updateSprintUseCase.execute(sprintId, {
+    const sprint = await this.updateSprintUseCase.execute(sprintId, {
       ...dto,
       updated_by: user.emp_id,
     });
+    this.eventsService.emitToProject(id, 'sprint:updated', sprint);
+    return sprint;
   }
 
   @Get(':id/tasks')
@@ -211,11 +218,19 @@ export class ProjectsController {
     @Body() dto: CreateProjectTaskDto,
   ) {
     const user = req.user!;
-    return this.createProjectTaskUseCase.execute({
+    const task = await this.createProjectTaskUseCase.execute({
       project_id: id,
       ...dto,
       created_by: user.emp_id,
     });
+    this.eventsService.emitToProject(id, 'task:created', task);
+    this.eventsService.emitToBoard('task:created', task);
+    if (dto.assignee_ids?.length) {
+      dto.assignee_ids.forEach((aId) =>
+        this.eventsService.emitToUser(aId, 'task:assigned', task),
+      );
+    }
+    return task;
   }
 
   @Get(':id/discussions')
@@ -235,12 +250,14 @@ export class ProjectsController {
     @Body() dto: CreateDiscussionDto,
   ) {
     const user = req.user!;
-    return this.projectRepo.createDiscussion(
+    const msg = await this.projectRepo.createDiscussion(
       id,
       user.emp_id,
       dto.message,
       dto.attachments,
     );
+    this.eventsService.emitToProject(id, 'discussion:new_message', msg);
+    return msg;
   }
 
   @Get(':id/activity-logs')
@@ -268,7 +285,7 @@ export class ProjectsController {
     @Body() dto: CreateBugDto,
   ) {
     const user = req.user!;
-    return this.projectRepo.createBug(
+    const bug = await this.projectRepo.createBug(
       id,
       user.emp_id,
       {
@@ -286,6 +303,11 @@ export class ProjectsController {
         attachment_url: dto.attachment_url,
       },
     );
+    this.eventsService.emitToProject(id, 'bug:created', bug);
+    if (dto.assigned_to) {
+      this.eventsService.emitToUser(dto.assigned_to, 'bug:assigned', bug);
+    }
+    return bug;
   }
 
   @Get(':id/bugs/:bugId')
@@ -300,11 +322,14 @@ export class ProjectsController {
   @ApiOperation({ summary: 'Update bug status, track dev/qa time, and notify stakeholders' })
   async updateProjectBugStatus(
     @Req() req: Request,
+    @Param('id', ParseIntPipe) id: number,
     @Param('bugId', ParseIntPipe) bugId: number,
     @Body() dto: UpdateBugStatusDto,
   ) {
     const user = req.user!;
-    return this.projectRepo.updateBugStatus(bugId, user.emp_id, dto.status, dto.note);
+    const updated = await this.projectRepo.updateBugStatus(bugId, user.emp_id, dto.status, dto.note);
+    this.eventsService.emitToProject(id, 'bug:status_changed', { bugId, status: dto.status, updated });
+    return updated;
   }
 
   @Post(':id/bugs/:bugId/comments')
@@ -312,11 +337,14 @@ export class ProjectsController {
   @ApiOperation({ summary: 'Add a comment to a project bug' })
   async addProjectBugComment(
     @Req() req: Request,
+    @Param('id', ParseIntPipe) id: number,
     @Param('bugId', ParseIntPipe) bugId: number,
     @Body() dto: AddBugCommentDto,
   ) {
     const user = req.user!;
-    return this.projectRepo.addBugComment(bugId, user.emp_id, dto.comment);
+    const comment = await this.projectRepo.addBugComment(bugId, user.emp_id, dto.comment);
+    this.eventsService.emitToProject(id, 'bug:comment_added', { bugId, comment });
+    return comment;
   }
 }
 

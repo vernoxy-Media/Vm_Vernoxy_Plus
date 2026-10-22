@@ -32,12 +32,15 @@ import { TaskBoard } from '../features/tasks/components/TaskBoard';
 import { TaskListView } from '../features/tasks/components/TaskListView';
 import { TaskDrawer } from '../features/tasks/components/TaskDrawer';
 import { QuickTaskModal } from '../features/tasks/components/QuickTaskModal';
+import { useSocket } from '../core/socket/SocketContext';
 
 export const MyTasksPage: React.FC = () => {
   const [filters, setFilters] = useState<TaskBoardQueryDto>({});
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
   const [isQuickTaskOpen, setIsQuickTaskOpen] = useState(false);
+  const { socket } = useSocket();
+
 
   const { data: rawBoard, refetch: refetchBoard, isLoading: isBoardLoading } = useMyTasksControllerGetBoard(filters);
   const board: TaskBoardResultDto | undefined =
@@ -64,6 +67,27 @@ export const MyTasksPage: React.FC = () => {
     refetchSummary();
     if (selectedTaskId !== null) refetchDetail();
   };
+
+  React.useEffect(() => {
+    if (!socket) return;
+    const handleTaskEvent = () => {
+      refetchBoard();
+      refetchSummary();
+      if (selectedTaskId !== null) refetchDetail();
+    };
+
+    socket.on('task:created', handleTaskEvent);
+    socket.on('task:stage_changed', handleTaskEvent);
+    socket.on('task:updated', handleTaskEvent);
+    socket.on('task:assigned', handleTaskEvent);
+
+    return () => {
+      socket.off('task:created', handleTaskEvent);
+      socket.off('task:stage_changed', handleTaskEvent);
+      socket.off('task:updated', handleTaskEvent);
+      socket.off('task:assigned', handleTaskEvent);
+    };
+  }, [socket, selectedTaskId, refetchBoard, refetchSummary, refetchDetail]);
 
   const handleMoveStage = async (taskId: number, targetStage: TaskStage, note?: string, holdReason?: string) => {
     try {

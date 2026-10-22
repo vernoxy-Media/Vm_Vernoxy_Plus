@@ -33,6 +33,7 @@ import {
   Search,
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
+import { useSocket } from '../../../core/socket/SocketContext';
 import {
   fetchProjectDetail,
   updateProject,
@@ -94,6 +95,8 @@ export const ProjectDetailPage: React.FC = () => {
     user?.access?.can_manage_organization ||
     user?.role?.role_name?.toLowerCase().includes('admin')
   );
+
+  const { socket, joinProject, leaveProject } = useSocket();
 
   // Core Data
   const [project, setProject] = useState<ProjectItem | null>(null);
@@ -246,6 +249,57 @@ export const ProjectDetailPage: React.FC = () => {
   useEffect(() => {
     loadProjectData();
   }, [loadProjectData]);
+
+  // Real-Time WebSocket listeners for project discussions, tasks, bugs, and sprints
+  useEffect(() => {
+    if (!projectId || isNaN(projectId)) return;
+
+    joinProject(projectId);
+
+    if (!socket) return;
+
+    const handleNewDiscussion = (msg: ProjectDiscussionItem) => {
+      setDiscussions((prev) => {
+        if (prev.some((d) => d.message_id === msg.message_id)) return prev;
+        return [...prev, msg];
+      });
+    };
+
+    const handleTaskChange = () => {
+      fetchSprintTasks(projectId).then(setTasks).catch(() => {});
+    };
+
+    const handleBugChange = () => {
+      fetchProjectBugs(projectId).then(setBugs).catch(() => {});
+    };
+
+    const handleSprintChange = () => {
+      fetchProjectSprints(projectId).then(setSprints).catch(() => {});
+    };
+
+    socket.on('discussion:new_message', handleNewDiscussion);
+    socket.on('task:created', handleTaskChange);
+    socket.on('task:stage_changed', handleTaskChange);
+    socket.on('task:updated', handleTaskChange);
+    socket.on('bug:created', handleBugChange);
+    socket.on('bug:status_changed', handleBugChange);
+    socket.on('bug:comment_added', handleBugChange);
+    socket.on('sprint:created', handleSprintChange);
+    socket.on('sprint:updated', handleSprintChange);
+
+    return () => {
+      leaveProject(projectId);
+      socket.off('discussion:new_message', handleNewDiscussion);
+      socket.off('task:created', handleTaskChange);
+      socket.off('task:stage_changed', handleTaskChange);
+      socket.off('task:updated', handleTaskChange);
+      socket.off('bug:created', handleBugChange);
+      socket.off('bug:status_changed', handleBugChange);
+      socket.off('bug:comment_added', handleBugChange);
+      socket.off('sprint:created', handleSprintChange);
+      socket.off('sprint:updated', handleSprintChange);
+    };
+  }, [socket, projectId, joinProject, leaveProject]);
 
   // Load Task Drawer Details
   useEffect(() => {
