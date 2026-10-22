@@ -52,6 +52,12 @@ export class SmtpMailAdapter implements MailPort {
       // Redact code in log!
       this.logger.log(`Sent ${purpose} OTP email to ${to.replace(/(.{2})(.*)(@.*)/, '$1***$3')}`);
     } catch (err: any) {
+      if (process.env.NODE_ENV !== 'production' && (err.code === 'ECONNREFUSED' || err.code === 'ESOCKET')) {
+        this.logger.warn(
+          `Local SMTP server not running (${err.message}). [DEV LOGIN CODE] Verification code for ${to} is: ${code}`,
+        );
+        return;
+      }
       this.logger.error(`Failed to send OTP email: ${err.message}`);
       throw err;
     }

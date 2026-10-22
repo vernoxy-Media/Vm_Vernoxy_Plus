@@ -56,6 +56,10 @@ export class DbJobQueue implements JobQueuePort, OnModuleInit, OnModuleDestroy {
 
   async startWorker(): Promise<void> {
     if (this.isRunning) return;
+    if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+      this.logger.log('Running on serverless/Vercel: background continuous polling worker disabled.');
+      return;
+    }
     this.isRunning = true;
     this.logger.log('Data Transfer background worker started (polling interval: 2s)');
 
@@ -64,11 +68,13 @@ export class DbJobQueue implements JobQueuePort, OnModuleInit, OnModuleDestroy {
         this.processNextJob();
       }
     }, 2000);
+    this.pollIntervalTimer.unref();
 
     // Stale heartbeat sweeper runs every 30s
     this.sweeperIntervalTimer = setInterval(() => {
       this.runStaleHeartbeatSweeper();
     }, 30000);
+    this.sweeperIntervalTimer.unref();
   }
 
   async stopWorker(): Promise<void> {

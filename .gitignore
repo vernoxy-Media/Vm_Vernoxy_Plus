@@ -6,7 +6,7 @@ node_modules/
 dist/
 build/
 .turbo/
-storage/
+/storage/
 
 # Environment
 .env
@@ -30,3 +30,6 @@ Thumbs.db
 # Coverage & Tests
 coverage/
 .nyc_output/
+test-results/
+playwright-report/
+
