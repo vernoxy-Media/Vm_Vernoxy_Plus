@@ -180,4 +180,15 @@ describe('AttendanceUseCases with TestClock', () => {
       'half_day',
     );
   });
+
+  it('rejects repeated Punch Out with AlreadyPunchedOutError when day is already closed', async () => {
+    const punchInUseCase = new PunchInUseCase(repo, clock);
+    const punchOutUseCase = new PunchOutUseCase(repo, clock);
+
+    await punchInUseCase.execute(1);
+    clock.advanceMinutes(480);
+    await punchOutUseCase.execute(1);
+
+    await expect(punchOutUseCase.execute(1)).rejects.toThrow('Already punched out today');
+  });
 });
