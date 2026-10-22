@@ -35,11 +35,18 @@ export interface TodayAttendanceBlock {
   check_in_at: string | null;
   check_out_at: string | null;
   current_break_started_at: string | null;
+  current_break_type?: string | null;
+  current_break_reason?: string | null;
   worked_minutes_so_far: number;
   break_minutes_so_far: number;
   target_minutes: number;
   production_minutes: number | null;
-  events: Array<{ type: 'punch_in' | 'break_start' | 'break_end' | 'punch_out'; at: string }>;
+  events: Array<{
+    type: 'punch_in' | 'break_start' | 'break_end' | 'punch_out';
+    at: string;
+    break_type?: string | null;
+    reason?: string | null;
+  }>;
   leave: { type_name: string; part: string } | null;
   holiday_name: string | null;
 }
@@ -93,7 +100,12 @@ export function buildTodayBlock(params: TodayBlockParams): TodayAttendanceBlock 
     }
   }
 
-  const events: Array<{ type: 'punch_in' | 'break_start' | 'break_end' | 'punch_out'; at: string }> = [];
+  const events: Array<{
+    type: 'punch_in' | 'break_start' | 'break_end' | 'punch_out';
+    at: string;
+    break_type?: string | null;
+    reason?: string | null;
+  }> = [];
 
   if (params.attendanceDay?.checkInAt) {
     events.push({
@@ -106,11 +118,15 @@ export function buildTodayBlock(params: TodayBlockParams): TodayAttendanceBlock 
     events.push({
       type: 'break_start',
       at: b.startedAt.toISOString(),
+      break_type: b.breakType || null,
+      reason: b.reason || null,
     });
     if (b.endedAt) {
       events.push({
         type: 'break_end',
         at: b.endedAt.toISOString(),
+        break_type: b.breakType || null,
+        reason: b.reason || null,
       });
     }
   }
@@ -135,6 +151,8 @@ export function buildTodayBlock(params: TodayBlockParams): TodayAttendanceBlock 
     check_in_at: params.attendanceDay?.checkInAt ? params.attendanceDay.checkInAt.toISOString() : null,
     check_out_at: params.attendanceDay?.checkOutAt ? params.attendanceDay.checkOutAt.toISOString() : null,
     current_break_started_at: params.openBreak?.startedAt ? params.openBreak.startedAt.toISOString() : null,
+    current_break_type: params.openBreak?.breakType || null,
+    current_break_reason: params.openBreak?.reason || null,
     worked_minutes_so_far: workedMinutes,
     break_minutes_so_far: breakMinutes,
     target_minutes: targetMinutes,

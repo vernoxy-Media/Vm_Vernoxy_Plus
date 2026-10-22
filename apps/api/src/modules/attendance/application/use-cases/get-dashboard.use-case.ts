@@ -175,6 +175,8 @@ export class GetDashboardUseCase {
           attendanceId: 0,
           startedAt: b.started_at,
           endedAt: b.ended_at,
+          breakType: (b as any).break_type || null,
+          reason: (b as any).reason || null,
         })),
         openBreak: openBreak
           ? {
@@ -182,6 +184,8 @@ export class GetDashboardUseCase {
               attendanceId: 0,
               startedAt: openBreak.started_at,
               endedAt: null,
+              breakType: (openBreak as any).break_type || null,
+              reason: (openBreak as any).reason || null,
             }
           : null,
         isWeeklyOff: todayRawDay.state === 'weekly_off',

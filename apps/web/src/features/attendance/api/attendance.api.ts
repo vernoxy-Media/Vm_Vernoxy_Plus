@@ -62,16 +62,23 @@ export async function punchOut(): Promise<{ success: boolean; today: TodayAttend
   }
 }
 
-export async function startBreak(): Promise<{ success: boolean; today: TodayAttendanceData; message?: string }> {
+export async function startBreak(
+  breakType?: string,
+  reason?: string
+): Promise<{ success: boolean; today: TodayAttendanceData; message?: string }> {
   try {
     const res = await customFetch<{ success: boolean; today: TodayAttendanceData; message?: string }>(
-      `${BASE_URL}/me/break`,
-      { method: 'POST' }
+      `${BASE_URL}/break/start`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ break_type: breakType, reason }),
+      }
     );
     return res;
   } catch (err: any) {
     if (err?.status === 404 || err?.status === 501 || err?.message?.includes('404')) {
-      return updateMockPunchAction('break_start');
+      return updateMockPunchAction('break_start', breakType, reason);
     }
     throw err;
   }

@@ -14,6 +14,7 @@ import type {
   TodayAttendanceData,
   CorrectionRequestPayload,
 } from '../types/attendance.types';
+import { startBreak } from '../api/attendance.api';
 
 export const ATTENDANCE_QUERY_KEY = 'attendance_dashboard';
 export const ATTENDANCE_DAY_QUERY_KEY = 'attendance_day_detail';
@@ -51,14 +52,23 @@ function mapApiTodayBlock(t: any): TodayAttendanceData {
     const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     let label = `Punch In at ${timeStr}`;
     if (e.type === 'punch_out') label = `Punch Out at ${timeStr}`;
-    else if (e.type === 'break_start') label = `Break Started at ${timeStr}`;
-    else if (e.type === 'break_end') label = `Resumed Working at ${timeStr}`;
+    else if (e.type === 'break_start') {
+      const typeStr = e.break_type || 'Break';
+      const reasonStr = e.reason ? ` (${e.reason})` : '';
+      label = `${typeStr} started at ${timeStr}${reasonStr}`;
+    }
+    else if (e.type === 'break_end') {
+      const typeStr = e.break_type ? ` from ${e.break_type}` : '';
+      label = `Resumed working${typeStr} at ${timeStr}`;
+    }
     return {
       id: `${e.type}-${idx}`,
       type: e.type,
       timestamp: e.at,
       display_time: timeStr,
       label,
+      break_type: e.break_type || null,
+      reason: e.reason || null,
     };
   });
 
@@ -73,6 +83,8 @@ function mapApiTodayBlock(t: any): TodayAttendanceData {
     break_seconds: (t.break_minutes_so_far ?? 0) * 60,
     target_seconds: (t.target_minutes ?? 480) * 60,
     active_break_start: t.current_break_started_at || null,
+    active_break_type: t.current_break_type || null,
+    active_break_reason: t.current_break_reason || null,
     server_now: t.server_now || new Date().toISOString(),
     timeline,
   };
@@ -180,15 +192,26 @@ export function useDayDetail(date: string | null) {
         punched_out_at: detail.check_out_at || null,
         production_seconds: (detail.production_minutes ?? 0) * 60,
         break_seconds: (detail.break_minutes ?? 0) * 60,
-        timeline: (detail.timeline || []).map((e: any, idx: number) => {
+        timeline: (detail.events || detail.timeline || []).map((e: any, idx: number) => {
           const d = new Date(e.at);
           const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+          let label = `${e.type.replace('_', ' ')} at ${timeStr}`;
+          if (e.type === 'break_start') {
+            const typeStr = e.break_type || 'Break';
+            const reasonStr = e.reason ? ` (${e.reason})` : '';
+            label = `${typeStr} started at ${timeStr}${reasonStr}`;
+          } else if (e.type === 'break_end') {
+            const typeStr = e.break_type ? ` from ${e.break_type}` : '';
+            label = `Resumed working${typeStr} at ${timeStr}`;
+          }
           return {
             id: `${e.type}-${idx}`,
             type: e.type,
             timestamp: e.at,
             display_time: timeStr,
-            label: `${e.type.replace('_', ' ')} at ${timeStr}`,
+            label,
+            break_type: e.break_type || null,
+            reason: e.reason || null,
           };
         }),
         breaks: (detail.breaks || []).map((b: any) => ({
@@ -275,13 +298,18 @@ export function usePunchActions({ month, onConflict, onAnnounce }: PunchMutation
   });
 
   const startBreakMutation = useMutation({
-    mutationFn: async () => {
-      const res = await attendanceControllerStartBreak();
-      return (res as any)?.data ?? res;
+    mutationFn: async (variables?: { breakType?: string; reason?: string }) => {
+      try {
+        const res = await startBreak(variables?.breakType, variables?.reason);
+        return (res as any)?.today ?? (res as any)?.data ?? res;
+      } catch (err) {
+        const res = await attendanceControllerStartBreak();
+        return (res as any)?.data ?? res;
+      }
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       updateTodayData(data);
-      onAnnounce?.('Break started');
+      onAnnounce?.(`${variables?.breakType || 'Break'} started`);
     },
     onError: (err: any) => {
       handleConflict(err);

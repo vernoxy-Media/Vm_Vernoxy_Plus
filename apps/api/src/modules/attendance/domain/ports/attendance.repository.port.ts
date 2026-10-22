@@ -16,7 +16,12 @@ export interface AttendanceRepository {
   findOpenBreak(attendanceId: number): Promise<AttendanceBreakEntity | null>;
   findBreaksByAttendanceId(attendanceId: number): Promise<AttendanceBreakEntity[]>;
   findBreaksByAttendanceIds(attendanceIds: number[]): Promise<AttendanceBreakEntity[]>;
-  createBreak(attendanceId: number, startedAt: Date): Promise<AttendanceBreakEntity>;
+  createBreak(
+    attendanceId: number,
+    startedAt: Date,
+    breakType?: string | null,
+    reason?: string | null,
+  ): Promise<AttendanceBreakEntity>;
   closeBreak(breakId: number, endedAt: Date): Promise<AttendanceBreakEntity>;
   createCorrection(data: Omit<AttendanceCorrectionEntity, 'correctionId' | 'createdAt'>): Promise<AttendanceCorrectionEntity>;
   findCorrectionById(correctionId: number): Promise<AttendanceCorrectionEntity | null>;
@@ -75,13 +80,18 @@ export interface AttendanceRepository {
       leave: { type_name: string; part: string } | null;
       holiday_name: string | null;
       flags: Record<string, any>;
-      breaks: Array<{ started_at: Date; ended_at: Date | null }>;
+      breaks: Array<{ started_at: Date; ended_at: Date | null; break_type?: string | null; reason?: string | null }>;
     }>;
   }>;
   findDayDetail(empId: number, date: string): Promise<{
     date: string;
     state: string;
-    events: Array<{ type: 'punch_in' | 'break_start' | 'break_end' | 'punch_out'; at: string }>;
+    events: Array<{
+      type: 'punch_in' | 'break_start' | 'break_end' | 'punch_out';
+      at: string;
+      break_type?: string | null;
+      reason?: string | null;
+    }>;
     breaks: Array<{ started_at: string; ended_at: string | null; minutes: number }>;
     production_minutes: number;
     break_minutes: number;

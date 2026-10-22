@@ -7,6 +7,12 @@ export class TimelineEventDto {
 
   @ApiProperty({ type: String, example: '2026-10-16T10:00:00.000Z' })
   at!: string;
+
+  @ApiPropertyOptional({ type: String, nullable: true, example: 'Tea Break' })
+  break_type?: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true, example: 'Personal errand' })
+  reason?: string | null;
 }
 
 export class TodayAttendanceBlockDto {
@@ -44,6 +50,12 @@ export class TodayAttendanceBlockDto {
 
   @ApiPropertyOptional({ type: String, nullable: true, example: '2026-10-16T13:00:00.000Z' })
   current_break_started_at?: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true, example: 'Tea Break' })
+  current_break_type?: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true, example: 'Personal errand' })
+  current_break_reason?: string | null;
 
   @ApiProperty({ type: Number, example: 450 })
   worked_minutes_so_far!: number;
@@ -349,4 +361,20 @@ export class TeamAttendanceQueryDto {
   @ApiPropertyOptional({ type: Number, example: 1 })
   @IsOptional()
   depId?: number;
+}
+
+export class StartBreakDto {
+  @ApiPropertyOptional({
+    type: String,
+    example: 'Tea Break',
+    enum: ['Tea Break', 'Lunch Break', 'Personal Break', 'Other Break'],
+  })
+  @IsString()
+  @IsOptional()
+  break_type?: string;
+
+  @ApiPropertyOptional({ type: String, example: 'Doctor consultation' })
+  @IsString()
+  @IsOptional()
+  reason?: string;
 }

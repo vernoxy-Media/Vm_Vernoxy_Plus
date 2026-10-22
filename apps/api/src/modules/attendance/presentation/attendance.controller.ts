@@ -54,6 +54,7 @@ import {
   RejectCorrectionDto,
   AdminUpsertDayDto,
   TeamAttendanceQueryDto,
+  StartBreakDto,
 } from './dto/attendance.dto';
 
 @ApiTags('Attendance')
@@ -105,21 +106,24 @@ export class AttendanceController {
     }
   }
 
-  @Post('break/start')
+  @Post(['break/start', 'me/break'])
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Start a break' })
   @ApiResponse({ status: 200, type: TodayAttendanceBlockDto })
-  async startBreak(@Req() req: Request): Promise<TodayAttendanceBlockDto> {
+  async startBreak(
+    @Req() req: Request,
+    @Body() dto?: StartBreakDto,
+  ): Promise<TodayAttendanceBlockDto> {
     try {
       const empId = req.user!.emp_id;
-      return await this.startBreakUseCase.execute(empId);
+      return await this.startBreakUseCase.execute(empId, dto?.break_type, dto?.reason);
     } catch (err) {
       throw mapAttendanceErrorToHttp(err);
     }
   }
 
-  @Post('break/end')
+  @Post(['break/end', 'me/resume'])
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'End a break (resume working)' })

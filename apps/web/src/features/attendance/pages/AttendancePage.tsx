@@ -60,7 +60,8 @@ export const AttendancePage: React.FC = () => {
 
   const handlePunchIn = () => runAction(() => punchInMutation.mutateAsync(), 'Failed to punch in');
   const handlePunchOut = () => runAction(() => punchOutMutation.mutateAsync(), 'Failed to punch out');
-  const handleStartBreak = () => runAction(() => startBreakMutation.mutateAsync(), 'Failed to start break');
+  const handleStartBreak = (breakType?: string, reason?: string) =>
+    runAction(() => startBreakMutation.mutateAsync({ breakType, reason }), 'Failed to start break');
   const handleResumeBreak = () => runAction(() => resumeBreakMutation.mutateAsync(), 'Failed to resume break');
 
   if (isLoading && !data) return <AttendanceSkeleton />;

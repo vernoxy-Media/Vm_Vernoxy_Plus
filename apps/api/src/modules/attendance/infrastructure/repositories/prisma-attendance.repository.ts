@@ -46,6 +46,8 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
       attendanceId: row.attendance_id,
       startedAt: row.started_at,
       endedAt: row.ended_at,
+      breakType: row.break_type,
+      reason: row.reason,
       createdAt: row.created_at,
       createdBy: row.created_by,
       updatedAt: row.updated_at,
@@ -220,11 +222,18 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
     return rows.map((r) => this.mapBreakRowToEntity(r));
   }
 
-  async createBreak(attendanceId: number, startedAt: Date): Promise<AttendanceBreakEntity> {
+  async createBreak(
+    attendanceId: number,
+    startedAt: Date,
+    breakType?: string | null,
+    reason?: string | null,
+  ): Promise<AttendanceBreakEntity> {
     const row = await this.prisma.attendance_breaks.create({
       data: {
         attendance_id: attendanceId,
         started_at: startedAt,
+        break_type: breakType || null,
+        reason: reason || null,
       },
     });
     return this.mapBreakRowToEntity(row);
@@ -525,7 +534,9 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
               json_build_object(
                 'break_id', ab.break_id,
                 'started_at', ab.started_at,
-                'ended_at', ab.ended_at
+                'ended_at', ab.ended_at,
+                'break_type', ab.break_type,
+                'reason', ab.reason
               ) ORDER BY ab.started_at ASC
             )
             FROM attendance_breaks ab
@@ -559,9 +570,16 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
       const holidayMatch = holidaysList.find((h) => h.date === dateStr);
       const isHoliday = !!holidayMatch;
 
-      const breaksList: Array<{ started_at: Date; ended_at: Date | null }> = (r.breaks || []).map((b: any) => ({
+      const breaksList: Array<{
+        started_at: Date;
+        ended_at: Date | null;
+        break_type?: string | null;
+        reason?: string | null;
+      }> = (r.breaks || []).map((b: any) => ({
         started_at: new Date(b.started_at),
         ended_at: b.ended_at ? new Date(b.ended_at) : null,
+        break_type: b.break_type || null,
+        reason: b.reason || null,
       }));
 
       let state: 'present' | 'half_day' | 'short' | 'incomplete' | 'leave' | 'holiday' | 'weekly_off' | 'absent' | 'upcoming';
@@ -690,12 +708,16 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
         events.push({
           type: 'break_start',
           at: b.started_at.toISOString(),
-        });
+          break_type: b.break_type || null,
+          reason: b.reason || null,
+        } as any);
         if (b.ended_at) {
           events.push({
             type: 'break_end',
             at: b.ended_at.toISOString(),
-          });
+            break_type: b.break_type || null,
+            reason: b.reason || null,
+          } as any);
         }
         const bDuration = b.ended_at
           ? Math.floor((b.ended_at.getTime() - b.started_at.getTime()) / 60000)

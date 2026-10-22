@@ -16,7 +16,9 @@ import { TokenService } from '../auth/application/ports/auth.ports';
 
 @WebSocketGateway({
   cors: {
-    origin: '*',
+    origin: (_origin: string, callback: (err: Error | null, allow?: boolean) => void) => {
+      callback(null, true);
+    },
     credentials: true,
   },
   transports: ['websocket', 'polling'],
@@ -85,12 +87,14 @@ export class EventsGateway
   @SubscribeMessage('join:project')
   handleJoinProject(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { projectId: number | string },
+    @MessageBody() data: any,
   ) {
-    if (data && data.projectId) {
-      const room = `project:${data.projectId}`;
+    const rawId = typeof data === 'object' && data !== null ? data.projectId : data;
+    const projectId = Number(rawId);
+    if (projectId && !isNaN(projectId)) {
+      const room = `project:${projectId}`;
       client.join(room);
-      this.logger.debug(`Socket ${client.id} joined room ${room}`);
+      this.logger.log(`Socket ${client.id} joined room ${room}`);
       return { success: true, room };
     }
     return { success: false, message: 'Invalid projectId' };
@@ -99,12 +103,14 @@ export class EventsGateway
   @SubscribeMessage('leave:project')
   handleLeaveProject(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { projectId: number | string },
+    @MessageBody() data: any,
   ) {
-    if (data && data.projectId) {
-      const room = `project:${data.projectId}`;
+    const rawId = typeof data === 'object' && data !== null ? data.projectId : data;
+    const projectId = Number(rawId);
+    if (projectId && !isNaN(projectId)) {
+      const room = `project:${projectId}`;
       client.leave(room);
-      this.logger.debug(`Socket ${client.id} left room ${room}`);
+      this.logger.log(`Socket ${client.id} left room ${room}`);
       return { success: true, room };
     }
     return { success: false, message: 'Invalid projectId' };

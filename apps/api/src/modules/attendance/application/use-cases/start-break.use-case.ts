@@ -14,7 +14,12 @@ export class StartBreakUseCase {
     private readonly clock: Clock,
   ) {}
 
-  async execute(empId: number, timezone = 'Asia/Kolkata'): Promise<TodayAttendanceBlock> {
+  async execute(
+    empId: number,
+    breakType?: string | null,
+    reason?: string | null,
+    timezone = 'Asia/Kolkata',
+  ): Promise<TodayAttendanceBlock> {
     const now = this.clock.now();
     const workDate = formatWorkDate(now, timezone);
 
@@ -41,7 +46,12 @@ export class StartBreakUseCase {
       isWeeklyOff,
     });
 
-    const newBreak = await this.attendanceRepo.createBreak(existingDay.attendanceId, now);
+    const newBreak = await this.attendanceRepo.createBreak(
+      existingDay.attendanceId,
+      now,
+      breakType,
+      reason,
+    );
     const allBreaks = await this.attendanceRepo.findBreaksByAttendanceId(existingDay.attendanceId);
 
     return buildTodayBlock({

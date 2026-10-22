@@ -578,6 +578,8 @@ model attendance_breaks {
   attendance_id                                     Int
   started_at                                        DateTime        @db.Timestamptz(6)
   ended_at                                          DateTime?       @db.Timestamptz(6)
+  break_type                                        String?         @db.VarChar(50)
+  reason                                            String?         @db.VarChar(255)
   created_at                                        DateTime        @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
   created_by                                        Int?
   updated_at                                        DateTime?       @db.Timestamptz(6)

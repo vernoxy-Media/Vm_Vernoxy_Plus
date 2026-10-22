@@ -19,7 +19,7 @@ export interface AttendanceDashboardCardsProps {
   isPending: boolean;
   onPunchIn: () => Promise<void>;
   onPunchOut: () => Promise<void>;
-  onStartBreak: () => Promise<void>;
+  onStartBreak: (breakType?: string, reason?: string) => Promise<any>;
   onResumeBreak: () => Promise<void>;
   actionError: string | null;
   infoToast: string | null;
@@ -83,6 +83,8 @@ export const AttendanceDashboardCards: React.FC<AttendanceDashboardCardsProps> =
           timeline={today.timeline}
           state={today.state}
           activeBreakStart={today.active_break_start}
+          activeBreakType={today.active_break_type}
+          activeBreakReason={today.active_break_reason}
           selectedDate={selectedDate}
           isSelectedToday={isSelectedToday}
           statusLabel={statusLabel}

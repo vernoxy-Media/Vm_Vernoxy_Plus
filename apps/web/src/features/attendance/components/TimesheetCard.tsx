@@ -11,7 +11,7 @@ export interface TimesheetCardProps {
   isPending: boolean;
   onPunchIn: () => Promise<any>;
   onPunchOut: () => Promise<any>;
-  onStartBreak: () => Promise<any>;
+  onStartBreak: (breakType?: string, reason?: string) => Promise<any>;
   onResumeBreak: () => Promise<any>;
   errorMessage?: string | null;
   infoToast?: string | null;

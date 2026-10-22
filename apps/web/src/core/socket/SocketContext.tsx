@@ -36,18 +36,27 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
 
     const token = getAccessToken();
-    const socketUrl = import.meta.env.VITE_API_URL || window.location.origin;
+    const socketUrl =
+      import.meta.env.VITE_API_URL ||
+      (window.location.port === '5173'
+        ? `${window.location.protocol}//${window.location.hostname}:3000`
+        : window.location.origin);
 
     const s = io(socketUrl, {
       auth: { token },
       transports: ['websocket', 'polling'],
-      reconnectionAttempts: 10,
-      reconnectionDelay: 2000,
+      reconnectionAttempts: 20,
+      reconnectionDelay: 1000,
     });
 
     s.on('connect', () => {
       console.log('[Socket] Connected to server, id:', s.id);
       setIsConnected(true);
+      // Re-join any active rooms upon connection/reconnection
+      activeRoomsRef.current.forEach((pId) => {
+        s.emit('join:project', { projectId: pId });
+        console.log('[Socket] Joined project room on connect:', pId);
+      });
     });
 
     s.on('disconnect', (reason) => {
@@ -71,17 +80,27 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
   }, [isAuthenticated, user?.emp_id]);
 
-  const joinProject = (projectId: number | string) => {
-    if (socketRef.current && projectId) {
-      socketRef.current.emit('join:project', { projectId });
-    }
-  };
+  const activeRoomsRef = useRef<Set<number>>(new Set());
 
-  const leaveProject = (projectId: number | string) => {
-    if (socketRef.current && projectId) {
-      socketRef.current.emit('leave:project', { projectId });
+  const joinProject = React.useCallback((projectId: number | string) => {
+    const id = Number(projectId);
+    if (!id || isNaN(id)) return;
+    activeRoomsRef.current.add(id);
+    if (socketRef.current) {
+      socketRef.current.emit('join:project', { projectId: id });
+      console.log('[Socket] Emitted join:project:', id);
     }
-  };
+  }, []);
+
+  const leaveProject = React.useCallback((projectId: number | string) => {
+    const id = Number(projectId);
+    if (!id || isNaN(id)) return;
+    activeRoomsRef.current.delete(id);
+    if (socketRef.current) {
+      socketRef.current.emit('leave:project', { projectId: id });
+      console.log('[Socket] Emitted leave:project:', id);
+    }
+  }, []);
 
   return (
     <SocketContext.Provider value={{ socket, isConnected, joinProject, leaveProject }}>

@@ -6,6 +6,8 @@ export interface TodayActivityCardProps {
   timeline: TimelineEvent[];
   state: AttendanceState;
   activeBreakStart?: string | null;
+  activeBreakType?: string | null;
+  activeBreakReason?: string | null;
   selectedDate?: string;
   isSelectedToday?: boolean;
   statusLabel?: string;
@@ -15,6 +17,8 @@ export const TodayActivityCard: React.FC<TodayActivityCardProps> = ({
   timeline,
   state,
   activeBreakStart,
+  activeBreakType,
+  activeBreakReason,
   selectedDate,
   isSelectedToday = true,
   statusLabel,
@@ -82,6 +86,24 @@ export const TodayActivityCard: React.FC<TodayActivityCardProps> = ({
                 const isBreak = event.type === 'break_start';
                 const isResume = event.type === 'break_end';
 
+                const effectiveBreakType =
+                  event.break_type ||
+                  (event.label?.toLowerCase().includes('tea break') ? 'Tea Break' :
+                   event.label?.toLowerCase().includes('lunch break') ? 'Lunch Break' :
+                   event.label?.toLowerCase().includes('personal break') ? 'Personal Break' :
+                   event.label?.toLowerCase().includes('other break') ? 'Other Break' : null);
+
+                const effectiveReason =
+                  event.reason ||
+                  (event.label?.includes('(') && event.label.includes(')')
+                    ? event.label.substring(event.label.indexOf('(') + 1, event.label.lastIndexOf(')'))
+                    : null);
+
+                const displayBreakName =
+                  effectiveBreakType === 'Other Break' && effectiveReason
+                    ? (effectiveReason.toLowerCase().includes('break') ? effectiveReason : `${effectiveReason} Break`)
+                    : effectiveBreakType;
+
                 let NodeIcon = Clock;
                 let nodeStyle = 'bg-slate-100 text-slate-600 border-slate-300';
                 let title = 'Activity';
@@ -97,11 +119,11 @@ export const TodayActivityCard: React.FC<TodayActivityCardProps> = ({
                 } else if (isBreak) {
                   NodeIcon = Coffee;
                   nodeStyle = 'bg-amber-50 text-amber-600 border-amber-300 ring-2 ring-amber-500/20';
-                  title = 'Break Started';
+                  title = displayBreakName ? `${displayBreakName} Started` : 'Break Started';
                 } else if (isResume) {
                   NodeIcon = Play;
                   nodeStyle = 'bg-blue-50 text-blue-600 border-blue-300 ring-2 ring-blue-500/20';
-                  title = 'Resumed Work';
+                  title = displayBreakName ? `Resumed from ${displayBreakName}` : 'Resumed Work';
                 }
 
                 return (
@@ -117,9 +139,19 @@ export const TodayActivityCard: React.FC<TodayActivityCardProps> = ({
                       <p className="text-xs font-bold text-slate-800 tracking-tight">
                         {title}
                       </p>
-                      <span className="text-[11px] font-semibold text-slate-400">
-                        Recorded system event
-                      </span>
+                      {effectiveReason ? (
+                        <span className="text-[11px] font-medium text-amber-700 block truncate" title={effectiveReason}>
+                          {effectiveBreakType === 'Other Break' ? `Other Break • Reason: ${effectiveReason}` : `Reason: ${effectiveReason}`}
+                        </span>
+                      ) : effectiveBreakType ? (
+                        <span className="text-[11px] font-semibold text-slate-400">
+                          {effectiveBreakType}
+                        </span>
+                      ) : (
+                        <span className="text-[11px] font-semibold text-slate-400">
+                          Recorded system event
+                        </span>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200/70 text-xs font-bold font-mono text-slate-800 shrink-0">
@@ -139,12 +171,17 @@ export const TodayActivityCard: React.FC<TodayActivityCardProps> = ({
                   <div className="flex-1 min-w-0 pl-2 bg-gradient-to-r from-amber-50/90 to-orange-50/50 border border-amber-200 rounded-xl p-3">
                     <div className="flex items-center justify-between">
                       <p className="text-xs font-extrabold text-amber-900">
-                        Break in progress
+                        {activeBreakType ? `${activeBreakType} in progress` : 'Break in progress'}
                       </p>
                       <span className="text-[11px] font-bold text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded-md">
                         Since {activeBreakTime}
                       </span>
                     </div>
+                    {activeBreakReason && (
+                      <p className="text-[11px] text-amber-800 mt-0.5 font-medium italic">
+                        Reason: {activeBreakReason}
+                      </p>
+                    )}
                     <p className="text-[11px] text-amber-800 mt-1">
                       Production clock paused. Click Resume when you return.
                     </p>

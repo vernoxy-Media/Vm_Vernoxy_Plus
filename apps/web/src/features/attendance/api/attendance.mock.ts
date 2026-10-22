@@ -117,7 +117,9 @@ export function saveStoredTodayData(data: TodayAttendanceData): void {
 }
 
 export function updateMockPunchAction(
-  action: 'punch_in' | 'punch_out' | 'break_start' | 'break_end'
+  action: 'punch_in' | 'punch_out' | 'break_start' | 'break_end',
+  breakType?: string,
+  reason?: string
 ): { success: boolean; today: TodayAttendanceData; message?: string } {
   const current = getStoredTodayData();
   const now = new Date();
@@ -144,6 +146,8 @@ export function updateMockPunchAction(
     current.state = 'done';
     current.punched_out_at = nowIso;
     current.active_break_start = null;
+    current.active_break_type = null;
+    current.active_break_reason = null;
     current.timeline.push({
       id: `evt-${Date.now()}`,
       type: 'punch_out',
@@ -154,12 +158,16 @@ export function updateMockPunchAction(
   } else if (action === 'break_start') {
     current.state = 'on_break';
     current.active_break_start = nowIso;
+    current.active_break_type = breakType || 'Break';
+    current.active_break_reason = reason || null;
     current.timeline.push({
       id: `evt-${Date.now()}`,
       type: 'break_start',
       timestamp: nowIso,
       display_time: nowFormatted,
-      label: `Break started at ${nowFormatted}`,
+      label: `${breakType || 'Break'} started at ${nowFormatted}${reason ? ` (${reason})` : ''}`,
+      break_type: breakType || null,
+      reason: reason || null,
     });
   } else if (action === 'break_end') {
     current.state = 'working';
@@ -168,6 +176,8 @@ export function updateMockPunchAction(
       current.break_seconds += Math.max(0, diffSec);
       current.active_break_start = null;
     }
+    current.active_break_type = null;
+    current.active_break_reason = null;
     current.timeline.push({
       id: `evt-${Date.now()}`,
       type: 'break_end',

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -181,6 +181,13 @@ export const ProjectDetailPage: React.FC = () => {
   // Discussion Input State
   const [newMessageText, setNewMessageText] = useState('');
   const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (activeTab === 5) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [discussions, activeTab]);
 
   // Load all project data
   const loadProjectData = useCallback(async () => {
@@ -209,7 +216,9 @@ export const ProjectDetailPage: React.FC = () => {
       setSprints(sprintsData);
       setTasks(tasksData);
       setBugs(bugsData);
-      setDiscussions(discussionsData);
+      setDiscussions(
+        Array.from(new Map((discussionsData || []).map((d) => [String(d.message_id), d])).values())
+      );
       setActivityLogs(logsData);
       setEmployees(assignable);
 
@@ -259,8 +268,9 @@ export const ProjectDetailPage: React.FC = () => {
     if (!socket) return;
 
     const handleNewDiscussion = (msg: ProjectDiscussionItem) => {
+      if (!msg || !msg.message_id) return;
       setDiscussions((prev) => {
-        if (prev.some((d) => d.message_id === msg.message_id)) return prev;
+        if (prev.some((d) => String(d.message_id) === String(msg.message_id))) return prev;
         return [...prev, msg];
       });
     };
@@ -607,13 +617,22 @@ export const ProjectDetailPage: React.FC = () => {
     e.preventDefault();
     if (!newMessageText.trim() || isSendingMessage) return;
 
+    const text = newMessageText.trim();
+    setNewMessageText('');
     try {
       setIsSendingMessage(true);
-      const newMsg = await createProjectDiscussion(projectId, newMessageText.trim());
-      setDiscussions((prev) => [...prev, newMsg]);
-      setNewMessageText('');
+      const newMsg = await createProjectDiscussion(projectId, text);
+      if (newMsg && newMsg.message_id) {
+        setDiscussions((prev) => {
+          if (prev.some((d) => String(d.message_id) === String(newMsg.message_id))) {
+            return prev;
+          }
+          return [...prev, newMsg];
+        });
+      }
     } catch (err: any) {
       console.error('Failed to post discussion message:', err);
+      setNewMessageText(text);
       alert(err?.detail || err?.message || 'Failed to post message');
     } finally {
       setIsSendingMessage(false);
@@ -2286,6 +2305,7 @@ export const ProjectDetailPage: React.FC = () => {
                   );
                 })
               )}
+              <div ref={messagesEndRef} />
             </div>
 
             {/* Input Box */}

@@ -12,12 +12,16 @@ export type DayAttendanceStatus =
   | 'weekly_off'
   | 'absent';
 
+export type BreakOption = 'Tea Break' | 'Lunch Break' | 'Personal Break' | 'Other Break';
+
 export interface TimelineEvent {
   id: string;
   type: 'punch_in' | 'break_start' | 'break_end' | 'punch_out';
   timestamp: string; // ISO string
   display_time: string; // e.g. "10:00 AM"
   label: string; // e.g. "Punch In at 10:00 AM"
+  break_type?: string | null;
+  reason?: string | null;
 }
 
 export interface TodayAttendanceData {
@@ -32,6 +36,8 @@ export interface TodayAttendanceData {
   break_seconds: number;
   target_seconds: number; // default 28800 (8h)
   active_break_start: string | null; // ISO
+  active_break_type?: string | null;
+  active_break_reason?: string | null;
   server_now: string; // ISO
   timeline: TimelineEvent[];
 }
@@ -92,6 +98,8 @@ export interface DayDetailBreak {
   start: string;
   end: string | null;
   duration_seconds: number;
+  break_type?: string | null;
+  reason?: string | null;
 }
 
 export interface DayDetailResponse {
