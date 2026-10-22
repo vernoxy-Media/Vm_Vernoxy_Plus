@@ -132,6 +132,7 @@ import type {
   UpdateDepartmentDto,
   UpdateEmployeeDto,
   UpdateIndustryDto,
+  UpdateProjectDto,
   UpdateProjectStatusDto,
   UpdateRoleDto,
   UpdateSprintDto,
@@ -11951,6 +11952,91 @@ export function useProjectsControllerGetProjectDetail<TData = Awaited<ReturnType
 
 
 
+/**
+ * @summary Update project details (Admin and Project Manager)
+ */
+export type projectsControllerUpdateProjectResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type projectsControllerUpdateProjectResponseSuccess = (projectsControllerUpdateProjectResponse200) & {
+  headers: Headers;
+};
+;
+
+export type projectsControllerUpdateProjectResponse = (projectsControllerUpdateProjectResponseSuccess)
+
+export const getProjectsControllerUpdateProjectUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/projects/${id}`
+}
+
+export const projectsControllerUpdateProject = async (id: number,
+    updateProjectDto: UpdateProjectDto, options?: RequestInit): Promise<projectsControllerUpdateProjectResponse> => {
+  
+  return customFetch<projectsControllerUpdateProjectResponse>(getProjectsControllerUpdateProjectUrl(id),
+  {      
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateProjectDto,)
+  }
+);}
+
+
+
+
+export const getProjectsControllerUpdateProjectMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof projectsControllerUpdateProject>>, TError,{id: number;data: UpdateProjectDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof projectsControllerUpdateProject>>, TError,{id: number;data: UpdateProjectDto}, TContext> => {
+
+const mutationKey = ['projectsControllerUpdateProject'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof projectsControllerUpdateProject>>, {id: number;data: UpdateProjectDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  projectsControllerUpdateProject(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ProjectsControllerUpdateProjectMutationResult = NonNullable<Awaited<ReturnType<typeof projectsControllerUpdateProject>>>
+    export type ProjectsControllerUpdateProjectMutationBody = UpdateProjectDto
+    export type ProjectsControllerUpdateProjectMutationError = unknown
+
+    /**
+ * @summary Update project details (Admin and Project Manager)
+ */
+export const useProjectsControllerUpdateProject = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof projectsControllerUpdateProject>>, TError,{id: number;data: UpdateProjectDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof projectsControllerUpdateProject>>,
+        TError,
+        {id: number;data: UpdateProjectDto},
+        TContext
+      > => {
+
+      const mutationOptions = getProjectsControllerUpdateProjectMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
 /**
  * @summary Update project status (Admin and Project Manager)
  */

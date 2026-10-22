@@ -4,6 +4,10 @@ import type {
   CreateProjectPayload,
   CreateProjectTaskPayload,
   CreateSprintPayload,
+  ProjectActivityLogItem,
+  ProjectBugItem,
+  CreateProjectBugPayload,
+  ProjectDiscussionItem,
   ProjectItem,
   ProjectStatus,
   ProjectTaskItem,
@@ -61,6 +65,17 @@ export async function fetchProjectDetail(projectId: number): Promise<ProjectItem
 export async function createProject(payload: CreateProjectPayload): Promise<ProjectItem> {
   return customFetch<ProjectItem>(BASE_URL, {
     method: 'POST',
+    body: JSON.stringify(payload),
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+export async function updateProject(
+  projectId: number,
+  payload: Partial<CreateProjectPayload>
+): Promise<ProjectItem> {
+  return customFetch<ProjectItem>(`${BASE_URL}/${projectId}`, {
+    method: 'PATCH',
     body: JSON.stringify(payload),
     headers: { 'Content-Type': 'application/json' },
   });
@@ -135,4 +150,88 @@ export async function createProjectTask(
     headers: { 'Content-Type': 'application/json' },
   });
 }
+
+export async function fetchProjectDiscussions(projectId: number): Promise<ProjectDiscussionItem[]> {
+  try {
+    return await customFetch<ProjectDiscussionItem[]>(`${BASE_URL}/${projectId}/discussions`);
+  } catch (err) {
+    console.warn(`Failed to fetch discussions for project ${projectId}:`, err);
+    return [];
+  }
+}
+
+export async function createProjectDiscussion(
+  projectId: number,
+  message: string,
+  attachments?: string[]
+): Promise<ProjectDiscussionItem> {
+  return customFetch<ProjectDiscussionItem>(`${BASE_URL}/${projectId}/discussions`, {
+    method: 'POST',
+    body: JSON.stringify({ message, attachments }),
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+export async function fetchProjectActivityLogs(projectId: number): Promise<ProjectActivityLogItem[]> {
+  try {
+    return await customFetch<ProjectActivityLogItem[]>(`${BASE_URL}/${projectId}/activity-logs`);
+  } catch (err) {
+    console.warn(`Failed to fetch activity logs for project ${projectId}:`, err);
+    return [];
+  }
+}
+
+export async function fetchProjectBugs(projectId: number): Promise<ProjectBugItem[]> {
+  try {
+    return await customFetch<ProjectBugItem[]>(`${BASE_URL}/${projectId}/bugs`);
+  } catch (err) {
+    console.warn(`Failed to fetch bugs for project ${projectId}:`, err);
+    return [];
+  }
+}
+
+export async function createProjectBug(
+  projectId: number,
+  payload: CreateProjectBugPayload
+): Promise<ProjectBugItem> {
+  return customFetch<ProjectBugItem>(`${BASE_URL}/${projectId}/bugs`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+export async function fetchProjectBugDetail(
+  projectId: number,
+  bugId: number
+): Promise<ProjectBugItem> {
+  return customFetch<ProjectBugItem>(`${BASE_URL}/${projectId}/bugs/${bugId}`);
+}
+
+export async function updateProjectBugStatus(
+  projectId: number,
+  bugId: number,
+  status: string,
+  note?: string
+): Promise<ProjectBugItem> {
+  return customFetch<ProjectBugItem>(`${BASE_URL}/${projectId}/bugs/${bugId}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status, note }),
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+export async function addProjectBugComment(
+  projectId: number,
+  bugId: number,
+  comment: string
+): Promise<any> {
+  return customFetch(`${BASE_URL}/${projectId}/bugs/${bugId}/comments`, {
+    method: 'POST',
+    body: JSON.stringify({ comment }),
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+
 

@@ -88,6 +88,8 @@ export interface ProjectItem {
   total_tasks_count: number;
   completed_tasks_count: number;
   progress_percentage: number;
+  total_estimated_minutes?: number;
+  actual_work_minutes?: number;
   created_at: string;
   created_by?: number | null;
 }
@@ -188,5 +190,106 @@ export interface CreateProjectTaskPayload {
   allocated_minutes?: number;
   sprint_id?: number;
   assignee_ids: number[];
+}
+
+export interface ProjectDiscussionItem {
+  message_id: string;
+  project_id: number;
+  sender_emp_id: number;
+  sender_name: string;
+  sender_avatar?: string | null;
+  message: string;
+  created_at: string;
+}
+
+export interface ProjectActivityLogItem {
+  log_id: string;
+  project_id: number;
+  actor_emp_id: number;
+  actor_name: string;
+  actor_avatar?: string | null;
+  action_type: string;
+  description: string;
+  created_at: string;
+}
+
+export type BugStatus =
+  | 'new'
+  | 'open'
+  | 'ready_for_dev'
+  | 'dev_in_progress'
+  | 'ready_for_qa'
+  | 'qa_in_progress'
+  | 'done'
+  | 'not_a_bug';
+
+export type BugPriority = 'low' | 'medium' | 'high';
+
+export type BugType = 'frontend' | 'backend' | 'ui' | 'database' | 'other';
+
+export interface BugCommentItem {
+  comment_id: number;
+  bug_id: number;
+  emp_id: number;
+  author_name: string;
+  author_avatar?: string | null;
+  comment: string;
+  created_at: string;
+}
+
+export interface BugHistoryItem {
+  history_id: string;
+  bug_id: number;
+  actor_emp_id: number;
+  actor_name: string;
+  from_status?: string | null;
+  to_status: BugStatus;
+  note?: string | null;
+  created_at: string;
+}
+
+export interface ProjectBugItem {
+  bug_id: number;
+  bug_code: string;
+  project_id: number;
+  task_id?: number | null;
+  title: string;
+  description: string;
+  steps_to_reproduce: string;
+  expected_result: string;
+  actual_result: string;
+  assigned_to: number;
+  assigned_to_name?: string;
+  assigned_to_avatar?: string | null;
+  reported_by: number;
+  reported_by_name?: string;
+  reported_by_avatar?: string | null;
+  priority: BugPriority;
+  status: BugStatus;
+  bug_type: BugType;
+  other_bug_type?: string | null;
+  attachment_url?: string | null;
+  dev_started_at?: string | null;
+  dev_ended_at?: string | null;
+  qa_started_at?: string | null;
+  qa_ended_at?: string | null;
+  total_time_minutes: number;
+  created_at: string;
+  comments?: BugCommentItem[];
+  history?: BugHistoryItem[];
+}
+
+export interface CreateProjectBugPayload {
+  title: string;
+  description: string;
+  steps_to_reproduce: string;
+  expected_result: string;
+  actual_result: string;
+  assigned_to: number;
+  priority?: BugPriority;
+  bug_type: BugType;
+  other_bug_type?: string;
+  attachment_url?: string;
+  task_id?: number;
 }
 

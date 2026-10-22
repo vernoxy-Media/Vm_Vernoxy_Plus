@@ -215,6 +215,156 @@ export class CreateProjectDto {
   credentials?: CreateCredentialDto[];
 }
 
+export class UpdateProjectDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(150)
+  project_name?: string;
+
+  @ApiPropertyOptional({ enum: ['client', 'internal', 'product', 'maintenance'] })
+  @IsOptional()
+  @IsEnum(['client', 'internal', 'product', 'maintenance'])
+  project_type?: 'client' | 'internal' | 'product' | 'maintenance';
+
+  @ApiPropertyOptional({
+    enum: [
+      'ecom_website',
+      'portfolio_website',
+      'seo',
+      'social_media',
+      'crm',
+      'erp',
+      'brochure',
+      'other',
+    ],
+  })
+  @IsOptional()
+  @IsEnum([
+    'ecom_website',
+    'portfolio_website',
+    'seo',
+    'social_media',
+    'crm',
+    'erp',
+    'brochure',
+    'other',
+  ])
+  category?:
+    | 'ecom_website'
+    | 'portfolio_website'
+    | 'seo'
+    | 'social_media'
+    | 'crm'
+    | 'erp'
+    | 'brochure'
+    | 'other';
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  other_category?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsDateString()
+  start_date?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsDateString()
+  deadline?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsInt()
+  project_manager_id?: number;
+
+  @ApiPropertyOptional({
+    enum: [
+      'new',
+      'planning',
+      'in_progress',
+      'pending',
+      'review',
+      'delivered',
+      'on_hold',
+      'cancelled',
+    ],
+  })
+  @IsOptional()
+  @IsEnum([
+    'new',
+    'planning',
+    'in_progress',
+    'pending',
+    'review',
+    'delivered',
+    'on_hold',
+    'cancelled',
+  ])
+  project_status?:
+    | 'new'
+    | 'planning'
+    | 'in_progress'
+    | 'pending'
+    | 'review'
+    | 'delivered'
+    | 'on_hold'
+    | 'cancelled';
+
+  @ApiPropertyOptional({ type: [Number] })
+  @IsOptional()
+  @IsArray()
+  @IsInt({ each: true })
+  member_ids?: number[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(150)
+  client_name?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsDateString()
+  lead_received_date?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsDateString()
+  project_approved_date?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  tech_frontend?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  tech_backend?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  tech_cloud?: string;
+
+  @ApiPropertyOptional({ type: CreateDeploymentDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CreateDeploymentDto)
+  deployment?: CreateDeploymentDto;
+
+  @ApiPropertyOptional({ type: [CreateCredentialDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateCredentialDto)
+  credentials?: CreateCredentialDto[];
+}
+
 export class UpdateProjectStatusDto {
   @ApiProperty({
     enum: [
@@ -377,3 +527,138 @@ export class CreateProjectTaskDto {
   @IsInt({ each: true })
   assignee_ids!: number[];
 }
+
+export class CreateDiscussionDto {
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  message!: string;
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  attachments?: string[];
+}
+
+export class CreateBugDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsInt()
+  task_id?: number;
+
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(200)
+  title!: string;
+
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  description!: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  steps_to_reproduce?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  expected_result?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  actual_result?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsInt()
+  assigned_to?: number;
+
+  @ApiPropertyOptional({ enum: ['low', 'medium', 'high'], default: 'low' })
+  @IsOptional()
+  @IsEnum(['low', 'medium', 'high'])
+  priority?: 'low' | 'medium' | 'high';
+
+  @ApiPropertyOptional({
+    enum: [
+      'new',
+      'open',
+      'ready_for_dev',
+      'dev_in_progress',
+      'ready_for_qa',
+      'qa_in_progress',
+      'done',
+      'not_a_bug',
+    ],
+    default: 'new',
+  })
+  @IsOptional()
+  @IsEnum([
+    'new',
+    'open',
+    'ready_for_dev',
+    'dev_in_progress',
+    'ready_for_qa',
+    'qa_in_progress',
+    'done',
+    'not_a_bug',
+  ])
+  status?: string;
+
+  @ApiProperty({ enum: ['frontend', 'backend', 'ui', 'database', 'other'] })
+  @IsEnum(['frontend', 'backend', 'ui', 'database', 'other'])
+  bug_type!: 'frontend' | 'backend' | 'ui' | 'database' | 'other';
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  other_bug_type?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  attachment_url?: string;
+}
+
+export class UpdateBugStatusDto {
+  @ApiProperty({
+    enum: [
+      'new',
+      'open',
+      'ready_for_dev',
+      'dev_in_progress',
+      'ready_for_qa',
+      'qa_in_progress',
+      'done',
+      'not_a_bug',
+    ],
+  })
+  @IsEnum([
+    'new',
+    'open',
+    'ready_for_dev',
+    'dev_in_progress',
+    'ready_for_qa',
+    'qa_in_progress',
+    'done',
+    'not_a_bug',
+  ])
+  @IsNotEmpty()
+  status!: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  note?: string;
+}
+
+export class AddBugCommentDto {
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  comment!: string;
+}
+

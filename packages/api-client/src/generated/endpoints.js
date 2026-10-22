@@ -3789,6 +3789,38 @@ export function useProjectsControllerGetProjectDetail(id, options, queryClient) 
     return query;
 }
 ;
+export const getProjectsControllerUpdateProjectUrl = (id) => {
+    return `/api/v1/projects/${id}`;
+};
+export const projectsControllerUpdateProject = async (id, updateProjectDto, options) => {
+    return customFetch(getProjectsControllerUpdateProjectUrl(id), {
+        ...options,
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        body: JSON.stringify(updateProjectDto)
+    });
+};
+export const getProjectsControllerUpdateProjectMutationOptions = (options) => {
+    const mutationKey = ['projectsControllerUpdateProject'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { id, data } = props ?? {};
+        return projectsControllerUpdateProject(id, data, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Update project details (Admin and Project Manager)
+*/
+export const useProjectsControllerUpdateProject = (options, queryClient) => {
+    const mutationOptions = getProjectsControllerUpdateProjectMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
 export const getProjectsControllerUpdateProjectStatusUrl = (id) => {
     return `/api/v1/projects/${id}/status`;
 };

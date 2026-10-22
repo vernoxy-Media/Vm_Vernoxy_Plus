@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   X,
   ChevronRight,
@@ -13,6 +14,7 @@ import type {
   AssignableEmployee,
   CreateProjectPayload,
   ProjectCategory,
+  ProjectItem,
   ProjectStatus,
   ProjectType,
 } from '../types';
@@ -20,7 +22,8 @@ import type {
 interface CreateProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (payload: CreateProjectPayload) => Promise<void>;
+  onSubmit: (payload: CreateProjectPayload) => Promise<ProjectItem>;
+  onUpdateDetails?: (projectId: number, payload: Partial<CreateProjectPayload>) => Promise<ProjectItem>;
   employees: AssignableEmployee[];
 }
 
@@ -28,10 +31,15 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
   isOpen,
   onClose,
   onSubmit,
+  onUpdateDetails,
   employees,
 }) => {
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSavingDetails, setIsSavingDetails] = useState(false);
+  const [createdProject, setCreatedProject] = useState<ProjectItem | null>(null);
+  const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Step 1: Basic Details
@@ -125,25 +133,192 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
     return true;
   };
 
-  const handleNextStep = () => {
-    if (currentStep === 1) {
-      if (!validateStep1()) return;
-      setCurrentStep(2);
-    } else if (currentStep === 2) {
+  const handleCreateInitialProject = async (andContinue: boolean) => {
+    if (!validateStep1()) return;
+
+    try {
+      setIsSubmitting(true);
       setError(null);
-      setCurrentStep(3);
+
+      const payload: CreateProjectPayload = {
+        project_name: projectName.trim(),
+        project_type: projectType,
+        category,
+        other_category: category === 'other' ? otherCategory.trim() : undefined,
+        project_status: projectStatus,
+        start_date: startDate,
+        deadline,
+        project_manager_id: Number(projectManagerId),
+        member_ids: selectedMemberIds,
+        client_name: clientName.trim() || undefined,
+        lead_received_date: leadReceivedDate || undefined,
+        project_approved_date: projectApprovedDate || undefined,
+      };
+
+      const created = await onSubmit(payload);
+      setCreatedProject(created);
+
+      if (!andContinue) {
+        handleClose();
+      } else {
+        handleClose();
+        navigate(`/projects/${created.project_id}`);
+      }
+    } catch (err: any) {
+      console.error('Error creating project:', err);
+      const msg = err?.detail || err?.message || 'Failed to create project. Please check the inputs.';
+      setError(msg);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handlePrevStep = () => {
-    setError(null);
-    if (currentStep === 3) setCurrentStep(2);
-    else if (currentStep === 2) setCurrentStep(1);
+  const handleSaveBasicChanges = async () => {
+    if (!createdProject || !onUpdateDetails) return;
+    if (!validateStep1()) return;
+
+    try {
+      setIsSavingDetails(true);
+      setError(null);
+
+      const payload: Partial<CreateProjectPayload> = {
+        project_name: projectName.trim(),
+        project_type: projectType,
+        category,
+        other_category: category === 'other' ? otherCategory.trim() : undefined,
+        project_status: projectStatus,
+        start_date: startDate,
+        deadline,
+        project_manager_id: Number(projectManagerId),
+        member_ids: selectedMemberIds,
+        client_name: clientName.trim() || undefined,
+        lead_received_date: leadReceivedDate || undefined,
+        project_approved_date: projectApprovedDate || undefined,
+      };
+
+      const updated = await onUpdateDetails(createdProject.project_id, payload);
+      setCreatedProject(updated);
+      setSaveSuccessMsg('Basic details updated successfully!');
+      setTimeout(() => setSaveSuccessMsg(null), 3000);
+    } catch (err: any) {
+      console.error('Error updating basic details:', err);
+      setError(err?.detail || err?.message || 'Failed to update basic details.');
+    } finally {
+      setIsSavingDetails(false);
+    }
+  };
+
+  const handleSaveDeployment = async (andGoNext = false) => {
+    if (!createdProject || !onUpdateDetails) {
+      if (andGoNext) setCurrentStep(3);
+      return;
+    }
+
+    try {
+      setIsSavingDetails(true);
+      setError(null);
+
+      const payload: Partial<CreateProjectPayload> = {
+        deployment:
+          vercelAccount ||
+          vercelLink ||
+          domainLink ||
+          storageAccount ||
+          deploymentDate ||
+          goLiveDate ||
+          deploymentDoneBy ||
+          adminLoginLink
+            ? {
+                vercel_account: vercelAccount.trim() || undefined,
+                vercel_link: vercelLink.trim() || undefined,
+                domain_link: domainLink.trim() || undefined,
+                storage_account: storageAccount.trim() || undefined,
+                deployment_date: deploymentDate || undefined,
+                go_live_date: goLiveDate || undefined,
+                deployment_done_by: deploymentDoneBy ? Number(deploymentDoneBy) : undefined,
+                admin_login_link: adminLoginLink.trim() || undefined,
+              }
+            : undefined,
+        credentials: credentials
+          .filter((c) => c.admin_id.trim() && c.admin_password.trim())
+          .map((c) => ({
+            admin_label: c.admin_label.trim() || 'Admin',
+            admin_id: c.admin_id.trim(),
+            admin_password: c.admin_password.trim(),
+          })),
+      };
+
+      const updated = await onUpdateDetails(createdProject.project_id, payload);
+      setCreatedProject(updated);
+      setSaveSuccessMsg('Deployment details saved successfully!');
+      setTimeout(() => setSaveSuccessMsg(null), 3000);
+
+      if (andGoNext) {
+        setCurrentStep(3);
+      }
+    } catch (err: any) {
+      console.error('Error updating deployment details:', err);
+      setError(err?.detail || err?.message || 'Failed to save deployment details.');
+    } finally {
+      setIsSavingDetails(false);
+    }
+  };
+
+  const handleSaveTechStack = async (andFinish = false) => {
+    if (!createdProject || !onUpdateDetails) {
+      if (andFinish) handleClose();
+      return;
+    }
+
+    try {
+      setIsSavingDetails(true);
+      setError(null);
+
+      const payload: Partial<CreateProjectPayload> = {
+        tech_frontend: techFrontend.trim() || undefined,
+        tech_backend: techBackend.trim() || undefined,
+        tech_cloud: techCloud.trim() || undefined,
+      };
+
+      const updated = await onUpdateDetails(createdProject.project_id, payload);
+      setCreatedProject(updated);
+
+      if (andFinish) {
+        handleClose();
+      } else {
+        setSaveSuccessMsg('Tech-stack details saved successfully!');
+        setTimeout(() => setSaveSuccessMsg(null), 3000);
+      }
+    } catch (err: any) {
+      console.error('Error updating tech-stack details:', err);
+      setError(err?.detail || err?.message || 'Failed to save tech-stack details.');
+    } finally {
+      setIsSavingDetails(false);
+    }
+  };
+
+  const handleStepClick = async (step: 1 | 2 | 3) => {
+    if (step === currentStep) return;
+    if (!createdProject) {
+      if (step > 1) {
+        // Need to create basic project first
+        await handleCreateInitialProject(true);
+        if (step === 3) setCurrentStep(3);
+      } else {
+        setCurrentStep(1);
+      }
+    } else {
+      setError(null);
+      setCurrentStep(step);
+    }
   };
 
   const resetForm = () => {
     setCurrentStep(1);
     setIsSubmitting(false);
+    setIsSavingDetails(false);
+    setCreatedProject(null);
+    setSaveSuccessMsg(null);
     setError(null);
     setProjectName('');
     setProjectType('client');
@@ -182,85 +357,29 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
       const target = e.target as HTMLElement;
       if (target.tagName === 'TEXTAREA') return;
 
-      if (currentStep < 3) {
-        e.preventDefault();
-        handleNextStep();
+      e.preventDefault();
+      if (!createdProject) {
+        handleCreateInitialProject(true);
+      } else if (currentStep === 1) {
+        handleSaveBasicChanges();
+      } else if (currentStep === 2) {
+        handleSaveDeployment(true);
+      } else if (currentStep === 3) {
+        handleSaveTechStack(false);
       }
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Prevent submission if not on the final step (e.g. Enter pressed in an input)
-    if (currentStep < 3) {
-      handleNextStep();
-      return;
-    }
-
-    if (!validateStep1()) {
-      setCurrentStep(1);
-      return;
-    }
-
-    try {
-      setIsSubmitting(true);
-      setError(null);
-
-      const payload: CreateProjectPayload = {
-        project_name: projectName.trim(),
-        project_type: projectType,
-        category,
-        other_category: category === 'other' ? otherCategory.trim() : undefined,
-        project_status: projectStatus,
-        start_date: startDate,
-        deadline,
-        project_manager_id: Number(projectManagerId),
-        member_ids: selectedMemberIds,
-        client_name: clientName.trim() || undefined,
-        lead_received_date: leadReceivedDate || undefined,
-        project_approved_date: projectApprovedDate || undefined,
-        tech_frontend: techFrontend.trim() || undefined,
-        tech_backend: techBackend.trim() || undefined,
-        tech_cloud: techCloud.trim() || undefined,
-        deployment:
-          vercelAccount ||
-          vercelLink ||
-          domainLink ||
-          storageAccount ||
-          deploymentDate ||
-          goLiveDate ||
-          deploymentDoneBy ||
-          adminLoginLink
-            ? {
-                vercel_account: vercelAccount.trim() || undefined,
-                vercel_link: vercelLink.trim() || undefined,
-                domain_link: domainLink.trim() || undefined,
-                storage_account: storageAccount.trim() || undefined,
-                deployment_date: deploymentDate || undefined,
-                go_live_date: goLiveDate || undefined,
-                deployment_done_by: deploymentDoneBy ? Number(deploymentDoneBy) : undefined,
-                admin_login_link: adminLoginLink.trim() || undefined,
-              }
-            : undefined,
-        credentials: credentials
-          .filter((c) => c.admin_id.trim() && c.admin_password.trim())
-          .map((c) => ({
-            admin_label: c.admin_label.trim() || 'Admin',
-            admin_id: c.admin_id.trim(),
-            admin_password: c.admin_password.trim(),
-          })),
-      };
-
-      await onSubmit(payload);
-      resetForm();
-      onClose();
-    } catch (err: any) {
-      console.error('Error creating project:', err);
-      const msg = err?.detail || err?.message || 'Failed to create project. Please check the inputs.';
-      setError(msg);
-    } finally {
-      setIsSubmitting(false);
+    if (!createdProject) {
+      handleCreateInitialProject(true);
+    } else if (currentStep === 1) {
+      handleSaveBasicChanges();
+    } else if (currentStep === 2) {
+      handleSaveDeployment(true);
+    } else if (currentStep === 3) {
+      handleSaveTechStack(false);
     }
   };
 
@@ -270,9 +389,20 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
           <div>
-            <h2 className="text-xl font-bold text-slate-900">Create Project</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-bold text-slate-900">
+                {createdProject ? createdProject.project_name : 'Create Project'}
+              </h2>
+              {createdProject && (
+                <span className="font-mono text-xs font-semibold px-2 py-0.5 bg-blue-100 text-blue-800 rounded-md">
+                  {createdProject.project_no}
+                </span>
+              )}
+            </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Fill in project details, deployment credentials, and technology stack
+              {createdProject
+                ? 'Project created! Add deployment details and technology stack across sections'
+                : 'Fill in basic project details to create the project card immediately'}
             </p>
           </div>
           <button
@@ -284,86 +414,129 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
           </button>
         </div>
 
-        {/* Stepper Progress */}
+        {/* Stepper Progress / Sections Navigation */}
         <div className="px-6 py-4 bg-slate-50 border-b border-slate-200">
           <div className="flex items-center justify-between max-w-xl mx-auto">
             {/* Step 1 */}
-            <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => handleStepClick(1)}
+              className="flex items-center gap-2 group text-left focus:outline-none"
+            >
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
-                  currentStep > 1
+                  createdProject
                     ? 'bg-emerald-500 text-white shadow-sm'
                     : currentStep === 1
                     ? 'bg-blue-600 text-white ring-4 ring-blue-100 shadow-sm'
-                    : 'bg-slate-200 text-slate-600'
+                    : 'bg-slate-200 text-slate-600 group-hover:bg-slate-300'
                 }`}
               >
-                {currentStep > 1 ? <Check className="w-4 h-4 stroke-[3]" /> : '1'}
+                {createdProject ? <Check className="w-4 h-4 stroke-[3]" /> : '1'}
               </div>
-              <span
-                className={`text-xs font-medium ${
-                  currentStep === 1 ? 'text-blue-600 font-bold' : 'text-slate-600'
-                }`}
-              >
-                Basic Details
-              </span>
-            </div>
+              <div>
+                <span
+                  className={`block text-xs font-medium transition ${
+                    currentStep === 1 ? 'text-blue-600 font-bold' : 'text-slate-600 group-hover:text-slate-900'
+                  }`}
+                >
+                  Basic Details
+                </span>
+                {createdProject && (
+                  <span className="block text-[10px] text-emerald-600 font-medium">Created ✓</span>
+                )}
+              </div>
+            </button>
 
             <div
               className={`flex-1 h-0.5 mx-3 transition-colors ${
-                currentStep > 1 ? 'bg-emerald-500' : 'bg-slate-200'
+                createdProject ? 'bg-emerald-500' : currentStep > 1 ? 'bg-blue-500' : 'bg-slate-200'
               }`}
             />
 
             {/* Step 2 */}
-            <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => handleStepClick(2)}
+              className="flex items-center gap-2 group text-left focus:outline-none"
+            >
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
-                  currentStep > 2
-                    ? 'bg-emerald-500 text-white shadow-sm'
-                    : currentStep === 2
+                  currentStep === 2
                     ? 'bg-blue-600 text-white ring-4 ring-blue-100 shadow-sm'
-                    : 'bg-slate-200 text-slate-600'
+                    : createdProject
+                    ? 'bg-slate-100 text-slate-700 hover:bg-blue-50 hover:text-blue-600 border border-slate-300'
+                    : 'bg-slate-200 text-slate-600 group-hover:bg-slate-300'
                 }`}
               >
-                {currentStep > 2 ? <Check className="w-4 h-4 stroke-[3]" /> : '2'}
+                2
               </div>
               <span
-                className={`text-xs font-medium ${
-                  currentStep === 2 ? 'text-blue-600 font-bold' : 'text-slate-600'
+                className={`text-xs font-medium transition ${
+                  currentStep === 2 ? 'text-blue-600 font-bold' : 'text-slate-600 group-hover:text-slate-900'
                 }`}
               >
                 Deployment Details
               </span>
-            </div>
+            </button>
 
             <div
               className={`flex-1 h-0.5 mx-3 transition-colors ${
-                currentStep > 2 ? 'bg-emerald-500' : 'bg-slate-200'
+                currentStep > 2 ? 'bg-blue-500' : 'bg-slate-200'
               }`}
             />
 
             {/* Step 3 */}
-            <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => handleStepClick(3)}
+              className="flex items-center gap-2 group text-left focus:outline-none"
+            >
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
                   currentStep === 3
                     ? 'bg-blue-600 text-white ring-4 ring-blue-100 shadow-sm'
-                    : 'bg-slate-200 text-slate-600'
+                    : createdProject
+                    ? 'bg-slate-100 text-slate-700 hover:bg-blue-50 hover:text-blue-600 border border-slate-300'
+                    : 'bg-slate-200 text-slate-600 group-hover:bg-slate-300'
                 }`}
               >
                 3
               </div>
               <span
-                className={`text-xs font-medium ${
-                  currentStep === 3 ? 'text-blue-600 font-bold' : 'text-slate-600'
+                className={`text-xs font-medium transition ${
+                  currentStep === 3 ? 'text-blue-600 font-bold' : 'text-slate-600 group-hover:text-slate-900'
                 }`}
               >
                 Tech-Stack Details
               </span>
-            </div>
+            </button>
           </div>
         </div>
+
+        {/* Created Banner Notification */}
+        {createdProject && (
+          <div className="mx-6 mt-4 p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs text-emerald-800 shadow-sm">
+            <div className="flex items-center gap-2.5">
+              <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center flex-shrink-0">
+                <Check className="w-3.5 h-3.5 stroke-[3]" />
+              </div>
+              <div>
+                <p className="font-semibold text-emerald-900">
+                  Project <span className="font-mono text-emerald-700">{createdProject.project_no}</span> created! Card is live on the board.
+                </p>
+                <p className="text-[11px] text-emerald-700">
+                  You can configure deployment credentials and technology stack below, or finish anytime.
+                </p>
+              </div>
+            </div>
+            {saveSuccessMsg && (
+              <span className="ml-3 px-2.5 py-1 bg-white border border-emerald-300 text-emerald-800 font-medium rounded-lg text-[11px] shadow-sm animate-pulse">
+                {saveSuccessMsg}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Error Alert */}
         {error && (
@@ -565,50 +738,51 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                   </div>
                 </div>
 
-                {/* Optional Client Details (if client project) */}
-                {projectType === 'client' && (
-                  <div className="p-3.5 bg-blue-50/50 rounded-xl border border-blue-100 space-y-3">
-                    <span className="text-xs font-semibold text-blue-900 block">
-                      Client Details (Confidential)
+                {/* Additional Details (Optional - Client & Lead Info) */}
+                <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-slate-800 block">
+                      Additional Details (Client & Approval - Optional)
                     </span>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      <div>
-                        <label className="block text-[11px] font-medium text-slate-700 mb-1">
-                          Client Name
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="Client / Organization"
-                          value={clientName}
-                          onChange={(e) => setClientName(e.target.value)}
-                          className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:ring-1 focus:ring-blue-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[11px] font-medium text-slate-700 mb-1">
-                          Lead Received Date
-                        </label>
-                        <input
-                          type="date"
-                          value={leadReceivedDate}
-                          onChange={(e) => setLeadReceivedDate(e.target.value)}
-                          className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:ring-1 focus:ring-blue-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[11px] font-medium text-slate-700 mb-1">
-                          Approved Date
-                        </label>
-                        <input
-                          type="date"
-                          value={projectApprovedDate}
-                          onChange={(e) => setProjectApprovedDate(e.target.value)}
-                          className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:ring-1 focus:ring-blue-500"
-                        />
-                      </div>
+                    <span className="text-[10px] text-slate-500">Visible to Admin & PM</span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-medium text-slate-700 mb-1">
+                        Client Name
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Client / Organization"
+                        value={clientName}
+                        onChange={(e) => setClientName(e.target.value)}
+                        className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:ring-1 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-medium text-slate-700 mb-1">
+                        Lead Received Date
+                      </label>
+                      <input
+                        type="date"
+                        value={leadReceivedDate}
+                        onChange={(e) => setLeadReceivedDate(e.target.value)}
+                        className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:ring-1 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-medium text-slate-700 mb-1">
+                        Approved Date
+                      </label>
+                      <input
+                        type="date"
+                        value={projectApprovedDate}
+                        onChange={(e) => setProjectApprovedDate(e.target.value)}
+                        className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:ring-1 focus:ring-blue-500"
+                      />
                     </div>
                   </div>
-                )}
+                </div>
               </div>
             )}
 
@@ -929,49 +1103,134 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
 
           {/* Footer Controls */}
           <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-slate-50/50">
-            {currentStep > 1 ? (
-              <button
-                type="button"
-                onClick={handlePrevStep}
-                className="inline-flex items-center gap-1.5 px-4 py-2 border border-slate-200 text-slate-700 hover:bg-slate-100 rounded-xl text-xs font-semibold transition"
-              >
-                <ChevronLeft className="w-4 h-4" />
-                Back
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleClose}
-                className="px-4 py-2 border border-slate-200 text-slate-700 hover:bg-slate-100 rounded-xl text-xs font-semibold transition"
-              >
-                Cancel
-              </button>
-            )}
+            {!createdProject ? (
+              <>
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="px-4 py-2 border border-slate-200 text-slate-700 hover:bg-slate-100 rounded-xl text-xs font-semibold transition"
+                >
+                  Cancel
+                </button>
 
-            {currentStep < 3 ? (
-              <button
-                type="button"
-                onClick={handleNextStep}
-                className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-md shadow-blue-500/20 transition"
-              >
-                Next
-                <ChevronRight className="w-4 h-4" />
-              </button>
+                <div className="flex items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => handleCreateInitialProject(false)}
+                    disabled={isSubmitting}
+                    className="px-4 py-2.5 border border-blue-600 text-blue-600 hover:bg-blue-50 disabled:opacity-50 rounded-xl text-xs font-semibold transition shadow-sm"
+                  >
+                    {isSubmitting ? 'Creating...' : 'Create Project'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleCreateInitialProject(true)}
+                    disabled={isSubmitting}
+                    className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-xs font-semibold shadow-md shadow-blue-500/20 transition"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      <>
+                        Create & Add Details
+                        <ChevronRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+                </div>
+              </>
             ) : (
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="inline-flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-xs font-semibold shadow-md shadow-blue-500/20 transition"
-              >
-                {isSubmitting ? (
-                  <>
-                    <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Creating Project...
-                  </>
-                ) : (
-                  'Create Project'
-                )}
-              </button>
+              <>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleClose}
+                    className="px-4 py-2 border border-slate-200 text-slate-700 hover:bg-slate-100 rounded-xl text-xs font-semibold transition"
+                  >
+                    Done / View Card
+                  </button>
+                  {currentStep > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setCurrentStep((prev) => (prev === 3 ? 2 : 1))}
+                      className="inline-flex items-center gap-1 px-3 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl text-xs font-medium transition"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                      Previous Section
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2.5">
+                  {currentStep === 1 && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handleSaveBasicChanges}
+                        disabled={isSavingDetails}
+                        className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 disabled:opacity-50 rounded-xl text-xs font-semibold transition"
+                      >
+                        {isSavingDetails ? 'Saving...' : 'Save Changes'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCurrentStep(2)}
+                        className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-md shadow-blue-500/20 transition"
+                      >
+                        Next: Deployment Details
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </>
+                  )}
+
+                  {currentStep === 2 && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleSaveDeployment(false)}
+                        disabled={isSavingDetails}
+                        className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 disabled:opacity-50 rounded-xl text-xs font-semibold transition"
+                      >
+                        {isSavingDetails ? 'Saving...' : 'Save Deployment'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSaveDeployment(true)}
+                        disabled={isSavingDetails}
+                        className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-xs font-semibold shadow-md shadow-blue-500/20 transition"
+                      >
+                        Save & Next: Tech-Stack
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </>
+                  )}
+
+                  {currentStep === 3 && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleSaveTechStack(false)}
+                        disabled={isSavingDetails}
+                        className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 disabled:opacity-50 rounded-xl text-xs font-semibold transition"
+                      >
+                        {isSavingDetails ? 'Saving...' : 'Save Tech-Stack'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSaveTechStack(true)}
+                        disabled={isSavingDetails}
+                        className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-semibold shadow-md shadow-emerald-500/20 transition"
+                      >
+                        <Check className="w-4 h-4 stroke-[3]" />
+                        Finish & View Card
+                      </button>
+                    </>
+                  )}
+                </div>
+              </>
             )}
           </div>
         </form>

@@ -300,6 +300,59 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
         updated_at: new Date(),
       };
 
+      if (toStage === 'in_progress') {
+        const now = new Date();
+        const otherRunningTasks = await tx.tasks.findMany({
+          where: {
+            task_id: { not: taskId },
+            deleted_at: null,
+            is_timer_running: true,
+            task_assignees: {
+              some: { employee_id: input.actor_emp_id, deleted_at: null },
+            },
+          },
+          select: {
+            task_id: true,
+            timer_started_at: true,
+            actual_minutes: true,
+            work_logs: true,
+          },
+        });
+
+        for (const other of otherRunningTasks) {
+          let elapsedSeconds = 0;
+          if (other.timer_started_at) {
+            elapsedSeconds = Math.max(
+              0,
+              Math.floor((now.getTime() - new Date(other.timer_started_at).getTime()) / 1000),
+            );
+          }
+          const addMins = elapsedSeconds > 0 ? Math.max(1, Math.round(elapsedSeconds / 60)) : 0;
+          const otherLogs = Array.isArray(other.work_logs) ? [...other.work_logs] : [];
+          otherLogs.push({
+            log_id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+            employee_id: input.actor_emp_id,
+            employee_name: 'Employee',
+            action: 'pause',
+            timestamp: now.toISOString(),
+            duration_seconds: elapsedSeconds,
+            note: 'Automatically paused because another task was moved to In Progress (Section 3.4)',
+          });
+
+          await tx.tasks.update({
+            where: { task_id: other.task_id },
+            data: {
+              actual_minutes: (other.actual_minutes || 0) + addMins,
+              is_timer_running: false,
+              timer_started_at: null,
+              work_logs: otherLogs,
+              updated_by: input.actor_emp_id,
+              updated_at: now,
+            },
+          });
+        }
+      }
+
       if (toStage === 'hold') {
         updateData.hold_reason = input.hold_reason || input.note || null;
       }
@@ -570,6 +623,58 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
       };
 
       if (input.action === 'start') {
+        // Enforce Section 3.4 Task Working Rules: Only one task can be running (In Progress) at a time.
+        // If employee has any other task currently running with active timer, pause it.
+        const otherRunningTasks = await tx.tasks.findMany({
+          where: {
+            task_id: { not: taskId },
+            deleted_at: null,
+            is_timer_running: true,
+            task_assignees: {
+              some: { employee_id: input.actor_emp_id, deleted_at: null },
+            },
+          },
+          select: {
+            task_id: true,
+            timer_started_at: true,
+            actual_minutes: true,
+            work_logs: true,
+          },
+        });
+
+        for (const other of otherRunningTasks) {
+          let elapsedSeconds = 0;
+          if (other.timer_started_at) {
+            elapsedSeconds = Math.max(
+              0,
+              Math.floor((now.getTime() - new Date(other.timer_started_at).getTime()) / 1000),
+            );
+          }
+          const addMins = elapsedSeconds > 0 ? Math.max(1, Math.round(elapsedSeconds / 60)) : 0;
+          const otherLogs = Array.isArray(other.work_logs) ? [...other.work_logs] : [];
+          otherLogs.push({
+            log_id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+            employee_id: input.actor_emp_id,
+            employee_name: input.actor_name,
+            action: 'pause',
+            timestamp: now.toISOString(),
+            duration_seconds: elapsedSeconds,
+            note: 'Automatically paused because another task was started (Section 3.4)',
+          });
+
+          await tx.tasks.update({
+            where: { task_id: other.task_id },
+            data: {
+              actual_minutes: (other.actual_minutes || 0) + addMins,
+              is_timer_running: false,
+              timer_started_at: null,
+              work_logs: otherLogs,
+              updated_by: input.actor_emp_id,
+              updated_at: now,
+            },
+          });
+        }
+
         if (existing.stage === 'assigned') {
           updateData.stage = 'in_progress';
         }

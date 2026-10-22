@@ -12,10 +12,15 @@ import {
   HttpCode,
   HttpStatus,
   ForbiddenException,
+  Inject,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../../../auth/public-api';
+import {
+  PROJECT_TOKENS,
+  ProjectRepositoryPort,
+} from '../../domain/ports/project.repository.port';
 import { CreateProjectUseCase } from '../../application/use-cases/create-project.use-case';
 import { GetProjectsUseCase } from '../../application/use-cases/get-projects.use-case';
 import { GetProjectDetailUseCase } from '../../application/use-cases/get-project-detail.use-case';
@@ -26,11 +31,17 @@ import { GetProjectSprintsUseCase } from '../../application/use-cases/get-projec
 import { UpdateSprintUseCase } from '../../application/use-cases/update-sprint.use-case';
 import { CreateProjectTaskUseCase } from '../../application/use-cases/create-project-task.use-case';
 import { GetSprintTasksUseCase } from '../../application/use-cases/get-sprint-tasks.use-case';
+import { UpdateProjectUseCase } from '../../application/use-cases/update-project.use-case';
 import {
+  AddBugCommentDto,
+  CreateBugDto,
+  CreateDiscussionDto,
   CreateProjectDto,
   CreateProjectTaskDto,
   CreateSprintDto,
   ProjectsFilterDto,
+  UpdateBugStatusDto,
+  UpdateProjectDto,
   UpdateProjectStatusDto,
   UpdateSprintDto,
 } from '../dto/project.dto';
@@ -41,6 +52,8 @@ import {
 @Controller('projects')
 export class ProjectsController {
   constructor(
+    @Inject(PROJECT_TOKENS.ProjectRepository)
+    private readonly projectRepo: ProjectRepositoryPort,
     private readonly createProjectUseCase: CreateProjectUseCase,
     private readonly getProjectsUseCase: GetProjectsUseCase,
     private readonly getProjectDetailUseCase: GetProjectDetailUseCase,
@@ -51,6 +64,7 @@ export class ProjectsController {
     private readonly updateSprintUseCase: UpdateSprintUseCase,
     private readonly createProjectTaskUseCase: CreateProjectTaskUseCase,
     private readonly getSprintTasksUseCase: GetSprintTasksUseCase,
+    private readonly updateProjectUseCase: UpdateProjectUseCase,
   ) {}
 
   @Get()
@@ -109,6 +123,18 @@ export class ProjectsController {
     const isAdmin = user.role_name?.toLowerCase().includes('admin') ?? false;
 
     return this.getProjectDetailUseCase.execute(id, user.emp_id, isAdmin);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Update project details (Admin and Project Manager)' })
+  async updateProject(
+    @Req() req: Request,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateProjectDto,
+  ) {
+    const user = req.user!;
+    const isAdmin = user.role_name?.toLowerCase().includes('admin') ?? false;
+    return this.updateProjectUseCase.execute(id, dto, user.emp_id, isAdmin);
   }
 
   @Patch(':id/status')
@@ -191,4 +217,106 @@ export class ProjectsController {
       created_by: user.emp_id,
     });
   }
+
+  @Get(':id/discussions')
+  @ApiOperation({ summary: 'Get discussion messages for a project' })
+  async getProjectDiscussions(
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.projectRepo.getDiscussions(id);
+  }
+
+  @Post(':id/discussions')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Post a discussion message to a project' })
+  async createProjectDiscussion(
+    @Req() req: Request,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: CreateDiscussionDto,
+  ) {
+    const user = req.user!;
+    return this.projectRepo.createDiscussion(
+      id,
+      user.emp_id,
+      dto.message,
+      dto.attachments,
+    );
+  }
+
+  @Get(':id/activity-logs')
+  @ApiOperation({ summary: 'Get activity logs for a project' })
+  async getProjectActivityLogs(
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.projectRepo.getActivityLogs(id);
+  }
+
+  @Get(':id/bugs')
+  @ApiOperation({ summary: 'Get bugs for a project' })
+  async getProjectBugs(
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.projectRepo.getBugs(id);
+  }
+
+  @Post(':id/bugs')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Report a bug for a project' })
+  async createProjectBug(
+    @Req() req: Request,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: CreateBugDto,
+  ) {
+    const user = req.user!;
+    return this.projectRepo.createBug(
+      id,
+      user.emp_id,
+      {
+        task_id: dto.task_id,
+        title: dto.title,
+        description: dto.actual_result || dto.title,
+        steps_to_reproduce: dto.steps_to_reproduce || '',
+        expected_result: dto.expected_result || '',
+        actual_result: dto.actual_result || '',
+        assigned_to: dto.assigned_to,
+        priority: dto.priority || 'low',
+        status: dto.status || 'new',
+        bug_type: dto.bug_type,
+        other_bug_type: dto.other_bug_type,
+        attachment_url: dto.attachment_url,
+      },
+    );
+  }
+
+  @Get(':id/bugs/:bugId')
+  @ApiOperation({ summary: 'Get bug details including time tracking, comments, and history' })
+  async getProjectBugDetail(
+    @Param('bugId', ParseIntPipe) bugId: number,
+  ) {
+    return this.projectRepo.getBugDetail(bugId);
+  }
+
+  @Patch(':id/bugs/:bugId/status')
+  @ApiOperation({ summary: 'Update bug status, track dev/qa time, and notify stakeholders' })
+  async updateProjectBugStatus(
+    @Req() req: Request,
+    @Param('bugId', ParseIntPipe) bugId: number,
+    @Body() dto: UpdateBugStatusDto,
+  ) {
+    const user = req.user!;
+    return this.projectRepo.updateBugStatus(bugId, user.emp_id, dto.status, dto.note);
+  }
+
+  @Post(':id/bugs/:bugId/comments')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Add a comment to a project bug' })
+  async addProjectBugComment(
+    @Req() req: Request,
+    @Param('bugId', ParseIntPipe) bugId: number,
+    @Body() dto: AddBugCommentDto,
+  ) {
+    const user = req.user!;
+    return this.projectRepo.addBugComment(bugId, user.emp_id, dto.comment);
+  }
 }
+

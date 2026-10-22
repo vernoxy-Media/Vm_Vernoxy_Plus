@@ -1,5 +1,5 @@
 import type { DataTag, DefinedInitialDataOptions, DefinedUseQueryResult, QueryClient, QueryKey, UndefinedInitialDataOptions, UseMutationOptions, UseMutationResult, UseQueryOptions, UseQueryResult } from '@tanstack/react-query';
-import type { AdminUpsertDayDto, AssignableEmployeeDto, AttendanceControllerGetDashboardParams, AttendanceControllerGetMeParams, AttendanceControllerGetReportParams, AttendanceControllerGetTeamParams, CalendarControllerGetEventsParams, CalendarControllerGetHolidaysParams, CalendarControllerGetMonthTasksParams, CalendarControllerGetSummaryParams, CalendarEventResponseDto, ChangePasswordDto, CompanyControllerCheckDuplicatesParams, CompanyControllerGetOptionsParams, CompanyControllerListParams, CompanyDataTransferControllerDownloadTemplateParams, CompanyDataTransferControllerExportParams, CompanyDataTransferControllerGetIssuesParams, CompanyDataTransferControllerListImportsParams, CompanyDataTransferControllerPreviewBody, CompanyDetailResponseDto, CompanyDuplicateMatchDto, CompanyImportConfirmDto, CompanyImportConfirmResponseDto, CompanyImportPreviewResponseDto, CompanyOptionDto, CreateCalendarEventDto, CreateCompanyDto, CreateCorrectionDto, CreateCustomerTypeDto, CreateDepartmentDto, CreateEmployeeDto, CreateIndustryDto, CreateProjectDto, CreateProjectTaskDto, CreateRoleDto, CreateSprintDto, CreateTaskDto, CustomerTypeControllerListParams, CustomerTypeItemDto, CustomerTypeOptionDto, DashboardResponseDto, DataTransferJobDetailResponseDto, DayDetailDto, DepartmentControllerListParams, DepartmentListResponseDto, DepartmentOptionDto, DepartmentResponseDto, EmployeeControllerGetOptionsParams, EmployeeControllerListParams, EmployeeControllerUploadPhotoBody, EmployeeListResponseDto, EmployeeOptionDto, EmployeeResponseDto, FilesControllerGetProfilePhotoParams, ForgotPasswordDto, ForgotPasswordResponseDto, IndustryControllerGetOptionsParams, IndustryControllerListParams, IndustryDetailResponseDto, IndustryOptionDto, ListCompaniesResponseDto, ListCustomerTypesResponseDto, ListIndustriesResponseDto, LoginDto, LoginResponseDto, LookupControllerGetOptionsParams, LookupOptionDto, MarkAllReadResponseDto, MarkReadResponseDto, MeResponseDto, MonthBlockDto, MoveTaskStageDto, MyTasksControllerGetBoardParams, NotificationResponseDto, NotificationsControllerGetNotificationsParams, PendingReviewCountDto, PersonControllerLookupParams, PersonLookupMatchDto, ProjectsControllerGetProjectTasksParams, ProjectsControllerGetProjectsParams, RefreshResponseDto, RejectCorrectionDto, ResendOtpDto, ResetPasswordDto, RespondRsvpDto, RoleControllerGetOptionsParams, RoleControllerListParams, RoleListResponseDto, RoleOptionDto, RoleResponseDto, TaskBoardResultDto, TaskDetailDto, TaskSummaryDto, TasksControllerGetBoardParams, TodayAttendanceBlockDto, TrackWorkSessionDto, TransferJobIssuesResponseDto, TransferJobListResponseDto, UnreadCountResponseDto, UnscheduledTaskDto, UpdateCalendarEventDto, UpdateCompanyDto, UpdateCustomerTypeDto, UpdateDepartmentDto, UpdateEmployeeDto, UpdateIndustryDto, UpdateProjectStatusDto, UpdateRoleDto, UpdateSprintDto, UpdateTaskDto, VerifyLoginDto, VerifyLoginResponseDto } from './model';
+import type { AdminUpsertDayDto, AssignableEmployeeDto, AttendanceControllerGetDashboardParams, AttendanceControllerGetMeParams, AttendanceControllerGetReportParams, AttendanceControllerGetTeamParams, CalendarControllerGetEventsParams, CalendarControllerGetHolidaysParams, CalendarControllerGetMonthTasksParams, CalendarControllerGetSummaryParams, CalendarEventResponseDto, ChangePasswordDto, CompanyControllerCheckDuplicatesParams, CompanyControllerGetOptionsParams, CompanyControllerListParams, CompanyDataTransferControllerDownloadTemplateParams, CompanyDataTransferControllerExportParams, CompanyDataTransferControllerGetIssuesParams, CompanyDataTransferControllerListImportsParams, CompanyDataTransferControllerPreviewBody, CompanyDetailResponseDto, CompanyDuplicateMatchDto, CompanyImportConfirmDto, CompanyImportConfirmResponseDto, CompanyImportPreviewResponseDto, CompanyOptionDto, CreateCalendarEventDto, CreateCompanyDto, CreateCorrectionDto, CreateCustomerTypeDto, CreateDepartmentDto, CreateEmployeeDto, CreateIndustryDto, CreateProjectDto, CreateProjectTaskDto, CreateRoleDto, CreateSprintDto, CreateTaskDto, CustomerTypeControllerListParams, CustomerTypeItemDto, CustomerTypeOptionDto, DashboardResponseDto, DataTransferJobDetailResponseDto, DayDetailDto, DepartmentControllerListParams, DepartmentListResponseDto, DepartmentOptionDto, DepartmentResponseDto, EmployeeControllerGetOptionsParams, EmployeeControllerListParams, EmployeeControllerUploadPhotoBody, EmployeeListResponseDto, EmployeeOptionDto, EmployeeResponseDto, FilesControllerGetProfilePhotoParams, ForgotPasswordDto, ForgotPasswordResponseDto, IndustryControllerGetOptionsParams, IndustryControllerListParams, IndustryDetailResponseDto, IndustryOptionDto, ListCompaniesResponseDto, ListCustomerTypesResponseDto, ListIndustriesResponseDto, LoginDto, LoginResponseDto, LookupControllerGetOptionsParams, LookupOptionDto, MarkAllReadResponseDto, MarkReadResponseDto, MeResponseDto, MonthBlockDto, MoveTaskStageDto, MyTasksControllerGetBoardParams, NotificationResponseDto, NotificationsControllerGetNotificationsParams, PendingReviewCountDto, PersonControllerLookupParams, PersonLookupMatchDto, ProjectsControllerGetProjectTasksParams, ProjectsControllerGetProjectsParams, RefreshResponseDto, RejectCorrectionDto, ResendOtpDto, ResetPasswordDto, RespondRsvpDto, RoleControllerGetOptionsParams, RoleControllerListParams, RoleListResponseDto, RoleOptionDto, RoleResponseDto, TaskBoardResultDto, TaskDetailDto, TaskSummaryDto, TasksControllerGetBoardParams, TodayAttendanceBlockDto, TrackWorkSessionDto, TransferJobIssuesResponseDto, TransferJobListResponseDto, UnreadCountResponseDto, UnscheduledTaskDto, UpdateCalendarEventDto, UpdateCompanyDto, UpdateCustomerTypeDto, UpdateDepartmentDto, UpdateEmployeeDto, UpdateIndustryDto, UpdateProjectDto, UpdateProjectStatusDto, UpdateRoleDto, UpdateSprintDto, UpdateTaskDto, VerifyLoginDto, VerifyLoginResponseDto } from './model';
 import { customFetch } from '../custom-fetch';
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 /**
@@ -4407,6 +4407,45 @@ export declare function useProjectsControllerGetProjectDetail<TData = Awaited<Re
 }, queryClient?: QueryClient): UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
 };
+/**
+ * @summary Update project details (Admin and Project Manager)
+ */
+export type projectsControllerUpdateProjectResponse200 = {
+    data: void;
+    status: 200;
+};
+export type projectsControllerUpdateProjectResponseSuccess = (projectsControllerUpdateProjectResponse200) & {
+    headers: Headers;
+};
+export type projectsControllerUpdateProjectResponse = (projectsControllerUpdateProjectResponseSuccess);
+export declare const getProjectsControllerUpdateProjectUrl: (id: number) => string;
+export declare const projectsControllerUpdateProject: (id: number, updateProjectDto: UpdateProjectDto, options?: RequestInit) => Promise<projectsControllerUpdateProjectResponse>;
+export declare const getProjectsControllerUpdateProjectMutationOptions: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof projectsControllerUpdateProject>>, TError, {
+        id: number;
+        data: UpdateProjectDto;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof projectsControllerUpdateProject>>, TError, {
+    id: number;
+    data: UpdateProjectDto;
+}, TContext>;
+export type ProjectsControllerUpdateProjectMutationResult = NonNullable<Awaited<ReturnType<typeof projectsControllerUpdateProject>>>;
+export type ProjectsControllerUpdateProjectMutationBody = UpdateProjectDto;
+export type ProjectsControllerUpdateProjectMutationError = unknown;
+/**
+* @summary Update project details (Admin and Project Manager)
+*/
+export declare const useProjectsControllerUpdateProject: <TError = unknown, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof projectsControllerUpdateProject>>, TError, {
+        id: number;
+        data: UpdateProjectDto;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}, queryClient?: QueryClient) => UseMutationResult<Awaited<ReturnType<typeof projectsControllerUpdateProject>>, TError, {
+    id: number;
+    data: UpdateProjectDto;
+}, TContext>;
 /**
  * @summary Update project status (Admin and Project Manager)
  */

@@ -16,6 +16,7 @@ import { GetProjectSprintsUseCase } from './application/use-cases/get-project-sp
 import { UpdateSprintUseCase } from './application/use-cases/update-sprint.use-case';
 import { CreateProjectTaskUseCase } from './application/use-cases/create-project-task.use-case';
 import { GetSprintTasksUseCase } from './application/use-cases/get-sprint-tasks.use-case';
+import { UpdateProjectUseCase } from './application/use-cases/update-project.use-case';
 import { ProjectsController } from './presentation/controllers/projects.controller';
 
 @Module({
@@ -74,6 +75,11 @@ import { ProjectsController } from './presentation/controllers/projects.controll
     {
       provide: GetSprintTasksUseCase,
       useFactory: (repo: ProjectRepositoryPort) => new GetSprintTasksUseCase(repo),
+      inject: [PROJECT_TOKENS.ProjectRepository],
+    },
+    {
+      provide: UpdateProjectUseCase,
+      useFactory: (repo: ProjectRepositoryPort) => new UpdateProjectUseCase(repo),
       inject: [PROJECT_TOKENS.ProjectRepository],
     },
   ],

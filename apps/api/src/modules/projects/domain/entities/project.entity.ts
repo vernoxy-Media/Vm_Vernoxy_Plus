@@ -78,6 +78,8 @@ export interface ProjectEntity {
   total_tasks_count: number;
   completed_tasks_count: number;
   progress_percentage: number;
+  total_estimated_minutes?: number;
+  actual_work_minutes?: number;
   created_at: string;
   created_by?: number | null;
 }

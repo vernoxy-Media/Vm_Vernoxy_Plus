@@ -7,6 +7,7 @@ import {
   CreateSprintInput,
   ProjectRepositoryPort,
   ProjectsFilter,
+  UpdateProjectInput,
   UpdateSprintInput,
 } from '../../domain/ports/project.repository.port';
 import {
@@ -65,6 +66,12 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
       ? p.tasks.filter((t: any) => t.stage === 'completed').length
       : 0;
     const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+    const totalEstimatedMinutes = p.tasks
+      ? p.tasks.reduce((acc: number, t: any) => acc + (t.allocated_minutes || 0), 0)
+      : 0;
+    const actualWorkMinutes = p.tasks
+      ? p.tasks.reduce((acc: number, t: any) => acc + (t.actual_minutes || 0), 0)
+      : 0;
 
     const dep = p.project_deployments;
     const deployment = isManagerOrAdmin && dep
@@ -121,6 +128,8 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
       total_tasks_count: totalTasks,
       completed_tasks_count: completedTasks,
       progress_percentage: progress,
+      total_estimated_minutes: totalEstimatedMinutes,
+      actual_work_minutes: actualWorkMinutes,
       created_at: p.created_at.toISOString(),
       created_by: p.created_by,
     };
@@ -243,6 +252,8 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
       deleted_at: null,
     };
 
+    const andConditions: any[] = [];
+
     if (filter.status && filter.status !== 'all') {
       where.project_status = filter.status;
     }
@@ -257,11 +268,13 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
 
     if (filter.search && filter.search.trim().length > 0) {
       const q = filter.search.trim();
-      where.OR = [
-        { project_name: { contains: q, mode: 'insensitive' } },
-        { project_no: { contains: q, mode: 'insensitive' } },
-        { client_name: { contains: q, mode: 'insensitive' } },
-      ];
+      andConditions.push({
+        OR: [
+          { project_name: { contains: q, mode: 'insensitive' } },
+          { project_no: { contains: q, mode: 'insensitive' } },
+          { client_name: { contains: q, mode: 'insensitive' } },
+        ],
+      });
     }
 
     if (filter.start_date && filter.end_date) {
@@ -271,17 +284,23 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
 
     // Role-based visibility
     if (!filter.is_admin && filter.employee_id) {
-      where.OR = [
-        { project_manager_id: filter.employee_id },
-        {
-          project_members: {
-            some: {
-              employee_id: filter.employee_id,
-              deleted_at: null,
+      andConditions.push({
+        OR: [
+          { project_manager_id: filter.employee_id },
+          {
+            project_members: {
+              some: {
+                employee_id: filter.employee_id,
+                deleted_at: null,
+              },
             },
           },
-        },
-      ];
+        ],
+      });
+    }
+
+    if (andConditions.length > 0) {
+      where.AND = andConditions;
     }
 
     const rows = await this.prisma.projects.findMany({
@@ -341,7 +360,10 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
           },
         },
         project_credentials: { where: { deleted_at: null } },
-        tasks: { where: { deleted_at: null }, select: { task_id: true, stage: true } },
+        tasks: {
+          where: { deleted_at: null },
+          select: { task_id: true, stage: true, allocated_minutes: true, actual_minutes: true },
+        },
       },
     });
 
@@ -710,5 +732,592 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
       }),
       created_at: t.created_at.toISOString(),
     }));
+  }
+
+  async updateProject(
+    projectId: number,
+    input: UpdateProjectInput,
+    actorEmpId: number,
+  ): Promise<ProjectEntity> {
+    const existing = await this.prisma.projects.findUnique({
+      where: { project_id: projectId },
+    });
+    if (!existing || existing.deleted_at) {
+      throw new Error(`Project #${projectId} not found`);
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const dataToUpdate: any = {};
+      if (input.project_name !== undefined) dataToUpdate.project_name = input.project_name.trim();
+      if (input.project_type !== undefined) dataToUpdate.project_type = input.project_type as any;
+      if (input.category !== undefined) dataToUpdate.category = input.category as any;
+      if (input.other_category !== undefined) dataToUpdate.other_category = input.other_category?.trim() || null;
+      if (input.project_status !== undefined) dataToUpdate.project_status = input.project_status as any;
+      if (input.start_date !== undefined) dataToUpdate.start_date = new Date(input.start_date);
+      if (input.deadline !== undefined) dataToUpdate.deadline = new Date(input.deadline);
+      if (input.project_manager_id !== undefined) dataToUpdate.project_manager_id = input.project_manager_id;
+      if (input.client_name !== undefined) dataToUpdate.client_name = input.client_name?.trim() || null;
+      if (input.lead_received_date !== undefined) {
+        dataToUpdate.lead_received_date = input.lead_received_date ? new Date(input.lead_received_date) : null;
+      }
+      if (input.project_approved_date !== undefined) {
+        dataToUpdate.project_approved_date = input.project_approved_date ? new Date(input.project_approved_date) : null;
+      }
+      if (input.tech_frontend !== undefined) dataToUpdate.tech_frontend = input.tech_frontend?.trim() || null;
+      if (input.tech_backend !== undefined) dataToUpdate.tech_backend = input.tech_backend?.trim() || null;
+      if (input.tech_cloud !== undefined) dataToUpdate.tech_cloud = input.tech_cloud?.trim() || null;
+
+      if (Object.keys(dataToUpdate).length > 0) {
+        await tx.projects.update({
+          where: { project_id: projectId },
+          data: dataToUpdate,
+        });
+      }
+
+      // Update members if member_ids provided
+      if (input.member_ids !== undefined) {
+        const pmId = input.project_manager_id ?? existing.project_manager_id;
+        const allMemberIds = Array.from(new Set([...input.member_ids, pmId]));
+        await tx.project_members.deleteMany({
+          where: { project_id: projectId },
+        });
+        await tx.project_members.createMany({
+          data: allMemberIds.map((empId) => ({
+            project_id: projectId,
+            employee_id: empId,
+            role_in_project: empId === pmId ? 'manager' : 'member',
+            created_by: actorEmpId,
+          })),
+        });
+      }
+
+      // Update deployment if provided
+      if (input.deployment !== undefined) {
+        const depData: any = {
+          vercel_account: input.deployment.vercel_account?.trim() || null,
+          vercel_link: input.deployment.vercel_link?.trim() || null,
+          domain_link: input.deployment.domain_link?.trim() || null,
+          storage_account: input.deployment.storage_account?.trim() || null,
+          deployment_date: input.deployment.deployment_date ? new Date(input.deployment.deployment_date) : null,
+          go_live_date: input.deployment.go_live_date ? new Date(input.deployment.go_live_date) : null,
+          deployment_done_by: input.deployment.deployment_done_by || null,
+          admin_login_link: input.deployment.admin_login_link?.trim() || null,
+        };
+        const existingDep = await tx.project_deployments.findFirst({
+          where: { project_id: projectId },
+        });
+        if (existingDep) {
+          await tx.project_deployments.update({
+            where: { deployment_id: existingDep.deployment_id },
+            data: depData,
+          });
+        } else {
+          await tx.project_deployments.create({
+            data: {
+              project_id: projectId,
+              ...depData,
+              created_by: actorEmpId,
+            },
+          });
+        }
+      }
+
+      // Update credentials if provided
+      if (input.credentials !== undefined) {
+        await tx.project_credentials.deleteMany({
+          where: { project_id: projectId },
+        });
+        if (input.credentials.length > 0) {
+          await tx.project_credentials.createMany({
+            data: input.credentials.map((c) => ({
+              project_id: projectId,
+              admin_label: c.admin_label?.trim() || 'Admin',
+              admin_id: c.admin_id.trim(),
+              admin_password_encrypted: c.admin_password,
+              created_by: actorEmpId,
+            })),
+          });
+        }
+      }
+
+      // Log activity
+      await tx.project_activity_logs.create({
+        data: {
+          project_id: projectId,
+          actor_emp_id: actorEmpId,
+          action_type: 'project_updated',
+          description: `Project details were updated.`,
+        },
+      });
+
+      const updated = await tx.projects.findUnique({
+        where: { project_id: projectId },
+        include: {
+          employees_projects_project_manager_idToemployees: {
+            select: { emp_id: true, name: true, email: true, profile_picture: true },
+          },
+          project_members: {
+            include: {
+              employees_project_members_employee_idToemployees: {
+                select: { emp_id: true, name: true, email: true, profile_picture: true },
+              },
+            },
+          },
+          project_deployments: {
+            include: {
+              employees_project_deployments_deployment_done_byToemployees: {
+                select: { emp_id: true, name: true },
+              },
+            },
+          },
+          project_credentials: true,
+          tasks: {
+            select: { task_id: true, stage: true, allocated_minutes: true, actual_minutes: true },
+          },
+        },
+      });
+
+      return this.mapProject(updated, actorEmpId, true);
+    });
+  }
+
+  async getDiscussions(projectId: number): Promise<any[]> {
+    const rows = await this.prisma.project_discussions.findMany({
+      where: { project_id: projectId, deleted_at: null },
+      include: {
+        employees: {
+          select: { emp_id: true, name: true, profile_picture: true },
+        },
+      },
+      orderBy: { created_at: 'asc' },
+    });
+
+    return rows.map((r) => ({
+      message_id: r.message_id.toString(),
+      project_id: r.project_id,
+      sender_emp_id: r.sender_emp_id,
+      sender_name: r.employees?.name ?? 'Unknown',
+      sender_avatar: r.employees?.profile_picture ?? null,
+      message: r.message,
+      created_at: r.created_at.toISOString(),
+    }));
+  }
+
+  async createDiscussion(
+    projectId: number,
+    senderEmpId: number,
+    message: string,
+    attachments?: any,
+  ): Promise<any> {
+    const created = await this.prisma.project_discussions.create({
+      data: {
+        project_id: projectId,
+        sender_emp_id: senderEmpId,
+        message: message.trim(),
+        attachments: attachments ?? [],
+      },
+      include: {
+        employees: {
+          select: { emp_id: true, name: true, profile_picture: true },
+        },
+      },
+    });
+
+    return {
+      message_id: created.message_id.toString(),
+      project_id: created.project_id,
+      sender_emp_id: created.sender_emp_id,
+      sender_name: created.employees?.name ?? 'Unknown',
+      sender_avatar: created.employees?.profile_picture ?? null,
+      message: created.message,
+      created_at: created.created_at.toISOString(),
+    };
+  }
+
+  async getActivityLogs(projectId: number): Promise<any[]> {
+    const rows = await this.prisma.project_activity_logs.findMany({
+      where: { project_id: projectId },
+      include: {
+        employees: {
+          select: { emp_id: true, name: true, profile_picture: true },
+        },
+      },
+      orderBy: { created_at: 'desc' },
+      take: 100,
+    });
+
+    return rows.map((r) => ({
+      log_id: r.log_id.toString(),
+      project_id: r.project_id,
+      actor_emp_id: r.actor_emp_id,
+      actor_name: r.employees?.name ?? 'System',
+      actor_avatar: r.employees?.profile_picture ?? null,
+      action_type: r.action_type,
+      description: r.description,
+      created_at: r.created_at.toISOString(),
+    }));
+  }
+
+  async getBugs(projectId: number): Promise<any[]> {
+    const rows = await this.prisma.project_bugs.findMany({
+      where: { project_id: projectId, deleted_at: null },
+      include: {
+        employees_project_bugs_assigned_toToemployees: {
+          select: { emp_id: true, name: true },
+        },
+        employees_project_bugs_reported_byToemployees: {
+          select: { emp_id: true, name: true },
+        },
+      },
+      orderBy: { created_at: 'desc' },
+    });
+
+    return rows.map((b) => ({
+      bug_id: b.bug_id,
+      bug_code: b.bug_code,
+      project_id: b.project_id,
+      task_id: b.task_id,
+      title: b.title,
+      description: b.description,
+      steps_to_reproduce: b.steps_to_reproduce,
+      expected_result: b.expected_result,
+      actual_result: b.actual_result,
+      assigned_to: b.assigned_to,
+      assigned_to_name: b.employees_project_bugs_assigned_toToemployees?.name ?? 'Unassigned',
+      reported_by: b.reported_by,
+      reported_by_name: b.employees_project_bugs_reported_byToemployees?.name ?? 'Unknown',
+      priority: b.priority,
+      status: b.status,
+      bug_type: b.bug_type,
+      other_bug_type: b.other_bug_type,
+      attachment_url: b.attachment_url,
+      dev_started_at: b.dev_started_at?.toISOString() ?? null,
+      dev_ended_at: b.dev_ended_at?.toISOString() ?? null,
+      qa_started_at: b.qa_started_at?.toISOString() ?? null,
+      qa_ended_at: b.qa_ended_at?.toISOString() ?? null,
+      total_time_minutes: b.total_time_minutes,
+      created_at: b.created_at.toISOString(),
+    }));
+  }
+
+  async getBugDetail(bugId: number): Promise<any> {
+    const bug = await this.prisma.project_bugs.findUnique({
+      where: { bug_id: bugId },
+      include: {
+        employees_project_bugs_assigned_toToemployees: {
+          select: { emp_id: true, name: true, profile_picture: true },
+        },
+        employees_project_bugs_reported_byToemployees: {
+          select: { emp_id: true, name: true, profile_picture: true },
+        },
+        bug_comments: {
+          where: { deleted_at: null },
+          include: {
+            employees: {
+              select: { emp_id: true, name: true, profile_picture: true },
+            },
+          },
+          orderBy: { created_at: 'asc' },
+        },
+        bug_history: {
+          include: {
+            employees: {
+              select: { emp_id: true, name: true },
+            },
+          },
+          orderBy: { created_at: 'desc' },
+        },
+      },
+    });
+
+    if (!bug || bug.deleted_at) {
+      throw new Error('Bug not found');
+    }
+
+    return {
+      bug_id: bug.bug_id,
+      bug_code: bug.bug_code,
+      project_id: bug.project_id,
+      task_id: bug.task_id,
+      title: bug.title,
+      description: bug.description,
+      steps_to_reproduce: bug.steps_to_reproduce,
+      expected_result: bug.expected_result,
+      actual_result: bug.actual_result,
+      assigned_to: bug.assigned_to,
+      assigned_to_name: bug.employees_project_bugs_assigned_toToemployees?.name ?? 'Unassigned',
+      assigned_to_avatar: bug.employees_project_bugs_assigned_toToemployees?.profile_picture ?? null,
+      reported_by: bug.reported_by,
+      reported_by_name: bug.employees_project_bugs_reported_byToemployees?.name ?? 'Unknown',
+      reported_by_avatar: bug.employees_project_bugs_reported_byToemployees?.profile_picture ?? null,
+      priority: bug.priority,
+      status: bug.status,
+      bug_type: bug.bug_type,
+      other_bug_type: bug.other_bug_type,
+      attachment_url: bug.attachment_url,
+      dev_started_at: bug.dev_started_at?.toISOString() ?? null,
+      dev_ended_at: bug.dev_ended_at?.toISOString() ?? null,
+      qa_started_at: bug.qa_started_at?.toISOString() ?? null,
+      qa_ended_at: bug.qa_ended_at?.toISOString() ?? null,
+      total_time_minutes: bug.total_time_minutes,
+      created_at: bug.created_at.toISOString(),
+      comments: bug.bug_comments.map((c) => ({
+        comment_id: c.comment_id,
+        bug_id: c.bug_id,
+        emp_id: c.emp_id,
+        author_name: c.employees?.name ?? 'User',
+        author_avatar: c.employees?.profile_picture ?? null,
+        comment: c.comment,
+        created_at: c.created_at.toISOString(),
+      })),
+      history: bug.bug_history.map((h) => ({
+        history_id: h.history_id.toString(),
+        bug_id: h.bug_id,
+        actor_emp_id: h.actor_emp_id,
+        actor_name: h.employees?.name ?? 'User',
+        from_status: h.from_status,
+        to_status: h.to_status,
+        note: h.note,
+        created_at: h.created_at.toISOString(),
+      })),
+    };
+  }
+
+  async createBug(
+    projectId: number,
+    reporterEmpId: number,
+    input: any,
+  ): Promise<any> {
+    const year = new Date().getFullYear();
+    const counterRows: any[] = await this.prisma.$queryRawUnsafe(
+      `INSERT INTO bug_counters (counter_year, last_number)
+       VALUES ($1, 1)
+       ON CONFLICT (counter_year)
+       DO UPDATE SET last_number = bug_counters.last_number + 1
+       RETURNING last_number;`,
+      year,
+    );
+    const seq = counterRows[0]?.last_number ?? 1;
+    const bugCode = `BUG-${year}-${seq.toString().padStart(3, '0')}`;
+
+    const created = await this.prisma.project_bugs.create({
+      data: {
+        bug_code: bugCode,
+        project_id: projectId,
+        task_id: input.task_id || null,
+        title: input.title.trim(),
+        description: input.description.trim(),
+        steps_to_reproduce: input.steps_to_reproduce.trim(),
+        expected_result: input.expected_result.trim(),
+        actual_result: input.actual_result.trim(),
+        assigned_to: input.assigned_to,
+        reported_by: reporterEmpId,
+        priority: (input.priority || 'low') as any,
+        status: 'new' as any,
+        bug_type: input.bug_type as any,
+        other_bug_type: input.other_bug_type?.trim() || null,
+        attachment_url: input.attachment_url?.trim() || null,
+        created_by: reporterEmpId,
+      },
+      include: {
+        employees_project_bugs_assigned_toToemployees: {
+          select: { emp_id: true, name: true },
+        },
+        employees_project_bugs_reported_byToemployees: {
+          select: { emp_id: true, name: true },
+        },
+      },
+    });
+
+    // Record initial history
+    await this.prisma.bug_history.create({
+      data: {
+        bug_id: created.bug_id,
+        actor_emp_id: reporterEmpId,
+        from_status: null,
+        to_status: 'new',
+        note: 'Bug reported',
+      },
+    });
+
+    // Log in project_activity_logs
+    await this.prisma.project_activity_logs.create({
+      data: {
+        project_id: projectId,
+        actor_emp_id: reporterEmpId,
+        action_type: 'bug_created',
+        description: `Bug "${created.title}" (${bugCode}) was reported.`,
+      },
+    });
+
+    return {
+      bug_id: created.bug_id,
+      bug_code: created.bug_code,
+      project_id: created.project_id,
+      task_id: created.task_id,
+      title: created.title,
+      description: created.description,
+      steps_to_reproduce: created.steps_to_reproduce,
+      expected_result: created.expected_result,
+      actual_result: created.actual_result,
+      assigned_to: created.assigned_to,
+      assigned_to_name: created.employees_project_bugs_assigned_toToemployees?.name ?? 'Unassigned',
+      reported_by: created.reported_by,
+      reported_by_name: created.employees_project_bugs_reported_byToemployees?.name ?? 'Unknown',
+      priority: created.priority,
+      status: created.status,
+      bug_type: created.bug_type,
+      other_bug_type: created.other_bug_type,
+      attachment_url: created.attachment_url,
+      dev_started_at: null,
+      dev_ended_at: null,
+      qa_started_at: null,
+      qa_ended_at: null,
+      total_time_minutes: 0,
+      created_at: created.created_at.toISOString(),
+    };
+  }
+
+  async updateBugStatus(
+    bugId: number,
+    actorEmpId: number,
+    newStatus: string,
+    note?: string,
+  ): Promise<any> {
+    const bug = await this.prisma.project_bugs.findUnique({
+      where: { bug_id: bugId },
+    });
+    if (!bug || bug.deleted_at) {
+      throw new Error('Bug not found');
+    }
+
+    const now = new Date();
+    const updateData: any = {
+      status: newStatus as any,
+      updated_by: actorEmpId,
+      updated_at: now,
+    };
+
+    let devStart = bug.dev_started_at;
+    let devEnd = bug.dev_ended_at;
+    let qaStart = bug.qa_started_at;
+    let qaEnd = bug.qa_ended_at;
+
+    // Time tracking transitions (Section 3.7)
+    if (newStatus === 'dev_in_progress') {
+      if (!devStart) {
+        devStart = now;
+        updateData.dev_started_at = devStart;
+      }
+    } else if (bug.status === 'dev_in_progress' && newStatus !== 'dev_in_progress') {
+      devEnd = now;
+      updateData.dev_ended_at = devEnd;
+    }
+
+    if (newStatus === 'qa_in_progress') {
+      if (!qaStart) {
+        qaStart = now;
+        updateData.qa_started_at = qaStart;
+      }
+    } else if (bug.status === 'qa_in_progress' && newStatus !== 'qa_in_progress') {
+      qaEnd = now;
+      updateData.qa_ended_at = qaEnd;
+    }
+
+    // Calculate total time in minutes
+    let devMs = 0;
+    if (devStart) {
+      devMs = (devEnd ? devEnd.getTime() : now.getTime()) - devStart.getTime();
+    }
+    let qaMs = 0;
+    if (qaStart) {
+      qaMs = (qaEnd ? qaEnd.getTime() : now.getTime()) - qaStart.getTime();
+    }
+    updateData.total_time_minutes = Math.max(0, Math.round((devMs + qaMs) / 60000));
+
+    const updated = await this.prisma.project_bugs.update({
+      where: { bug_id: bugId },
+      data: updateData,
+    });
+
+    // Record transition history (Section 3.7)
+    await this.prisma.bug_history.create({
+      data: {
+        bug_id: bugId,
+        actor_emp_id: actorEmpId,
+        from_status: bug.status,
+        to_status: newStatus as any,
+        note: note || null,
+        created_at: now,
+      },
+    });
+
+    // Notifications (Section 3.7)
+    if (newStatus === 'ready_for_dev') {
+      await this.prisma.notifications.create({
+        data: {
+          recipient_id: bug.assigned_to,
+          kind: 'bug_assigned',
+          title: 'Bug Assigned to You',
+          body: `Bug "${bug.title}" (${bug.bug_code}) is ready for dev.`,
+          entity_type: 'bug',
+          entity_id: bugId,
+          created_by: actorEmpId,
+        },
+      });
+    } else if (newStatus === 'ready_for_qa') {
+      await this.prisma.notifications.create({
+        data: {
+          recipient_id: bug.reported_by,
+          kind: 'bug_ready_for_qa',
+          title: 'Bug Resolved - Ready for QA',
+          body: `Bug "${bug.title}" (${bug.bug_code}) is resolved and ready for QA testing.`,
+          entity_type: 'bug',
+          entity_id: bugId,
+          created_by: actorEmpId,
+        },
+      });
+    }
+
+    // Log in project activity logs
+    await this.prisma.project_activity_logs.create({
+      data: {
+        project_id: bug.project_id,
+        actor_emp_id: actorEmpId,
+        action_type: 'bug_status_updated',
+        description: `Bug "${bug.title}" (${bug.bug_code}) moved to ${newStatus.replace(/_/g, ' ')}.`,
+      },
+    });
+
+    return this.getBugDetail(bugId);
+  }
+
+  async addBugComment(
+    bugId: number,
+    empId: number,
+    comment: string,
+  ): Promise<any> {
+    const created = await this.prisma.bug_comments.create({
+      data: {
+        bug_id: bugId,
+        emp_id: empId,
+        comment: comment.trim(),
+      },
+      include: {
+        employees: {
+          select: { emp_id: true, name: true, profile_picture: true },
+        },
+      },
+    });
+
+    return {
+      comment_id: created.comment_id,
+      bug_id: created.bug_id,
+      emp_id: created.emp_id,
+      author_name: created.employees?.name ?? 'User',
+      author_avatar: created.employees?.profile_picture ?? null,
+      comment: created.comment,
+      created_at: created.created_at.toISOString(),
+    };
   }
 }

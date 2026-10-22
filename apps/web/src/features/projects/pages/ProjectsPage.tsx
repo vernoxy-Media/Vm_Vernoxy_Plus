@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   FolderKanban,
   CheckCircle2,
@@ -12,6 +13,7 @@ import {
   createProject,
   fetchAssignableEmployees,
   fetchProjects,
+  updateProject,
   updateProjectStatus,
 } from '../api/projects.api';
 import type {
@@ -28,6 +30,7 @@ import { CreateProjectModal } from '../components/CreateProjectModal';
 import { ProjectDetailsModal } from '../components/ProjectDetailsModal';
 
 export const ProjectsPage: React.FC = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [projects, setProjects] = useState<ProjectItem[]>([]);
   const [employees, setEmployees] = useState<AssignableEmployee[]>([]);
@@ -107,9 +110,26 @@ export const ProjectsPage: React.FC = () => {
     return { total, active, planning, completed };
   }, [projects]);
 
-  const handleCreateProject = async (payload: CreateProjectPayload) => {
-    await createProject(payload);
-    await loadData();
+  const handleCreateProject = async (payload: CreateProjectPayload): Promise<ProjectItem> => {
+    const newProject = await createProject(payload);
+    // Add immediately to projects state so the project card appears right away
+    setProjects((prev) => [newProject, ...prev.filter((p) => p.project_id !== newProject.project_id)]);
+    loadData().catch(console.error);
+    return newProject;
+  };
+
+  const handleUpdateProjectDetails = async (
+    projectId: number,
+    payload: Partial<CreateProjectPayload>
+  ): Promise<ProjectItem> => {
+    const updated = await updateProject(projectId, payload);
+    setProjects((prev) =>
+      prev.map((p) => (p.project_id === projectId ? updated : p))
+    );
+    if (selectedProject?.project_id === projectId) {
+      setSelectedProject(updated);
+    }
+    return updated;
   };
 
   const handleUpdateStatus = async (
@@ -289,7 +309,7 @@ export const ProjectsPage: React.FC = () => {
             <ProjectCard
               key={project.project_id}
               project={project}
-              onClick={(p) => setSelectedProject(p)}
+              onClick={(p) => navigate(`/projects/${p.project_id}`)}
               onStatusChange={(p, s) => handleUpdateStatus(p.project_id, s)}
             />
           ))}
@@ -297,12 +317,12 @@ export const ProjectsPage: React.FC = () => {
       ) : viewMode === 'list' ? (
         <ProjectTableView
           projects={filteredProjects}
-          onSelectProject={(p) => setSelectedProject(p)}
+          onSelectProject={(p) => navigate(`/projects/${p.project_id}`)}
         />
       ) : (
         <ProjectKanbanView
           projects={filteredProjects}
-          onSelectProject={(p) => setSelectedProject(p)}
+          onSelectProject={(p) => navigate(`/projects/${p.project_id}`)}
         />
       )}
 
@@ -311,6 +331,7 @@ export const ProjectsPage: React.FC = () => {
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
         onSubmit={handleCreateProject}
+        onUpdateDetails={handleUpdateProjectDetails}
         employees={employees}
       />
 
@@ -320,6 +341,8 @@ export const ProjectsPage: React.FC = () => {
         isOpen={Boolean(selectedProject)}
         onClose={() => setSelectedProject(null)}
         onStatusUpdate={handleUpdateStatus}
+        onUpdateProject={handleUpdateProjectDetails}
+        employees={employees}
         canManageStatus={canCreate}
       />
     </div>

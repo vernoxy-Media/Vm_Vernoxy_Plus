@@ -4657,6 +4657,43 @@
         "tags": [
           "Projects"
         ]
+      },
+      "patch": {
+        "operationId": "ProjectsController_updateProject",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProjectDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update project details (Admin and Project Manager)",
+        "tags": [
+          "Projects"
+        ]
       }
     },
     "/api/v1/projects/{id}/status": {
@@ -9259,6 +9296,94 @@
           "project_manager_id",
           "member_ids"
         ]
+      },
+      "UpdateProjectDto": {
+        "type": "object",
+        "properties": {
+          "project_name": {
+            "type": "string"
+          },
+          "project_type": {
+            "type": "string",
+            "enum": [
+              "client",
+              "internal",
+              "product",
+              "maintenance"
+            ]
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "ecom_website",
+              "portfolio_website",
+              "seo",
+              "social_media",
+              "crm",
+              "erp",
+              "brochure",
+              "other"
+            ]
+          },
+          "other_category": {
+            "type": "string"
+          },
+          "start_date": {
+            "type": "string"
+          },
+          "deadline": {
+            "type": "string"
+          },
+          "project_manager_id": {
+            "type": "number"
+          },
+          "project_status": {
+            "type": "string",
+            "enum": [
+              "new",
+              "planning",
+              "in_progress",
+              "pending",
+              "review",
+              "delivered",
+              "on_hold",
+              "cancelled"
+            ]
+          },
+          "member_ids": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "client_name": {
+            "type": "string"
+          },
+          "lead_received_date": {
+            "type": "string"
+          },
+          "project_approved_date": {
+            "type": "string"
+          },
+          "tech_frontend": {
+            "type": "string"
+          },
+          "tech_backend": {
+            "type": "string"
+          },
+          "tech_cloud": {
+            "type": "string"
+          },
+          "deployment": {
+            "$ref": "#/components/schemas/CreateDeploymentDto"
+          },
+          "credentials": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateCredentialDto"
+            }
+          }
+        }
       },
       "UpdateProjectStatusDto": {
         "type": "object",
