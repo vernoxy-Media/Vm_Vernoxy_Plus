@@ -17,6 +17,7 @@ import { TasksModule } from './modules/tasks/public-api';
 import { CalendarModule } from './modules/calendar/public-api';
 import { ProjectsModule } from './modules/projects/public-api';
 import { WebsocketsModule } from './modules/websockets/public-api';
+import { SalesModule } from './modules/sales/public-api';
 
 @Module({
 
@@ -34,6 +35,7 @@ import { WebsocketsModule } from './modules/websockets/public-api';
     MasterDataModule,
     DataTransferModule,
     CrmModule,
+    SalesModule,
     AttendanceModule,
     NotificationsModule,
     TasksModule,

@@ -27,6 +27,7 @@ import { ProjectsPage } from './features/projects/pages/ProjectsPage';
 import { ProjectDetailPage } from './features/projects/pages/ProjectDetailPage';
 import { TaskManagementPage } from './pages/admin/TaskManagementPage';
 import { MyTasksPage } from './pages/MyTasksPage';
+import { LeadPipelinePage } from './features/leads/pages/LeadPipelinePage';
 import { AppLayout } from './components/AppLayout';
 
 const queryClient = new QueryClient({
@@ -125,6 +126,16 @@ export const App: React.FC = () => {
                 <ProtectedRoute>
                   <AppLayout fluid>
                     <MyTasksPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/leads"
+              element={
+                <ProtectedRoute>
+                  <AppLayout fluid>
+                    <LeadPipelinePage />
                   </AppLayout>
                 </ProtectedRoute>
               }
