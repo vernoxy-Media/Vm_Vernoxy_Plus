@@ -180,3 +180,69 @@ export interface AttendanceSettingsResponse {
   employee_shifts: Record<string, number>;
 }
 
+export interface AttendanceApprovalHistoryItem {
+  approvalId: number;
+  correctionId: number;
+  level: number;
+  levelName: string;
+  approverId?: number | null;
+  approverName?: string | null;
+  action: 'pending' | 'approved' | 'rejected' | 'cancelled';
+  comment?: string | null;
+  actionDate?: string | null;
+}
+
+export interface AttendanceRegularization {
+  correctionId: number;
+  requestId: string;
+  empId: number;
+  attendanceId?: number | null;
+  workDate: string;
+  requestType: string;
+  currentCheckInAt?: string | null;
+  currentCheckOutAt?: string | null;
+  requestedCheckInAt?: string | null;
+  requestedCheckOutAt?: string | null;
+  requestedBreakMinutes: number;
+  reason: string;
+  remarks?: string | null;
+  attachmentUrl?: string | null;
+  attachmentName?: string | null;
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled';
+  decidedAt?: string | null;
+  decidedBy?: number | null;
+  rejectionReason?: string | null;
+  employeeName?: string;
+  employeeCode?: string;
+  departmentName?: string;
+  approvals?: AttendanceApprovalHistoryItem[];
+  createdAt: string;
+  updatedAt?: string | null;
+}
+
+export interface CreateRegularizationPayload {
+  emp_id?: number;
+  work_date: string;
+  request_type: string;
+  current_check_in_at?: string | null;
+  current_check_out_at?: string | null;
+  requested_check_in_at?: string | null;
+  requested_check_out_at?: string | null;
+  reason: string;
+  remarks: string;
+  attachment_url?: string | null;
+  attachment_name?: string | null;
+}
+
+export interface RegularizationFilterParams {
+  tab?: string;
+  status?: string;
+  department_id?: number;
+  request_type?: string;
+  from_date?: string;
+  to_date?: string;
+  search?: string;
+  scope?: string;
+}
+
+

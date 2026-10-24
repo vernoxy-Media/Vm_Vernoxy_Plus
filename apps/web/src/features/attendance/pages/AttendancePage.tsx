@@ -6,7 +6,9 @@ import { useAttendanceDashboard, usePunchActions, useDayDetail } from '../hooks/
 import { AttendanceCalendarPicker } from '../components/AttendanceCalendarPicker';
 import { AttendanceSkeleton } from '../components/AttendanceSkeleton';
 import { AttendanceDashboardCards } from '../components/AttendanceDashboardCards';
-import { RequestCorrectionDialog } from '../components/RequestCorrectionDialog';
+import { AddRegularizationModal } from '../components/AddRegularizationModal';
+import { MyRegularizationsPanel } from '../components/MyRegularizationsPanel';
+import { ApprovalsPanel } from '../components/ApprovalsPanel';
 import type { TodayAttendanceData, AttendanceStatistics, SpecialStatus } from '../types/attendance.types';
 
 export const AttendancePage: React.FC = () => {
@@ -25,6 +27,7 @@ export const AttendancePage: React.FC = () => {
   const [announcement, setAnnouncement] = useState<string>('');
   const [infoToast, setInfoToast] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [attendanceTab, setAttendanceTab] = useState<'timesheet' | 'regularization' | 'approvals'>('timesheet');
   const [correctionModalDate, setCorrectionModalDate] = useState<string | null>(null);
 
   const { data, isLoading, error } = useAttendanceDashboard(selectedMonth);
@@ -283,43 +286,92 @@ export const AttendancePage: React.FC = () => {
         </div>
       </div>
 
-      <AttendanceDashboardCards
-        today={displayToday}
-        statistics={computedStatistics}
-        monthSummary={month_summary}
-        records={records}
-        isPending={isPending}
-        onPunchIn={handlePunchIn}
-        onPunchOut={handlePunchOut}
-        onStartBreak={handleStartBreak}
-        onResumeBreak={handleResumeBreak}
-        actionError={actionError}
-        infoToast={infoToast}
-        onDismissToast={() => setInfoToast(null)}
-        onSuccessCorrection={(msg) => setInfoToast(msg)}
-        selectedDate={selectedDate}
-        isSelectedToday={isSelectedToday}
-        onRequestCorrection={(date) => setCorrectionModalDate(date)}
-        onReturnToToday={() => handleSelectDate(todayDateStr)}
-        onSelectDate={handleSelectDate}
-        selectedMonth={selectedMonth}
-        onSelectMonth={(m) => setSelectedMonth(m)}
-        dayLabel={dayLabel}
-        weekLabel={weekLabel}
-        monthLabel={monthLabel}
-        statusLabel={statusLabel}
-      />
+      {/* Attendance Navigation Tabs */}
+      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+        <button
+          type="button"
+          onClick={() => setAttendanceTab('timesheet')}
+          className={`rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
+            attendanceTab === 'timesheet'
+              ? 'bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900 shadow-2xs'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800'
+          }`}
+        >
+          Timesheet & Attendance
+        </button>
+        <button
+          type="button"
+          onClick={() => setAttendanceTab('regularization')}
+          className={`rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
+            attendanceTab === 'regularization'
+              ? 'bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900 shadow-2xs'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800'
+          }`}
+        >
+          My Regularizations
+        </button>
+        {canManageAttendance && (
+          <button
+            type="button"
+            onClick={() => setAttendanceTab('approvals')}
+            className={`rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
+              attendanceTab === 'approvals'
+                ? 'bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900 shadow-2xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800'
+            }`}
+          >
+            Approvals
+          </button>
+        )}
+      </div>
 
-      {/* Correction Dialog when triggered from Timesheet card or table */}
+      {attendanceTab === 'timesheet' && (
+        <AttendanceDashboardCards
+          today={displayToday}
+          statistics={computedStatistics}
+          monthSummary={month_summary}
+          records={records}
+          isPending={isPending}
+          onPunchIn={handlePunchIn}
+          onPunchOut={handlePunchOut}
+          onStartBreak={handleStartBreak}
+          onResumeBreak={handleResumeBreak}
+          actionError={actionError}
+          infoToast={infoToast}
+          onDismissToast={() => setInfoToast(null)}
+          onSuccessCorrection={(msg) => setInfoToast(msg)}
+          selectedDate={selectedDate}
+          isSelectedToday={isSelectedToday}
+          onRequestCorrection={(date) => setCorrectionModalDate(date)}
+          onReturnToToday={() => handleSelectDate(todayDateStr)}
+          onSelectDate={handleSelectDate}
+          selectedMonth={selectedMonth}
+          onSelectMonth={(m) => setSelectedMonth(m)}
+          dayLabel={dayLabel}
+          weekLabel={weekLabel}
+          monthLabel={monthLabel}
+          statusLabel={statusLabel}
+        />
+      )}
+
+      {attendanceTab === 'regularization' && (
+        <MyRegularizationsPanel />
+      )}
+
+      {attendanceTab === 'approvals' && canManageAttendance && (
+        <ApprovalsPanel />
+      )}
+
+      {/* Regularization Modal when triggered from Timesheet card or records table */}
       {correctionModalDate && (
-        <RequestCorrectionDialog
+        <AddRegularizationModal
           isOpen={true}
-          date={correctionModalDate}
-          defaultPunchIn={correctionRow?.punch_in}
-          defaultPunchOut={correctionRow?.punch_out}
+          initialDate={correctionModalDate}
+          initialCheckIn={correctionRow?.punch_in}
+          initialCheckOut={correctionRow?.punch_out}
           onClose={() => setCorrectionModalDate(null)}
-          onSuccess={(msg) => {
-            setInfoToast(msg);
+          onSuccess={() => {
+            setInfoToast('Regularization request submitted successfully.');
             setCorrectionModalDate(null);
           }}
         />

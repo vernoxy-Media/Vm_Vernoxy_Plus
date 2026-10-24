@@ -18,6 +18,19 @@ export function mapAttendanceErrorToHttp(error: unknown): HttpException {
     return error;
   }
 
+  if (error instanceof AttendanceDomainError) {
+    return new HttpException(
+      {
+        type: 'about:blank',
+        title: 'Bad Request',
+        status: error.statusCode || HttpStatus.BAD_REQUEST,
+        detail: error.message,
+        errors: [{ field: 'attendance', code: error.code || 'BAD_REQUEST', message: error.message }],
+      },
+      error.statusCode || HttpStatus.BAD_REQUEST,
+    );
+  }
+
   // Handle Domain Errors
   if (error instanceof AlreadyPunchedInError) {
     return new HttpException(

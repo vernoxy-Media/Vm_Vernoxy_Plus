@@ -10,7 +10,7 @@ import {
   determineDayStatus,
   formatWorkDate,
 } from '../../domain/services/attendance-calculations';
-import { AlreadyPunchedOutError, AttendanceNotFoundError } from '../../domain/errors/attendance.errors';
+import { AlreadyPunchedOutError, AttendanceNotFoundError, AttendanceDomainError } from '../../domain/errors/attendance.errors';
 
 @Injectable()
 export class PrismaAttendanceRepository implements AttendanceRepository {
@@ -60,19 +60,30 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
   private mapCorrectionRowToEntity(row: any): AttendanceCorrectionEntity {
     return {
       correctionId: row.correction_id,
+      requestId: row.request_id || `REG-${String(row.correction_id).padStart(4, '0')}`,
       empId: row.emp_id,
       attendanceId: row.attendance_id,
       workDate: typeof row.work_date === 'string'
         ? row.work_date.slice(0, 10)
         : (row.work_date as Date).toISOString().slice(0, 10),
+      requestType: row.request_type || 'Incorrect Time',
+      currentCheckInAt: row.current_check_in_at,
+      currentCheckOutAt: row.current_check_out_at,
       requestedCheckInAt: row.requested_check_in_at,
       requestedCheckOutAt: row.requested_check_out_at,
-      requestedBreakMinutes: row.requested_break_minutes,
+      requestedBreakMinutes: row.requested_break_minutes || 0,
       reason: row.reason,
+      remarks: row.remarks,
+      attachmentUrl: row.attachment_url,
+      attachmentName: row.attachment_name,
       status: row.status,
       decidedAt: row.decided_at,
       decidedBy: row.decided_by,
       rejectionReason: row.rejection_reason,
+      employeeName: row.employee_name,
+      employeeCode: row.employee_code,
+      departmentName: row.department_name,
+      approvals: row.approvals,
       createdAt: row.created_at,
       createdBy: row.created_by,
       updatedAt: row.updated_at,
@@ -258,11 +269,11 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
         emp_id: data.empId,
         attendance_id: data.attendanceId,
         work_date: new Date(data.workDate),
-        requested_check_in_at: data.requestedCheckInAt,
-        requested_check_out_at: data.requestedCheckOutAt,
+        requested_check_in_at: data.requestedCheckInAt || new Date(),
+        requested_check_out_at: data.requestedCheckOutAt || new Date(),
         requested_break_minutes: data.requestedBreakMinutes,
         reason: data.reason,
-        status: data.status,
+        status: data.status as any,
         created_by: data.createdBy,
       },
     });
@@ -270,13 +281,397 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
   }
 
   async findCorrectionById(correctionId: number): Promise<AttendanceCorrectionEntity | null> {
-    const row = await this.prisma.attendance_corrections.findFirst({
-      where: {
-        correction_id: correctionId,
-        deleted_at: null,
-      },
+    const rows = await this.prisma.$queryRaw<any[]>`
+      SELECT 
+        c.*,
+        e.name as employee_name,
+        'EMP-' || LPAD(e.emp_id::text, 4, '0') as employee_code,
+        d.name as department_name
+      FROM attendance_corrections c
+      JOIN employees e ON e.emp_id = c.emp_id
+      LEFT JOIN departments d ON d.dep_id = e.dep_id
+      WHERE c.correction_id = ${correctionId} AND c.deleted_at IS NULL
+      LIMIT 1
+    `;
+    if (!rows || rows.length === 0) return null;
+    const row = rows[0];
+
+    // Fetch approvals
+    const approvals = await this.prisma.$queryRaw<any[]>`
+      SELECT 
+        a.approval_id,
+        a.correction_id,
+        a.level,
+        a.level_name,
+        a.approver_id,
+        e.name as approver_name,
+        a.action,
+        a.comment,
+        a.action_date,
+        a.created_at,
+        a.created_by,
+        a.updated_at,
+        a.updated_by,
+        a.deleted_at,
+        a.deleted_by
+      FROM attendance_correction_approvals a
+      LEFT JOIN employees e ON e.emp_id = a.approver_id
+      WHERE a.correction_id = ${correctionId} AND a.deleted_at IS NULL
+      ORDER BY a.level ASC, a.created_at ASC
+    `;
+
+    row.approvals = approvals.map((a: any) => ({
+      approvalId: a.approval_id,
+      correctionId: a.correction_id,
+      level: a.level,
+      levelName: a.level_name,
+      approverId: a.approver_id,
+      approverName: a.approver_name,
+      action: a.action,
+      comment: a.comment,
+      actionDate: a.action_date,
+      createdAt: a.created_at,
+      createdBy: a.created_by,
+      updatedAt: a.updated_at,
+      updatedBy: a.updated_by,
+      deletedAt: a.deleted_at,
+      deletedBy: a.deleted_by,
+    }));
+
+    return this.mapCorrectionRowToEntity(row);
+  }
+
+  async listRegularizations(params: {
+    empId?: number;
+    status?: string;
+    tab?: string;
+    departmentId?: number;
+    requestType?: string;
+    fromDate?: string;
+    toDate?: string;
+    search?: string;
+    isManagerOrAdmin?: boolean;
+    viewerEmpId?: number;
+  }): Promise<AttendanceCorrectionEntity[]> {
+    const conditions: string[] = ['c.deleted_at IS NULL'];
+
+    if (params.empId) {
+      conditions.push(`c.emp_id = ${Number(params.empId)}`);
+    }
+
+    if (params.tab) {
+      if (params.tab === 'pending') {
+        conditions.push(`c.status = 'pending'`);
+      } else if (params.tab === 'approved') {
+        conditions.push(`c.status = 'approved'`);
+      } else if (params.tab === 'rejected') {
+        conditions.push(`c.status = 'rejected'`);
+      }
+    } else if (params.status && params.status !== 'all') {
+      conditions.push(`c.status = '${params.status}'`);
+    }
+
+    if (params.departmentId) {
+      conditions.push(`e.dep_id = ${Number(params.departmentId)}`);
+    }
+
+    if (params.requestType && params.requestType !== 'all') {
+      conditions.push(`c.request_type = '${params.requestType}'`);
+    }
+
+    if (params.fromDate) {
+      conditions.push(`c.work_date >= '${params.fromDate}'::date`);
+    }
+
+    if (params.toDate) {
+      conditions.push(`c.work_date <= '${params.toDate}'::date`);
+    }
+
+    if (params.search && params.search.trim()) {
+      const q = params.search.trim().replace(/'/g, "''");
+      conditions.push(`(
+        e.name ILIKE '%${q}%' 
+        OR c.request_id ILIKE '%${q}%' 
+        OR ('EMP-' || LPAD(e.emp_id::text, 4, '0')) ILIKE '%${q}%'
+      )`);
+    }
+
+    const whereClause = conditions.join(' AND ');
+    const query = `
+      SELECT 
+        c.*,
+        e.name as employee_name,
+        'EMP-' || LPAD(e.emp_id::text, 4, '0') as employee_code,
+        d.name as department_name
+      FROM attendance_corrections c
+      JOIN employees e ON e.emp_id = c.emp_id
+      LEFT JOIN departments d ON d.dep_id = e.dep_id
+      WHERE ${whereClause}
+      ORDER BY c.created_at DESC
+    `;
+
+    const rows = await this.prisma.$queryRawUnsafe<any[]>(query);
+    return rows.map((r) => this.mapCorrectionRowToEntity(r));
+  }
+
+  async createRegularization(data: {
+    empId: number;
+    workDate: string;
+    requestType: string;
+    currentCheckInAt?: Date | null;
+    currentCheckOutAt?: Date | null;
+    requestedCheckInAt?: Date | null;
+    requestedCheckOutAt?: Date | null;
+    reason: string;
+    remarks: string;
+    attachmentUrl?: string | null;
+    attachmentName?: string | null;
+    createdBy: number;
+  }): Promise<AttendanceCorrectionEntity> {
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Insert correction
+      const [inserted] = await tx.$queryRaw<any[]>`
+        INSERT INTO attendance_corrections (
+          emp_id,
+          work_date,
+          request_type,
+          current_check_in_at,
+          current_check_out_at,
+          requested_check_in_at,
+          requested_check_out_at,
+          reason,
+          remarks,
+          attachment_url,
+          attachment_name,
+          status,
+          created_by,
+          created_at
+        ) VALUES (
+          ${data.empId},
+          ${new Date(data.workDate)},
+          ${data.requestType},
+          ${data.currentCheckInAt || null},
+          ${data.currentCheckOutAt || null},
+          ${data.requestedCheckInAt || null},
+          ${data.requestedCheckOutAt || null},
+          ${data.reason},
+          ${data.remarks},
+          ${data.attachmentUrl || null},
+          ${data.attachmentName || null},
+          'pending',
+          ${data.createdBy},
+          clock_timestamp()
+        )
+        RETURNING *
+      `;
+
+      // 2. Insert initial pending approval level
+      await tx.$queryRaw`
+        INSERT INTO attendance_correction_approvals (
+          correction_id,
+          level,
+          level_name,
+          action,
+          created_by,
+          created_at
+        ) VALUES (
+          ${inserted.correction_id},
+          1,
+          'Level 1 - HR',
+          'pending',
+          ${data.createdBy},
+          clock_timestamp()
+        )
+      `;
+
+      return (await this.findCorrectionById(inserted.correction_id))!;
     });
-    return row ? this.mapCorrectionRowToEntity(row) : null;
+  }
+
+  async cancelRegularization(correctionId: number, empId: number): Promise<AttendanceCorrectionEntity> {
+    const existing = await this.findCorrectionById(correctionId);
+    if (!existing) {
+      throw new AttendanceNotFoundError(`Regularization request #${correctionId} not found`);
+    }
+    if (existing.empId !== empId) {
+      throw new AttendanceDomainError('UNAUTHORIZED', 'You can only cancel your own regularization request', 403);
+    }
+    if (existing.status !== 'pending') {
+      throw new AttendanceDomainError('INVALID_STATE', `Only pending requests can be cancelled. Current status is ${existing.status}`, 400);
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`
+        UPDATE attendance_corrections 
+        SET status = 'cancelled', updated_at = clock_timestamp(), updated_by = ${empId}
+        WHERE correction_id = ${correctionId}
+      `;
+
+      await tx.$queryRaw`
+        UPDATE attendance_correction_approvals 
+        SET action = 'cancelled', action_date = clock_timestamp(), updated_at = clock_timestamp(), updated_by = ${empId}
+        WHERE correction_id = ${correctionId} AND action = 'pending'
+      `;
+    });
+
+    return (await this.findCorrectionById(correctionId))!;
+  }
+
+  async approveRegularization(
+    correctionId: number,
+    approverId: number,
+    comment?: string,
+  ): Promise<AttendanceCorrectionEntity> {
+    const existing = await this.findCorrectionById(correctionId);
+    if (!existing) {
+      throw new AttendanceNotFoundError(`Regularization request #${correctionId} not found`);
+    }
+    if (existing.empId === approverId) {
+      throw new AttendanceDomainError('SELF_APPROVAL_FORBIDDEN', 'You cannot approve your own request.', 400);
+    }
+    if (existing.status !== 'pending') {
+      throw new AttendanceDomainError('INVALID_STATE', `Only pending requests can be approved. Current status is ${existing.status}`, 400);
+    }
+
+    const checkIn = existing.requestedCheckInAt || existing.currentCheckInAt || new Date(`${existing.workDate}T09:30:00.000Z`);
+    const checkOut = existing.requestedCheckOutAt || existing.currentCheckOutAt || new Date(`${existing.workDate}T18:30:00.000Z`);
+
+    const durationMinutes = Math.max(0, Math.floor((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 60000));
+    const dayStatus = durationMinutes >= 480 ? 'present' : (durationMinutes >= 240 ? 'half_day' : 'absent');
+
+    await this.prisma.$transaction(async (tx) => {
+      // 1. Update approval row
+      await tx.$queryRaw`
+        UPDATE attendance_correction_approvals 
+        SET 
+          action = 'approved',
+          approver_id = ${approverId},
+          comment = ${comment || null},
+          action_date = clock_timestamp(),
+          updated_at = clock_timestamp(),
+          updated_by = ${approverId}
+        WHERE correction_id = ${correctionId} AND action = 'pending'
+      `;
+
+      // 2. Update correction status
+      await tx.$queryRaw`
+        UPDATE attendance_corrections 
+        SET 
+          status = 'approved',
+          decided_at = clock_timestamp(),
+          decided_by = ${approverId},
+          updated_at = clock_timestamp(),
+          updated_by = ${approverId}
+        WHERE correction_id = ${correctionId}
+      `;
+
+      // 3. Upsert attendance_days
+      const existingDay = await tx.attendance_days.findFirst({
+        where: {
+          emp_id: existing.empId,
+          work_date: new Date(existing.workDate),
+          deleted_at: null,
+        },
+      });
+
+      if (existingDay) {
+        await tx.attendance_days.update({
+          where: { attendance_id: existingDay.attendance_id },
+          data: {
+            check_in_at: checkIn,
+            check_out_at: checkOut,
+            production_minutes: durationMinutes,
+            day_status: dayStatus as any,
+            is_regularized: true,
+            check_in_mode: 'Regularized',
+            regularization_id: correctionId,
+            updated_at: new Date(),
+            updated_by: approverId,
+          } as any,
+        });
+      } else {
+        await tx.attendance_days.create({
+          data: {
+            emp_id: existing.empId,
+            work_date: new Date(existing.workDate),
+            check_in_at: checkIn,
+            check_out_at: checkOut,
+            production_minutes: durationMinutes,
+            day_status: dayStatus as any,
+            is_regularized: true,
+            check_in_mode: 'Regularized',
+            regularization_id: correctionId,
+            created_by: approverId,
+          } as any,
+        });
+      }
+    });
+
+    return (await this.findCorrectionById(correctionId))!;
+  }
+
+  async rejectRegularization(
+    correctionId: number,
+    approverId: number,
+    comment: string,
+  ): Promise<AttendanceCorrectionEntity> {
+    if (!comment || comment.trim().length === 0) {
+      throw new AttendanceDomainError('COMMENT_REQUIRED', 'Please enter a comment to reject.', 400);
+    }
+    const existing = await this.findCorrectionById(correctionId);
+    if (!existing) {
+      throw new AttendanceNotFoundError(`Regularization request #${correctionId} not found`);
+    }
+    if (existing.status !== 'pending') {
+      throw new AttendanceDomainError('INVALID_STATE', `Only pending requests can be rejected. Current status is ${existing.status}`, 400);
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`
+        UPDATE attendance_correction_approvals 
+        SET 
+          action = 'rejected',
+          approver_id = ${approverId},
+          comment = ${comment.trim()},
+          action_date = clock_timestamp(),
+          updated_at = clock_timestamp(),
+          updated_by = ${approverId}
+        WHERE correction_id = ${correctionId} AND action = 'pending'
+      `;
+
+      await tx.$queryRaw`
+        UPDATE attendance_corrections 
+        SET 
+          status = 'rejected',
+          rejection_reason = ${comment.trim()},
+          decided_at = clock_timestamp(),
+          decided_by = ${approverId},
+          updated_at = clock_timestamp(),
+          updated_by = ${approverId}
+        WHERE correction_id = ${correctionId}
+      `;
+    });
+
+    return (await this.findCorrectionById(correctionId))!;
+  }
+
+  async bulkApproveRegularizations(
+    correctionIds: number[],
+    approverId: number,
+  ): Promise<{ successCount: number; failedCount: number }> {
+    let successCount = 0;
+    let failedCount = 0;
+
+    for (const id of correctionIds) {
+      try {
+        await this.approveRegularization(id, approverId);
+        successCount++;
+      } catch {
+        failedCount++;
+      }
+    }
+
+    return { successCount, failedCount };
   }
 
   async findCorrectionByEmpAndDate(empId: number, workDate: string): Promise<AttendanceCorrectionEntity | null> {

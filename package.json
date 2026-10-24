@@ -23,14 +23,17 @@
     "auth:gen-secrets": "tsx apps/api/src/scripts/generate-auth-secrets.ts",
     "openapi:export": "pnpm --filter @vernoxy-pulse/api openapi:export",
     "api:generate": "pnpm --filter @vernoxy-pulse/api-client generate",
-    "mailpit": "tsx scripts/mailpit-mock.ts",
-    "dev": "turbo run dev --parallel"
+    "dev": "concurrently -n \"api,web\" -c \"blue,green\" \"pnpm --filter @vernoxy-pulse/api dev\" \"pnpm --filter @vernoxy-pulse/web dev\"",
+    "dev:turbo": "turbo dev",
+    "dev:api": "pnpm --filter @vernoxy-pulse/api dev",
+    "dev:web": "pnpm --filter @vernoxy-pulse/web dev"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
     "@types/node": "^22.13.0",
     "@types/pg": "^8.11.10",
     "argon2": "^0.45.1",
+    "concurrently": "^10.0.6",
     "dbmate": "^2.36.0",
     "dependency-cruiser": "^16.4.0",
     "dotenv": "^16.4.7",

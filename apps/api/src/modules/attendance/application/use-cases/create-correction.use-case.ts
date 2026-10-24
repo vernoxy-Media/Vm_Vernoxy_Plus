@@ -52,6 +52,8 @@ export class CreateCorrectionUseCase {
     const existingDay = await this.attendanceRepo.findDayByEmpAndDate(cmd.empId, cmd.workDate);
 
     return this.attendanceRepo.createCorrection({
+      requestId: '',
+      requestType: 'Incorrect Time',
       empId: cmd.empId,
       attendanceId: existingDay ? existingDay.attendanceId : null,
       workDate: cmd.workDate,

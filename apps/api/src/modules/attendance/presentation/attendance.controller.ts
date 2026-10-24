@@ -43,6 +43,8 @@ import { AdminUpsertDayUseCase } from '../application/use-cases/admin-upsert-day
 import { GetTeamAttendanceUseCase } from '../application/use-cases/get-team-attendance.use-case';
 import { GetAttendanceReportUseCase } from '../application/use-cases/get-attendance-report.use-case';
 import { AppSettingsRepository } from '../domain/ports/app-settings.repository.port';
+import { AttendanceRepository } from '../domain/ports/attendance.repository.port';
+import { AttendanceNotFoundError } from '../domain/errors/attendance.errors';
 import { ATTENDANCE_TOKENS } from '../domain/ports/tokens';
 import { Inject } from '@nestjs/common';
 import { mapAttendanceErrorToHttp } from './attendance-error.mapper';
@@ -56,6 +58,11 @@ import {
   AdminUpsertDayDto,
   TeamAttendanceQueryDto,
   StartBreakDto,
+  CreateRegularizationDto,
+  ApproveRegularizationDto,
+  RejectRegularizationDto,
+  BulkApproveRegularizationDto,
+  RegularizationQueryDto,
 } from './dto/attendance.dto';
 
 @ApiTags('Attendance')
@@ -77,6 +84,8 @@ export class AttendanceController {
     private readonly adminUpsertDayUseCase: AdminUpsertDayUseCase,
     private readonly getTeamAttendanceUseCase: GetTeamAttendanceUseCase,
     private readonly getAttendanceReportUseCase: GetAttendanceReportUseCase,
+    @Inject(ATTENDANCE_TOKENS.ATTENDANCE_REPOSITORY)
+    private readonly attendanceRepo: AttendanceRepository,
     @Inject(ATTENDANCE_TOKENS.APP_SETTINGS_REPOSITORY)
     private readonly appSettingsRepo: AppSettingsRepository,
   ) {}
@@ -255,6 +264,137 @@ export class AttendanceController {
     try {
       const adminId = req.user!.emp_id;
       return await this.rejectCorrectionUseCase.execute(id, adminId, dto.rejection_reason);
+    } catch (err) {
+      throw mapAttendanceErrorToHttp(err);
+    }
+  }
+
+  // --- REGULARIZATION WORKFLOW ENDPOINTS ---
+
+  @Get('regularizations')
+  @ApiOperation({ summary: 'List attendance regularization requests' })
+  async listRegularizations(@Req() req: Request, @Query() query: RegularizationQueryDto) {
+    try {
+      const viewerEmpId = req.user!.emp_id;
+      const role = (req.user?.role_name || '').toUpperCase();
+      const isManagerOrAdmin = ['ADMIN', 'SUPER_ADMIN', 'HR_ADMIN', 'HR', 'MANAGER'].some((r) =>
+        role.includes(r)
+      );
+
+      // If scope is 'me' or user is general employee, filter to their own
+      const empId = query.scope === 'me' || !isManagerOrAdmin ? viewerEmpId : undefined;
+
+      return await this.attendanceRepo.listRegularizations({
+        empId,
+        status: query.status,
+        tab: query.tab,
+        departmentId: query.department_id ? Number(query.department_id) : undefined,
+        requestType: query.request_type,
+        fromDate: query.from_date,
+        toDate: query.to_date,
+        search: query.search,
+        isManagerOrAdmin,
+        viewerEmpId,
+      });
+    } catch (err) {
+      throw mapAttendanceErrorToHttp(err);
+    }
+  }
+
+  @Post('regularizations')
+  @ApiOperation({ summary: 'Create attendance regularization request' })
+  async createRegularization(@Req() req: Request, @Body() dto: CreateRegularizationDto) {
+    try {
+      const viewerEmpId = req.user!.emp_id;
+      const targetEmpId = dto.emp_id || viewerEmpId;
+
+      return await this.attendanceRepo.createRegularization({
+        empId: targetEmpId,
+        workDate: dto.work_date,
+        requestType: dto.request_type,
+        currentCheckInAt: dto.current_check_in_at ? new Date(dto.current_check_in_at) : null,
+        currentCheckOutAt: dto.current_check_out_at ? new Date(dto.current_check_out_at) : null,
+        requestedCheckInAt: dto.requested_check_in_at ? new Date(dto.requested_check_in_at) : null,
+        requestedCheckOutAt: dto.requested_check_out_at ? new Date(dto.requested_check_out_at) : null,
+        reason: dto.reason,
+        remarks: dto.remarks,
+        attachmentUrl: dto.attachment_url,
+        attachmentName: dto.attachment_name,
+        createdBy: viewerEmpId,
+      });
+    } catch (err) {
+      throw mapAttendanceErrorToHttp(err);
+    }
+  }
+
+  @Get('regularizations/:id')
+  @ApiOperation({ summary: 'Get regularization request detail' })
+  async getRegularizationDetail(@Param('id', ParseIntPipe) id: number) {
+    try {
+      const item = await this.attendanceRepo.findCorrectionById(id);
+      if (!item) {
+        throw new AttendanceNotFoundError(`Regularization #${id} not found`);
+      }
+      return item;
+    } catch (err) {
+      throw mapAttendanceErrorToHttp(err);
+    }
+  }
+
+  @Post('regularizations/:id/cancel')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Cancel regularization request' })
+  async cancelRegularization(@Req() req: Request, @Param('id', ParseIntPipe) id: number) {
+    try {
+      const empId = req.user!.emp_id;
+      return await this.attendanceRepo.cancelRegularization(id, empId);
+    } catch (err) {
+      throw mapAttendanceErrorToHttp(err);
+    }
+  }
+
+  @Post('regularizations/:id/approve')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Approve regularization request' })
+  async approveRegularization(
+    @Req() req: Request,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: ApproveRegularizationDto,
+  ) {
+    try {
+      const approverId = req.user!.emp_id;
+      return await this.attendanceRepo.approveRegularization(id, approverId, dto.comment);
+    } catch (err) {
+      throw mapAttendanceErrorToHttp(err);
+    }
+  }
+
+  @Post('regularizations/:id/reject')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reject regularization request' })
+  async rejectRegularization(
+    @Req() req: Request,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: RejectRegularizationDto,
+  ) {
+    try {
+      const approverId = req.user!.emp_id;
+      return await this.attendanceRepo.rejectRegularization(id, approverId, dto.comment);
+    } catch (err) {
+      throw mapAttendanceErrorToHttp(err);
+    }
+  }
+
+  @Post('regularizations/bulk-approve')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Bulk approve regularization requests' })
+  async bulkApproveRegularizations(
+    @Req() req: Request,
+    @Body() dto: BulkApproveRegularizationDto,
+  ) {
+    try {
+      const approverId = req.user!.emp_id;
+      return await this.attendanceRepo.bulkApproveRegularizations(dto.ids, approverId);
     } catch (err) {
       throw mapAttendanceErrorToHttp(err);
     }

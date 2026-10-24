@@ -4,7 +4,6 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "target": "ES2022",
-    "baseUrl": ".",
     "typeRoots": [
       "./node_modules/@types",
       "./apps/api/node_modules/@types"

@@ -4,8 +4,9 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
-import { customFetch, LoginResponseDto } from '@vernoxy-pulse/api-client';
+import { customFetch, VerifyLoginResponseDto } from '@vernoxy-pulse/api-client';
 import { AuthLayout } from '../components/AuthLayout';
+import { useAuth } from '../context/AuthContext';
 
 const loginSchema = z.object({
   email: z.string().min(1, 'Email is required').email('Enter a valid email address'),
@@ -16,6 +17,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
+  const { handleLoginSuccess } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -34,19 +36,13 @@ export const LoginPage: React.FC = () => {
   const onSubmit = async (values: LoginFormValues) => {
     setServerError(null);
     try {
-      const response = await customFetch<LoginResponseDto>('/api/v1/auth/login', {
+      const response = await customFetch<VerifyLoginResponseDto>('/api/v1/auth/login', {
         method: 'POST',
         body: JSON.stringify(values),
       });
 
-      navigate('/login/verify', {
-        state: {
-          challenge_id: response.challenge_id,
-          masked_email: values.email || response.masked_email,
-          email: values.email,
-          otp_code: response.otp_code,
-        },
-      });
+      await handleLoginSuccess(response);
+      navigate('/');
     } catch (err: any) {
       // Generic error message for all credential failures
       setServerError(err.detail || err.message || 'Invalid email or password');
@@ -56,7 +52,7 @@ export const LoginPage: React.FC = () => {
   return (
     <AuthLayout
       title="Welcome back"
-      subtitle="Enter your enterprise credentials to receive your verification code"
+      subtitle="Enter your enterprise credentials to sign in"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
         {serverError && (
