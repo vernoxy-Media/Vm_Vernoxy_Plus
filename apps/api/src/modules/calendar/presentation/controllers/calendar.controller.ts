@@ -53,16 +53,23 @@ export class CalendarController {
   ) {}
 
   @Get('events')
-  @ApiOperation({ summary: 'Get calendar events in time window for current employee' })
+  @ApiOperation({ summary: 'Get calendar events in time window for current employee or all if admin' })
   @ApiResponse({ status: 200, type: [CalendarEventResponseDto] })
   async getEvents(
     @Req() req: Request,
     @Query() query: CalendarEventsQueryDto,
   ): Promise<CalendarEventResponseDto[]> {
     try {
-      const empId = req.user!.emp_id;
+      const user = req.user!;
+      const isAdmin = user.role_name?.toLowerCase().includes('admin') ?? false;
+      const employeeIds = query.employee_ids
+        ? query.employee_ids.split(',').map((id) => parseInt(id.trim(), 10)).filter((n) => !isNaN(n))
+        : undefined;
+
       return await this.getCalendarEventsUseCase.execute({
-        employee_id: empId,
+        employee_id: user.emp_id,
+        is_admin: isAdmin,
+        employee_ids: employeeIds,
         start_time: query.start,
         end_time: query.end,
       });

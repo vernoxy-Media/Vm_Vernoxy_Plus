@@ -1,13 +1,22 @@
 import React, { useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import { Calendar, Settings } from 'lucide-react';
+import { useAuth } from '../../../context/AuthContext';
 import { useAttendanceDashboard, usePunchActions, useDayDetail } from '../hooks/use-attendance';
 import { AttendanceCalendarPicker } from '../components/AttendanceCalendarPicker';
 import { AttendanceSkeleton } from '../components/AttendanceSkeleton';
 import { AttendanceDashboardCards } from '../components/AttendanceDashboardCards';
-import { AttendanceNavTabs } from '../components/AttendanceNavTabs';
 import { RequestCorrectionDialog } from '../components/RequestCorrectionDialog';
 import type { TodayAttendanceData, AttendanceStatistics, SpecialStatus } from '../types/attendance.types';
 
 export const AttendancePage: React.FC = () => {
+  const { user } = useAuth();
+  const canManageAttendance = Boolean(
+    user?.access?.can_manage_organization ||
+      user?.role?.role_name?.toLowerCase().includes('admin') ||
+      user?.role?.role_name?.toLowerCase().includes('manager')
+  );
+
   const todayDateStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const currentMonthStr = useMemo(() => todayDateStr.slice(0, 7), [todayDateStr]);
 
@@ -169,18 +178,14 @@ export const AttendancePage: React.FC = () => {
   const isCurrentWeek = weekStartStr === currentWeekStart.toISOString().slice(0, 10);
 
   const weekRecords = records.filter((r) => r.date >= weekStartStr && r.date <= weekEndStr);
+  const weekWorkingDays = weekRecords.filter(
+    (r) => r.status !== 'weekly_off' && r.status !== 'holiday' && !r.holiday_name
+  );
   const weekWorkedSec = weekRecords.reduce((acc, r) => acc + (r.production_seconds || 0), 0);
-  const weekTargetSec = weekRecords.reduce(
-    (acc, r) => acc + ((r.status === 'weekly_off' || r.status === 'holiday') ? 0 : 8 * 3600),
-    0
-  ) || (40 * 3600);
+  const weekTargetSec = weekWorkingDays.length > 0 ? weekWorkingDays.length * 8 * 3600 : (40 * 3600);
 
-  const weekWorkedHours = isCurrentWeek && isSelectedToday
-    ? statistics.this_week.worked_hours
-    : Math.round((weekWorkedSec / 3600) * 10) / 10;
-  const weekTargetHours = isCurrentWeek && isSelectedToday
-    ? statistics.this_week.target_hours
-    : Math.round((weekTargetSec / 3600) * 10) / 10;
+  const weekWorkedHours = Math.round((weekWorkedSec / 3600) * 10) / 10;
+  const weekTargetHours = Math.round((weekTargetSec / 3600) * 10) / 10;
 
   const weekStartFormatted = weekStartObj.toLocaleDateString('en-US', {
     month: 'short',
@@ -194,7 +199,7 @@ export const AttendancePage: React.FC = () => {
   });
   const weekLabel = isCurrentWeek ? 'This Week' : `Week (${weekStartFormatted} - ${weekEndFormatted})`;
 
-  // 3. Month Metric (Month containing selectedDate)
+  // 3. Month Metric (Month containing selectedDate, removing holidays & weekly off)
   const isCurrentMonth = selectedMonth === currentMonthStr;
   const [yNum, mNum] = selectedMonth.split('-').map(Number);
   const monthName = new Date(Date.UTC(yNum, mNum - 1, 1)).toLocaleDateString('en-US', {
@@ -203,8 +208,15 @@ export const AttendancePage: React.FC = () => {
     timeZone: 'UTC',
   });
   const monthLabel = isCurrentMonth ? 'This Month' : monthName;
-  const monthWorkedHours = statistics.this_month.worked_hours;
-  const monthTargetHours = statistics.this_month.target_hours;
+  const monthWorkedSec = records.reduce((acc, r) => acc + (r.production_seconds || 0), 0);
+  const monthWorkedHours = Math.round((monthWorkedSec / 3600) * 10) / 10;
+
+  const monthWorkingDays = records.filter(
+    (r) => r.status !== 'weekly_off' && r.status !== 'holiday' && !r.holiday_name
+  );
+  const monthTargetHours = monthWorkingDays.length > 0
+    ? monthWorkingDays.length * 8
+    : statistics.this_month.target_hours;
 
   const remainingHours = Math.max(0, Math.round((monthTargetHours - monthWorkedHours) * 10) / 10);
   const overtimeHours = Math.max(0, Math.round((monthWorkedHours - monthTargetHours) * 10) / 10);
@@ -239,26 +251,37 @@ export const AttendancePage: React.FC = () => {
         {announcement}
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2">
-        <div>
-          <nav aria-label="Breadcrumb" className="text-xs font-semibold text-slate-400 mb-1">
-            <span>Dashboard</span>
-            <span className="mx-1.5 text-slate-300">/</span>
-            <span className="text-slate-600 font-bold">Attendance</span>
-          </nav>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Attendance</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-1">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 border border-blue-100/70 flex items-center justify-center shrink-0 shadow-2xs">
+            <Calendar className="w-4 h-4 stroke-[2.2]" />
+          </div>
+          <div>
+            <h1 className="text-[26px] md:text-[28px] font-extrabold tracking-tight text-slate-900 leading-tight">Attendance</h1>
+            <p className="text-[13px] text-slate-500 mt-0.5">Track your attendance and manage your work hours</p>
+          </div>
         </div>
 
-        {/* Date, Month, Year Calendar Picker */}
-        <AttendanceCalendarPicker
-          selectedDate={selectedDate}
-          onSelectDate={handleSelectDate}
-          records={records}
-          maxDate={todayDateStr}
-        />
-      </div>
+        <div className="flex items-center gap-2.5 shrink-0">
+          {/* Date, Month, Year Calendar Picker */}
+          <AttendanceCalendarPicker
+            selectedDate={selectedDate}
+            onSelectDate={handleSelectDate}
+            records={records}
+            maxDate={todayDateStr}
+          />
 
-      <AttendanceNavTabs activeTab="timesheet" />
+          {canManageAttendance && (
+            <Link
+              to="/admin/attendance-settings"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white border border-slate-300 hover:border-slate-400 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold shadow-2xs transition cursor-pointer"
+            >
+              <Settings className="w-3.5 h-3.5 text-slate-500" />
+              <span>Attendance Settings</span>
+            </Link>
+          )}
+        </div>
+      </div>
 
       <AttendanceDashboardCards
         today={displayToday}
@@ -279,6 +302,8 @@ export const AttendancePage: React.FC = () => {
         onRequestCorrection={(date) => setCorrectionModalDate(date)}
         onReturnToToday={() => handleSelectDate(todayDateStr)}
         onSelectDate={handleSelectDate}
+        selectedMonth={selectedMonth}
+        onSelectMonth={(m) => setSelectedMonth(m)}
         dayLabel={dayLabel}
         weekLabel={weekLabel}
         monthLabel={monthLabel}

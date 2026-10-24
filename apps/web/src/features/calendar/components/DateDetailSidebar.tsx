@@ -5,7 +5,7 @@ import {
   Calendar,
   CheckCircle2,
   Clock,
-  Sparkles,
+  CalendarHeart,
   Trash2,
   Bell,
   FileText,
@@ -13,6 +13,7 @@ import {
   Video,
   ExternalLink,
   Users,
+  Lock,
 } from 'lucide-react';
 import type { CalendarMonthTaskItem, CalendarHolidayItem, CalendarEvent } from '../types';
 
@@ -23,13 +24,15 @@ interface DateDetailSidebarProps {
   holiday?: CalendarHolidayItem | null;
   tasks: CalendarMonthTaskItem[];
   events: CalendarEvent[]; // For meetings, notes and reminders on this date
+  currentUserId?: number;
   isAdmin: boolean;
   onSelectTask: (taskId: number) => void;
   onAddTask: () => void; // Admin Add Task
   onAddQuickTask: () => void; // Employee Quick Task
   onScheduleMeeting?: () => void;
+  onAddHoliday?: () => void;
   onSelectEvent?: (event: CalendarEvent) => void;
-  onCreateNote: (note: string) => Promise<void>;
+  onCreateNote: (note: string, title?: string) => Promise<void>;
   onDeleteNote: (eventId: number) => Promise<void>;
   onCreateReminder: (title: string, time: string, description?: string) => Promise<void>;
   onDeleteReminder: (eventId: number) => Promise<void>;
@@ -51,11 +54,13 @@ export const DateDetailSidebar: React.FC<DateDetailSidebarProps> = ({
   holiday,
   tasks,
   events,
+  currentUserId,
   isAdmin,
   onSelectTask,
   onAddTask,
   onAddQuickTask,
   onScheduleMeeting,
+  onAddHoliday,
   onSelectEvent,
   onCreateNote,
   onDeleteNote,
@@ -66,6 +71,7 @@ export const DateDetailSidebar: React.FC<DateDetailSidebarProps> = ({
 
   // Note form state
   const [isAddingNote, setIsAddingNote] = useState(false);
+  const [noteTitle, setNoteTitle] = useState('');
   const [noteContent, setNoteContent] = useState('');
   const [isSubmittingNote, setIsSubmittingNote] = useState(false);
 
@@ -86,7 +92,8 @@ export const DateDetailSidebar: React.FC<DateDetailSidebarProps> = ({
   });
 
   // Filter tasks for this date
-  const selectedDateYMD = selectedDate.toISOString().slice(0, 10);
+  // Local-date helper: formats a Date as YYYY-MM-DD using local timezone (avoids UTC off-by-one)
+  const selectedDateYMD = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
   const dayTasks = tasks.filter((t) => t.submission_date === selectedDateYMD);
 
   // Filter meetings for this date
@@ -102,17 +109,28 @@ export const DateDetailSidebar: React.FC<DateDetailSidebarProps> = ({
     tasksByProject[proj].push(t);
   });
 
-  // Filter notes (event_type === 'task_block' or 'appointment')
-  const notes = events.filter((e) => e.event_type === 'task_block' || e.event_type === 'appointment');
+  // Filter notes: private to current user on this specific date per BFD CAL-14
+  const notes = events.filter(
+    (e) =>
+      (e.event_type === 'appointment' || (e.event_type === 'task_block' && !e.task_id)) &&
+      e.start_time.slice(0, 10) === selectedDateYMD &&
+      (!currentUserId || e.organizer_id === currentUserId)
+  );
 
-  // Filter reminders (event_type === 'reminder')
-  const reminders = events.filter((e) => e.event_type === 'reminder');
+  // Filter reminders: private to current user on this specific date
+  const reminders = events.filter(
+    (e) =>
+      e.event_type === 'reminder' &&
+      e.start_time.slice(0, 10) === selectedDateYMD &&
+      (!currentUserId || e.organizer_id === currentUserId)
+  );
 
   const handleSaveNote = async () => {
     if (!noteContent.trim()) return;
     setIsSubmittingNote(true);
     try {
-      await onCreateNote(noteContent.trim());
+      await onCreateNote(noteContent.trim(), noteTitle.trim() || undefined);
+      setNoteTitle('');
       setNoteContent('');
       setIsAddingNote(false);
     } finally {
@@ -145,7 +163,7 @@ export const DateDetailSidebar: React.FC<DateDetailSidebarProps> = ({
           {holiday && (
             <div className="mt-1.5 flex items-center gap-1.5">
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-800 border border-purple-200">
-                <Sparkles className="w-3 h-3 text-purple-600" />
+                <CalendarHeart className="w-3 h-3 text-purple-600" />
                 {holiday.name} ({holiday.type})
               </span>
             </div>
@@ -162,15 +180,23 @@ export const DateDetailSidebar: React.FC<DateDetailSidebarProps> = ({
       {/* Action buttons bar */}
       <div className="px-4 py-2.5 border-b border-slate-100 bg-white flex items-center justify-between gap-2 overflow-x-auto">
         <div className="flex items-center gap-1.5">
-          {onScheduleMeeting && (
+          {isAdmin && onAddHoliday ? (
+            <button
+              onClick={onAddHoliday}
+              className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors cursor-pointer"
+            >
+              <CalendarHeart className="w-3 h-3 text-purple-600" />
+              + Holiday
+            </button>
+          ) : onScheduleMeeting ? (
             <button
               onClick={onScheduleMeeting}
-              className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors"
+              className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors cursor-pointer"
             >
               <Video className="w-3 h-3" />
               + Meeting
             </button>
-          )}
+          ) : null}
           <button
             onClick={() => {
               setActiveTab('notes');
@@ -450,14 +476,22 @@ export const DateDetailSidebar: React.FC<DateDetailSidebarProps> = ({
         {activeTab === 'notes' && (
           <div className="space-y-3">
             {isAddingNote && (
-              <div className="p-3 bg-slate-50 border border-blue-200 rounded-xl space-y-2">
+              <div className="p-3 bg-slate-50 border border-amber-200 rounded-xl space-y-2">
+                <input
+                  type="text"
+                  maxLength={100}
+                  placeholder="Note Title (optional, max 100)..."
+                  value={noteTitle}
+                  onChange={(e) => setNoteTitle(e.target.value)}
+                  className="w-full text-xs p-2 bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:ring-1 focus:ring-amber-500 font-medium"
+                />
                 <textarea
                   rows={3}
                   maxLength={500}
                   placeholder="Write a private note for this date (up to 500 characters)..."
                   value={noteContent}
                   onChange={(e) => setNoteContent(e.target.value)}
-                  className="w-full text-xs p-2 bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:ring-1 focus:ring-blue-500"
+                  className="w-full text-xs p-2 bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:ring-1 focus:ring-amber-500"
                 />
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] text-slate-400">{noteContent.length}/500 chars</span>
@@ -497,12 +531,19 @@ export const DateDetailSidebar: React.FC<DateDetailSidebarProps> = ({
                   key={n.event_id}
                   className="p-3 bg-amber-50/50 border border-amber-200/80 rounded-xl space-y-1.5 relative group"
                 >
+                  {n.title && n.title !== 'Note' && (
+                    <h4 className="text-xs font-bold text-slate-900">{n.title}</h4>
+                  )}
                   <p className="text-xs text-slate-800 whitespace-pre-wrap">{n.description || n.title}</p>
-                  <div className="flex items-center justify-between text-[10px] text-slate-400">
-                    <span>{new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1">
+                    <span className="flex items-center gap-1 font-medium text-amber-700">
+                      <Lock className="w-2.5 h-2.5" />
+                      Only visible to you · {new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
                     <button
                       onClick={() => onDeleteNote(n.event_id)}
-                      className="opacity-0 group-hover:opacity-100 text-rose-500 hover:text-rose-700 transition-opacity"
+                      title="Delete Note"
+                      className="opacity-0 group-hover:opacity-100 text-rose-500 hover:text-rose-700 transition-opacity p-0.5 cursor-pointer"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>

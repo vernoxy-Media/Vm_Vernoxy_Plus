@@ -13,10 +13,20 @@ import type {
 
 const BASE_URL = '/api/v1/calendar';
 
-export async function fetchCalendarEvents(start: string, end: string): Promise<CalendarEvent[]> {
+export async function fetchCalendarEvents(
+  start: string,
+  end: string,
+  employeeIds?: number[],
+): Promise<CalendarEvent[]> {
   try {
+    const params = new URLSearchParams();
+    params.set('start', start);
+    params.set('end', end);
+    if (employeeIds && employeeIds.length > 0) {
+      params.set('employee_ids', employeeIds.join(','));
+    }
     return await customFetch<CalendarEvent[]>(
-      `${BASE_URL}/events?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`
+      `${BASE_URL}/events?${params.toString()}`
     );
   } catch (err) {
     console.warn('Failed to fetch calendar events from API:', err);

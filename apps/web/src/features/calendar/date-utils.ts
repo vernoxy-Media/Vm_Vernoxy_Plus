@@ -152,3 +152,43 @@ export function classifyCalendarDay(
     columnBg: 'bg-white',
   };
 }
+
+/**
+ * Formats a Date or date string to strict DD-MM-YYYY format per BFD GEN-02
+ */
+export function formatDisplayDate(dateVal?: string | Date | null): string {
+  if (!dateVal) return '';
+  if (typeof dateVal === 'string') {
+    const trimmed = dateVal.trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      const [y, m, d] = trimmed.split('-');
+      return `${d}-${m}-${y}`;
+    }
+    if (/^\d{2}-\d{2}-\d{4}$/.test(trimmed)) {
+      return trimmed;
+    }
+  }
+  try {
+    const d = typeof dateVal === 'string' ? new Date(dateVal) : dateVal;
+    if (isNaN(d.getTime())) return String(dateVal);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}-${month}-${year}`;
+  } catch {
+    return String(dateVal);
+  }
+}
+
+/**
+ * Formats duration in minutes to standard BFD representation: "Xh Ym"
+ */
+export function formatMinutes(minutes?: number | null): string {
+  if (!minutes || minutes <= 0) return '0m';
+  const hrs = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  if (hrs > 0 && mins > 0) return `${hrs}h ${mins}m`;
+  if (hrs > 0) return `${hrs}h`;
+  return `${mins}m`;
+}
+

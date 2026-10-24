@@ -1,4 +1,4 @@
-export type ProjectType = 'client' | 'internal' | 'product' | 'maintenance';
+export type ProjectType = 'client' | 'internal' | 'product' | 'maintenance' | (string & {});
 export type ProjectCategory =
   | 'ecom_website'
   | 'portfolio_website'

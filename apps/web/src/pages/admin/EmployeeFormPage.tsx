@@ -17,6 +17,10 @@ import { AdminLayout } from '../../components/AdminLayout';
 import { PhotoPicker } from '../../components/PhotoPicker';
 import { DependentSelect } from '../../components/DependentSelect';
 import {
+  useAttendanceSettingsQuery,
+  useAssignEmployeeShiftMutation,
+} from '../../features/attendance/hooks/use-attendance-settings';
+import {
   ArrowLeft,
   AlertCircle,
   Copy,
@@ -120,6 +124,9 @@ export const EmployeeFormPage: React.FC = () => {
   const updateMutation = useUpdateEmployeeMutation();
   const uploadPhotoMutation = useUploadEmployeePhotoMutation();
   const removePhotoMutation = useRemoveEmployeePhotoMutation();
+  const { data: attendanceSettings } = useAttendanceSettingsQuery();
+  const assignShiftMutation = useAssignEmployeeShiftMutation();
+  const [selectedShiftId, setSelectedShiftId] = useState<string>('default');
 
   const todayStr = new Date().toISOString().split('T')[0];
 
@@ -183,8 +190,14 @@ export const EmployeeFormPage: React.FC = () => {
       if (existingEmployee.profile_picture_url) {
         setPhotoPreviewUrl(existingEmployee.profile_picture_url);
       }
+      const currentShift = attendanceSettings?.employee_shifts?.[String(employeeId)];
+      if (currentShift) {
+        setSelectedShiftId(String(currentShift));
+      } else {
+        setSelectedShiftId('default');
+      }
     }
-  }, [existingEmployee, reset, todayStr]);
+  }, [existingEmployee, reset, todayStr, employeeId, attendanceSettings]);
 
   // Unsaved changes warning
   useEffect(() => {
@@ -279,6 +292,14 @@ export const EmployeeFormPage: React.FC = () => {
           }
         }
 
+        // Assign shift if chosen
+        const targetShiftId = selectedShiftId === 'default' ? null : parseInt(selectedShiftId, 10);
+        if (createdEmp?.emp_id) {
+          try {
+            await assignShiftMutation.mutateAsync({ empId: createdEmp.emp_id, shiftId: targetShiftId });
+          } catch {}
+        }
+
         // Show handover panel
         setCreatedResult({
           emp_id: createdEmp.emp_id,
@@ -306,6 +327,13 @@ export const EmployeeFormPage: React.FC = () => {
             status: values.status,
           },
         });
+
+        // Assign shift if changed
+        const targetShiftId = selectedShiftId === 'default' ? null : parseInt(selectedShiftId, 10);
+        try {
+          await assignShiftMutation.mutateAsync({ empId: employeeId, shiftId: targetShiftId });
+        } catch {}
+
         navigate('/admin/employees');
       } catch (err: any) {
         handleServerError(err);
@@ -737,6 +765,39 @@ export const EmployeeFormPage: React.FC = () => {
                       {errors.joining_date.message}
                     </p>
                   )}
+                </div>
+
+                {/* Assigned Operational Shift */}
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="employee-shift-select"
+                    className="block text-sm font-semibold text-slate-700"
+                  >
+                    Assigned Shift
+                  </label>
+                  <div className="relative">
+                    <select
+                      id="employee-shift-select"
+                      value={selectedShiftId}
+                      onChange={(e) => setSelectedShiftId(e.target.value)}
+                      className="w-full appearance-none px-3.5 py-2.5 pr-10 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all font-medium"
+                    >
+                      <option value="default">
+                        General Shift (Company Default · {attendanceSettings?.default_shift?.start_time?.slice(0, 5) || '09:30'} - {attendanceSettings?.default_shift?.end_time?.slice(0, 5) || '18:30'}, {attendanceSettings?.default_shift?.full_day_hours || 8}h)
+                      </option>
+                      {attendanceSettings?.shifts
+                        ?.filter((s) => !s.is_default)
+                        ?.map((s) => (
+                          <option key={s.shift_id} value={String(s.shift_id)}>
+                            {s.shift_name} ({s.shift_code} · {s.start_time.slice(0, 5)} - {s.end_time.slice(0, 5)}, {s.full_day_hours}h)
+                          </option>
+                        ))}
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    Employees inherit General Shift by default unless customized with a dedicated shift.
+                  </p>
                 </div>
 
                 {/* Exit Date & Status for Edit Mode */}

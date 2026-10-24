@@ -12,6 +12,9 @@ import {
   CreateCustomerTypeDto,
   UpdateCustomerTypeDto,
   LookupOptionDto,
+  MasterLookupItemDto,
+  CreateLookupDto,
+  UpdateLookupDto,
 } from '@vernoxy-pulse/api-client';
 
 // ========================
@@ -181,6 +184,7 @@ export function useDeleteCustomerTypeMutation() {
 // LOOKUPS HOOKS
 // ========================
 
+/** Get active lookup options only (for dropdowns/selects) */
 export function useLookupsQuery(type: string) {
   return useQuery({
     queryKey: ['lookups', type],
@@ -188,3 +192,59 @@ export function useLookupsQuery(type: string) {
     staleTime: 60_000,
   });
 }
+
+/** Admin: Get ALL lookup items of a given type (including inactive) for management */
+export function useAdminLookupsQuery(type: string) {
+  return useQuery({
+    queryKey: ['admin-lookups', type],
+    queryFn: () => customFetch<MasterLookupItemDto[]>(`/api/v1/lookups?type=${type}`),
+    enabled: Boolean(type),
+  });
+}
+
+export function useCreateLookupMutation(type: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateLookupDto) =>
+      customFetch<MasterLookupItemDto>(`/api/v1/lookups?type=${type}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-lookups', type] });
+      queryClient.invalidateQueries({ queryKey: ['lookups', type] });
+    },
+  });
+}
+
+export function useUpdateLookupMutation(type: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: UpdateLookupDto }) =>
+      customFetch<MasterLookupItemDto>(`/api/v1/lookups/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-lookups', type] });
+      queryClient.invalidateQueries({ queryKey: ['lookups', type] });
+    },
+  });
+}
+
+export function useDeleteLookupMutation(type: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) =>
+      customFetch<void>(`/api/v1/lookups/${id}`, {
+        method: 'DELETE',
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-lookups', type] });
+      queryClient.invalidateQueries({ queryKey: ['lookups', type] });
+    },
+  });
+}
+

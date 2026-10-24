@@ -603,6 +603,20 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
             );
             prodMinutes = openCalc.workedMinutesSoFar;
             brkMinutes = openCalc.breakMinutesSoFar;
+          } else if (isPast) {
+            const totalBreakMinutes = breaksList.reduce((acc, b) => {
+              const end = b.ended_at || new Date(new Date(r.check_in_at).getTime() + fullDayMins * 60000);
+              return acc + Math.max(0, Math.floor((end.getTime() - b.started_at.getTime()) / 60000));
+            }, 0);
+            brkMinutes = totalBreakMinutes;
+            prodMinutes = Math.max(0, fullDayMins - totalBreakMinutes);
+            state = determineDayStatus(
+              new Date(new Date(r.check_in_at).getTime() + (fullDayMins + totalBreakMinutes) * 60000),
+              prodMinutes,
+              fullDayMins,
+              halfDayMins,
+            );
+            dayStatus = state;
           }
         }
       } else {

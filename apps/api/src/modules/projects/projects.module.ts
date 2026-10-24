@@ -19,6 +19,8 @@ import { GetSprintTasksUseCase } from './application/use-cases/get-sprint-tasks.
 import { UpdateProjectUseCase } from './application/use-cases/update-project.use-case';
 import { ProjectsController } from './presentation/controllers/projects.controller';
 
+import { EventsService } from '../websockets/events.service';
+
 @Module({
   imports: [PrismaModule, AuthModule],
   controllers: [ProjectsController],
@@ -44,8 +46,9 @@ import { ProjectsController } from './presentation/controllers/projects.controll
     },
     {
       provide: UpdateProjectStatusUseCase,
-      useFactory: (repo: ProjectRepositoryPort) => new UpdateProjectStatusUseCase(repo),
-      inject: [PROJECT_TOKENS.ProjectRepository],
+      useFactory: (repo: ProjectRepositoryPort, eventsService: EventsService) =>
+        new UpdateProjectStatusUseCase(repo, eventsService),
+      inject: [PROJECT_TOKENS.ProjectRepository, EventsService],
     },
     {
       provide: GetAssignableEmployeesUseCase,

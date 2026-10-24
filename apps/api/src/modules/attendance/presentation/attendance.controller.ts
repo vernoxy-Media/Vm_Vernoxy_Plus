@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Delete,
   Param,
   Query,
@@ -369,7 +370,13 @@ export class AttendanceController {
   async updateEmployeeHours(
     @Req() req: Request,
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: { full_day_hours?: number; half_day_hours?: number; reset_to_default?: boolean },
+    @Body() body: {
+      full_day_hours?: number;
+      half_day_hours?: number;
+      start_time?: string;
+      end_time?: string;
+      reset_to_default?: boolean;
+    },
   ) {
     if (body.reset_to_default) {
       await this.appSettingsRepo.saveEmployeeWorkingHours(id, null, req.user!.emp_id);
@@ -379,10 +386,131 @@ export class AttendanceController {
         {
           full_day_hours: body.full_day_hours ?? 8,
           half_day_hours: body.half_day_hours ?? (body.full_day_hours ? body.full_day_hours / 2 : 4),
+          start_time: body.start_time,
+          end_time: body.end_time,
         },
         req.user!.emp_id,
       );
     }
     return await this.appSettingsRepo.getAttendanceSettings();
   }
+
+  // ----------------------------------------------------
+  // SHIFT MANAGEMENT ENDPOINTS
+  // ----------------------------------------------------
+
+  @Get('settings/shifts')
+  @UseGuards(AttendanceAdminGuard)
+  @ApiOperation({ summary: 'Get all attendance shifts' })
+  async getShifts() {
+    return await this.appSettingsRepo.getShifts();
+  }
+
+  @Post('settings/shifts')
+  @UseGuards(AttendanceAdminGuard)
+  @ApiOperation({ summary: 'Create a new attendance shift' })
+  async createShift(@Req() req: Request, @Body() body: any) {
+    const shift = await this.appSettingsRepo.createShift(body, req.user!.emp_id);
+    return shift;
+  }
+
+  @Patch('settings/shifts/:id')
+  @UseGuards(AttendanceAdminGuard)
+  @ApiOperation({ summary: 'Update an attendance shift' })
+  async updateShift(
+    @Req() req: Request,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: any,
+  ) {
+    const shift = await this.appSettingsRepo.updateShift(id, body, req.user!.emp_id);
+    return shift;
+  }
+
+  @Post('settings/shifts/:id/set-default')
+  @UseGuards(AttendanceAdminGuard)
+  @ApiOperation({ summary: 'Set a shift as the company default shift' })
+  async setDefaultShift(
+    @Req() req: Request,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    const shift = await this.appSettingsRepo.setDefaultShift(id, req.user!.emp_id);
+    return shift;
+  }
+
+  @Delete('settings/shifts/:id')
+  @UseGuards(AttendanceAdminGuard)
+  @ApiOperation({ summary: 'Delete an attendance shift' })
+  async deleteShift(
+    @Req() req: Request,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    await this.appSettingsRepo.deleteShift(id, req.user!.emp_id);
+    return { success: true };
+  }
+
+  // ----------------------------------------------------
+  // ATTENDANCE STATUS ENDPOINTS
+  // ----------------------------------------------------
+
+  @Get('settings/statuses')
+  @UseGuards(AttendanceAdminGuard)
+  @ApiOperation({ summary: 'Get all attendance statuses' })
+  async getStatuses() {
+    return await this.appSettingsRepo.getStatuses();
+  }
+
+  @Post('settings/statuses')
+  @UseGuards(AttendanceAdminGuard)
+  @ApiOperation({ summary: 'Create a custom attendance status' })
+  async createStatus(@Req() req: Request, @Body() body: any) {
+    const status = await this.appSettingsRepo.createStatus(body, req.user!.emp_id);
+    return status;
+  }
+
+  @Patch('settings/statuses/:id')
+  @UseGuards(AttendanceAdminGuard)
+  @ApiOperation({ summary: 'Update an attendance status' })
+  async updateStatus(
+    @Req() req: Request,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: any,
+  ) {
+    const status = await this.appSettingsRepo.updateStatus(id, body, req.user!.emp_id);
+    return status;
+  }
+
+  @Delete('settings/statuses/:id')
+  @UseGuards(AttendanceAdminGuard)
+  @ApiOperation({ summary: 'Delete a custom attendance status' })
+  async deleteStatus(
+    @Req() req: Request,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    await this.appSettingsRepo.deleteStatus(id, req.user!.emp_id);
+    return { success: true };
+  }
+
+  // ----------------------------------------------------
+  // EMPLOYEE SHIFT ASSIGNMENT ENDPOINTS
+  // ----------------------------------------------------
+
+  @Get('settings/shifts/assignments')
+  @UseGuards(AttendanceAdminGuard)
+  @ApiOperation({ summary: 'Get employee shift assignments' })
+  async getShiftAssignments() {
+    return await this.appSettingsRepo.getEmployeeShiftAssignments();
+  }
+
+  @Put('settings/shifts/assignments/:empId')
+  @UseGuards(AttendanceAdminGuard)
+  @ApiOperation({ summary: 'Assign a shift to an employee' })
+  async assignShift(
+    @Req() req: Request,
+    @Param('empId', ParseIntPipe) empId: number,
+    @Body() body: { shift_id: number | null },
+  ) {
+    await this.appSettingsRepo.assignEmployeeShift(empId, body.shift_id ?? null, req.user!.emp_id);
+    return await this.appSettingsRepo.getAttendanceSettings();
+  }
 }
+

@@ -84,19 +84,19 @@ export const TimesheetActionButtons: React.FC<TimesheetActionButtonsProps> = ({
     primaryDisabled = true;
   }
 
-  let secondaryBtnLabel = 'BREAK';
+  let secondaryBtnLabel = 'Break';
   let secondaryDisabled = isPending;
   let secondaryTooltip = '';
 
   if (today.state === 'not_started') {
-    secondaryBtnLabel = 'BREAK';
+    secondaryBtnLabel = 'Break';
     secondaryDisabled = true;
     secondaryTooltip = 'Punch in first';
   } else if (today.state === 'on_break') {
     const activeType = today.active_break_type ? `Resume (${today.active_break_type})` : 'Resume Work';
     secondaryBtnLabel = activeType;
   } else if (today.state === 'done') {
-    secondaryBtnLabel = 'BREAK';
+    secondaryBtnLabel = 'Break';
     secondaryDisabled = true;
   }
 
@@ -132,7 +132,7 @@ export const TimesheetActionButtons: React.FC<TimesheetActionButtonsProps> = ({
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-3 mt-4">
+      <div className="grid grid-cols-2 gap-2 mt-2">
         {/* Left / Secondary Action: BREAK or RESUME WORK */}
         <div className="relative" ref={dropdownRef}>
           <button
@@ -141,23 +141,23 @@ export const TimesheetActionButtons: React.FC<TimesheetActionButtonsProps> = ({
             onClick={handleBreakButtonClick}
             disabled={secondaryDisabled}
             title={secondaryTooltip || undefined}
-            className={`w-full min-h-[44px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold tracking-wide transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:shadow-none disabled:scale-100 disabled:cursor-not-allowed cursor-pointer ${
+            className={`w-full h-[36px] min-h-[36px] flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold tracking-wide transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:shadow-none disabled:scale-100 disabled:cursor-not-allowed cursor-pointer ${
               today.state === 'on_break'
-                ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 text-white shadow-sm shadow-blue-500/25 active:scale-[0.98] border border-blue-400/30'
+                ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 text-white shadow-xs shadow-blue-500/20 active:scale-[0.98] border border-blue-400/30'
                 : today.state === 'working'
-                ? 'bg-slate-100 hover:bg-slate-200/90 text-slate-800 border border-slate-300/80 active:scale-[0.98]'
+                ? 'bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-300 shadow-2xs active:scale-[0.98]'
                 : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
             }`}
           >
             {isPending ? (
-              <Loader2 className="w-4 h-4 animate-spin text-slate-600" />
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-600" />
             ) : today.state === 'on_break' ? (
-              <Play className="w-4 h-4 shrink-0 fill-current" />
+              <Play className="w-3.5 h-3.5 shrink-0 fill-current" />
             ) : null}
-            <span className="uppercase">{secondaryBtnLabel}</span>
+            <span>{secondaryBtnLabel}</span>
             {today.state === 'working' && !isPending && (
               <ChevronDown
-                className={`w-4 h-4 text-slate-600 transition-transform duration-200 ${
+                className={`w-3.5 h-3.5 text-slate-600 transition-transform duration-200 ${
                   isDropdownOpen ? 'rotate-180' : ''
                 }`}
               />
@@ -167,10 +167,10 @@ export const TimesheetActionButtons: React.FC<TimesheetActionButtonsProps> = ({
           {/* Break Options Popover Menu */}
           {isDropdownOpen && today.state === 'working' && (
             <div
-              className="absolute bottom-full left-0 mb-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 p-2 z-50 animate-in fade-in slide-in-from-bottom-2 duration-150"
+              className="absolute bottom-full left-0 mb-2 w-56 bg-white rounded-xl shadow-xl border border-slate-100 p-1.5 z-50 animate-in fade-in slide-in-from-bottom-2 duration-150"
               style={{ filter: 'drop-shadow(0 10px 15px rgba(0, 0, 0, 0.08))' }}
             >
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 {BREAK_OPTIONS.map((opt) => {
                   const Icon = opt.icon;
                   return (
@@ -178,10 +178,10 @@ export const TimesheetActionButtons: React.FC<TimesheetActionButtonsProps> = ({
                       key={opt.id}
                       type="button"
                       onClick={() => handleSelectOption(opt.id)}
-                      className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left text-sm font-semibold text-slate-800 hover:bg-slate-50 transition-colors cursor-pointer group"
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-xs font-semibold text-slate-800 hover:bg-slate-50 transition-colors cursor-pointer group"
                     >
-                      <span className="w-7 h-7 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
-                        <Icon className="w-4 h-4" />
+                      <span className="w-6 h-6 rounded-md bg-slate-100 text-slate-600 flex items-center justify-center group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+                        <Icon className="w-3.5 h-3.5" />
                       </span>
                       <span>{opt.label}</span>
                     </button>
@@ -204,14 +204,14 @@ export const TimesheetActionButtons: React.FC<TimesheetActionButtonsProps> = ({
           id={today.state === 'not_started' ? 'punch-in-button' : 'punch-out-button'}
           onClick={today.state === 'not_started' ? onPunchIn : onPunchOutClick}
           disabled={primaryDisabled}
-          className={`min-h-[44px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold tracking-wide transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:shadow-none disabled:scale-100 disabled:cursor-not-allowed cursor-pointer ${primaryBtnClass}`}
+          className={`h-[36px] min-h-[36px] flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold tracking-wide transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:shadow-none disabled:scale-100 disabled:cursor-not-allowed cursor-pointer ${primaryBtnClass}`}
         >
           {isPending ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
           ) : (
-            <PrimaryBtnIcon className="w-4 h-4 shrink-0" />
+            <PrimaryBtnIcon className="w-3.5 h-3.5 shrink-0" />
           )}
-          <span className="uppercase">{primaryBtnLabel}</span>
+          <span>{primaryBtnLabel}</span>
         </button>
       </div>
 
@@ -262,7 +262,7 @@ export const TimesheetActionButtons: React.FC<TimesheetActionButtonsProps> = ({
                 {reasonError ? (
                   <p className="text-xs text-rose-500 mt-1 font-medium">{reasonError}</p>
                 ) : (
-                  <p className="text-[11px] text-slate-400 mt-1 text-right">
+                  <p className="text-xs text-slate-500 mt-1 text-right">
                     {otherReason.length}/255 characters
                   </p>
                 )}

@@ -9,8 +9,10 @@ import { AttendanceWorkingDaysCard } from './settings/attendance/AttendanceWorki
 import { AttendanceHolidaysCard } from './settings/attendance/AttendanceHolidaysCard';
 import { AttendanceDefaultHoursCard } from './settings/attendance/AttendanceDefaultHoursCard';
 import { AttendanceEmployeeHoursCard } from './settings/attendance/AttendanceEmployeeHoursCard';
+import { AttendanceStatusesCard } from './settings/attendance/AttendanceStatusesCard';
+import { Tag } from 'lucide-react';
 
-type TabSection = 'all' | 'working_days' | 'holidays' | 'default_hours' | 'employee_hours';
+type TabSection = 'all' | 'shifts' | 'statuses' | 'working_days' | 'holidays' | 'employee_hours';
 
 export const AttendanceSettingsPage: React.FC = () => {
   const { data, isLoading, error } = useAttendanceSettingsQuery();
@@ -18,10 +20,11 @@ export const AttendanceSettingsPage: React.FC = () => {
 
   const subtabs = [
     { id: 'all', label: 'All Settings', icon: Layers },
+    { id: 'shifts', label: 'Shifts & Hours', icon: Clock },
+    { id: 'statuses', label: 'Attendance Statuses', icon: Tag },
     { id: 'working_days', label: 'Working & Off Days', icon: Calendar },
     { id: 'holidays', label: 'Official Holidays', icon: CalendarDays },
-    { id: 'default_hours', label: 'Company Default Hours', icon: Clock },
-    { id: 'employee_hours', label: 'Employee Working Hours', icon: Users },
+    { id: 'employee_hours', label: 'Employee Assignments', icon: Users },
   ] as const;
 
   return (
@@ -29,7 +32,7 @@ export const AttendanceSettingsPage: React.FC = () => {
       <div className="space-y-6">
         <PageHeader
           title="Attendance Settings"
-          description="Dedicated administration for operational days, statutory holidays, and customizable employee daily working targets."
+          description="Dedicated administration for operational shifts, custom statuses, statutory holidays, and employee shift assignments."
           actions={
             <Link
               to="/attendance"
@@ -72,9 +75,9 @@ export const AttendanceSettingsPage: React.FC = () => {
         <div className="p-4 rounded-2xl bg-blue-50/70 border border-blue-200/80 flex items-start gap-3 text-xs text-blue-900 shadow-2xs">
           <Info className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
           <div className="space-y-1">
-            <span className="font-bold block">Configured Schedule & Working Hours</span>
+            <span className="font-bold block">Configured Schedule, Shifts & Status Codes</span>
             <p className="text-blue-800">
-              Working days are Monday to Saturday by default (Sunday is Weekly Off). Customizing an employee's working hours (for example, setting Employee #1 to 7 hours) converts their daily Full Day target to 7 hours (and Half Day to 3.5 hours) across timesheets, reports, and attendance evaluation.
+              Employees are automatically assigned the Company Default General Shift ({data?.default_shift?.start_time.slice(0, 5) || '09:30'} to {data?.default_shift?.end_time.slice(0, 5) || '18:30'}, {data?.default_shift?.full_day_hours || 8}h). You can configure additional operational shifts (with automated two-way timing and target hours calculations), manage attendance status codes, and assign dedicated shifts per employee.
             </p>
           </div>
         </div>
@@ -90,6 +93,18 @@ export const AttendanceSettingsPage: React.FC = () => {
           </div>
         ) : (
           <div className="space-y-6">
+            {(activeSection === 'all' || activeSection === 'shifts') && (
+              <AttendanceDefaultHoursCard
+                initialConfig={data.default_working_hours}
+                shifts={data.shifts}
+                defaultShift={data.default_shift}
+              />
+            )}
+
+            {(activeSection === 'all' || activeSection === 'statuses') && (
+              <AttendanceStatusesCard statuses={data.statuses} />
+            )}
+
             {(activeSection === 'all' || activeSection === 'working_days') && (
               <AttendanceWorkingDaysCard
                 initialWorkingDays={data.working_days}
@@ -101,14 +116,12 @@ export const AttendanceSettingsPage: React.FC = () => {
               <AttendanceHolidaysCard holidays={data.holidays} />
             )}
 
-            {(activeSection === 'all' || activeSection === 'default_hours') && (
-              <AttendanceDefaultHoursCard initialConfig={data.default_working_hours} />
-            )}
-
             {(activeSection === 'all' || activeSection === 'employee_hours') && (
               <AttendanceEmployeeHoursCard
                 defaultHours={data.default_working_hours}
                 employeeHours={data.employee_working_hours}
+                shifts={data.shifts}
+                employeeShifts={data.employee_shifts}
               />
             )}
           </div>
@@ -117,3 +130,4 @@ export const AttendanceSettingsPage: React.FC = () => {
     </AdminLayout>
   );
 };
+

@@ -18,6 +18,25 @@ import type {
   ProjectStatus,
   ProjectType,
 } from '../types';
+import { useLookupsQuery } from '../../../hooks/use-master-data';
+
+const DEFAULT_PROJECT_TYPES = [
+  { code: 'client', label: 'Client Project (VM-CL)' },
+  { code: 'internal', label: 'Internal Project (VM-IN)' },
+  { code: 'product', label: 'Product Project (VM-PR)' },
+  { code: 'maintenance', label: 'Maintenance Project (VM-MN)' },
+];
+
+const DEFAULT_CATEGORIES = [
+  { code: 'ecom_website', label: 'E-com Website' },
+  { code: 'portfolio_website', label: 'Portfolio Website' },
+  { code: 'seo', label: 'SEO' },
+  { code: 'social_media', label: 'Social Media' },
+  { code: 'crm', label: 'CRM' },
+  { code: 'erp', label: 'ERP' },
+  { code: 'brochure', label: 'Brochure' },
+  { code: 'other', label: 'Other' },
+];
 
 interface CreateProjectModalProps {
   isOpen: boolean;
@@ -35,6 +54,17 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
   employees,
 }) => {
   const navigate = useNavigate();
+  const { data: projectTypeLookups = [] } = useLookupsQuery('project_type');
+  const { data: categoryLookups = [] } = useLookupsQuery('project_category');
+
+  const projectTypeOptions = projectTypeLookups.length > 0
+    ? projectTypeLookups.map((l) => ({ code: l.code, label: l.label }))
+    : DEFAULT_PROJECT_TYPES;
+
+  const categoryOptions = categoryLookups.length > 0
+    ? categoryLookups.map((l) => ({ code: l.code, label: l.label }))
+    : DEFAULT_CATEGORIES;
+
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSavingDetails, setIsSavingDetails] = useState(false);
@@ -574,10 +604,11 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                       onChange={(e) => setProjectType(e.target.value as ProjectType)}
                       className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
                     >
-                      <option value="client">Client Project (VM-CL)</option>
-                      <option value="internal">Internal Project (VM-IN)</option>
-                      <option value="product">Product Project (VM-PR)</option>
-                      <option value="maintenance">Maintenance Project (VM-MN)</option>
+                      {projectTypeOptions.map((opt) => (
+                        <option key={opt.code} value={opt.code}>
+                          {opt.label}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
@@ -590,14 +621,11 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                       onChange={(e) => setCategory(e.target.value as ProjectCategory)}
                       className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
                     >
-                      <option value="ecom_website">E-com Website</option>
-                      <option value="portfolio_website">Portfolio Website</option>
-                      <option value="seo">SEO</option>
-                      <option value="social_media">Social Media</option>
-                      <option value="crm">CRM</option>
-                      <option value="erp">ERP</option>
-                      <option value="brochure">Brochure</option>
-                      <option value="other">Other</option>
+                      {categoryOptions.map((opt) => (
+                        <option key={opt.code} value={opt.code}>
+                          {opt.label}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>

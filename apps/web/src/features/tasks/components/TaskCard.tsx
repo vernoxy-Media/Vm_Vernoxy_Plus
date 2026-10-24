@@ -20,6 +20,7 @@ import { TaskBoardCardDto } from '@vernoxy-pulse/api-client';
 import type { TaskPriority, TaskStage } from '../types';
 import { AvatarStack } from '../../../components/AvatarStack';
 import { formatMinutesToHuman } from '../../../components/DurationField';
+import { formatDisplayDate } from '../../../utils/date.utils';
 
 export interface TaskCardProps {
   task: TaskBoardCardDto;
@@ -251,7 +252,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
         {task.due_date && (
           <span className="inline-flex items-center gap-1">
             <Calendar className="w-3 h-3 text-slate-400" />
-            {task.due_date}
+            {formatDisplayDate(task.due_date)}
           </span>
         )}
       </div>

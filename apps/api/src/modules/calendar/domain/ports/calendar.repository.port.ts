@@ -13,6 +13,8 @@ export interface CalendarEventsQuery {
   start_time: string; // ISO string
   end_time: string;   // ISO string
   employee_id: number;
+  is_admin?: boolean;
+  employee_ids?: number[];
   event_type?: CalendarEventType;
 }
 

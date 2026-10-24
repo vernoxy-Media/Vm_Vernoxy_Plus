@@ -3,12 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import {
   FolderKanban,
   CheckCircle2,
-  Clock,
-  Layers,
+  RotateCw,
   AlertCircle,
   Plus,
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
+import { useSocket } from '../../../core/socket/SocketContext';
 import {
   createProject,
   fetchAssignableEmployees,
@@ -59,9 +59,10 @@ export const ProjectsPage: React.FC = () => {
     try {
       setIsLoading(true);
       setError(null);
+      const statusParam = viewMode === 'kanban' ? undefined : (statusFilter !== 'all' ? statusFilter : undefined);
       const [projectsData, employeesData] = await Promise.all([
         fetchProjects({
-          status: statusFilter,
+          status: statusParam,
           project_manager_id: pmFilter !== 'all' ? Number(pmFilter) : undefined,
           start_date: startDateFilter || undefined,
           end_date: endDateFilter || undefined,
@@ -81,7 +82,35 @@ export const ProjectsPage: React.FC = () => {
 
   useEffect(() => {
     loadData();
-  }, [statusFilter, pmFilter, startDateFilter, endDateFilter]);
+  }, [statusFilter, pmFilter, startDateFilter, endDateFilter, viewMode]);
+
+  const { socket } = useSocket();
+
+  useEffect(() => {
+    if (!socket) return;
+    const handleProjectStatusChanged = (payload: any) => {
+      if (payload?.projectId && payload?.status) {
+        setProjects((prev) =>
+          prev.map((p) =>
+            p.project_id === payload.projectId
+              ? {
+                  ...p,
+                  project_status: payload.status,
+                  status_change_reason: payload.reason || p.status_change_reason,
+                }
+              : p
+          )
+        );
+      } else {
+        loadData().catch(console.error);
+      }
+    };
+
+    socket.on('project:status_changed', handleProjectStatusChanged);
+    return () => {
+      socket.off('project:status_changed', handleProjectStatusChanged);
+    };
+  }, [socket]);
 
   // Client-side quick filter on search for snappy UX
   const filteredProjects = useMemo(() => {
@@ -98,16 +127,10 @@ export const ProjectsPage: React.FC = () => {
 
   const stats = useMemo(() => {
     const total = projects.length;
-    const active = projects.filter((p) =>
-      ['in_progress', 'review'].includes(p.project_status)
-    ).length;
-    const planning = projects.filter((p) =>
-      ['new', 'planning', 'pending'].includes(p.project_status)
-    ).length;
-    const completed = projects.filter((p) =>
-      ['delivered'].includes(p.project_status)
-    ).length;
-    return { total, active, planning, completed };
+    const inProgress = projects.filter((p) => p.project_status === 'in_progress').length;
+    const delivered = projects.filter((p) => p.project_status === 'delivered').length;
+    const onHold = projects.filter((p) => p.project_status === 'on_hold').length;
+    return { total, inProgress, delivered, onHold };
   }, [projects]);
 
   const handleCreateProject = async (payload: CreateProjectPayload): Promise<ProjectItem> => {
@@ -162,7 +185,7 @@ export const ProjectsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div className="space-y-3.5 w-full min-w-0 max-w-full">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -190,45 +213,49 @@ export const ProjectsPage: React.FC = () => {
         )}
       </div>
 
-      {/* KPI Stats Strip */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-            <FolderKanban className="w-5 h-5" />
+      {/* KPI Stats Strip matching Image 3 */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {/* Total */}
+        <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3.5">
+          <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
+            <FolderKanban className="w-4 h-4" />
           </div>
           <div>
-            <span className="text-xs font-medium text-slate-500">Total Projects</span>
-            <h3 className="text-xl font-bold text-slate-900">{stats.total}</h3>
+            <h3 className="text-xl font-bold text-slate-900 leading-tight">{stats.total}</h3>
+            <span className="text-[11px] font-medium text-slate-400">Total</span>
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-            <Clock className="w-5 h-5" />
+        {/* In Progress */}
+        <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3.5">
+          <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+            <RotateCw className="w-4 h-4" />
           </div>
           <div>
-            <span className="text-xs font-medium text-slate-500">Active & Progress</span>
-            <h3 className="text-xl font-bold text-slate-900">{stats.active}</h3>
+            <h3 className="text-xl font-bold text-slate-900 leading-tight">{stats.inProgress}</h3>
+            <span className="text-[11px] font-medium text-slate-400">In Progress</span>
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
-            <Layers className="w-5 h-5" />
+        {/* Delivered */}
+        <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3.5">
+          <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+            <CheckCircle2 className="w-4 h-4" />
           </div>
           <div>
-            <span className="text-xs font-medium text-slate-500">In Planning</span>
-            <h3 className="text-xl font-bold text-slate-900">{stats.planning}</h3>
+            <h3 className="text-xl font-bold text-slate-900 leading-tight">{stats.delivered}</h3>
+            <span className="text-[11px] font-medium text-slate-400">Delivered</span>
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center shrink-0">
-            <CheckCircle2 className="w-5 h-5" />
+        {/* On Hold */}
+        <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3.5">
+          <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+            <AlertCircle className="w-4 h-4" />
           </div>
           <div>
-            <span className="text-xs font-medium text-slate-500">Completed & Delivered</span>
-            <h3 className="text-xl font-bold text-slate-900">{stats.completed}</h3>
+            <h3 className="text-xl font-bold text-slate-900 leading-tight">{stats.onHold}</h3>
+            <span className="text-[11px] font-medium text-slate-400">On Hold</span>
           </div>
         </div>
       </div>
@@ -323,6 +350,8 @@ export const ProjectsPage: React.FC = () => {
         <ProjectKanbanView
           projects={filteredProjects}
           onSelectProject={(p) => navigate(`/projects/${p.project_id}`)}
+          onStatusChange={handleUpdateStatus}
+          activeStatus={statusFilter}
         />
       )}
 

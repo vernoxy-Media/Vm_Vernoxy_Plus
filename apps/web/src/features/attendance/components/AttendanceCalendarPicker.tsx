@@ -164,7 +164,7 @@ export const AttendanceCalendarPicker: React.FC<AttendanceCalendarPickerProps> =
   return (
     <div ref={containerRef} className="relative inline-flex items-center gap-1.5 sm:gap-2">
       {/* Container Bar */}
-      <div className="flex items-center bg-white border border-slate-300 rounded-2xl p-1 shadow-2xs hover:border-slate-400 transition-colors">
+      <div className="flex items-center bg-white border border-slate-300 rounded-xl p-0.5 shadow-2xs hover:border-slate-400 transition-colors">
         {/* Prev Day Button */}
         <button
           type="button"
@@ -172,9 +172,9 @@ export const AttendanceCalendarPicker: React.FC<AttendanceCalendarPickerProps> =
           onClick={handlePrevDay}
           title="Previous day"
           aria-label="Previous day"
-          className="p-2 sm:p-2.5 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="p-1.5 sm:p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-50 transition-colors focus:outline-none"
         >
-          <ChevronLeft className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+          <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
         </button>
 
         {/* Center Date Display & Dropdown Trigger */}
@@ -183,18 +183,18 @@ export const AttendanceCalendarPicker: React.FC<AttendanceCalendarPickerProps> =
           id="calendar-open-popover-btn"
           onClick={() => setIsOpen(!isOpen)}
           aria-expanded={isOpen}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
             isOpen
-              ? 'bg-blue-50 text-blue-700 ring-2 ring-blue-500/30'
+              ? 'bg-blue-50 text-blue-700'
               : 'text-slate-800 hover:bg-slate-50'
           }`}
         >
-          <CalendarIcon className="w-4 h-4 text-blue-600 shrink-0" />
-          <span className="font-bold tracking-tight select-none">
+          <CalendarIcon className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+          <span className="font-bold tracking-tight select-none text-xs">
             {formattedDisplay}
           </span>
           <ChevronDown
-            className={`w-3.5 h-3.5 text-slate-400 transition-transform ${
+            className={`w-3 h-3 text-slate-400 transition-transform ${
               isOpen ? 'rotate-180 text-blue-600' : ''
             }`}
           />

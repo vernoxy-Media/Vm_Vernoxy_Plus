@@ -45,6 +45,10 @@ import { UpdateCustomerTypeUseCase } from './application/use-cases/update-custom
 import { DeleteCustomerTypeUseCase } from './application/use-cases/delete-customer-type.use-case';
 
 import { GetLookupOptionsUseCase } from './application/use-cases/get-lookup-options.use-case';
+import { ListLookupsUseCase } from './application/use-cases/list-lookups.use-case';
+import { CreateLookupUseCase } from './application/use-cases/create-lookup.use-case';
+import { UpdateLookupUseCase } from './application/use-cases/update-lookup.use-case';
+import { DeleteLookupUseCase } from './application/use-cases/delete-lookup.use-case';
 
 // Public API
 import {
@@ -147,6 +151,26 @@ import {
       provide: GetLookupOptionsUseCase,
       inject: [MASTER_LOOKUP_REPOSITORY_PORT],
       useFactory: (repo: MasterLookupRepositoryPort) => new GetLookupOptionsUseCase(repo),
+    },
+    {
+      provide: ListLookupsUseCase,
+      inject: [MASTER_LOOKUP_REPOSITORY_PORT],
+      useFactory: (repo: MasterLookupRepositoryPort) => new ListLookupsUseCase(repo),
+    },
+    {
+      provide: CreateLookupUseCase,
+      inject: [MASTER_LOOKUP_REPOSITORY_PORT],
+      useFactory: (repo: MasterLookupRepositoryPort) => new CreateLookupUseCase(repo),
+    },
+    {
+      provide: UpdateLookupUseCase,
+      inject: [MASTER_LOOKUP_REPOSITORY_PORT],
+      useFactory: (repo: MasterLookupRepositoryPort) => new UpdateLookupUseCase(repo),
+    },
+    {
+      provide: DeleteLookupUseCase,
+      inject: [MASTER_LOOKUP_REPOSITORY_PORT],
+      useFactory: (repo: MasterLookupRepositoryPort) => new DeleteLookupUseCase(repo),
     },
 
     // Public API

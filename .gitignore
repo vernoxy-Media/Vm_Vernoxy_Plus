@@ -1,35 +1,100 @@
-# Dependencies
+# ==========================================
+# Dependencies & Package Managers
+# ==========================================
 node_modules/
 .pnpm-store/
+.npm/
+.yarn/
+*.tsbuildinfo
 
-# Build artifacts
+# ==========================================
+# Build Artifacts & Caches
+# ==========================================
 dist/
 build/
+out/
+.next/
 .turbo/
+.cache/
+.parcel-cache/
+.eslintcache/
 /storage/
+storage/
+uploads/
+/uploads/
 
-# Environment
+# ==========================================
+# Environment & Sensitive Files
+# ==========================================
 .env
-.env.test
 .env.local
+.env.test
+.env.test.local
+.env.production
+.env.production.local
+.env.development.local
 .env.*.local
+*.pem
+*.key
+*.cert
+*.crt
 
-# Logs
+# Exception: allow example templates
+!.env.example
+!.env.test.example
+
+# ==========================================
+# Logs & Diagnostic Outputs
+# ==========================================
 logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
+yarn-error.log*
 pnpm-debug.log*
+lerna-debug.log*
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
-# OS & Editor
+# ==========================================
+# OS, System & IDE Files
+# ==========================================
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
-.vscode/
-.idea/
+desktop.ini
 
-# Coverage & Tests
+# Editors
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.sublime-workspace
+*.sublime-project
+*.swp
+*.swo
+*~
+
+# ==========================================
+# Test, Coverage & QA Output
+# ==========================================
 coverage/
 .nyc_output/
 test-results/
 playwright-report/
+blob-report/
+playwright/.cache/
 
+# ==========================================
+# Temporary & Scratch Files
+# ==========================================
+tmp/
+temp/
+scratch/
+*.scratch.*
+*.tmp
+*.bak
+*.dump

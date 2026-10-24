@@ -78,9 +78,10 @@ export class CreateProjectDto {
   @MaxLength(150)
   project_name!: string;
 
-  @ApiProperty({ enum: ['client', 'internal', 'product', 'maintenance'] })
-  @IsEnum(['client', 'internal', 'product', 'maintenance'])
-  project_type!: 'client' | 'internal' | 'product' | 'maintenance';
+  @ApiProperty({ description: 'Project type (client, internal, product, maintenance, or custom lookup code)' })
+  @IsString()
+  @IsNotEmpty()
+  project_type!: string;
 
   @ApiProperty({
     enum: [
@@ -222,10 +223,10 @@ export class UpdateProjectDto {
   @MaxLength(150)
   project_name?: string;
 
-  @ApiPropertyOptional({ enum: ['client', 'internal', 'product', 'maintenance'] })
+  @ApiPropertyOptional({ description: 'Project type (client, internal, product, maintenance, or custom lookup code)' })
   @IsOptional()
-  @IsEnum(['client', 'internal', 'product', 'maintenance'])
-  project_type?: 'client' | 'internal' | 'product' | 'maintenance';
+  @IsString()
+  project_type?: string;
 
   @ApiPropertyOptional({
     enum: [

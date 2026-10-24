@@ -136,6 +136,37 @@ export interface AttendanceHoliday {
 export interface WorkingHoursConfig {
   full_day_hours: number;
   half_day_hours: number;
+  start_time?: string;
+  end_time?: string;
+}
+
+export interface AttendanceShift {
+  shift_id: number;
+  shift_code: string;
+  shift_name: string;
+  shift_type: string;
+  start_time: string; // e.g. "09:30"
+  end_time: string; // e.g. "18:30"
+  full_day_hours: number;
+  half_day_hours: number;
+  break_duration_minutes: number;
+  break_type: string; // 'unpaid' | 'paid'
+  late_arrival_grace_minutes: number;
+  early_exit_grace_minutes: number;
+  weekly_off_days: number[];
+  is_default: boolean;
+  is_active: boolean;
+}
+
+export interface AttendanceStatus {
+  status_id: number;
+  code: string;
+  label: string;
+  short_code: string;
+  color: string;
+  is_active: boolean;
+  is_system: boolean;
+  sort_order: number;
 }
 
 export interface AttendanceSettingsResponse {
@@ -143,4 +174,9 @@ export interface AttendanceSettingsResponse {
   holidays: AttendanceHoliday[];
   default_working_hours: WorkingHoursConfig;
   employee_working_hours: Record<string, WorkingHoursConfig>;
+  shifts: AttendanceShift[];
+  statuses: AttendanceStatus[];
+  default_shift: AttendanceShift | null;
+  employee_shifts: Record<string, number>;
 }
+

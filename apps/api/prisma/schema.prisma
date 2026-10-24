@@ -629,10 +629,11 @@ model attendance_days {
   check_out_at                                    DateTime?                @db.Timestamptz(6)
   break_minutes                                   Int                      @default(0)
   production_minutes                              Int                      @default(0)
-  day_status                                      attendance_day_status    @default(incomplete)
+  day_status                                      String                   @default("incomplete") @db.VarChar(50)
   source                                          attendance_source        @default(web)
   worked_on_non_working_day                       Boolean                  @default(false)
   note                                            String?
+  shift_id                                        Int?
   created_at                                      DateTime                 @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
   created_by                                      Int?
   updated_at                                      DateTime?                @db.Timestamptz(6)
@@ -641,10 +642,47 @@ model attendance_days {
   deleted_by                                      Int?
   attendance_breaks                               attendance_breaks[]
   attendance_corrections                          attendance_corrections[]
+  attendance_shifts                               attendance_shifts?       @relation(fields: [shift_id], references: [shift_id], onDelete: NoAction, onUpdate: NoAction)
   employees_attendance_days_created_byToemployees employees?               @relation("attendance_days_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_attendance_days_created_by")
   employees_attendance_days_deleted_byToemployees employees?               @relation("attendance_days_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_attendance_days_deleted_by")
   employees_attendance_days_emp_idToemployees     employees                @relation("attendance_days_emp_idToemployees", fields: [emp_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_attendance_days_emp_id")
   employees_attendance_days_updated_byToemployees employees?               @relation("attendance_days_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_attendance_days_updated_by")
+}
+
+model attendance_statuses {
+  status_id  Int       @id(map: "pk_attendance_statuses") @default(autoincrement())
+  code       String    @unique @db.VarChar(30)
+  label      String    @db.VarChar(100)
+  short_code String    @db.VarChar(10)
+  color      String    @default("emerald") @db.VarChar(30)
+  is_active  Boolean   @default(true)
+  is_system  Boolean   @default(false)
+  sort_order Int       @default(0)
+  created_at DateTime  @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at DateTime? @db.Timestamptz(6)
+  deleted_at DateTime? @db.Timestamptz(6)
+}
+
+model attendance_shifts {
+  shift_id                   Int               @id(map: "pk_attendance_shifts") @default(autoincrement())
+  shift_code                 String            @unique @db.VarChar(30)
+  shift_name                 String            @db.VarChar(100)
+  shift_type                 String            @default("fixed") @db.VarChar(30)
+  start_time                 DateTime          @db.Time(6)
+  end_time                   DateTime          @db.Time(6)
+  full_day_hours             Decimal           @default(8.00) @db.Decimal(4, 2)
+  half_day_hours             Decimal           @default(4.00) @db.Decimal(4, 2)
+  break_duration_minutes     Int               @default(60)
+  break_type                 String            @default("unpaid") @db.VarChar(20)
+  late_arrival_grace_minutes Int               @default(15)
+  early_exit_grace_minutes   Int               @default(15)
+  weekly_off_days            Int[]             @default([0])
+  is_default                 Boolean           @default(false)
+  is_active                  Boolean           @default(true)
+  created_at                 DateTime          @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at                 DateTime?         @db.Timestamptz(6)
+  deleted_at                 DateTime?         @db.Timestamptz(6)
+  attendance_days            attendance_days[]
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -921,8 +959,8 @@ model project_bugs {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model project_counters {
-  project_type project_type @id(map: "pk_project_counters")
-  last_number  Int          @default(0)
+  project_type String @id(map: "pk_project_counters") @db.VarChar(50)
+  last_number  Int    @default(0)
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -1024,7 +1062,7 @@ model projects {
   project_id                                       Int                     @id(map: "pk_projects") @default(autoincrement())
   project_no                                       String                  @db.VarChar(30)
   project_name                                     String                  @db.VarChar(150)
-  project_type                                     project_type
+  project_type                                     String                  @db.VarChar(50)
   category                                         project_category
   other_category                                   String?                 @db.VarChar(100)
   project_status                                   project_status          @default(new)

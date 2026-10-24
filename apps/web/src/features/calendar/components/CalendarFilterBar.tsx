@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { RotateCcw, Users, Check, ChevronDown, Search } from 'lucide-react';
+import { RotateCcw, Users, Check, ChevronDown, Search, SlidersHorizontal, X } from 'lucide-react';
 import type { AssignableEmployee } from '../api/calendar.api';
 
 export interface CalendarFilters {
@@ -18,6 +18,8 @@ interface CalendarFilterBarProps {
   isAdmin: boolean;
   employees: AssignableEmployee[];
   taskTypes?: Array<{ id: number; label: string }>;
+  isOpen: boolean;
+  onToggle: () => void;
 }
 
 export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
@@ -27,6 +29,8 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
   isAdmin,
   employees,
   taskTypes = [],
+  isOpen,
+  onToggle,
 }) => {
   const [isEmployeeDropdownOpen, setIsEmployeeDropdownOpen] = useState(false);
   const [employeeSearch, setEmployeeSearch] = useState('');
@@ -74,14 +78,55 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
     filters.priority !== 'all' ||
     (isAdmin && filters.selectedEmployeeIds.length > 0 && filters.selectedEmployeeIds.length < employees.length);
 
+  const activeCount = [
+    filters.datePreset !== 'all',
+    filters.stage !== 'all',
+    filters.priority !== 'all',
+    filters.taskTypeId !== 'all',
+    isAdmin && filters.selectedEmployeeIds.length > 0 && filters.selectedEmployeeIds.length < employees.length,
+  ].filter(Boolean).length;
+
+  if (!isOpen) return null;
+
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-2xs flex flex-wrap items-center justify-between gap-3">
+    <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-2xs animate-in slide-in-from-top-2 duration-200">
+      {/* Filter header row */}
+      <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
+        <div className="flex items-center gap-2">
+          <SlidersHorizontal className="w-3.5 h-3.5 text-slate-500" />
+          <span className="text-xs font-bold text-slate-700">Filters</span>
+          {activeCount > 0 && (
+            <span className="text-[10px] font-bold bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">
+              {activeCount} active
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {hasActiveFilters && (
+            <button
+              onClick={onReset}
+              className="flex items-center gap-1 text-xs text-rose-600 hover:text-rose-700 font-semibold px-2 py-1 rounded-md hover:bg-rose-50 transition-colors cursor-pointer"
+            >
+              <RotateCcw className="w-3 h-3" />
+              Reset
+            </button>
+          )}
+          <button
+            onClick={onToggle}
+            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Filter controls */}
       <div className="flex flex-wrap items-center gap-2">
         {/* Date presets */}
         <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
           <button
             onClick={() => onChange({ ...filters, datePreset: 'all' })}
-            className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+            className={`px-3 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer ${
               filters.datePreset === 'all'
                 ? 'bg-white text-slate-800 shadow-2xs font-bold'
                 : 'text-slate-500 hover:text-slate-700'
@@ -91,7 +136,7 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
           </button>
           <button
             onClick={() => onChange({ ...filters, datePreset: 'today' })}
-            className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+            className={`px-3 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer ${
               filters.datePreset === 'today'
                 ? 'bg-white text-blue-600 shadow-2xs font-bold'
                 : 'text-slate-500 hover:text-slate-700'
@@ -101,7 +146,7 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
           </button>
           <button
             onClick={() => onChange({ ...filters, datePreset: 'yesterday' })}
-            className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+            className={`px-3 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer ${
               filters.datePreset === 'yesterday'
                 ? 'bg-white text-slate-800 shadow-2xs font-bold'
                 : 'text-slate-500 hover:text-slate-700'
@@ -115,7 +160,7 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
         <select
           value={filters.stage}
           onChange={(e) => onChange({ ...filters, stage: e.target.value as any })}
-          className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 font-medium text-slate-700 focus:outline-hidden focus:ring-1 focus:ring-blue-500"
+          className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 font-medium text-slate-700 focus:outline-hidden focus:ring-1 focus:ring-blue-500 cursor-pointer"
         >
           <option value="all">Stage: All (Submitted & Approved)</option>
           <option value="requested">🟠 Submitted Only</option>
@@ -126,7 +171,7 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
         <select
           value={filters.priority}
           onChange={(e) => onChange({ ...filters, priority: e.target.value })}
-          className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 font-medium text-slate-700 focus:outline-hidden focus:ring-1 focus:ring-blue-500"
+          className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 font-medium text-slate-700 focus:outline-hidden focus:ring-1 focus:ring-blue-500 cursor-pointer"
         >
           <option value="all">Priority: All</option>
           <option value="urgent">Urgent</option>
@@ -145,7 +190,7 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
                 taskTypeId: e.target.value === 'all' ? 'all' : parseInt(e.target.value, 10),
               })
             }
-            className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 font-medium text-slate-700 focus:outline-hidden focus:ring-1 focus:ring-blue-500"
+            className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 font-medium text-slate-700 focus:outline-hidden focus:ring-1 focus:ring-blue-500 cursor-pointer"
           >
             <option value="all">Task Type: All</option>
             {taskTypes.map((t) => (
@@ -161,7 +206,7 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setIsEmployeeDropdownOpen(!isEmployeeDropdownOpen)}
-              className="flex items-center gap-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 font-medium text-slate-700 hover:bg-slate-100 transition-colors"
+              className="flex items-center gap-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 font-medium text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
             >
               <Users className="w-3.5 h-3.5 text-slate-500" />
               <span>
@@ -179,13 +224,13 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
                   <div className="flex gap-2">
                     <button
                       onClick={selectAllEmployees}
-                      className="text-blue-600 hover:underline font-semibold"
+                      className="text-blue-600 hover:underline font-semibold cursor-pointer"
                     >
                       All
                     </button>
                     <button
                       onClick={clearEmployees}
-                      className="text-slate-400 hover:underline"
+                      className="text-slate-400 hover:underline cursor-pointer"
                     >
                       Clear
                     </button>
@@ -233,17 +278,6 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
           </div>
         )}
       </div>
-
-      {/* Reset Filter Button */}
-      {hasActiveFilters && (
-        <button
-          onClick={onReset}
-          className="flex items-center gap-1 text-xs text-rose-600 hover:text-rose-700 font-semibold px-2 py-1 rounded-md hover:bg-rose-50 transition-colors"
-        >
-          <RotateCcw className="w-3 h-3" />
-          Reset Filters
-        </button>
-      )}
     </div>
   );
 };

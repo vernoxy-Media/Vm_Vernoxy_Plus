@@ -145,6 +145,7 @@ export * from './loginDto';
 export * from './loginResponseDto';
 export * from './lookupControllerGetOptionsParams';
 export * from './lookupOptionDto';
+export * from './masterLookupDto';
 export * from './markAllReadResponseDto';
 export * from './markReadResponseDto';
 export * from './meResponseDto';

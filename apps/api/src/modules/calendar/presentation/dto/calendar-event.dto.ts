@@ -14,6 +14,10 @@ export class CalendarEventsQueryDto {
   @ApiProperty({ example: '2026-10-25T23:59:59.999Z' })
   @IsDateString()
   end!: string;
+
+  @ApiPropertyOptional({ example: '1,2,3' })
+  @IsOptional()
+  employee_ids?: string;
 }
 
 export class CalendarAttendeeDto {

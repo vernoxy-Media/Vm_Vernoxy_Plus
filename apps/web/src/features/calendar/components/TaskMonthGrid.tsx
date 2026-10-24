@@ -9,6 +9,7 @@ interface TaskMonthGridProps {
   tasks: CalendarMonthTaskItem[];
   holidays: CalendarHolidayItem[];
   events: CalendarEvent[]; // for meetings, notes & reminders
+  currentUserId?: number;
   onSelectEvent?: (event: CalendarEvent) => void;
   onSelectTask?: (taskId: number) => void;
 }
@@ -20,6 +21,7 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
   tasks,
   holidays,
   events,
+  currentUserId,
   onSelectEvent,
   onSelectTask,
 }) => {
@@ -56,8 +58,12 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
     cells.push({ date: dateObj, isCurrentMonth: false });
   }
 
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const selectedStr = selectedDate.toISOString().slice(0, 10);
+  // Local-date helper: formats a Date as YYYY-MM-DD using local timezone (avoids UTC off-by-one)
+  const toLocalYMD = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+  const todayStr = toLocalYMD(new Date());
+  const selectedStr = toLocalYMD(selectedDate);
 
   return (
     <div className="flex flex-col flex-1 bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden select-none">
@@ -76,7 +82,7 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
       {/* 6x7 Grid */}
       <div className="grid grid-cols-7 grid-rows-6 flex-1 divide-x divide-y divide-slate-100 min-h-[580px]">
         {cells.map(({ date, isCurrentMonth }, idx) => {
-          const dateStr = date.toISOString().slice(0, 10);
+          const dateStr = toLocalYMD(date);
           const isToday = dateStr === todayStr;
           const isSelected = dateStr === selectedStr;
 
@@ -91,14 +97,18 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
           // Tasks submitted or approved on this day
           const dayTasks = tasks.filter((t) => t.submission_date === dateStr);
 
-          // Notes and reminders
+          // Notes and reminders (private: only user's own notes/reminders)
           const dayNotes = events.filter(
             (e) =>
-              (e.event_type === 'task_block' || e.event_type === 'appointment') &&
-              e.start_time.slice(0, 10) === dateStr
+              (e.event_type === 'appointment' || (e.event_type === 'task_block' && !e.task_id)) &&
+              e.start_time.slice(0, 10) === dateStr &&
+              (!currentUserId || e.organizer_id === currentUserId)
           );
           const dayReminders = events.filter(
-            (e) => e.event_type === 'reminder' && e.start_time.slice(0, 10) === dateStr
+            (e) =>
+              e.event_type === 'reminder' &&
+              e.start_time.slice(0, 10) === dateStr &&
+              (!currentUserId || e.organizer_id === currentUserId)
           );
 
           const totalItems = dayMeetings.length + dayTasks.length;

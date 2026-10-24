@@ -7,6 +7,8 @@ import type {
   AttendanceSettingsResponse,
   AttendanceHoliday,
   WorkingHoursConfig,
+  AttendanceShift,
+  AttendanceStatus,
 } from '../types/attendance.types';
 import { generateMockDashboard, getMockDayDetail, updateMockPunchAction } from './attendance.mock';
 
@@ -163,11 +165,94 @@ export async function updateDefaultWorkingHours(hours: WorkingHoursConfig): Prom
 
 export async function updateEmployeeWorkingHours(
   empId: number,
-  payload: { full_day_hours?: number; half_day_hours?: number; reset_to_default?: boolean },
+  payload: {
+    full_day_hours?: number;
+    half_day_hours?: number;
+    start_time?: string;
+    end_time?: string;
+    reset_to_default?: boolean;
+  },
 ): Promise<AttendanceSettingsResponse> {
   return await customFetch<AttendanceSettingsResponse>(`${BASE_URL}/settings/working-hours/employee/${empId}`, {
     method: 'PUT',
     body: JSON.stringify(payload),
   });
 }
+
+// ----------------------------------------------------
+// ATTENDANCE SHIFTS API
+// ----------------------------------------------------
+
+export async function fetchShifts(): Promise<AttendanceShift[]> {
+  return await customFetch<AttendanceShift[]>(`${BASE_URL}/settings/shifts`);
+}
+
+export async function createShift(payload: Partial<AttendanceShift>): Promise<AttendanceShift> {
+  return await customFetch<AttendanceShift>(`${BASE_URL}/settings/shifts`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateShift(id: number, payload: Partial<AttendanceShift>): Promise<AttendanceShift> {
+  return await customFetch<AttendanceShift>(`${BASE_URL}/settings/shifts/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function setDefaultShift(id: number): Promise<AttendanceShift> {
+  return await customFetch<AttendanceShift>(`${BASE_URL}/settings/shifts/${id}/set-default`, {
+    method: 'POST',
+  });
+}
+
+export async function deleteShift(id: number): Promise<{ success: boolean }> {
+  return await customFetch<{ success: boolean }>(`${BASE_URL}/settings/shifts/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+// ----------------------------------------------------
+// ATTENDANCE STATUSES API
+// ----------------------------------------------------
+
+export async function fetchStatuses(): Promise<AttendanceStatus[]> {
+  return await customFetch<AttendanceStatus[]>(`${BASE_URL}/settings/statuses`);
+}
+
+export async function createStatus(payload: Partial<AttendanceStatus>): Promise<AttendanceStatus> {
+  return await customFetch<AttendanceStatus>(`${BASE_URL}/settings/statuses`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateStatus(id: number, payload: Partial<AttendanceStatus>): Promise<AttendanceStatus> {
+  return await customFetch<AttendanceStatus>(`${BASE_URL}/settings/statuses/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteStatus(id: number): Promise<{ success: boolean }> {
+  return await customFetch<{ success: boolean }>(`${BASE_URL}/settings/statuses/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+// ----------------------------------------------------
+// EMPLOYEE SHIFT ASSIGNMENT API
+// ----------------------------------------------------
+
+export async function assignEmployeeShift(
+  empId: number,
+  shiftId: number | null,
+): Promise<AttendanceSettingsResponse> {
+  return await customFetch<AttendanceSettingsResponse>(`${BASE_URL}/settings/shifts/assignments/${empId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ shift_id: shiftId }),
+  });
+}
+
 

@@ -28,7 +28,7 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
     private readonly prisma: PrismaService,
   ) {}
 
-  private getProjectPrefix(type: ProjectType): string {
+  private getProjectPrefix(type: string): string {
     switch (type) {
       case 'client':
         return 'VM-CL';
@@ -38,8 +38,10 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
         return 'VM-PR';
       case 'maintenance':
         return 'VM-MN';
-      default:
-        return 'VM-PR';
+      default: {
+        const clean = type.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 3) || 'PR';
+        return `VM-${clean}`;
+      }
     }
   }
 

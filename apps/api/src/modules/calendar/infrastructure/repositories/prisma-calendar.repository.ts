@@ -75,7 +75,10 @@ export class PrismaCalendarRepository implements CalendarRepositoryPort {
       deleted_at: null,
       start_time: { lte: endDate },
       end_time: { gte: startDate },
-      OR: [
+    };
+
+    if (!query.is_admin) {
+      where.OR = [
         { organizer_id: query.employee_id },
         {
           calendar_event_attendees: {
@@ -85,8 +88,20 @@ export class PrismaCalendarRepository implements CalendarRepositoryPort {
             },
           },
         },
-      ],
-    };
+      ];
+    } else if (query.employee_ids && query.employee_ids.length > 0) {
+      where.OR = [
+        { organizer_id: { in: query.employee_ids } },
+        {
+          calendar_event_attendees: {
+            some: {
+              employee_id: { in: query.employee_ids },
+              deleted_at: null,
+            },
+          },
+        },
+      ];
+    }
 
     if (query.event_type) {
       where.event_type = query.event_type;

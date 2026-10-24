@@ -4,7 +4,16 @@ import {
 } from '../ports/master-lookup.repository.port';
 import { ValidationDomainError } from '../../domain/errors/master-data.errors';
 
-const ALLOWED_LOOKUP_TYPES = new Set(['person_department', 'lead_source', 'lost_reason', 'task_type']);
+const ALLOWED_LOOKUP_TYPES = new Set([
+  'person_department',
+  'lead_source',
+  'lost_reason',
+  'task_type',
+  'break_type',
+  'project_category',
+  'project_status',
+  'project_type',
+]);
 
 export class GetLookupOptionsUseCase {
   constructor(private readonly lookupRepo: MasterLookupRepositoryPort) {}
