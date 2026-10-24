@@ -60,7 +60,7 @@ export class JwtAuthGuard implements CanActivate {
     try {
       payload = await this.tokenService.verifyAccessToken(token);
     } catch (err: any) {
-      console.log('[JWT GUARD ERROR] verifyAccessToken failed:', err?.message || err);
+      console.log('>>> [JWT GUARD ERROR]:', err?.message || err);
       throw new UnauthorizedException('Invalid or expired access token');
     }
 
@@ -70,7 +70,6 @@ export class JwtAuthGuard implements CanActivate {
     // Load session by primary key
     const session = await this.sessionRepo.findById(sessionId);
     if (!session || session.revoked_at !== null || session.expires_at.getTime() <= this.clock.now().getTime()) {
-      console.log('[JWT GUARD ERROR] session invalid:', { exists: Boolean(session), revoked: session?.revoked_at, expired: session ? session.expires_at.getTime() <= this.clock.now().getTime() : true });
       throw new UnauthorizedException('Session is revoked or expired');
     }
 

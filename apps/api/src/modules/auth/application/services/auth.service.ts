@@ -111,11 +111,9 @@ export class AuthService {
     const identifierHash = crypto.createHash('sha256').update(normalizedEmail).digest('hex');
 
     const emp = await this.employeeRepo.findByEmail(normalizedEmail);
-    console.log(`[AUTH LOGIN DEBUG] email: ${normalizedEmail}, found employee:`, emp ? { emp_id: emp.emp_id, status: emp.status, has_credentials: Boolean(emp.credentials), deleted_at: emp.deleted_at } : null);
 
     // Timing equalization for unknown, inactive, or soft-deleted employees
     if (!emp || emp.status !== 'Active' || emp.deleted_at !== null || !emp.credentials) {
-      console.log(`[AUTH LOGIN DEBUG] Rejected at check 1: emp exists? ${Boolean(emp)}, status: ${emp?.status}, deleted_at: ${emp?.deleted_at}, credentials: ${Boolean(emp?.credentials)}`);
       await this.passwordHasher.verify(password, DUMMY_ARGON2ID_HASH);
       await this.authEventRepo.createEvent({
         identifier_hash: identifierHash,
@@ -128,7 +126,6 @@ export class AuthService {
 
     // Check account lockout
     if (isAccountLocked(emp.credentials.locked_until, this.clock.now())) {
-      console.log(`[AUTH LOGIN DEBUG] Account locked until: ${emp.credentials.locked_until}`);
       await this.passwordHasher.verify(password, DUMMY_ARGON2ID_HASH);
       await this.authEventRepo.createEvent({
         emp_id: emp.emp_id,
@@ -141,7 +138,6 @@ export class AuthService {
 
     // Verify password with argon2id
     const passwordValid = await this.passwordHasher.verify(password, emp.credentials.password_hash);
-    console.log(`[AUTH LOGIN DEBUG] Password check result: ${passwordValid}`);
     if (!passwordValid) {
       const incrementResult = await this.employeeRepo.incrementFailedAttempts(emp.emp_id);
       const isNowLocked = isAccountLocked(incrementResult.lockedUntil, this.clock.now());

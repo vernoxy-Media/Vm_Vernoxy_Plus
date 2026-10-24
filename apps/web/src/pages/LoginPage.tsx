@@ -48,7 +48,6 @@ export const LoginPage: React.FC = () => {
         navigate('/', { replace: true });
       }
     } catch (err: any) {
-      console.error('[LOGIN ERROR]', err);
       // Generic error message for all credential failures
       setServerError(err.detail || err.message || 'Invalid email or password');
     }

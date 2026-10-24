@@ -29,7 +29,7 @@ export function configureApp(app: INestApplication, env?: EnvConfig): void {
 
   // Global REST API prefix /api/v1, excluding .well-known
   app.setGlobalPrefix('api/v1', {
-    exclude: ['\\.well-known/(.*)'],
+    exclude: ['\\.well-known/{*path}'],
   });
 
   // Global Validation Pipe with whitelist & forbidNonWhitelisted

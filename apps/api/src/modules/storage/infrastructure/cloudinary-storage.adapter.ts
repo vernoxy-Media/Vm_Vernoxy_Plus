@@ -28,9 +28,11 @@ export class CloudinaryStorageAdapter implements FileStoragePort {
       this.logger.log('Cloudinary storage driver initialized successfully.');
     } else {
       this.isConfigured = false;
-      this.logger.warn(
-        'Cloudinary credentials (CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET) not provided. Falling back to local/tmp disk storage until configured.',
-      );
+      if (process.env.STORAGE_DRIVER === 'cloudinary') {
+        this.logger.warn(
+          'Cloudinary credentials (CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET) not provided. Falling back to local/tmp disk storage until configured.',
+        );
+      }
     }
   }
 
