@@ -4,6 +4,7 @@
   "private": true,
   "packageManager": "pnpm@12.10.1",
   "scripts": {
+    "postinstall": "pnpm --filter @vernoxy-pulse/api db:generate",
     "db:migrate": "dbmate --env DIRECT_URL --migrations-dir ./database/migrations --migrations-table dbmate.schema_migrations --no-dump-schema up",
     "db:rollback": "dbmate --env DIRECT_URL --migrations-dir ./database/migrations --migrations-table dbmate.schema_migrations --no-dump-schema down",
     "db:new": "dbmate --migrations-dir ./database/migrations new",
