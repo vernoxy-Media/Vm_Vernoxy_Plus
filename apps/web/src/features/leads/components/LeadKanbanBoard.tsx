@@ -4,12 +4,17 @@ import {
   DragEndEvent,
   DragOverlay,
   DragStartEvent,
+  DragOverEvent,
   PointerSensor,
   useSensor,
   useSensors,
   useDroppable,
   defaultDropAnimationSideEffects,
   DropAnimation,
+  CollisionDetection,
+  pointerWithin,
+  closestCorners,
+  Over,
 } from '@dnd-kit/core';
 import { Plus } from 'lucide-react';
 import { Lead } from '../api/leads.api';
@@ -58,6 +63,8 @@ const STAGES = [
   },
 ];
 
+const VALID_STAGES = STAGES.map((s) => s.name);
+
 const dropAnimationConfig: DropAnimation = {
   sideEffects: defaultDropAnimationSideEffects({
     styles: {
@@ -80,6 +87,7 @@ interface KanbanColumnProps {
   onAdd: () => void;
   activeLead: Lead | null;
   sourceStageTitle: string | null;
+  isOverTarget: boolean;
 }
 
 const KanbanColumn: React.FC<KanbanColumnProps> = ({
@@ -92,11 +100,17 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
   onAdd,
   activeLead,
   sourceStageTitle,
+  isOverTarget,
 }) => {
-  const { setNodeRef, isOver } = useDroppable({
+  const { setNodeRef, isOver: nodeIsOver } = useDroppable({
     id: stage.name,
+    data: {
+      type: 'Column',
+      stage: stage.name,
+    },
   });
 
+  const isOver = isOverTarget || nodeIsOver;
   const isDraggingAny = activeLead !== null;
   const isSourceStage = activeLead?.lead_stage === stage.name;
 
@@ -208,42 +222,112 @@ export const LeadKanbanBoard: React.FC<LeadKanbanBoardProps> = ({
   onConvertLead,
   onAddLeadToStage,
 }) => {
+  const [localLeads, setLocalLeads] = React.useState<Lead[]>(leads);
   const [activeLead, setActiveLead] = React.useState<Lead | null>(null);
+  const [overStage, setOverStage] = React.useState<string | null>(null);
+
+  // Synchronize local board whenever server leads update
+  React.useEffect(() => {
+    setLocalLeads(leads);
+  }, [leads]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: 5, // Responsive 5px gesture allows immediate, smooth drag start
       },
     })
   );
 
+  /**
+   * Robust resolver that identifies the target column stage whether the user drops
+   * on the column, the column header, the drop indicator box, or another lead card.
+   */
+  const getStageFromDroppable = (over: Over | null): string | null => {
+    if (!over) return null;
+    const overIdStr = String(over.id);
+
+    // 1. Direct column ID match (e.g. 'Contacted')
+    if (VALID_STAGES.includes(overIdStr)) {
+      return overIdStr;
+    }
+
+    // 2. Droppable data stage payload
+    const dataStage = over.data.current?.stage;
+    if (dataStage && VALID_STAGES.includes(dataStage)) {
+      return dataStage;
+    }
+
+    // 3. Dropped onto another lead card with attached lead data
+    const leadData = over.data.current?.lead as Lead | undefined;
+    if (leadData?.lead_stage && VALID_STAGES.includes(leadData.lead_stage)) {
+      return leadData.lead_stage;
+    }
+
+    // 4. Fallback: Search by over lead ID among current local leads
+    const overLeadId = parseInt(overIdStr, 10);
+    if (!isNaN(overLeadId)) {
+      const match = localLeads.find((l) => l.lead_id === overLeadId);
+      if (match?.lead_stage && VALID_STAGES.includes(match.lead_stage)) {
+        return match.lead_stage;
+      }
+    }
+
+    return null;
+  };
+
+  /**
+   * Collision detection prioritizing exact pointer position, falling back to closest corners.
+   * Eliminates dead zones and dropped drag events.
+   */
+  const collisionDetectionStrategy: CollisionDetection = (args) => {
+    const pointerCollisions = pointerWithin(args);
+    if (pointerCollisions.length > 0) {
+      return pointerCollisions;
+    }
+    return closestCorners(args);
+  };
+
   const handleDragStart = (event: DragStartEvent) => {
-    const lead = event.active.data.current?.lead as Lead;
+    const leadId = Number(event.active.id);
+    const lead = localLeads.find((l) => l.lead_id === leadId) || (event.active.data.current?.lead as Lead);
     if (lead) {
       setActiveLead(lead);
     }
   };
 
+  const handleDragOver = (event: DragOverEvent) => {
+    const { over } = event;
+    const targetStage = getStageFromDroppable(over);
+    setOverStage(targetStage);
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveLead(null);
+    setOverStage(null);
 
     if (!over) return;
 
     const leadId = Number(active.id);
-    const targetStage = String(over.id);
+    const targetStage = getStageFromDroppable(over);
+    if (!targetStage) return;
 
-    const lead = leads.find((l) => l.lead_id === leadId);
-    if (!lead) return;
+    const lead = localLeads.find((l) => l.lead_id === leadId);
+    if (!lead || lead.lead_stage === targetStage) return;
 
-    if (lead.lead_stage !== targetStage) {
-      onStageChange(leadId, targetStage);
-    }
+    // 1. Optimistically update localLeads immediately so the card NEVER snaps back
+    setLocalLeads((prev) =>
+      prev.map((l) => (l.lead_id === leadId ? { ...l, lead_stage: targetStage } : l))
+    );
+
+    // 2. Dispatch state update to parent & backend API
+    onStageChange(leadId, targetStage);
   };
 
   const handleDragCancel = () => {
     setActiveLead(null);
+    setOverStage(null);
   };
 
   const sourceStageConfig = React.useMemo(() => {
@@ -263,7 +347,7 @@ export const LeadKanbanBoard: React.FC<LeadKanbanBoardProps> = ({
       'On Hold': [],
     };
 
-    leads.forEach((lead) => {
+    localLeads.forEach((lead) => {
       const stage = lead.lead_stage || 'New';
       if (grouped[stage]) {
         grouped[stage].push(lead);
@@ -273,12 +357,14 @@ export const LeadKanbanBoard: React.FC<LeadKanbanBoardProps> = ({
     });
 
     return grouped;
-  }, [leads]);
+  }, [localLeads]);
 
   return (
     <DndContext
       sensors={sensors}
+      collisionDetection={collisionDetectionStrategy}
       onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
@@ -295,6 +381,7 @@ export const LeadKanbanBoard: React.FC<LeadKanbanBoardProps> = ({
             onAdd={() => onAddLeadToStage(stage.name)}
             activeLead={activeLead}
             sourceStageTitle={sourceStageTitle}
+            isOverTarget={overStage === stage.name}
           />
         ))}
       </div>

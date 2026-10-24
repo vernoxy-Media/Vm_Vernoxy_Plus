@@ -95,7 +95,11 @@ export const LeadCard: React.FC<LeadCardProps> = ({
 
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: String(lead.lead_id),
-    data: { lead },
+    data: {
+      type: 'Lead',
+      lead,
+      stage: lead.lead_stage || 'New',
+    },
     disabled: isOverlay,
   });
 
