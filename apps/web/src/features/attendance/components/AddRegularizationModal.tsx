@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Upload, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
-import { createRegularizationRequest } from '../api/attendance.api';
+import { createRegularizationRequest, fetchDayDetail } from '../api/attendance.api';
 import type { CreateRegularizationPayload } from '../types/attendance.types';
 
 interface AddRegularizationModalProps {
@@ -46,6 +46,8 @@ export const AddRegularizationModal: React.FC<AddRegularizationModalProps> = ({
   const [requestType, setRequestType] = useState('Missing Check-out');
   const [currentCheckIn, setCurrentCheckIn] = useState(initialCheckIn || '--');
   const [currentCheckOut, setCurrentCheckOut] = useState(initialCheckOut || '--');
+  const [currentCheckInRaw, setCurrentCheckInRaw] = useState<string | null>(initialCheckIn || null);
+  const [currentCheckOutRaw, setCurrentCheckOutRaw] = useState<string | null>(initialCheckOut || null);
   const [requestedCheckIn, setRequestedCheckIn] = useState('09:30');
   const [requestedCheckOut, setRequestedCheckOut] = useState('18:30');
   const [reason, setReason] = useState('Forgot to Punch');
@@ -56,9 +58,66 @@ export const AddRegularizationModal: React.FC<AddRegularizationModalProps> = ({
 
   useEffect(() => {
     if (initialDate) setAttendanceDate(initialDate);
-    if (initialCheckIn) setCurrentCheckIn(initialCheckIn);
-    if (initialCheckOut) setCurrentCheckOut(initialCheckOut);
+    if (initialCheckIn) {
+      setCurrentCheckIn(initialCheckIn);
+      setCurrentCheckInRaw(initialCheckIn);
+    }
+    if (initialCheckOut) {
+      setCurrentCheckOut(initialCheckOut);
+      setCurrentCheckOutRaw(initialCheckOut);
+    }
   }, [initialDate, initialCheckIn, initialCheckOut]);
+
+  // Dynamically fetch day details when attendanceDate changes
+  useEffect(() => {
+    if (!isOpen || !attendanceDate) return;
+    let isCancelled = false;
+
+    const loadDayDetail = async () => {
+      try {
+        const detail = await fetchDayDetail(attendanceDate);
+        if (isCancelled || !detail) return;
+
+        if (detail.punched_in_at) {
+          setCurrentCheckInRaw(detail.punched_in_at);
+          const inDate = new Date(detail.punched_in_at);
+          setCurrentCheckIn(
+            !isNaN(inDate.getTime())
+              ? inDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+              : detail.punched_in_at
+          );
+        } else {
+          setCurrentCheckInRaw(null);
+          setCurrentCheckIn('--');
+        }
+
+        if (detail.punched_out_at) {
+          setCurrentCheckOutRaw(detail.punched_out_at);
+          const outDate = new Date(detail.punched_out_at);
+          setCurrentCheckOut(
+            !isNaN(outDate.getTime())
+              ? outDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+              : detail.punched_out_at
+          );
+        } else {
+          setCurrentCheckOutRaw(null);
+          setCurrentCheckOut('--');
+        }
+      } catch {
+        if (!isCancelled) {
+          setCurrentCheckIn('--');
+          setCurrentCheckOut('--');
+          setCurrentCheckInRaw(null);
+          setCurrentCheckOutRaw(null);
+        }
+      }
+    };
+
+    loadDayDetail();
+    return () => {
+      isCancelled = true;
+    };
+  }, [isOpen, attendanceDate]);
 
   if (!isOpen) return null;
 
@@ -69,6 +128,10 @@ export const AddRegularizationModal: React.FC<AddRegularizationModalProps> = ({
   const employeeLabel = user
     ? `${user.name} (EMP-${String(user.emp_id).padStart(4, '0')})`
     : 'Current Employee';
+
+  const formatIsoTime = (dateStr: string, timeStr: string) => {
+    return `${dateStr}T${timeStr.length === 5 ? timeStr + ':00' : timeStr}.000Z`;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,10 +170,10 @@ export const AddRegularizationModal: React.FC<AddRegularizationModalProps> = ({
         emp_id: user?.emp_id,
         work_date: attendanceDate,
         request_type: requestType,
-        current_check_in_at: currentCheckIn !== '--' ? currentCheckIn : null,
-        current_check_out_at: currentCheckOut !== '--' ? currentCheckOut : null,
-        requested_check_in_at: isCheckInRequired ? `${attendanceDate}T${requestedCheckIn}:00.000Z` : null,
-        requested_check_out_at: isCheckOutRequired ? `${attendanceDate}T${requestedCheckOut}:00.000Z` : null,
+        current_check_in_at: currentCheckInRaw || (currentCheckIn !== '--' ? currentCheckIn : null),
+        current_check_out_at: currentCheckOutRaw || (currentCheckOut !== '--' ? currentCheckOut : null),
+        requested_check_in_at: isCheckInRequired ? formatIsoTime(attendanceDate, requestedCheckIn) : null,
+        requested_check_out_at: isCheckOutRequired ? formatIsoTime(attendanceDate, requestedCheckOut) : null,
         reason,
         remarks: remarks.trim(),
         attachment_name: attachment ? attachment.name : null,

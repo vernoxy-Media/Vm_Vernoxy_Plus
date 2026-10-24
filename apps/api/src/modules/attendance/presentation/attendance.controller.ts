@@ -308,14 +308,25 @@ export class AttendanceController {
       const viewerEmpId = req.user!.emp_id;
       const targetEmpId = dto.emp_id || viewerEmpId;
 
+      const parseDate = (val?: string | null): Date | null => {
+        if (!val || val === '--') return null;
+        const d = new Date(val);
+        if (!isNaN(d.getTime())) return d;
+        if (/^\d{1,2}:\d{2}(:\d{2})?/.test(val)) {
+          const combined = new Date(`${dto.work_date}T${val.length === 5 ? val + ':00' : val}.000Z`);
+          if (!isNaN(combined.getTime())) return combined;
+        }
+        return null;
+      };
+
       return await this.attendanceRepo.createRegularization({
         empId: targetEmpId,
         workDate: dto.work_date,
         requestType: dto.request_type,
-        currentCheckInAt: dto.current_check_in_at ? new Date(dto.current_check_in_at) : null,
-        currentCheckOutAt: dto.current_check_out_at ? new Date(dto.current_check_out_at) : null,
-        requestedCheckInAt: dto.requested_check_in_at ? new Date(dto.requested_check_in_at) : null,
-        requestedCheckOutAt: dto.requested_check_out_at ? new Date(dto.requested_check_out_at) : null,
+        currentCheckInAt: parseDate(dto.current_check_in_at),
+        currentCheckOutAt: parseDate(dto.current_check_out_at),
+        requestedCheckInAt: parseDate(dto.requested_check_in_at),
+        requestedCheckOutAt: parseDate(dto.requested_check_out_at),
         reason: dto.reason,
         remarks: dto.remarks,
         attachmentUrl: dto.attachment_url,

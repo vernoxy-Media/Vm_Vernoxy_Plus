@@ -428,7 +428,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
     attachmentName?: string | null;
     createdBy: number;
   }): Promise<AttendanceCorrectionEntity> {
-    return this.prisma.$transaction(async (tx) => {
+    const correctionId = await this.prisma.$transaction(async (tx) => {
       // 1. Insert correction
       const [inserted] = await tx.$queryRaw<any[]>`
         INSERT INTO attendance_corrections (
@@ -484,8 +484,10 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
         )
       `;
 
-      return (await this.findCorrectionById(inserted.correction_id))!;
+      return inserted.correction_id;
     });
+
+    return (await this.findCorrectionById(correctionId))!;
   }
 
   async cancelRegularization(correctionId: number, empId: number): Promise<AttendanceCorrectionEntity> {
@@ -581,13 +583,11 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
             check_in_at: checkIn,
             check_out_at: checkOut,
             production_minutes: durationMinutes,
-            day_status: dayStatus as any,
-            is_regularized: true,
-            check_in_mode: 'Regularized',
-            regularization_id: correctionId,
+            day_status: dayStatus,
+            note: `Regularized via ${existing.requestId || `REG-${correctionId}`}`,
             updated_at: new Date(),
             updated_by: approverId,
-          } as any,
+          },
         });
       } else {
         await tx.attendance_days.create({
@@ -597,12 +597,10 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
             check_in_at: checkIn,
             check_out_at: checkOut,
             production_minutes: durationMinutes,
-            day_status: dayStatus as any,
-            is_regularized: true,
-            check_in_mode: 'Regularized',
-            regularization_id: correctionId,
+            day_status: dayStatus,
+            note: `Regularized via ${existing.requestId || `REG-${correctionId}`}`,
             created_by: approverId,
-          } as any,
+          },
         });
       }
     });
