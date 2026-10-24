@@ -22,6 +22,8 @@ out/
 storage/
 uploads/
 /uploads/
+packages/api-client/src/**/*.js
+packages/api-client/src/**/*.d.ts
 
 # ==========================================
 # Environment & Sensitive Files

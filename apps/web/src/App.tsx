@@ -6,7 +6,6 @@ import { SocketProvider } from './core/socket/SocketContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AdminRoute } from './components/AdminRoute';
 import { LoginPage } from './pages/LoginPage';
-import { VerifyOtpPage } from './pages/VerifyOtpPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { ChangePasswordPage } from './pages/ChangePasswordPage';
