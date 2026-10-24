@@ -10,6 +10,10 @@ export const ALLOWED_LOOKUP_TYPES = [
   'lead_source',
   'lost_reason',
   'person_department',
+  'request_type',
+  'attendance_reason',
+  'shift_type',
+  'leave_type',
 ];
 
 export class ListLookupsUseCase {

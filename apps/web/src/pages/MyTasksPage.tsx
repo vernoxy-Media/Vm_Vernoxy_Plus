@@ -32,9 +32,12 @@ import { TaskBoard } from '../features/tasks/components/TaskBoard';
 import { TaskListView } from '../features/tasks/components/TaskListView';
 import { TaskDrawer } from '../features/tasks/components/TaskDrawer';
 import { QuickTaskModal } from '../features/tasks/components/QuickTaskModal';
+import { useSearchParams } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../core/socket/SocketContext';
+import { TaskManagementPage } from './admin/TaskManagementPage';
 
-export const MyTasksPage: React.FC = () => {
+export const MyTasksView: React.FC = () => {
   const [filters, setFilters] = useState<TaskBoardQueryDto>({});
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
@@ -191,9 +194,6 @@ export const MyTasksPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">My Tasks</h1>
-          <p className="text-sm text-slate-500 mt-0.5">
-            Tasks assigned to you and quick tasks created by you.
-          </p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -288,3 +288,69 @@ export const MyTasksPage: React.FC = () => {
     </div>
   );
 };
+
+export const MyTasksPage: React.FC = () => {
+  const { user } = useAuth();
+  const isAdmin = Boolean(
+    user?.access?.can_manage_organization ||
+    user?.role?.role_name?.toLowerCase().includes('admin') ||
+    user?.role?.role_name?.toLowerCase().includes('manager')
+  );
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentTab = searchParams.get('tab');
+  const activeTab = isAdmin && currentTab === 'management' ? 'management' : 'my-tasks';
+
+  const handleTabChange = (tab: 'my-tasks' | 'management') => {
+    if (tab === 'management') {
+      setSearchParams({ tab: 'management' });
+    } else {
+      setSearchParams({});
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* 2 Navigation Tabs: My Tasks & Task Management (Task Management is only visible to Admin) */}
+      {isAdmin && (
+        <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+          <button
+            type="button"
+            id="tab-my-tasks"
+            onClick={() => handleTabChange('my-tasks')}
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition cursor-pointer ${
+              activeTab === 'my-tasks'
+                ? 'bg-slate-900 text-white shadow-xs dark:bg-slate-100 dark:text-slate-900'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200'
+            }`}
+          >
+            <CheckSquare className="w-4 h-4 text-blue-500" />
+            <span>My Tasks</span>
+          </button>
+
+          <button
+            type="button"
+            id="tab-task-management"
+            onClick={() => handleTabChange('management')}
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition cursor-pointer ${
+              activeTab === 'management'
+                ? 'bg-slate-900 text-white shadow-xs dark:bg-slate-100 dark:text-slate-900'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200'
+            }`}
+          >
+            <LayoutGrid className="w-4 h-4 text-purple-500" />
+            <span>Task Management</span>
+          </button>
+        </div>
+      )}
+
+      {/* Tab Content */}
+      {activeTab === 'management' && isAdmin ? (
+        <TaskManagementPage />
+      ) : (
+        <MyTasksView />
+      )}
+    </div>
+  );
+};
+

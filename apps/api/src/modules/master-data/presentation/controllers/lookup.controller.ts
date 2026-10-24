@@ -46,7 +46,7 @@ function toDto(item: MasterLookupItem): MasterLookupItemDto {
 
 @ApiTags('Master Data - Lookups')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, CompanyAdminGuard)
+@UseGuards(JwtAuthGuard)
 @Controller('lookups')
 export class LookupController {
   constructor(

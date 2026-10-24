@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, Upload, AlertCircle } from 'lucide-react';
+import { X, FileText, Send, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { createRegularizationRequest, fetchDayDetail } from '../api/attendance.api';
+import { useLookupsQuery } from '../../../hooks/use-master-data';
 import type { CreateRegularizationPayload } from '../types/attendance.types';
 
 interface AddRegularizationModalProps {
@@ -14,8 +15,9 @@ interface AddRegularizationModalProps {
 }
 
 const REQUEST_TYPES = [
-  'Missing Check-in',
-  'Missing Check-out',
+  'Missing Clock Out',
+  'Missing Clock In',
+  'Both Clock In & Out',
   'Incorrect Time',
   'Full Day Missed',
   'On Duty / Field Work',
@@ -40,10 +42,23 @@ export const AddRegularizationModal: React.FC<AddRegularizationModalProps> = ({
 }) => {
   const { user } = useAuth();
 
+  const { data: requestTypeOptions } = useLookupsQuery('request_type');
+  const { data: reasonOptions } = useLookupsQuery('attendance_reason');
+
+  const requestTypes =
+    requestTypeOptions && requestTypeOptions.length > 0
+      ? requestTypeOptions.map((o) => o.label)
+      : REQUEST_TYPES;
+
+  const reasons =
+    reasonOptions && reasonOptions.length > 0
+      ? reasonOptions.map((o) => o.label)
+      : REASONS;
+
   const [attendanceDate, setAttendanceDate] = useState(
     initialDate || new Date().toISOString().slice(0, 10)
   );
-  const [requestType, setRequestType] = useState('Missing Check-out');
+  const [requestType, setRequestType] = useState('Missing Clock Out');
   const [currentCheckIn, setCurrentCheckIn] = useState(initialCheckIn || '--');
   const [currentCheckOut, setCurrentCheckOut] = useState(initialCheckOut || '--');
   const [currentCheckInRaw, setCurrentCheckInRaw] = useState<string | null>(initialCheckIn || null);
@@ -51,22 +66,32 @@ export const AddRegularizationModal: React.FC<AddRegularizationModalProps> = ({
   const [requestedCheckIn, setRequestedCheckIn] = useState('09:30');
   const [requestedCheckOut, setRequestedCheckOut] = useState('18:30');
   const [reason, setReason] = useState('Forgot to Punch');
-  const [remarks, setRemarks] = useState('');
+  const [otherReason, setOtherReason] = useState('');
+  const [reasonDescription, setReasonDescription] = useState('');
   const [attachment, setAttachment] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const isOtherReason = reason.trim().toLowerCase() === 'other';
 
   useEffect(() => {
     if (initialDate) setAttendanceDate(initialDate);
     if (initialCheckIn) {
       setCurrentCheckIn(initialCheckIn);
       setCurrentCheckInRaw(initialCheckIn);
+      setRequestedCheckIn(initialCheckIn.slice(0, 5));
     }
     if (initialCheckOut) {
       setCurrentCheckOut(initialCheckOut);
       setCurrentCheckOutRaw(initialCheckOut);
+      setRequestedCheckOut(initialCheckOut.slice(0, 5));
     }
-  }, [initialDate, initialCheckIn, initialCheckOut]);
+    if (!isOpen) {
+      setOtherReason('');
+      setReasonDescription('');
+      setError(null);
+    }
+  }, [isOpen, initialDate, initialCheckIn, initialCheckOut]);
 
   // Dynamically fetch day details when attendanceDate changes
   useEffect(() => {
@@ -81,11 +106,11 @@ export const AddRegularizationModal: React.FC<AddRegularizationModalProps> = ({
         if (detail.punched_in_at) {
           setCurrentCheckInRaw(detail.punched_in_at);
           const inDate = new Date(detail.punched_in_at);
-          setCurrentCheckIn(
-            !isNaN(inDate.getTime())
-              ? inDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
-              : detail.punched_in_at
-          );
+          const timeStr = !isNaN(inDate.getTime())
+            ? inDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+            : detail.punched_in_at;
+          setCurrentCheckIn(timeStr);
+          setRequestedCheckIn(timeStr);
         } else {
           setCurrentCheckInRaw(null);
           setCurrentCheckIn('--');
@@ -94,11 +119,11 @@ export const AddRegularizationModal: React.FC<AddRegularizationModalProps> = ({
         if (detail.punched_out_at) {
           setCurrentCheckOutRaw(detail.punched_out_at);
           const outDate = new Date(detail.punched_out_at);
-          setCurrentCheckOut(
-            !isNaN(outDate.getTime())
-              ? outDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
-              : detail.punched_out_at
-          );
+          const timeStr = !isNaN(outDate.getTime())
+            ? outDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+            : detail.punched_out_at;
+          setCurrentCheckOut(timeStr);
+          setRequestedCheckOut(timeStr);
         } else {
           setCurrentCheckOutRaw(null);
           setCurrentCheckOut('--');
@@ -121,13 +146,21 @@ export const AddRegularizationModal: React.FC<AddRegularizationModalProps> = ({
 
   if (!isOpen) return null;
 
-  const isCheckInRequired = requestType !== 'Missing Check-out';
-  const isCheckOutRequired = requestType !== 'Missing Check-in';
-  const isAttachmentRequired = requestType === 'On Duty / Field Work';
+  const isCheckInRequired =
+    requestType === 'Missing Clock In' ||
+    requestType === 'Both Clock In & Out' ||
+    requestType === 'Incorrect Time' ||
+    requestType === 'Full Day Missed' ||
+    requestType === 'On Duty / Field Work';
 
-  const employeeLabel = user
-    ? `${user.name} (EMP-${String(user.emp_id).padStart(4, '0')})`
-    : 'Current Employee';
+  const isCheckOutRequired =
+    requestType === 'Missing Clock Out' ||
+    requestType === 'Both Clock In & Out' ||
+    requestType === 'Incorrect Time' ||
+    requestType === 'Full Day Missed' ||
+    requestType === 'On Duty / Field Work';
+
+  const isAttachmentRequired = requestType === 'On Duty / Field Work';
 
   const formatIsoTime = (dateStr: string, timeStr: string) => {
     return `${dateStr}T${timeStr.length === 5 ? timeStr + ':00' : timeStr}.000Z`;
@@ -142,13 +175,8 @@ export const AddRegularizationModal: React.FC<AddRegularizationModalProps> = ({
       return;
     }
 
-    if (remarks.trim().length < 10) {
-      setError('Remarks must be at least 10 characters long');
-      return;
-    }
-
-    if (remarks.trim().length > 250) {
-      setError('Remarks cannot exceed 250 characters');
+    if (reasonDescription.trim().length > 0 && reasonDescription.trim().length < 5) {
+      setError('Please provide a clearer reason for adjustment');
       return;
     }
 
@@ -166,6 +194,14 @@ export const AddRegularizationModal: React.FC<AddRegularizationModalProps> = ({
 
     setIsSubmitting(true);
     try {
+      const finalReason = isOtherReason && otherReason.trim()
+        ? `Other: ${otherReason.trim()}`
+        : reason;
+
+      const fullReasonText = reasonDescription.trim()
+        ? `${finalReason} - ${reasonDescription.trim()}`
+        : finalReason;
+
       const payload: CreateRegularizationPayload = {
         emp_id: user?.emp_id,
         work_date: attendanceDate,
@@ -174,8 +210,8 @@ export const AddRegularizationModal: React.FC<AddRegularizationModalProps> = ({
         current_check_out_at: currentCheckOutRaw || (currentCheckOut !== '--' ? currentCheckOut : null),
         requested_check_in_at: isCheckInRequired ? formatIsoTime(attendanceDate, requestedCheckIn) : null,
         requested_check_out_at: isCheckOutRequired ? formatIsoTime(attendanceDate, requestedCheckOut) : null,
-        reason,
-        remarks: remarks.trim(),
+        reason: fullReasonText,
+        remarks: reasonDescription.trim() || finalReason,
         attachment_name: attachment ? attachment.name : null,
       };
 
@@ -189,252 +225,249 @@ export const AddRegularizationModal: React.FC<AddRegularizationModalProps> = ({
     }
   };
 
+  // Date Header formatted: "October 24, 2026"
+  const [y, m, d] = attendanceDate.split('-').map(Number);
+  const dateObj = new Date(Date.UTC(y, m - 1, d));
+  const fullDateFormatted = dateObj.toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-      <div className="relative w-full max-w-3xl rounded-lg border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-slate-800">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-            Add Regularization Request
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-300"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 overflow-hidden select-none"
+    >
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+      />
 
-        {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {error && (
-            <div className="flex items-center gap-2 rounded border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300">
-              <AlertCircle className="h-4 w-4 shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          {/* Row 1: Request ID, Employee, Attendance Date */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
+        <div className="w-screen max-w-md bg-white shadow-2xl flex flex-col justify-between border-l border-slate-200 animate-in slide-in-from-right duration-250">
+          {/* Header matching Image 3 */}
+          <div className="p-6 border-b border-slate-100 flex items-start justify-between bg-white shrink-0">
             <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Request ID
-              </label>
-              <input
-                type="text"
-                disabled
-                value="REG-(auto)"
-                className="w-full rounded border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-800/60 dark:text-slate-400 cursor-not-allowed"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Employee <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
-                disabled
-                value={employeeLabel}
-                className="w-full rounded border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-800/60 dark:text-slate-400 cursor-not-allowed"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Attendance Date <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="date"
-                required
-                max={new Date().toISOString().slice(0, 10)}
-                value={attendanceDate}
-                onChange={(e) => setAttendanceDate(e.target.value)}
-                className="w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:border-slate-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-              />
-            </div>
-          </div>
-
-          {/* Row 2: Request Type, Current Check-in, Current Check-out */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Request Type <span className="text-rose-500">*</span>
-              </label>
-              <select
-                value={requestType}
-                onChange={(e) => setRequestType(e.target.value)}
-                className="w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:border-slate-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-              >
-                {REQUEST_TYPES.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Current Check-in
-              </label>
-              <input
-                type="text"
-                disabled
-                value={currentCheckIn}
-                className="w-full rounded border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-800/60 dark:text-slate-400 cursor-not-allowed"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Current Check-out
-              </label>
-              <input
-                type="text"
-                disabled
-                value={currentCheckOut}
-                className="w-full rounded border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-800/60 dark:text-slate-400 cursor-not-allowed"
-              />
-            </div>
-          </div>
-
-          {/* Row 3: Requested Check-in, Requested Check-out, Reason */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Requested Check-in {isCheckInRequired && <span className="text-rose-500">*</span>}
-              </label>
-              <input
-                type="time"
-                disabled={!isCheckInRequired}
-                value={isCheckInRequired ? requestedCheckIn : ''}
-                onChange={(e) => setRequestedCheckIn(e.target.value)}
-                className={`w-full rounded border px-3 py-2 text-sm focus:outline-none ${
-                  isCheckInRequired
-                    ? 'border-slate-300 bg-white text-slate-800 focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100'
-                    : 'border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed dark:border-slate-800 dark:bg-slate-800/60'
-                }`}
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Requested Check-out {isCheckOutRequired && <span className="text-rose-500">*</span>}
-              </label>
-              <input
-                type="time"
-                disabled={!isCheckOutRequired}
-                value={isCheckOutRequired ? requestedCheckOut : ''}
-                onChange={(e) => setRequestedCheckOut(e.target.value)}
-                className={`w-full rounded border px-3 py-2 text-sm focus:outline-none ${
-                  isCheckOutRequired
-                    ? 'border-slate-300 bg-white text-slate-800 focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100'
-                    : 'border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed dark:border-slate-800 dark:bg-slate-800/60'
-                }`}
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Reason <span className="text-rose-500">*</span>
-              </label>
-              <select
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                className="w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:border-slate-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-              >
-                {REASONS.map((r) => (
-                  <option key={r} value={r}>
-                    {r}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Row 4: Remarks */}
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
-                Remarks <span className="text-rose-500">*</span>
-              </label>
-              <span className={`text-[11px] ${remarks.length < 10 || remarks.length > 250 ? 'text-amber-600' : 'text-slate-400'}`}>
-                {remarks.length} / 250 characters (min 10)
-              </span>
-            </div>
-            <textarea
-              rows={3}
-              required
-              minLength={10}
-              maxLength={250}
-              placeholder="Left the office in a hurry and forgot to check out."
-              value={remarks}
-              onChange={(e) => setRemarks(e.target.value)}
-              className="w-full rounded border border-slate-300 bg-white p-3 text-sm text-slate-800 focus:border-slate-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-            />
-          </div>
-
-          {/* Row 5: Attachment and Status */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-            <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Attachment {isAttachmentRequired && <span className="text-rose-500">*</span>}
-              </label>
-              <div className="flex items-center gap-3">
-                <label className="flex items-center gap-2 cursor-pointer rounded border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
-                  <Upload className="h-3.5 w-3.5" />
-                  <span>Choose file</span>
-                  <input
-                    type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    className="hidden"
-                    onChange={(e) => {
-                      if (e.target.files && e.target.files[0]) {
-                        setAttachment(e.target.files[0]);
-                      }
-                    }}
-                  />
-                </label>
-                <span className="text-xs text-slate-500 truncate max-w-xs">
-                  {attachment ? attachment.name : 'PDF / JPG / PNG, max 5 MB'}
-                </span>
+              <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                ATTENDANCE INSIGHT
+              </div>
+              <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight mt-1">
+                {fullDateFormatted}
+              </h2>
+              <div className="flex items-center gap-1.5 text-xs font-bold text-rose-500 mt-1 tracking-wide">
+                <span className="w-2 h-2 rounded-full bg-rose-500 inline-block shrink-0" />
+                <span>SHIFT ● 09:00 AM — 05:30 PM</span>
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Status
-              </label>
-              <input
-                type="text"
-                disabled
-                value="Pending (after submit)"
-                className="w-full rounded border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-800/60 dark:text-slate-400 cursor-not-allowed"
-              />
-            </div>
+            <button
+              onClick={onClose}
+              type="button"
+              className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer shrink-0"
+              aria-label="Close form"
+            >
+              <X className="w-4 h-4 stroke-[2.5]" />
+            </button>
           </div>
 
-          {/* Footer Actions */}
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isSubmitting}
-              className="rounded border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="rounded bg-slate-800 px-5 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white"
-            >
-              {isSubmitting ? 'Submitting...' : 'Submit'}
-            </button>
+          {/* Form Body matching Image 3 */}
+          <div className="flex-1 overflow-y-auto p-6">
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Form Title Banner */}
+              <div className="flex items-center gap-2.5 pb-1">
+                <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
+                  <FileText className="w-4 h-4 stroke-[2.2]" />
+                </div>
+                <h3 className="text-base font-bold text-slate-900 tracking-tight">
+                  Regularization Form
+                </h3>
+              </div>
+
+              {error && (
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 font-semibold flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
+
+              {/* Attendance Date (editable if needed) */}
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                  ATTENDANCE DATE <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  required
+                  max={new Date().toISOString().slice(0, 10)}
+                  value={attendanceDate}
+                  onChange={(e) => setAttendanceDate(e.target.value)}
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-500 transition shadow-2xs cursor-pointer font-mono"
+                />
+              </div>
+
+              {/* MISSING PUNCH TYPE * */}
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                  MISSING PUNCH TYPE <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  value={requestType}
+                  onChange={(e) => setRequestType(e.target.value)}
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-500 transition shadow-2xs cursor-pointer"
+                >
+                  {requestTypes.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* CORRECT IN TIME */}
+              {isCheckInRequired && (
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                    CORRECT IN TIME <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="time"
+                    required
+                    value={requestedCheckIn}
+                    onChange={(e) => setRequestedCheckIn(e.target.value)}
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-500 transition shadow-2xs font-mono"
+                  />
+                </div>
+              )}
+
+              {/* CORRECT OUT TIME */}
+              {isCheckOutRequired && (
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                    CORRECT OUT TIME <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="time"
+                    required
+                    value={requestedCheckOut}
+                    onChange={(e) => setRequestedCheckOut(e.target.value)}
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-500 transition shadow-2xs font-mono"
+                  />
+                </div>
+              )}
+
+              {/* REASON CATEGORY */}
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                  REASON CATEGORY <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-500 transition shadow-2xs cursor-pointer"
+                >
+                  {reasons.map((r) => (
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* SPECIFY REASON IF OTHER */}
+              {isOtherReason && (
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                    SPECIFY REASON <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Specify your reason..."
+                    value={otherReason}
+                    onChange={(e) => setOtherReason(e.target.value)}
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-500 transition shadow-2xs"
+                  />
+                </div>
+              )}
+
+              {/* Reason for Adjustment (Textarea) */}
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                  Reason for Adjustment
+                </label>
+                <textarea
+                  rows={4}
+                  placeholder="Tell us why this record needs correction..."
+                  value={reasonDescription}
+                  onChange={(e) => setReasonDescription(e.target.value)}
+                  className="w-full rounded-xl border border-slate-300 bg-white p-3.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-500 transition shadow-2xs resize-none"
+                />
+              </div>
+
+              {/* Attachment / Proof (Optional) */}
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                  Attachment / Proof (Optional)
+                </label>
+                <div className="rounded-xl border border-slate-300 bg-white px-3.5 py-2 flex items-center justify-between shadow-2xs">
+                  <input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] || null;
+                      setAttachment(file);
+                    }}
+                    className="text-xs text-slate-600 file:mr-3 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 cursor-pointer"
+                  />
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1 font-medium">
+                  You can upload an image or PDF to support your request.
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="flex-1 min-h-[42px] px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs"
+                >
+                  <X className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <span>Cancel</span>
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex-1 min-h-[42px] px-4 py-2.5 rounded-xl bg-[#52637a] hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition cursor-pointer disabled:opacity-50"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Submitting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-3.5 h-3.5" />
+                      <span>Submit Request</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
-        </form>
+
+          {/* Footer matching Image 3 */}
+          <div className="py-4 px-6 border-t border-slate-100 text-center shrink-0 bg-white">
+            <p className="text-[11px] font-medium text-slate-400">
+              © 2026 Vernoxy Systems ● Professional Attendance Mode
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );

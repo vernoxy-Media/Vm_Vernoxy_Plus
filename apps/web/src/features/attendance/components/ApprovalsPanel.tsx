@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Search, CheckSquare, Square, Eye } from 'lucide-react';
 import { fetchRegularizations, bulkApproveRegularizationRequests } from '../api/attendance.api';
+import { useLookupsQuery } from '../../../hooks/use-master-data';
 import type { AttendanceRegularization } from '../types/attendance.types';
 import { RegularizationDetailModal } from './RegularizationDetailModal';
 
@@ -11,6 +12,11 @@ export const ApprovalsPanel: React.FC = () => {
   const [fromDate, setFromDate] = useState<string>('');
   const [toDate, setToDate] = useState<string>('');
   const [search, setSearch] = useState<string>('');
+
+  const { data: requestTypeOptions } = useLookupsQuery('request_type');
+  const requestTypes = requestTypeOptions && requestTypeOptions.length > 0
+    ? requestTypeOptions.map((o) => o.label)
+    : ['Missing Check-in', 'Missing Check-out', 'Incorrect Time', 'Full Day Missed', 'On Duty / Field Work'];
 
   const [requests, setRequests] = useState<AttendanceRegularization[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -172,11 +178,11 @@ export const ApprovalsPanel: React.FC = () => {
             className="w-full rounded border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
           >
             <option value="All">All</option>
-            <option value="Missing Check-in">Missing Check-in</option>
-            <option value="Missing Check-out">Missing Check-out</option>
-            <option value="Incorrect Time">Incorrect Time</option>
-            <option value="Full Day Missed">Full Day Missed</option>
-            <option value="On Duty / Field Work">On Duty / Field Work</option>
+            {requestTypes.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
           </select>
         </div>
 

@@ -75,7 +75,6 @@ export const EmployeesPage: React.FC = () => {
         {/* Page Header */}
         <PageHeader
           title="Employees"
-          description="Manage workforce records, department assignments, reporting structure, and accounts."
           badge={
             data?.items ? (
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200/60">

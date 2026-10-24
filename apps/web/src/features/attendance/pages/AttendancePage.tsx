@@ -261,7 +261,6 @@ export const AttendancePage: React.FC = () => {
           </div>
           <div>
             <h1 className="text-[26px] md:text-[28px] font-extrabold tracking-tight text-slate-900 leading-tight">Attendance</h1>
-            <p className="text-[13px] text-slate-500 mt-0.5">Track your attendance and manage your work hours</p>
           </div>
         </div>
 
@@ -299,6 +298,14 @@ export const AttendancePage: React.FC = () => {
         >
           Timesheet & Attendance
         </button>
+        <Link
+          to="/calendar"
+          id="attendance-view-calendar-tab-link"
+          className="inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition"
+        >
+          <Calendar className="w-3.5 h-3.5 text-teal-600" />
+          <span>Calendar</span>
+        </Link>
         <button
           type="button"
           onClick={() => setAttendanceTab('regularization')}
@@ -351,6 +358,7 @@ export const AttendancePage: React.FC = () => {
           weekLabel={weekLabel}
           monthLabel={monthLabel}
           statusLabel={statusLabel}
+          onOpenMyRequests={() => setAttendanceTab('regularization')}
         />
       )}
 

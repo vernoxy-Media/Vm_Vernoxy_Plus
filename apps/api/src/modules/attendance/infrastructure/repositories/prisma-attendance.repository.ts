@@ -539,7 +539,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
     const checkOut = existing.requestedCheckOutAt || existing.currentCheckOutAt || new Date(`${existing.workDate}T18:30:00.000Z`);
 
     const durationMinutes = Math.max(0, Math.floor((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 60000));
-    const dayStatus = durationMinutes >= 480 ? 'present' : (durationMinutes >= 240 ? 'half_day' : 'absent');
+    const dayStatus = durationMinutes >= 480 ? 'present' : (durationMinutes >= 240 ? 'half_day' : 'short');
 
     await this.prisma.$transaction(async (tx) => {
       // 1. Update approval row

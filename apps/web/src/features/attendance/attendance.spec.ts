@@ -81,3 +81,43 @@ describe('HR Policy Week Start Setting', () => {
     assert.strictEqual(getWeekStartSetting(), 'monday');
   });
 });
+
+describe('Attendance Detail Screen Calculations (Spec Screenshot)', () => {
+  it('calculates Late By minutes correctly per specification (General Shift 09:30 with 10m grace -> 09:40)', async () => {
+    const { calculateLateByMinutes } = await import('./utils/attendance-detail.utils');
+
+    // Screenshot test case: Check-in 09:48 AM -> Late By 18 min
+    assert.strictEqual(calculateLateByMinutes('09:48 AM'), 18);
+
+    // On time (before 09:30 AM)
+    assert.strictEqual(calculateLateByMinutes('09:20 AM'), 0);
+
+    // Within grace period (09:30 - 09:40 AM)
+    assert.strictEqual(calculateLateByMinutes('09:35 AM'), 0);
+    assert.strictEqual(calculateLateByMinutes('09:40 AM'), 0);
+
+    // After grace period
+    assert.strictEqual(calculateLateByMinutes('09:41 AM'), 11);
+    assert.strictEqual(calculateLateByMinutes('10:00 AM'), 30);
+
+    // Empty or no check-in
+    assert.strictEqual(calculateLateByMinutes('--'), 0);
+    assert.strictEqual(calculateLateByMinutes(null), 0);
+  });
+
+  it('calculates Early Exit By minutes correctly per specification (Shift end 18:30 / 06:30 PM)', async () => {
+    const { calculateEarlyExitMinutes } = await import('./utils/attendance-detail.utils');
+
+    // Screenshot test case: Check-out 07:05 PM -> Early Exit 0 min
+    assert.strictEqual(calculateEarlyExitMinutes('07:05 PM'), 0);
+    assert.strictEqual(calculateEarlyExitMinutes('06:30 PM'), 0);
+
+    // Left early
+    assert.strictEqual(calculateEarlyExitMinutes('06:00 PM'), 30);
+    assert.strictEqual(calculateEarlyExitMinutes('05:30 PM'), 60);
+
+    // Empty or no check-out
+    assert.strictEqual(calculateEarlyExitMinutes('--'), 0);
+    assert.strictEqual(calculateEarlyExitMinutes(null), 0);
+  });
+});

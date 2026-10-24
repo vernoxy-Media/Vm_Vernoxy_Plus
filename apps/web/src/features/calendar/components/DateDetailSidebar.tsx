@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import { useDayDetail } from '../../attendance/hooks/use-attendance';
+import { AddRegularizationModal } from '../../attendance/components/AddRegularizationModal';
+import { AttendanceDetailModal } from '../../attendance/components/AttendanceDetailModal';
 import {
   X,
   Plus,
@@ -81,6 +84,14 @@ export const DateDetailSidebar: React.FC<DateDetailSidebarProps> = ({
   const [reminderTime, setReminderTime] = useState('09:00');
   const [reminderDesc, setReminderDesc] = useState('');
   const [isSubmittingReminder, setIsSubmittingReminder] = useState(false);
+  const [isRegularizationOpen, setIsRegularizationOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+  const selectedDateYMD = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
+  const todayYMD = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;
+  const isPastOrToday = selectedDateYMD <= todayYMD;
+
+  const { data: attendanceDetail } = useDayDetail(isOpen && isPastOrToday ? selectedDateYMD : null);
 
   if (!isOpen) return null;
 
@@ -92,8 +103,6 @@ export const DateDetailSidebar: React.FC<DateDetailSidebarProps> = ({
   });
 
   // Filter tasks for this date
-  // Local-date helper: formats a Date as YYYY-MM-DD using local timezone (avoids UTC off-by-one)
-  const selectedDateYMD = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
   const dayTasks = tasks.filter((t) => t.submission_date === selectedDateYMD);
 
   // Filter meetings for this date
@@ -237,6 +246,122 @@ export const DateDetailSidebar: React.FC<DateDetailSidebarProps> = ({
           </button>
         )}
       </div>
+
+      {/* Daily Attendance Summary Card */}
+      {isPastOrToday && (
+        <div className="mx-4 my-2.5 p-2.5 rounded-xl bg-teal-50/70 border border-teal-200/80 flex items-center justify-between gap-2 shadow-2xs">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div
+              className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-xs shrink-0 text-white shadow-xs ${
+                attendanceDetail?.status === 'present'
+                  ? 'bg-emerald-600'
+                  : attendanceDetail?.status === 'half_day'
+                  ? 'bg-amber-500'
+                  : attendanceDetail?.status === 'absent' || attendanceDetail?.status === 'short_hours'
+                  ? 'bg-red-500'
+                  : attendanceDetail?.status === 'incomplete'
+                  ? 'bg-orange-500'
+                  : 'bg-teal-600'
+              }`}
+            >
+              {attendanceDetail?.status === 'present'
+                ? 'P'
+                : attendanceDetail?.status === 'half_day'
+                ? 'HD'
+                : attendanceDetail?.status === 'absent' || attendanceDetail?.status === 'short_hours'
+                ? 'A'
+                : attendanceDetail?.status === 'incomplete'
+                ? 'MP'
+                : 'P'}
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-xs font-bold text-slate-800 capitalize">
+                  {attendanceDetail?.status_label || (holiday ? 'Holiday' : 'Attendance Day')}
+                </span>
+                {attendanceDetail?.punched_in_at && (
+                  <span className="text-[11px] text-slate-500 font-medium">
+                    {new Date(attendanceDetail.punched_in_at).toLocaleTimeString('en-US', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                    {' - '}
+                    {attendanceDetail.punched_out_at
+                      ? new Date(attendanceDetail.punched_out_at).toLocaleTimeString('en-US', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })
+                      : 'Active'}
+                  </span>
+                )}
+              </div>
+              {attendanceDetail?.production_seconds != null && attendanceDetail.production_seconds > 0 ? (
+                <p className="text-[10px] text-slate-500">
+                  Working Hours: {Math.floor(attendanceDetail.production_seconds / 3600)}h{' '}
+                  {Math.floor((attendanceDetail.production_seconds % 3600) / 60)}m
+                </p>
+              ) : (
+                <p className="text-[10px] text-slate-400">Regular attendance shift</p>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={() => setIsDetailModalOpen(true)}
+              className="text-[11px] font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 px-2 py-1 rounded-md transition-colors cursor-pointer"
+              title="View Complete Attendance Detail"
+            >
+              Details
+            </button>
+            <button
+              onClick={() => setIsRegularizationOpen(true)}
+              className="text-[11px] font-bold text-teal-800 bg-teal-100 hover:bg-teal-200 px-2 py-1 rounded-md transition-colors cursor-pointer"
+              title="Request Attendance Regularization"
+            >
+              Regularize
+            </button>
+          </div>
+        </div>
+      )}
+
+      {isDetailModalOpen && (
+        <AttendanceDetailModal
+          isOpen={isDetailModalOpen}
+          date={selectedDateYMD}
+          onClose={() => setIsDetailModalOpen(false)}
+          onRegularize={() => {
+            setIsDetailModalOpen(false);
+            setIsRegularizationOpen(true);
+          }}
+        />
+      )}
+
+      {isRegularizationOpen && (
+        <AddRegularizationModal
+          isOpen={isRegularizationOpen}
+          initialDate={selectedDateYMD}
+          initialCheckIn={
+            attendanceDetail?.punched_in_at
+              ? new Date(attendanceDetail.punched_in_at).toLocaleTimeString('en-US', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: true,
+                })
+              : undefined
+          }
+          initialCheckOut={
+            attendanceDetail?.punched_out_at
+              ? new Date(attendanceDetail.punched_out_at).toLocaleTimeString('en-US', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: true,
+                })
+              : undefined
+          }
+          onClose={() => setIsRegularizationOpen(false)}
+          onSuccess={() => setIsRegularizationOpen(false)}
+        />
+      )}
 
       {/* Tabs */}
       <div className="flex border-b border-slate-200 bg-slate-50/70 text-xs font-semibold">

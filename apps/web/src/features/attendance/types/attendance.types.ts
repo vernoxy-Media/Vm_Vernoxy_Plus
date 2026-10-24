@@ -85,6 +85,8 @@ export interface DayRecord {
   leave_type?: string | null;
   can_request_correction: boolean;
   is_today?: boolean;
+  check_in_location?: string | null;
+  check_out_location?: string | null;
 }
 
 export interface AttendanceDashboardResponse {
@@ -114,6 +116,8 @@ export interface DayDetailResponse {
   breaks: DayDetailBreak[];
   leave_holiday_info?: string | null;
   can_request_correction: boolean;
+  check_in_location?: string | null;
+  check_out_location?: string | null;
 }
 
 export interface CorrectionRequestPayload {

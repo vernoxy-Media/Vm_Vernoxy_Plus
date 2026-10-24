@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Loader2, Info, ArrowLeft, Calendar, CalendarDays, Clock, Users, Layers } from 'lucide-react';
+import { Loader2, Info, ArrowLeft, Calendar, CalendarDays, Clock, Users, Layers, CalendarOff } from 'lucide-react';
 import { AdminLayout } from '../../components/AdminLayout';
 import { PageHeader } from '../../components/PageHeader';
 import { AttendanceNavTabs } from '../../features/attendance/components/AttendanceNavTabs';
@@ -10,9 +10,32 @@ import { AttendanceHolidaysCard } from './settings/attendance/AttendanceHolidays
 import { AttendanceDefaultHoursCard } from './settings/attendance/AttendanceDefaultHoursCard';
 import { AttendanceEmployeeHoursCard } from './settings/attendance/AttendanceEmployeeHoursCard';
 import { AttendanceStatusesCard } from './settings/attendance/AttendanceStatusesCard';
-import { Tag } from 'lucide-react';
+import { Tag, ClipboardCheck, HelpCircle } from 'lucide-react';
 
-type TabSection = 'all' | 'shifts' | 'statuses' | 'working_days' | 'holidays' | 'employee_hours';
+const SettingsRequestTypesSection = React.lazy(() =>
+  import('./settings/SettingsRequestTypesSection').then((m) => ({ default: m.SettingsRequestTypesSection }))
+);
+const SettingsAttendanceReasonsSection = React.lazy(() =>
+  import('./settings/SettingsAttendanceReasonsSection').then((m) => ({ default: m.SettingsAttendanceReasonsSection }))
+);
+const SettingsShiftTypesSection = React.lazy(() =>
+  import('./settings/SettingsShiftTypesSection').then((m) => ({ default: m.SettingsShiftTypesSection }))
+);
+const SettingsLeaveTypesSection = React.lazy(() =>
+  import('./settings/SettingsLeaveTypesSection').then((m) => ({ default: m.SettingsLeaveTypesSection }))
+);
+
+type TabSection =
+  | 'all'
+  | 'shifts'
+  | 'shift_types'
+  | 'statuses'
+  | 'leave_types'
+  | 'request_types'
+  | 'reasons'
+  | 'working_days'
+  | 'holidays'
+  | 'employee_hours';
 
 export const AttendanceSettingsPage: React.FC = () => {
   const { data, isLoading, error } = useAttendanceSettingsQuery();
@@ -21,7 +44,11 @@ export const AttendanceSettingsPage: React.FC = () => {
   const subtabs = [
     { id: 'all', label: 'All Settings', icon: Layers },
     { id: 'shifts', label: 'Shifts & Hours', icon: Clock },
+    { id: 'shift_types', label: 'Shift Types', icon: Clock },
     { id: 'statuses', label: 'Attendance Statuses', icon: Tag },
+    { id: 'leave_types', label: 'Leave Types', icon: CalendarOff },
+    { id: 'request_types', label: 'Request Types', icon: ClipboardCheck },
+    { id: 'reasons', label: 'Regularization Reasons', icon: HelpCircle },
     { id: 'working_days', label: 'Working & Off Days', icon: Calendar },
     { id: 'holidays', label: 'Official Holidays', icon: CalendarDays },
     { id: 'employee_hours', label: 'Employee Assignments', icon: Users },
@@ -32,7 +59,6 @@ export const AttendanceSettingsPage: React.FC = () => {
       <div className="space-y-6">
         <PageHeader
           title="Attendance Settings"
-          description="Dedicated administration for operational shifts, custom statuses, statutory holidays, and employee shift assignments."
           actions={
             <Link
               to="/attendance"
@@ -101,8 +127,40 @@ export const AttendanceSettingsPage: React.FC = () => {
               />
             )}
 
+            {(activeSection === 'all' || activeSection === 'shift_types') && (
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 md:p-6">
+                <React.Suspense fallback={null}>
+                  <SettingsShiftTypesSection />
+                </React.Suspense>
+              </div>
+            )}
+
             {(activeSection === 'all' || activeSection === 'statuses') && (
               <AttendanceStatusesCard statuses={data.statuses} />
+            )}
+
+            {(activeSection === 'all' || activeSection === 'leave_types') && (
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 md:p-6">
+                <React.Suspense fallback={null}>
+                  <SettingsLeaveTypesSection />
+                </React.Suspense>
+              </div>
+            )}
+
+            {(activeSection === 'all' || activeSection === 'request_types') && (
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 md:p-6">
+                <React.Suspense fallback={null}>
+                  <SettingsRequestTypesSection />
+                </React.Suspense>
+              </div>
+            )}
+
+            {(activeSection === 'all' || activeSection === 'reasons') && (
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 md:p-6">
+                <React.Suspense fallback={null}>
+                  <SettingsAttendanceReasonsSection />
+                </React.Suspense>
+              </div>
             )}
 
             {(activeSection === 'all' || activeSection === 'working_days') && (

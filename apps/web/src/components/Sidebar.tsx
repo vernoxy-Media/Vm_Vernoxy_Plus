@@ -12,7 +12,6 @@ import {
   Calendar,
   CalendarClock,
   CheckSquare,
-  LayoutGrid,
   FolderKanban,
 } from 'lucide-react';
 
@@ -45,7 +44,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       : []),
     ...(user.access?.can_manage_organization
       ? [
-          { name: 'Task Management', path: '/admin/tasks', icon: LayoutGrid },
           { name: 'Employees', path: '/admin/employees', icon: Users },
           { name: 'Attendance Settings', path: '/admin/attendance-settings', icon: CalendarClock },
           { name: 'Settings', path: '/admin/settings/departments', icon: Settings },
@@ -96,6 +94,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 ? location.pathname === '/'
                 : item.path === '/attendance'
                 ? location.pathname === '/attendance'
+                : item.path === '/my-tasks'
+                ? location.pathname.startsWith('/my-tasks') || location.pathname.startsWith('/admin/tasks')
                 : location.pathname.startsWith(item.path);
 
             return (

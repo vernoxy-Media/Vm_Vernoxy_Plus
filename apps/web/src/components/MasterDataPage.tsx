@@ -15,7 +15,7 @@ export interface MasterDataFilterOption {
 
 export interface MasterDataPageProps<T> {
   title: string;
-  description: string;
+  description?: string;
   icon?: React.ReactNode;
   addLabel: string;
   searchPlaceholder?: string;
@@ -45,7 +45,6 @@ export interface MasterDataPageProps<T> {
 
 export function MasterDataPage<T>({
   title,
-  description,
   addLabel,
   searchPlaceholder = 'Search...',
   searchValue,
@@ -77,7 +76,6 @@ export function MasterDataPage<T>({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-100">
         <div>
           <h2 className="text-xl font-bold text-slate-900 tracking-tight">{title}</h2>
-          <p className="text-xs text-slate-500 mt-0.5">{description}</p>
         </div>
         <button
           type="button"

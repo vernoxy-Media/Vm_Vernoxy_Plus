@@ -22,11 +22,9 @@ import { CompanyFormPage } from './features/companies/pages/CompanyFormPage';
 import { CompanyDetailPage } from './features/companies/pages/CompanyDetailPage';
 import { CompanyImportPage } from './features/companies/pages/CompanyImportPage';
 import { AttendancePage } from './features/attendance/pages/AttendancePage';
-import { AttendanceCalendarPage } from './features/attendance/pages/AttendanceCalendarPage';
 import { CalendarPage } from './features/calendar/pages/CalendarPage';
 import { ProjectsPage } from './features/projects/pages/ProjectsPage';
 import { ProjectDetailPage } from './features/projects/pages/ProjectDetailPage';
-import { TaskManagementPage } from './pages/admin/TaskManagementPage';
 import { MyTasksPage } from './pages/MyTasksPage';
 import { AppLayout } from './components/AppLayout';
 
@@ -82,13 +80,7 @@ export const App: React.FC = () => {
             />
             <Route
               path="/attendance/calendar"
-              element={
-                <ProtectedRoute>
-                  <AppLayout fluid>
-                    <AttendanceCalendarPage />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
+              element={<Navigate to="/calendar" replace />}
             />
             <Route
               path="/calendar"
@@ -132,13 +124,7 @@ export const App: React.FC = () => {
             />
             <Route
               path="/admin/tasks"
-              element={
-                <AdminRoute>
-                  <AppLayout fluid>
-                    <TaskManagementPage />
-                  </AppLayout>
-                </AdminRoute>
-              }
+              element={<Navigate to="/my-tasks?tab=management" replace />}
             />
 
             {/* Settings & Master Data */}

@@ -13,6 +13,10 @@ import {
   Antenna,
   ThumbsDown,
   UserSquare,
+  ClipboardCheck,
+  HelpCircle,
+  Clock,
+  CalendarOff,
   LucideIcon,
 } from 'lucide-react';
 import type { MeResponseDto } from '@vernoxy-pulse/api-client';
@@ -55,6 +59,18 @@ const SettingsLostReasonsSection = React.lazy(() =>
 );
 const SettingsPersonDepartmentsSection = React.lazy(() =>
   import('./SettingsPersonDepartmentsSection').then((m) => ({ default: m.SettingsPersonDepartmentsSection }))
+);
+const SettingsRequestTypesSection = React.lazy(() =>
+  import('./SettingsRequestTypesSection').then((m) => ({ default: m.SettingsRequestTypesSection }))
+);
+const SettingsAttendanceReasonsSection = React.lazy(() =>
+  import('./SettingsAttendanceReasonsSection').then((m) => ({ default: m.SettingsAttendanceReasonsSection }))
+);
+const SettingsShiftTypesSection = React.lazy(() =>
+  import('./SettingsShiftTypesSection').then((m) => ({ default: m.SettingsShiftTypesSection }))
+);
+const SettingsLeaveTypesSection = React.lazy(() =>
+  import('./SettingsLeaveTypesSection').then((m) => ({ default: m.SettingsLeaveTypesSection }))
 );
 
 export interface SettingsSectionConfig {
@@ -186,11 +202,47 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
 
   // ── HR / Attendance ───────────────────────────────
   {
+    id: 'request-types',
+    label: 'Request Types',
+    path: '/admin/settings/request-types',
+    icon: ClipboardCheck,
+    component: SettingsRequestTypesSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'HR',
+  },
+  {
+    id: 'attendance-reasons',
+    label: 'Regularization Reasons',
+    path: '/admin/settings/attendance-reasons',
+    icon: HelpCircle,
+    component: SettingsAttendanceReasonsSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'HR',
+  },
+  {
     id: 'break-types',
     label: 'Break Types',
     path: '/admin/settings/break-types',
     icon: Coffee,
     component: SettingsBreakTypesSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'HR',
+  },
+  {
+    id: 'shift-types',
+    label: 'Shift Types',
+    path: '/admin/settings/shift-types',
+    icon: Clock,
+    component: SettingsShiftTypesSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'HR',
+  },
+  {
+    id: 'leave-types',
+    label: 'Leave Types',
+    path: '/admin/settings/leave-types',
+    icon: CalendarOff,
+    component: SettingsLeaveTypesSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
     group: 'HR',
   },
@@ -215,3 +267,17 @@ export function getSettingsSectionGroups(user: MeResponseDto | null): Record<str
     return acc;
   }, {});
 }
+
+export interface SettingsMainGroup {
+  id: string;
+  name: string;
+  icon: LucideIcon;
+}
+
+export const SETTINGS_MAIN_GROUPS: SettingsMainGroup[] = [
+  { id: 'Organization', name: 'Organization', icon: Building2 },
+  { id: 'CRM', name: 'CRM', icon: Users },
+  { id: 'Tasks', name: 'Tasks', icon: Tag },
+  { id: 'Projects', name: 'Projects', icon: Shapes },
+  { id: 'HR', name: 'HR', icon: Clock },
+];

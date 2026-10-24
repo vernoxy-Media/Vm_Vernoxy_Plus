@@ -9,6 +9,7 @@ import {
 import { useDayDetail } from '../hooks/use-attendance';
 import { DayDetailStats } from './DayDetailStats';
 import { DayDetailTimeline } from './DayDetailTimeline';
+import { AttendanceDetailModal } from './AttendanceDetailModal';
 
 export interface DayDetailPanelProps {
   isOpen: boolean;
@@ -24,6 +25,7 @@ export const DayDetailPanel: React.FC<DayDetailPanelProps> = ({
   onOpenCorrection,
 }) => {
   const { data, isLoading, error } = useDayDetail(isOpen ? date : null);
+  const [isFullDetailOpen, setIsFullDetailOpen] = React.useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -95,6 +97,18 @@ export const DayDetailPanel: React.FC<DayDetailPanelProps> = ({
               </div>
             ) : (
               <>
+                <button
+                  type="button"
+                  onClick={() => setIsFullDetailOpen(true)}
+                  className="w-full py-2.5 px-3.5 rounded-xl border border-teal-200 bg-teal-50/70 hover:bg-teal-100/70 text-teal-900 text-xs font-bold transition flex items-center justify-between shadow-2xs cursor-pointer"
+                >
+                  <span className="flex items-center gap-2">
+                    <CalendarDays className="w-4 h-4 text-teal-600" />
+                    <span>View Detail Screen (All 16 Fields)</span>
+                  </span>
+                  <span className="text-teal-700 text-xs">&rarr;</span>
+                </button>
+
                 <DayDetailStats data={data} />
 
                 {data.leave_holiday_info && (
@@ -126,6 +140,19 @@ export const DayDetailPanel: React.FC<DayDetailPanelProps> = ({
           )}
         </div>
       </div>
+
+      {isFullDetailOpen && (
+        <AttendanceDetailModal
+          isOpen={isFullDetailOpen}
+          date={date}
+          onClose={() => setIsFullDetailOpen(false)}
+          onRegularize={() => {
+            setIsFullDetailOpen(false);
+            onClose();
+            onOpenCorrection(date);
+          }}
+        />
+      )}
     </div>
   );
 };
