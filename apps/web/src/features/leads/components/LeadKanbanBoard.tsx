@@ -8,6 +8,8 @@ import {
   useSensor,
   useSensors,
   useDroppable,
+  defaultDropAnimationSideEffects,
+  DropAnimation,
 } from '@dnd-kit/core';
 import { Plus } from 'lucide-react';
 import { Lead } from '../api/leads.api';
@@ -56,6 +58,18 @@ const STAGES = [
   },
 ];
 
+const dropAnimationConfig: DropAnimation = {
+  sideEffects: defaultDropAnimationSideEffects({
+    styles: {
+      active: {
+        opacity: '0.4',
+      },
+    },
+  }),
+  duration: 220,
+  easing: 'cubic-bezier(0.2, 0, 0, 1)',
+};
+
 interface KanbanColumnProps {
   stage: (typeof STAGES)[0];
   leads: Lead[];
@@ -64,6 +78,8 @@ interface KanbanColumnProps {
   onEdit: (lead: Lead) => void;
   onConvert: (lead: Lead) => void;
   onAdd: () => void;
+  activeLead: Lead | null;
+  sourceStageTitle: string | null;
 }
 
 const KanbanColumn: React.FC<KanbanColumnProps> = ({
@@ -74,10 +90,15 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
   onEdit,
   onConvert,
   onAdd,
+  activeLead,
+  sourceStageTitle,
 }) => {
   const { setNodeRef, isOver } = useDroppable({
     id: stage.name,
   });
+
+  const isDraggingAny = activeLead !== null;
+  const isSourceStage = activeLead?.lead_stage === stage.name;
 
   const formatCurrency = (val: number) => {
     if (!val) return '₹0';
@@ -89,8 +110,8 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
   return (
     <div
       ref={setNodeRef}
-      className={`flex flex-col rounded-2xl bg-slate-100/70 p-3 min-w-[290px] max-w-[310px] shrink-0 transition-all duration-200 min-h-[500px] ${
-        isOver ? 'ring-2 ring-blue-500/60 bg-blue-50/50 shadow-md' : ''
+      className={`flex flex-col rounded-2xl bg-slate-100/70 p-3 min-w-[290px] max-w-[310px] shrink-0 transition-all duration-150 min-h-[500px] ${
+        isDraggingAny ? 'bg-slate-100/90 ring-1 ring-slate-200/60' : ''
       }`}
     >
       {/* Column Header matching TaskColumn in screenshot 2 */}
@@ -111,17 +132,45 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
 
       {/* Column Cards Container */}
       <div className="flex-1 space-y-2.5 overflow-y-auto max-h-[calc(100vh-280px)] pr-0.5">
+        {/* Drop Target Indicator matching Image 2 */}
+        {isDraggingAny && !isSourceStage && (
+          isOver ? (
+            /* Active hovered drop indicator card matching Image 2 */
+            <div className="rounded-2xl border-2 border-blue-600 bg-white p-3 shadow-xs mb-3 transition-all duration-150 animate-in fade-in zoom-in-95">
+              <div className="text-[13px] font-semibold text-slate-700 flex items-center gap-1.5 leading-none">
+                <span>{sourceStageTitle}</span>
+                <span className="text-slate-400 font-normal">→</span>
+                <span>{stage.title}</span>
+              </div>
+              <div className="mt-2.5 h-8 rounded-lg border border-dashed border-slate-300 bg-slate-50/60 flex items-center justify-center text-slate-400">
+                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+              </div>
+            </div>
+          ) : (
+            /* Idle drop slot on adjacent valid columns matching Image 2 */
+            <div className="rounded-2xl border border-dashed border-slate-300/80 bg-white/60 p-3 mb-3 transition-all duration-150">
+              <div className="text-[13px] font-medium text-slate-400 flex items-center gap-1.5 leading-none">
+                <span>{sourceStageTitle}</span>
+                <span className="text-slate-300 font-normal">→</span>
+                <span>{stage.title}</span>
+              </div>
+              <div className="mt-2.5 h-8 rounded-lg border border-dashed border-slate-200 bg-slate-50/30 flex items-center justify-center text-slate-300">
+                <Plus className="w-3.5 h-3.5 stroke-[1.8]" />
+              </div>
+            </div>
+          )
+        )}
+
+        {/* Existing Leads or Empty State */}
         {leads.length === 0 ? (
-          <div
-            className={`flex h-32 items-center justify-center rounded-xl border border-dashed transition-colors duration-150 text-xs font-medium cursor-pointer ${
-              isOver
-                ? 'border-blue-400 bg-blue-100/40 text-blue-600 font-semibold'
-                : 'border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-500'
-            }`}
-            onClick={onAdd}
-          >
-            {isOver ? 'Drop lead here' : 'No tasks'}
-          </div>
+          !isDraggingAny ? (
+            <div
+              className="flex h-32 items-center justify-center rounded-xl border border-dashed border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-500 transition-colors text-xs font-medium cursor-pointer"
+              onClick={onAdd}
+            >
+              No leads yet
+            </div>
+          ) : null
         ) : (
           leads.map((lead) => (
             <LeadCard
@@ -193,6 +242,17 @@ export const LeadKanbanBoard: React.FC<LeadKanbanBoardProps> = ({
     }
   };
 
+  const handleDragCancel = () => {
+    setActiveLead(null);
+  };
+
+  const sourceStageConfig = React.useMemo(() => {
+    if (!activeLead) return null;
+    return STAGES.find((s) => s.name === activeLead.lead_stage);
+  }, [activeLead]);
+
+  const sourceStageTitle = sourceStageConfig ? sourceStageConfig.title : (activeLead?.lead_stage || 'New Leads');
+
   const leadsByStage = React.useMemo(() => {
     const grouped: Record<string, Lead[]> = {
       New: [],
@@ -220,6 +280,7 @@ export const LeadKanbanBoard: React.FC<LeadKanbanBoardProps> = ({
       sensors={sensors}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
     >
       <div className="flex gap-4 overflow-x-auto pb-4 pt-1 items-start scrollbar-thin">
         {STAGES.map((stage) => (
@@ -232,18 +293,21 @@ export const LeadKanbanBoard: React.FC<LeadKanbanBoardProps> = ({
             onEdit={onEditLead}
             onConvert={onConvertLead}
             onAdd={() => onAddLeadToStage(stage.name)}
+            activeLead={activeLead}
+            sourceStageTitle={sourceStageTitle}
           />
         ))}
       </div>
 
-      <DragOverlay>
+      <DragOverlay dropAnimation={dropAnimationConfig}>
         {activeLead ? (
-          <div className="w-[285px]">
+          <div className="w-[285px] pointer-events-none">
             <LeadCard
               lead={activeLead}
               onSelect={() => {}}
               onEdit={() => {}}
               onConvert={() => {}}
+              isOverlay={true}
             />
           </div>
         ) : null}

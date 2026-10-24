@@ -18,6 +18,7 @@ interface LeadCardProps {
   onSelect: (lead: Lead) => void;
   onEdit: (lead: Lead) => void;
   onConvert: (lead: Lead) => void;
+  isOverlay?: boolean;
 }
 
 const STAGE_BORDER_STYLES: Record<
@@ -86,6 +87,7 @@ export const LeadCard: React.FC<LeadCardProps> = ({
   onSelect,
   onEdit,
   onConvert,
+  isOverlay = false,
 }) => {
   const stage = lead.lead_stage || 'New';
   const stageStyles = STAGE_BORDER_STYLES[stage] || STAGE_BORDER_STYLES.New;
@@ -94,6 +96,7 @@ export const LeadCard: React.FC<LeadCardProps> = ({
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: String(lead.lead_id),
     data: { lead },
+    disabled: isOverlay,
   });
 
   const style = transform
@@ -129,17 +132,28 @@ export const LeadCard: React.FC<LeadCardProps> = ({
     return parts[0].slice(0, 2).toUpperCase();
   };
 
+  // If card is currently being dragged, show a subtle dashed placeholder in its place
+  if (isDragging && !isOverlay) {
+    return (
+      <div
+        ref={setNodeRef}
+        style={style}
+        className={`rounded-xl border-2 border-dashed ${stageStyles.border} bg-slate-50/50 p-4 min-h-[130px] opacity-40 transition-all duration-150`}
+      />
+    );
+  }
+
   return (
     <div
       ref={setNodeRef}
-      style={style}
-      {...listeners}
-      {...attributes}
+      style={isOverlay ? undefined : style}
+      {...(isOverlay ? {} : listeners)}
+      {...(isOverlay ? {} : attributes)}
       onClick={() => onSelect(lead)}
-      className={`group relative rounded-xl border border-l-4 ${stageStyles.border} ${stageStyles.accentLeft} ${stageStyles.bg} p-3.5 transition-all select-none touch-none hover:shadow-md cursor-grab active:cursor-grabbing ${
-        isDragging
-          ? `${stageStyles.overlayBorder} opacity-40 ring-4 ${stageStyles.overlayRing} shadow-xl scale-[1.02]`
-          : 'shadow-xs'
+      className={`group relative rounded-xl border border-l-4 ${stageStyles.border} ${stageStyles.accentLeft} ${stageStyles.bg} p-3.5 transition-all select-none touch-none ${
+        isOverlay
+          ? `${stageStyles.overlayBorder} shadow-2xl ring-4 ${stageStyles.overlayRing} rotate-1 scale-[1.02] cursor-grabbing`
+          : 'shadow-xs hover:shadow-md cursor-grab active:cursor-grabbing'
       }`}
     >
       {/* Top row: Code + Tag + Turnover/Priority badge */}
