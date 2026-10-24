@@ -9,7 +9,7 @@ import {
   useSensors,
   useDroppable,
 } from '@dnd-kit/core';
-import { Plus, HelpCircle, CheckCircle2, AlertCircle, Clock, Sparkles } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Lead } from '../api/leads.api';
 import { LeadCard } from './LeadCard';
 
@@ -27,44 +27,32 @@ const STAGES = [
   {
     name: 'New',
     title: 'New Leads',
-    color: 'border-t-blue-500 bg-blue-50/30 text-blue-700',
-    badge: 'bg-blue-100 text-blue-700',
-    icon: Sparkles,
+    colorDot: 'bg-blue-500',
   },
   {
     name: 'Contacted',
     title: 'Contacted',
-    color: 'border-t-amber-500 bg-amber-50/30 text-amber-700',
-    badge: 'bg-amber-100 text-amber-700',
-    icon: Clock,
+    colorDot: 'bg-amber-500',
   },
   {
     name: 'Qualified',
     title: 'Qualified',
-    color: 'border-t-purple-500 bg-purple-50/30 text-purple-700',
-    badge: 'bg-purple-100 text-purple-700',
-    icon: CheckCircle2,
+    colorDot: 'bg-purple-500',
   },
   {
     name: 'Converted',
-    title: 'Converted / Won',
-    color: 'border-t-emerald-500 bg-emerald-50/30 text-emerald-700',
-    badge: 'bg-emerald-100 text-emerald-700',
-    icon: CheckCircle2,
+    title: 'Converted',
+    colorDot: 'bg-emerald-500',
   },
   {
     name: 'Lost',
     title: 'Lost',
-    color: 'border-t-rose-500 bg-rose-50/30 text-rose-700',
-    badge: 'bg-rose-100 text-rose-700',
-    icon: AlertCircle,
+    colorDot: 'bg-rose-500',
   },
   {
     name: 'On Hold',
     title: 'On Hold',
-    color: 'border-t-slate-400 bg-slate-50 text-slate-700',
-    badge: 'bg-slate-200 text-slate-700',
-    icon: HelpCircle,
+    colorDot: 'bg-slate-400',
   },
 ];
 
@@ -98,71 +86,64 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
     return `₹${val.toLocaleString('en-IN')}`;
   };
 
-  const Icon = stage.icon;
-
   return (
     <div
       ref={setNodeRef}
-      className={`flex flex-col rounded-2xl bg-slate-100/70 border border-slate-200/80 min-w-[300px] max-w-[320px] shrink-0 transition-colors ${
-        isOver ? 'bg-blue-50/60 ring-2 ring-blue-400' : ''
+      className={`flex flex-col rounded-2xl bg-slate-100/70 p-3 min-w-[290px] max-w-[310px] shrink-0 transition-all duration-200 min-h-[500px] ${
+        isOver ? 'ring-2 ring-blue-500/60 bg-blue-50/50 shadow-md' : ''
       }`}
     >
-      {/* Column Header */}
-      <div className={`p-3.5 border-t-4 rounded-t-2xl border-b border-slate-200/80 bg-white ${stage.color}`}>
-        <div className="flex items-center justify-between mb-1">
-          <div className="flex items-center gap-2">
-            <Icon className="w-4 h-4" />
-            <h3 className="font-bold text-slate-800 text-sm">{stage.title}</h3>
-          </div>
-          <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${stage.badge}`}>
-            {leads.length}
-          </span>
+      {/* Column Header matching TaskColumn in screenshot 2 */}
+      <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-200/60 px-1">
+        <div className="flex items-center gap-2">
+          <span className={`h-2.5 w-2.5 rounded-full ${stage.colorDot}`} />
+          <h2 className="text-sm font-bold text-slate-800 tracking-tight">{stage.title}</h2>
         </div>
-
-        <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
-          <span>Est. Value:</span>
-          <span className="font-semibold text-slate-700">
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-medium text-slate-400">
             {formatCurrency(metric?.totalValue || leads.reduce((acc, l) => acc + Number(l.estimated_turnover || 0), 0))}
+          </span>
+          <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-white px-1.5 text-xs font-semibold text-slate-600 shadow-2xs">
+            {leads.length}
           </span>
         </div>
       </div>
 
-      {/* Column Lead Cards Container */}
-      <div className="flex-1 p-2.5 space-y-2.5 overflow-y-auto max-h-[calc(100vh-290px)] min-h-[300px]">
-        {leads.map((lead) => (
-          <LeadCard
-            key={lead.lead_id}
-            lead={lead}
-            onSelect={onSelect}
-            onEdit={onEdit}
-            onConvert={onConvert}
-          />
-        ))}
-
-        {leads.length === 0 && (
-          <div className="flex flex-col items-center justify-center p-6 text-center border-2 border-dashed border-slate-200 rounded-xl text-slate-400">
-            <p className="text-xs">No leads in this stage</p>
-            <button
-              type="button"
-              onClick={onAdd}
-              className="mt-2 text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Add Lead
-            </button>
+      {/* Column Cards Container */}
+      <div className="flex-1 space-y-2.5 overflow-y-auto max-h-[calc(100vh-280px)] pr-0.5">
+        {leads.length === 0 ? (
+          <div
+            className={`flex h-32 items-center justify-center rounded-xl border border-dashed transition-colors duration-150 text-xs font-medium cursor-pointer ${
+              isOver
+                ? 'border-blue-400 bg-blue-100/40 text-blue-600 font-semibold'
+                : 'border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-500'
+            }`}
+            onClick={onAdd}
+          >
+            {isOver ? 'Drop lead here' : 'No tasks'}
           </div>
+        ) : (
+          leads.map((lead) => (
+            <LeadCard
+              key={lead.lead_id}
+              lead={lead}
+              onSelect={onSelect}
+              onEdit={onEdit}
+              onConvert={onConvert}
+            />
+          ))
         )}
       </div>
 
       {/* Add Lead Button at Column Bottom */}
-      <div className="p-2 border-t border-slate-200/60">
+      <div className="pt-2 border-t border-slate-200/50 mt-2">
         <button
           type="button"
           onClick={onAdd}
-          className="w-full py-2 px-3 rounded-xl border border-transparent hover:border-slate-200 hover:bg-white text-slate-600 hover:text-slate-900 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+          className="w-full py-1.5 px-3 rounded-xl border border-dashed border-slate-200 hover:border-slate-300 hover:bg-white text-slate-500 hover:text-slate-800 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
         >
           <Plus className="w-3.5 h-3.5" />
-          Add Lead to {stage.name}
+          Add Lead
         </button>
       </div>
     </div>
@@ -212,7 +193,6 @@ export const LeadKanbanBoard: React.FC<LeadKanbanBoardProps> = ({
     }
   };
 
-  // Group leads by stage
   const leadsByStage = React.useMemo(() => {
     const grouped: Record<string, Lead[]> = {
       New: [],
@@ -258,7 +238,7 @@ export const LeadKanbanBoard: React.FC<LeadKanbanBoardProps> = ({
 
       <DragOverlay>
         {activeLead ? (
-          <div className="w-[280px]">
+          <div className="w-[285px]">
             <LeadCard
               lead={activeLead}
               onSelect={() => {}}

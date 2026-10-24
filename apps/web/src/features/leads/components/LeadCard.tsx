@@ -6,9 +6,10 @@ import {
   MapPin,
   Globe,
   User,
-  ArrowRightCircle,
-  ChevronRight,
+  Calendar,
+  Lock,
   Pencil,
+  Send,
 } from 'lucide-react';
 import { Lead } from '../api/leads.api';
 
@@ -19,12 +20,77 @@ interface LeadCardProps {
   onConvert: (lead: Lead) => void;
 }
 
+const STAGE_BORDER_STYLES: Record<
+  string,
+  {
+    border: string;
+    hoverBorder: string;
+    bg: string;
+    overlayBorder: string;
+    overlayRing: string;
+    accentLeft: string;
+  }
+> = {
+  New: {
+    border: 'border-blue-400',
+    hoverBorder: 'hover:border-blue-500',
+    bg: 'bg-gradient-to-br from-blue-50/20 via-white to-white',
+    overlayBorder: 'border-blue-500',
+    overlayRing: 'ring-blue-500/25',
+    accentLeft: 'border-l-blue-500',
+  },
+  Contacted: {
+    border: 'border-amber-400',
+    hoverBorder: 'hover:border-amber-500',
+    bg: 'bg-gradient-to-br from-amber-50/30 via-white to-white',
+    overlayBorder: 'border-amber-500',
+    overlayRing: 'ring-amber-500/25',
+    accentLeft: 'border-l-amber-500',
+  },
+  Qualified: {
+    border: 'border-purple-400',
+    hoverBorder: 'hover:border-purple-500',
+    bg: 'bg-gradient-to-br from-purple-50/25 via-white to-white',
+    overlayBorder: 'border-purple-500',
+    overlayRing: 'ring-purple-500/25',
+    accentLeft: 'border-l-purple-500',
+  },
+  Converted: {
+    border: 'border-emerald-500',
+    hoverBorder: 'hover:border-emerald-600',
+    bg: 'bg-gradient-to-br from-emerald-50/30 via-white to-white',
+    overlayBorder: 'border-emerald-500',
+    overlayRing: 'ring-emerald-500/25',
+    accentLeft: 'border-l-emerald-500',
+  },
+  Lost: {
+    border: 'border-rose-400',
+    hoverBorder: 'hover:border-rose-500',
+    bg: 'bg-gradient-to-br from-rose-50/20 via-white to-white',
+    overlayBorder: 'border-rose-500',
+    overlayRing: 'ring-rose-500/25',
+    accentLeft: 'border-l-rose-500',
+  },
+  'On Hold': {
+    border: 'border-slate-300',
+    hoverBorder: 'hover:border-slate-400',
+    bg: 'bg-white',
+    overlayBorder: 'border-slate-400',
+    overlayRing: 'ring-slate-400/25',
+    accentLeft: 'border-l-slate-400',
+  },
+};
+
 export const LeadCard: React.FC<LeadCardProps> = ({
   lead,
   onSelect,
   onEdit,
   onConvert,
 }) => {
+  const stage = lead.lead_stage || 'New';
+  const stageStyles = STAGE_BORDER_STYLES[stage] || STAGE_BORDER_STYLES.New;
+  const isConverted = stage === 'Converted';
+
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: String(lead.lead_id),
     data: { lead },
@@ -39,29 +105,28 @@ export const LeadCard: React.FC<LeadCardProps> = ({
 
   const formatCurrency = (val: number | null) => {
     if (!val) return null;
-    if (val >= 10000000) {
-      return `₹${(val / 10000000).toFixed(2)} Cr`;
-    }
-    if (val >= 100000) {
-      return `₹${(val / 100000).toFixed(2)} Lakh`;
-    }
+    if (val >= 10000000) return `₹${(val / 10000000).toFixed(2)} Cr`;
+    if (val >= 100000) return `₹${(val / 100000).toFixed(2)} L`;
     return `₹${val.toLocaleString('en-IN')}`;
   };
 
-  const getWebsiteQualityBadge = (quality: string | null) => {
-    if (!quality) return null;
-    switch (quality.toLowerCase()) {
-      case 'good':
-        return <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Good Web</span>;
-      case 'average':
-        return <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-amber-50 text-amber-700 border border-amber-200">Avg Web</span>;
-      case 'poor':
-        return <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-rose-50 text-rose-700 border border-rose-200">Poor Web</span>;
-      case 'no website':
-        return <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-slate-100 text-slate-600 border border-slate-200">No Web</span>;
-      default:
-        return null;
+  const formatDate = (isoString?: string | null) => {
+    if (!isoString) return '';
+    const d = new Date(isoString);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}-${month}-${year}`;
+  };
+
+  // Get user initials (like KR in screenshot)
+  const getUserInitials = (name?: string | null) => {
+    if (!name) return 'KR';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
     }
+    return parts[0].slice(0, 2).toUpperCase();
   };
 
   return (
@@ -70,120 +135,114 @@ export const LeadCard: React.FC<LeadCardProps> = ({
       style={style}
       {...listeners}
       {...attributes}
-      className={`group relative rounded-xl border border-slate-200 bg-white p-4 shadow-xs transition-all hover:shadow-md hover:border-blue-400 select-none cursor-grab active:cursor-grabbing ${
-        isDragging ? 'opacity-40 ring-2 ring-blue-500 shadow-xl' : ''
+      onClick={() => onSelect(lead)}
+      className={`group relative rounded-xl border border-l-4 ${stageStyles.border} ${stageStyles.accentLeft} ${stageStyles.bg} p-3.5 transition-all select-none touch-none hover:shadow-md cursor-grab active:cursor-grabbing ${
+        isDragging
+          ? `${stageStyles.overlayBorder} opacity-40 ring-4 ${stageStyles.overlayRing} shadow-xl scale-[1.02]`
+          : 'shadow-xs'
       }`}
     >
-      {/* Top Header: Company Name & Value */}
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <div className="min-w-0 flex-1">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onSelect(lead);
-            }}
-            className="text-left font-semibold text-slate-900 text-sm hover:text-blue-600 transition-colors truncate block w-full"
-            title={lead.company_name}
-          >
-            {lead.company_name}
-          </button>
-          <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5">
-            <span className="truncate">{lead.city || 'India'}</span>
-            {lead.is_gidc && (
-              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 font-medium text-[10px]">
-                <MapPin className="w-2.5 h-2.5" />
-                {lead.gidc_name || 'GIDC'}
-              </span>
-            )}
-          </div>
+      {/* Top row: Code + Tag + Turnover/Priority badge */}
+      <div className="flex items-center justify-between gap-1.5 mb-2">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-xs font-mono font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded-md">
+            LEAD-{String(lead.lead_id).padStart(4, '0')}
+          </span>
+          {lead.service_fit && (
+            <span
+              title={lead.service_fit}
+              className="text-[11px] font-medium text-slate-500 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded-md truncate max-w-[110px]"
+            >
+              {lead.service_fit}
+            </span>
+          )}
+          {isConverted && (
+            <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-md">
+              <Lock className="w-2.5 h-2.5" /> Approved
+            </span>
+          )}
         </div>
 
-        {/* Turnover / Value badge */}
-        {lead.estimated_turnover && (
-          <div className="shrink-0 text-right">
-            <span className="text-xs font-bold text-slate-900 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">
-              {formatCurrency(Number(lead.estimated_turnover))}
-            </span>
-          </div>
+        {lead.estimated_turnover ? (
+          <span className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-md border bg-blue-50 text-blue-700 border-blue-200">
+            {formatCurrency(Number(lead.estimated_turnover))}
+          </span>
+        ) : (
+          <span className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-md border bg-slate-50 text-slate-500 border-slate-200">
+            MEDIUM
+          </span>
         )}
       </div>
 
-      {/* Industry / Service Fit Tags */}
-      <div className="flex flex-wrap items-center gap-1.5 mb-3">
-        {lead.service_fit && (
-          <span className="text-[11px] font-medium bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md border border-blue-100 truncate max-w-[150px]">
-            {lead.service_fit}
-          </span>
-        )}
-        {lead.industry && (
-          <span className="text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md truncate max-w-[130px]">
-            {lead.industry}
-          </span>
-        )}
-        {getWebsiteQualityBadge(lead.website_quality)}
-      </div>
+      {/* Title / Company Name */}
+      <h3
+        className={`text-sm font-semibold line-clamp-2 mb-2 transition-colors ${
+          isConverted ? 'text-slate-700 group-hover:text-emerald-700' : 'text-slate-800 group-hover:text-blue-600'
+        }`}
+      >
+        {lead.company_name}
+      </h3>
 
-      {/* Primary Contact Person Info */}
-      {lead.contact_person && (
-        <div className="pt-2.5 border-t border-slate-100 mb-2.5 space-y-1">
-          <div className="flex items-center justify-between text-xs">
-            <span className="font-medium text-slate-700 truncate max-w-[140px] flex items-center gap-1">
-              <User className="w-3 h-3 text-slate-400" />
-              {lead.contact_person}
-            </span>
-            {lead.designation && (
-              <span className="text-[11px] text-slate-400 truncate max-w-[100px]">
-                {lead.designation}
-              </span>
-            )}
-          </div>
-
-          <div className="flex items-center gap-3 text-xs text-slate-500 pt-0.5">
-            {lead.mobile && (
-              <a
-                href={`tel:${lead.mobile}`}
-                onClick={(e) => e.stopPropagation()}
-                className="flex items-center gap-1 text-slate-600 hover:text-blue-600 transition-colors"
-                title={`Call ${lead.mobile}`}
-              >
-                <Phone className="w-3 h-3 text-emerald-600" />
-                <span className="text-[11px] font-mono">{lead.mobile}</span>
-              </a>
-            )}
-            {lead.email && (
-              <a
-                href={`mailto:${lead.email}`}
-                onClick={(e) => e.stopPropagation()}
-                className="flex items-center gap-1 text-slate-600 hover:text-blue-600 transition-colors"
-                title={`Email ${lead.email}`}
-              >
-                <Mail className="w-3 h-3 text-blue-500" />
-                <span className="text-[11px] truncate max-w-[120px]">{lead.email}</span>
-              </a>
-            )}
-          </div>
+      {/* Sub-info pill styled like Sub-task of TSK in Image 2 */}
+      {(lead.city || lead.is_gidc) && (
+        <div className="flex items-center gap-1 mb-2 text-[11px] text-sky-700 bg-sky-50 border border-sky-200 px-1.5 py-0.5 rounded-md font-medium w-fit">
+          <MapPin className="w-3 h-3 text-sky-600 shrink-0" />
+          <span className="truncate max-w-[210px]">
+            {lead.is_gidc
+              ? `${lead.gidc_name || 'GIDC'}${lead.gidc_area_phase ? ` - ${lead.gidc_area_phase}` : ''}`
+              : lead.city || 'India'}
+          </span>
         </div>
       )}
 
-      {/* Card Footer: Sales Rep, Website, Actions */}
-      <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
-        <div className="flex items-center gap-1.5 text-slate-500" title={`Lead By: ${lead.employees_leads_owner_idToemployees?.name || 'Self'}`}>
-          <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-[10px]">
-            {lead.employees_leads_owner_idToemployees?.name?.charAt(0) || 'U'}
-          </div>
-          <span className="text-[11px] text-slate-600 truncate max-w-[90px]">
-            {lead.employees_leads_owner_idToemployees?.name?.split(' ')[0] || 'Sales'}
+      {/* Meta: Contact person, Mobile, Date (matching Clock, Calendar in Image 2) */}
+      <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 mb-3">
+        {lead.contact_person && (
+          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-700">
+            <User className="w-3 h-3 text-slate-400" />
+            {lead.contact_person}
+            {lead.designation ? ` (${lead.designation.split(' ')[0]})` : ''}
+          </span>
+        )}
+
+        {lead.mobile && (
+          <a
+            href={`tel:${lead.mobile}`}
+            onClick={(e) => e.stopPropagation()}
+            className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50/60 hover:bg-emerald-100 px-1.5 py-0.5 rounded border border-emerald-100 font-mono transition-colors"
+          >
+            <Phone className="w-2.5 h-2.5 text-emerald-600" />
+            {lead.mobile}
+          </a>
+        )}
+
+        {lead.created_at && (
+          <span className="inline-flex items-center gap-1 text-[11px] text-slate-400">
+            <Calendar className="w-3 h-3 text-slate-400" />
+            {formatDate(lead.created_at)}
+          </span>
+        )}
+      </div>
+
+      {/* Bottom row: Assignee Avatar (KR box) + Quick Actions */}
+      <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+        <div className="flex items-center gap-2">
+          {/* Square initials box like KR in image 2 */}
+          <span
+            className="font-bold text-xs text-blue-600 hover:text-blue-700 tracking-wider"
+            title={`Lead By: ${lead.employees_leads_owner_idToemployees?.name || 'Sales User'}`}
+          >
+            {getUserInitials(lead.employees_leads_owner_idToemployees?.name)}
           </span>
         </div>
 
-        <div className="flex items-center gap-1">
+        {/* Quick action buttons like Hold, Submit in image 2 */}
+        <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
           {lead.website && (
             <a
               href={lead.website.startsWith('http') ? lead.website : `https://${lead.website}`}
               target="_blank"
               rel="noreferrer"
-              onClick={(e) => e.stopPropagation()}
               className="p-1 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
               title="Visit Website"
             >
@@ -191,43 +250,33 @@ export const LeadCard: React.FC<LeadCardProps> = ({
             </a>
           )}
 
-          {/* Quick convert button if qualified/not converted yet */}
+          {lead.email && (
+            <a
+              href={`mailto:${lead.email}`}
+              className="p-1 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+              title="Send Email"
+            >
+              <Mail className="w-3.5 h-3.5" />
+            </a>
+          )}
+
           {!lead.company_id && (
             <button
               type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onConvert(lead);
-              }}
-              className="p-1 rounded-md text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
-              title="Convert to Company Client"
+              onClick={() => onConvert(lead)}
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-purple-600 bg-purple-50 hover:bg-purple-100 px-2 py-0.5 rounded-md border border-purple-200 transition-colors cursor-pointer"
             >
-              <ArrowRightCircle className="w-3.5 h-3.5" />
+              <Send className="w-2.5 h-2.5" /> Submit
             </button>
           )}
 
           <button
             type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit(lead);
-            }}
-            className="p-1 rounded-md text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+            onClick={() => onEdit(lead)}
+            className="p-1 rounded-md text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer"
             title="Edit Lead"
           >
             <Pencil className="w-3.5 h-3.5" />
-          </button>
-
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onSelect(lead);
-            }}
-            className="p-1 rounded-md text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors"
-            title="View Details"
-          >
-            <ChevronRight className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
