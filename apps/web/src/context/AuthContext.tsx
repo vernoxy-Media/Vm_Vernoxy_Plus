@@ -33,7 +33,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const profile = await customFetch<MeResponseDto>('/api/v1/auth/me');
       setUser(profile);
       return profile;
-    } catch {
+    } catch (err) {
+      console.error('[FETCH_PROFILE_ERROR]', err);
       setUser(null);
       setAccessToken(null);
       return null;

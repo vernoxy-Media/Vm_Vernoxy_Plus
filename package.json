@@ -24,7 +24,7 @@
     "openapi:export": "pnpm --filter @vernoxy-pulse/api openapi:export",
     "api:generate": "pnpm --filter @vernoxy-pulse/api-client generate",
     "mailpit": "tsx scripts/mailpit-mock.ts",
-    "dev": "turbo run dev --parallel"
+    "dev": "pnpm -r --parallel run dev"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

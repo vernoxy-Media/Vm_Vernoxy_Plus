@@ -59,7 +59,8 @@ export class JwtAuthGuard implements CanActivate {
     let payload;
     try {
       payload = await this.tokenService.verifyAccessToken(token);
-    } catch {
+    } catch (err: any) {
+      console.log('[JWT GUARD ERROR] verifyAccessToken failed:', err?.message || err);
       throw new UnauthorizedException('Invalid or expired access token');
     }
 
@@ -69,12 +70,14 @@ export class JwtAuthGuard implements CanActivate {
     // Load session by primary key
     const session = await this.sessionRepo.findById(sessionId);
     if (!session || session.revoked_at !== null || session.expires_at.getTime() <= this.clock.now().getTime()) {
+      console.log('[JWT GUARD ERROR] session invalid:', { exists: Boolean(session), revoked: session?.revoked_at, expired: session ? session.expires_at.getTime() <= this.clock.now().getTime() : true });
       throw new UnauthorizedException('Session is revoked or expired');
     }
 
     // Load employee
     const emp = await this.employeeRepo.findById(empId);
     if (!emp || emp.status !== 'Active' || emp.deleted_at !== null) {
+      console.log('[JWT GUARD ERROR] emp invalid:', { exists: Boolean(emp), status: emp?.status, deleted_at: emp?.deleted_at });
       throw new UnauthorizedException('Employee is inactive or not found');
     }
 

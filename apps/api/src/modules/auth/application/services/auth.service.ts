@@ -106,14 +106,16 @@ export class AuthService {
     password: string,
     clientIp?: string,
     userAgent?: string,
-  ): Promise<LoginResult> {
+  ): Promise<VerifyLoginResult> {
     const normalizedEmail = email.trim().toLowerCase();
     const identifierHash = crypto.createHash('sha256').update(normalizedEmail).digest('hex');
 
     const emp = await this.employeeRepo.findByEmail(normalizedEmail);
+    console.log(`[AUTH LOGIN DEBUG] email: ${normalizedEmail}, found employee:`, emp ? { emp_id: emp.emp_id, status: emp.status, has_credentials: Boolean(emp.credentials), deleted_at: emp.deleted_at } : null);
 
     // Timing equalization for unknown, inactive, or soft-deleted employees
     if (!emp || emp.status !== 'Active' || emp.deleted_at !== null || !emp.credentials) {
+      console.log(`[AUTH LOGIN DEBUG] Rejected at check 1: emp exists? ${Boolean(emp)}, status: ${emp?.status}, deleted_at: ${emp?.deleted_at}, credentials: ${Boolean(emp?.credentials)}`);
       await this.passwordHasher.verify(password, DUMMY_ARGON2ID_HASH);
       await this.authEventRepo.createEvent({
         identifier_hash: identifierHash,
@@ -126,6 +128,7 @@ export class AuthService {
 
     // Check account lockout
     if (isAccountLocked(emp.credentials.locked_until, this.clock.now())) {
+      console.log(`[AUTH LOGIN DEBUG] Account locked until: ${emp.credentials.locked_until}`);
       await this.passwordHasher.verify(password, DUMMY_ARGON2ID_HASH);
       await this.authEventRepo.createEvent({
         emp_id: emp.emp_id,
@@ -138,6 +141,7 @@ export class AuthService {
 
     // Verify password with argon2id
     const passwordValid = await this.passwordHasher.verify(password, emp.credentials.password_hash);
+    console.log(`[AUTH LOGIN DEBUG] Password check result: ${passwordValid}`);
     if (!passwordValid) {
       const incrementResult = await this.employeeRepo.incrementFailedAttempts(emp.emp_id);
       const isNowLocked = isAccountLocked(incrementResult.lockedUntil, this.clock.now());
@@ -153,60 +157,44 @@ export class AuthService {
     // Password valid -> reset failed attempts and record last login
     await this.employeeRepo.resetFailedAttemptsAndSetLastLogin(emp.emp_id, this.clock.now());
 
-    // Check hourly cap (max 5 per hour)
-    const oneHourAgo = new Date(this.clock.now().getTime() - 3600_000);
-    const countLastHour = await this.otpRepo.countCodesInLastHour(emp.emp_id, 'login_2fa', oneHourAgo);
-    if (countLastHour >= OTP_HOURLY_CAP) {
-      await this.authEventRepo.createEvent({
-        emp_id: emp.emp_id,
-        event_type: 'otp_resend_blocked',
-        ip_address: clientIp,
-        user_agent: userAgent,
-        details: { reason: 'hourly_cap_exceeded' },
-      });
-      throw new TooManyRequestsAuthException('Too many OTP attempts. Please try again later.');
-    }
+    // Issue session directly (2FA OTP removed)
+    const rawRefreshToken = generateRawRefreshToken();
+    const refreshHash = hashRefreshToken(rawRefreshToken);
+    const sessionExpiresAt = new Date(this.clock.now().getTime() + 7 * 86400 * 1000); // 7 days
 
-    // Generate 6-digit code
-    const code = this.otpCodeService.generateCode();
-    const otpId = crypto.randomUUID();
-    const codeHash = this.otpCodeService.hashCode(otpId, 'login_2fa', code);
-    const expiresAt = new Date(this.clock.now().getTime() + OTP_EXPIRY_SECONDS * 1000);
+    const session = await this.sessionRepo.createSession({
+      emp_id: emp.emp_id,
+      refresh_token_hash: refreshHash,
+      expires_at: sessionExpiresAt,
+      ip_address: clientIp,
+      user_agent: userAgent,
+    });
 
-    // Atomically void open code and insert new one
-    await this.otpRepo.replaceOpenCodeWithNew(
-      emp.emp_id,
-      'login_2fa',
-      {
-        otp_id: otpId,
-        emp_id: emp.emp_id,
-        purpose: 'login_2fa',
-        destination: emp.email,
-        code_hash: codeHash,
-        expires_at: expiresAt,
-        max_attempts: OTP_MAX_ATTEMPTS,
-        ip_address: clientIp,
-      },
-      this.clock.now(),
-    );
+    // Issue access token
+    const { token: accessToken, expiresIn } = await this.tokenService.signAccessToken({
+      emp_id: emp.emp_id,
+      session_id: session.session_id,
+    });
 
-    // Send email with OTP code (redacted in logs, never logged)
-    await this.mailPort.sendOtp(emp.email, code, 'login_2fa');
-
-    // Audit event
     await this.authEventRepo.createEvent({
       emp_id: emp.emp_id,
-      event_type: 'login_otp_sent',
+      session_id: session.session_id,
+      event_type: 'login_succeeded',
       ip_address: clientIp,
       user_agent: userAgent,
     });
 
     return {
-      challenge_id: otpId,
-      masked_email: emp.email,
-      expires_in_seconds: OTP_EXPIRY_SECONDS,
-      resend_available_in_seconds: OTP_RESEND_COOLDOWN_SECONDS,
-      otp_code: code,
+      access_token: accessToken,
+      token_type: 'Bearer',
+      expires_in: expiresIn,
+      raw_refresh_token: rawRefreshToken,
+      must_change_password: emp.credentials?.must_change_password ?? false,
+      user: {
+        emp_id: emp.emp_id,
+        name: emp.name,
+        email: emp.email,
+      },
     };
   }
 
