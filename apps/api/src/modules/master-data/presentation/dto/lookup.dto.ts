@@ -23,6 +23,10 @@ export const ALLOWED_LOOKUP_TYPES = [
   'attendance_reason',
   'shift_type',
   'leave_type',
+  'employment_type',
+  'gender',
+  'blood_group',
+  'deactivation_reason',
 ];
 
 export class LookupOptionsQueryDto {

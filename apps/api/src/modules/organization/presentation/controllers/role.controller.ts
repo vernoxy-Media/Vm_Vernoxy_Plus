@@ -59,12 +59,26 @@ export class RoleController {
   }
 
   @Get('options')
-  @ApiOperation({ summary: 'Get active roles for a department' })
-  @ApiQuery({ name: 'dep_id', type: Number, required: true })
+  @ApiOperation({ summary: 'Get active roles for department(s)' })
+  @ApiQuery({ name: 'dep_id', type: Number, required: false })
+  @ApiQuery({ name: 'dep_ids', type: String, required: false, description: 'Comma-separated department IDs' })
   @ApiResponse({ status: 200, type: [RoleOptionDto] })
-  async getOptions(@Query('dep_id', ParseIntPipe) depId: number): Promise<RoleOptionDto[]> {
+  async getOptions(
+    @Query('dep_id') depId?: string,
+    @Query('dep_ids') depIdsStr?: string,
+  ): Promise<RoleOptionDto[]> {
     try {
-      return await this.getRoleOptionsUseCase.execute(depId);
+      let depIds: number[] | undefined = undefined;
+      if (depIdsStr) {
+        depIds = depIdsStr
+          .split(',')
+          .map((s) => parseInt(s.trim(), 10))
+          .filter((n) => !isNaN(n));
+      } else if (depId) {
+        const parsed = parseInt(depId, 10);
+        if (!isNaN(parsed)) depIds = [parsed];
+      }
+      return await this.getRoleOptionsUseCase.execute(depIds);
     } catch (err) {
       throw mapDomainErrorToHttpException(err);
     }

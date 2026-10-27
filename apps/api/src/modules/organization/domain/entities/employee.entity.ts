@@ -21,6 +21,11 @@ export interface Employee {
     dep_id: number;
     name: string;
   };
+  departments?: Array<{
+    dep_id: number;
+    name: string;
+    is_primary: boolean;
+  }>;
   role?: {
     role_id: number;
     role_name: string;
@@ -29,4 +34,34 @@ export interface Employee {
     emp_id: number;
     name: string;
   } | null;
+  gender_id?: number | null;
+  gender?: {
+    lookup_id: number;
+    code: string;
+    label: string;
+  } | null;
+  personal_email?: string | null;
+  office_email?: string | null;
+  birth_date?: Date | null;
+  blood_group?: string | null;
+  address?: string | null;
+  emergency_contact_name?: string | null;
+  emergency_contact_number?: string | null;
+  emergency_contact_relation?: string | null;
+  employment_type_id?: number | null;
+  employment_type?: {
+    lookup_id: number;
+    code: string;
+    label: string;
+  } | null;
+  salary?: number | null;
+  pf?: number | null;
+  termination_date?: Date | null;
+  deactivation_reason?: string | null;
+  deactivation_notes?: string | null;
+  deactivated_at?: Date | null;
+  deactivated_by?: number | null;
+  employee_code?: string;
+  pending_documents_count?: number;
 }
+

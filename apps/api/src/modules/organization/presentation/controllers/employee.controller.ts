@@ -39,10 +39,13 @@ import { StorageValidator } from '../../../storage/public-api';
 import {
   CreateEmployeeDto,
   UpdateEmployeeDto,
+  DeactivateEmployeeDto,
+  DeactivateWarningResponseDto,
   EmployeeQueryDto,
   EmployeeResponseDto,
   EmployeeListResponseDto,
   EmployeeOptionDto,
+  EmployeeHistoryItemDto,
 } from '../dto/employee.dto';
 import { ListEmployeesUseCase } from '../../application/use-cases/list-employees.use-case';
 import { GetEmployeeOptionsUseCase } from '../../application/use-cases/get-employee-options.use-case';
@@ -52,6 +55,9 @@ import { UpdateEmployeeUseCase } from '../../application/use-cases/update-employ
 import { DeleteEmployeeUseCase } from '../../application/use-cases/delete-employee.use-case';
 import { UploadEmployeePhotoUseCase } from '../../application/use-cases/upload-employee-photo.use-case';
 import { RemoveEmployeePhotoUseCase } from '../../application/use-cases/remove-employee-photo.use-case';
+import { DeactivateEmployeeUseCase } from '../../application/use-cases/deactivate-employee.use-case';
+import { GetDeactivateWarningUseCase } from '../../application/use-cases/get-deactivate-warning.use-case';
+import { GetEmployeeHistoryUseCase } from '../../application/use-cases/get-employee-history.use-case';
 
 function toEmployeeResponseDto(emp: any): EmployeeResponseDto {
   if (!emp) return emp;
@@ -73,6 +79,9 @@ export class EmployeeController {
     private readonly deleteEmployeeUseCase: DeleteEmployeeUseCase,
     private readonly uploadPhotoUseCase: UploadEmployeePhotoUseCase,
     private readonly removePhotoUseCase: RemoveEmployeePhotoUseCase,
+    private readonly deactivateEmployeeUseCase: DeactivateEmployeeUseCase,
+    private readonly getDeactivateWarningUseCase: GetDeactivateWarningUseCase,
+    private readonly getEmployeeHistoryUseCase: GetEmployeeHistoryUseCase,
   ) {}
 
   @Get()
@@ -115,6 +124,58 @@ export class EmployeeController {
     }
   }
 
+  @Get(':id/deactivate-warning')
+  @ApiOperation({ summary: 'Get direct reports warning before deactivating an employee' })
+  @ApiParam({ name: 'id', type: Number, description: 'Employee ID' })
+  @ApiResponse({ status: 200, type: DeactivateWarningResponseDto })
+  async getDeactivateWarning(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<DeactivateWarningResponseDto> {
+    try {
+      return await this.getDeactivateWarningUseCase.execute(id);
+    } catch (err) {
+      throw mapDomainErrorToHttpException(err);
+    }
+  }
+
+  @Post(':id/deactivate')
+  @ApiOperation({ summary: 'Deactivate an employee (with reason, termination date, and notes)' })
+  @ApiParam({ name: 'id', type: Number, description: 'Employee ID' })
+  @ApiBody({ type: DeactivateEmployeeDto })
+  @ApiResponse({ status: 200, type: EmployeeResponseDto })
+  async deactivate(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: DeactivateEmployeeDto,
+    @Req() req: Request,
+  ): Promise<EmployeeResponseDto> {
+    try {
+      const actingAdminId = req.user!.emp_id;
+      const emp = await this.deactivateEmployeeUseCase.execute({
+        id,
+        termination_date: dto.termination_date,
+        reason: dto.reason,
+        notes: dto.notes,
+        acting_admin_id: actingAdminId,
+      });
+
+      return toEmployeeResponseDto(emp);
+    } catch (err) {
+      throw mapDomainErrorToHttpException(err);
+    }
+  }
+
+  @Get(':id/history')
+  @ApiOperation({ summary: 'Get employee milestone and growth timeline history' })
+  @ApiParam({ name: 'id', type: Number, description: 'Employee ID' })
+  @ApiResponse({ status: 200, type: [EmployeeHistoryItemDto] })
+  async getHistory(@Param('id', ParseIntPipe) id: number): Promise<any[]> {
+    try {
+      return await this.getEmployeeHistoryUseCase.execute(id);
+    } catch (err) {
+      throw mapDomainErrorToHttpException(err);
+    }
+  }
+
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create employee and provision credentials' })
@@ -132,9 +193,22 @@ export class EmployeeController {
         mob: dto.mob,
         password: dto.password,
         dep_id: dto.dep_id,
+        department_ids: dto.department_ids,
         role_id: dto.role_id,
         reporting_manager: dto.reporting_manager,
         joining_date: dto.joining_date,
+        gender_id: dto.gender_id,
+        personal_email: dto.personal_email,
+        office_email: dto.office_email,
+        birth_date: dto.birth_date,
+        blood_group: dto.blood_group,
+        address: dto.address,
+        emergency_contact_name: dto.emergency_contact_name,
+        emergency_contact_number: dto.emergency_contact_number,
+        emergency_contact_relation: dto.emergency_contact_relation,
+        employment_type_id: dto.employment_type_id,
+        salary: dto.salary,
+        pf: dto.pf,
         acting_admin_id: actingAdminId,
       });
       return toEmployeeResponseDto(emp);
@@ -158,13 +232,30 @@ export class EmployeeController {
       const emp = await this.updateEmployeeUseCase.execute({
         id,
         name: dto.name,
+        email: dto.email,
         mob: dto.mob,
         dep_id: dto.dep_id,
+        department_ids: dto.department_ids,
         role_id: dto.role_id,
         reporting_manager: dto.reporting_manager,
         joining_date: dto.joining_date,
         exit_date: dto.exit_date,
         status: dto.status,
+        gender_id: dto.gender_id,
+        personal_email: dto.personal_email,
+        office_email: dto.office_email,
+        birth_date: dto.birth_date,
+        blood_group: dto.blood_group,
+        address: dto.address,
+        emergency_contact_name: dto.emergency_contact_name,
+        emergency_contact_number: dto.emergency_contact_number,
+        emergency_contact_relation: dto.emergency_contact_relation,
+        employment_type_id: dto.employment_type_id,
+        salary: dto.salary,
+        pf: dto.pf,
+        termination_date: dto.termination_date,
+        deactivation_reason: dto.deactivation_reason,
+        deactivation_notes: dto.deactivation_notes,
         acting_admin_id: actingAdminId,
       });
       return toEmployeeResponseDto(emp);
@@ -172,6 +263,7 @@ export class EmployeeController {
       throw mapDomainErrorToHttpException(err);
     }
   }
+
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)

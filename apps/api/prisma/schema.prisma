@@ -109,170 +109,203 @@ model customer_types {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model departments {
-  dep_id                                      Int         @id(map: "pk_departments") @default(autoincrement())
-  name                                        String      @db.VarChar(255)
-  is_active                                   Boolean     @default(true)
-  created_at                                  DateTime    @default(now()) @db.Timestamptz(6)
+  dep_id                                      Int                    @id(map: "pk_departments") @default(autoincrement())
+  name                                        String                 @db.VarChar(255)
+  is_active                                   Boolean                @default(true)
+  created_at                                  DateTime               @default(now()) @db.Timestamptz(6)
   created_by                                  Int?
-  updated_at                                  DateTime?   @db.Timestamptz(6)
+  updated_at                                  DateTime?              @db.Timestamptz(6)
   updated_by                                  Int?
-  deleted_at                                  DateTime?   @db.Timestamptz(6)
+  deleted_at                                  DateTime?              @db.Timestamptz(6)
   deleted_by                                  Int?
-  employees_departments_created_byToemployees employees?  @relation("departments_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_departments_created_by")
-  employees_departments_deleted_byToemployees employees?  @relation("departments_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_departments_deleted_by")
-  employees_departments_updated_byToemployees employees?  @relation("departments_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_departments_updated_by")
-  employees_employees_dep_idTodepartments     employees[] @relation("employees_dep_idTodepartments")
+  employees_departments_created_byToemployees employees?             @relation("departments_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_departments_created_by")
+  employees_departments_deleted_byToemployees employees?             @relation("departments_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_departments_deleted_by")
+  employees_departments_updated_byToemployees employees?             @relation("departments_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_departments_updated_by")
+  employee_departments                        employee_departments[]
+  employees_employees_dep_idTodepartments     employees[]            @relation("employees_dep_idTodepartments")
   roles                                       roles[]
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model employees {
-  emp_id                                                                   Int                        @id(map: "pk_employees") @default(autoincrement())
-  name                                                                     String                     @db.VarChar(255)
-  email                                                                    String                     @db.VarChar(255)
-  mob                                                                      String                     @db.VarChar(20)
-  dep_id                                                                   Int
-  role_id                                                                  Int?
-  reporting_manager                                                        Int?
-  profile_picture                                                          String?                    @db.VarChar(500)
-  status                                                                   employee_status            @default(Active)
-  joining_date                                                             DateTime                   @db.Date
-  exit_date                                                                DateTime?                  @db.Date
-  created_at                                                               DateTime                   @default(now()) @db.Timestamptz(6)
-  created_by                                                               Int?
-  updated_at                                                               DateTime?                  @db.Timestamptz(6)
-  updated_by                                                               Int?
-  deleted_at                                                               DateTime?                  @db.Timestamptz(6)
-  deleted_by                                                               Int?
-  app_settings_app_settings_created_byToemployees                          app_settings[]             @relation("app_settings_created_byToemployees")
-  app_settings_app_settings_deleted_byToemployees                          app_settings[]             @relation("app_settings_deleted_byToemployees")
-  app_settings_app_settings_updated_byToemployees                          app_settings[]             @relation("app_settings_updated_byToemployees")
-  attendance_breaks_attendance_breaks_created_byToemployees                attendance_breaks[]        @relation("attendance_breaks_created_byToemployees")
-  attendance_breaks_attendance_breaks_deleted_byToemployees                attendance_breaks[]        @relation("attendance_breaks_deleted_byToemployees")
-  attendance_breaks_attendance_breaks_updated_byToemployees                attendance_breaks[]        @relation("attendance_breaks_updated_byToemployees")
-  attendance_corrections_attendance_corrections_created_byToemployees      attendance_corrections[]   @relation("attendance_corrections_created_byToemployees")
-  attendance_corrections_attendance_corrections_decided_byToemployees      attendance_corrections[]   @relation("attendance_corrections_decided_byToemployees")
-  attendance_corrections_attendance_corrections_deleted_byToemployees      attendance_corrections[]   @relation("attendance_corrections_deleted_byToemployees")
-  attendance_corrections_attendance_corrections_emp_idToemployees          attendance_corrections[]   @relation("attendance_corrections_emp_idToemployees")
-  attendance_corrections_attendance_corrections_updated_byToemployees      attendance_corrections[]   @relation("attendance_corrections_updated_byToemployees")
-  attendance_days_attendance_days_created_byToemployees                    attendance_days[]          @relation("attendance_days_created_byToemployees")
-  attendance_days_attendance_days_deleted_byToemployees                    attendance_days[]          @relation("attendance_days_deleted_byToemployees")
-  attendance_days_attendance_days_emp_idToemployees                        attendance_days[]          @relation("attendance_days_emp_idToemployees")
-  attendance_days_attendance_days_updated_byToemployees                    attendance_days[]          @relation("attendance_days_updated_byToemployees")
-  auth_events_auth_events_actor_emp_idToemployees                          auth_events[]              @relation("auth_events_actor_emp_idToemployees")
-  auth_events_auth_events_emp_idToemployees                                auth_events[]              @relation("auth_events_emp_idToemployees")
-  auth_sessions_auth_sessions_created_byToemployees                        auth_sessions[]            @relation("auth_sessions_created_byToemployees")
-  auth_sessions_auth_sessions_deleted_byToemployees                        auth_sessions[]            @relation("auth_sessions_deleted_byToemployees")
-  auth_sessions_auth_sessions_emp_idToemployees                            auth_sessions[]            @relation("auth_sessions_emp_idToemployees")
-  auth_sessions_auth_sessions_updated_byToemployees                        auth_sessions[]            @relation("auth_sessions_updated_byToemployees")
-  bug_comments                                                             bug_comments[]
-  bug_history                                                              bug_history[]
-  calendar_event_attendees_calendar_event_attendees_created_byToemployees  calendar_event_attendees[] @relation("calendar_event_attendees_created_byToemployees")
-  calendar_event_attendees_calendar_event_attendees_deleted_byToemployees  calendar_event_attendees[] @relation("calendar_event_attendees_deleted_byToemployees")
-  calendar_event_attendees_calendar_event_attendees_employee_idToemployees calendar_event_attendees[] @relation("calendar_event_attendees_employee_idToemployees")
-  calendar_event_attendees_calendar_event_attendees_updated_byToemployees  calendar_event_attendees[] @relation("calendar_event_attendees_updated_byToemployees")
-  calendar_events_calendar_events_created_byToemployees                    calendar_events[]          @relation("calendar_events_created_byToemployees")
-  calendar_events_calendar_events_deleted_byToemployees                    calendar_events[]          @relation("calendar_events_deleted_byToemployees")
-  calendar_events_calendar_events_organizer_idToemployees                  calendar_events[]          @relation("calendar_events_organizer_idToemployees")
-  calendar_events_calendar_events_updated_byToemployees                    calendar_events[]          @relation("calendar_events_updated_byToemployees")
-  companies_companies_created_byToemployees                                companies[]                @relation("companies_created_byToemployees")
-  companies_companies_deleted_byToemployees                                companies[]                @relation("companies_deleted_byToemployees")
-  companies_companies_owner_idToemployees                                  companies[]                @relation("companies_owner_idToemployees")
-  companies_companies_updated_byToemployees                                companies[]                @relation("companies_updated_byToemployees")
-  company_channels_company_channels_created_byToemployees                  company_channels[]         @relation("company_channels_created_byToemployees")
-  company_channels_company_channels_deleted_byToemployees                  company_channels[]         @relation("company_channels_deleted_byToemployees")
-  company_channels_company_channels_updated_byToemployees                  company_channels[]         @relation("company_channels_updated_byToemployees")
-  company_holidays_company_holidays_created_byToemployees                  company_holidays[]         @relation("company_holidays_created_byToemployees")
-  company_holidays_company_holidays_deleted_byToemployees                  company_holidays[]         @relation("company_holidays_deleted_byToemployees")
-  company_holidays_company_holidays_updated_byToemployees                  company_holidays[]         @relation("company_holidays_updated_byToemployees")
-  company_persons_company_persons_created_byToemployees                    company_persons[]          @relation("company_persons_created_byToemployees")
-  company_persons_company_persons_deleted_byToemployees                    company_persons[]          @relation("company_persons_deleted_byToemployees")
-  company_persons_company_persons_updated_byToemployees                    company_persons[]          @relation("company_persons_updated_byToemployees")
-  customer_types_customer_types_created_byToemployees                      customer_types[]           @relation("customer_types_created_byToemployees")
-  customer_types_customer_types_deleted_byToemployees                      customer_types[]           @relation("customer_types_deleted_byToemployees")
-  customer_types_customer_types_updated_byToemployees                      customer_types[]           @relation("customer_types_updated_byToemployees")
-  data_transfer_jobs_data_transfer_jobs_created_byToemployees              data_transfer_jobs[]       @relation("data_transfer_jobs_created_byToemployees")
-  data_transfer_jobs_data_transfer_jobs_deleted_byToemployees              data_transfer_jobs[]       @relation("data_transfer_jobs_deleted_byToemployees")
-  data_transfer_jobs_data_transfer_jobs_updated_byToemployees              data_transfer_jobs[]       @relation("data_transfer_jobs_updated_byToemployees")
-  departments_departments_created_byToemployees                            departments[]              @relation("departments_created_byToemployees")
-  departments_departments_deleted_byToemployees                            departments[]              @relation("departments_deleted_byToemployees")
-  departments_departments_updated_byToemployees                            departments[]              @relation("departments_updated_byToemployees")
-  employee_credentials_employee_credentials_created_byToemployees          employee_credentials[]     @relation("employee_credentials_created_byToemployees")
-  employee_credentials_employee_credentials_deleted_byToemployees          employee_credentials[]     @relation("employee_credentials_deleted_byToemployees")
-  employee_credentials_employee_credentials_emp_idToemployees              employee_credentials[]     @relation("employee_credentials_emp_idToemployees")
-  employee_credentials_employee_credentials_updated_byToemployees          employee_credentials[]     @relation("employee_credentials_updated_byToemployees")
-  employees_employees_created_byToemployees                                employees?                 @relation("employees_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_employees_created_by")
-  other_employees_employees_created_byToemployees                          employees[]                @relation("employees_created_byToemployees")
-  employees_employees_deleted_byToemployees                                employees?                 @relation("employees_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_employees_deleted_by")
-  other_employees_employees_deleted_byToemployees                          employees[]                @relation("employees_deleted_byToemployees")
-  departments_employees_dep_idTodepartments                                departments                @relation("employees_dep_idTodepartments", fields: [dep_id], references: [dep_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_employees_dep_id")
-  employees_employees_reporting_managerToemployees                         employees?                 @relation("employees_reporting_managerToemployees", fields: [reporting_manager], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_employees_reporting_manager")
-  other_employees_employees_reporting_managerToemployees                   employees[]                @relation("employees_reporting_managerToemployees")
-  roles_employees_role_idToroles                                           roles?                     @relation("employees_role_idToroles", fields: [role_id], references: [role_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_employees_role_id")
-  roles_employees_role_id_dep_idToroles                                    roles?                     @relation("employees_role_id_dep_idToroles", fields: [role_id, dep_id], references: [role_id, dep_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_employees_role_in_department")
-  employees_employees_updated_byToemployees                                employees?                 @relation("employees_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_employees_updated_by")
-  other_employees_employees_updated_byToemployees                          employees[]                @relation("employees_updated_byToemployees")
-  industries_industries_created_byToemployees                              industries[]               @relation("industries_created_byToemployees")
-  industries_industries_deleted_byToemployees                              industries[]               @relation("industries_deleted_byToemployees")
-  industries_industries_updated_byToemployees                              industries[]               @relation("industries_updated_byToemployees")
-  leads_leads_created_byToemployees                                        leads[]                    @relation("leads_created_byToemployees")
-  leads_leads_deleted_byToemployees                                        leads[]                    @relation("leads_deleted_byToemployees")
-  leads_leads_owner_idToemployees                                          leads[]                    @relation("leads_owner_idToemployees")
-  leads_leads_updated_byToemployees                                        leads[]                    @relation("leads_updated_byToemployees")
-  master_lookup_master_lookup_created_byToemployees                        master_lookup[]            @relation("master_lookup_created_byToemployees")
-  master_lookup_master_lookup_deleted_byToemployees                        master_lookup[]            @relation("master_lookup_deleted_byToemployees")
-  master_lookup_master_lookup_updated_byToemployees                        master_lookup[]            @relation("master_lookup_updated_byToemployees")
-  notifications_notifications_created_byToemployees                        notifications[]            @relation("notifications_created_byToemployees")
-  notifications_notifications_deleted_byToemployees                        notifications[]            @relation("notifications_deleted_byToemployees")
-  notifications_notifications_recipient_idToemployees                      notifications[]            @relation("notifications_recipient_idToemployees")
-  notifications_notifications_updated_byToemployees                        notifications[]            @relation("notifications_updated_byToemployees")
-  otp_codes_otp_codes_created_byToemployees                                otp_codes[]                @relation("otp_codes_created_byToemployees")
-  otp_codes_otp_codes_deleted_byToemployees                                otp_codes[]                @relation("otp_codes_deleted_byToemployees")
-  otp_codes_otp_codes_emp_idToemployees                                    otp_codes[]                @relation("otp_codes_emp_idToemployees")
-  otp_codes_otp_codes_updated_byToemployees                                otp_codes[]                @relation("otp_codes_updated_byToemployees")
-  persons_persons_created_byToemployees                                    persons[]                  @relation("persons_created_byToemployees")
-  persons_persons_deleted_byToemployees                                    persons[]                  @relation("persons_deleted_byToemployees")
-  persons_persons_updated_byToemployees                                    persons[]                  @relation("persons_updated_byToemployees")
-  pipeline_stages_pipeline_stages_created_byToemployees                    pipeline_stages[]          @relation("pipeline_stages_created_byToemployees")
-  pipeline_stages_pipeline_stages_deleted_byToemployees                    pipeline_stages[]          @relation("pipeline_stages_deleted_byToemployees")
-  pipeline_stages_pipeline_stages_updated_byToemployees                    pipeline_stages[]          @relation("pipeline_stages_updated_byToemployees")
-  project_activity_logs                                                    project_activity_logs[]
-  project_bugs_project_bugs_assigned_toToemployees                         project_bugs[]             @relation("project_bugs_assigned_toToemployees")
-  project_bugs_project_bugs_created_byToemployees                          project_bugs[]             @relation("project_bugs_created_byToemployees")
-  project_bugs_project_bugs_deleted_byToemployees                          project_bugs[]             @relation("project_bugs_deleted_byToemployees")
-  project_bugs_project_bugs_reported_byToemployees                         project_bugs[]             @relation("project_bugs_reported_byToemployees")
-  project_bugs_project_bugs_updated_byToemployees                          project_bugs[]             @relation("project_bugs_updated_byToemployees")
-  project_credentials_project_credentials_created_byToemployees            project_credentials[]      @relation("project_credentials_created_byToemployees")
-  project_credentials_project_credentials_deleted_byToemployees            project_credentials[]      @relation("project_credentials_deleted_byToemployees")
-  project_credentials_project_credentials_updated_byToemployees            project_credentials[]      @relation("project_credentials_updated_byToemployees")
-  project_deployments_project_deployments_created_byToemployees            project_deployments[]      @relation("project_deployments_created_byToemployees")
-  project_deployments_project_deployments_deleted_byToemployees            project_deployments[]      @relation("project_deployments_deleted_byToemployees")
-  project_deployments_project_deployments_deployment_done_byToemployees    project_deployments[]      @relation("project_deployments_deployment_done_byToemployees")
-  project_deployments_project_deployments_updated_byToemployees            project_deployments[]      @relation("project_deployments_updated_byToemployees")
-  project_discussions                                                      project_discussions[]
-  project_members_project_members_created_byToemployees                    project_members[]          @relation("project_members_created_byToemployees")
-  project_members_project_members_deleted_byToemployees                    project_members[]          @relation("project_members_deleted_byToemployees")
-  project_members_project_members_employee_idToemployees                   project_members[]          @relation("project_members_employee_idToemployees")
-  project_sprints_project_sprints_created_byToemployees                    project_sprints[]          @relation("project_sprints_created_byToemployees")
-  project_sprints_project_sprints_deleted_byToemployees                    project_sprints[]          @relation("project_sprints_deleted_byToemployees")
-  project_sprints_project_sprints_updated_byToemployees                    project_sprints[]          @relation("project_sprints_updated_byToemployees")
-  projects_projects_created_byToemployees                                  projects[]                 @relation("projects_created_byToemployees")
-  projects_projects_deleted_byToemployees                                  projects[]                 @relation("projects_deleted_byToemployees")
-  projects_projects_project_manager_idToemployees                          projects[]                 @relation("projects_project_manager_idToemployees")
-  projects_projects_updated_byToemployees                                  projects[]                 @relation("projects_updated_byToemployees")
-  roles_roles_created_byToemployees                                        roles[]                    @relation("roles_created_byToemployees")
-  roles_roles_deleted_byToemployees                                        roles[]                    @relation("roles_deleted_byToemployees")
-  roles_roles_updated_byToemployees                                        roles[]                    @relation("roles_updated_byToemployees")
-  task_assignees_task_assignees_created_byToemployees                      task_assignees[]           @relation("task_assignees_created_byToemployees")
-  task_assignees_task_assignees_deleted_byToemployees                      task_assignees[]           @relation("task_assignees_deleted_byToemployees")
-  task_assignees_task_assignees_employee_idToemployees                     task_assignees[]           @relation("task_assignees_employee_idToemployees")
-  task_assignees_task_assignees_updated_byToemployees                      task_assignees[]           @relation("task_assignees_updated_byToemployees")
-  task_history                                                             task_history[]
-  tasks_tasks_completed_byToemployees                                      tasks[]                    @relation("tasks_completed_byToemployees")
-  tasks_tasks_created_byToemployees                                        tasks[]                    @relation("tasks_created_byToemployees")
-  tasks_tasks_deleted_byToemployees                                        tasks[]                    @relation("tasks_deleted_byToemployees")
-  tasks_tasks_lead_employee_idToemployees                                  tasks[]                    @relation("tasks_lead_employee_idToemployees")
-  tasks_tasks_updated_byToemployees                                        tasks[]                    @relation("tasks_updated_byToemployees")
+  emp_id                                                                                 Int                               @id(map: "pk_employees") @default(autoincrement())
+  name                                                                                   String                            @db.VarChar(255)
+  email                                                                                  String                            @db.VarChar(255)
+  mob                                                                                    String                            @db.VarChar(20)
+  dep_id                                                                                 Int
+  role_id                                                                                Int?
+  reporting_manager                                                                      Int?
+  profile_picture                                                                        String?                           @db.VarChar(500)
+  status                                                                                 employee_status                   @default(Active)
+  joining_date                                                                           DateTime                          @db.Date
+  exit_date                                                                              DateTime?                         @db.Date
+  created_at                                                                             DateTime                          @default(now()) @db.Timestamptz(6)
+  created_by                                                                             Int?
+  updated_at                                                                             DateTime?                         @db.Timestamptz(6)
+  updated_by                                                                             Int?
+  deleted_at                                                                             DateTime?                         @db.Timestamptz(6)
+  deleted_by                                                                             Int?
+  gender_id                                                                              Int?
+  personal_email                                                                         String?                           @db.VarChar(255)
+  office_email                                                                           String?                           @db.VarChar(255)
+  birth_date                                                                             DateTime?                         @db.Date
+  blood_group                                                                            String?                           @db.VarChar(10)
+  address                                                                                String?
+  emergency_contact_name                                                                 String?                           @db.VarChar(150)
+  emergency_contact_number                                                               String?                           @db.VarChar(20)
+  emergency_contact_relation                                                             String?                           @db.VarChar(50)
+  employment_type_id                                                                     Int?
+  salary                                                                                 Decimal?                          @default(0) @db.Decimal(12, 2)
+  pf                                                                                     Decimal?                          @default(0) @db.Decimal(12, 2)
+  termination_date                                                                       DateTime?                         @db.Date
+  deactivation_reason                                                                    String?                           @db.VarChar(100)
+  deactivation_notes                                                                     String?
+  deactivated_at                                                                         DateTime?                         @db.Timestamptz(6)
+  deactivated_by                                                                         Int?
+  app_settings_app_settings_created_byToemployees                                        app_settings[]                    @relation("app_settings_created_byToemployees")
+  app_settings_app_settings_deleted_byToemployees                                        app_settings[]                    @relation("app_settings_deleted_byToemployees")
+  app_settings_app_settings_updated_byToemployees                                        app_settings[]                    @relation("app_settings_updated_byToemployees")
+  attendance_breaks_attendance_breaks_created_byToemployees                              attendance_breaks[]               @relation("attendance_breaks_created_byToemployees")
+  attendance_breaks_attendance_breaks_deleted_byToemployees                              attendance_breaks[]               @relation("attendance_breaks_deleted_byToemployees")
+  attendance_breaks_attendance_breaks_updated_byToemployees                              attendance_breaks[]               @relation("attendance_breaks_updated_byToemployees")
+  attendance_correction_approvals_attendance_correction_approvals_approver_idToemployees attendance_correction_approvals[] @relation("attendance_correction_approvals_approver_idToemployees")
+  attendance_correction_approvals_attendance_correction_approvals_created_byToemployees  attendance_correction_approvals[] @relation("attendance_correction_approvals_created_byToemployees")
+  attendance_correction_approvals_attendance_correction_approvals_deleted_byToemployees  attendance_correction_approvals[] @relation("attendance_correction_approvals_deleted_byToemployees")
+  attendance_correction_approvals_attendance_correction_approvals_updated_byToemployees  attendance_correction_approvals[] @relation("attendance_correction_approvals_updated_byToemployees")
+  attendance_corrections_attendance_corrections_created_byToemployees                    attendance_corrections[]          @relation("attendance_corrections_created_byToemployees")
+  attendance_corrections_attendance_corrections_decided_byToemployees                    attendance_corrections[]          @relation("attendance_corrections_decided_byToemployees")
+  attendance_corrections_attendance_corrections_deleted_byToemployees                    attendance_corrections[]          @relation("attendance_corrections_deleted_byToemployees")
+  attendance_corrections_attendance_corrections_emp_idToemployees                        attendance_corrections[]          @relation("attendance_corrections_emp_idToemployees")
+  attendance_corrections_attendance_corrections_updated_byToemployees                    attendance_corrections[]          @relation("attendance_corrections_updated_byToemployees")
+  attendance_days_attendance_days_created_byToemployees                                  attendance_days[]                 @relation("attendance_days_created_byToemployees")
+  attendance_days_attendance_days_deleted_byToemployees                                  attendance_days[]                 @relation("attendance_days_deleted_byToemployees")
+  attendance_days_attendance_days_emp_idToemployees                                      attendance_days[]                 @relation("attendance_days_emp_idToemployees")
+  attendance_days_attendance_days_updated_byToemployees                                  attendance_days[]                 @relation("attendance_days_updated_byToemployees")
+  auth_events_auth_events_actor_emp_idToemployees                                        auth_events[]                     @relation("auth_events_actor_emp_idToemployees")
+  auth_events_auth_events_emp_idToemployees                                              auth_events[]                     @relation("auth_events_emp_idToemployees")
+  auth_sessions_auth_sessions_created_byToemployees                                      auth_sessions[]                   @relation("auth_sessions_created_byToemployees")
+  auth_sessions_auth_sessions_deleted_byToemployees                                      auth_sessions[]                   @relation("auth_sessions_deleted_byToemployees")
+  auth_sessions_auth_sessions_emp_idToemployees                                          auth_sessions[]                   @relation("auth_sessions_emp_idToemployees")
+  auth_sessions_auth_sessions_updated_byToemployees                                      auth_sessions[]                   @relation("auth_sessions_updated_byToemployees")
+  bug_comments                                                                           bug_comments[]
+  bug_history                                                                            bug_history[]
+  calendar_event_attendees_calendar_event_attendees_created_byToemployees                calendar_event_attendees[]        @relation("calendar_event_attendees_created_byToemployees")
+  calendar_event_attendees_calendar_event_attendees_deleted_byToemployees                calendar_event_attendees[]        @relation("calendar_event_attendees_deleted_byToemployees")
+  calendar_event_attendees_calendar_event_attendees_employee_idToemployees               calendar_event_attendees[]        @relation("calendar_event_attendees_employee_idToemployees")
+  calendar_event_attendees_calendar_event_attendees_updated_byToemployees                calendar_event_attendees[]        @relation("calendar_event_attendees_updated_byToemployees")
+  calendar_events_calendar_events_created_byToemployees                                  calendar_events[]                 @relation("calendar_events_created_byToemployees")
+  calendar_events_calendar_events_deleted_byToemployees                                  calendar_events[]                 @relation("calendar_events_deleted_byToemployees")
+  calendar_events_calendar_events_organizer_idToemployees                                calendar_events[]                 @relation("calendar_events_organizer_idToemployees")
+  calendar_events_calendar_events_updated_byToemployees                                  calendar_events[]                 @relation("calendar_events_updated_byToemployees")
+  companies_companies_created_byToemployees                                              companies[]                       @relation("companies_created_byToemployees")
+  companies_companies_deleted_byToemployees                                              companies[]                       @relation("companies_deleted_byToemployees")
+  companies_companies_owner_idToemployees                                                companies[]                       @relation("companies_owner_idToemployees")
+  companies_companies_updated_byToemployees                                              companies[]                       @relation("companies_updated_byToemployees")
+  company_channels_company_channels_created_byToemployees                                company_channels[]                @relation("company_channels_created_byToemployees")
+  company_channels_company_channels_deleted_byToemployees                                company_channels[]                @relation("company_channels_deleted_byToemployees")
+  company_channels_company_channels_updated_byToemployees                                company_channels[]                @relation("company_channels_updated_byToemployees")
+  company_holidays_company_holidays_created_byToemployees                                company_holidays[]                @relation("company_holidays_created_byToemployees")
+  company_holidays_company_holidays_deleted_byToemployees                                company_holidays[]                @relation("company_holidays_deleted_byToemployees")
+  company_holidays_company_holidays_updated_byToemployees                                company_holidays[]                @relation("company_holidays_updated_byToemployees")
+  company_persons_company_persons_created_byToemployees                                  company_persons[]                 @relation("company_persons_created_byToemployees")
+  company_persons_company_persons_deleted_byToemployees                                  company_persons[]                 @relation("company_persons_deleted_byToemployees")
+  company_persons_company_persons_updated_byToemployees                                  company_persons[]                 @relation("company_persons_updated_byToemployees")
+  customer_types_customer_types_created_byToemployees                                    customer_types[]                  @relation("customer_types_created_byToemployees")
+  customer_types_customer_types_deleted_byToemployees                                    customer_types[]                  @relation("customer_types_deleted_byToemployees")
+  customer_types_customer_types_updated_byToemployees                                    customer_types[]                  @relation("customer_types_updated_byToemployees")
+  data_transfer_jobs_data_transfer_jobs_created_byToemployees                            data_transfer_jobs[]              @relation("data_transfer_jobs_created_byToemployees")
+  data_transfer_jobs_data_transfer_jobs_deleted_byToemployees                            data_transfer_jobs[]              @relation("data_transfer_jobs_deleted_byToemployees")
+  data_transfer_jobs_data_transfer_jobs_updated_byToemployees                            data_transfer_jobs[]              @relation("data_transfer_jobs_updated_byToemployees")
+  departments_departments_created_byToemployees                                          departments[]                     @relation("departments_created_byToemployees")
+  departments_departments_deleted_byToemployees                                          departments[]                     @relation("departments_deleted_byToemployees")
+  departments_departments_updated_byToemployees                                          departments[]                     @relation("departments_updated_byToemployees")
+  employee_credentials_employee_credentials_created_byToemployees                        employee_credentials[]            @relation("employee_credentials_created_byToemployees")
+  employee_credentials_employee_credentials_deleted_byToemployees                        employee_credentials[]            @relation("employee_credentials_deleted_byToemployees")
+  employee_credentials_employee_credentials_emp_idToemployees                            employee_credentials[]            @relation("employee_credentials_emp_idToemployees")
+  employee_credentials_employee_credentials_updated_byToemployees                        employee_credentials[]            @relation("employee_credentials_updated_byToemployees")
+  employee_departments_employee_departments_created_byToemployees                        employee_departments[]            @relation("employee_departments_created_byToemployees")
+  employee_departments_employee_departments_emp_idToemployees                            employee_departments[]            @relation("employee_departments_emp_idToemployees")
+  employee_history_employee_history_created_byToemployees                                employee_history[]                @relation("employee_history_created_byToemployees")
+  employee_history_employee_history_emp_idToemployees                                    employee_history[]                @relation("employee_history_emp_idToemployees")
+  employee_history_employee_history_manager_idToemployees                                employee_history[]                @relation("employee_history_manager_idToemployees")
+  employee_documents                                                                     employee_documents[]
+  employees_employees_deactivated_byToemployees                                          employees?                        @relation("employees_deactivated_byToemployees", fields: [deactivated_by], references: [emp_id], onUpdate: NoAction)
+  other_employees_employees_deactivated_byToemployees                                    employees[]                       @relation("employees_deactivated_byToemployees")
+  master_lookup_employees_employment_type_idTomaster_lookup                              master_lookup?                    @relation("employees_employment_type_idTomaster_lookup", fields: [employment_type_id], references: [lookup_id], onUpdate: NoAction)
+  master_lookup_employees_gender_idTomaster_lookup                                       master_lookup?                    @relation("employees_gender_idTomaster_lookup", fields: [gender_id], references: [lookup_id], onUpdate: NoAction)
+  employees_employees_created_byToemployees                                              employees?                        @relation("employees_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_employees_created_by")
+  other_employees_employees_created_byToemployees                                        employees[]                       @relation("employees_created_byToemployees")
+  employees_employees_deleted_byToemployees                                              employees?                        @relation("employees_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_employees_deleted_by")
+  other_employees_employees_deleted_byToemployees                                        employees[]                       @relation("employees_deleted_byToemployees")
+  departments_employees_dep_idTodepartments                                              departments                       @relation("employees_dep_idTodepartments", fields: [dep_id], references: [dep_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_employees_dep_id")
+  employees_employees_reporting_managerToemployees                                       employees?                        @relation("employees_reporting_managerToemployees", fields: [reporting_manager], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_employees_reporting_manager")
+  other_employees_employees_reporting_managerToemployees                                 employees[]                       @relation("employees_reporting_managerToemployees")
+  roles_employees_role_idToroles                                                         roles?                            @relation("employees_role_idToroles", fields: [role_id], references: [role_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_employees_role_id")
+  roles_employees_role_id_dep_idToroles                                                  roles?                            @relation("employees_role_id_dep_idToroles", fields: [role_id, dep_id], references: [role_id, dep_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_employees_role_in_department")
+  employees_employees_updated_byToemployees                                              employees?                        @relation("employees_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_employees_updated_by")
+  other_employees_employees_updated_byToemployees                                        employees[]                       @relation("employees_updated_byToemployees")
+  industries_industries_created_byToemployees                                            industries[]                      @relation("industries_created_byToemployees")
+  industries_industries_deleted_byToemployees                                            industries[]                      @relation("industries_deleted_byToemployees")
+  industries_industries_updated_byToemployees                                            industries[]                      @relation("industries_updated_byToemployees")
+  leads_leads_created_byToemployees                                                      leads[]                           @relation("leads_created_byToemployees")
+  leads_leads_deleted_byToemployees                                                      leads[]                           @relation("leads_deleted_byToemployees")
+  leads_leads_owner_idToemployees                                                        leads[]                           @relation("leads_owner_idToemployees")
+  leads_leads_updated_byToemployees                                                      leads[]                           @relation("leads_updated_byToemployees")
+  leads_leads_lead_by_idToemployees                                                      leads[]                           @relation("leads_lead_by_idToemployees")
+  master_lookup_master_lookup_created_byToemployees                                      master_lookup[]                   @relation("master_lookup_created_byToemployees")
+  master_lookup_master_lookup_deleted_byToemployees                                      master_lookup[]                   @relation("master_lookup_deleted_byToemployees")
+  master_lookup_master_lookup_updated_byToemployees                                      master_lookup[]                   @relation("master_lookup_updated_byToemployees")
+  notifications_notifications_created_byToemployees                                      notifications[]                   @relation("notifications_created_byToemployees")
+  notifications_notifications_deleted_byToemployees                                      notifications[]                   @relation("notifications_deleted_byToemployees")
+  notifications_notifications_recipient_idToemployees                                    notifications[]                   @relation("notifications_recipient_idToemployees")
+  notifications_notifications_updated_byToemployees                                      notifications[]                   @relation("notifications_updated_byToemployees")
+  otp_codes_otp_codes_created_byToemployees                                              otp_codes[]                       @relation("otp_codes_created_byToemployees")
+  otp_codes_otp_codes_deleted_byToemployees                                              otp_codes[]                       @relation("otp_codes_deleted_byToemployees")
+  otp_codes_otp_codes_emp_idToemployees                                                  otp_codes[]                       @relation("otp_codes_emp_idToemployees")
+  otp_codes_otp_codes_updated_byToemployees                                              otp_codes[]                       @relation("otp_codes_updated_byToemployees")
+  persons_persons_created_byToemployees                                                  persons[]                         @relation("persons_created_byToemployees")
+  persons_persons_deleted_byToemployees                                                  persons[]                         @relation("persons_deleted_byToemployees")
+  persons_persons_updated_byToemployees                                                  persons[]                         @relation("persons_updated_byToemployees")
+  pipeline_stages_pipeline_stages_created_byToemployees                                  pipeline_stages[]                 @relation("pipeline_stages_created_byToemployees")
+  pipeline_stages_pipeline_stages_deleted_byToemployees                                  pipeline_stages[]                 @relation("pipeline_stages_deleted_byToemployees")
+  pipeline_stages_pipeline_stages_updated_byToemployees                                  pipeline_stages[]                 @relation("pipeline_stages_updated_byToemployees")
+  project_activity_logs                                                                  project_activity_logs[]
+  project_bugs_project_bugs_assigned_toToemployees                                       project_bugs[]                    @relation("project_bugs_assigned_toToemployees")
+  project_bugs_project_bugs_created_byToemployees                                        project_bugs[]                    @relation("project_bugs_created_byToemployees")
+  project_bugs_project_bugs_deleted_byToemployees                                        project_bugs[]                    @relation("project_bugs_deleted_byToemployees")
+  project_bugs_project_bugs_reported_byToemployees                                       project_bugs[]                    @relation("project_bugs_reported_byToemployees")
+  project_bugs_project_bugs_updated_byToemployees                                        project_bugs[]                    @relation("project_bugs_updated_byToemployees")
+  project_credentials_project_credentials_created_byToemployees                          project_credentials[]             @relation("project_credentials_created_byToemployees")
+  project_credentials_project_credentials_deleted_byToemployees                          project_credentials[]             @relation("project_credentials_deleted_byToemployees")
+  project_credentials_project_credentials_updated_byToemployees                          project_credentials[]             @relation("project_credentials_updated_byToemployees")
+  project_deployments_project_deployments_created_byToemployees                          project_deployments[]             @relation("project_deployments_created_byToemployees")
+  project_deployments_project_deployments_deleted_byToemployees                          project_deployments[]             @relation("project_deployments_deleted_byToemployees")
+  project_deployments_project_deployments_deployment_done_byToemployees                  project_deployments[]             @relation("project_deployments_deployment_done_byToemployees")
+  project_deployments_project_deployments_updated_byToemployees                          project_deployments[]             @relation("project_deployments_updated_byToemployees")
+  project_discussions                                                                    project_discussions[]
+  project_members_project_members_created_byToemployees                                  project_members[]                 @relation("project_members_created_byToemployees")
+  project_members_project_members_deleted_byToemployees                                  project_members[]                 @relation("project_members_deleted_byToemployees")
+  project_members_project_members_employee_idToemployees                                 project_members[]                 @relation("project_members_employee_idToemployees")
+  project_sprints_project_sprints_created_byToemployees                                  project_sprints[]                 @relation("project_sprints_created_byToemployees")
+  project_sprints_project_sprints_deleted_byToemployees                                  project_sprints[]                 @relation("project_sprints_deleted_byToemployees")
+  project_sprints_project_sprints_updated_byToemployees                                  project_sprints[]                 @relation("project_sprints_updated_byToemployees")
+  projects_projects_created_byToemployees                                                projects[]                        @relation("projects_created_byToemployees")
+  projects_projects_deleted_byToemployees                                                projects[]                        @relation("projects_deleted_byToemployees")
+  projects_projects_project_manager_idToemployees                                        projects[]                        @relation("projects_project_manager_idToemployees")
+  projects_projects_updated_byToemployees                                                projects[]                        @relation("projects_updated_byToemployees")
+  roles_roles_created_byToemployees                                                      roles[]                           @relation("roles_created_byToemployees")
+  roles_roles_deleted_byToemployees                                                      roles[]                           @relation("roles_deleted_byToemployees")
+  roles_roles_updated_byToemployees                                                      roles[]                           @relation("roles_updated_byToemployees")
+  task_assignees_task_assignees_created_byToemployees                                    task_assignees[]                  @relation("task_assignees_created_byToemployees")
+  task_assignees_task_assignees_deleted_byToemployees                                    task_assignees[]                  @relation("task_assignees_deleted_byToemployees")
+  task_assignees_task_assignees_employee_idToemployees                                   task_assignees[]                  @relation("task_assignees_employee_idToemployees")
+  task_assignees_task_assignees_updated_byToemployees                                    task_assignees[]                  @relation("task_assignees_updated_byToemployees")
+  task_history                                                                           task_history[]
+  tasks_tasks_completed_byToemployees                                                    tasks[]                           @relation("tasks_completed_byToemployees")
+  tasks_tasks_created_byToemployees                                                      tasks[]                           @relation("tasks_created_byToemployees")
+  tasks_tasks_deleted_byToemployees                                                      tasks[]                           @relation("tasks_deleted_byToemployees")
+  tasks_tasks_lead_employee_idToemployees                                                tasks[]                           @relation("tasks_lead_employee_idToemployees")
+  tasks_tasks_updated_byToemployees                                                      tasks[]                           @relation("tasks_updated_byToemployees")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -295,14 +328,15 @@ model industries {
   industries                                      industries?  @relation("industriesToindustries", fields: [parent_id], references: [industry_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_industries_parent_id")
   other_industries                                industries[] @relation("industriesToindustries")
   employees_industries_updated_byToemployees      employees?   @relation("industries_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_industries_updated_by")
+  leads                                           leads[]
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model leads {
   lead_id                                           Int             @id(map: "pk_leads") @default(autoincrement())
-  company_id                                        Int
+  company_id                                        Int?
   person_id                                         Int?
-  title                                             String          @db.VarChar(200)
+  title                                             String?         @db.VarChar(200)
   pipeline_stage_id                                 Int
   status                                            lead_status     @default(open)
   owner_id                                          Int
@@ -319,7 +353,44 @@ model leads {
   updated_by                                        Int?
   deleted_at                                        DateTime?       @db.Timestamptz(6)
   deleted_by                                        Int?
-  companies                                         companies       @relation(fields: [company_id], references: [company_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_leads_company_id")
+  company_name                                      String?         @db.VarChar(255)
+  no_of_branches                                    Int?            @default(0)
+  no_of_plants                                      Int?            @default(0)
+  full_address                                      String?
+  city                                              String?         @db.VarChar(100)
+  state                                             String?         @db.VarChar(100)
+  country                                           String?         @default("India") @db.VarChar(100)
+  pin                                               String?         @db.VarChar(20)
+  google_maps_url                                   String?
+  is_gidc                                           Boolean?        @default(false)
+  gidc_name                                         String?         @db.VarChar(150)
+  gidc_area_phase                                   String?         @db.VarChar(150)
+  contact_person                                    String?         @db.VarChar(150)
+  designation                                       String?         @db.VarChar(100)
+  mobile                                            String?         @db.VarChar(25)
+  email                                             String?         @db.VarChar(255)
+  nature_of_business                                String?         @db.VarChar(100)
+  industry                                          String?         @db.VarChar(100)
+  industry_id                                       Int?
+  products_services                                 String?
+  estimated_employees                               Int?
+  estimated_turnover                                Decimal?        @db.Decimal(15, 2)
+  year_established                                  Int?
+  existing_major_clients                            String?
+  website                                           String?
+  website_quality                                   String?         @db.VarChar(50)
+  developed_by                                      String?         @db.VarChar(200)
+  linkedin_url                                      String?
+  instagram_url                                     String?
+  facebook_url                                      String?
+  youtube_url                                       String?
+  google_business_profile_url                       String?
+  brochure_url                                      String?
+  lead_source                                       String?         @default("Cold calling") @db.VarChar(100)
+  lead_by_id                                        Int?
+  service_fit                                       String?         @db.VarChar(150)
+  lead_stage                                        String?         @default("New") @db.VarChar(50)
+  companies                                         companies?      @relation(fields: [company_id], references: [company_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_leads_company_id")
   employees_leads_created_byToemployees             employees?      @relation("leads_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_leads_created_by")
   employees_leads_deleted_byToemployees             employees?      @relation("leads_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_leads_deleted_by")
   master_lookup_leads_lost_reason_idTomaster_lookup master_lookup?  @relation("leads_lost_reason_idTomaster_lookup", fields: [lost_reason_id], references: [lookup_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_leads_lost_reason_id")
@@ -328,29 +399,33 @@ model leads {
   pipeline_stages                                   pipeline_stages @relation(fields: [pipeline_stage_id], references: [pipeline_stage_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_leads_pipeline_stage_id")
   master_lookup_leads_source_idTomaster_lookup      master_lookup?  @relation("leads_source_idTomaster_lookup", fields: [source_id], references: [lookup_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_leads_source_id")
   employees_leads_updated_byToemployees             employees?      @relation("leads_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_leads_updated_by")
+  industries                                        industries?     @relation(fields: [industry_id], references: [industry_id], onDelete: NoAction, onUpdate: NoAction)
+  employees_leads_lead_by_idToemployees             employees?      @relation("leads_lead_by_idToemployees", fields: [lead_by_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model master_lookup {
-  lookup_id                                     Int               @id(map: "pk_master_lookup") @default(autoincrement())
-  lookup_type                                   String            @db.VarChar(50)
-  code                                          String            @db.VarChar(50)
-  label                                         String            @db.VarChar(150)
-  sort_order                                    Int               @default(0)
-  is_active                                     Boolean           @default(true)
-  created_at                                    DateTime          @default(now()) @db.Timestamptz(6)
-  created_by                                    Int?
-  updated_at                                    DateTime?         @db.Timestamptz(6)
-  updated_by                                    Int?
-  deleted_at                                    DateTime?         @db.Timestamptz(6)
-  deleted_by                                    Int?
-  company_persons                               company_persons[]
-  leads_leads_lost_reason_idTomaster_lookup     leads[]           @relation("leads_lost_reason_idTomaster_lookup")
-  leads_leads_source_idTomaster_lookup          leads[]           @relation("leads_source_idTomaster_lookup")
-  employees_master_lookup_created_byToemployees employees?        @relation("master_lookup_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_master_lookup_created_by")
-  employees_master_lookup_deleted_byToemployees employees?        @relation("master_lookup_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_master_lookup_deleted_by")
-  employees_master_lookup_updated_byToemployees employees?        @relation("master_lookup_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_master_lookup_updated_by")
-  tasks                                         tasks[]
+  lookup_id                                             Int               @id(map: "pk_master_lookup") @default(autoincrement())
+  lookup_type                                           String            @db.VarChar(50)
+  code                                                  String            @db.VarChar(50)
+  label                                                 String            @db.VarChar(150)
+  sort_order                                            Int               @default(0)
+  is_active                                             Boolean           @default(true)
+  created_at                                            DateTime          @default(now()) @db.Timestamptz(6)
+  created_by                                            Int?
+  updated_at                                            DateTime?         @db.Timestamptz(6)
+  updated_by                                            Int?
+  deleted_at                                            DateTime?         @db.Timestamptz(6)
+  deleted_by                                            Int?
+  company_persons                                       company_persons[]
+  employees_employees_employment_type_idTomaster_lookup employees[]       @relation("employees_employment_type_idTomaster_lookup")
+  employees_employees_gender_idTomaster_lookup          employees[]       @relation("employees_gender_idTomaster_lookup")
+  leads_leads_lost_reason_idTomaster_lookup             leads[]           @relation("leads_lost_reason_idTomaster_lookup")
+  leads_leads_source_idTomaster_lookup                  leads[]           @relation("leads_source_idTomaster_lookup")
+  employees_master_lookup_created_byToemployees         employees?        @relation("master_lookup_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_master_lookup_created_by")
+  employees_master_lookup_deleted_byToemployees         employees?        @relation("master_lookup_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_master_lookup_deleted_by")
+  employees_master_lookup_updated_byToemployees         employees?        @relation("master_lookup_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_master_lookup_updated_by")
+  tasks                                                 tasks[]
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -397,24 +472,25 @@ model pipeline_stages {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model roles {
-  role_id                                   Int         @id(map: "pk_roles") @default(autoincrement())
-  role_name                                 String      @db.VarChar(100)
-  created_at                                DateTime    @default(now()) @db.Timestamptz(6)
+  role_id                                   Int                @id(map: "pk_roles") @default(autoincrement())
+  role_name                                 String             @db.VarChar(100)
+  created_at                                DateTime           @default(now()) @db.Timestamptz(6)
   created_by                                Int?
-  updated_at                                DateTime?   @db.Timestamptz(6)
+  updated_at                                DateTime?          @db.Timestamptz(6)
   updated_by                                Int?
-  deleted_at                                DateTime?   @db.Timestamptz(6)
+  deleted_at                                DateTime?          @db.Timestamptz(6)
   deleted_by                                Int?
   dep_id                                    Int
-  description                               String?     @db.VarChar(300)
-  is_active                                 Boolean     @default(true)
-  is_admin                                  Boolean     @default(false)
-  employees_employees_role_idToroles        employees[] @relation("employees_role_idToroles")
-  employees_employees_role_id_dep_idToroles employees[] @relation("employees_role_id_dep_idToroles")
-  employees_roles_created_byToemployees     employees?  @relation("roles_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_roles_created_by")
-  employees_roles_deleted_byToemployees     employees?  @relation("roles_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_roles_deleted_by")
-  departments                               departments @relation(fields: [dep_id], references: [dep_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_roles_dep_id")
-  employees_roles_updated_byToemployees     employees?  @relation("roles_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_roles_updated_by")
+  description                               String?            @db.VarChar(300)
+  is_active                                 Boolean            @default(true)
+  is_admin                                  Boolean            @default(false)
+  employee_history                          employee_history[]
+  employees_employees_role_idToroles        employees[]        @relation("employees_role_idToroles")
+  employees_employees_role_id_dep_idToroles employees[]        @relation("employees_role_id_dep_idToroles")
+  employees_roles_created_byToemployees     employees?         @relation("roles_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_roles_created_by")
+  employees_roles_deleted_byToemployees     employees?         @relation("roles_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_roles_deleted_by")
+  departments                               departments        @relation(fields: [dep_id], references: [dep_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_roles_dep_id")
+  employees_roles_updated_byToemployees     employees?         @relation("roles_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_roles_updated_by")
 
   @@unique([role_id, dep_id], map: "ux_roles_role_dep")
 }
@@ -578,14 +654,14 @@ model attendance_breaks {
   attendance_id                                     Int
   started_at                                        DateTime        @db.Timestamptz(6)
   ended_at                                          DateTime?       @db.Timestamptz(6)
-  break_type                                        String?         @db.VarChar(50)
-  reason                                            String?         @db.VarChar(255)
   created_at                                        DateTime        @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
   created_by                                        Int?
   updated_at                                        DateTime?       @db.Timestamptz(6)
   updated_by                                        Int?
   deleted_at                                        DateTime?       @db.Timestamptz(6)
   deleted_by                                        Int?
+  break_type                                        String?         @db.VarChar(50)
+  reason                                            String?         @db.VarChar(255)
   attendance_days                                   attendance_days @relation(fields: [attendance_id], references: [attendance_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_attendance_breaks_attendance_id")
   employees_attendance_breaks_created_byToemployees employees?      @relation("attendance_breaks_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_attendance_breaks_created_by")
   employees_attendance_breaks_deleted_byToemployees employees?      @relation("attendance_breaks_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_attendance_breaks_deleted_by")
@@ -594,59 +670,72 @@ model attendance_breaks {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model attendance_corrections {
-  correction_id                                          Int               @id(map: "pk_attendance_corrections") @default(autoincrement())
-  emp_id                                                 Int
-  attendance_id                                          Int?
-  work_date                                              DateTime          @db.Date
-  requested_check_in_at                                  DateTime          @db.Timestamptz(6)
-  requested_check_out_at                                 DateTime          @db.Timestamptz(6)
-  requested_break_minutes                                Int               @default(0)
-  reason                                                 String
-  status                                                 correction_status @default(pending)
-  decided_at                                             DateTime?         @db.Timestamptz(6)
-  decided_by                                             Int?
-  rejection_reason                                       String?
-  created_at                                             DateTime          @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
-  created_by                                             Int?
-  updated_at                                             DateTime?         @db.Timestamptz(6)
-  updated_by                                             Int?
-  deleted_at                                             DateTime?         @db.Timestamptz(6)
-  deleted_by                                             Int?
-  attendance_days                                        attendance_days?  @relation(fields: [attendance_id], references: [attendance_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_attendance_corrections_attendance_id")
-  employees_attendance_corrections_created_byToemployees employees?        @relation("attendance_corrections_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_attendance_corrections_created_by")
-  employees_attendance_corrections_decided_byToemployees employees?        @relation("attendance_corrections_decided_byToemployees", fields: [decided_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_attendance_corrections_decided_by")
-  employees_attendance_corrections_deleted_byToemployees employees?        @relation("attendance_corrections_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_attendance_corrections_deleted_by")
-  employees_attendance_corrections_emp_idToemployees     employees         @relation("attendance_corrections_emp_idToemployees", fields: [emp_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_attendance_corrections_emp_id")
-  employees_attendance_corrections_updated_byToemployees employees?        @relation("attendance_corrections_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_attendance_corrections_updated_by")
+  correction_id                                                             Int                               @id(map: "pk_attendance_corrections") @default(autoincrement())
+  emp_id                                                                    Int
+  attendance_id                                                             Int?
+  work_date                                                                 DateTime                          @db.Date
+  requested_check_in_at                                                     DateTime?                         @db.Timestamptz(6)
+  requested_check_out_at                                                    DateTime?                         @db.Timestamptz(6)
+  requested_break_minutes                                                   Int                               @default(0)
+  reason                                                                    String
+  status                                                                    correction_status                 @default(pending)
+  decided_at                                                                DateTime?                         @db.Timestamptz(6)
+  decided_by                                                                Int?
+  rejection_reason                                                          String?
+  created_at                                                                DateTime                          @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  created_by                                                                Int?
+  updated_at                                                                DateTime?                         @db.Timestamptz(6)
+  updated_by                                                                Int?
+  deleted_at                                                                DateTime?                         @db.Timestamptz(6)
+  deleted_by                                                                Int?
+  request_id                                                                String                            @unique @default(dbgenerated("('REG-'::text || lpad((nextval('attendance_regularization_seq'::regclass))::text, 4, '0'::text))")) @db.VarChar(20)
+  request_type                                                              String                            @default("Incorrect Time") @db.VarChar(50)
+  current_check_in_at                                                       DateTime?                         @db.Timestamptz(6)
+  current_check_out_at                                                      DateTime?                         @db.Timestamptz(6)
+  remarks                                                                   String?                           @db.VarChar(250)
+  attachment_url                                                            String?
+  attachment_name                                                           String?                           @db.VarChar(255)
+  attendance_correction_approvals                                           attendance_correction_approvals[]
+  attendance_days                                                           attendance_days?                  @relation(fields: [attendance_id], references: [attendance_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_attendance_corrections_attendance_id")
+  employees_attendance_corrections_created_byToemployees                    employees?                        @relation("attendance_corrections_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_attendance_corrections_created_by")
+  employees_attendance_corrections_decided_byToemployees                    employees?                        @relation("attendance_corrections_decided_byToemployees", fields: [decided_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_attendance_corrections_decided_by")
+  employees_attendance_corrections_deleted_byToemployees                    employees?                        @relation("attendance_corrections_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_attendance_corrections_deleted_by")
+  employees_attendance_corrections_emp_idToemployees                        employees                         @relation("attendance_corrections_emp_idToemployees", fields: [emp_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_attendance_corrections_emp_id")
+  employees_attendance_corrections_updated_byToemployees                    employees?                        @relation("attendance_corrections_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_attendance_corrections_updated_by")
+  attendance_days_attendance_days_regularization_idToattendance_corrections attendance_days[]                 @relation("attendance_days_regularization_idToattendance_corrections")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model attendance_days {
-  attendance_id                                   Int                      @id(map: "pk_attendance_days") @default(autoincrement())
-  emp_id                                          Int
-  work_date                                       DateTime                 @db.Date
-  check_in_at                                     DateTime                 @db.Timestamptz(6)
-  check_out_at                                    DateTime?                @db.Timestamptz(6)
-  break_minutes                                   Int                      @default(0)
-  production_minutes                              Int                      @default(0)
-  day_status                                      String                   @default("incomplete") @db.VarChar(50)
-  source                                          attendance_source        @default(web)
-  worked_on_non_working_day                       Boolean                  @default(false)
-  note                                            String?
-  shift_id                                        Int?
-  created_at                                      DateTime                 @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
-  created_by                                      Int?
-  updated_at                                      DateTime?                @db.Timestamptz(6)
-  updated_by                                      Int?
-  deleted_at                                      DateTime?                @db.Timestamptz(6)
-  deleted_by                                      Int?
-  attendance_breaks                               attendance_breaks[]
-  attendance_corrections                          attendance_corrections[]
-  attendance_shifts                               attendance_shifts?       @relation(fields: [shift_id], references: [shift_id], onDelete: NoAction, onUpdate: NoAction)
-  employees_attendance_days_created_byToemployees employees?               @relation("attendance_days_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_attendance_days_created_by")
-  employees_attendance_days_deleted_byToemployees employees?               @relation("attendance_days_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_attendance_days_deleted_by")
-  employees_attendance_days_emp_idToemployees     employees                @relation("attendance_days_emp_idToemployees", fields: [emp_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_attendance_days_emp_id")
-  employees_attendance_days_updated_byToemployees employees?               @relation("attendance_days_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_attendance_days_updated_by")
+  attendance_id                                                                    Int                      @id(map: "pk_attendance_days") @default(autoincrement())
+  emp_id                                                                           Int
+  work_date                                                                        DateTime                 @db.Date
+  check_in_at                                                                      DateTime                 @db.Timestamptz(6)
+  check_out_at                                                                     DateTime?                @db.Timestamptz(6)
+  break_minutes                                                                    Int                      @default(0)
+  production_minutes                                                               Int                      @default(0)
+  day_status                                                                       String                   @default("incomplete") @db.VarChar(50)
+  source                                                                           attendance_source        @default(web)
+  worked_on_non_working_day                                                        Boolean                  @default(false)
+  note                                                                             String?
+  created_at                                                                       DateTime                 @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  created_by                                                                       Int?
+  updated_at                                                                       DateTime?                @db.Timestamptz(6)
+  updated_by                                                                       Int?
+  deleted_at                                                                       DateTime?                @db.Timestamptz(6)
+  deleted_by                                                                       Int?
+  shift_id                                                                         Int?
+  is_regularized                                                                   Boolean                  @default(false)
+  check_in_mode                                                                    String                   @default("Web") @db.VarChar(50)
+  regularization_id                                                                Int?
+  attendance_breaks                                                                attendance_breaks[]
+  attendance_corrections                                                           attendance_corrections[]
+  attendance_shifts                                                                attendance_shifts?       @relation(fields: [shift_id], references: [shift_id], onDelete: NoAction, onUpdate: NoAction)
+  employees_attendance_days_created_byToemployees                                  employees?               @relation("attendance_days_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_attendance_days_created_by")
+  employees_attendance_days_deleted_byToemployees                                  employees?               @relation("attendance_days_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_attendance_days_deleted_by")
+  employees_attendance_days_emp_idToemployees                                      employees                @relation("attendance_days_emp_idToemployees", fields: [emp_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_attendance_days_emp_id")
+  attendance_corrections_attendance_days_regularization_idToattendance_corrections attendance_corrections?  @relation("attendance_days_regularization_idToattendance_corrections", fields: [regularization_id], references: [correction_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_attendance_days_regularization_id")
+  employees_attendance_days_updated_byToemployees                                  employees?               @relation("attendance_days_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_attendance_days_updated_by")
 }
 
 model attendance_statuses {
@@ -1098,6 +1187,68 @@ model projects {
   tasks                                            tasks[]
 }
 
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model attendance_correction_approvals {
+  approval_id                                                      Int                    @id(map: "pk_attendance_correction_approvals") @default(autoincrement())
+  correction_id                                                    Int
+  level                                                            Int                    @default(1)
+  level_name                                                       String                 @default("Level 1 - HR") @db.VarChar(50)
+  approver_id                                                      Int?
+  action                                                           String                 @default("pending") @db.VarChar(20)
+  comment                                                          String?                @db.VarChar(250)
+  action_date                                                      DateTime?              @db.Timestamptz(6)
+  created_at                                                       DateTime               @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  created_by                                                       Int?
+  updated_at                                                       DateTime?              @db.Timestamptz(6)
+  updated_by                                                       Int?
+  deleted_at                                                       DateTime?              @db.Timestamptz(6)
+  deleted_by                                                       Int?
+  employees_attendance_correction_approvals_approver_idToemployees employees?             @relation("attendance_correction_approvals_approver_idToemployees", fields: [approver_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_attendance_correction_approvals_approver_id")
+  attendance_corrections                                           attendance_corrections @relation(fields: [correction_id], references: [correction_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_attendance_correction_approvals_correction_id")
+  employees_attendance_correction_approvals_created_byToemployees  employees?             @relation("attendance_correction_approvals_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_attendance_correction_approvals_created_by")
+  employees_attendance_correction_approvals_deleted_byToemployees  employees?             @relation("attendance_correction_approvals_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_attendance_correction_approvals_deleted_by")
+  employees_attendance_correction_approvals_updated_byToemployees  employees?             @relation("attendance_correction_approvals_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_attendance_correction_approvals_updated_by")
+}
+
+model employee_departments {
+  emp_id                                               Int
+  dep_id                                               Int
+  is_primary                                           Boolean?    @default(false)
+  created_at                                           DateTime?   @default(now()) @db.Timestamptz(6)
+  created_by                                           Int?
+  employees_employee_departments_created_byToemployees employees?  @relation("employee_departments_created_byToemployees", fields: [created_by], references: [emp_id], onUpdate: NoAction)
+  departments                                          departments @relation(fields: [dep_id], references: [dep_id], onUpdate: NoAction)
+  employees_employee_departments_emp_idToemployees     employees   @relation("employee_departments_emp_idToemployees", fields: [emp_id], references: [emp_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([emp_id, dep_id])
+  @@index([dep_id], map: "ix_employee_departments_dep_id")
+  @@index([emp_id], map: "ix_employee_departments_emp_id")
+}
+
+model employee_history {
+  history_id                                       Int        @id @default(autoincrement())
+  emp_id                                           Int
+  event_type                                       String     @db.VarChar(50)
+  title                                            String     @db.VarChar(200)
+  department_ids                                   Int[]
+  role_id                                          Int?
+  manager_id                                       Int?
+  employment_type                                  String?    @db.VarChar(50)
+  salary                                           Decimal?   @db.Decimal(12, 2)
+  effective_date                                   DateTime   @db.Date
+  reason                                           String?    @db.VarChar(150)
+  notes                                            String?
+  created_at                                       DateTime?  @default(now()) @db.Timestamptz(6)
+  created_by                                       Int?
+  employees_employee_history_created_byToemployees employees? @relation("employee_history_created_byToemployees", fields: [created_by], references: [emp_id], onUpdate: NoAction)
+  employees_employee_history_emp_idToemployees     employees  @relation("employee_history_emp_idToemployees", fields: [emp_id], references: [emp_id], onDelete: Cascade, onUpdate: NoAction)
+  employees_employee_history_manager_idToemployees employees? @relation("employee_history_manager_idToemployees", fields: [manager_id], references: [emp_id], onUpdate: NoAction)
+  roles                                            roles?     @relation(fields: [role_id], references: [role_id], onUpdate: NoAction)
+
+  @@index([effective_date], map: "ix_employee_history_effective_date")
+  @@index([emp_id], map: "ix_employee_history_emp_id")
+}
+
 enum channel_type {
   website
   facebook
@@ -1187,6 +1338,7 @@ enum correction_status {
   pending
   approved
   rejected
+  cancelled
 }
 
 enum task_event_type {
@@ -1296,4 +1448,47 @@ enum sprint_status {
   planned
   active
   completed
+}
+
+model document_templates {
+  template_id   Int                  @id @default(autoincrement())
+  code          String               @unique @db.VarChar(50)
+  name          String               @db.VarChar(150)
+  document_type String               @db.VarChar(50)
+  description   String?              @db.VarChar(255)
+  content_html  String               @db.Text
+  is_active     Boolean              @default(true)
+  created_at    DateTime             @default(now()) @db.Timestamptz(6)
+  created_by    Int?
+  updated_at    DateTime?            @db.Timestamptz(6)
+  updated_by    Int?
+  documents     employee_documents[]
+}
+
+model employee_documents {
+  doc_id        Int                 @id @default(autoincrement())
+  emp_id        Int
+  category      String              @db.VarChar(50)
+  document_type String              @db.VarChar(50)
+  title         String              @db.VarChar(150)
+  is_ticked     Boolean             @default(false)
+  status        String              @default("not_ticked") @db.VarChar(30)
+  file_url      String?             @db.Text
+  file_name     String?             @db.VarChar(255)
+  file_size     Int?
+  mime_type     String?             @db.VarChar(100)
+  draft_content String?             @db.Text
+  template_id   Int?
+  issued_at     DateTime?           @db.Timestamptz(6)
+  issued_by     Int?
+  created_at    DateTime            @default(now()) @db.Timestamptz(6)
+  created_by    Int?
+  updated_at    DateTime?           @db.Timestamptz(6)
+  updated_by    Int?
+  employees     employees           @relation(fields: [emp_id], references: [emp_id], onDelete: Cascade)
+  template      document_templates? @relation(fields: [template_id], references: [template_id], onDelete: SetNull)
+
+  @@unique([emp_id, document_type], map: "uq_emp_doc_type")
+  @@index([emp_id], map: "ix_employee_documents_emp_id")
+  @@index([category], map: "ix_employee_documents_category")
 }

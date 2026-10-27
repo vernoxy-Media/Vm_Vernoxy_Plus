@@ -10,7 +10,7 @@ import {
   encodeCursor,
   decodeCursor,
 } from '../../../../core/pagination/keyset-pagination';
-import { PrismaClient, employee_status } from '@prisma/client';
+import { PrismaClient, Prisma, employee_status } from '@prisma/client';
 import { ConflictDomainError } from '../../domain/errors/organization.errors';
 import { FileStoragePort, STORAGE_TOKENS } from '../../../storage/public-api';
 
@@ -28,7 +28,41 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
     return (tx as PrismaClient) || this.prisma;
   }
 
+  private getEmployeeIncludes() {
+    return {
+      departments_employees_dep_idTodepartments: {
+        select: { dep_id: true, name: true },
+      },
+      roles_employees_role_idToroles: {
+        select: { role_id: true, role_name: true },
+      },
+      employees_employees_reporting_managerToemployees: {
+        select: { emp_id: true, name: true },
+      },
+      employee_departments_employee_departments_emp_idToemployees: {
+        include: {
+          departments: {
+            select: { dep_id: true, name: true },
+          },
+        },
+      },
+      master_lookup_employees_gender_idTomaster_lookup: {
+        select: { lookup_id: true, code: true, label: true },
+      },
+      master_lookup_employees_employment_type_idTomaster_lookup: {
+        select: { lookup_id: true, code: true, label: true },
+      },
+    };
+  }
+
   private mapToEntity(record: any): Employee {
+    const rawDepartments = record.employee_departments_employee_departments_emp_idToemployees || [];
+    const departments = rawDepartments.map((ed: any) => ({
+      dep_id: ed.dep_id,
+      name: ed.departments?.name || '',
+      is_primary: Boolean(ed.is_primary),
+    }));
+
     return {
       emp_id: record.emp_id,
       name: record.name,
@@ -57,6 +91,11 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
             name: record.departments_employees_dep_idTodepartments.name,
           }
         : undefined,
+      departments: departments.length > 0 ? departments : (record.departments_employees_dep_idTodepartments ? [{
+        dep_id: record.departments_employees_dep_idTodepartments.dep_id,
+        name: record.departments_employees_dep_idTodepartments.name,
+        is_primary: true,
+      }] : []),
       role: record.roles_employees_role_idToroles
         ? {
             role_id: record.roles_employees_role_idToroles.role_id,
@@ -69,13 +108,44 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
             name: record.employees_employees_reporting_managerToemployees.name,
           }
         : null,
+      gender_id: record.gender_id ?? null,
+      gender: record.master_lookup_employees_gender_idTomaster_lookup
+        ? {
+            lookup_id: record.master_lookup_employees_gender_idTomaster_lookup.lookup_id,
+            code: record.master_lookup_employees_gender_idTomaster_lookup.code,
+            label: record.master_lookup_employees_gender_idTomaster_lookup.label,
+          }
+        : null,
+      personal_email: record.personal_email ?? null,
+      office_email: record.office_email ?? record.email ?? null,
+      birth_date: record.birth_date ?? null,
+      blood_group: record.blood_group ?? null,
+      address: record.address ?? null,
+      emergency_contact_name: record.emergency_contact_name ?? null,
+      emergency_contact_number: record.emergency_contact_number ?? null,
+      emergency_contact_relation: record.emergency_contact_relation ?? null,
+      employment_type_id: record.employment_type_id ?? null,
+      employment_type: record.master_lookup_employees_employment_type_idTomaster_lookup
+        ? {
+            lookup_id: record.master_lookup_employees_employment_type_idTomaster_lookup.lookup_id,
+            code: record.master_lookup_employees_employment_type_idTomaster_lookup.code,
+            label: record.master_lookup_employees_employment_type_idTomaster_lookup.label,
+          }
+        : null,
+      salary: record.salary !== null && record.salary !== undefined ? Number(record.salary) : 0,
+      pf: record.pf !== null && record.pf !== undefined ? Number(record.pf) : 0,
+      termination_date: record.termination_date ?? null,
+      deactivation_reason: record.deactivation_reason ?? null,
+      deactivation_notes: record.deactivation_notes ?? null,
+      deactivated_at: record.deactivated_at ?? null,
+      deactivated_by: record.deactivated_by ?? null,
     };
   }
 
   async findMany(
     filter: EmployeeListFilter,
     tx?: unknown,
-  ): Promise<{ items: Employee[]; next_cursor: string | null }> {
+  ): Promise<{ items: Employee[]; next_cursor: string | null; stats?: { total: number; active: number; inactive: number } }> {
     const client = this.getClient(tx);
     const limit = parseLimit(filter.limit);
 
@@ -84,7 +154,14 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
     };
 
     if (filter.dep_id) {
-      where.dep_id = filter.dep_id;
+      where.OR = [
+        { dep_id: filter.dep_id },
+        {
+          employee_departments_employee_departments_emp_idToemployees: {
+            some: { dep_id: filter.dep_id },
+          },
+        },
+      ];
     }
 
     if (filter.role_id) {
@@ -96,10 +173,30 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
     }
 
     if (filter.q) {
-      where.OR = [
-        { name: { contains: filter.q, mode: 'insensitive' } },
-        { email: { contains: filter.q, mode: 'insensitive' } },
+      const qClean = filter.q.trim();
+      const orConditions: any[] = [
+        { name: { contains: qClean, mode: 'insensitive' } },
+        { email: { contains: qClean, mode: 'insensitive' } },
+        { mob: { contains: qClean, mode: 'insensitive' } },
       ];
+
+      const empIdMatch = qClean.match(/^(?:emp-?)?0*(\d+)$/i);
+      if (empIdMatch && empIdMatch[1]) {
+        const idNum = parseInt(empIdMatch[1], 10);
+        if (!isNaN(idNum)) {
+          orConditions.push({ emp_id: idNum });
+        }
+      }
+
+      if (where.OR) {
+        where.AND = [
+          { OR: where.OR },
+          { OR: orConditions },
+        ];
+        delete where.OR;
+      } else {
+        where.OR = orConditions;
+      }
     }
 
     const decoded = decodeCursor<{ id: number }>(filter.cursor);
@@ -107,32 +204,62 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       where.emp_id = { gt: decoded.id };
     }
 
-    const records = await client.employees.findMany({
-      where,
-      take: limit + 1,
-      orderBy: { emp_id: 'asc' },
-      include: {
-        departments_employees_dep_idTodepartments: {
-          select: { dep_id: true, name: true },
-        },
-        roles_employees_role_idToroles: {
-          select: { role_id: true, role_name: true },
-        },
-        employees_employees_reporting_managerToemployees: {
-          select: { emp_id: true, name: true },
-        },
-      },
-    });
+    const [records, total_count, active_count, inactive_count] = await Promise.all([
+      client.employees.findMany({
+        where,
+        take: limit + 1,
+        orderBy: { emp_id: 'asc' },
+        include: this.getEmployeeIncludes(),
+      }),
+      client.employees.count({ where: { deleted_at: null } }),
+      client.employees.count({ where: { deleted_at: null, status: 'Active' } }),
+      client.employees.count({ where: { deleted_at: null, status: 'Inactive' } }),
+    ]);
 
     const hasNext = records.length > limit;
     const rawItems = hasNext ? records.slice(0, limit) : records;
     const items = rawItems.map((r) => this.mapToEntity(r));
+
+    // Calculate document pending counts for items
+    const empIds = items.map((e) => e.emp_id);
+    if (empIds.length > 0) {
+      try {
+        const docCounts = await (client as any).$queryRaw<
+          Array<{ emp_id: number; pending_count: bigint | number }>
+        >`
+          SELECT emp_id,
+                 COUNT(*) FILTER (WHERE is_ticked = TRUE AND status = 'file_pending') as pending_count
+          FROM employee_documents
+          WHERE emp_id IN (${Prisma.join(empIds)})
+          GROUP BY emp_id
+        `;
+        const pendingMap = new Map<number, number>();
+        for (const dc of docCounts) {
+          pendingMap.set(dc.emp_id, Number(dc.pending_count));
+        }
+        for (const item of items) {
+          item.employee_code = `EMP-${String(item.emp_id).padStart(4, '0')}`;
+          item.pending_documents_count = pendingMap.get(item.emp_id) ?? 0;
+        }
+      } catch (err) {
+        for (const item of items) {
+          item.employee_code = `EMP-${String(item.emp_id).padStart(4, '0')}`;
+          item.pending_documents_count = 0;
+        }
+      }
+    }
+
     const lastItem = items[items.length - 1];
     const next_cursor = hasNext && lastItem ? encodeCursor({ id: lastItem.emp_id }) : null;
 
     return {
       items,
       next_cursor,
+      stats: {
+        total: total_count,
+        active: active_count,
+        inactive: inactive_count,
+      },
     };
   }
 
@@ -173,17 +300,7 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
         emp_id: id,
         deleted_at: null,
       },
-      include: {
-        departments_employees_dep_idTodepartments: {
-          select: { dep_id: true, name: true },
-        },
-        roles_employees_role_idToroles: {
-          select: { role_id: true, role_name: true },
-        },
-        employees_employees_reporting_managerToemployees: {
-          select: { emp_id: true, name: true },
-        },
-      },
+      include: this.getEmployeeIncludes(),
     });
 
     return record ? this.mapToEntity(record) : null;
@@ -199,6 +316,7 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
         },
         deleted_at: null,
       },
+      include: this.getEmployeeIncludes(),
     });
 
     return record ? this.mapToEntity(record) : null;
@@ -211,6 +329,7 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
         mob: mobile,
         deleted_at: null,
       },
+      include: this.getEmployeeIncludes(),
     });
 
     return record ? this.mapToEntity(record) : null;
@@ -222,9 +341,22 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       email: string;
       mob: string;
       dep_id: number;
+      department_ids?: number[];
       role_id?: number | null;
       reporting_manager?: number | null;
       joining_date: Date;
+      gender_id?: number | null;
+      personal_email?: string | null;
+      office_email?: string | null;
+      birth_date?: Date | null;
+      blood_group?: string | null;
+      address?: string | null;
+      emergency_contact_name?: string | null;
+      emergency_contact_number?: string | null;
+      emergency_contact_relation?: string | null;
+      employment_type_id?: number | null;
+      salary?: number;
+      pf?: number;
       created_by: number;
     },
     tx?: unknown,
@@ -239,37 +371,81 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
         role_id: data.role_id ?? null,
         reporting_manager: data.reporting_manager || null,
         joining_date: data.joining_date,
+        gender_id: data.gender_id ?? null,
+        personal_email: data.personal_email ?? null,
+        office_email: data.office_email ?? data.email,
+        birth_date: data.birth_date ?? null,
+        blood_group: data.blood_group ?? null,
+        address: data.address ?? null,
+        emergency_contact_name: data.emergency_contact_name ?? null,
+        emergency_contact_number: data.emergency_contact_number ?? null,
+        emergency_contact_relation: data.emergency_contact_relation ?? null,
+        employment_type_id: data.employment_type_id ?? null,
+        salary: data.salary ?? 0,
+        pf: data.pf ?? 0,
         created_by: data.created_by,
         status: 'Active',
       },
-      include: {
-        departments_employees_dep_idTodepartments: {
-          select: { dep_id: true, name: true },
-        },
-        roles_employees_role_idToroles: {
-          select: { role_id: true, role_name: true },
-        },
-        employees_employees_reporting_managerToemployees: {
-          select: { emp_id: true, name: true },
-        },
-      },
+      include: this.getEmployeeIncludes(),
     });
 
-    return this.mapToEntity(created);
+    // Sync employee_departments junction table
+    const allDepIds = Array.from(new Set([data.dep_id, ...(data.department_ids || [])]));
+    for (const dId of allDepIds) {
+      await client.employee_departments.upsert({
+        where: {
+          emp_id_dep_id: { emp_id: created.emp_id, dep_id: dId },
+        },
+        create: {
+          emp_id: created.emp_id,
+          dep_id: dId,
+          is_primary: dId === data.dep_id,
+          created_by: data.created_by,
+        },
+        update: {
+          is_primary: dId === data.dep_id,
+        },
+      });
+    }
+
+    // Refresh created with updated departments
+    const refreshed = await client.employees.findUnique({
+      where: { emp_id: created.emp_id },
+      include: this.getEmployeeIncludes(),
+    });
+
+    return this.mapToEntity(refreshed ?? created);
   }
 
   async update(
     id: number,
     data: {
       name?: string;
+      email?: string;
       mob?: string;
       dep_id?: number;
+      department_ids?: number[];
       role_id?: number | null;
       reporting_manager?: number | null;
       joining_date?: Date;
       exit_date?: Date | null;
       status?: 'Active' | 'Inactive';
       profile_picture?: string | null;
+      gender_id?: number | null;
+      personal_email?: string | null;
+      office_email?: string | null;
+      birth_date?: Date | null;
+      blood_group?: string | null;
+      address?: string | null;
+      emergency_contact_name?: string | null;
+      emergency_contact_number?: string | null;
+      emergency_contact_relation?: string | null;
+      employment_type_id?: number | null;
+      salary?: number;
+      pf?: number;
+      termination_date?: Date | null;
+      deactivation_reason?: string | null;
+      deactivation_notes?: string | null;
       updated_by: number;
     },
     tx?: unknown,
@@ -281,6 +457,7 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
     };
 
     if (data.name !== undefined) updateData.name = data.name;
+    if (data.email !== undefined) updateData.email = data.email;
     if (data.mob !== undefined) updateData.mob = data.mob;
     if (data.dep_id !== undefined) updateData.dep_id = data.dep_id;
     if (data.role_id !== undefined) updateData.role_id = data.role_id;
@@ -289,25 +466,65 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
     if (data.exit_date !== undefined) updateData.exit_date = data.exit_date;
     if (data.status !== undefined) updateData.status = data.status as employee_status;
     if (data.profile_picture !== undefined) updateData.profile_picture = data.profile_picture;
+    if (data.gender_id !== undefined) updateData.gender_id = data.gender_id;
+    if (data.personal_email !== undefined) updateData.personal_email = data.personal_email;
+    if (data.office_email !== undefined) updateData.office_email = data.office_email;
+    if (data.birth_date !== undefined) updateData.birth_date = data.birth_date;
+    if (data.blood_group !== undefined) updateData.blood_group = data.blood_group;
+    if (data.address !== undefined) updateData.address = data.address;
+    if (data.emergency_contact_name !== undefined) updateData.emergency_contact_name = data.emergency_contact_name;
+    if (data.emergency_contact_number !== undefined) updateData.emergency_contact_number = data.emergency_contact_number;
+    if (data.emergency_contact_relation !== undefined) updateData.emergency_contact_relation = data.emergency_contact_relation;
+    if (data.employment_type_id !== undefined) updateData.employment_type_id = data.employment_type_id;
+    if (data.salary !== undefined) updateData.salary = data.salary;
+    if (data.pf !== undefined) updateData.pf = data.pf;
+    if (data.termination_date !== undefined) updateData.termination_date = data.termination_date;
+    if (data.deactivation_reason !== undefined) updateData.deactivation_reason = data.deactivation_reason;
+    if (data.deactivation_notes !== undefined) updateData.deactivation_notes = data.deactivation_notes;
 
     try {
       const updated = await client.employees.update({
         where: { emp_id: id },
         data: updateData,
-        include: {
-          departments_employees_dep_idTodepartments: {
-            select: { dep_id: true, name: true },
-          },
-          roles_employees_role_idToroles: {
-            select: { role_id: true, role_name: true },
-          },
-          employees_employees_reporting_managerToemployees: {
-            select: { emp_id: true, name: true },
-          },
-        },
+        include: this.getEmployeeIncludes(),
       });
 
-      return this.mapToEntity(updated);
+      // Synchronize employee_departments if department_ids or dep_id updated
+      if (data.department_ids !== undefined || data.dep_id !== undefined) {
+        const primaryDepId = data.dep_id ?? updated.dep_id;
+        const targetDepIds = Array.from(new Set([primaryDepId, ...(data.department_ids || [])]));
+
+        await client.employee_departments.deleteMany({
+          where: {
+            emp_id: id,
+            dep_id: { notIn: targetDepIds },
+          },
+        });
+
+        for (const dId of targetDepIds) {
+          await client.employee_departments.upsert({
+            where: {
+              emp_id_dep_id: { emp_id: id, dep_id: dId },
+            },
+            create: {
+              emp_id: id,
+              dep_id: dId,
+              is_primary: dId === primaryDepId,
+              created_by: data.updated_by,
+            },
+            update: {
+              is_primary: dId === primaryDepId,
+            },
+          });
+        }
+      }
+
+      const refreshed = await client.employees.findUnique({
+        where: { emp_id: id },
+        include: this.getEmployeeIncludes(),
+      });
+
+      return this.mapToEntity(refreshed ?? updated);
     } catch (err: any) {
       if (err?.message?.includes('Hierarchy cycle detected')) {
         throw new ConflictDomainError(
@@ -325,6 +542,167 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       throw err;
     }
   }
+
+  async deactivate(
+    id: number,
+    data: {
+      termination_date: Date;
+      reason: string;
+      notes?: string;
+      deactivated_by: number;
+    },
+    tx?: unknown,
+  ): Promise<Employee> {
+    const client = this.getClient(tx);
+    const updated = await client.employees.update({
+      where: { emp_id: id },
+      data: {
+        status: 'Inactive',
+        termination_date: data.termination_date,
+        exit_date: data.termination_date,
+        deactivation_reason: data.reason,
+        deactivation_notes: data.notes ?? null,
+        deactivated_at: new Date(),
+        deactivated_by: data.deactivated_by,
+        updated_at: new Date(),
+        updated_by: data.deactivated_by,
+      },
+      include: this.getEmployeeIncludes(),
+    });
+
+    return this.mapToEntity(updated);
+  }
+
+  async getDirectReports(
+    empId: number,
+    tx?: unknown,
+  ): Promise<Array<{ emp_id: number; name: string; email: string }>> {
+    const client = this.getClient(tx);
+    return client.employees.findMany({
+      where: {
+        reporting_manager: empId,
+        deleted_at: null,
+        status: 'Active',
+      },
+      select: {
+        emp_id: true,
+        name: true,
+        email: true,
+      },
+      orderBy: {
+        name: 'asc',
+      },
+    });
+  }
+
+  async getHistory(
+    empId: number,
+    tx?: unknown,
+  ): Promise<Array<{
+    history_id: number;
+    emp_id: number;
+    event_type: string;
+    title: string;
+    department_ids: number[];
+    departments?: Array<{ dep_id: number; name: string }>;
+    role_id: number | null;
+    role?: { role_id: number; role_name: string } | null;
+    manager_id: number | null;
+    manager?: { emp_id: number; name: string } | null;
+    employment_type: string | null;
+    salary: number | null;
+    effective_date: Date;
+    reason: string | null;
+    notes: string | null;
+    created_at: Date;
+    created_by: number | null;
+  }>> {
+    const client = this.getClient(tx);
+    const rows = await client.employee_history.findMany({
+      where: { emp_id: empId },
+      orderBy: [{ effective_date: 'desc' }, { created_at: 'desc' }],
+      include: {
+        roles: {
+          select: { role_id: true, role_name: true },
+        },
+        employees_employee_history_manager_idToemployees: {
+          select: { emp_id: true, name: true },
+        },
+      },
+    });
+
+    const allDepIds = Array.from(new Set(rows.flatMap((r) => r.department_ids || [])));
+    const deps =
+      allDepIds.length > 0
+        ? await client.departments.findMany({
+            where: { dep_id: { in: allDepIds } },
+            select: { dep_id: true, name: true },
+          })
+        : [];
+    const depMap = new Map(deps.map((d) => [d.dep_id, d]));
+
+    return rows.map((r) => ({
+      history_id: r.history_id,
+      emp_id: r.emp_id,
+      event_type: r.event_type,
+      title: r.title,
+      department_ids: r.department_ids,
+      departments: (r.department_ids || []).map((dId) => depMap.get(dId)).filter(Boolean) as any,
+      role_id: r.role_id,
+      role: r.roles ? { role_id: r.roles.role_id, role_name: r.roles.role_name } : null,
+      manager_id: r.manager_id,
+      manager: r.employees_employee_history_manager_idToemployees
+        ? {
+            emp_id: r.employees_employee_history_manager_idToemployees.emp_id,
+            name: r.employees_employee_history_manager_idToemployees.name,
+          }
+        : null,
+      employment_type: r.employment_type,
+      salary: r.salary !== null && r.salary !== undefined ? Number(r.salary) : null,
+      effective_date: r.effective_date,
+      reason: r.reason,
+      notes: r.notes,
+      created_at: r.created_at ?? new Date(),
+      created_by: r.created_by,
+    }));
+  }
+
+  async addHistory(
+    data: {
+      emp_id: number;
+      event_type: string;
+      title: string;
+      department_ids?: number[];
+      role_id?: number | null;
+      manager_id?: number | null;
+      employment_type?: string | null;
+      salary?: number | null;
+      effective_date: Date;
+      reason?: string | null;
+      notes?: string | null;
+      created_by?: number | null;
+    },
+    tx?: unknown,
+  ): Promise<void> {
+    const client = this.getClient(tx);
+    await client.employee_history.create({
+      data: {
+        emp_id: data.emp_id,
+        event_type: data.event_type,
+        title: data.title,
+        department_ids: data.department_ids ?? [],
+        role_id: data.role_id ?? null,
+        manager_id: data.manager_id ?? null,
+        employment_type: data.employment_type ?? null,
+        salary: data.salary !== undefined && data.salary !== null ? data.salary : null,
+        effective_date: data.effective_date,
+        reason: data.reason ?? null,
+        notes: data.notes ?? null,
+        created_by: data.created_by ?? null,
+      },
+    });
+  }
+
 
   async softDelete(id: number, deleted_by: number, tx?: unknown): Promise<void> {
     const client = this.getClient(tx);

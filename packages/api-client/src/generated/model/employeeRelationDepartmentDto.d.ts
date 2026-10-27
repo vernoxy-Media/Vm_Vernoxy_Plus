@@ -8,4 +8,5 @@
 export interface EmployeeRelationDepartmentDto {
     dep_id: number;
     name: string;
+    is_primary?: boolean;
 }

@@ -9,10 +9,13 @@ import type { UpdateEmployeeDtoStatus } from './updateEmployeeDtoStatus';
 export interface UpdateEmployeeDto {
     /** Employee full name */
     name?: string;
+    email?: string;
     /** Mobile phone number */
     mob?: string;
-    /** Department ID */
+    /** Primary Department ID */
     dep_id?: number;
+    /** List of Department IDs */
+    department_ids?: number[];
     /**
      * Role ID
      * @nullable
@@ -31,4 +34,35 @@ export interface UpdateEmployeeDto {
      */
     exit_date?: string | null;
     status?: UpdateEmployeeDtoStatus;
+    /**
+     * Gender lookup ID
+     * @nullable
+     */
+    gender_id?: number | null;
+    /** @nullable */
+    personal_email?: string | null;
+    /** @nullable */
+    office_email?: string | null;
+    /** @nullable */
+    birth_date?: string | null;
+    /** @nullable */
+    blood_group?: string | null;
+    /** @nullable */
+    address?: string | null;
+    /** @nullable */
+    emergency_contact_name?: string | null;
+    /** @nullable */
+    emergency_contact_number?: string | null;
+    /** @nullable */
+    emergency_contact_relation?: string | null;
+    /** @nullable */
+    employment_type_id?: number | null;
+    salary?: number;
+    pf?: number;
+    /** @nullable */
+    termination_date?: string | null;
+    /** @nullable */
+    deactivation_reason?: string | null;
+    /** @nullable */
+    deactivation_notes?: string | null;
 }

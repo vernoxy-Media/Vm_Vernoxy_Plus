@@ -27,10 +27,15 @@ describe('CreateEmployeeUseCase', () => {
       findByMobile: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
+      deactivate: jest.fn(),
+      getDirectReports: jest.fn(),
+      getHistory: jest.fn(),
+      addHistory: jest.fn().mockResolvedValue(undefined),
       softDelete: jest.fn(),
       countActiveAdmins: jest.fn(),
       checkReportingCycle: jest.fn(),
     };
+
 
     departmentRepo = {
       findMany: jest.fn(),
@@ -46,6 +51,7 @@ describe('CreateEmployeeUseCase', () => {
     roleRepo = {
       findMany: jest.fn(),
       findActiveOptionsByDepartment: jest.fn(),
+      findActiveOptionsByDepartments: jest.fn(),
       findById: jest.fn(),
       findByDepAndName: jest.fn(),
       create: jest.fn(),

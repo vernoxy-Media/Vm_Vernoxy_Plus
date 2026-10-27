@@ -8,7 +8,7 @@
 
 export type LookupControllerGetOptionsParams = {
 /**
- * Lookup type: person_department, lead_source, lost_reason, task_type
+ * Lookup type. Allowed: task_type, break_type, project_category, project_status, project_type, lead_source, lost_reason, person_department, request_type, attendance_reason, shift_type, leave_type
  */
 type: string;
 };

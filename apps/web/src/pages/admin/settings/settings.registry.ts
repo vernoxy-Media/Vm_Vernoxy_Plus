@@ -17,6 +17,10 @@ import {
   HelpCircle,
   Clock,
   CalendarOff,
+  UserCheck,
+  Briefcase,
+  Heart,
+  UserX,
   LucideIcon,
 } from 'lucide-react';
 import type { MeResponseDto } from '@vernoxy-pulse/api-client';
@@ -72,6 +76,18 @@ const SettingsShiftTypesSection = React.lazy(() =>
 const SettingsLeaveTypesSection = React.lazy(() =>
   import('./SettingsLeaveTypesSection').then((m) => ({ default: m.SettingsLeaveTypesSection }))
 );
+const SettingsEmploymentTypesSection = React.lazy(() =>
+  import('./SettingsEmploymentTypesSection').then((m) => ({ default: m.SettingsEmploymentTypesSection }))
+);
+const SettingsGendersSection = React.lazy(() =>
+  import('./SettingsGendersSection').then((m) => ({ default: m.SettingsGendersSection }))
+);
+const SettingsBloodGroupsSection = React.lazy(() =>
+  import('./SettingsBloodGroupsSection').then((m) => ({ default: m.SettingsBloodGroupsSection }))
+);
+const SettingsDeactivationReasonsSection = React.lazy(() =>
+  import('./SettingsDeactivationReasonsSection').then((m) => ({ default: m.SettingsDeactivationReasonsSection }))
+);
 
 export interface SettingsSectionConfig {
   id: string;
@@ -111,6 +127,44 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     component: SettingsHrPolicySection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
     group: 'Organization',
+  },
+
+  // ── Employee ──────────────────────────────────────
+  {
+    id: 'employment-types',
+    label: 'Employment Types',
+    path: '/admin/settings/employment-types',
+    icon: Briefcase,
+    component: SettingsEmploymentTypesSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Employee',
+  },
+  {
+    id: 'genders',
+    label: 'Genders',
+    path: '/admin/settings/genders',
+    icon: Users,
+    component: SettingsGendersSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Employee',
+  },
+  {
+    id: 'blood-groups',
+    label: 'Blood Groups',
+    path: '/admin/settings/blood-groups',
+    icon: Heart,
+    component: SettingsBloodGroupsSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Employee',
+  },
+  {
+    id: 'deactivation-reasons',
+    label: 'Deactivation Reasons',
+    path: '/admin/settings/deactivation-reasons',
+    icon: UserX,
+    component: SettingsDeactivationReasonsSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Employee',
   },
 
   // ── CRM ───────────────────────────────────────────
@@ -276,6 +330,7 @@ export interface SettingsMainGroup {
 
 export const SETTINGS_MAIN_GROUPS: SettingsMainGroup[] = [
   { id: 'Organization', name: 'Organization', icon: Building2 },
+  { id: 'Employee', name: 'Employee', icon: UserCheck },
   { id: 'CRM', name: 'CRM', icon: Users },
   { id: 'Tasks', name: 'Tasks', icon: Tag },
   { id: 'Projects', name: 'Projects', icon: Shapes },

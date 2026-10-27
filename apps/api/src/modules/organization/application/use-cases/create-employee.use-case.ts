@@ -19,9 +19,22 @@ export interface CreateEmployeeCommand {
   mob?: string;
   password: string;
   dep_id: number;
+  department_ids?: number[];
   role_id?: number | null;
   reporting_manager?: number | null;
   joining_date: Date | string;
+  gender_id?: number | null;
+  personal_email?: string | null;
+  office_email?: string | null;
+  birth_date?: Date | string | null;
+  blood_group?: string | null;
+  address?: string | null;
+  emergency_contact_name?: string | null;
+  emergency_contact_number?: string | null;
+  emergency_contact_relation?: string | null;
+  employment_type_id?: number | null;
+  salary?: number;
+  pf?: number;
   acting_admin_id: number;
 }
 
@@ -56,6 +69,21 @@ export class CreateEmployeeUseCase {
     const parsedJoiningDate = new Date(command.joining_date);
     if (isNaN(parsedJoiningDate.getTime())) {
       throw new ValidationDomainError('Invalid joining date format', 'joining_date');
+    }
+
+    let parsedBirthDate: Date | null = null;
+    if (command.birth_date) {
+      parsedBirthDate = new Date(command.birth_date);
+      if (isNaN(parsedBirthDate.getTime())) {
+        throw new ValidationDomainError('Invalid birth date format', 'birth_date');
+      }
+    }
+
+    if (command.salary !== undefined && command.salary < 0) {
+      throw new ValidationDomainError('Salary cannot be negative', 'salary');
+    }
+    if (command.pf !== undefined && command.pf < 0) {
+      throw new ValidationDomainError('PF cannot be negative', 'pf');
     }
 
     const department = await this.departmentRepo.findById(command.dep_id);
@@ -118,6 +146,8 @@ export class CreateEmployeeUseCase {
       }
     }
 
+    const allDepIds = Array.from(new Set([command.dep_id, ...(command.department_ids || [])]));
+
     return this.unitOfWork.run(async (tx) => {
       const created = await this.employeeRepo.create(
         {
@@ -125,9 +155,22 @@ export class CreateEmployeeUseCase {
           email: normalizedEmail,
           mob: normalizedMob,
           dep_id: command.dep_id,
+          department_ids: allDepIds,
           role_id: assignedRoleId,
           reporting_manager: command.reporting_manager || null,
           joining_date: parsedJoiningDate,
+          gender_id: command.gender_id ?? null,
+          personal_email: command.personal_email?.trim() || null,
+          office_email: command.office_email?.trim() || normalizedEmail,
+          birth_date: parsedBirthDate,
+          blood_group: command.blood_group?.trim() || null,
+          address: command.address?.trim() || null,
+          emergency_contact_name: command.emergency_contact_name?.trim() || null,
+          emergency_contact_number: command.emergency_contact_number?.trim() || null,
+          emergency_contact_relation: command.emergency_contact_relation?.trim() || null,
+          employment_type_id: command.employment_type_id ?? null,
+          salary: command.salary !== undefined ? Number(command.salary) : 0,
+          pf: command.pf !== undefined ? Number(command.pf) : 0,
           created_by: command.acting_admin_id,
         },
         tx,
@@ -142,7 +185,25 @@ export class CreateEmployeeUseCase {
         tx,
       );
 
+      // Log initial milestone into history
+      await this.employeeRepo.addHistory(
+        {
+          emp_id: created.emp_id,
+          event_type: 'HIRED',
+          title: 'Joined the company',
+          department_ids: allDepIds,
+          role_id: assignedRoleId,
+          manager_id: command.reporting_manager || null,
+          effective_date: parsedJoiningDate,
+          reason: 'Initial Hire',
+          salary: command.salary !== undefined ? Number(command.salary) : 0,
+          created_by: command.acting_admin_id,
+        },
+        tx,
+      );
+
       return created;
     });
   }
 }
+

@@ -14,13 +14,30 @@ import {
 export interface UpdateEmployeeCommand {
   id: number;
   name?: string;
+  email?: string;
   mob?: string;
   dep_id?: number;
+  department_ids?: number[];
   role_id?: number | null;
   reporting_manager?: number | null;
   joining_date?: Date | string;
   exit_date?: Date | string | null;
   status?: 'Active' | 'Inactive';
+  gender_id?: number | null;
+  personal_email?: string | null;
+  office_email?: string | null;
+  birth_date?: Date | string | null;
+  blood_group?: string | null;
+  address?: string | null;
+  emergency_contact_name?: string | null;
+  emergency_contact_number?: string | null;
+  emergency_contact_relation?: string | null;
+  employment_type_id?: number | null;
+  salary?: number;
+  pf?: number;
+  termination_date?: Date | string | null;
+  deactivation_reason?: string | null;
+  deactivation_notes?: string | null;
   acting_admin_id: number;
 }
 
@@ -64,6 +81,13 @@ export class UpdateEmployeeUseCase {
           );
         }
       }
+    }
+
+    if (command.salary !== undefined && command.salary < 0) {
+      throw new ValidationDomainError('Salary cannot be negative', 'salary');
+    }
+    if (command.pf !== undefined && command.pf < 0) {
+      throw new ValidationDomainError('PF cannot be negative', 'pf');
     }
 
     const targetDepId = command.dep_id !== undefined ? command.dep_id : employee.dep_id;
@@ -166,6 +190,18 @@ export class UpdateEmployeeUseCase {
       }
     }
 
+    let parsedBirthDate: Date | null | undefined;
+    if (command.birth_date !== undefined) {
+      if (command.birth_date === null) {
+        parsedBirthDate = null;
+      } else {
+        parsedBirthDate = new Date(command.birth_date);
+        if (isNaN(parsedBirthDate.getTime())) {
+          throw new ValidationDomainError('Invalid birth date format', 'birth_date');
+        }
+      }
+    }
+
     let parsedExitDate: Date | null | undefined;
     if (command.exit_date !== undefined) {
       if (command.exit_date === null) {
@@ -180,16 +216,93 @@ export class UpdateEmployeeUseCase {
       parsedExitDate = new Date();
     }
 
+    let parsedTerminationDate: Date | null | undefined;
+    if (command.termination_date !== undefined) {
+      if (command.termination_date === null) {
+        parsedTerminationDate = null;
+      } else {
+        parsedTerminationDate = new Date(command.termination_date);
+        if (isNaN(parsedTerminationDate.getTime())) {
+          throw new ValidationDomainError('Invalid termination date format', 'termination_date');
+        }
+      }
+    }
+
+    // Record milestone events if critical fields changed
+    const targetDepartmentIds = command.department_ids !== undefined
+      ? command.department_ids
+      : (employee.departments?.map((d) => d.dep_id) || [employee.dep_id]);
+
+    if (command.role_id !== undefined && command.role_id !== employee.role_id && targetRole) {
+      await this.employeeRepo.addHistory({
+        emp_id: command.id,
+        event_type: 'PROMOTION',
+        title: `Designation updated to ${targetRole.role_name}`,
+        department_ids: targetDepartmentIds,
+        role_id: command.role_id,
+        manager_id: command.reporting_manager !== undefined ? command.reporting_manager : employee.reporting_manager,
+        effective_date: new Date(),
+        reason: 'Role Change',
+        created_by: command.acting_admin_id,
+      });
+    }
+
+    if (command.dep_id !== undefined && command.dep_id !== employee.dep_id) {
+      const newDep = await this.departmentRepo.findById(command.dep_id);
+      await this.employeeRepo.addHistory({
+        emp_id: command.id,
+        event_type: 'TRANSFER',
+        title: `Department transferred to ${newDep?.name ?? 'Department #' + command.dep_id}`,
+        department_ids: targetDepartmentIds,
+        role_id: command.role_id !== undefined ? command.role_id : employee.role_id,
+        manager_id: command.reporting_manager !== undefined ? command.reporting_manager : employee.reporting_manager,
+        effective_date: new Date(),
+        reason: 'Department Transfer',
+        created_by: command.acting_admin_id,
+      });
+    }
+
+    if (command.salary !== undefined && Number(command.salary) !== Number(employee.salary)) {
+      await this.employeeRepo.addHistory({
+        emp_id: command.id,
+        event_type: 'SALARY_REVISION',
+        title: `Salary revised to ₹${command.salary.toLocaleString()}`,
+        department_ids: targetDepartmentIds,
+        salary: Number(command.salary),
+        effective_date: new Date(),
+        reason: 'Salary Revision',
+        created_by: command.acting_admin_id,
+      });
+    }
+
     return this.employeeRepo.update(command.id, {
       name: trimmedName,
+      email: command.email,
       mob: normalizedMob,
       dep_id: command.dep_id,
+      department_ids: command.department_ids,
       role_id: command.role_id,
       reporting_manager: command.reporting_manager,
       joining_date: parsedJoiningDate,
       exit_date: parsedExitDate,
       status: command.status,
+      gender_id: command.gender_id,
+      personal_email: command.personal_email?.trim() || null,
+      office_email: command.office_email?.trim() || null,
+      birth_date: parsedBirthDate,
+      blood_group: command.blood_group?.trim() || null,
+      address: command.address?.trim() || null,
+      emergency_contact_name: command.emergency_contact_name?.trim() || null,
+      emergency_contact_number: command.emergency_contact_number?.trim() || null,
+      emergency_contact_relation: command.emergency_contact_relation?.trim() || null,
+      employment_type_id: command.employment_type_id,
+      salary: command.salary !== undefined ? Number(command.salary) : undefined,
+      pf: command.pf !== undefined ? Number(command.pf) : undefined,
+      termination_date: parsedTerminationDate,
+      deactivation_reason: command.deactivation_reason,
+      deactivation_notes: command.deactivation_notes,
       updated_by: command.acting_admin_id,
     });
   }
 }
+

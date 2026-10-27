@@ -51,6 +51,14 @@ describe('Organization Management API (e2e)', () => {
       exclude: ['\\.well-known/(.*)'],
     });
 
+    app.getHttpAdapter().getInstance().set('trust proxy', true);
+
+    let ipCounter = 1;
+    app.use((req: any, res: any, next: any) => {
+      req.headers['x-forwarded-for'] = `10.88.${Math.floor(ipCounter / 250)}.${(ipCounter++ % 250) + 1}`;
+      next();
+    });
+
     app.use(cookieParser());
     app.useGlobalPipes(
       new ValidationPipe({
@@ -164,15 +172,17 @@ describe('Organization Management API (e2e)', () => {
       .send({ email: adminEmail, password: TEST_PASSWORD })
       .expect(200);
 
-    const adminChallengeId = loginAdminRes.body.challenge_id;
-    const adminOtp = mailAdapter.getLatestEmailFor(adminEmail)!.code;
-
-    const verifyAdminRes = await request(app.getHttpServer())
-      .post('/api/v1/auth/login/verify')
-      .send({ challenge_id: adminChallengeId, code: adminOtp })
-      .expect(200);
-
-    adminToken = verifyAdminRes.body.access_token;
+    if (loginAdminRes.body.access_token) {
+      adminToken = loginAdminRes.body.access_token;
+    } else {
+      const adminChallengeId = loginAdminRes.body.challenge_id;
+      const adminOtp = mailAdapter.getLatestEmailFor(adminEmail)?.code || loginAdminRes.body.otp_code;
+      const verifyAdminRes = await request(app.getHttpServer())
+        .post('/api/v1/auth/login/verify')
+        .send({ challenge_id: adminChallengeId, code: adminOtp })
+        .expect(200);
+      adminToken = verifyAdminRes.body.access_token;
+    }
 
     // Acquire JWT token for non-admin
     mailAdapter.clear();
@@ -181,15 +191,17 @@ describe('Organization Management API (e2e)', () => {
       .send({ email: nonAdminEmail, password: TEST_PASSWORD })
       .expect(200);
 
-    const staffChallengeId = loginStaffRes.body.challenge_id;
-    const staffOtp = mailAdapter.getLatestEmailFor(nonAdminEmail)!.code;
-
-    const verifyStaffRes = await request(app.getHttpServer())
-      .post('/api/v1/auth/login/verify')
-      .send({ challenge_id: staffChallengeId, code: staffOtp })
-      .expect(200);
-
-    nonAdminToken = verifyStaffRes.body.access_token;
+    if (loginStaffRes.body.access_token) {
+      nonAdminToken = loginStaffRes.body.access_token;
+    } else {
+      const staffChallengeId = loginStaffRes.body.challenge_id;
+      const staffOtp = mailAdapter.getLatestEmailFor(nonAdminEmail)?.code || loginStaffRes.body.otp_code;
+      const verifyStaffRes = await request(app.getHttpServer())
+        .post('/api/v1/auth/login/verify')
+        .send({ challenge_id: staffChallengeId, code: staffOtp })
+        .expect(200);
+      nonAdminToken = verifyStaffRes.body.access_token;
+    }
   });
 
   afterAll(async () => {

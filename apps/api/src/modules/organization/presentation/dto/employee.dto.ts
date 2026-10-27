@@ -1,12 +1,15 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsArray,
   IsEmail,
   IsIn,
   IsInt,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
   MaxLength,
+  Min,
   MinLength,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
@@ -34,12 +37,17 @@ export class CreateEmployeeDto {
   @MinLength(6)
   password!: string;
 
-  @ApiProperty({ type: Number, example: 1, description: 'Department ID' })
+  @ApiProperty({ type: Number, example: 1, description: 'Primary Department ID' })
   @IsInt()
   @IsNotEmpty()
   dep_id!: number;
 
-  @ApiPropertyOptional({ type: Number, example: 2, description: 'Role ID (optional, must belong to department if provided)', nullable: true })
+  @ApiPropertyOptional({ type: [Number], example: [1, 2], description: 'List of Department IDs (multi-department support)' })
+  @IsOptional()
+  @IsArray()
+  department_ids?: number[];
+
+  @ApiPropertyOptional({ type: Number, example: 2, description: 'Role ID (designation)', nullable: true })
   @IsOptional()
   @IsInt()
   role_id?: number | null;
@@ -52,6 +60,68 @@ export class CreateEmployeeDto {
   @ApiProperty({ type: String, example: '2026-10-01', description: 'Joining date' })
   @IsNotEmpty()
   joining_date!: string;
+
+  @ApiPropertyOptional({ type: Number, example: 1, description: 'Gender lookup ID', nullable: true })
+  @IsOptional()
+  @IsInt()
+  gender_id?: number | null;
+
+  @ApiPropertyOptional({ type: String, example: 'alice.personal@gmail.com', nullable: true })
+  @IsOptional()
+  @IsEmail()
+  personal_email?: string | null;
+
+  @ApiPropertyOptional({ type: String, example: 'alice@vernoxy.com', nullable: true })
+  @IsOptional()
+  @IsEmail()
+  office_email?: string | null;
+
+  @ApiPropertyOptional({ type: String, example: '1995-05-15', nullable: true })
+  @IsOptional()
+  @IsString()
+  birth_date?: string | null;
+
+  @ApiPropertyOptional({ type: String, example: 'B+', nullable: true })
+  @IsOptional()
+  @IsString()
+  blood_group?: string | null;
+
+  @ApiPropertyOptional({ type: String, example: '123 Tech Park, Indiranagar, Bengaluru', nullable: true })
+  @IsOptional()
+  @IsString()
+  address?: string | null;
+
+  @ApiPropertyOptional({ type: String, example: 'John Johnson', nullable: true })
+  @IsOptional()
+  @IsString()
+  emergency_contact_name?: string | null;
+
+  @ApiPropertyOptional({ type: String, example: '+919876543219', nullable: true })
+  @IsOptional()
+  @IsString()
+  emergency_contact_number?: string | null;
+
+  @ApiPropertyOptional({ type: String, example: 'Spouse', nullable: true })
+  @IsOptional()
+  @IsString()
+  emergency_contact_relation?: string | null;
+
+  @ApiPropertyOptional({ type: Number, example: 1, description: 'Employment Type lookup ID', nullable: true })
+  @IsOptional()
+  @IsInt()
+  employment_type_id?: number | null;
+
+  @ApiPropertyOptional({ type: Number, example: 50000, description: 'Salary (cannot be negative)', default: 0 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  salary?: number;
+
+  @ApiPropertyOptional({ type: Number, example: 1800, description: 'PF (cannot be negative)', default: 0 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  pf?: number;
 }
 
 export class UpdateEmployeeDto {
@@ -62,16 +132,26 @@ export class UpdateEmployeeDto {
   @MaxLength(255)
   name?: string;
 
+  @ApiPropertyOptional({ type: String, example: 'alice@vernoxy.com' })
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
   @ApiPropertyOptional({ type: String, example: '+919876543211', description: 'Mobile phone number' })
   @IsOptional()
   @IsString()
   @IsNotEmpty()
   mob?: string;
 
-  @ApiPropertyOptional({ type: Number, example: 1, description: 'Department ID' })
+  @ApiPropertyOptional({ type: Number, example: 1, description: 'Primary Department ID' })
   @IsOptional()
   @IsInt()
   dep_id?: number;
+
+  @ApiPropertyOptional({ type: [Number], example: [1, 2], description: 'List of Department IDs' })
+  @IsOptional()
+  @IsArray()
+  department_ids?: number[];
 
   @ApiPropertyOptional({ type: Number, example: 2, description: 'Role ID', nullable: true })
   @IsOptional()
@@ -97,6 +177,122 @@ export class UpdateEmployeeDto {
   @IsOptional()
   @IsIn(['Active', 'Inactive'])
   status?: 'Active' | 'Inactive';
+
+  @ApiPropertyOptional({ type: Number, example: 1, description: 'Gender lookup ID', nullable: true })
+  @IsOptional()
+  @IsInt()
+  gender_id?: number | null;
+
+  @ApiPropertyOptional({ type: String, example: 'alice.personal@gmail.com', nullable: true })
+  @IsOptional()
+  @IsEmail()
+  personal_email?: string | null;
+
+  @ApiPropertyOptional({ type: String, example: 'alice@vernoxy.com', nullable: true })
+  @IsOptional()
+  @IsEmail()
+  office_email?: string | null;
+
+  @ApiPropertyOptional({ type: String, example: '1995-05-15', nullable: true })
+  @IsOptional()
+  @IsString()
+  birth_date?: string | null;
+
+  @ApiPropertyOptional({ type: String, example: 'B+', nullable: true })
+  @IsOptional()
+  @IsString()
+  blood_group?: string | null;
+
+  @ApiPropertyOptional({ type: String, example: '123 Tech Park, Bengaluru', nullable: true })
+  @IsOptional()
+  @IsString()
+  address?: string | null;
+
+  @ApiPropertyOptional({ type: String, example: 'John Johnson', nullable: true })
+  @IsOptional()
+  @IsString()
+  emergency_contact_name?: string | null;
+
+  @ApiPropertyOptional({ type: String, example: '+919876543219', nullable: true })
+  @IsOptional()
+  @IsString()
+  emergency_contact_number?: string | null;
+
+  @ApiPropertyOptional({ type: String, example: 'Spouse', nullable: true })
+  @IsOptional()
+  @IsString()
+  emergency_contact_relation?: string | null;
+
+  @ApiPropertyOptional({ type: Number, example: 1, nullable: true })
+  @IsOptional()
+  @IsInt()
+  employment_type_id?: number | null;
+
+  @ApiPropertyOptional({ type: Number, example: 60000 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  salary?: number;
+
+  @ApiPropertyOptional({ type: Number, example: 1800 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  pf?: number;
+
+  @ApiPropertyOptional({ type: String, example: '2026-10-31', nullable: true })
+  @IsOptional()
+  @IsString()
+  termination_date?: string | null;
+
+  @ApiPropertyOptional({ type: String, example: 'Resigned', nullable: true })
+  @IsOptional()
+  @IsString()
+  deactivation_reason?: string | null;
+
+  @ApiPropertyOptional({ type: String, example: 'Moved to another city', nullable: true })
+  @IsOptional()
+  @IsString()
+  deactivation_notes?: string | null;
+}
+
+export class DeactivateEmployeeDto {
+  @ApiProperty({ type: String, example: '2026-10-31', description: 'Termination date (last working day)' })
+  @IsNotEmpty()
+  @IsString()
+  termination_date!: string;
+
+  @ApiProperty({
+    type: String,
+    example: 'Resigned',
+    description: 'Deactivation reason (Resigned, Terminated, Contract ended, Retired, Absconded, Other)',
+  })
+  @IsNotEmpty()
+  @IsString()
+  reason!: string;
+
+  @ApiPropertyOptional({ type: String, example: 'Detailed notes (required if reason is Other)', nullable: true })
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
+export class DeactivateWarningResponseDto {
+  @ApiProperty({ type: Number, example: 3 })
+  direct_reports_count!: number;
+
+  @ApiProperty({
+    type: 'array',
+    items: {
+      type: 'object',
+      properties: {
+        emp_id: { type: 'number' },
+        name: { type: 'string' },
+        email: { type: 'string' },
+      },
+    },
+  })
+  direct_reports!: Array<{ emp_id: number; name: string; email: string }>;
 }
 
 export class EmployeeQueryDto {
@@ -125,6 +321,7 @@ export class EmployeeQueryDto {
   @ApiPropertyOptional({ type: Number, description: 'Limit results', default: 50 })
   @IsOptional()
   @Transform(({ value }) => (value ? parseInt(value, 10) : undefined))
+  @IsInt()
   limit?: number;
 
   @ApiPropertyOptional({ type: String, description: 'Keyset pagination cursor' })
@@ -150,6 +347,9 @@ export class EmployeeRelationDepartmentDto {
 
   @ApiProperty({ type: String, example: 'Engineering' })
   name!: string;
+
+  @ApiPropertyOptional({ type: Boolean, example: true })
+  is_primary?: boolean;
 }
 
 export class EmployeeRelationRoleDto {
@@ -168,6 +368,17 @@ export class EmployeeRelationManagerDto {
   name!: string;
 }
 
+export class LookupValueDto {
+  @ApiProperty({ type: Number, example: 1 })
+  lookup_id!: number;
+
+  @ApiProperty({ type: String, example: 'male' })
+  code!: string;
+
+  @ApiProperty({ type: String, example: 'Male' })
+  label!: string;
+}
+
 export class EmployeeResponseDto {
   @ApiProperty({ type: Number, example: 1 })
   emp_id!: number;
@@ -183,6 +394,9 @@ export class EmployeeResponseDto {
 
   @ApiProperty({ type: Number, example: 1 })
   dep_id!: number;
+
+  @ApiPropertyOptional({ type: () => [EmployeeRelationDepartmentDto] })
+  departments?: EmployeeRelationDepartmentDto[];
 
   @ApiPropertyOptional({ type: Number, example: 2, nullable: true })
   role_id!: number | null;
@@ -211,6 +425,63 @@ export class EmployeeResponseDto {
   @ApiPropertyOptional({ type: () => EmployeeRelationManagerDto, nullable: true })
   manager?: EmployeeRelationManagerDto | null;
 
+  @ApiPropertyOptional({ type: Number, nullable: true })
+  gender_id?: number | null;
+
+  @ApiPropertyOptional({ type: () => LookupValueDto, nullable: true })
+  gender?: LookupValueDto | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  personal_email?: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  office_email?: string | null;
+
+  @ApiPropertyOptional({ type: String, format: 'date', nullable: true })
+  birth_date?: Date | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  blood_group?: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  address?: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  emergency_contact_name?: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  emergency_contact_number?: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  emergency_contact_relation?: string | null;
+
+  @ApiPropertyOptional({ type: Number, nullable: true })
+  employment_type_id?: number | null;
+
+  @ApiPropertyOptional({ type: () => LookupValueDto, nullable: true })
+  employment_type?: LookupValueDto | null;
+
+  @ApiPropertyOptional({ type: Number, example: 50000 })
+  salary?: number;
+
+  @ApiPropertyOptional({ type: Number, example: 1800 })
+  pf?: number;
+
+  @ApiPropertyOptional({ type: String, format: 'date', nullable: true })
+  termination_date?: Date | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  deactivation_reason?: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  deactivation_notes?: string | null;
+
+  @ApiPropertyOptional({ type: String, format: 'date-time', nullable: true })
+  deactivated_at?: Date | null;
+
+  @ApiPropertyOptional({ type: Number, nullable: true })
+  deactivated_by?: number | null;
+
   @ApiProperty({ type: String, format: 'date-time', example: '2026-10-10T12:00:00Z' })
   created_at!: Date;
 
@@ -222,6 +493,76 @@ export class EmployeeResponseDto {
 
   @ApiPropertyOptional({ type: Number, example: 1, nullable: true })
   updated_by!: number | null;
+
+  @ApiPropertyOptional({ type: String, example: 'EMP-0001' })
+  employee_code?: string;
+
+  @ApiPropertyOptional({ type: Number, example: 0 })
+  pending_documents_count?: number;
+}
+
+export class EmployeeHistoryItemDto {
+  @ApiProperty({ type: Number })
+  history_id!: number;
+
+  @ApiProperty({ type: Number })
+  emp_id!: number;
+
+  @ApiProperty({ type: String, example: 'HIRED' })
+  event_type!: string;
+
+  @ApiProperty({ type: String, example: 'Joined the company' })
+  title!: string;
+
+  @ApiProperty({ type: [Number] })
+  department_ids!: number[];
+
+  @ApiPropertyOptional({ type: () => [EmployeeRelationDepartmentDto] })
+  departments?: EmployeeRelationDepartmentDto[];
+
+  @ApiPropertyOptional({ type: Number, nullable: true })
+  role_id!: number | null;
+
+  @ApiPropertyOptional({ type: () => EmployeeRelationRoleDto, nullable: true })
+  role?: EmployeeRelationRoleDto | null;
+
+  @ApiPropertyOptional({ type: Number, nullable: true })
+  manager_id!: number | null;
+
+  @ApiPropertyOptional({ type: () => EmployeeRelationManagerDto, nullable: true })
+  manager?: EmployeeRelationManagerDto | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  employment_type!: string | null;
+
+  @ApiPropertyOptional({ type: Number, nullable: true })
+  salary!: number | null;
+
+  @ApiProperty({ type: String, format: 'date' })
+  effective_date!: Date;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  reason!: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  notes!: string | null;
+
+  @ApiProperty({ type: String, format: 'date-time' })
+  created_at!: Date;
+
+  @ApiPropertyOptional({ type: Number, nullable: true })
+  created_by!: number | null;
+}
+
+export class EmployeeStatsDto {
+  @ApiProperty({ type: Number, example: 24 })
+  total!: number;
+
+  @ApiProperty({ type: Number, example: 21 })
+  active!: number;
+
+  @ApiProperty({ type: Number, example: 3 })
+  inactive!: number;
 }
 
 export class EmployeeListResponseDto {
@@ -230,4 +571,7 @@ export class EmployeeListResponseDto {
 
   @ApiPropertyOptional({ type: String, example: 'eyJpZCI6MTB9', nullable: true })
   next_cursor!: string | null;
+
+  @ApiPropertyOptional({ type: () => EmployeeStatsDto })
+  stats?: EmployeeStatsDto;
 }

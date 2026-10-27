@@ -50,7 +50,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LoginResponseDto"
+                  "$ref": "#/components/schemas/VerifyLoginResponseDto"
                 }
               }
             }
@@ -59,7 +59,7 @@
             "description": "Invalid email or password"
           }
         },
-        "summary": "Initiate login with email and password (sends 2FA email OTP)",
+        "summary": "Login directly with email and password",
         "tags": [
           "Auth"
         ]
@@ -1151,6 +1151,130 @@
         ]
       }
     },
+    "/api/v1/employees/{id}/deactivate-warning": {
+      "get": {
+        "operationId": "EmployeeController_getDeactivateWarning",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Employee ID",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeactivateWarningResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get direct reports warning before deactivating an employee",
+        "tags": [
+          "Organization"
+        ]
+      }
+    },
+    "/api/v1/employees/{id}/deactivate": {
+      "post": {
+        "operationId": "EmployeeController_deactivate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Employee ID",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeactivateEmployeeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Deactivate an employee (with reason, termination date, and notes)",
+        "tags": [
+          "Organization"
+        ]
+      }
+    },
+    "/api/v1/employees/{id}/history": {
+      "get": {
+        "operationId": "EmployeeController_getHistory",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Employee ID",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EmployeeHistoryItemDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get employee milestone and growth timeline history",
+        "tags": [
+          "Organization"
+        ]
+      }
+    },
     "/api/v1/employees/{id}/photo": {
       "put": {
         "operationId": "EmployeeController_uploadPhoto",
@@ -1753,7 +1877,7 @@
             "name": "type",
             "required": true,
             "in": "query",
-            "description": "Lookup type: person_department, lead_source, lost_reason, task_type",
+            "description": "Lookup type. Allowed: task_type, break_type, project_category, project_status, project_type, lead_source, lost_reason, person_department, request_type, attendance_reason, shift_type, leave_type",
             "schema": {
               "example": "task_type",
               "type": "string"
@@ -1780,7 +1904,167 @@
             "bearer": []
           }
         ],
-        "summary": "Get active lookup options by type (e.g. person_department)",
+        "summary": "Get active lookup options by type (for dropdowns)",
+        "tags": [
+          "Master Data - Lookups"
+        ]
+      }
+    },
+    "/api/v1/lookups": {
+      "get": {
+        "operationId": "LookupController_listAll",
+        "parameters": [
+          {
+            "name": "type",
+            "required": true,
+            "in": "query",
+            "description": "Lookup type to list. Allowed: task_type, break_type, project_category, project_status, project_type, lead_source, lost_reason, person_department, request_type, attendance_reason, shift_type, leave_type",
+            "schema": {
+              "example": "task_type",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MasterLookupItemDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List all lookup items (including inactive) by type",
+        "tags": [
+          "Master Data - Lookups"
+        ]
+      },
+      "post": {
+        "operationId": "LookupController_create",
+        "parameters": [
+          {
+            "name": "type",
+            "required": true,
+            "in": "query",
+            "description": "Lookup type to list. Allowed: task_type, break_type, project_category, project_status, project_type, lead_source, lost_reason, person_department, request_type, attendance_reason, shift_type, leave_type",
+            "schema": {
+              "example": "task_type",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateLookupDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MasterLookupItemDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a new lookup item",
+        "tags": [
+          "Master Data - Lookups"
+        ]
+      }
+    },
+    "/api/v1/lookups/{id}": {
+      "patch": {
+        "operationId": "LookupController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateLookupDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MasterLookupItemDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a lookup item",
+        "tags": [
+          "Master Data - Lookups"
+        ]
+      },
+      "delete": {
+        "operationId": "LookupController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete (soft delete) a lookup item",
         "tags": [
           "Master Data - Lookups"
         ]
@@ -2652,8 +2936,55 @@
     },
     "/api/v1/attendance/break/start": {
       "post": {
-        "operationId": "AttendanceController_startBreak",
+        "operationId": "AttendanceController_startBreak[0]",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartBreakDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TodayAttendanceBlockDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Start a break",
+        "tags": [
+          "Attendance"
+        ]
+      }
+    },
+    "/api/v1/attendance/me/break": {
+      "post": {
+        "operationId": "AttendanceController_startBreak[1]",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartBreakDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "",
@@ -2679,7 +3010,34 @@
     },
     "/api/v1/attendance/break/end": {
       "post": {
-        "operationId": "AttendanceController_endBreak",
+        "operationId": "AttendanceController_endBreak[0]",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TodayAttendanceBlockDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "End a break (resume working)",
+        "tags": [
+          "Attendance"
+        ]
+      }
+    },
+    "/api/v1/attendance/me/resume": {
+      "post": {
+        "operationId": "AttendanceController_endBreak[1]",
         "parameters": [],
         "responses": {
           "200": {
@@ -2937,6 +3295,295 @@
           }
         ],
         "summary": "Reject attendance correction",
+        "tags": [
+          "Attendance"
+        ]
+      }
+    },
+    "/api/v1/attendance/regularizations": {
+      "get": {
+        "operationId": "AttendanceController_listRegularizations",
+        "parameters": [
+          {
+            "name": "tab",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "approved",
+                "rejected"
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "department_id",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "request_type",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from_date",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to_date",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "scope",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "me",
+                "team",
+                "all"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List attendance regularization requests",
+        "tags": [
+          "Attendance"
+        ]
+      },
+      "post": {
+        "operationId": "AttendanceController_createRegularization",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRegularizationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create attendance regularization request",
+        "tags": [
+          "Attendance"
+        ]
+      }
+    },
+    "/api/v1/attendance/regularizations/{id}": {
+      "get": {
+        "operationId": "AttendanceController_getRegularizationDetail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get regularization request detail",
+        "tags": [
+          "Attendance"
+        ]
+      }
+    },
+    "/api/v1/attendance/regularizations/{id}/cancel": {
+      "post": {
+        "operationId": "AttendanceController_cancelRegularization",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cancel regularization request",
+        "tags": [
+          "Attendance"
+        ]
+      }
+    },
+    "/api/v1/attendance/regularizations/{id}/approve": {
+      "post": {
+        "operationId": "AttendanceController_approveRegularization",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveRegularizationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Approve regularization request",
+        "tags": [
+          "Attendance"
+        ]
+      }
+    },
+    "/api/v1/attendance/regularizations/{id}/reject": {
+      "post": {
+        "operationId": "AttendanceController_rejectRegularization",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectRegularizationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reject regularization request",
+        "tags": [
+          "Attendance"
+        ]
+      }
+    },
+    "/api/v1/attendance/regularizations/bulk-approve": {
+      "post": {
+        "operationId": "AttendanceController_bulkApproveRegularizations",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkApproveRegularizationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Bulk approve regularization requests",
         "tags": [
           "Attendance"
         ]
@@ -3201,6 +3848,272 @@
           }
         ],
         "summary": "Update or reset employee-specific working hours",
+        "tags": [
+          "Attendance"
+        ]
+      }
+    },
+    "/api/v1/attendance/settings/shifts": {
+      "get": {
+        "operationId": "AttendanceController_getShifts",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all attendance shifts",
+        "tags": [
+          "Attendance"
+        ]
+      },
+      "post": {
+        "operationId": "AttendanceController_createShift",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a new attendance shift",
+        "tags": [
+          "Attendance"
+        ]
+      }
+    },
+    "/api/v1/attendance/settings/shifts/{id}": {
+      "patch": {
+        "operationId": "AttendanceController_updateShift",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update an attendance shift",
+        "tags": [
+          "Attendance"
+        ]
+      },
+      "delete": {
+        "operationId": "AttendanceController_deleteShift",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete an attendance shift",
+        "tags": [
+          "Attendance"
+        ]
+      }
+    },
+    "/api/v1/attendance/settings/shifts/{id}/set-default": {
+      "post": {
+        "operationId": "AttendanceController_setDefaultShift",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set a shift as the company default shift",
+        "tags": [
+          "Attendance"
+        ]
+      }
+    },
+    "/api/v1/attendance/settings/statuses": {
+      "get": {
+        "operationId": "AttendanceController_getStatuses",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all attendance statuses",
+        "tags": [
+          "Attendance"
+        ]
+      },
+      "post": {
+        "operationId": "AttendanceController_createStatus",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a custom attendance status",
+        "tags": [
+          "Attendance"
+        ]
+      }
+    },
+    "/api/v1/attendance/settings/statuses/{id}": {
+      "patch": {
+        "operationId": "AttendanceController_updateStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update an attendance status",
+        "tags": [
+          "Attendance"
+        ]
+      },
+      "delete": {
+        "operationId": "AttendanceController_deleteStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a custom attendance status",
+        "tags": [
+          "Attendance"
+        ]
+      }
+    },
+    "/api/v1/attendance/settings/shifts/assignments": {
+      "get": {
+        "operationId": "AttendanceController_getShiftAssignments",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get employee shift assignments",
+        "tags": [
+          "Attendance"
+        ]
+      }
+    },
+    "/api/v1/attendance/settings/shifts/assignments/{empId}": {
+      "put": {
+        "operationId": "AttendanceController_assignShift",
+        "parameters": [
+          {
+            "name": "empId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Assign a shift to an employee",
         "tags": [
           "Attendance"
         ]
@@ -4149,6 +5062,15 @@
               "example": "2026-10-25T23:59:59.999Z",
               "type": "string"
             }
+          },
+          {
+            "name": "employee_ids",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "1,2,3",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -4171,7 +5093,7 @@
             "bearer": []
           }
         ],
-        "summary": "Get calendar events in time window for current employee",
+        "summary": "Get calendar events in time window for current employee or all if admin",
         "tags": [
           "Calendar"
         ]
@@ -4921,6 +5843,298 @@
           "Projects"
         ]
       }
+    },
+    "/api/v1/projects/{id}/discussions": {
+      "get": {
+        "operationId": "ProjectsController_getProjectDiscussions",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get discussion messages for a project",
+        "tags": [
+          "Projects"
+        ]
+      },
+      "post": {
+        "operationId": "ProjectsController_createProjectDiscussion",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDiscussionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Post a discussion message to a project",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/api/v1/projects/{id}/activity-logs": {
+      "get": {
+        "operationId": "ProjectsController_getProjectActivityLogs",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get activity logs for a project",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/api/v1/projects/{id}/bugs": {
+      "get": {
+        "operationId": "ProjectsController_getProjectBugs",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get bugs for a project",
+        "tags": [
+          "Projects"
+        ]
+      },
+      "post": {
+        "operationId": "ProjectsController_createProjectBug",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBugDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Report a bug for a project",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/api/v1/projects/{id}/bugs/{bugId}": {
+      "get": {
+        "operationId": "ProjectsController_getProjectBugDetail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "bugId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get bug details including time tracking, comments, and history",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/api/v1/projects/{id}/bugs/{bugId}/status": {
+      "patch": {
+        "operationId": "ProjectsController_updateProjectBugStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "bugId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBugStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update bug status, track dev/qa time, and notify stakeholders",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/api/v1/projects/{id}/bugs/{bugId}/comments": {
+      "post": {
+        "operationId": "ProjectsController_addProjectBugComment",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "bugId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddBugCommentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a comment to a project bug",
+        "tags": [
+          "Projects"
+        ]
+      }
     }
   },
   "info": {
@@ -4970,56 +6184,6 @@
         "required": [
           "email",
           "password"
-        ]
-      },
-      "LoginResponseDto": {
-        "type": "object",
-        "properties": {
-          "challenge_id": {
-            "type": "string",
-            "example": "11111111-1111-1111-1111-111111111111"
-          },
-          "masked_email": {
-            "type": "string",
-            "example": "a***n@vernoxy.com"
-          },
-          "expires_in_seconds": {
-            "type": "number",
-            "example": 600
-          },
-          "resend_available_in_seconds": {
-            "type": "number",
-            "example": 60
-          },
-          "otp_code": {
-            "type": "string",
-            "example": "123456"
-          }
-        },
-        "required": [
-          "challenge_id",
-          "masked_email",
-          "expires_in_seconds",
-          "resend_available_in_seconds"
-        ]
-      },
-      "VerifyLoginDto": {
-        "type": "object",
-        "properties": {
-          "challenge_id": {
-            "type": "string",
-            "example": "11111111-1111-1111-1111-111111111111",
-            "description": "Challenge UUID from login endpoint"
-          },
-          "code": {
-            "type": "string",
-            "example": "123456",
-            "description": "6-digit OTP received via email"
-          }
-        },
-        "required": [
-          "challenge_id",
-          "code"
         ]
       },
       "UserSummaryDto": {
@@ -5075,6 +6239,25 @@
           "user"
         ]
       },
+      "VerifyLoginDto": {
+        "type": "object",
+        "properties": {
+          "challenge_id": {
+            "type": "string",
+            "example": "11111111-1111-1111-1111-111111111111",
+            "description": "Challenge UUID from login endpoint"
+          },
+          "code": {
+            "type": "string",
+            "example": "123456",
+            "description": "6-digit OTP received via email"
+          }
+        },
+        "required": [
+          "challenge_id",
+          "code"
+        ]
+      },
       "ResendOtpDto": {
         "type": "object",
         "properties": {
@@ -5086,6 +6269,37 @@
         },
         "required": [
           "challenge_id"
+        ]
+      },
+      "LoginResponseDto": {
+        "type": "object",
+        "properties": {
+          "challenge_id": {
+            "type": "string",
+            "example": "11111111-1111-1111-1111-111111111111"
+          },
+          "masked_email": {
+            "type": "string",
+            "example": "a***n@vernoxy.com"
+          },
+          "expires_in_seconds": {
+            "type": "number",
+            "example": 600
+          },
+          "resend_available_in_seconds": {
+            "type": "number",
+            "example": 60
+          },
+          "otp_code": {
+            "type": "string",
+            "example": "123456"
+          }
+        },
+        "required": [
+          "challenge_id",
+          "masked_email",
+          "expires_in_seconds",
+          "resend_available_in_seconds"
         ]
       },
       "RefreshResponseDto": {
@@ -5542,6 +6756,10 @@
           "name": {
             "type": "string",
             "example": "Engineering"
+          },
+          "is_primary": {
+            "type": "boolean",
+            "example": true
           }
         },
         "required": [
@@ -5583,6 +6801,28 @@
           "name"
         ]
       },
+      "LookupValueDto": {
+        "type": "object",
+        "properties": {
+          "lookup_id": {
+            "type": "number",
+            "example": 1
+          },
+          "code": {
+            "type": "string",
+            "example": "male"
+          },
+          "label": {
+            "type": "string",
+            "example": "Male"
+          }
+        },
+        "required": [
+          "lookup_id",
+          "code",
+          "label"
+        ]
+      },
       "EmployeeResponseDto": {
         "type": "object",
         "properties": {
@@ -5605,6 +6845,12 @@
           "dep_id": {
             "type": "number",
             "example": 1
+          },
+          "departments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmployeeRelationDepartmentDto"
+            }
           },
           "role_id": {
             "type": "number",
@@ -5660,6 +6906,95 @@
                 "$ref": "#/components/schemas/EmployeeRelationManagerDto"
               }
             ]
+          },
+          "gender_id": {
+            "type": "number",
+            "nullable": true
+          },
+          "gender": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LookupValueDto"
+              }
+            ]
+          },
+          "personal_email": {
+            "type": "string",
+            "nullable": true
+          },
+          "office_email": {
+            "type": "string",
+            "nullable": true
+          },
+          "birth_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "blood_group": {
+            "type": "string",
+            "nullable": true
+          },
+          "address": {
+            "type": "string",
+            "nullable": true
+          },
+          "emergency_contact_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "emergency_contact_number": {
+            "type": "string",
+            "nullable": true
+          },
+          "emergency_contact_relation": {
+            "type": "string",
+            "nullable": true
+          },
+          "employment_type_id": {
+            "type": "number",
+            "nullable": true
+          },
+          "employment_type": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LookupValueDto"
+              }
+            ]
+          },
+          "salary": {
+            "type": "number",
+            "example": 50000
+          },
+          "pf": {
+            "type": "number",
+            "example": 1800
+          },
+          "termination_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "deactivation_reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "deactivation_notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "deactivated_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "deactivated_by": {
+            "type": "number",
+            "nullable": true
           },
           "created_at": {
             "type": "string",
@@ -5735,6 +7070,154 @@
           "email"
         ]
       },
+      "DeactivateWarningResponseDto": {
+        "type": "object",
+        "properties": {
+          "direct_reports_count": {
+            "type": "number",
+            "example": 3
+          },
+          "direct_reports": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "emp_id": {
+                  "type": "number"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "email": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "direct_reports_count",
+          "direct_reports"
+        ]
+      },
+      "DeactivateEmployeeDto": {
+        "type": "object",
+        "properties": {
+          "termination_date": {
+            "type": "string",
+            "example": "2026-10-31",
+            "description": "Termination date (last working day)"
+          },
+          "reason": {
+            "type": "string",
+            "example": "Resigned",
+            "description": "Deactivation reason (Resigned, Terminated, Contract ended, Retired, Absconded, Other)"
+          },
+          "notes": {
+            "type": "string",
+            "example": "Detailed notes (required if reason is Other)",
+            "nullable": true
+          }
+        },
+        "required": [
+          "termination_date",
+          "reason"
+        ]
+      },
+      "EmployeeHistoryItemDto": {
+        "type": "object",
+        "properties": {
+          "history_id": {
+            "type": "number"
+          },
+          "emp_id": {
+            "type": "number"
+          },
+          "event_type": {
+            "type": "string",
+            "example": "HIRED"
+          },
+          "title": {
+            "type": "string",
+            "example": "Joined the company"
+          },
+          "department_ids": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "departments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmployeeRelationDepartmentDto"
+            }
+          },
+          "role_id": {
+            "type": "number",
+            "nullable": true
+          },
+          "role": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EmployeeRelationRoleDto"
+              }
+            ]
+          },
+          "manager_id": {
+            "type": "number",
+            "nullable": true
+          },
+          "manager": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EmployeeRelationManagerDto"
+              }
+            ]
+          },
+          "employment_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "salary": {
+            "type": "number",
+            "nullable": true
+          },
+          "effective_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "created_by": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        "required": [
+          "history_id",
+          "emp_id",
+          "event_type",
+          "title",
+          "department_ids",
+          "effective_date",
+          "created_at"
+        ]
+      },
       "CreateEmployeeDto": {
         "type": "object",
         "properties": {
@@ -5762,12 +7245,23 @@
           "dep_id": {
             "type": "number",
             "example": 1,
-            "description": "Department ID"
+            "description": "Primary Department ID"
+          },
+          "department_ids": {
+            "example": [
+              1,
+              2
+            ],
+            "description": "List of Department IDs (multi-department support)",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
           },
           "role_id": {
             "type": "number",
             "example": 2,
-            "description": "Role ID (optional, must belong to department if provided)",
+            "description": "Role ID (designation)",
             "nullable": true
           },
           "reporting_manager": {
@@ -5780,6 +7274,70 @@
             "type": "string",
             "example": "2026-10-01",
             "description": "Joining date"
+          },
+          "gender_id": {
+            "type": "number",
+            "example": 1,
+            "description": "Gender lookup ID",
+            "nullable": true
+          },
+          "personal_email": {
+            "type": "string",
+            "example": "alice.personal@gmail.com",
+            "nullable": true
+          },
+          "office_email": {
+            "type": "string",
+            "example": "alice@vernoxy.com",
+            "nullable": true
+          },
+          "birth_date": {
+            "type": "string",
+            "example": "1995-05-15",
+            "nullable": true
+          },
+          "blood_group": {
+            "type": "string",
+            "example": "B+",
+            "nullable": true
+          },
+          "address": {
+            "type": "string",
+            "example": "123 Tech Park, Indiranagar, Bengaluru",
+            "nullable": true
+          },
+          "emergency_contact_name": {
+            "type": "string",
+            "example": "John Johnson",
+            "nullable": true
+          },
+          "emergency_contact_number": {
+            "type": "string",
+            "example": "+919876543219",
+            "nullable": true
+          },
+          "emergency_contact_relation": {
+            "type": "string",
+            "example": "Spouse",
+            "nullable": true
+          },
+          "employment_type_id": {
+            "type": "number",
+            "example": 1,
+            "description": "Employment Type lookup ID",
+            "nullable": true
+          },
+          "salary": {
+            "type": "number",
+            "example": 50000,
+            "description": "Salary (cannot be negative)",
+            "default": 0
+          },
+          "pf": {
+            "type": "number",
+            "example": 1800,
+            "description": "PF (cannot be negative)",
+            "default": 0
           }
         },
         "required": [
@@ -5798,6 +7356,10 @@
             "example": "Alice Johnson-Smith",
             "description": "Employee full name"
           },
+          "email": {
+            "type": "string",
+            "example": "alice@vernoxy.com"
+          },
           "mob": {
             "type": "string",
             "example": "+919876543211",
@@ -5806,7 +7368,18 @@
           "dep_id": {
             "type": "number",
             "example": 1,
-            "description": "Department ID"
+            "description": "Primary Department ID"
+          },
+          "department_ids": {
+            "example": [
+              1,
+              2
+            ],
+            "description": "List of Department IDs",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
           },
           "role_id": {
             "type": "number",
@@ -5838,6 +7411,80 @@
               "Active",
               "Inactive"
             ]
+          },
+          "gender_id": {
+            "type": "number",
+            "example": 1,
+            "description": "Gender lookup ID",
+            "nullable": true
+          },
+          "personal_email": {
+            "type": "string",
+            "example": "alice.personal@gmail.com",
+            "nullable": true
+          },
+          "office_email": {
+            "type": "string",
+            "example": "alice@vernoxy.com",
+            "nullable": true
+          },
+          "birth_date": {
+            "type": "string",
+            "example": "1995-05-15",
+            "nullable": true
+          },
+          "blood_group": {
+            "type": "string",
+            "example": "B+",
+            "nullable": true
+          },
+          "address": {
+            "type": "string",
+            "example": "123 Tech Park, Bengaluru",
+            "nullable": true
+          },
+          "emergency_contact_name": {
+            "type": "string",
+            "example": "John Johnson",
+            "nullable": true
+          },
+          "emergency_contact_number": {
+            "type": "string",
+            "example": "+919876543219",
+            "nullable": true
+          },
+          "emergency_contact_relation": {
+            "type": "string",
+            "example": "Spouse",
+            "nullable": true
+          },
+          "employment_type_id": {
+            "type": "number",
+            "example": 1,
+            "nullable": true
+          },
+          "salary": {
+            "type": "number",
+            "example": 60000
+          },
+          "pf": {
+            "type": "number",
+            "example": 1800
+          },
+          "termination_date": {
+            "type": "string",
+            "example": "2026-10-31",
+            "nullable": true
+          },
+          "deactivation_reason": {
+            "type": "string",
+            "example": "Resigned",
+            "nullable": true
+          },
+          "deactivation_notes": {
+            "type": "string",
+            "example": "Moved to another city",
+            "nullable": true
           }
         }
       },
@@ -6133,6 +7780,100 @@
           "code",
           "label"
         ]
+      },
+      "MasterLookupItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "example": 1
+          },
+          "lookup_type": {
+            "type": "string",
+            "example": "task_type"
+          },
+          "code": {
+            "type": "string",
+            "example": "bug_fix"
+          },
+          "label": {
+            "type": "string",
+            "example": "Bug Fix"
+          },
+          "sort_order": {
+            "type": "number",
+            "example": 10
+          },
+          "is_active": {
+            "type": "boolean",
+            "example": true
+          },
+          "created_at": {
+            "type": "string",
+            "example": "2024-01-01T00:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "lookup_type",
+          "code",
+          "label",
+          "sort_order",
+          "is_active",
+          "created_at"
+        ]
+      },
+      "CreateLookupDto": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "description": "Display label",
+            "example": "Bug Fix"
+          },
+          "code": {
+            "type": "string",
+            "description": "Unique code (auto-generated if not provided)",
+            "example": "bug_fix"
+          },
+          "sort_order": {
+            "type": "number",
+            "description": "Sort order",
+            "example": 10
+          },
+          "is_active": {
+            "type": "boolean",
+            "description": "Active status",
+            "default": true
+          }
+        },
+        "required": [
+          "label"
+        ]
+      },
+      "UpdateLookupDto": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "description": "Display label",
+            "example": "Critical Bug Fix"
+          },
+          "code": {
+            "type": "string",
+            "description": "Code",
+            "example": "critical_bug_fix"
+          },
+          "sort_order": {
+            "type": "number",
+            "description": "Sort order",
+            "example": 10
+          },
+          "is_active": {
+            "type": "boolean",
+            "description": "Active status"
+          }
+        }
       },
       "JobTotalsDto": {
         "type": "object",
@@ -7309,6 +9050,16 @@
           "at": {
             "type": "string",
             "example": "2026-10-16T10:00:00.000Z"
+          },
+          "break_type": {
+            "type": "string",
+            "nullable": true,
+            "example": "Tea Break"
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true,
+            "example": "Personal errand"
           }
         },
         "required": [
@@ -7364,6 +9115,16 @@
             "nullable": true,
             "example": "2026-10-16T13:00:00.000Z"
           },
+          "current_break_type": {
+            "type": "string",
+            "nullable": true,
+            "example": "Tea Break"
+          },
+          "current_break_reason": {
+            "type": "string",
+            "nullable": true,
+            "example": "Personal errand"
+          },
           "worked_minutes_so_far": {
             "type": "number",
             "example": 450
@@ -7409,6 +9170,25 @@
           "target_minutes",
           "events"
         ]
+      },
+      "StartBreakDto": {
+        "type": "object",
+        "properties": {
+          "break_type": {
+            "type": "string",
+            "example": "Tea Break",
+            "enum": [
+              "Tea Break",
+              "Lunch Break",
+              "Personal Break",
+              "Other Break"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "example": "Doctor consultation"
+          }
+        }
       },
       "DashboardStatsTodayDto": {
         "type": "object",
@@ -7823,6 +9603,116 @@
         },
         "required": [
           "rejection_reason"
+        ]
+      },
+      "CreateRegularizationDto": {
+        "type": "object",
+        "properties": {
+          "emp_id": {
+            "type": "number",
+            "example": 12,
+            "description": "Optional employee ID for HR requesting on behalf"
+          },
+          "work_date": {
+            "type": "string",
+            "example": "2026-10-21",
+            "description": "Attendance Date"
+          },
+          "request_type": {
+            "type": "string",
+            "example": "Missing Check-out",
+            "enum": [
+              "Missing Check-in",
+              "Missing Check-out",
+              "Incorrect Time",
+              "Full Day Missed",
+              "On Duty / Field Work"
+            ]
+          },
+          "current_check_in_at": {
+            "type": "string",
+            "example": "2026-10-21T09:34:00.000Z"
+          },
+          "current_check_out_at": {
+            "type": "string",
+            "example": "2026-10-21T18:30:00.000Z"
+          },
+          "requested_check_in_at": {
+            "type": "string",
+            "example": "2026-10-21T09:30:00.000Z"
+          },
+          "requested_check_out_at": {
+            "type": "string",
+            "example": "2026-10-21T19:00:00.000Z"
+          },
+          "reason": {
+            "type": "string",
+            "example": "Forgot to Punch",
+            "enum": [
+              "Forgot to Punch",
+              "Device or Network Issue",
+              "Client Visit",
+              "Work From Home",
+              "Power Failure",
+              "Other"
+            ]
+          },
+          "remarks": {
+            "type": "string",
+            "example": "Left the office in a hurry and forgot to check out."
+          },
+          "attachment_url": {
+            "type": "string"
+          },
+          "attachment_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "work_date",
+          "request_type",
+          "reason",
+          "remarks"
+        ]
+      },
+      "ApproveRegularizationDto": {
+        "type": "object",
+        "properties": {
+          "comment": {
+            "type": "string",
+            "example": "Approved after verification"
+          }
+        }
+      },
+      "RejectRegularizationDto": {
+        "type": "object",
+        "properties": {
+          "comment": {
+            "type": "string",
+            "example": "Punch times do not match badge log"
+          }
+        },
+        "required": [
+          "comment"
+        ]
+      },
+      "BulkApproveRegularizationDto": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "example": [
+              7,
+              8,
+              9
+            ],
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "ids"
         ]
       },
       "AdminUpsertDayDto": {
@@ -9208,12 +11098,7 @@
           },
           "project_type": {
             "type": "string",
-            "enum": [
-              "client",
-              "internal",
-              "product",
-              "maintenance"
-            ]
+            "description": "Project type (client, internal, product, maintenance, or custom lookup code)"
           },
           "category": {
             "type": "string",
@@ -9305,12 +11190,7 @@
           },
           "project_type": {
             "type": "string",
-            "enum": [
-              "client",
-              "internal",
-              "product",
-              "maintenance"
-            ]
+            "description": "Project type (client, internal, product, maintenance, or custom lookup code)"
           },
           "category": {
             "type": "string",
@@ -9514,6 +11394,128 @@
         "required": [
           "title",
           "assignee_ids"
+        ]
+      },
+      "CreateDiscussionDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "CreateBugDto": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "number"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "steps_to_reproduce": {
+            "type": "string"
+          },
+          "expected_result": {
+            "type": "string"
+          },
+          "actual_result": {
+            "type": "string"
+          },
+          "assigned_to": {
+            "type": "number"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "default": "low"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "new",
+              "open",
+              "ready_for_dev",
+              "dev_in_progress",
+              "ready_for_qa",
+              "qa_in_progress",
+              "done",
+              "not_a_bug"
+            ],
+            "default": "new"
+          },
+          "bug_type": {
+            "type": "string",
+            "enum": [
+              "frontend",
+              "backend",
+              "ui",
+              "database",
+              "other"
+            ]
+          },
+          "other_bug_type": {
+            "type": "string"
+          },
+          "attachment_url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "description",
+          "bug_type"
+        ]
+      },
+      "UpdateBugStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "new",
+              "open",
+              "ready_for_dev",
+              "dev_in_progress",
+              "ready_for_qa",
+              "qa_in_progress",
+              "done",
+              "not_a_bug"
+            ]
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "AddBugCommentDto": {
+        "type": "object",
+        "properties": {
+          "comment": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "comment"
         ]
       }
     }

@@ -15,6 +15,7 @@ import { NotFoundPage } from './pages/NotFoundPage';
 import { SettingsPage } from './pages/admin/settings/SettingsPage';
 import { AttendanceSettingsPage } from './pages/admin/AttendanceSettingsPage';
 import { EmployeesPage } from './pages/admin/EmployeesPage';
+import { EmployeeDetailPage } from './pages/admin/EmployeeDetailPage';
 import { EmployeeFormPage } from './pages/admin/EmployeeFormPage';
 import { CompanyRoute } from './features/companies/components/CompanyRoute';
 import { CompaniesListPage } from './features/companies/pages/CompaniesListPage';
@@ -177,6 +178,14 @@ export const App: React.FC = () => {
               element={
                 <AdminRoute>
                   <EmployeeFormPage />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/employees/:id"
+              element={
+                <AdminRoute>
+                  <EmployeeDetailPage />
                 </AdminRoute>
               }
             />

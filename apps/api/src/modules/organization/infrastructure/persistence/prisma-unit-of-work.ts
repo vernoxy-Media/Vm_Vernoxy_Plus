@@ -9,6 +9,9 @@ export class PrismaUnitOfWork implements UnitOfWorkPort {
   async run<T>(fn: (tx: unknown) => Promise<T>): Promise<T> {
     return this.prisma.$transaction(async (tx) => {
       return fn(tx);
+    }, {
+      timeout: 20000,
+      maxWait: 10000,
     });
   }
 }

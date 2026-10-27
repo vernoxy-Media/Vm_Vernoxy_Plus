@@ -8,4 +8,5 @@
 export type CalendarControllerGetEventsParams = {
     start: string;
     end: string;
+    employee_ids?: string;
 };

@@ -10,7 +10,8 @@ export interface RoleListFilter {
 
 export interface RoleRepositoryPort {
   findMany(filter: RoleListFilter, tx?: unknown): Promise<{ items: Role[]; next_cursor: string | null }>;
-  findActiveOptionsByDepartment(depId: number, tx?: unknown): Promise<Array<{ role_id: number; role_name: string }>>;
+  findActiveOptionsByDepartment(depId: number, tx?: unknown): Promise<Array<{ role_id: number; role_name: string; dep_id?: number; dep_name?: string }>>;
+  findActiveOptionsByDepartments(depIds?: number[], tx?: unknown): Promise<Array<{ role_id: number; role_name: string; dep_id?: number; dep_name?: string }>>;
   findById(id: number, tx?: unknown): Promise<Role | null>;
   findByDepAndName(depId: number, name: string, tx?: unknown): Promise<Role | null>;
   create(data: { role_name: string; dep_id: number; description?: string | null; created_by: number }, tx?: unknown): Promise<Role>;

@@ -65,22 +65,47 @@ export class PrismaRoleRepository implements RoleRepositoryPort {
   async findActiveOptionsByDepartment(
     depId: number,
     tx?: unknown,
-  ): Promise<Array<{ role_id: number; role_name: string }>> {
+  ): Promise<Array<{ role_id: number; role_name: string; dep_id?: number; dep_name?: string }>> {
+    return this.findActiveOptionsByDepartments([depId], tx);
+  }
+
+  async findActiveOptionsByDepartments(
+    depIds?: number[],
+    tx?: unknown,
+  ): Promise<Array<{ role_id: number; role_name: string; dep_id?: number; dep_name?: string }>> {
     const client = this.getClient(tx);
-    return client.roles.findMany({
-      where: {
-        dep_id: depId,
-        deleted_at: null,
-        is_active: true,
-      },
+    const where: any = {
+      deleted_at: null,
+      is_active: true,
+    };
+    if (depIds && depIds.length > 0) {
+      where.dep_id = { in: depIds };
+    }
+
+    const items = await client.roles.findMany({
+      where,
       select: {
         role_id: true,
         role_name: true,
+        dep_id: true,
+        departments: {
+          select: {
+            name: true,
+          },
+        },
       },
-      orderBy: {
-        role_name: 'asc',
-      },
+      orderBy: [
+        { dep_id: 'asc' },
+        { role_name: 'asc' },
+      ],
     });
+
+    return items.map((r: any) => ({
+      role_id: r.role_id,
+      role_name: r.role_name,
+      dep_id: r.dep_id,
+      dep_name: r.departments?.name,
+    }));
   }
 
   async findById(id: number, tx?: unknown): Promise<Role | null> {

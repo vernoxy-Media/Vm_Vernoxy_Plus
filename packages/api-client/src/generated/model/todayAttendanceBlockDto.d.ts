@@ -21,6 +21,10 @@ export interface TodayAttendanceBlockDto {
     check_out_at?: string | null;
     /** @nullable */
     current_break_started_at?: string | null;
+    /** @nullable */
+    current_break_type?: string | null;
+    /** @nullable */
+    current_break_reason?: string | null;
     worked_minutes_so_far: number;
     break_minutes_so_far: number;
     target_minutes: number;

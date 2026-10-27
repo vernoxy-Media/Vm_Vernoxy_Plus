@@ -12,10 +12,10 @@ import {
   useUploadEmployeePhotoMutation,
   useRemoveEmployeePhotoMutation,
 } from '../../hooks/use-organization';
+import { useLookupsQuery } from '../../hooks/use-master-data';
 import { useAuth } from '../../context/AuthContext';
 import { AdminLayout } from '../../components/AdminLayout';
 import { PhotoPicker } from '../../components/PhotoPicker';
-import { DependentSelect } from '../../components/DependentSelect';
 import {
   useAttendanceSettingsQuery,
   useAssignEmployeeShiftMutation,
@@ -31,7 +31,15 @@ import {
   Loader2,
   ChevronRight,
   ChevronDown,
+  Building2,
+  User,
+  Heart,
+  Briefcase,
+  Search,
+  Plus,
+  X,
 } from 'lucide-react';
+import { EmployeeDocumentFormCards } from './EmployeeDocumentFormCards';
 
 function generateSecurePassword(length = 16): string {
   const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -73,11 +81,23 @@ export { employeeCreateSchema, employeeEditSchema, type EmployeeFormValues };
 const FIELD_TO_ID_MAP: Record<string, string> = {
   name: 'employee-name-input',
   email: 'employee-email-input',
+  personal_email: 'employee-personal-email-input',
+  office_email: 'employee-office-email-input',
   mob: 'employee-mob-input',
+  gender_id: 'employee-gender-select',
+  emergency_contact_name: 'employee-emergency-name-input',
+  emergency_contact_number: 'employee-emergency-number-input',
+  emergency_contact_relation: 'employee-emergency-relation-input',
+  birth_date: 'employee-birth-date-input',
+  blood_group: 'employee-blood-group-select',
+  address: 'employee-address-input',
   dep_id: 'employee-dep-select',
   role_id: 'employee-role-select',
   reporting_manager: 'employee-manager-select',
+  employment_type_id: 'employee-employment-type-select',
   joining_date: 'employee-joining-date-input',
+  salary: 'employee-salary-input',
+  pf: 'employee-pf-input',
   exit_date: 'employee-exit-date-input',
   status: 'employee-status-select',
   password: 'employee-password-input',
@@ -104,6 +124,9 @@ export const EmployeeFormPage: React.FC = () => {
   // Global server error alert
   const [globalError, setGlobalError] = useState<string | null>(null);
 
+  // Department search for multi-select recommendation
+  const [deptSearchQuery, setDeptSearchQuery] = useState('');
+
   // Handover state on successful create
   const [createdResult, setCreatedResult] = useState<{
     emp_id: number;
@@ -118,6 +141,11 @@ export const EmployeeFormPage: React.FC = () => {
   const { data: managerOptions } = useEmployeeOptionsQuery();
   const { data: existingEmployee, isLoading: isEmployeeLoading } =
     useEmployeeDetailQuery(employeeId);
+
+  // Master lookup queries
+  const { data: genderLookups } = useLookupsQuery('gender');
+  const { data: employmentTypeLookups } = useLookupsQuery('employment_type');
+  const { data: bloodGroupLookups } = useLookupsQuery('blood_group');
 
   // Mutations
   const createMutation = useCreateEmployeeMutation();
@@ -137,11 +165,24 @@ export const EmployeeFormPage: React.FC = () => {
     defaultValues: {
       name: '',
       email: '',
+      personal_email: '',
+      office_email: '',
       mob: '',
+      gender_id: '' as unknown as number,
+      emergency_contact_name: '',
+      emergency_contact_number: '',
+      emergency_contact_relation: '',
+      birth_date: '',
+      blood_group: '',
+      address: '',
       dep_id: '' as unknown as number,
+      department_ids: [],
       role_id: '' as unknown as number,
       reporting_manager: null,
+      employment_type_id: '' as unknown as number,
       joining_date: todayStr,
+      salary: 0,
+      pf: 0,
       exit_date: '',
       status: 'Active',
       password: '',
@@ -157,36 +198,57 @@ export const EmployeeFormPage: React.FC = () => {
     setValue,
     setError,
     reset,
-    formState: { errors, isDirty, isSubmitting },
+    formState: { errors, isSubmitting },
   } = form;
 
-  const watchedDepId = watch('dep_id');
+  const watchedDepartmentIds = watch('department_ids') || [];
   const watchedPassword = watch('password');
   const watchedName = watch('name');
 
-  // Dependent roles query
+  // Dependent roles query across all selected departments
   const { data: roleOptions, isLoading: isRolesLoading } = useRoleOptionsQuery(
-    typeof watchedDepId === 'number' && watchedDepId > 0 ? watchedDepId : undefined,
+    watchedDepartmentIds.length > 0 ? watchedDepartmentIds : undefined,
   );
 
   // Populate data in Edit mode
   useEffect(() => {
     if (existingEmployee) {
+      const assignedDepIds =
+        existingEmployee.departments && existingEmployee.departments.length > 0
+          ? existingEmployee.departments.map((d) => d.dep_id)
+          : [existingEmployee.dep_id];
+
       reset({
         name: existingEmployee.name,
         email: existingEmployee.email,
+        personal_email: existingEmployee.personal_email || '',
+        office_email: existingEmployee.office_email || existingEmployee.email,
         mob: existingEmployee.mob || '',
+        gender_id: existingEmployee.gender_id ?? ('' as any),
+        emergency_contact_name: existingEmployee.emergency_contact_name || '',
+        emergency_contact_number: existingEmployee.emergency_contact_number || '',
+        emergency_contact_relation: existingEmployee.emergency_contact_relation || '',
+        birth_date: existingEmployee.birth_date
+          ? new Date(existingEmployee.birth_date).toISOString().split('T')[0]
+          : '',
+        blood_group: existingEmployee.blood_group || '',
+        address: existingEmployee.address || '',
         dep_id: existingEmployee.dep_id,
+        department_ids: assignedDepIds,
         role_id: existingEmployee.role_id,
         reporting_manager: existingEmployee.reporting_manager ?? null,
+        employment_type_id: existingEmployee.employment_type_id ?? ('' as any),
         joining_date: existingEmployee.joining_date
           ? new Date(existingEmployee.joining_date).toISOString().split('T')[0]
           : todayStr,
+        salary: existingEmployee.salary ? Number(existingEmployee.salary) : 0,
+        pf: existingEmployee.pf ? Number(existingEmployee.pf) : 0,
         exit_date: existingEmployee.exit_date
           ? new Date(existingEmployee.exit_date).toISOString().split('T')[0]
           : '',
         status: existingEmployee.status,
       });
+
       if (existingEmployee.profile_picture_url) {
         setPhotoPreviewUrl(existingEmployee.profile_picture_url);
       }
@@ -199,22 +261,16 @@ export const EmployeeFormPage: React.FC = () => {
     }
   }, [existingEmployee, reset, todayStr, employeeId, attendanceSettings]);
 
-  // Unsaved changes warning
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (isDirty && !createdResult) {
-        e.preventDefault();
-        e.returnValue = '';
-      }
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [isDirty, createdResult]);
-
-  // Handle department change: clear role and reload
-  const handleDepartmentChange = (newDepId: number | '') => {
-    setValue('dep_id', newDepId as number, { shouldValidate: true, shouldDirty: true });
-    setValue('role_id', '' as unknown as number, { shouldValidate: true, shouldDirty: true });
+  const toggleDepartmentSelection = (dId: number) => {
+    let nextIds: number[];
+    if (watchedDepartmentIds.includes(dId)) {
+      nextIds = watchedDepartmentIds.filter((id) => id !== dId);
+    } else {
+      nextIds = [...watchedDepartmentIds, dId];
+    }
+    setValue('department_ids', nextIds, { shouldValidate: true, shouldDirty: true });
+    // Keep dep_id populated for database backward compatibility
+    setValue('dep_id', nextIds.length > 0 ? nextIds[0] : ('' as any), { shouldValidate: true });
   };
 
   const handleGeneratePassword = () => {
@@ -228,6 +284,28 @@ export const EmployeeFormPage: React.FC = () => {
       navigator.clipboard.writeText(watchedPassword);
       setCopiedPassword(true);
       setTimeout(() => setCopiedPassword(false), 2000);
+    }
+  };
+
+  const handleCopyHandoverCredentials = () => {
+    if (createdResult) {
+      const text = `Vernoxy Pulse Login Credentials:\nEmail: ${createdResult.email}\nPassword: ${createdResult.password}`;
+      navigator.clipboard.writeText(text);
+      setCopiedHandover(true);
+      setTimeout(() => setCopiedHandover(false), 2000);
+    }
+  };
+
+  const handleRetryPhoto = async () => {
+    if (!createdResult?.emp_id || !selectedPhotoFile) return;
+    try {
+      await uploadPhotoMutation.mutateAsync({
+        id: createdResult.emp_id,
+        file: selectedPhotoFile,
+      });
+      setCreatedResult((prev) => (prev ? { ...prev, photoError: false } : null));
+    } catch {
+      // Photo failed again
     }
   };
 
@@ -253,7 +331,43 @@ export const EmployeeFormPage: React.FC = () => {
     }
   };
 
-  // Focus and scroll to element by ID
+  const handleServerError = (err: any) => {
+    const errorData = err?.response?.data || err;
+    if (errorData?.errors && typeof errorData.errors === 'object') {
+      let firstFieldId: string | null = null;
+      for (const [field, message] of Object.entries(errorData.errors)) {
+        setError(field as any, {
+          type: 'server',
+          message: message as string,
+        });
+        if (!firstFieldId && FIELD_TO_ID_MAP[field]) {
+          firstFieldId = FIELD_TO_ID_MAP[field];
+        }
+      }
+      if (firstFieldId) {
+        focusFieldById(firstFieldId);
+      }
+      return;
+    }
+
+    if (errorData?.field && errorData?.message) {
+      setError(errorData.field as any, {
+        type: 'server',
+        message: errorData.message,
+      });
+      if (FIELD_TO_ID_MAP[errorData.field]) {
+        focusFieldById(FIELD_TO_ID_MAP[errorData.field]);
+      }
+      return;
+    }
+
+    setGlobalError(
+      errorData?.detail ||
+        errorData?.message ||
+        'An unexpected server error occurred. Please try again.',
+    );
+  };
+
   const focusFieldById = (elementId: string) => {
     const el = document.getElementById(elementId);
     if (el) {
@@ -266,20 +380,37 @@ export const EmployeeFormPage: React.FC = () => {
   const onSubmit = async (values: EmployeeFormValues) => {
     setGlobalError(null);
 
+    const primaryDepId = Number(values.dep_id);
+    const departmentIds = Array.from(
+      new Set([primaryDepId, ...(values.department_ids || [])]),
+    );
+
     if (!isEdit) {
       try {
         const createdEmp = await createMutation.mutateAsync({
           name: values.name.trim(),
           email: values.email.trim().toLowerCase(),
+          personal_email: values.personal_email?.trim() || undefined,
+          office_email: values.office_email?.trim() || values.email.trim().toLowerCase(),
           mob: values.mob?.trim() || undefined,
           password: values.password!,
-          dep_id: Number(values.dep_id),
+          dep_id: primaryDepId,
+          department_ids: departmentIds,
           role_id: values.role_id ? Number(values.role_id) : undefined,
           reporting_manager: values.reporting_manager ? Number(values.reporting_manager) : null,
+          gender_id: values.gender_id ? Number(values.gender_id) : undefined,
+          emergency_contact_name: values.emergency_contact_name?.trim() || undefined,
+          emergency_contact_number: values.emergency_contact_number?.trim() || undefined,
+          emergency_contact_relation: values.emergency_contact_relation?.trim() || undefined,
+          birth_date: values.birth_date || undefined,
+          blood_group: values.blood_group || undefined,
+          address: values.address?.trim() || undefined,
+          employment_type_id: values.employment_type_id ? Number(values.employment_type_id) : undefined,
           joining_date: values.joining_date,
+          salary: Number(values.salary || 0),
+          pf: Number(values.pf || 0),
         });
 
-        // After successful employee creation, attempt photo upload if chosen
         let photoFailed = false;
         if (selectedPhotoFile && createdEmp.emp_id) {
           try {
@@ -292,7 +423,6 @@ export const EmployeeFormPage: React.FC = () => {
           }
         }
 
-        // Assign shift if chosen
         const targetShiftId = selectedShiftId === 'default' ? null : parseInt(selectedShiftId, 10);
         if (createdEmp?.emp_id) {
           try {
@@ -300,7 +430,6 @@ export const EmployeeFormPage: React.FC = () => {
           } catch {}
         }
 
-        // Show handover panel
         setCreatedResult({
           emp_id: createdEmp.emp_id,
           name: values.name.trim(),
@@ -318,30 +447,41 @@ export const EmployeeFormPage: React.FC = () => {
           id: employeeId,
           data: {
             name: values.name.trim(),
+            personal_email: values.personal_email?.trim() || undefined,
+            office_email: values.office_email?.trim() || undefined,
             mob: values.mob?.trim() || undefined,
-            dep_id: Number(values.dep_id),
+            dep_id: primaryDepId,
+            department_ids: departmentIds,
             role_id: values.role_id ? Number(values.role_id) : null,
             reporting_manager: values.reporting_manager ? Number(values.reporting_manager) : null,
+            gender_id: values.gender_id ? Number(values.gender_id) : null,
+            emergency_contact_name: values.emergency_contact_name?.trim() || undefined,
+            emergency_contact_number: values.emergency_contact_number?.trim() || undefined,
+            emergency_contact_relation: values.emergency_contact_relation?.trim() || undefined,
+            birth_date: values.birth_date || null,
+            blood_group: values.blood_group || undefined,
+            address: values.address?.trim() || undefined,
+            employment_type_id: values.employment_type_id ? Number(values.employment_type_id) : null,
             joining_date: values.joining_date,
+            salary: Number(values.salary || 0),
+            pf: Number(values.pf || 0),
             exit_date: values.exit_date || null,
             status: values.status,
           },
         });
 
-        // Assign shift if changed
         const targetShiftId = selectedShiftId === 'default' ? null : parseInt(selectedShiftId, 10);
         try {
           await assignShiftMutation.mutateAsync({ empId: employeeId, shiftId: targetShiftId });
         } catch {}
 
-        navigate('/admin/employees');
+        navigate(`/admin/employees/${employeeId}`);
       } catch (err: any) {
         handleServerError(err);
       }
     }
   };
 
-  // On client validation error: scroll to & focus first invalid field
   const onError = (formErrors: typeof errors) => {
     const firstKey = Object.keys(formErrors)[0];
     if (firstKey && FIELD_TO_ID_MAP[firstKey]) {
@@ -349,74 +489,20 @@ export const EmployeeFormPage: React.FC = () => {
     }
   };
 
-  const handleServerError = (err: any) => {
-    const code = err?.code || err?.error_code || '';
-    const detail = err?.detail || err?.message || 'An error occurred while saving employee.';
-    const field = err?.field || '';
+  const filteredRecommendedDepts = (deptOptions || []).filter(
+    (d) =>
+      !watchedDepartmentIds.includes(d.dep_id) &&
+      d.name.toLowerCase().includes(deptSearchQuery.toLowerCase()),
+  );
 
-    if (
-      code === 'EMAIL_TAKEN' ||
-      code === 'EMAIL_EXISTS' ||
-      field === 'email' ||
-      detail.toLowerCase().includes('email')
-    ) {
-      setError('email', { message: 'This email is already registered' });
-      focusFieldById('employee-email-input');
-    } else if (
-      code === 'MOBILE_TAKEN' ||
-      code === 'MOB_EXISTS' ||
-      field === 'mob' ||
-      detail.toLowerCase().includes('mobile')
-    ) {
-      setError('mob', { message: 'This mobile number is already in use' });
-      focusFieldById('employee-mob-input');
-    } else if (
-      code === 'ROLE_NOT_IN_DEPARTMENT' ||
-      field === 'role_id' ||
-      detail.toLowerCase().includes('role')
-    ) {
-      setError('role_id', { message: 'Selected role does not belong to the chosen department' });
-      focusFieldById('employee-role-select');
-    } else if (
-      code === 'WEAK_PASSWORD' ||
-      field === 'password' ||
-      detail.toLowerCase().includes('password')
-    ) {
-      setError('password', { message: 'Password does not meet organizational security policy' });
-      focusFieldById('employee-password-input');
-    } else {
-      setGlobalError(detail);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  };
-
-  const handleRetryPhoto = async () => {
-    if (!createdResult?.emp_id || !selectedPhotoFile) return;
-    try {
-      await uploadPhotoMutation.mutateAsync({
-        id: createdResult.emp_id,
-        file: selectedPhotoFile,
-      });
-      setCreatedResult({ ...createdResult, photoError: false });
-    } catch (err: any) {
-      alert('Retry failed: ' + (err.detail || err.message || 'Photo upload error'));
-    }
-  };
-
-  const handleCopyHandoverCredentials = () => {
-    if (!createdResult) return;
-    const text = `Vernoxy Pulse Account Credentials\nName: ${createdResult.name}\nEmail: ${createdResult.email}\nInitial Password: ${createdResult.password}\nLogin: ${window.location.origin}/login`;
-    navigator.clipboard.writeText(text);
-    setCopiedHandover(true);
-    setTimeout(() => setCopiedHandover(false), 3000);
-  };
+  const fallbackBloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
   if (isEdit && isEmployeeLoading) {
     return (
       <AdminLayout>
-        <div className="py-24 flex flex-col items-center justify-center gap-3">
+        <div className="py-20 flex flex-col items-center justify-center gap-3">
           <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-          <p className="text-sm text-slate-500 font-medium">Loading employee details...</p>
+          <p className="text-sm text-slate-500 font-medium">Loading employee...</p>
         </div>
       </AdminLayout>
     );
@@ -425,23 +511,23 @@ export const EmployeeFormPage: React.FC = () => {
   const errorKeys = Object.keys(errors);
 
   return (
-    <AdminLayout>
-      <div className="space-y-6">
+    <AdminLayout title={isEdit ? 'Edit Employee' : 'Add Employee'} fluid>
+      <div className="space-y-6 max-w-5xl mx-auto pb-16">
         {/* Page Header */}
         <div className="flex items-start gap-4">
           <button
             type="button"
             id="page-header-back-button"
-            onClick={() => navigate('/admin/employees')}
-            className="w-11 h-11 rounded-xl border border-slate-200/90 bg-white flex items-center justify-center hover:bg-slate-50 text-slate-700 shadow-xs transition-colors shrink-0"
-            aria-label="Back to employees"
+            onClick={() => navigate(isEdit && employeeId ? `/admin/employees/${employeeId}` : '/admin/employees')}
+            className="w-10 h-10 rounded-xl border border-slate-200/90 bg-white flex items-center justify-center hover:bg-slate-50 text-slate-700 shadow-2xs transition-colors shrink-0"
+            aria-label="Back"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-4 h-4" />
           </button>
 
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900 leading-tight">
-              {isEdit ? 'Edit Employee' : 'Add Employee'}
+              {isEdit ? 'Edit Employee Profile' : 'Add New Employee'}
             </h1>
             <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mt-1">
               <Link to="/admin/employees" className="hover:text-slate-700 transition-colors">
@@ -449,65 +535,45 @@ export const EmployeeFormPage: React.FC = () => {
               </Link>
               <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
               <span className="text-blue-600 font-semibold">
-                {isEdit ? 'Edit Employee' : 'Add Employee'}
+                {isEdit ? existingEmployee?.name || 'Edit' : 'New Employee'}
               </span>
             </div>
           </div>
         </div>
 
-        {/* Global Aria-Live Error Alert */}
-        <div aria-live="polite">
-          {globalError && (
-            <div
-              id="form-global-error-alert"
-              className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-sm font-medium text-rose-800 flex items-start gap-3 animate-in fade-in"
+        {/* Global Alert */}
+        {globalError && (
+          <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-sm font-medium text-rose-800 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+            <div className="flex-1">{globalError}</div>
+            <button
+              type="button"
+              onClick={() => setGlobalError(null)}
+              className="text-rose-500 hover:text-rose-700 font-bold"
             >
-              <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
-              <div className="flex-1">{globalError}</div>
-              <button
-                type="button"
-                onClick={() => setGlobalError(null)}
-                className="text-rose-500 hover:text-rose-700 font-bold"
-              >
-                &times;
-              </button>
-            </div>
-          )}
-        </div>
+              &times;
+            </button>
+          </div>
+        )}
 
-        {/* Self modification banner */}
+        {/* Self modification warning */}
         {isSelf && (
           <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-xs font-medium text-amber-800 flex items-start gap-3">
             <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
             <div>
               <span className="font-semibold block mb-0.5">Editing your own account:</span>
-              Organization security policy prevents administrators from changing their own role, department, or active status.
+              Security policies prevent admins from changing their own primary department, role, or active status.
             </div>
           </div>
         )}
 
-        {/* ONE Single-Page Form Card */}
-        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-6 sm:p-8">
-          {/* One-line description */}
-          <div className="mb-6">
-            <p className="text-xs text-slate-500">
-              {isEdit
-                ? 'Update employee profile and assigned employment details.'
-                : 'Create a new employee profile and assign employment details.'}
-            </p>
-          </div>
-
-          {/* Validation Error Summary at top (aria-live) */}
+        {/* Form Container */}
+        <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xs p-6 sm:p-8">
           {errorKeys.length > 0 && (
-            <div
-              id="form-error-summary"
-              role="alert"
-              aria-live="polite"
-              className="mb-8 p-4 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-900 space-y-1.5 animate-in fade-in"
-            >
+            <div className="mb-8 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-900 space-y-1.5 animate-in fade-in">
               <div className="flex items-center gap-2 font-bold text-rose-800">
                 <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                <span>Please fix the following errors before submitting:</span>
+                <span>Please fix the following validation errors:</span>
               </div>
               <ul className="list-disc list-inside space-y-1 pl-1 pt-1 text-rose-700">
                 {errorKeys.map((key) => {
@@ -529,18 +595,18 @@ export const EmployeeFormPage: React.FC = () => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit(onSubmit, onError)} noValidate className="space-y-8">
-            {/* SECTION 1: Personal Information */}
+          <form onSubmit={handleSubmit(onSubmit, onError)} noValidate className="space-y-10">
+            {/* SECTION 1: Personal Details */}
             <div className="space-y-6">
-              {/* Heading with horizontal divider */}
               <div className="flex items-center gap-4">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">
-                  About Employee
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap flex items-center gap-2">
+                  <User className="w-4 h-4 text-blue-600" />
+                  Personal Information
                 </span>
                 <div className="h-px bg-slate-200 flex-1" />
               </div>
 
-              {/* PhotoPicker component */}
+              {/* PhotoPicker */}
               <div className="pt-1 pb-1">
                 <PhotoPicker
                   employeeName={watchedName || (isEdit ? existingEmployee?.name : 'Employee')}
@@ -555,62 +621,49 @@ export const EmployeeFormPage: React.FC = () => {
                 />
               </div>
 
-              {/* 2-column grid on desktop, 1-column below 768px */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Full Name */}
                 <div className="space-y-1.5">
-                  <label
-                    htmlFor="employee-name-input"
-                    className="block text-sm font-semibold text-slate-700"
-                  >
+                  <label htmlFor="employee-name-input" className="block text-sm font-semibold text-slate-700">
                     Full Name <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     id="employee-name-input"
                     autoComplete="name"
-                    placeholder="Enter full name"
+                    placeholder="e.g. Rachel Green"
                     {...register('name')}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all font-medium"
                   />
-                  {errors.name && (
-                    <p className="text-xs text-red-600 font-medium">{errors.name.message}</p>
-                  )}
+                  {errors.name && <p className="text-xs text-red-600 font-medium">{errors.name.message}</p>}
                 </div>
 
-                {/* Work Email (Omitted on edit) */}
-                {!isEdit && (
-                  <div className="space-y-1.5">
-                    <label
-                      htmlFor="employee-email-input"
-                      className="block text-sm font-semibold text-slate-700"
-                    >
-                      Email <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="email"
-                      id="employee-email-input"
-                      autoComplete="email"
-                      placeholder="Enter work email address"
-                      {...register('email')}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all"
-                    />
-                    <p className="text-xs text-slate-500">
-                      Used to log in and receive verification codes
-                    </p>
-                    {errors.email && (
-                      <p className="text-xs text-red-600 font-medium">{errors.email.message}</p>
-                    )}
-                  </div>
-                )}
-
-                {/* Mobile Phone (Optional) */}
+                {/* Gender */}
                 <div className="space-y-1.5">
-                  <label
-                    htmlFor="employee-mob-input"
-                    className="block text-sm font-semibold text-slate-700"
-                  >
-                    Mobile
+                  <label htmlFor="employee-gender-select" className="block text-sm font-semibold text-slate-700">
+                    Gender
+                  </label>
+                  <div className="relative">
+                    <select
+                      id="employee-gender-select"
+                      {...register('gender_id')}
+                      className="w-full appearance-none px-3.5 py-2.5 pr-10 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all font-medium"
+                    >
+                      <option value="">Select Gender</option>
+                      {genderLookups?.map((g) => (
+                        <option key={g.id} value={g.id}>
+                          {g.label}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                </div>
+
+                {/* Mobile Phone */}
+                <div className="space-y-1.5">
+                  <label htmlFor="employee-mob-input" className="block text-sm font-semibold text-slate-700">
+                    Phone Number
                   </label>
                   <input
                     type="text"
@@ -618,113 +671,296 @@ export const EmployeeFormPage: React.FC = () => {
                     autoComplete="tel"
                     placeholder="+919876543210"
                     {...register('mob')}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all font-mono"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all font-mono"
                   />
-                  <p className="text-xs text-slate-500">
-                    Digits with optional +, country code first
-                  </p>
-                  {errors.mob && (
-                    <p className="text-xs text-red-600 font-medium">{errors.mob.message}</p>
+                  {errors.mob && <p className="text-xs text-red-600 font-medium">{errors.mob.message}</p>}
+                </div>
+
+                {/* Office Email */}
+                {!isEdit ? (
+                  <div className="space-y-1.5">
+                    <label htmlFor="employee-email-input" className="block text-sm font-semibold text-slate-700">
+                      Office Email <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      id="employee-email-input"
+                      autoComplete="email"
+                      placeholder="rachel@vernoxy.com"
+                      {...register('email')}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
+                    />
+                    {errors.email && <p className="text-xs text-red-600 font-medium">{errors.email.message}</p>}
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    <label htmlFor="employee-office-email-input" className="block text-sm font-semibold text-slate-700">
+                      Office Email
+                    </label>
+                    <input
+                      type="email"
+                      id="employee-office-email-input"
+                      placeholder="rachel@vernoxy.com"
+                      {...register('office_email')}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all font-medium"
+                    />
+                  </div>
+                )}
+
+                {/* Personal Email */}
+                <div className="space-y-1.5">
+                  <label htmlFor="employee-personal-email-input" className="block text-sm font-semibold text-slate-700">
+                    Personal Email
+                  </label>
+                  <input
+                    type="email"
+                    id="employee-personal-email-input"
+                    placeholder="rachel.personal@gmail.com"
+                    {...register('personal_email')}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
+                  />
+                  {errors.personal_email && (
+                    <p className="text-xs text-red-600 font-medium">{errors.personal_email.message}</p>
                   )}
+                </div>
+
+                {/* Birth Date */}
+                <div className="space-y-1.5">
+                  <label htmlFor="employee-birth-date-input" className="block text-sm font-semibold text-slate-700">
+                    Birth Date
+                  </label>
+                  <input
+                    type="date"
+                    id="employee-birth-date-input"
+                    {...register('birth_date')}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all font-medium"
+                  />
+                </div>
+
+                {/* Blood Group */}
+                <div className="space-y-1.5">
+                  <label htmlFor="employee-blood-group-select" className="block text-sm font-semibold text-slate-700">
+                    Blood Group
+                  </label>
+                  <div className="relative">
+                    <select
+                      id="employee-blood-group-select"
+                      {...register('blood_group')}
+                      className="w-full appearance-none px-3.5 py-2.5 pr-10 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all font-medium"
+                    >
+                      <option value="">Select Blood Group</option>
+                      {bloodGroupLookups && bloodGroupLookups.length > 0
+                        ? bloodGroupLookups.map((bg) => (
+                            <option key={bg.id} value={bg.label}>
+                              {bg.label}
+                            </option>
+                          ))
+                        : fallbackBloodGroups.map((bg) => (
+                            <option key={bg} value={bg}>
+                              {bg}
+                            </option>
+                          ))}
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                </div>
+
+                {/* Residential Address */}
+                <div className="space-y-1.5 md:col-span-2">
+                  <label htmlFor="employee-address-input" className="block text-sm font-semibold text-slate-700">
+                    Address
+                  </label>
+                  <textarea
+                    id="employee-address-input"
+                    rows={2}
+                    placeholder="Full residential address..."
+                    {...register('address')}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
+                  />
+                </div>
+
+                {/* Emergency Contact Sub-section */}
+                <div className="md:col-span-2 p-5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Heart className="w-4 h-4 text-rose-500" />
+                    <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      Emergency Contact Details
+                    </h4>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-slate-600">Contact Name</label>
+                      <input
+                        type="text"
+                        id="employee-emergency-name-input"
+                        placeholder="e.g. Monica Geller"
+                        {...register('emergency_contact_name')}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-slate-600">Contact Number</label>
+                      <input
+                        type="text"
+                        id="employee-emergency-number-input"
+                        placeholder="+919876543219"
+                        {...register('emergency_contact_number')}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 font-mono"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-slate-600">Relationship</label>
+                      <input
+                        type="text"
+                        id="employee-emergency-relation-input"
+                        placeholder="e.g. Spouse / Parent / Friend"
+                        {...register('emergency_contact_relation')}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* SECTION 2: Job Details */}
+            {/* SECTION 2: Job & Multi-Department Details */}
             <div className="space-y-6">
               <div className="flex items-center gap-4">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">
-                  Job Details
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap flex items-center gap-2">
+                  <Briefcase className="w-4 h-4 text-purple-600" />
+                  Job & Department Allocation
                 </span>
                 <div className="h-px bg-slate-200 flex-1" />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Department Select */}
-                <div className="space-y-1.5">
-                  <label
-                    htmlFor="employee-dep-select"
-                    className="block text-sm font-semibold text-slate-700"
-                  >
-                    Department <span className="text-red-500">*</span>
+              {/* Multi-Department Selector with search and recommendations */}
+              <div className="p-5 rounded-2xl bg-blue-50/50 border border-blue-200/70 space-y-4">
+                <div>
+                  <label className="block text-sm font-bold text-slate-900">
+                    Departments (Multi-Select) <span className="text-red-500">*</span>
                   </label>
-                  <div className="relative">
-                    <select
-                      id="employee-dep-select"
-                      value={watchedDepId}
-                      disabled={isSelf}
-                      onChange={(e) =>
-                        handleDepartmentChange(e.target.value ? Number(e.target.value) : '')
-                      }
-                      className="w-full appearance-none px-3.5 py-2.5 pr-10 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all font-medium disabled:opacity-50"
-                    >
-                      <option value="">Select Department</option>
-                      {deptOptions?.map((d) => (
-                        <option key={d.dep_id} value={d.dep_id}>
-                          {d.name}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
-                  {errors.dep_id && (
-                    <p className="text-xs text-red-600 font-medium">{errors.dep_id.message}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Employee can work across multiple departments simultaneously.
+                  </p>
+                </div>
+
+                {/* Selected Department Pills */}
+                <div className="flex flex-wrap items-center gap-2 min-h-[36px]">
+                  {watchedDepartmentIds.map((dId) => {
+                    const dept = deptOptions?.find((d) => d.dep_id === dId);
+                    return (
+                      <span
+                        key={dId}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-600 text-white shadow-2xs transition"
+                      >
+                        <Building2 className="w-3.5 h-3.5 text-white" />
+                        <span>{dept?.name || `Department #${dId}`}</span>
+                        <button
+                          type="button"
+                          onClick={() => toggleDepartmentSelection(dId)}
+                          className="ml-1 hover:opacity-80 p-0.5 rounded-full"
+                          title="Remove department"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    );
+                  })}
+                  {watchedDepartmentIds.length === 0 && (
+                    <span className="text-xs text-amber-700 italic">
+                      No departments selected yet. Select at least one department below.
+                    </span>
                   )}
                 </div>
 
-                {/* Dependent Role Select */}
-                <div className="space-y-1.5">
-                  <label
-                    htmlFor="employee-role-select"
-                    className="block text-sm font-semibold text-slate-700"
-                  >
-                    Role{' '}
-                    {isRolesLoading && (
-                      <span className="text-blue-600 font-normal">(Loading roles...)</span>
-                    )}
-                  </label>
-                  <DependentSelect
-                    id="employee-role-select"
-                    parentId={watchedDepId ? Number(watchedDepId) : undefined}
-                    value={watch('role_id') || undefined}
-                    onChange={(val) =>
-                      setValue('role_id', val ? Number(val) : ('' as any), {
-                        shouldValidate: true,
-                        shouldDirty: true,
-                      })
-                    }
-                    options={roleOptions?.map((r) => ({ value: r.role_id, label: r.role_name }))}
-                    isLoading={isRolesLoading}
-                    placeholder="Select Role"
-                    noParentMessage="Select a department first"
-                    emptyParentMessage="No roles in this department."
-                    disabled={isSelf}
-                  />
+                {/* Search / Recommend from existing departments table */}
+                <div className="pt-2 border-t border-blue-200/50 space-y-2">
+                  <div className="relative">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="Search and recommend from existing departments..."
+                      value={deptSearchQuery}
+                      onChange={(e) => setDeptSearchQuery(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    />
+                  </div>
 
-                  {/* Empty state when department has 0 roles */}
-                  {watchedDepId && !isRolesLoading && roleOptions && roleOptions.length === 0 && (
-                    <p className="text-xs text-amber-700">
-                      No roles in this department.{' '}
-                      <Link
-                        to={`/admin/settings/roles?dep_id=${watchedDepId}&new=1`}
-                        className="text-blue-600 underline font-semibold"
+                  <div className="flex flex-wrap items-center gap-1.5 max-h-32 overflow-y-auto pt-1">
+                    {filteredRecommendedDepts.map((d) => (
+                      <button
+                        type="button"
+                        key={d.dep_id}
+                        onClick={() => toggleDepartmentSelection(d.dep_id)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-blue-400 text-xs font-medium text-slate-700 hover:text-blue-600 transition"
                       >
-                        Create one here
-                      </Link>
-                    </p>
-                  )}
+                        <Plus className="w-3 h-3 text-blue-500" />
+                        {d.name}
+                      </button>
+                    ))}
+                    {filteredRecommendedDepts.length === 0 && deptSearchQuery && (
+                      <p className="text-xs text-slate-400 italic">No matching departments found.</p>
+                    )}
+                  </div>
+                </div>
 
-                  {errors.role_id && (
-                    <p className="text-xs text-red-600 font-medium">{errors.role_id.message}</p>
-                  )}
+                {errors.dep_id && <p className="text-xs text-red-600 font-medium">{errors.dep_id.message}</p>}
+                {errors.department_ids && (
+                  <p className="text-xs text-red-600 font-medium">{errors.department_ids.message}</p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Designation / Role */}
+                <div className="space-y-1.5">
+                  <label htmlFor="employee-role-select" className="block text-sm font-semibold text-slate-700">
+                    Designation (Role){' '}
+                    {isRolesLoading && <span className="text-blue-600 font-normal text-xs">(Loading...)</span>}
+                  </label>
+                  <div className="relative">
+                    <select
+                      id="employee-role-select"
+                      {...register('role_id')}
+                      disabled={isSelf || watchedDepartmentIds.length === 0}
+                      className="w-full appearance-none px-3.5 py-2.5 pr-10 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all font-medium disabled:bg-slate-50 disabled:text-slate-400"
+                    >
+                      <option value="">
+                        {watchedDepartmentIds.length === 0
+                          ? 'Select department(s) first'
+                          : isRolesLoading
+                          ? 'Loading roles...'
+                          : roleOptions?.length === 0
+                          ? 'No roles available in selected departments'
+                          : 'Select Designation'}
+                      </option>
+                      {roleOptions && roleOptions.length > 0 && (
+                        watchedDepartmentIds.length > 1
+                          ? Array.from(new Set(roleOptions.map((r) => r.dep_name || 'General'))).map((deptName) => (
+                              <optgroup key={deptName} label={deptName}>
+                                {roleOptions
+                                  .filter((r) => (r.dep_name || 'General') === deptName)
+                                  .map((r) => (
+                                    <option key={r.role_id} value={r.role_id}>
+                                      {r.role_name}
+                                    </option>
+                                  ))}
+                              </optgroup>
+                            ))
+                          : roleOptions.map((r) => (
+                              <option key={r.role_id} value={r.role_id}>
+                                {r.role_name}
+                              </option>
+                            ))
+                      )}
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                  {errors.role_id && <p className="text-xs text-red-600 font-medium">{errors.role_id.message}</p>}
                 </div>
 
                 {/* Reporting Manager */}
                 <div className="space-y-1.5">
-                  <label
-                    htmlFor="employee-manager-select"
-                    className="block text-sm font-semibold text-slate-700"
-                  >
+                  <label htmlFor="employee-manager-select" className="block text-sm font-semibold text-slate-700">
                     Reporting Manager
                   </label>
                   <div className="relative">
@@ -733,7 +969,7 @@ export const EmployeeFormPage: React.FC = () => {
                       {...register('reporting_manager')}
                       className="w-full appearance-none px-3.5 py-2.5 pr-10 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all font-medium"
                     >
-                      <option value="">None (Top-level)</option>
+                      <option value="">None (Top-level Executive)</option>
                       {managerOptions
                         ?.filter((m) => !isEdit || m.emp_id !== employeeId)
                         ?.map((m) => (
@@ -746,12 +982,31 @@ export const EmployeeFormPage: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Employment Type */}
+                <div className="space-y-1.5">
+                  <label htmlFor="employee-employment-type-select" className="block text-sm font-semibold text-slate-700">
+                    Employment Type
+                  </label>
+                  <div className="relative">
+                    <select
+                      id="employee-employment-type-select"
+                      {...register('employment_type_id')}
+                      className="w-full appearance-none px-3.5 py-2.5 pr-10 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all font-medium"
+                    >
+                      <option value="">Select Employment Type</option>
+                      {employmentTypeLookups?.map((et) => (
+                        <option key={et.id} value={et.id}>
+                          {et.label}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                </div>
+
                 {/* Joining Date */}
                 <div className="space-y-1.5">
-                  <label
-                    htmlFor="employee-joining-date-input"
-                    className="block text-sm font-semibold text-slate-700"
-                  >
+                  <label htmlFor="employee-joining-date-input" className="block text-sm font-semibold text-slate-700">
                     Joining Date <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -760,19 +1015,51 @@ export const EmployeeFormPage: React.FC = () => {
                     {...register('joining_date')}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all font-medium"
                   />
+                  <p className="text-2xs text-slate-400">By default today. Past and future dates acceptable.</p>
                   {errors.joining_date && (
-                    <p className="text-xs text-red-600 font-medium">
-                      {errors.joining_date.message}
-                    </p>
+                    <p className="text-xs text-red-600 font-medium">{errors.joining_date.message}</p>
                   )}
                 </div>
 
-                {/* Assigned Operational Shift */}
+                {/* Salary */}
                 <div className="space-y-1.5">
-                  <label
-                    htmlFor="employee-shift-select"
-                    className="block text-sm font-semibold text-slate-700"
-                  >
+                  <label htmlFor="employee-salary-input" className="block text-sm font-semibold text-slate-700">
+                    Base Salary (Monthly ₹)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={100}
+                    id="employee-salary-input"
+                    placeholder="0"
+                    {...register('salary')}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all font-mono font-medium"
+                  />
+                  <p className="text-2xs text-slate-400">Starts from 0, cannot be negative.</p>
+                  {errors.salary && <p className="text-xs text-red-600 font-medium">{errors.salary.message}</p>}
+                </div>
+
+                {/* PF */}
+                <div className="space-y-1.5">
+                  <label htmlFor="employee-pf-input" className="block text-sm font-semibold text-slate-700">
+                    Provident Fund (PF Deduction ₹)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={50}
+                    id="employee-pf-input"
+                    placeholder="0"
+                    {...register('pf')}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all font-mono font-medium"
+                  />
+                  <p className="text-2xs text-slate-400">Starts from 0, cannot be negative.</p>
+                  {errors.pf && <p className="text-xs text-red-600 font-medium">{errors.pf.message}</p>}
+                </div>
+
+                {/* Assigned Operational Shift */}
+                <div className="space-y-1.5 md:col-span-2">
+                  <label htmlFor="employee-shift-select" className="block text-sm font-semibold text-slate-700">
                     Assigned Shift
                   </label>
                   <div className="relative">
@@ -795,19 +1082,13 @@ export const EmployeeFormPage: React.FC = () => {
                     </select>
                     <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   </div>
-                  <p className="text-[11px] text-slate-400">
-                    Employees inherit General Shift by default unless customized with a dedicated shift.
-                  </p>
                 </div>
 
                 {/* Exit Date & Status for Edit Mode */}
                 {isEdit && (
                   <>
                     <div className="space-y-1.5">
-                      <label
-                        htmlFor="employee-exit-date-input"
-                        className="block text-sm font-semibold text-slate-700"
-                      >
+                      <label htmlFor="employee-exit-date-input" className="block text-sm font-semibold text-slate-700">
                         Exit Date
                       </label>
                       <input
@@ -819,10 +1100,7 @@ export const EmployeeFormPage: React.FC = () => {
                     </div>
 
                     <div className="space-y-1.5">
-                      <label
-                        htmlFor="employee-status-select"
-                        className="block text-sm font-semibold text-slate-700"
-                      >
+                      <label htmlFor="employee-status-select" className="block text-sm font-semibold text-slate-700">
                         Status
                       </label>
                       <div className="relative">
@@ -843,7 +1121,13 @@ export const EmployeeFormPage: React.FC = () => {
               </div>
             </div>
 
-            {/* SECTION 3: Account Password (Create flow only, completely omitted on edit) */}
+            {/* SECTION: Employee Documents & NDA (Parts 5 & 6) */}
+            <EmployeeDocumentFormCards
+              employeeId={employeeId}
+              isEmployeeActive={existingEmployee?.status !== 'Inactive'}
+            />
+
+            {/* SECTION 3: Account Password (Create flow only) */}
             {!isEdit && (
               <div className="space-y-6">
                 <div className="flex items-center gap-4">
@@ -854,14 +1138,10 @@ export const EmployeeFormPage: React.FC = () => {
                 </div>
 
                 <div className="space-y-5 max-w-xl">
-                  {/* Password row with Generate & Copy */}
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <label
-                        htmlFor="employee-password-input"
-                        className="block text-sm font-semibold text-slate-700"
-                      >
-                        Password <span className="text-red-500">*</span>
+                      <label htmlFor="employee-password-input" className="block text-sm font-semibold text-slate-700">
+                        Initial Account Password <span className="text-red-500">*</span>
                       </label>
 
                       <div className="flex items-center gap-2">
@@ -907,17 +1187,11 @@ export const EmployeeFormPage: React.FC = () => {
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
-                    {errors.password && (
-                      <p className="text-xs text-red-600 font-medium">{errors.password.message}</p>
-                    )}
+                    {errors.password && <p className="text-xs text-red-600 font-medium">{errors.password.message}</p>}
                   </div>
 
-                  {/* Confirm password */}
                   <div className="space-y-1.5">
-                    <label
-                      htmlFor="employee-confirm-password-input"
-                      className="block text-sm font-semibold text-slate-700"
-                    >
+                    <label htmlFor="employee-confirm-password-input" className="block text-sm font-semibold text-slate-700">
                       Confirm Password <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -929,45 +1203,17 @@ export const EmployeeFormPage: React.FC = () => {
                       className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-mono placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
                     />
                     {errors.confirm_password && (
-                      <p className="text-xs text-red-600 font-medium">
-                        {errors.confirm_password.message}
-                      </p>
+                      <p className="text-xs text-red-600 font-medium">{errors.confirm_password.message}</p>
                     )}
                   </div>
-
-                  {/* Switch: Require password change at first login */}
-                  <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 border border-slate-200">
-                    <div>
-                      <span className="text-xs font-semibold text-slate-900 block">
-                        Require password change at first login
-                      </span>
-                      <span className="text-xs text-slate-500">
-                        Employee will be prompted to choose a new password upon first session.
-                      </span>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        id="employee-must-change-password-toggle"
-                        aria-label="Require password change at first login"
-                        {...register('must_change_password')}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                    </label>
-                  </div>
-
-                  <p className="text-xs text-slate-500 italic">
-                    The password is shown once after saving.
-                  </p>
                 </div>
               </div>
             )}
 
-            {/* Sticky footer bar inside the card with Cancel & Submit button */}
+            {/* Footer Buttons */}
             <div className="border-t border-slate-200/90 pt-6 mt-8 flex items-center justify-between gap-3 sticky bottom-0 bg-white/95 backdrop-blur-xs py-3">
               <Link
-                to="/admin/employees"
+                to={isEdit && employeeId ? `/admin/employees/${employeeId}` : '/admin/employees'}
                 id="employee-form-cancel-button"
                 className="px-5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors text-center"
               >
@@ -983,14 +1229,14 @@ export const EmployeeFormPage: React.FC = () => {
                 {(isSubmitting || createMutation.isPending || updateMutation.isPending) && (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 )}
-                {isEdit ? 'Save Changes' : 'Create employee'}
+                {isEdit ? 'Save Changes' : 'Create Employee'}
               </button>
             </div>
           </form>
         </div>
       </div>
 
-      {/* One-time Handover Panel on Create Success */}
+      {/* Handover Dialog */}
       {createdResult && (
         <div
           id="handover-credentials-modal"
@@ -1011,7 +1257,6 @@ export const EmployeeFormPage: React.FC = () => {
             </div>
 
             <div className="p-8 space-y-4">
-              {/* Photo upload failure warning if photo failed */}
               {createdResult.photoError && (
                 <div
                   id="photo-upload-warning"
@@ -1035,14 +1280,13 @@ export const EmployeeFormPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Handover Details */}
               <div className="space-y-3 p-4 rounded-2xl bg-slate-50 border border-slate-200 font-mono text-xs">
                 <div className="flex items-center justify-between pb-2 border-b border-slate-200">
                   <span className="text-slate-500 font-sans">Full Name</span>
                   <span className="font-semibold text-slate-900">{createdResult.name}</span>
                 </div>
                 <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-                  <span className="text-slate-500 font-sans">Work Email</span>
+                  <span className="text-slate-500 font-sans">Office Email</span>
                   <span className="font-semibold text-slate-900">{createdResult.email}</span>
                 </div>
                 <div className="flex items-center justify-between">
@@ -1052,10 +1296,6 @@ export const EmployeeFormPage: React.FC = () => {
                   </span>
                 </div>
               </div>
-
-              <p className="text-xs text-center text-slate-500 italic">
-                This password will not be shown again.
-              </p>
 
               <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
                 <button
@@ -1069,24 +1309,11 @@ export const EmployeeFormPage: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  id="handover-add-another-btn"
-                  onClick={() => {
-                    setCreatedResult(null);
-                    reset();
-                    setSelectedPhotoFile(null);
-                    setPhotoPreviewUrl(null);
-                  }}
-                  className="w-full sm:w-auto px-4 py-3 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
-                >
-                  Add another
-                </button>
-                <button
-                  type="button"
                   id="handover-view-employees-btn"
-                  onClick={() => navigate('/admin/employees')}
+                  onClick={() => navigate(`/admin/employees/${createdResult.emp_id}`)}
                   className="w-full sm:w-auto px-4 py-3 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
                 >
-                  View employees
+                  View Profile
                 </button>
               </div>
             </div>
