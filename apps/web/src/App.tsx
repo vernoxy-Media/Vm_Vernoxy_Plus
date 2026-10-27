@@ -17,6 +17,8 @@ import { AttendanceSettingsPage } from './pages/admin/AttendanceSettingsPage';
 import { EmployeesPage } from './pages/admin/EmployeesPage';
 import { EmployeeDetailPage } from './pages/admin/EmployeeDetailPage';
 import { EmployeeFormPage } from './pages/admin/EmployeeFormPage';
+import { CandidatesPage } from './pages/admin/recruitment/CandidatesPage';
+import { CandidateFormPage } from './pages/admin/recruitment/CandidateFormPage';
 import { CompanyRoute } from './features/companies/components/CompanyRoute';
 import { CompaniesListPage } from './features/companies/pages/CompaniesListPage';
 import { CompanyFormPage } from './features/companies/pages/CompanyFormPage';
@@ -194,6 +196,24 @@ export const App: React.FC = () => {
               element={
                 <AdminRoute>
                   <EmployeeFormPage />
+                </AdminRoute>
+              }
+            />
+
+            {/* Recruitment Module */}
+            <Route
+              path="/admin/recruitment"
+              element={
+                <AdminRoute>
+                  <CandidatesPage />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/recruitment/new"
+              element={
+                <AdminRoute>
+                  <CandidateFormPage />
                 </AdminRoute>
               }
             />

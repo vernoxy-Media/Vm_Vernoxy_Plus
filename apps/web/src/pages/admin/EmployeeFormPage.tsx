@@ -39,7 +39,6 @@ import {
   Plus,
   X,
 } from 'lucide-react';
-import { EmployeeDocumentFormCards } from './EmployeeDocumentFormCards';
 
 function generateSecurePassword(length = 16): string {
   const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -1120,12 +1119,6 @@ export const EmployeeFormPage: React.FC = () => {
                 )}
               </div>
             </div>
-
-            {/* SECTION: Employee Documents & NDA (Parts 5 & 6) */}
-            <EmployeeDocumentFormCards
-              employeeId={employeeId}
-              isEmployeeActive={existingEmployee?.status !== 'Inactive'}
-            />
 
             {/* SECTION 3: Account Password (Create flow only) */}
             {!isEdit && (

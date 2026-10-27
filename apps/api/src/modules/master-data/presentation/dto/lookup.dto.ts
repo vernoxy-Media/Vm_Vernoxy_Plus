@@ -27,6 +27,11 @@ export const ALLOWED_LOOKUP_TYPES = [
   'gender',
   'blood_group',
   'deactivation_reason',
+  'candidate_source',
+  'job_portal',
+  'notice_period',
+  'candidate_stage',
+  'rejection_reason',
 ];
 
 export class LookupOptionsQueryDto {

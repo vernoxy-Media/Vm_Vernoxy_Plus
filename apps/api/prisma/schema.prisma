@@ -109,21 +109,23 @@ model customer_types {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model departments {
-  dep_id                                      Int                    @id(map: "pk_departments") @default(autoincrement())
-  name                                        String                 @db.VarChar(255)
-  is_active                                   Boolean                @default(true)
-  created_at                                  DateTime               @default(now()) @db.Timestamptz(6)
-  created_by                                  Int?
-  updated_at                                  DateTime?              @db.Timestamptz(6)
-  updated_by                                  Int?
-  deleted_at                                  DateTime?              @db.Timestamptz(6)
-  deleted_by                                  Int?
-  employees_departments_created_byToemployees employees?             @relation("departments_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_departments_created_by")
-  employees_departments_deleted_byToemployees employees?             @relation("departments_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_departments_deleted_by")
-  employees_departments_updated_byToemployees employees?             @relation("departments_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_departments_updated_by")
-  employee_departments                        employee_departments[]
-  employees_employees_dep_idTodepartments     employees[]            @relation("employees_dep_idTodepartments")
-  roles                                       roles[]
+  dep_id                                          Int                    @id(map: "pk_departments") @default(autoincrement())
+  name                                            String                 @db.VarChar(255)
+  is_active                                       Boolean                @default(true)
+  created_at                                      DateTime               @default(now()) @db.Timestamptz(6)
+  created_by                                      Int?
+  updated_at                                      DateTime?              @db.Timestamptz(6)
+  updated_by                                      Int?
+  deleted_at                                      DateTime?              @db.Timestamptz(6)
+  deleted_by                                      Int?
+  candidates                                      candidates[]
+  candidates_candidates_final_dep_idTodepartments candidates[]           @relation("candidates_final_dep_idTodepartments")
+  employees_departments_created_byToemployees     employees?             @relation("departments_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_departments_created_by")
+  employees_departments_deleted_byToemployees     employees?             @relation("departments_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_departments_deleted_by")
+  employees_departments_updated_byToemployees     employees?             @relation("departments_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_departments_updated_by")
+  employee_departments                            employee_departments[]
+  employees_employees_dep_idTodepartments         employees[]            @relation("employees_dep_idTodepartments")
+  roles                                           roles[]
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -197,6 +199,11 @@ model employees {
   calendar_events_calendar_events_deleted_byToemployees                                  calendar_events[]                 @relation("calendar_events_deleted_byToemployees")
   calendar_events_calendar_events_organizer_idToemployees                                calendar_events[]                 @relation("calendar_events_organizer_idToemployees")
   calendar_events_calendar_events_updated_byToemployees                                  calendar_events[]                 @relation("calendar_events_updated_byToemployees")
+  candidates_candidates_converted_to_emp_idToemployees                                   candidates[]                      @relation("candidates_converted_to_emp_idToemployees")
+  candidates_candidates_created_byToemployees                                            candidates[]                      @relation("candidates_created_byToemployees")
+  candidates_candidates_decision_byToemployees                                           candidates[]                      @relation("candidates_decision_byToemployees")
+  candidates_candidates_referred_by_emp_idToemployees                                    candidates[]                      @relation("candidates_referred_by_emp_idToemployees")
+  candidates_candidates_reporting_manager_idToemployees                                  candidates[]                      @relation("candidates_reporting_manager_idToemployees")
   companies_companies_created_byToemployees                                              companies[]                       @relation("companies_created_byToemployees")
   companies_companies_deleted_byToemployees                                              companies[]                       @relation("companies_deleted_byToemployees")
   companies_companies_owner_idToemployees                                                companies[]                       @relation("companies_owner_idToemployees")
@@ -219,16 +226,21 @@ model employees {
   departments_departments_created_byToemployees                                          departments[]                     @relation("departments_created_byToemployees")
   departments_departments_deleted_byToemployees                                          departments[]                     @relation("departments_deleted_byToemployees")
   departments_departments_updated_byToemployees                                          departments[]                     @relation("departments_updated_byToemployees")
+  document_templates_document_templates_created_byToemployees                            document_templates[]              @relation("document_templates_created_byToemployees")
+  document_templates_document_templates_updated_byToemployees                            document_templates[]              @relation("document_templates_updated_byToemployees")
   employee_credentials_employee_credentials_created_byToemployees                        employee_credentials[]            @relation("employee_credentials_created_byToemployees")
   employee_credentials_employee_credentials_deleted_byToemployees                        employee_credentials[]            @relation("employee_credentials_deleted_byToemployees")
   employee_credentials_employee_credentials_emp_idToemployees                            employee_credentials[]            @relation("employee_credentials_emp_idToemployees")
   employee_credentials_employee_credentials_updated_byToemployees                        employee_credentials[]            @relation("employee_credentials_updated_byToemployees")
   employee_departments_employee_departments_created_byToemployees                        employee_departments[]            @relation("employee_departments_created_byToemployees")
   employee_departments_employee_departments_emp_idToemployees                            employee_departments[]            @relation("employee_departments_emp_idToemployees")
+  employee_documents_employee_documents_created_byToemployees                            employee_documents[]              @relation("employee_documents_created_byToemployees")
+  employee_documents                                                                     employee_documents[]
+  employee_documents_employee_documents_issued_byToemployees                             employee_documents[]              @relation("employee_documents_issued_byToemployees")
+  employee_documents_employee_documents_updated_byToemployees                            employee_documents[]              @relation("employee_documents_updated_byToemployees")
   employee_history_employee_history_created_byToemployees                                employee_history[]                @relation("employee_history_created_byToemployees")
   employee_history_employee_history_emp_idToemployees                                    employee_history[]                @relation("employee_history_emp_idToemployees")
   employee_history_employee_history_manager_idToemployees                                employee_history[]                @relation("employee_history_manager_idToemployees")
-  employee_documents                                                                     employee_documents[]
   employees_employees_deactivated_byToemployees                                          employees?                        @relation("employees_deactivated_byToemployees", fields: [deactivated_by], references: [emp_id], onUpdate: NoAction)
   other_employees_employees_deactivated_byToemployees                                    employees[]                       @relation("employees_deactivated_byToemployees")
   master_lookup_employees_employment_type_idTomaster_lookup                              master_lookup?                    @relation("employees_employment_type_idTomaster_lookup", fields: [employment_type_id], references: [lookup_id], onUpdate: NoAction)
@@ -417,6 +429,7 @@ model master_lookup {
   updated_by                                            Int?
   deleted_at                                            DateTime?         @db.Timestamptz(6)
   deleted_by                                            Int?
+  candidates                                            candidates[]
   company_persons                                       company_persons[]
   employees_employees_employment_type_idTomaster_lookup employees[]       @relation("employees_employment_type_idTomaster_lookup")
   employees_employees_gender_idTomaster_lookup          employees[]       @relation("employees_gender_idTomaster_lookup")
@@ -472,25 +485,27 @@ model pipeline_stages {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model roles {
-  role_id                                   Int                @id(map: "pk_roles") @default(autoincrement())
-  role_name                                 String             @db.VarChar(100)
-  created_at                                DateTime           @default(now()) @db.Timestamptz(6)
-  created_by                                Int?
-  updated_at                                DateTime?          @db.Timestamptz(6)
-  updated_by                                Int?
-  deleted_at                                DateTime?          @db.Timestamptz(6)
-  deleted_by                                Int?
-  dep_id                                    Int
-  description                               String?            @db.VarChar(300)
-  is_active                                 Boolean            @default(true)
-  is_admin                                  Boolean            @default(false)
-  employee_history                          employee_history[]
-  employees_employees_role_idToroles        employees[]        @relation("employees_role_idToroles")
-  employees_employees_role_id_dep_idToroles employees[]        @relation("employees_role_id_dep_idToroles")
-  employees_roles_created_byToemployees     employees?         @relation("roles_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_roles_created_by")
-  employees_roles_deleted_byToemployees     employees?         @relation("roles_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_roles_deleted_by")
-  departments                               departments        @relation(fields: [dep_id], references: [dep_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_roles_dep_id")
-  employees_roles_updated_byToemployees     employees?         @relation("roles_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_roles_updated_by")
+  role_id                                    Int                @id(map: "pk_roles") @default(autoincrement())
+  role_name                                  String             @db.VarChar(100)
+  created_at                                 DateTime           @default(now()) @db.Timestamptz(6)
+  created_by                                 Int?
+  updated_at                                 DateTime?          @db.Timestamptz(6)
+  updated_by                                 Int?
+  deleted_at                                 DateTime?          @db.Timestamptz(6)
+  deleted_by                                 Int?
+  dep_id                                     Int
+  description                                String?            @db.VarChar(300)
+  is_active                                  Boolean            @default(true)
+  is_admin                                   Boolean            @default(false)
+  candidates_candidates_final_role_idToroles candidates[]       @relation("candidates_final_role_idToroles")
+  candidates                                 candidates[]
+  employee_history                           employee_history[]
+  employees_employees_role_idToroles         employees[]        @relation("employees_role_idToroles")
+  employees_employees_role_id_dep_idToroles  employees[]        @relation("employees_role_id_dep_idToroles")
+  employees_roles_created_byToemployees      employees?         @relation("roles_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_roles_created_by")
+  employees_roles_deleted_byToemployees      employees?         @relation("roles_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_roles_deleted_by")
+  departments                                departments        @relation(fields: [dep_id], references: [dep_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_roles_dep_id")
+  employees_roles_updated_byToemployees      employees?         @relation("roles_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_roles_updated_by")
 
   @@unique([role_id, dep_id], map: "ux_roles_role_dep")
 }
@@ -1249,6 +1264,131 @@ model employee_history {
   @@index([emp_id], map: "ix_employee_history_emp_id")
 }
 
+model document_templates {
+  template_id                                        Int                  @id @default(autoincrement())
+  code                                               String               @unique @db.VarChar(50)
+  name                                               String               @db.VarChar(150)
+  document_type                                      String               @db.VarChar(50)
+  description                                        String?              @db.VarChar(255)
+  content_html                                       String
+  is_active                                          Boolean?             @default(true)
+  created_at                                         DateTime?            @default(now()) @db.Timestamptz(6)
+  created_by                                         Int?
+  updated_at                                         DateTime?            @db.Timestamptz(6)
+  updated_by                                         Int?
+  employees_document_templates_created_byToemployees employees?           @relation("document_templates_created_byToemployees", fields: [created_by], references: [emp_id], onUpdate: NoAction)
+  employees_document_templates_updated_byToemployees employees?           @relation("document_templates_updated_byToemployees", fields: [updated_by], references: [emp_id], onUpdate: NoAction)
+  documents                                          employee_documents[]
+
+  @@index([document_type], map: "ix_document_templates_type")
+}
+
+model employee_documents {
+  doc_id                                             Int                 @id @default(autoincrement())
+  emp_id                                             Int
+  category                                           String              @db.VarChar(50)
+  document_type                                      String              @db.VarChar(50)
+  title                                              String              @db.VarChar(150)
+  is_ticked                                          Boolean?            @default(false)
+  status                                             String?             @default("not_ticked") @db.VarChar(30)
+  file_url                                           String?
+  file_name                                          String?             @db.VarChar(255)
+  file_size                                          Int?
+  mime_type                                          String?             @db.VarChar(100)
+  draft_content                                      String?
+  template_id                                        Int?
+  issued_at                                          DateTime?           @db.Timestamptz(6)
+  issued_by                                          Int?
+  created_at                                         DateTime?           @default(now()) @db.Timestamptz(6)
+  created_by                                         Int?
+  updated_at                                         DateTime?           @db.Timestamptz(6)
+  updated_by                                         Int?
+  employees_employee_documents_created_byToemployees employees?          @relation("employee_documents_created_byToemployees", fields: [created_by], references: [emp_id], onUpdate: NoAction)
+  employees                                          employees           @relation(fields: [emp_id], references: [emp_id], onDelete: Cascade, onUpdate: NoAction)
+  employees_employee_documents_issued_byToemployees  employees?          @relation("employee_documents_issued_byToemployees", fields: [issued_by], references: [emp_id], onUpdate: NoAction)
+  template                                           document_templates? @relation(fields: [template_id], references: [template_id], onUpdate: NoAction)
+  employees_employee_documents_updated_byToemployees employees?          @relation("employee_documents_updated_byToemployees", fields: [updated_by], references: [emp_id], onUpdate: NoAction)
+
+  @@unique([emp_id, document_type], map: "uq_emp_doc_type")
+  @@index([emp_id], map: "ix_employee_documents_emp_id")
+  @@index([category], map: "ix_employee_documents_category")
+}
+
+model candidate_counters {
+  counter_name String @id @db.VarChar(50)
+  last_number  Int    @default(0)
+}
+
+model candidates {
+  candidate_id                                         Int            @id @default(autoincrement())
+  candidate_code                                       String         @unique @db.VarChar(32)
+  name                                                 String         @db.VarChar(255)
+  phone                                                String         @db.VarChar(20)
+  email                                                String         @db.VarChar(255)
+  gender_id                                            Int?
+  current_location                                     String?        @db.VarChar(255)
+  resume_url                                           String?
+  resume_filename                                      String?        @db.VarChar(255)
+  resume_size                                          Int?
+  resume_mime                                          String?        @db.VarChar(100)
+  role_id                                              Int
+  dep_id                                               Int
+  experience_type                                      String         @default("experienced") @db.VarChar(32)
+  exp_years                                            Int?           @default(0)
+  exp_months                                           Int?           @default(0)
+  current_company                                      String?        @db.VarChar(255)
+  current_designation                                  String?        @db.VarChar(255)
+  current_ctc                                          Decimal?       @db.Decimal(14, 2)
+  expected_ctc                                         Decimal?       @db.Decimal(14, 2)
+  notice_period                                        String?        @db.VarChar(64)
+  serving_notice_lwd                                   DateTime?      @db.Date
+  key_skills                                           Json?          @default("[]")
+  source                                               String         @db.VarChar(64)
+  source_portal                                        String?        @db.VarChar(64)
+  referred_by_emp_id                                   Int?
+  consultancy_name                                     String?        @db.VarChar(255)
+  college_name                                         String?        @db.VarChar(255)
+  source_details                                       String?
+  notes                                                String?
+  stage                                                String         @default("new") @db.VarChar(32)
+  rejection_reason                                     String?        @db.VarChar(64)
+  rejection_notes                                      String?
+  converted_to_emp_id                                  Int?
+  created_by                                           Int?
+  created_at                                           DateTime?      @default(now()) @db.Timestamptz(6)
+  updated_at                                           DateTime?      @default(now()) @db.Timestamptz(6)
+  offered_ctc                                          Decimal?       @db.Decimal(14, 2)
+  expected_joining_date                                DateTime?      @db.Date
+  reporting_manager_id                                 Int?
+  employment_type                                      String?        @db.VarChar(64)
+  final_role_id                                        Int?
+  final_dep_id                                         Int?
+  review_on_date                                       DateTime?      @db.Date
+  decision_notes                                       String?
+  decision_date                                        DateTime?      @db.Timestamptz(6)
+  decision_by                                          Int?
+  send_regret_email                                    Boolean?       @default(false)
+  employees_candidates_converted_to_emp_idToemployees  employees?     @relation("candidates_converted_to_emp_idToemployees", fields: [converted_to_emp_id], references: [emp_id], onUpdate: NoAction)
+  employees_candidates_created_byToemployees           employees?     @relation("candidates_created_byToemployees", fields: [created_by], references: [emp_id], onUpdate: NoAction)
+  employees_candidates_decision_byToemployees          employees?     @relation("candidates_decision_byToemployees", fields: [decision_by], references: [emp_id], onUpdate: NoAction)
+  departments                                          departments    @relation(fields: [dep_id], references: [dep_id], onDelete: NoAction, onUpdate: NoAction)
+  departments_candidates_final_dep_idTodepartments     departments?   @relation("candidates_final_dep_idTodepartments", fields: [final_dep_id], references: [dep_id], onUpdate: NoAction)
+  roles_candidates_final_role_idToroles                roles?         @relation("candidates_final_role_idToroles", fields: [final_role_id], references: [role_id], onUpdate: NoAction)
+  master_lookup                                        master_lookup? @relation(fields: [gender_id], references: [lookup_id], onUpdate: NoAction)
+  employees_candidates_referred_by_emp_idToemployees   employees?     @relation("candidates_referred_by_emp_idToemployees", fields: [referred_by_emp_id], references: [emp_id], onUpdate: NoAction)
+  employees_candidates_reporting_manager_idToemployees employees?     @relation("candidates_reporting_manager_idToemployees", fields: [reporting_manager_id], references: [emp_id], onUpdate: NoAction)
+  roles                                                roles          @relation(fields: [role_id], references: [role_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([candidate_code], map: "ix_candidates_code")
+  @@index([created_at(sort: Desc)], map: "ix_candidates_created_at")
+  @@index([dep_id], map: "ix_candidates_dep_id")
+  @@index([email], map: "ix_candidates_email")
+  @@index([phone], map: "ix_candidates_phone")
+  @@index([role_id], map: "ix_candidates_role_id")
+  @@index([source], map: "ix_candidates_source")
+  @@index([stage], map: "ix_candidates_stage")
+}
+
 enum channel_type {
   website
   facebook
@@ -1448,47 +1588,4 @@ enum sprint_status {
   planned
   active
   completed
-}
-
-model document_templates {
-  template_id   Int                  @id @default(autoincrement())
-  code          String               @unique @db.VarChar(50)
-  name          String               @db.VarChar(150)
-  document_type String               @db.VarChar(50)
-  description   String?              @db.VarChar(255)
-  content_html  String               @db.Text
-  is_active     Boolean              @default(true)
-  created_at    DateTime             @default(now()) @db.Timestamptz(6)
-  created_by    Int?
-  updated_at    DateTime?            @db.Timestamptz(6)
-  updated_by    Int?
-  documents     employee_documents[]
-}
-
-model employee_documents {
-  doc_id        Int                 @id @default(autoincrement())
-  emp_id        Int
-  category      String              @db.VarChar(50)
-  document_type String              @db.VarChar(50)
-  title         String              @db.VarChar(150)
-  is_ticked     Boolean             @default(false)
-  status        String              @default("not_ticked") @db.VarChar(30)
-  file_url      String?             @db.Text
-  file_name     String?             @db.VarChar(255)
-  file_size     Int?
-  mime_type     String?             @db.VarChar(100)
-  draft_content String?             @db.Text
-  template_id   Int?
-  issued_at     DateTime?           @db.Timestamptz(6)
-  issued_by     Int?
-  created_at    DateTime            @default(now()) @db.Timestamptz(6)
-  created_by    Int?
-  updated_at    DateTime?           @db.Timestamptz(6)
-  updated_by    Int?
-  employees     employees           @relation(fields: [emp_id], references: [emp_id], onDelete: Cascade)
-  template      document_templates? @relation(fields: [template_id], references: [template_id], onDelete: SetNull)
-
-  @@unique([emp_id, document_type], map: "uq_emp_doc_type")
-  @@index([emp_id], map: "ix_employee_documents_emp_id")
-  @@index([category], map: "ix_employee_documents_category")
 }

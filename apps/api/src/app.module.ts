@@ -17,6 +17,7 @@ import { TasksModule } from './modules/tasks/public-api';
 import { CalendarModule } from './modules/calendar/public-api';
 import { ProjectsModule } from './modules/projects/public-api';
 import { WebsocketsModule } from './modules/websockets/public-api';
+import { RecruitmentModule } from './modules/recruitment/recruitment.module';
 
 @Module({
 
@@ -40,6 +41,7 @@ import { WebsocketsModule } from './modules/websockets/public-api';
     CalendarModule,
     ProjectsModule,
     WebsocketsModule,
+    RecruitmentModule,
   ],
   controllers: [HealthController],
   providers: [

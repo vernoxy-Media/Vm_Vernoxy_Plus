@@ -13,6 +13,7 @@ import {
   CalendarClock,
   CheckSquare,
   FolderKanban,
+  UserPlus,
 } from 'lucide-react';
 
 export interface SidebarProps {
@@ -33,7 +34,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   if (!user) return null;
 
-  // Base navigation items: Projects, My Tasks, Attendance, Companies, Employees, Settings
+  // Base navigation items: Projects, My Tasks, Attendance, Companies, Employees, Recruitment, Settings
   const navItems = [
     { name: 'Projects', path: '/projects', icon: FolderKanban },
     { name: 'My Tasks', path: '/my-tasks', icon: CheckSquare },
@@ -45,6 +46,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     ...(user.access?.can_manage_organization
       ? [
           { name: 'Employees', path: '/admin/employees', icon: Users },
+          { name: 'Recruitment', path: '/admin/recruitment', icon: UserPlus },
           { name: 'Attendance Settings', path: '/admin/attendance-settings', icon: CalendarClock },
           { name: 'Settings', path: '/admin/settings/departments', icon: Settings },
         ]

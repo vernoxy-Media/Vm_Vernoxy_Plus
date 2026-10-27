@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, useParams, Navigate } from 'react-router-dom';
+import { NavLink, useParams, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { AdminLayout } from '../../../components/AdminLayout';
 import { PageHeader } from '../../../components/PageHeader';
@@ -10,6 +10,7 @@ import {
 } from './settings.registry';
 
 export const SettingsPage: React.FC = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { sectionId } = useParams<{ sectionId: string }>();
 
@@ -33,8 +34,37 @@ export const SettingsPage: React.FC = () => {
   return (
     <AdminLayout title="Settings" fluid>
       <div className="space-y-6">
-        {/* Page Header */}
-        <PageHeader title="Settings" />
+        {/* Page Header with Master Data Quick Dropdown */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <PageHeader title="Settings" />
+
+          {/* Quick Dropdown Menu for Master Data */}
+          <div className="flex items-center gap-2 max-w-xs w-full">
+            <label htmlFor="master-data-select" className="text-xs font-semibold text-slate-500 whitespace-nowrap">
+              Master Data:
+            </label>
+            <select
+              id="master-data-select"
+              value={currentSection?.path || ''}
+              onChange={(e) => navigate(e.target.value)}
+              className="w-full px-3 py-2 text-xs font-semibold rounded-xl border border-slate-300 bg-white text-slate-800 shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
+            >
+              {SETTINGS_MAIN_GROUPS.map((group) => {
+                const sections = sectionGroups[group.name] || [];
+                if (sections.length === 0) return null;
+                return (
+                  <optgroup key={group.id} label={`── ${group.name} ──`}>
+                    {sections.map((sec) => (
+                      <option key={sec.id} value={sec.path}>
+                        {sec.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                );
+              })}
+            </select>
+          </div>
+        </div>
 
         {/* Master Data Card Layout */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col md:flex-row min-h-[600px]">

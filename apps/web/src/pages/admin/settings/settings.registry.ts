@@ -21,6 +21,12 @@ import {
   Briefcase,
   Heart,
   UserX,
+  Share2,
+  Globe,
+  CalendarClock,
+  Layers,
+  XCircle,
+  UserPlus,
   LucideIcon,
 } from 'lucide-react';
 import type { MeResponseDto } from '@vernoxy-pulse/api-client';
@@ -87,6 +93,21 @@ const SettingsBloodGroupsSection = React.lazy(() =>
 );
 const SettingsDeactivationReasonsSection = React.lazy(() =>
   import('./SettingsDeactivationReasonsSection').then((m) => ({ default: m.SettingsDeactivationReasonsSection }))
+);
+const SettingsCandidateSourcesSection = React.lazy(() =>
+  import('./SettingsCandidateSourcesSection').then((m) => ({ default: m.SettingsCandidateSourcesSection }))
+);
+const SettingsJobPortalsSection = React.lazy(() =>
+  import('./SettingsJobPortalsSection').then((m) => ({ default: m.SettingsJobPortalsSection }))
+);
+const SettingsNoticePeriodsSection = React.lazy(() =>
+  import('./SettingsNoticePeriodsSection').then((m) => ({ default: m.SettingsNoticePeriodsSection }))
+);
+const SettingsCandidateStagesSection = React.lazy(() =>
+  import('./SettingsCandidateStagesSection').then((m) => ({ default: m.SettingsCandidateStagesSection }))
+);
+const SettingsRejectionReasonsSection = React.lazy(() =>
+  import('./SettingsRejectionReasonsSection').then((m) => ({ default: m.SettingsRejectionReasonsSection }))
 );
 
 export interface SettingsSectionConfig {
@@ -300,6 +321,53 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
     group: 'HR',
   },
+
+  // ── Recruitment ───────────────────────────────────
+  {
+    id: 'candidate-sources',
+    label: 'Candidate Sources',
+    path: '/admin/settings/candidate-sources',
+    icon: Share2,
+    component: SettingsCandidateSourcesSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Recruitment',
+  },
+  {
+    id: 'job-portals',
+    label: 'Job Portals',
+    path: '/admin/settings/job-portals',
+    icon: Globe,
+    component: SettingsJobPortalsSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Recruitment',
+  },
+  {
+    id: 'notice-periods',
+    label: 'Notice Periods',
+    path: '/admin/settings/notice-periods',
+    icon: CalendarClock,
+    component: SettingsNoticePeriodsSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Recruitment',
+  },
+  {
+    id: 'candidate-stages',
+    label: 'Candidate Stages',
+    path: '/admin/settings/candidate-stages',
+    icon: Layers,
+    component: SettingsCandidateStagesSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Recruitment',
+  },
+  {
+    id: 'rejection-reasons',
+    label: 'Rejection Reasons',
+    path: '/admin/settings/rejection-reasons',
+    icon: XCircle,
+    component: SettingsRejectionReasonsSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Recruitment',
+  },
 ];
 
 export function getVisibleSettingsSections(user: MeResponseDto | null): SettingsSectionConfig[] {
@@ -335,4 +403,5 @@ export const SETTINGS_MAIN_GROUPS: SettingsMainGroup[] = [
   { id: 'Tasks', name: 'Tasks', icon: Tag },
   { id: 'Projects', name: 'Projects', icon: Shapes },
   { id: 'HR', name: 'HR', icon: Clock },
+  { id: 'Recruitment', name: 'Recruitment', icon: UserPlus },
 ];
