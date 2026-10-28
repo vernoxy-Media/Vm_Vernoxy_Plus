@@ -318,11 +318,11 @@ export const CandidateFormPage: React.FC = () => {
   const previewCandidateCode = nextCodeData?.candidate_code || 'CAN-XXXX';
 
   return (
-    <AdminLayout>
+    <AdminLayout title="Add New Candidate" fluid>
       <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-6 pb-20">
-        {/* Breadcrumb & Header */}
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
+        {/* Page Header with Left-aligned Back Button */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-xs font-medium text-slate-500 mb-1">
             <Link to="/admin/recruitment" className="hover:text-blue-600 transition">
               Recruitment
             </Link>
@@ -334,20 +334,21 @@ export const CandidateFormPage: React.FC = () => {
             <span className="text-slate-800 font-semibold">Add Candidate</span>
           </div>
 
-          <div className="flex items-center justify-between">
+          <div className="flex items-start gap-3.5">
+            <button
+              type="button"
+              onClick={() => navigate('/admin/recruitment')}
+              className="p-2 rounded-xl border border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition mt-0.5 shrink-0"
+              title="Back to Candidates"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
             <div>
-              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Add New Candidate</h1>
-              <p className="text-sm text-slate-500">
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900">Add New Candidate</h1>
+              <p className="text-xs text-slate-500 mt-0.5">
                 Enter candidate profile information, pipeline stage, and experience details
               </p>
             </div>
-            <Link
-              to="/admin/recruitment"
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span>Back</span>
-            </Link>
           </div>
         </div>
 

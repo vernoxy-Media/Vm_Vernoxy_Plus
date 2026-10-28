@@ -1368,6 +1368,8 @@ model candidates {
   decision_date                                        DateTime?      @db.Timestamptz(6)
   decision_by                                          Int?
   send_regret_email                                    Boolean?       @default(false)
+  on_hold_review_date                                  DateTime?      @db.Date
+  on_hold_notes                                        String?
   employees_candidates_converted_to_emp_idToemployees  employees?     @relation("candidates_converted_to_emp_idToemployees", fields: [converted_to_emp_id], references: [emp_id], onUpdate: NoAction)
   employees_candidates_created_byToemployees           employees?     @relation("candidates_created_byToemployees", fields: [created_by], references: [emp_id], onUpdate: NoAction)
   employees_candidates_decision_byToemployees          employees?     @relation("candidates_decision_byToemployees", fields: [decision_by], references: [emp_id], onUpdate: NoAction)
@@ -1387,6 +1389,9 @@ model candidates {
   @@index([role_id], map: "ix_candidates_role_id")
   @@index([source], map: "ix_candidates_source")
   @@index([stage], map: "ix_candidates_stage")
+  @@index([decision_date], map: "ix_candidates_decision_date")
+  @@index([final_dep_id], map: "ix_candidates_final_dep")
+  @@index([final_role_id], map: "ix_candidates_final_role")
 }
 
 enum channel_type {

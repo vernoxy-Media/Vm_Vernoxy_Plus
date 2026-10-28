@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Users,
   UserCheck,
   Search,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  CheckCircle2,
+  XCircle,
   AlertCircle,
   FileText,
   Plus,
@@ -15,9 +18,14 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { AdminLayout } from '../../../components/AdminLayout';
-import { useCandidatesQuery } from '../../../hooks/use-recruitment';
+import {
+  useCandidatesQuery,
+  useUpdateCandidateStageMutation,
+  CandidateItem,
+} from '../../../hooks/use-recruitment';
 import { useRoleOptionsQuery } from '../../../hooks/use-organization';
 import { useLookupsQuery } from '../../../hooks/use-master-data';
+import { CandidateDecisionModal } from './CandidateDecisionModal';
 
 const AVATAR_COLORS = [
   'bg-amber-600',
@@ -61,7 +69,7 @@ function getStageBadge(stage: string) {
     case 'rejected':
       return { label: 'Rejected', bg: 'bg-rose-50 text-rose-700 border-rose-200' };
     case 'on_hold':
-      return { label: 'On Hold', bg: 'bg-slate-100 text-slate-700 border-slate-200' };
+      return { label: 'On Hold', bg: 'bg-orange-50 text-orange-700 border-orange-200' };
     default:
       return { label: stage, bg: 'bg-slate-50 text-slate-700 border-slate-200' };
   }
@@ -79,6 +87,7 @@ function formatDate(dateString?: string | null): string {
 }
 
 export const CandidatesPage: React.FC = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<number | undefined>(undefined);
   const [sourceFilter, setSourceFilter] = useState<string>('');
@@ -86,9 +95,35 @@ export const CandidatesPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
 
+  // Stage Dropdown & Decision Modal state
+  const [activeStageMenuCandidateId, setActiveStageMenuCandidateId] = useState<number | null>(null);
+  const [decisionCandidate, setDecisionCandidate] = useState<CandidateItem | null>(null);
+  const [decisionInitialStage, setDecisionInitialStage] = useState<'selected' | 'on_hold' | 'rejected'>('selected');
+  const [isDecisionModalOpen, setIsDecisionModalOpen] = useState(false);
+
+  // Close floating stage menu on click outside
+  useEffect(() => {
+    const handleClickOutside = () => setActiveStageMenuCandidateId(null);
+    window.addEventListener('click', handleClickOutside);
+    return () => window.removeEventListener('click', handleClickOutside);
+  }, []);
+
   // Data fetching
   const { data: roles = [] } = useRoleOptionsQuery();
   const { data: sources = [] } = useLookupsQuery('candidate_source');
+  const updateStageMutation = useUpdateCandidateStageMutation();
+
+  const handleStageChange = (cand: CandidateItem, targetStage: string) => {
+    setActiveStageMenuCandidateId(null);
+    if (targetStage === 'selected' || targetStage === 'on_hold' || targetStage === 'rejected') {
+      setDecisionCandidate(cand);
+      setDecisionInitialStage(targetStage as any);
+      setIsDecisionModalOpen(true);
+      return;
+    }
+
+    updateStageMutation.mutate({ candidateId: cand.candidate_id, stage: targetStage });
+  };
   const {
     data: candidateData,
     isLoading,
@@ -383,7 +418,8 @@ export const CandidatesPage: React.FC = () => {
                     return (
                       <tr
                         key={cand.candidate_id}
-                        className="hover:bg-slate-50/70 transition-colors group"
+                        onClick={() => navigate(`/admin/recruitment/${cand.candidate_id}`)}
+                        className="hover:bg-slate-50/70 transition-colors group cursor-pointer"
                       >
                         {/* Candidate Identity */}
                         <td className="py-3.5 px-4">
@@ -473,13 +509,82 @@ export const CandidatesPage: React.FC = () => {
                           )}
                         </td>
 
-                        {/* Stage */}
-                        <td className="py-3.5 px-4">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${badge.bg}`}
+                        {/* Stage with Interactive Dropdown */}
+                        <td
+                          className="py-3.5 px-4 relative"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setActiveStageMenuCandidateId(
+                                activeStageMenuCandidateId === cand.candidate_id
+                                  ? null
+                                  : cand.candidate_id,
+                              )
+                            }
+                            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border transition cursor-pointer hover:shadow-xs ${badge.bg}`}
+                            title="Click to change candidate stage"
                           >
-                            {badge.label}
-                          </span>
+                            <span>{badge.label}</span>
+                            <ChevronDown className="w-3 h-3 opacity-70" />
+                          </button>
+
+                          {activeStageMenuCandidateId === cand.candidate_id && (
+                            <div
+                              className="absolute left-4 top-10 w-44 bg-white rounded-2xl shadow-xl border border-slate-200 py-1.5 z-30 animate-in fade-in zoom-in-95 duration-150"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                Pipeline Stages
+                              </div>
+                              {['new', 'screening', 'interviewing', 'onboarding'].map((st) => (
+                                <button
+                                  key={st}
+                                  type="button"
+                                  onClick={() => handleStageChange(cand, st)}
+                                  className={`w-full text-left px-3 py-1.5 text-xs font-medium hover:bg-slate-50 transition flex items-center justify-between capitalize ${
+                                    cand.stage === st
+                                      ? 'text-blue-600 font-semibold bg-blue-50/50'
+                                      : 'text-slate-700'
+                                  }`}
+                                >
+                                  <span>{st}</span>
+                                  {cand.stage === st && (
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
+                                  )}
+                                </button>
+                              ))}
+                              <div className="border-t border-slate-100 my-1"></div>
+                              <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                Decision (Form)
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleStageChange(cand, 'selected')}
+                                className="w-full text-left px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-50 transition flex items-center gap-2"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>Selected</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleStageChange(cand, 'on_hold')}
+                                className="w-full text-left px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-50 transition flex items-center gap-2"
+                              >
+                                <Clock className="w-3.5 h-3.5 text-amber-600" />
+                                <span>On Hold</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleStageChange(cand, 'rejected')}
+                                className="w-full text-left px-3 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-50 transition flex items-center gap-2"
+                              >
+                                <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                                <span>Rejected</span>
+                              </button>
+                            </div>
+                          )}
                         </td>
 
                         {/* Applied Date */}
@@ -545,6 +650,16 @@ export const CandidatesPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Decision Modal */}
+      <CandidateDecisionModal
+        isOpen={isDecisionModalOpen}
+        onClose={() => setIsDecisionModalOpen(false)}
+        candidate={decisionCandidate}
+        initialDecision={decisionInitialStage}
+        onSuccess={() => refetch()}
+      />
     </AdminLayout>
   );
 };
+

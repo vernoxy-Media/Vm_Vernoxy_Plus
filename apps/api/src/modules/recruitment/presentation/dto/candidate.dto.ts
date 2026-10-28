@@ -304,6 +304,60 @@ export class CandidateItemDto {
   @ApiProperty()
   stage!: string;
 
+  @ApiPropertyOptional()
+  rejection_reason?: string | null;
+
+  @ApiPropertyOptional()
+  rejection_notes?: string | null;
+
+  @ApiPropertyOptional()
+  final_role_id?: number | null;
+
+  @ApiPropertyOptional()
+  final_role_name?: string | null;
+
+  @ApiPropertyOptional()
+  final_dep_id?: number | null;
+
+  @ApiPropertyOptional()
+  final_department_name?: string | null;
+
+  @ApiPropertyOptional()
+  offered_ctc?: number | null;
+
+  @ApiPropertyOptional()
+  expected_joining_date?: string | null;
+
+  @ApiPropertyOptional()
+  reporting_manager_id?: number | null;
+
+  @ApiPropertyOptional()
+  reporting_manager_name?: string | null;
+
+  @ApiPropertyOptional()
+  employment_type?: string | null;
+
+  @ApiPropertyOptional()
+  decision_notes?: string | null;
+
+  @ApiPropertyOptional()
+  on_hold_review_date?: string | null;
+
+  @ApiPropertyOptional()
+  on_hold_notes?: string | null;
+
+  @ApiPropertyOptional()
+  send_regret_email?: boolean;
+
+  @ApiPropertyOptional()
+  decision_date?: string | null;
+
+  @ApiPropertyOptional()
+  decision_by?: number | null;
+
+  @ApiPropertyOptional()
+  decision_by_name?: string | null;
+
   @ApiProperty()
   created_at!: string;
 }
@@ -318,3 +372,80 @@ export class CandidateListResponseDto {
   @ApiProperty({ type: CandidateStatsDto })
   stats!: CandidateStatsDto;
 }
+
+export class UpdateCandidateStageDto {
+  @ApiProperty({ description: 'New candidate stage', example: 'interviewing' })
+  @IsString()
+  @IsNotEmpty()
+  stage!: string;
+}
+
+export class MarkCandidateDecisionDto {
+  @ApiProperty({ enum: ['selected', 'on_hold', 'rejected'], example: 'selected' })
+  @IsEnum(['selected', 'on_hold', 'rejected'], { message: 'Decision must be selected, on_hold, or rejected.' })
+  decision!: 'selected' | 'on_hold' | 'rejected';
+
+  @ApiPropertyOptional({ description: 'Final designation role ID for selected candidate' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  final_role_id?: number;
+
+  @ApiPropertyOptional({ description: 'Final department ID for selected candidate' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  final_dep_id?: number;
+
+  @ApiPropertyOptional({ description: 'Offered yearly CTC in rupees', example: 600000 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  offered_ctc?: number;
+
+  @ApiPropertyOptional({ description: 'Expected joining date (YYYY-MM-DD)' })
+  @IsOptional()
+  @IsString()
+  expected_joining_date?: string;
+
+  @ApiPropertyOptional({ description: 'Reporting Manager employee ID' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  reporting_manager_id?: number;
+
+  @ApiPropertyOptional({ description: 'Employment Type', example: 'Full-time' })
+  @IsOptional()
+  @IsString()
+  employment_type?: string;
+
+  @ApiPropertyOptional({ description: 'Decision notes / remarks' })
+  @IsOptional()
+  @IsString()
+  notes?: string;
+
+  @ApiPropertyOptional({ description: 'Review date for on hold candidate' })
+  @IsOptional()
+  @IsString()
+  on_hold_review_date?: string;
+
+  @ApiPropertyOptional({ description: 'On hold notes / remarks' })
+  @IsOptional()
+  @IsString()
+  on_hold_notes?: string;
+
+  @ApiPropertyOptional({ description: 'Rejection reason code from rejection_reason lookup' })
+  @IsOptional()
+  @IsString()
+  rejection_reason?: string;
+
+  @ApiPropertyOptional({ description: 'Rejection notes (required if reason is Other)' })
+  @IsOptional()
+  @IsString()
+  rejection_notes?: string;
+
+  @ApiPropertyOptional({ description: 'Whether to send regret email to candidate', default: false })
+  @IsOptional()
+  send_regret_email?: boolean;
+}
+

@@ -5,6 +5,7 @@ import {
   CandidateFilterParams,
   CandidateStats,
   CandidateDuplicateMatch,
+  MarkDecisionParams,
 } from '../../application/ports/candidate.repository.port';
 import { CandidateProps } from '../../domain/candidate.entity';
 
@@ -83,6 +84,10 @@ export class PrismaCandidateRepository implements ICandidateRepository {
     departments: { select: { name: true } },
     master_lookup: { select: { label: true } },
     employees_candidates_referred_by_emp_idToemployees: { select: { name: true } },
+    roles_candidates_final_role_idToroles: { select: { role_name: true } },
+    departments_candidates_final_dep_idTodepartments: { select: { name: true } },
+    employees_candidates_reporting_manager_idToemployees: { select: { name: true } },
+    employees_candidates_decision_byToemployees: { select: { name: true } },
   };
 
   async findById(candidateId: number): Promise<CandidateProps | null> {
@@ -215,6 +220,69 @@ export class PrismaCandidateRepository implements ICandidateRepository {
     return matches;
   }
 
+  async updateStage(candidateId: number, stage: string, updatedBy?: number): Promise<CandidateProps> {
+    const updated = await this.prisma.candidates.update({
+      where: { candidate_id: candidateId },
+      data: {
+        stage,
+        updated_at: new Date(),
+      },
+      include: this.candidateInclude,
+    });
+    return this.mapToDomain(updated);
+  }
+
+  async markDecision(
+    candidateId: number,
+    data: MarkDecisionParams,
+    decisionBy?: number,
+  ): Promise<CandidateProps> {
+    const updatePayload: any = {
+      stage: data.decision,
+      decision_date: new Date(),
+      decision_by: decisionBy || null,
+      updated_at: new Date(),
+    };
+
+    if (data.decision === 'selected') {
+      updatePayload.final_role_id = data.finalRoleId || null;
+      updatePayload.final_dep_id = data.finalDepId || null;
+      updatePayload.offered_ctc = data.offeredCtc ? Number(data.offeredCtc) : null;
+      updatePayload.expected_joining_date = data.expectedJoiningDate || null;
+      updatePayload.reporting_manager_id = data.reportingManagerId || null;
+      updatePayload.employment_type = data.employmentType || null;
+      updatePayload.decision_notes = data.notes || null;
+      // Reset rejection & on hold
+      updatePayload.on_hold_review_date = null;
+      updatePayload.on_hold_notes = null;
+      updatePayload.rejection_reason = null;
+      updatePayload.rejection_notes = null;
+      updatePayload.send_regret_email = false;
+    } else if (data.decision === 'on_hold') {
+      updatePayload.on_hold_review_date = data.onHoldReviewDate || null;
+      updatePayload.on_hold_notes = data.onHoldNotes || data.notes || null;
+      // Reset rejection
+      updatePayload.rejection_reason = null;
+      updatePayload.rejection_notes = null;
+      updatePayload.send_regret_email = false;
+    } else if (data.decision === 'rejected') {
+      updatePayload.rejection_reason = data.rejectionReason || null;
+      updatePayload.rejection_notes = data.rejectionNotes || data.notes || null;
+      updatePayload.send_regret_email = Boolean(data.sendRegretEmail);
+      // Reset on hold
+      updatePayload.on_hold_review_date = null;
+      updatePayload.on_hold_notes = null;
+    }
+
+    const updated = await this.prisma.candidates.update({
+      where: { candidate_id: candidateId },
+      data: updatePayload,
+      include: this.candidateInclude,
+    });
+
+    return this.mapToDomain(updated);
+  }
+
   private mapToDomain(row: any): CandidateProps {
     return {
       candidateId: row.candidate_id,
@@ -255,6 +323,22 @@ export class PrismaCandidateRepository implements ICandidateRepository {
       departmentName: row.departments?.name,
       genderLabel: row.master_lookup?.label,
       referredByName: row.employees_candidates_referred_by_emp_idToemployees?.name,
+      finalRoleId: row.final_role_id,
+      finalRoleName: row.roles_candidates_final_role_idToroles?.role_name,
+      finalDepId: row.final_dep_id,
+      finalDepartmentName: row.departments_candidates_final_dep_idTodepartments?.name,
+      offeredCtc: row.offered_ctc ? Number(row.offered_ctc) : null,
+      expectedJoiningDate: row.expected_joining_date,
+      reportingManagerId: row.reporting_manager_id,
+      reportingManagerName: row.employees_candidates_reporting_manager_idToemployees?.name,
+      employmentType: row.employment_type,
+      decisionNotes: row.decision_notes,
+      onHoldReviewDate: row.on_hold_review_date,
+      onHoldNotes: row.on_hold_notes,
+      sendRegretEmail: Boolean(row.send_regret_email),
+      decisionDate: row.decision_date,
+      decisionBy: row.decision_by,
+      decisionByName: row.employees_candidates_decision_byToemployees?.name,
       createdBy: row.created_by,
       createdAt: row.created_at,
       updatedAt: row.updated_at,

@@ -19,6 +19,7 @@ import { EmployeeDetailPage } from './pages/admin/EmployeeDetailPage';
 import { EmployeeFormPage } from './pages/admin/EmployeeFormPage';
 import { CandidatesPage } from './pages/admin/recruitment/CandidatesPage';
 import { CandidateFormPage } from './pages/admin/recruitment/CandidateFormPage';
+import { CandidateDetailPage } from './pages/admin/recruitment/CandidateDetailPage';
 import { CompanyRoute } from './features/companies/components/CompanyRoute';
 import { CompaniesListPage } from './features/companies/pages/CompaniesListPage';
 import { CompanyFormPage } from './features/companies/pages/CompanyFormPage';
@@ -214,6 +215,14 @@ export const App: React.FC = () => {
               element={
                 <AdminRoute>
                   <CandidateFormPage />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/recruitment/:id"
+              element={
+                <AdminRoute>
+                  <CandidateDetailPage />
                 </AdminRoute>
               }
             />

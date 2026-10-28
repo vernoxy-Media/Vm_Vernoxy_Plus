@@ -37,6 +37,23 @@ export interface CandidateProps {
   departmentName?: string;
   referredByName?: string;
   genderLabel?: string;
+  // Decision Fields
+  finalRoleId?: number | null;
+  finalRoleName?: string | null;
+  finalDepId?: number | null;
+  finalDepartmentName?: string | null;
+  offeredCtc?: number | null;
+  expectedJoiningDate?: Date | null;
+  reportingManagerId?: number | null;
+  reportingManagerName?: string | null;
+  employmentType?: string | null;
+  decisionNotes?: string | null;
+  onHoldReviewDate?: Date | null;
+  onHoldNotes?: string | null;
+  sendRegretEmail?: boolean;
+  decisionDate?: Date | null;
+  decisionBy?: number | null;
+  decisionByName?: string | null;
   createdBy?: number | null;
   createdAt?: Date;
   updatedAt?: Date;

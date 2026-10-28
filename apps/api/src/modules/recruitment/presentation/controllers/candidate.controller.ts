@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Param,
   Body,
   Query,
@@ -33,11 +34,16 @@ import { ListCandidatesUseCase } from '../../application/use-cases/list-candidat
 import { GetCandidateDetailUseCase } from '../../application/use-cases/get-candidate-detail.use-case';
 import { CheckDuplicateCandidateUseCase } from '../../application/use-cases/check-duplicate-candidate.use-case';
 import { GetNextCandidateCodeUseCase } from '../../application/use-cases/get-next-candidate-code.use-case';
+import { UpdateCandidateStageUseCase } from '../../application/use-cases/update-candidate-stage.use-case';
+import { MarkCandidateDecisionUseCase } from '../../application/use-cases/mark-candidate-decision.use-case';
 import {
   CreateCandidateDto,
   CheckDuplicateCandidateDto,
   CandidateListResponseDto,
   DuplicateMatchDto,
+  UpdateCandidateStageDto,
+  MarkCandidateDecisionDto,
+  CandidateItemDto,
 } from '../dto/candidate.dto';
 
 @ApiTags('Recruitment Candidates')
@@ -51,6 +57,8 @@ export class CandidateController {
     private readonly getCandidateDetailUseCase: GetCandidateDetailUseCase,
     private readonly checkDuplicateUseCase: CheckDuplicateCandidateUseCase,
     private readonly getNextCandidateCodeUseCase: GetNextCandidateCodeUseCase,
+    private readonly updateCandidateStageUseCase: UpdateCandidateStageUseCase,
+    private readonly markCandidateDecisionUseCase: MarkCandidateDecisionUseCase,
   ) {}
 
   @Get('next-code')
@@ -197,4 +205,29 @@ export class CandidateController {
   ): Promise<any> {
     return this.getCandidateDetailUseCase.execute(id);
   }
+
+  @Patch(':id/stage')
+  @ApiOperation({ summary: 'Update candidate pipeline stage directly' })
+  @ApiResponse({ status: 200, type: CandidateItemDto })
+  async updateStage(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateCandidateStageDto,
+    @Req() req: any,
+  ): Promise<any> {
+    const adminId = req.user?.emp_id || 1;
+    return this.updateCandidateStageUseCase.execute(id, dto.stage, adminId);
+  }
+
+  @Post(':id/decision')
+  @ApiOperation({ summary: 'Mark hiring decision (Selected, On Hold, Rejected)' })
+  @ApiResponse({ status: 200, type: CandidateItemDto })
+  async markDecision(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: MarkCandidateDecisionDto,
+    @Req() req: any,
+  ): Promise<any> {
+    const adminId = req.user?.emp_id || 1;
+    return this.markCandidateDecisionUseCase.execute(id, dto, adminId);
+  }
 }
+
