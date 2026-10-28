@@ -16,6 +16,7 @@ import {
   Loader2,
   Clock,
   Sparkles,
+  Lock,
 } from 'lucide-react';
 import { AdminLayout } from '../../../components/AdminLayout';
 import {
@@ -26,6 +27,7 @@ import {
 import { useRoleOptionsQuery } from '../../../hooks/use-organization';
 import { useLookupsQuery } from '../../../hooks/use-master-data';
 import { CandidateDecisionModal } from './CandidateDecisionModal';
+import { ConvertCandidateToEmployeeModal } from './ConvertCandidateToEmployeeModal';
 
 const AVATAR_COLORS = [
   'bg-amber-600',
@@ -100,6 +102,7 @@ export const CandidatesPage: React.FC = () => {
   const [decisionCandidate, setDecisionCandidate] = useState<CandidateItem | null>(null);
   const [decisionInitialStage, setDecisionInitialStage] = useState<'selected' | 'on_hold' | 'rejected'>('selected');
   const [isDecisionModalOpen, setIsDecisionModalOpen] = useState(false);
+  const [convertCandidate, setConvertCandidate] = useState<CandidateItem | null>(null);
 
   // Close floating stage menu on click outside
   useEffect(() => {
@@ -115,6 +118,19 @@ export const CandidatesPage: React.FC = () => {
 
   const handleStageChange = (cand: CandidateItem, targetStage: string) => {
     setActiveStageMenuCandidateId(null);
+
+    // Rule: Before Onboarding, candidate must be Selected first
+    if (targetStage === 'onboarding') {
+      if (cand.stage !== 'selected' && !cand.converted_to_emp_id) {
+        setDecisionCandidate(cand);
+        setDecisionInitialStage('selected');
+        setIsDecisionModalOpen(true);
+        return;
+      }
+      setConvertCandidate(cand);
+      return;
+    }
+
     if (targetStage === 'selected' || targetStage === 'on_hold' || targetStage === 'rejected') {
       setDecisionCandidate(cand);
       setDecisionInitialStage(targetStage as any);
@@ -441,6 +457,19 @@ export const CandidatesPage: React.FC = () => {
                                 <span className="font-mono text-xs font-medium text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">
                                   {cand.candidate_code}
                                 </span>
+                                {cand.converted_to_emp_id && (
+                                  <>
+                                    <span>•</span>
+                                    <Link
+                                      to={`/admin/employees/${cand.converted_to_emp_id}?tab=documents`}
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="font-mono text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.5 rounded hover:bg-emerald-100 transition inline-flex items-center gap-1"
+                                      title="View Converted Employee Record"
+                                    >
+                                      <span>{cand.converted_to_emp_code || `EMP-${cand.converted_to_emp_id}`}</span>
+                                    </Link>
+                                  </>
+                                )}
                                 {cand.current_location && (
                                   <>
                                     <span>•</span>
@@ -514,25 +543,36 @@ export const CandidatesPage: React.FC = () => {
                           className="py-3.5 px-4 relative"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setActiveStageMenuCandidateId(
-                                activeStageMenuCandidateId === cand.candidate_id
-                                  ? null
-                                  : cand.candidate_id,
-                              )
-                            }
-                            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border transition cursor-pointer hover:shadow-xs ${badge.bg}`}
-                            title="Click to change candidate stage"
-                          >
-                            <span>{badge.label}</span>
-                            <ChevronDown className="w-3 h-3 opacity-70" />
-                          </button>
+                          {cand.converted_to_emp_id ? (
+                            <Link
+                              to={`/admin/employees/${cand.converted_to_emp_id}?tab=documents`}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80 hover:bg-emerald-100 transition"
+                              title="Converted to Employee (Onboarding)"
+                            >
+                              <span>Onboarding</span>
+                              <Lock className="w-3 h-3 opacity-60" />
+                            </Link>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setActiveStageMenuCandidateId(
+                                  activeStageMenuCandidateId === cand.candidate_id
+                                    ? null
+                                    : cand.candidate_id,
+                                )
+                              }
+                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border transition cursor-pointer hover:shadow-xs ${badge.bg}`}
+                              title="Click to change candidate stage"
+                            >
+                              <span>{badge.label}</span>
+                              <ChevronDown className="w-3 h-3 opacity-70" />
+                            </button>
+                          )}
 
-                          {activeStageMenuCandidateId === cand.candidate_id && (
+                          {!cand.converted_to_emp_id && activeStageMenuCandidateId === cand.candidate_id && (
                             <div
-                              className="absolute left-4 top-10 w-44 bg-white rounded-2xl shadow-xl border border-slate-200 py-1.5 z-30 animate-in fade-in zoom-in-95 duration-150"
+                              className="absolute left-4 top-10 w-48 bg-white rounded-2xl shadow-xl border border-slate-200 py-1.5 z-30 animate-in fade-in zoom-in-95 duration-150"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
@@ -550,6 +590,9 @@ export const CandidatesPage: React.FC = () => {
                                   }`}
                                 >
                                   <span>{st}</span>
+                                  {st === 'onboarding' && cand.stage !== 'selected' && (
+                                    <span className="text-[10px] text-amber-600 font-normal ml-auto mr-1">(Select first)</span>
+                                  )}
                                   {cand.stage === st && (
                                     <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
                                   )}
@@ -583,6 +626,23 @@ export const CandidatesPage: React.FC = () => {
                                 <XCircle className="w-3.5 h-3.5 text-rose-600" />
                                 <span>Rejected</span>
                               </button>
+
+                              {cand.stage === 'selected' && (
+                                <>
+                                  <div className="border-t border-slate-100 my-1"></div>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setActiveStageMenuCandidateId(null);
+                                      setConvertCandidate(cand);
+                                    }}
+                                    className="w-full text-left px-3 py-1.5 text-xs font-semibold text-emerald-800 bg-emerald-50/80 hover:bg-emerald-100 transition flex items-center gap-2"
+                                  >
+                                    <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
+                                    <span>Convert to Employee</span>
+                                  </button>
+                                </>
+                              )}
                             </div>
                           )}
                         </td>
@@ -658,6 +718,17 @@ export const CandidatesPage: React.FC = () => {
         candidate={decisionCandidate}
         initialDecision={decisionInitialStage}
         onSuccess={() => refetch()}
+      />
+
+      {/* Convert Candidate to Employee Modal */}
+      <ConvertCandidateToEmployeeModal
+        isOpen={Boolean(convertCandidate)}
+        onClose={() => setConvertCandidate(null)}
+        candidate={convertCandidate}
+        onConverted={() => {
+          setConvertCandidate(null);
+          refetch();
+        }}
       />
     </AdminLayout>
   );

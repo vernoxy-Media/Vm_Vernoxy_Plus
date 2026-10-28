@@ -18,6 +18,8 @@ import { CalendarModule } from './modules/calendar/public-api';
 import { ProjectsModule } from './modules/projects/public-api';
 import { WebsocketsModule } from './modules/websockets/public-api';
 import { RecruitmentModule } from './modules/recruitment/recruitment.module';
+import { PayrollModule } from './modules/payroll/payroll.module';
+import { LeaveModule } from './modules/leave/leave.module';
 
 @Module({
 
@@ -42,6 +44,8 @@ import { RecruitmentModule } from './modules/recruitment/recruitment.module';
     ProjectsModule,
     WebsocketsModule,
     RecruitmentModule,
+    PayrollModule,
+    LeaveModule,
   ],
   controllers: [HealthController],
   providers: [

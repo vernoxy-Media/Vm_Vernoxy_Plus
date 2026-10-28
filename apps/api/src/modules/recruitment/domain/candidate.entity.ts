@@ -33,6 +33,7 @@ export interface CandidateProps {
   rejectionReason?: string | null;
   rejectionNotes?: string | null;
   convertedToEmpId?: number | null;
+  convertedToEmpCode?: string | null;
   roleName?: string;
   departmentName?: string;
   referredByName?: string;

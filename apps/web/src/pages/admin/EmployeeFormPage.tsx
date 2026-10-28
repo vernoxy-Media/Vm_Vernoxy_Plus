@@ -38,6 +38,9 @@ import {
   Search,
   Plus,
   X,
+  Clock,
+  Landmark,
+  ShieldCheck,
 } from 'lucide-react';
 
 function generateSecurePassword(length = 16): string {
@@ -97,6 +100,14 @@ const FIELD_TO_ID_MAP: Record<string, string> = {
   joining_date: 'employee-joining-date-input',
   salary: 'employee-salary-input',
   pf: 'employee-pf-input',
+  ot_eligible: 'employee-ot-eligible-toggle',
+  ot_rate: 'employee-ot-rate-input',
+  ot_multiplier: 'employee-ot-multiplier-input',
+  minimum_ot_per_day: 'employee-min-ot-input',
+  uan: 'employee-uan-input',
+  bank_name: 'employee-bank-name-input',
+  account_number: 'employee-account-number-input',
+  ifsc_code: 'employee-ifsc-code-input',
   exit_date: 'employee-exit-date-input',
   status: 'employee-status-select',
   password: 'employee-password-input',
@@ -182,6 +193,20 @@ export const EmployeeFormPage: React.FC = () => {
       joining_date: todayStr,
       salary: 0,
       pf: 0,
+      ot_eligible: false,
+      ot_rate_type: 'MULTIPLIER',
+      ot_rate: '' as any,
+      ot_multiplier: 1.5,
+      minimum_ot_per_day: 0,
+      ot_paid_as: 'SALARY',
+      pf_applicable: false,
+      uan: '',
+      employee_pf_pct: 12,
+      employer_pf_pct: 12,
+      payment_mode: 'BANK_TRANSFER',
+      bank_name: '',
+      account_number: '',
+      ifsc_code: '',
       exit_date: '',
       status: 'Active',
       password: '',
@@ -203,6 +228,9 @@ export const EmployeeFormPage: React.FC = () => {
   const watchedDepartmentIds = watch('department_ids') || [];
   const watchedPassword = watch('password');
   const watchedName = watch('name');
+  const watchedOtEligible = watch('ot_eligible');
+  const watchedOtRateType = watch('ot_rate_type');
+  const watchedPfApplicable = watch('pf_applicable');
 
   // Dependent roles query across all selected departments
   const { data: roleOptions, isLoading: isRolesLoading } = useRoleOptionsQuery(
@@ -242,6 +270,20 @@ export const EmployeeFormPage: React.FC = () => {
           : todayStr,
         salary: existingEmployee.salary ? Number(existingEmployee.salary) : 0,
         pf: existingEmployee.pf ? Number(existingEmployee.pf) : 0,
+        ot_eligible: Boolean(existingEmployee.ot_eligible ?? (existingEmployee as any).pay_policy?.ot_eligible),
+        ot_rate_type: (existingEmployee.ot_rate_type ?? (existingEmployee as any).pay_policy?.ot_rate_type) || 'MULTIPLIER',
+        ot_rate: (existingEmployee.ot_rate ?? (existingEmployee as any).pay_policy?.ot_rate) ?? ('' as any),
+        ot_multiplier: Number(existingEmployee.ot_multiplier ?? (existingEmployee as any).pay_policy?.ot_multiplier ?? 1.5),
+        minimum_ot_per_day: Number(existingEmployee.minimum_ot_per_day ?? (existingEmployee as any).pay_policy?.minimum_ot_per_day ?? 0),
+        ot_paid_as: (existingEmployee.ot_paid_as ?? (existingEmployee as any).pay_policy?.ot_paid_as) || 'SALARY',
+        pf_applicable: Boolean(existingEmployee.pf_applicable ?? (existingEmployee as any).pay_policy?.pf_applicable ?? (Number(existingEmployee.pf) > 0)),
+        uan: (existingEmployee.uan ?? (existingEmployee as any).pay_policy?.uan) || '',
+        employee_pf_pct: Number(existingEmployee.employee_pf_pct ?? (existingEmployee as any).pay_policy?.employee_pf_pct ?? 12),
+        employer_pf_pct: Number(existingEmployee.employer_pf_pct ?? (existingEmployee as any).pay_policy?.employer_pf_pct ?? 12),
+        payment_mode: (existingEmployee.payment_mode ?? (existingEmployee as any).pay_policy?.payment_mode) || 'BANK_TRANSFER',
+        bank_name: (existingEmployee.bank_name ?? (existingEmployee as any).pay_policy?.bank_name) || '',
+        account_number: (existingEmployee.account_number ?? (existingEmployee as any).pay_policy?.account_number) || '',
+        ifsc_code: (existingEmployee.ifsc_code ?? (existingEmployee as any).pay_policy?.ifsc_code) || '',
         exit_date: existingEmployee.exit_date
           ? new Date(existingEmployee.exit_date).toISOString().split('T')[0]
           : '',
@@ -362,8 +404,8 @@ export const EmployeeFormPage: React.FC = () => {
 
     setGlobalError(
       errorData?.detail ||
-        errorData?.message ||
-        'An unexpected server error occurred. Please try again.',
+      errorData?.message ||
+      'An unexpected server error occurred. Please try again.',
     );
   };
 
@@ -408,7 +450,21 @@ export const EmployeeFormPage: React.FC = () => {
           joining_date: values.joining_date,
           salary: Number(values.salary || 0),
           pf: Number(values.pf || 0),
-        });
+          ot_eligible: Boolean(values.ot_eligible),
+          ot_rate_type: values.ot_eligible ? (values.ot_rate_type || 'MULTIPLIER') : null,
+          ot_rate: values.ot_eligible && values.ot_rate !== undefined && values.ot_rate !== null && values.ot_rate !== ('' as any) ? Number(values.ot_rate) : null,
+          ot_multiplier: values.ot_eligible && values.ot_multiplier !== undefined && values.ot_multiplier !== null && values.ot_multiplier !== ('' as any) ? Number(values.ot_multiplier) : null,
+          minimum_ot_per_day: Number(values.minimum_ot_per_day || 0),
+          ot_paid_as: values.ot_paid_as || 'SALARY',
+          pf_applicable: Boolean(values.pf_applicable),
+          uan: values.uan?.trim() || null,
+          employee_pf_pct: Number(values.employee_pf_pct || 12),
+          employer_pf_pct: Number(values.employer_pf_pct || 12),
+          payment_mode: values.payment_mode || null,
+          bank_name: values.bank_name?.trim() || null,
+          account_number: values.account_number?.trim() || null,
+          ifsc_code: values.ifsc_code?.trim() || null,
+        } as any);
 
         let photoFailed = false;
         if (selectedPhotoFile && createdEmp.emp_id) {
@@ -426,7 +482,7 @@ export const EmployeeFormPage: React.FC = () => {
         if (createdEmp?.emp_id) {
           try {
             await assignShiftMutation.mutateAsync({ empId: createdEmp.emp_id, shiftId: targetShiftId });
-          } catch {}
+          } catch { }
         }
 
         setCreatedResult({
@@ -464,15 +520,29 @@ export const EmployeeFormPage: React.FC = () => {
             joining_date: values.joining_date,
             salary: Number(values.salary || 0),
             pf: Number(values.pf || 0),
+            ot_eligible: Boolean(values.ot_eligible),
+            ot_rate_type: values.ot_eligible ? (values.ot_rate_type || 'MULTIPLIER') : null,
+            ot_rate: values.ot_eligible && values.ot_rate !== undefined && values.ot_rate !== null && values.ot_rate !== ('' as any) ? Number(values.ot_rate) : null,
+            ot_multiplier: values.ot_eligible && values.ot_multiplier !== undefined && values.ot_multiplier !== null && values.ot_multiplier !== ('' as any) ? Number(values.ot_multiplier) : null,
+            minimum_ot_per_day: Number(values.minimum_ot_per_day || 0),
+            ot_paid_as: values.ot_paid_as || 'SALARY',
+            pf_applicable: Boolean(values.pf_applicable),
+            uan: values.uan?.trim() || null,
+            employee_pf_pct: Number(values.employee_pf_pct || 12),
+            employer_pf_pct: Number(values.employer_pf_pct || 12),
+            payment_mode: values.payment_mode || null,
+            bank_name: values.bank_name?.trim() || null,
+            account_number: values.account_number?.trim() || null,
+            ifsc_code: values.ifsc_code?.trim() || null,
             exit_date: values.exit_date || null,
             status: values.status,
-          },
+          } as any,
         });
 
         const targetShiftId = selectedShiftId === 'default' ? null : parseInt(selectedShiftId, 10);
         try {
           await assignShiftMutation.mutateAsync({ empId: employeeId, shiftId: targetShiftId });
-        } catch {}
+        } catch { }
 
         navigate(`/admin/employees/${employeeId}`);
       } catch (err: any) {
@@ -750,15 +820,15 @@ export const EmployeeFormPage: React.FC = () => {
                       <option value="">Select Blood Group</option>
                       {bloodGroupLookups && bloodGroupLookups.length > 0
                         ? bloodGroupLookups.map((bg) => (
-                            <option key={bg.id} value={bg.label}>
-                              {bg.label}
-                            </option>
-                          ))
+                          <option key={bg.id} value={bg.label}>
+                            {bg.label}
+                          </option>
+                        ))
                         : fallbackBloodGroups.map((bg) => (
-                            <option key={bg} value={bg}>
-                              {bg}
-                            </option>
-                          ))}
+                          <option key={bg} value={bg}>
+                            {bg}
+                          </option>
+                        ))}
                     </select>
                     <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   </div>
@@ -927,29 +997,29 @@ export const EmployeeFormPage: React.FC = () => {
                         {watchedDepartmentIds.length === 0
                           ? 'Select department(s) first'
                           : isRolesLoading
-                          ? 'Loading roles...'
-                          : roleOptions?.length === 0
-                          ? 'No roles available in selected departments'
-                          : 'Select Designation'}
+                            ? 'Loading roles...'
+                            : roleOptions?.length === 0
+                              ? 'No roles available in selected departments'
+                              : 'Select Designation'}
                       </option>
                       {roleOptions && roleOptions.length > 0 && (
                         watchedDepartmentIds.length > 1
                           ? Array.from(new Set(roleOptions.map((r) => r.dep_name || 'General'))).map((deptName) => (
-                              <optgroup key={deptName} label={deptName}>
-                                {roleOptions
-                                  .filter((r) => (r.dep_name || 'General') === deptName)
-                                  .map((r) => (
-                                    <option key={r.role_id} value={r.role_id}>
-                                      {r.role_name}
-                                    </option>
-                                  ))}
-                              </optgroup>
-                            ))
+                            <optgroup key={deptName} label={deptName}>
+                              {roleOptions
+                                .filter((r) => (r.dep_name || 'General') === deptName)
+                                .map((r) => (
+                                  <option key={r.role_id} value={r.role_id}>
+                                    {r.role_name}
+                                  </option>
+                                ))}
+                            </optgroup>
+                          ))
                           : roleOptions.map((r) => (
-                              <option key={r.role_id} value={r.role_id}>
-                                {r.role_name}
-                              </option>
-                            ))
+                            <option key={r.role_id} value={r.role_id}>
+                              {r.role_name}
+                            </option>
+                          ))
                       )}
                     </select>
                     <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -1120,7 +1190,307 @@ export const EmployeeFormPage: React.FC = () => {
               </div>
             </div>
 
-            {/* SECTION 3: Account Password (Create flow only) */}
+            {/* SECTION 3: Overtime (OT), Statutory & Pay Policies */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-4">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">
+                  Overtime (OT) & Pay Policies
+                </span>
+                <div className="h-px bg-slate-200 flex-1" />
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Card 1: Overtime Configuration */}
+                <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm space-y-5">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2 rounded-xl bg-amber-50 text-amber-600">
+                        <Clock className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-800">Overtime (OT) Policy</h4>
+                        <p className="text-2xs text-slate-400">Extra hours calculation & payout rule</p>
+                      </div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        id="employee-ot-eligible-toggle"
+                        {...register('ot_eligible')}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-amber-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+                      <span className="ml-2.5 text-xs font-semibold text-slate-700">
+                        {watchedOtEligible ? 'Eligible' : 'Not Eligible'}
+                      </span>
+                    </label>
+                  </div>
+
+                  {watchedOtEligible ? (
+                    <div className="space-y-4 pt-1 animate-fadeIn">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="block text-xs font-semibold text-slate-700">
+                            Calculation Mode
+                          </label>
+                          <div className="relative">
+                            <select
+                              id="employee-ot-rate-type-select"
+                              {...register('ot_rate_type')}
+                              className="w-full appearance-none px-3 py-2 pr-8 rounded-xl border border-slate-200 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium"
+                            >
+                              <option value="MULTIPLIER">Multiplier (e.g. 1.5x Base)</option>
+                              <option value="FIXED">Fixed Hourly Rate (₹)</option>
+                            </select>
+                            <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                          </div>
+                        </div>
+
+                        {watchedOtRateType === 'FIXED' ? (
+                          <div className="space-y-1.5">
+                            <label htmlFor="employee-ot-rate-input" className="block text-xs font-semibold text-slate-700">
+                              Fixed Rate (₹/hr)
+                            </label>
+                            <input
+                              type="number"
+                              min={0}
+                              step={10}
+                              id="employee-ot-rate-input"
+                              placeholder="e.g. 150"
+                              {...register('ot_rate')}
+                              className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono font-medium focus:outline-none focus:ring-2 focus:ring-amber-500"
+                            />
+                            {errors.ot_rate && (
+                              <p className="text-2xs text-red-600">{errors.ot_rate.message}</p>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="space-y-1.5">
+                            <label htmlFor="employee-ot-multiplier-input" className="block text-xs font-semibold text-slate-700">
+                              OT Multiplier (x Base)
+                            </label>
+                            <input
+                              type="number"
+                              min={1}
+                              max={5}
+                              step={0.1}
+                              id="employee-ot-multiplier-input"
+                              placeholder="1.5"
+                              {...register('ot_multiplier')}
+                              className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono font-medium focus:outline-none focus:ring-2 focus:ring-amber-500"
+                            />
+                            {errors.ot_multiplier && (
+                              <p className="text-2xs text-red-600">{errors.ot_multiplier.message}</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label htmlFor="employee-min-ot-input" className="block text-xs font-semibold text-slate-700">
+                            Min OT Per Day (Hours)
+                          </label>
+                          <input
+                            type="number"
+                            min={0}
+                            step={0.5}
+                            id="employee-min-ot-input"
+                            placeholder="0"
+                            {...register('minimum_ot_per_day')}
+                            className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono font-medium focus:outline-none focus:ring-2 focus:ring-amber-500"
+                          />
+                          <p className="text-2xs text-slate-400">Threshold before OT accumulates</p>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="block text-xs font-semibold text-slate-700">
+                            Disbursement Mode
+                          </label>
+                          <div className="relative">
+                            <select
+                              id="employee-ot-paid-as-select"
+                              {...register('ot_paid_as')}
+                              className="w-full appearance-none px-3 py-2 pr-8 rounded-xl border border-slate-200 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium"
+                            >
+                              <option value="SALARY">Direct Payroll Payout (₹)</option>
+                              <option value="COMP_OFF">Compensatory Off (Leave)</option>
+                            </select>
+                            <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-3.5 rounded-xl bg-slate-50 border border-dashed border-slate-200 text-center">
+                      <p className="text-xs text-slate-500">
+                        Overtime is disabled for this employee. No OT pay will be computed during payroll cycles.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Card 2: Statutory Compliance (PF) */}
+                <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm space-y-5">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600">
+                        <ShieldCheck className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-800">PF & Statutory Compliance</h4>
+                        <p className="text-2xs text-slate-400">Provident fund registration & rates</p>
+                      </div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        id="employee-pf-applicable-toggle"
+                        {...register('pf_applicable')}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-emerald-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                      <span className="ml-2.5 text-xs font-semibold text-slate-700">
+                        {watchedPfApplicable ? 'Applicable' : 'Exempt'}
+                      </span>
+                    </label>
+                  </div>
+
+                  {watchedPfApplicable ? (
+                    <div className="space-y-4 pt-1 animate-fadeIn">
+                      <div className="space-y-1.5">
+                        <label htmlFor="employee-uan-input" className="block text-xs font-semibold text-slate-700">
+                          Universal Account Number (UAN)
+                        </label>
+                        <input
+                          type="text"
+                          id="employee-uan-input"
+                          maxLength={12}
+                          placeholder="e.g. 101234567890"
+                          {...register('uan')}
+                          className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        />
+                        <p className="text-2xs text-slate-400">12-digit EPFO member identification number</p>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label htmlFor="employee-pf-employee-pct" className="block text-xs font-semibold text-slate-700">
+                            Employee PF Share (%)
+                          </label>
+                          <input
+                            type="number"
+                            min={0}
+                            max={100}
+                            step={0.5}
+                            id="employee-pf-employee-pct"
+                            placeholder="12"
+                            {...register('employee_pf_pct')}
+                            className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label htmlFor="employee-pf-employer-pct" className="block text-xs font-semibold text-slate-700">
+                            Employer PF Share (%)
+                          </label>
+                          <input
+                            type="number"
+                            min={0}
+                            max={100}
+                            step={0.5}
+                            id="employee-pf-employer-pct"
+                            placeholder="12"
+                            {...register('employer_pf_pct')}
+                            className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-3.5 rounded-xl bg-slate-50 border border-dashed border-slate-200 text-center">
+                      <p className="text-xs text-slate-500">
+                        Employee is exempt from statutory PF deductions.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Card 3: Banking & Disbursement Details */}
+                <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm space-y-4 lg:col-span-2">
+                  <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
+                    <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
+                      <Landmark className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-800">Salary Disbursement & Banking</h4>
+                      <p className="text-2xs text-slate-400">Account information for automated payroll bank transfer</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-semibold text-slate-700">
+                        Disbursement Mode
+                      </label>
+                      <div className="relative">
+                        <select
+                          id="employee-payment-mode-select"
+                          {...register('payment_mode')}
+                          className="w-full appearance-none px-3.5 py-2.5 pr-8 rounded-xl border border-slate-200 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 font-medium"
+                        >
+                          <option value="BANK_TRANSFER">Bank Transfer</option>
+                          <option value="CHEQUE">Cheque</option>
+                          <option value="CASH">Cash</option>
+                        </select>
+                        <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label htmlFor="employee-bank-name-input" className="block text-xs font-semibold text-slate-700">
+                        Bank Name
+                      </label>
+                      <input
+                        type="text"
+                        id="employee-bank-name-input"
+                        placeholder="e.g. HDFC Bank, ICICI"
+                        {...register('bank_name')}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-blue-600 font-medium"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label htmlFor="employee-account-number-input" className="block text-xs font-semibold text-slate-700">
+                        Account Number
+                      </label>
+                      <input
+                        type="text"
+                        id="employee-account-number-input"
+                        placeholder="e.g. 5010023456789"
+                        {...register('account_number')}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-mono font-medium focus:outline-none focus:ring-2 focus:ring-blue-600"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label htmlFor="employee-ifsc-code-input" className="block text-xs font-semibold text-slate-700">
+                        IFSC Code
+                      </label>
+                      <input
+                        type="text"
+                        id="employee-ifsc-code-input"
+                        placeholder="e.g. HDFC0000123"
+                        {...register('ifsc_code')}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-mono uppercase font-medium focus:outline-none focus:ring-2 focus:ring-blue-600"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* SECTION 4: Account Password (Create flow only) */}
             {!isEdit && (
               <div className="space-y-6">
                 <div className="flex items-center gap-4">

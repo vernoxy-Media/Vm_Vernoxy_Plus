@@ -5,16 +5,20 @@ import {
   DocumentTemplateItemDto,
   GenerateDocumentDraftDto,
   FinalizeDocumentDraftDto,
+  EmployeeActivationStatusDto,
+  ActivateEmployeeResponseDto,
 } from '../../presentation/dto/employee-document.dto';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as argon2 from 'argon2';
 
 interface PredefinedDoc {
   type: string;
   category: 'given_to_employee' | 'taken_from_employee' | 'agreement';
   title: string;
   lockWhenActive?: boolean;
+  isRequiredForActivation?: boolean;
 }
 
 const PREDEFINED_DOCS: PredefinedDoc[] = [
@@ -25,23 +29,50 @@ const PREDEFINED_DOCS: PredefinedDoc[] = [
   { type: 'salary_slip', category: 'given_to_employee', title: 'Salary Slip', lockWhenActive: true },
   { type: 'relieving_letter', category: 'given_to_employee', title: 'Relieving Letter', lockWhenActive: true },
 
-  // Taken from employee
-  { type: 'aadhaar_card', category: 'taken_from_employee', title: 'Aadhaar Card' },
-  { type: 'pan_card', category: 'taken_from_employee', title: 'PAN Card' },
-  { type: 'bank_details', category: 'taken_from_employee', title: 'Bank Details (Passbook or cancelled cheque)' },
-  { type: 'marksheet_10th', category: 'taken_from_employee', title: '10th Standard Marksheet' },
-  { type: 'marksheet_12th', category: 'taken_from_employee', title: '12th Standard Marksheet' },
-  { type: 'marksheet_ug', category: 'taken_from_employee', title: 'UG Marksheet' },
-  { type: 'marksheet_pg', category: 'taken_from_employee', title: 'PG Marksheet' },
-  { type: 'passport_photos', category: 'taken_from_employee', title: '2 Passport Size Photos' },
-  { type: 'experience_letter_old', category: 'taken_from_employee', title: 'Experience Letter (old company)' },
+  // Taken from employee (BFD Screen 8 Part 2 rules)
+  { type: 'marksheet_10th', category: 'taken_from_employee', title: '10th Standard Marksheet', isRequiredForActivation: true },
+  { type: 'marksheet_12th', category: 'taken_from_employee', title: '12th Standard Marksheet (or Diploma)', isRequiredForActivation: true },
+  { type: 'marksheet_ug', category: 'taken_from_employee', title: 'Graduation Degree / Marksheet', isRequiredForActivation: true },
+  { type: 'marksheet_pg', category: 'taken_from_employee', title: 'Post-Graduation Marksheet' },
+  { type: 'pan_card', category: 'taken_from_employee', title: 'PAN Card', isRequiredForActivation: true },
+  { type: 'aadhaar_card', category: 'taken_from_employee', title: 'Aadhaar Card', isRequiredForActivation: true },
+  { type: 'passport_photos', category: 'taken_from_employee', title: 'Passport Size Photo', isRequiredForActivation: true },
+  { type: 'bank_details', category: 'taken_from_employee', title: 'Bank Details (Passbook or cancelled cheque)', isRequiredForActivation: true },
+  { type: 'experience_letter_old', category: 'taken_from_employee', title: 'Previous Experience / Relieving Letter' },
+  { type: 'salary_slip_old', category: 'taken_from_employee', title: 'Last 3 Salary Slips' },
   { type: 'offer_letter_old', category: 'taken_from_employee', title: 'Offer Letter (old company)' },
   { type: 'joining_letter_old', category: 'taken_from_employee', title: 'Joining Letter (old company)' },
-  { type: 'salary_slip_old', category: 'taken_from_employee', title: 'Salary Slip (old company)' },
 
   // Agreement
-  { type: 'nda_signed', category: 'agreement', title: 'NDA signed' },
+  { type: 'nda_signed', category: 'agreement', title: 'NDA signed', isRequiredForActivation: true },
 ];
+
+const argon2Options: argon2.HashOptions = {
+  type: argon2.argon2id,
+  memoryCost: 65536,
+  timeCost: 3,
+  parallelism: 1,
+};
+
+function generateTemporaryPassword(): string {
+  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const lower = 'abcdefghijkmnpqrstuvwxyz';
+  const digits = '23456789';
+  const symbols = '!@#$%^&*';
+  const all = upper + lower + digits + symbols;
+
+  let pwd = '';
+  pwd += upper[crypto.randomInt(0, upper.length)];
+  pwd += lower[crypto.randomInt(0, lower.length)];
+  pwd += digits[crypto.randomInt(0, digits.length)];
+  pwd += symbols[crypto.randomInt(0, symbols.length)];
+
+  for (let i = 0; i < 8; i++) {
+    pwd += all[crypto.randomInt(0, all.length)];
+  }
+
+  return pwd.split('').sort(() => 0.5 - Math.random()).join('');
+}
 
 @Injectable()
 export class EmployeeDocumentService {
@@ -73,9 +104,10 @@ export class EmployeeDocumentService {
     for (const def of PREDEFINED_DOCS) {
       if (!existingMap.has(def.type)) {
         const defaultStatus = def.lockWhenActive && isEmployeeActive ? 'locked' : 'not_ticked';
+        const isReq = def.isRequiredForActivation ?? false;
         const inserted = await this.prisma.$queryRaw<any[]>`
-          INSERT INTO employee_documents (emp_id, category, document_type, title, is_ticked, status)
-          VALUES (${empId}, ${def.category}, ${def.type}, ${def.title}, FALSE, ${defaultStatus})
+          INSERT INTO employee_documents (emp_id, category, document_type, title, is_ticked, status, is_required_for_activation)
+          VALUES (${empId}, ${def.category}, ${def.type}, ${def.title}, FALSE, ${defaultStatus}, ${isReq})
           ON CONFLICT (emp_id, document_type) DO UPDATE SET updated_at = NOW()
           RETURNING *
         `;
@@ -108,6 +140,7 @@ export class EmployeeDocumentService {
           title: doc.title,
           is_ticked: Boolean(doc.is_ticked),
           status,
+          is_required_for_activation: Boolean(doc.is_required_for_activation ?? def.isRequiredForActivation),
           file_url: doc.file_url,
           file_name: doc.file_name,
           file_size: doc.file_size ? Number(doc.file_size) : null,
@@ -465,5 +498,177 @@ export class EmployeeDocumentService {
     }
 
     throw new NotFoundException(`Document file content not available`);
+  }
+
+  async getActivationEligibility(empId: number): Promise<EmployeeActivationStatusDto> {
+    const empResult = await this.prisma.$queryRaw<Array<{ emp_id: number; status: string }>>`
+      SELECT emp_id, status FROM employees WHERE emp_id = ${empId} AND deleted_at IS NULL
+    `;
+    if (!empResult || empResult.length === 0) {
+      throw new NotFoundException(`Employee with ID ${empId} not found`);
+    }
+    const emp = empResult[0];
+    if (emp.status === 'Active') {
+      return {
+        can_activate: false,
+        is_already_active: true,
+        missing_documents: [],
+        total_required: 0,
+        completed_required: 0,
+      };
+    }
+
+    const docs = await this.getEmployeeDocuments(empId);
+    // Find all required documents (excluding ones specifically unticked by admin as not applicable)
+    const requiredDocs = docs.filter(
+      (d) => d.is_required_for_activation && (d.is_ticked || d.status === 'uploaded' || d.status === 'file_pending'),
+    );
+    const missingDocs: string[] = [];
+
+    for (const doc of requiredDocs) {
+      if (doc.status !== 'uploaded' && doc.status !== 'final') {
+        missingDocs.push(doc.title);
+      }
+    }
+
+    const totalRequired = requiredDocs.length;
+    const completedRequired = totalRequired - missingDocs.length;
+    const canActivate = missingDocs.length === 0 && totalRequired > 0;
+
+    return {
+      can_activate: canActivate,
+      is_already_active: false,
+      missing_documents: missingDocs,
+      total_required: totalRequired,
+      completed_required: completedRequired,
+    };
+  }
+
+  async activateEmployee(empId: number, adminId: number): Promise<ActivateEmployeeResponseDto> {
+    const eligibility = await this.getActivationEligibility(empId);
+    if (eligibility.is_already_active) {
+      throw new BadRequestException('Employee account is already active.');
+    }
+    if (!eligibility.can_activate) {
+      throw new BadRequestException(
+        `Cannot activate account. Mandatory documents are missing: ${eligibility.missing_documents.join(', ')}`,
+      );
+    }
+
+    const empResult = await this.prisma.$queryRaw<any[]>`
+      SELECT emp_id, name, email, office_email, personal_email, status, joining_date, dep_id, role_id
+      FROM employees WHERE emp_id = ${empId} AND deleted_at IS NULL
+    `;
+    if (!empResult || empResult.length === 0) {
+      throw new NotFoundException(`Employee with ID ${empId} not found`);
+    }
+    const emp = empResult[0];
+
+    const tempPassword = generateTemporaryPassword();
+    const passwordHash = await argon2.hash(tempPassword, argon2Options);
+    const officeEmail = (emp.office_email || emp.email || '').trim().toLowerCase();
+
+    // 1. Update employee status to Active
+    await this.prisma.$queryRaw`
+      UPDATE employees
+      SET status = 'Active', updated_at = NOW(), updated_by = ${adminId}
+      WHERE emp_id = ${empId}
+    `;
+
+    // 2. Upsert credentials with must_change_password = true
+    await this.prisma.$queryRaw`
+      INSERT INTO employee_credentials (emp_id, password_hash, must_change_password, created_by, updated_at)
+      VALUES (${empId}, ${passwordHash}, TRUE, ${adminId}, NOW())
+      ON CONFLICT (emp_id) DO UPDATE SET
+        password_hash = EXCLUDED.password_hash,
+        must_change_password = TRUE,
+        failed_attempts = 0,
+        locked_until = NULL,
+        updated_at = NOW()
+    `;
+
+    // 3. Log into employee history
+    await this.prisma.$queryRaw`
+      INSERT INTO employee_history (emp_id, event_type, title, department_ids, role_id, effective_date, reason, notes, created_by)
+      VALUES (${empId}, 'ACTIVATED', 'Account Activated', ARRAY[${emp.dep_id}]::integer[], ${emp.role_id || null}, NOW(), 'Onboarding completed & credentials provisioned', 'System generated temporary login credentials', ${adminId})
+    `;
+
+    // 4. Log auth event
+    await this.prisma.$queryRaw`
+      INSERT INTO auth_events (emp_id, actor_emp_id, event_type, details)
+      VALUES (${empId}, ${adminId}, 'credentials_created', '{"source":"activation","must_change_password":true}'::jsonb)
+    `;
+
+    // 5. Update linked candidate stage to 'joined' (Part 7: Candidate stage Onboarding -> Joined)
+    await this.prisma.$executeRaw`
+      UPDATE candidates
+      SET stage = 'joined', updated_at = NOW()
+      WHERE converted_to_emp_id = ${empId}
+    `;
+
+    // 6. Welcome message for Reporting Manager (Part 7: Reporting Manager gets "X joins your team today")
+    if (emp.reporting_manager) {
+      await this.prisma.$executeRaw`
+        INSERT INTO notifications (recipient_id, kind, title, body, entity_type, entity_id, created_by)
+        VALUES (${emp.reporting_manager}, 'welcome_team_member', 'New Team Member', ${`${emp.name} joins your team today.`}, 'employees', ${empId}, ${adminId})
+      `.catch(() => {});
+    }
+
+    return {
+      success: true,
+      message: 'Employee account activated successfully. Login credentials generated.',
+      emp_id: empId,
+      office_email: officeEmail,
+      temporary_password: tempPassword,
+      must_change_password: true,
+    };
+  }
+
+  async resendLogin(empId: number, adminId: number): Promise<ActivateEmployeeResponseDto> {
+    const empResult = await this.prisma.$queryRaw<any[]>`
+      SELECT emp_id, name, email, office_email, personal_email, status, dep_id, role_id
+      FROM employees WHERE emp_id = ${empId} AND deleted_at IS NULL
+    `;
+    if (!empResult || empResult.length === 0) {
+      throw new NotFoundException(`Employee with ID ${empId} not found`);
+    }
+    const emp = empResult[0];
+
+    const tempPassword = generateTemporaryPassword();
+    const passwordHash = await argon2.hash(tempPassword, argon2Options);
+    const officeEmail = (emp.office_email || emp.email || '').trim().toLowerCase();
+
+    // Upsert credentials with must_change_password = true and fresh timestamp
+    await this.prisma.$executeRaw`
+      INSERT INTO employee_credentials (emp_id, password_hash, must_change_password, created_by, updated_at)
+      VALUES (${empId}, ${passwordHash}, TRUE, ${adminId}, NOW())
+      ON CONFLICT (emp_id) DO UPDATE SET
+        password_hash = EXCLUDED.password_hash,
+        must_change_password = TRUE,
+        failed_attempts = 0,
+        locked_until = NULL,
+        updated_at = NOW()
+    `;
+
+    // Log into employee history
+    await this.prisma.$executeRaw`
+      INSERT INTO employee_history (emp_id, event_type, title, department_ids, role_id, effective_date, reason, notes, created_by)
+      VALUES (${empId}, 'CREDENTIALS_RESET', 'Login Resent', ARRAY[${emp.dep_id}]::integer[], ${emp.role_id || null}, NOW(), 'Admin resent login credentials', 'System generated fresh temporary password', ${adminId})
+    `;
+
+    // Log auth event
+    await this.prisma.$executeRaw`
+      INSERT INTO auth_events (emp_id, actor_emp_id, event_type, details)
+      VALUES (${empId}, ${adminId}, 'credentials_resent', '{"source":"resend_login","must_change_password":true}'::jsonb)
+    `;
+
+    return {
+      success: true,
+      message: 'New temporary login credentials generated successfully.',
+      emp_id: empId,
+      office_email: officeEmail,
+      temporary_password: tempPassword,
+      must_change_password: true,
+    };
   }
 }

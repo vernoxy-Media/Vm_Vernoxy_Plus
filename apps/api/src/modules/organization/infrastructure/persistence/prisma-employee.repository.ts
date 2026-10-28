@@ -52,6 +52,7 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       master_lookup_employees_employment_type_idTomaster_lookup: {
         select: { lookup_id: true, code: true, label: true },
       },
+      employee_pay_policies_employee_pay_policies_emp_idToemployees: true,
     };
   }
 
@@ -139,6 +140,41 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       deactivation_notes: record.deactivation_notes ?? null,
       deactivated_at: record.deactivated_at ?? null,
       deactivated_by: record.deactivated_by ?? null,
+      pay_policy: (() => {
+        const pp = record.employee_pay_policies_employee_pay_policies_emp_idToemployees;
+        if (!pp) return null;
+        return {
+          salary_effective_from: pp.salary_effective_from ?? null,
+          pf_applicable: Boolean(pp.pf_applicable),
+          uan: pp.uan ?? null,
+          employee_pf_pct: Number(pp.employee_pf_pct ?? 12),
+          employer_pf_pct: Number(pp.employer_pf_pct ?? 12),
+          ot_eligible: Boolean(pp.ot_eligible),
+          ot_rate_type: pp.ot_rate_type ?? null,
+          ot_rate: pp.ot_rate !== null && pp.ot_rate !== undefined ? Number(pp.ot_rate) : null,
+          ot_multiplier: pp.ot_multiplier !== null && pp.ot_multiplier !== undefined ? Number(pp.ot_multiplier) : null,
+          minimum_ot_per_day: Number(pp.minimum_ot_per_day ?? 0),
+          ot_paid_as: pp.ot_paid_as ?? 'SALARY',
+          payment_mode: pp.payment_mode ?? null,
+          bank_name: pp.bank_name ?? null,
+          account_number: pp.account_number ?? null,
+          ifsc_code: pp.ifsc_code ?? null,
+        };
+      })(),
+      ot_eligible: Boolean(record.employee_pay_policies_employee_pay_policies_emp_idToemployees?.ot_eligible),
+      ot_rate_type: record.employee_pay_policies_employee_pay_policies_emp_idToemployees?.ot_rate_type ?? null,
+      ot_rate: record.employee_pay_policies_employee_pay_policies_emp_idToemployees?.ot_rate !== null && record.employee_pay_policies_employee_pay_policies_emp_idToemployees?.ot_rate !== undefined ? Number(record.employee_pay_policies_employee_pay_policies_emp_idToemployees.ot_rate) : null,
+      ot_multiplier: record.employee_pay_policies_employee_pay_policies_emp_idToemployees?.ot_multiplier !== null && record.employee_pay_policies_employee_pay_policies_emp_idToemployees?.ot_multiplier !== undefined ? Number(record.employee_pay_policies_employee_pay_policies_emp_idToemployees.ot_multiplier) : null,
+      minimum_ot_per_day: Number(record.employee_pay_policies_employee_pay_policies_emp_idToemployees?.minimum_ot_per_day ?? 0),
+      ot_paid_as: record.employee_pay_policies_employee_pay_policies_emp_idToemployees?.ot_paid_as ?? 'SALARY',
+      pf_applicable: record.employee_pay_policies_employee_pay_policies_emp_idToemployees ? Boolean(record.employee_pay_policies_employee_pay_policies_emp_idToemployees.pf_applicable) : (Number(record.pf) > 0),
+      uan: record.employee_pay_policies_employee_pay_policies_emp_idToemployees?.uan ?? null,
+      employee_pf_pct: Number(record.employee_pay_policies_employee_pay_policies_emp_idToemployees?.employee_pf_pct ?? 12),
+      employer_pf_pct: Number(record.employee_pay_policies_employee_pay_policies_emp_idToemployees?.employer_pf_pct ?? 12),
+      payment_mode: record.employee_pay_policies_employee_pay_policies_emp_idToemployees?.payment_mode ?? null,
+      bank_name: record.employee_pay_policies_employee_pay_policies_emp_idToemployees?.bank_name ?? null,
+      account_number: record.employee_pay_policies_employee_pay_policies_emp_idToemployees?.account_number ?? null,
+      ifsc_code: record.employee_pay_policies_employee_pay_policies_emp_idToemployees?.ifsc_code ?? null,
     };
   }
 
@@ -357,6 +393,20 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       employment_type_id?: number | null;
       salary?: number;
       pf?: number;
+      ot_eligible?: boolean;
+      ot_rate_type?: 'FIXED' | 'MULTIPLIER' | null;
+      ot_rate?: number | null;
+      ot_multiplier?: number | null;
+      minimum_ot_per_day?: number;
+      ot_paid_as?: 'SALARY' | 'COMP_OFF';
+      pf_applicable?: boolean;
+      uan?: string | null;
+      employee_pf_pct?: number;
+      employer_pf_pct?: number;
+      payment_mode?: 'BANK_TRANSFER' | 'CHEQUE' | 'CASH' | null;
+      bank_name?: string | null;
+      account_number?: string | null;
+      ifsc_code?: string | null;
       created_by: number;
     },
     tx?: unknown,
@@ -408,6 +458,48 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       });
     }
 
+    // Provision or sync employee_pay_policies
+    await client.employee_pay_policies.upsert({
+      where: { emp_id: created.emp_id },
+      create: {
+        emp_id: created.emp_id,
+        salary_effective_from: data.joining_date,
+        pf_applicable: data.pf_applicable ?? (Number(data.pf) > 0),
+        uan: data.uan ?? null,
+        employee_pf_pct: data.employee_pf_pct ?? 12.00,
+        employer_pf_pct: data.employer_pf_pct ?? 12.00,
+        ot_eligible: data.ot_eligible ?? false,
+        ot_rate_type: (data.ot_rate_type as any) ?? null,
+        ot_rate: data.ot_rate ?? null,
+        ot_multiplier: data.ot_multiplier ?? null,
+        minimum_ot_per_day: data.minimum_ot_per_day ?? 0,
+        ot_paid_as: (data.ot_paid_as as any) ?? 'SALARY',
+        payment_mode: (data.payment_mode as any) ?? null,
+        bank_name: data.bank_name ?? null,
+        account_number: data.account_number ?? null,
+        ifsc_code: data.ifsc_code ?? null,
+        created_by: data.created_by,
+      },
+      update: {
+        salary_effective_from: data.joining_date,
+        pf_applicable: data.pf_applicable ?? (Number(data.pf) > 0),
+        uan: data.uan ?? null,
+        employee_pf_pct: data.employee_pf_pct ?? 12.00,
+        employer_pf_pct: data.employer_pf_pct ?? 12.00,
+        ot_eligible: data.ot_eligible ?? false,
+        ot_rate_type: (data.ot_rate_type as any) ?? null,
+        ot_rate: data.ot_rate ?? null,
+        ot_multiplier: data.ot_multiplier ?? null,
+        minimum_ot_per_day: data.minimum_ot_per_day ?? 0,
+        ot_paid_as: (data.ot_paid_as as any) ?? 'SALARY',
+        payment_mode: (data.payment_mode as any) ?? null,
+        bank_name: data.bank_name ?? null,
+        account_number: data.account_number ?? null,
+        ifsc_code: data.ifsc_code ?? null,
+        updated_by: data.created_by,
+      },
+    });
+
     // Refresh created with updated departments
     const refreshed = await client.employees.findUnique({
       where: { emp_id: created.emp_id },
@@ -443,6 +535,20 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       employment_type_id?: number | null;
       salary?: number;
       pf?: number;
+      ot_eligible?: boolean;
+      ot_rate_type?: 'FIXED' | 'MULTIPLIER' | null;
+      ot_rate?: number | null;
+      ot_multiplier?: number | null;
+      minimum_ot_per_day?: number;
+      ot_paid_as?: 'SALARY' | 'COMP_OFF';
+      pf_applicable?: boolean;
+      uan?: string | null;
+      employee_pf_pct?: number;
+      employer_pf_pct?: number;
+      payment_mode?: 'BANK_TRANSFER' | 'CHEQUE' | 'CASH' | null;
+      bank_name?: string | null;
+      account_number?: string | null;
+      ifsc_code?: string | null;
       termination_date?: Date | null;
       deactivation_reason?: string | null;
       deactivation_notes?: string | null;
@@ -517,6 +623,68 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
             },
           });
         }
+      }
+
+      // Synchronize employee_pay_policies if any policy fields updated
+      const hasPolicyUpdates =
+        data.ot_eligible !== undefined ||
+        data.ot_rate_type !== undefined ||
+        data.ot_rate !== undefined ||
+        data.ot_multiplier !== undefined ||
+        data.minimum_ot_per_day !== undefined ||
+        data.ot_paid_as !== undefined ||
+        data.pf_applicable !== undefined ||
+        data.uan !== undefined ||
+        data.employee_pf_pct !== undefined ||
+        data.employer_pf_pct !== undefined ||
+        data.payment_mode !== undefined ||
+        data.bank_name !== undefined ||
+        data.account_number !== undefined ||
+        data.ifsc_code !== undefined;
+
+      if (hasPolicyUpdates) {
+        const policyData: any = {
+          updated_by: data.updated_by,
+          updated_at: new Date(),
+        };
+        if (data.ot_eligible !== undefined) policyData.ot_eligible = data.ot_eligible;
+        if (data.ot_rate_type !== undefined) policyData.ot_rate_type = data.ot_rate_type as any;
+        if (data.ot_rate !== undefined) policyData.ot_rate = data.ot_rate;
+        if (data.ot_multiplier !== undefined) policyData.ot_multiplier = data.ot_multiplier;
+        if (data.minimum_ot_per_day !== undefined) policyData.minimum_ot_per_day = data.minimum_ot_per_day;
+        if (data.ot_paid_as !== undefined) policyData.ot_paid_as = data.ot_paid_as as any;
+        if (data.pf_applicable !== undefined) policyData.pf_applicable = data.pf_applicable;
+        if (data.uan !== undefined) policyData.uan = data.uan;
+        if (data.employee_pf_pct !== undefined) policyData.employee_pf_pct = data.employee_pf_pct;
+        if (data.employer_pf_pct !== undefined) policyData.employer_pf_pct = data.employer_pf_pct;
+        if (data.payment_mode !== undefined) policyData.payment_mode = data.payment_mode as any;
+        if (data.bank_name !== undefined) policyData.bank_name = data.bank_name;
+        if (data.account_number !== undefined) policyData.account_number = data.account_number;
+        if (data.ifsc_code !== undefined) policyData.ifsc_code = data.ifsc_code;
+
+        await client.employee_pay_policies.upsert({
+          where: { emp_id: id },
+          create: {
+            emp_id: id,
+            salary_effective_from: data.joining_date ?? new Date(),
+            pf_applicable: data.pf_applicable ?? (Number(data.pf) > 0),
+            uan: data.uan ?? null,
+            employee_pf_pct: data.employee_pf_pct ?? 12.00,
+            employer_pf_pct: data.employer_pf_pct ?? 12.00,
+            ot_eligible: data.ot_eligible ?? false,
+            ot_rate_type: (data.ot_rate_type as any) ?? null,
+            ot_rate: data.ot_rate ?? null,
+            ot_multiplier: data.ot_multiplier ?? null,
+            minimum_ot_per_day: data.minimum_ot_per_day ?? 0,
+            ot_paid_as: (data.ot_paid_as as any) ?? 'SALARY',
+            payment_mode: (data.payment_mode as any) ?? null,
+            bank_name: data.bank_name ?? null,
+            account_number: data.account_number ?? null,
+            ifsc_code: data.ifsc_code ?? null,
+            created_by: data.updated_by,
+          },
+          update: policyData,
+        });
       }
 
       const refreshed = await client.employees.findUnique({

@@ -11,6 +11,8 @@ import { CheckDuplicateCandidateUseCase } from './application/use-cases/check-du
 import { GetNextCandidateCodeUseCase } from './application/use-cases/get-next-candidate-code.use-case';
 import { UpdateCandidateStageUseCase } from './application/use-cases/update-candidate-stage.use-case';
 import { MarkCandidateDecisionUseCase } from './application/use-cases/mark-candidate-decision.use-case';
+import { GetNextEmployeeCodeUseCase } from './application/use-cases/get-next-employee-code.use-case';
+import { ConvertCandidateToEmployeeUseCase } from './application/use-cases/convert-candidate-to-employee.use-case';
 
 @Module({
   imports: [PrismaModule, AuthModule],
@@ -27,6 +29,8 @@ import { MarkCandidateDecisionUseCase } from './application/use-cases/mark-candi
     GetNextCandidateCodeUseCase,
     UpdateCandidateStageUseCase,
     MarkCandidateDecisionUseCase,
+    GetNextEmployeeCodeUseCase,
+    ConvertCandidateToEmployeeUseCase,
   ],
   exports: [CANDIDATE_REPOSITORY],
 })

@@ -287,6 +287,9 @@ export class CandidateItemDto {
   notice_period?: string | null;
 
   @ApiPropertyOptional()
+  serving_notice_lwd?: string | null;
+
+  @ApiPropertyOptional()
   key_skills!: string[];
 
   @ApiProperty()
@@ -301,8 +304,26 @@ export class CandidateItemDto {
   @ApiPropertyOptional()
   referred_by_name?: string | null;
 
+  @ApiPropertyOptional()
+  consultancy_name?: string | null;
+
+  @ApiPropertyOptional()
+  college_name?: string | null;
+
+  @ApiPropertyOptional()
+  source_details?: string | null;
+
+  @ApiPropertyOptional()
+  notes?: string | null;
+
   @ApiProperty()
   stage!: string;
+
+  @ApiPropertyOptional()
+  converted_to_emp_id?: number | null;
+
+  @ApiPropertyOptional()
+  converted_to_emp_code?: string | null;
 
   @ApiPropertyOptional()
   rejection_reason?: string | null;
@@ -448,4 +469,33 @@ export class MarkCandidateDecisionDto {
   @IsOptional()
   send_regret_email?: boolean;
 }
+
+export class ConvertCandidateToEmployeeDto {
+  @ApiProperty({ description: 'Office / Corporate email for the new employee', example: 'rohan.mehta@vernoxy.com' })
+  @IsEmail({}, { message: 'Please enter a valid office email.' })
+  @IsNotEmpty({ message: 'Office email is required.' })
+  office_email!: string;
+}
+
+export class NextEmpCodeResponseDto {
+  @ApiProperty({ example: 15 })
+  next_emp_id!: number;
+
+  @ApiProperty({ example: 'EMP-0015' })
+  next_emp_code!: string;
+}
+
+export class ConvertToEmployeeResponseDto {
+  @ApiProperty()
+  employee!: {
+    emp_id: number;
+    name: string;
+    email: string;
+    employee_code: string;
+  };
+
+  @ApiProperty({ type: CandidateItemDto })
+  candidate!: CandidateItemDto;
+}
+
 

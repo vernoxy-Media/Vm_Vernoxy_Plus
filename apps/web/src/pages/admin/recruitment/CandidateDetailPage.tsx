@@ -20,6 +20,7 @@ import {
   Sparkles,
   User,
   Award,
+  Lock,
 } from 'lucide-react';
 import { AdminLayout } from '../../../components/AdminLayout';
 import {
@@ -27,6 +28,7 @@ import {
   useUpdateCandidateStageMutation,
 } from '../../../hooks/use-recruitment';
 import { CandidateDecisionModal } from './CandidateDecisionModal';
+import { ConvertCandidateToEmployeeModal } from './ConvertCandidateToEmployeeModal';
 
 export const CandidateDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -35,6 +37,7 @@ export const CandidateDetailPage: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<'overview' | 'decision' | 'resume'>('overview');
   const [isDecisionModalOpen, setIsDecisionModalOpen] = useState(false);
+  const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
   const [decisionInitialStage, setDecisionInitialStage] = useState<'selected' | 'on_hold' | 'rejected'>('selected');
   const [isStageMenuOpen, setIsStageMenuOpen] = useState(false);
 
@@ -73,7 +76,19 @@ export const CandidateDetailPage: React.FC = () => {
 
   const handleStageSelect = (targetStage: string) => {
     setIsStageMenuOpen(false);
-    if (!candidateId) return;
+    const cid = candidate?.candidate_id ?? (candidate as any)?.candidateId ?? candidateId;
+    if (!cid) return;
+
+    if (targetStage === 'onboarding') {
+      if (candidate?.stage !== 'selected' && !candidate?.converted_to_emp_id) {
+        // Must select first!
+        setDecisionInitialStage('selected');
+        setIsDecisionModalOpen(true);
+        return;
+      }
+      setIsConvertModalOpen(true);
+      return;
+    }
 
     if (targetStage === 'selected' || targetStage === 'on_hold' || targetStage === 'rejected') {
       setDecisionInitialStage(targetStage as any);
@@ -82,7 +97,7 @@ export const CandidateDetailPage: React.FC = () => {
     }
 
     updateStageMutation.mutate(
-      { candidateId, stage: targetStage },
+      { candidateId: cid, stage: targetStage },
       {
         onSuccess: () => refetch(),
       },
@@ -123,6 +138,7 @@ export const CandidateDetailPage: React.FC = () => {
 
   const badge = getStageBadge(candidate.stage);
   const isSelected = candidate.stage === 'selected';
+  const isConverted = Boolean(candidate.converted_to_emp_id);
 
   return (
     <AdminLayout title={`${candidate.name} - Candidate Profile`} fluid>
@@ -139,6 +155,31 @@ export const CandidateDetailPage: React.FC = () => {
           </button>
         </div>
 
+        {/* Converted to Employee Banner (BFD Screen 7 Rules) */}
+        {isConverted && (
+          <div className="p-4 rounded-3xl bg-emerald-50/90 border border-emerald-200 text-emerald-900 flex items-center justify-between flex-wrap gap-4 shadow-2xs">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-bold shadow-xs shrink-0">
+                <UserCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Converted to Employee</div>
+                <div className="text-sm font-semibold text-slate-800">
+                  This candidate was converted to <span className="font-mono font-bold text-emerald-800">{candidate.converted_to_emp_code || `EMP-${candidate.converted_to_emp_id}`}</span>. This candidate record is now read-only.
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate(`/admin/employees/${candidate.converted_to_emp_id}?tab=documents`)}
+              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+            >
+              <span>View Employee & Documents</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
         {/* Hero Profile Card */}
         <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xs p-6 md:p-8">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
@@ -154,12 +195,19 @@ export const CandidateDetailPage: React.FC = () => {
                   <div className="relative">
                     <button
                       type="button"
-                      onClick={() => setIsStageMenuOpen(!isStageMenuOpen)}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold tracking-wide border cursor-pointer hover:shadow-xs transition ${badge.bg}`}
+                      onClick={() => !isConverted && setIsStageMenuOpen(!isStageMenuOpen)}
+                      disabled={isConverted}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold tracking-wide border ${
+                        isConverted ? 'cursor-default opacity-90' : 'cursor-pointer hover:shadow-xs'
+                      } transition ${badge.bg}`}
                     >
                       <span className={`w-2 h-2 rounded-full ${badge.dot}`} />
                       <span>{badge.label}</span>
-                      <ChevronDown className="w-3.5 h-3.5 opacity-70" />
+                      {isConverted ? (
+                        <Lock className="w-3 h-3 opacity-60 ml-0.5" />
+                      ) : (
+                        <ChevronDown className="w-3.5 h-3.5 opacity-70" />
+                      )}
                     </button>
 
                     {isStageMenuOpen && (
@@ -180,6 +228,9 @@ export const CandidateDetailPage: React.FC = () => {
                             }`}
                           >
                             <span>{st}</span>
+                            {st === 'onboarding' && candidate.stage !== 'selected' && !candidate.converted_to_emp_id && (
+                              <span className="text-[10px] text-amber-600 font-normal ml-auto mr-1">(Select first)</span>
+                            )}
                             {candidate.stage === st && <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />}
                           </button>
                         ))}
@@ -258,38 +309,40 @@ export const CandidateDetailPage: React.FC = () => {
                 </a>
               )}
 
-              <button
-                type="button"
-                onClick={() => {
-                  setDecisionInitialStage('selected');
-                  setIsDecisionModalOpen(true);
-                }}
-                className="px-4 py-2 text-xs font-semibold rounded-xl bg-slate-900 hover:bg-slate-800 text-white shadow-xs transition flex items-center gap-1.5"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>Mark Decision</span>
-              </button>
-
-              {isSelected && (
+              {!isConverted && (
                 <button
                   type="button"
                   onClick={() => {
-                    navigate(
-                      `/admin/employees/new?candidate_id=${candidate.candidate_id}&name=${encodeURIComponent(
-                        candidate.name,
-                      )}&email=${encodeURIComponent(candidate.email)}&phone=${encodeURIComponent(
-                        candidate.phone,
-                      )}&role_id=${candidate.final_role_id || candidate.role_id}&dep_id=${
-                        candidate.final_dep_id || candidate.dep_id
-                      }&ctc=${candidate.offered_ctc || ''}`,
-                    );
+                    setDecisionInitialStage('selected');
+                    setIsDecisionModalOpen(true);
                   }}
-                  className="px-4 py-2 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition flex items-center gap-1.5"
+                  className="px-4 py-2 text-xs font-semibold rounded-xl bg-slate-900 hover:bg-slate-800 text-white shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Mark Decision</span>
+                </button>
+              )}
+
+              {isConverted ? (
+                <button
+                  type="button"
+                  onClick={() => navigate(`/admin/employees/${candidate.converted_to_emp_id}?tab=documents`)}
+                  className="px-4 py-2 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+                >
+                  <UserCheck className="w-4 h-4" />
+                  <span>View {candidate.converted_to_emp_code || 'Employee'} & Documents</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </button>
+              ) : isSelected ? (
+                <button
+                  type="button"
+                  onClick={() => setIsConvertModalOpen(true)}
+                  className="px-4 py-2 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition flex items-center gap-1.5 cursor-pointer"
                 >
                   <UserCheck className="w-4 h-4" />
                   <span>Convert to Employee</span>
                 </button>
-              )}
+              ) : null}
             </div>
           </div>
         </div>
@@ -612,34 +665,42 @@ export const CandidateDetailPage: React.FC = () => {
               </button>
             </div>
 
-            {candidate.stage === 'selected' ? (
+            {candidate.stage === 'selected' || isConverted ? (
               <div className="space-y-6">
-                <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 text-emerald-800 flex items-center justify-between">
+                <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 text-emerald-800 flex items-center justify-between flex-wrap gap-3">
                   <div className="flex items-center gap-3">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
                     <div>
-                      <h4 className="font-bold text-sm">Candidate is Selected</h4>
-                      <p className="text-xs text-emerald-700">Official offer details recorded.</p>
+                      <h4 className="font-bold text-sm">
+                        {isConverted ? 'Candidate Converted to Employee' : 'Candidate is Selected'}
+                      </h4>
+                      <p className="text-xs text-emerald-700">
+                        {isConverted
+                          ? `Active in Onboarding stage as ${candidate.converted_to_emp_code || `EMP-${candidate.converted_to_emp_id}`}`
+                          : 'Official offer details recorded. Ready for onboarding conversion.'}
+                      </p>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigate(
-                        `/admin/employees/new?candidate_id=${candidate.candidate_id}&name=${encodeURIComponent(
-                          candidate.name,
-                        )}&email=${encodeURIComponent(candidate.email)}&phone=${encodeURIComponent(
-                          candidate.phone,
-                        )}&role_id=${candidate.final_role_id || candidate.role_id}&dep_id=${
-                          candidate.final_dep_id || candidate.dep_id
-                        }&ctc=${candidate.offered_ctc || ''}`,
-                      );
-                    }}
-                    className="px-4 py-2 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-xs transition flex items-center gap-1.5"
-                  >
-                    <UserCheck className="w-4 h-4" />
-                    <span>Convert to Employee</span>
-                  </button>
+                  {isConverted ? (
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/admin/employees/${candidate.converted_to_emp_id}?tab=documents`)}
+                      className="px-4 py-2 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <UserCheck className="w-4 h-4" />
+                      <span>View {candidate.converted_to_emp_code || 'Employee'} & Documents</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setIsConvertModalOpen(true)}
+                      className="px-4 py-2 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <UserCheck className="w-4 h-4" />
+                      <span>Convert to Employee</span>
+                    </button>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
@@ -835,6 +896,14 @@ export const CandidateDetailPage: React.FC = () => {
         candidate={candidate}
         initialDecision={decisionInitialStage}
         onSuccess={() => refetch()}
+      />
+
+      {/* Convert to Employee Modal */}
+      <ConvertCandidateToEmployeeModal
+        isOpen={isConvertModalOpen}
+        onClose={() => setIsConvertModalOpen(false)}
+        candidate={candidate}
+        onConverted={() => refetch()}
       />
     </AdminLayout>
   );

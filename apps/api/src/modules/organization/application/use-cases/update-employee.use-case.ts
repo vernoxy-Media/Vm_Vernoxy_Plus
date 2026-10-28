@@ -35,6 +35,20 @@ export interface UpdateEmployeeCommand {
   employment_type_id?: number | null;
   salary?: number;
   pf?: number;
+  ot_eligible?: boolean;
+  ot_rate_type?: 'FIXED' | 'MULTIPLIER' | null;
+  ot_rate?: number | null;
+  ot_multiplier?: number | null;
+  minimum_ot_per_day?: number;
+  ot_paid_as?: 'SALARY' | 'COMP_OFF';
+  pf_applicable?: boolean;
+  uan?: string | null;
+  employee_pf_pct?: number;
+  employer_pf_pct?: number;
+  payment_mode?: 'BANK_TRANSFER' | 'CHEQUE' | 'CASH' | null;
+  bank_name?: string | null;
+  account_number?: string | null;
+  ifsc_code?: string | null;
   termination_date?: Date | string | null;
   deactivation_reason?: string | null;
   deactivation_notes?: string | null;
@@ -298,6 +312,20 @@ export class UpdateEmployeeUseCase {
       employment_type_id: command.employment_type_id,
       salary: command.salary !== undefined ? Number(command.salary) : undefined,
       pf: command.pf !== undefined ? Number(command.pf) : undefined,
+      ot_eligible: command.ot_eligible,
+      ot_rate_type: command.ot_rate_type,
+      ot_rate: command.ot_rate !== undefined && command.ot_rate !== null ? Number(command.ot_rate) : command.ot_rate,
+      ot_multiplier: command.ot_multiplier !== undefined && command.ot_multiplier !== null ? Number(command.ot_multiplier) : command.ot_multiplier,
+      minimum_ot_per_day: command.minimum_ot_per_day !== undefined ? Number(command.minimum_ot_per_day) : undefined,
+      ot_paid_as: command.ot_paid_as,
+      pf_applicable: command.pf_applicable,
+      uan: command.uan !== undefined ? (command.uan?.trim() || null) : undefined,
+      employee_pf_pct: command.employee_pf_pct !== undefined ? Number(command.employee_pf_pct) : undefined,
+      employer_pf_pct: command.employer_pf_pct !== undefined ? Number(command.employer_pf_pct) : undefined,
+      payment_mode: command.payment_mode,
+      bank_name: command.bank_name !== undefined ? (command.bank_name?.trim() || null) : undefined,
+      account_number: command.account_number !== undefined ? (command.account_number?.trim() || null) : undefined,
+      ifsc_code: command.ifsc_code !== undefined ? (command.ifsc_code?.trim() || null) : undefined,
       termination_date: parsedTerminationDate,
       deactivation_reason: command.deactivation_reason,
       deactivation_notes: command.deactivation_notes,

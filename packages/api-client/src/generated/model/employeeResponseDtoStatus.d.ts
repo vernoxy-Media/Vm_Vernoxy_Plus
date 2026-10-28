@@ -9,4 +9,5 @@ export type EmployeeResponseDtoStatus = typeof EmployeeResponseDtoStatus[keyof t
 export declare const EmployeeResponseDtoStatus: {
     readonly Active: "Active";
     readonly Inactive: "Inactive";
+    readonly Onboarding: "Onboarding";
 };

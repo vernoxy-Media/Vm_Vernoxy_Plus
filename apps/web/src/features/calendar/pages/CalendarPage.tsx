@@ -365,6 +365,7 @@ export const CalendarPage: React.FC = () => {
 
   // Day's scheduled meetings and approved/submitted tasks for week/day views
   const scheduledItemsForActiveDay = useMemo(() => {
+    if (kpiMode !== 'tasks') return [];
     return mergedEvents.filter((e) => {
       const eDate = toLocalYMD(new Date(e.start_time));
       if (eDate !== activeDateYMD) return false;
@@ -373,7 +374,7 @@ export const CalendarPage: React.FC = () => {
       }
       return true;
     });
-  }, [mergedEvents, activeDateYMD]);
+  }, [mergedEvents, activeDateYMD, kpiMode]);
 
   // Meeting creation & RSVP handlers
   const handleCreateMeeting = async (payload: CreateCalendarEventPayload) => {
@@ -602,7 +603,7 @@ export const CalendarPage: React.FC = () => {
             Today
           </button>
 
-          {/* Filters toggle button */}
+          {kpiMode === 'tasks' && (
           <button
             onClick={() => setIsFiltersOpen(!isFiltersOpen)}
             className={`relative flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl border transition-colors cursor-pointer ${
@@ -619,6 +620,7 @@ export const CalendarPage: React.FC = () => {
               </span>
             )}
           </button>
+          )}
 
           {/* Add Holiday button (Admin only per BFD CAL-09) */}
           {isAdmin && (
@@ -689,17 +691,18 @@ export const CalendarPage: React.FC = () => {
         )}
       </div>
 
-      {/* Collapsible Filter Bar */}
-      <CalendarFilterBar
-        filters={filters}
-        onChange={setFilters}
-        onReset={handleResetFilters}
-        isAdmin={isAdmin}
-        employees={employees}
-        taskTypes={taskTypeOptions}
-        isOpen={isFiltersOpen}
-        onToggle={() => setIsFiltersOpen(false)}
-      />
+      {kpiMode === 'tasks' && (
+        <CalendarFilterBar
+          filters={filters}
+          onChange={setFilters}
+          onReset={handleResetFilters}
+          isAdmin={isAdmin}
+          employees={employees}
+          taskTypes={taskTypeOptions}
+          isOpen={isFiltersOpen}
+          onToggle={() => setIsFiltersOpen(false)}
+        />
+      )}
 
       {/* MONTH VIEW: Calendar Grid */}
       {viewMode === 'month' && (
@@ -715,6 +718,7 @@ export const CalendarPage: React.FC = () => {
             currentUserId={user?.emp_id}
             onSelectEvent={(ev) => setSelectedEvent(ev)}
             onSelectTask={(taskId) => setSelectedTaskId(taskId)}
+            displayMode={kpiMode}
           />
         </div>
       )}
@@ -722,15 +726,51 @@ export const CalendarPage: React.FC = () => {
       {/* LIST VIEW: Daily Attendance Rows per BFD */}
       {viewMode === 'list' && (
         <div className="flex-1 bg-white border border-slate-200 rounded-2xl p-4 shadow-xs">
-          <AttendanceListView
-            records={attendanceDashboard?.records || []}
-            onSelectDate={(d) => {
-              const [y, m, day] = d.split('-').map(Number);
-              const target = new Date(y, m - 1, day);
-              setSelectedDate(target);
-              setIsSidebarOpen(true);
-            }}
-          />
+          {kpiMode === 'attendance' ? (
+            <AttendanceListView
+              records={attendanceDashboard?.records || []}
+              onSelectDate={(d) => {
+                const [y, m, day] = d.split('-').map(Number);
+                const target = new Date(y, m - 1, day);
+                setSelectedDate(target);
+                setIsSidebarOpen(true);
+              }}
+            />
+          ) : (
+            <div className="space-y-2">
+              {tasks.length === 0 ? (
+                <p className="py-12 text-center text-xs text-slate-400 font-medium">
+                  No submitted or approved tasks in this period.
+                </p>
+              ) : (
+                tasks.map((task) => (
+                  <button
+                    key={task.task_id}
+                    type="button"
+                    onClick={() => setSelectedTaskId(task.task_id)}
+                    className="w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-left"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-slate-800 truncate">
+                        <span className="font-mono text-slate-500 mr-1">{task.task_code}</span>
+                        {task.title}
+                      </p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">{task.submission_date}</p>
+                    </div>
+                    <span
+                      className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        task.stage === 'requested'
+                          ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                          : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                      }`}
+                    >
+                      {task.stage === 'requested' ? 'Submitted' : 'Approved'}
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -742,9 +782,9 @@ export const CalendarPage: React.FC = () => {
             {viewMode === 'week' ? (
               <WeeklyTimeGrid
                 currentDate={currentDate}
-                events={mergedEvents}
-                holidays={formattedHolidays}
-                attendanceRecords={attendanceRecordsMap}
+                events={kpiMode === 'tasks' ? mergedEvents : []}
+                holidays={kpiMode === 'attendance' ? formattedHolidays : []}
+                attendanceRecords={kpiMode === 'attendance' ? attendanceRecordsMap : {}}
                 onSelectEvent={(ev) => setSelectedEvent(ev)}
                 onSlotClick={handleSlotClick}
                 onDayClick={(d) => {
@@ -756,16 +796,16 @@ export const CalendarPage: React.FC = () => {
             ) : (
               <DailyTimeGrid
                 currentDate={currentDate}
-                events={mergedEvents}
-                holidays={formattedHolidays}
-                attendanceRecords={attendanceRecordsMap}
+                events={kpiMode === 'tasks' ? mergedEvents : []}
+                holidays={kpiMode === 'attendance' ? formattedHolidays : []}
+                attendanceRecords={kpiMode === 'attendance' ? attendanceRecordsMap : {}}
                 onSelectEvent={(ev) => setSelectedEvent(ev)}
                 onSlotClick={handleSlotClick}
               />
             )}
           </div>
 
-          {/* Right: Scheduled events for the active date */}
+          {kpiMode === 'tasks' && (
           <div className="w-80 bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex flex-col space-y-3 shrink-0">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
@@ -900,6 +940,7 @@ export const CalendarPage: React.FC = () => {
               )}
             </div>
           </div>
+          )}
         </div>
       )}
 
@@ -911,6 +952,7 @@ export const CalendarPage: React.FC = () => {
         holiday={selectedDayHoliday}
         tasks={tasks}
         events={events}
+        displayMode={kpiMode}
         currentUserId={user?.emp_id}
         isAdmin={isAdmin}
         onSelectTask={(taskId) => setSelectedTaskId(taskId)}

@@ -286,6 +286,8 @@ import { EmployeeDocumentService } from './application/services/employee-documen
     ROLE_REPOSITORY_TOKEN,
     EMPLOYEE_REPOSITORY_TOKEN,
     ORGANIZATION_PUBLIC_API_TOKEN,
+    OrganizationAdminGuard,
+    ACCESS_POLICY_PORT_TOKEN,
   ],
 })
 export class OrganizationModule {}

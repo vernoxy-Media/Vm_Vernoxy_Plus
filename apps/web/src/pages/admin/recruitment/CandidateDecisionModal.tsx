@@ -49,64 +49,87 @@ export const CandidateDecisionModal: React.FC<CandidateDecisionModalProps> = ({
 
   // Selected State
   const [finalRoleId, setFinalRoleId] = useState<number>(
-    candidate.final_role_id || candidate.role_id,
+    candidate.final_role_id || (candidate as any).finalRoleId || candidate.role_id || (candidate as any).roleId || 0,
   );
   const [finalDepId, setFinalDepId] = useState<number>(
-    candidate.final_dep_id || candidate.dep_id,
+    candidate.final_dep_id || (candidate as any).finalDepId || candidate.dep_id || (candidate as any).depId || 0,
   );
   const [offeredCtc, setOfferedCtc] = useState<string>(
-    candidate.offered_ctc ? String(candidate.offered_ctc) : candidate.expected_ctc ? String(candidate.expected_ctc) : '',
+    candidate.offered_ctc !== undefined && candidate.offered_ctc !== null
+      ? String(candidate.offered_ctc)
+      : (candidate as any).offeredCtc !== undefined && (candidate as any).offeredCtc !== null
+      ? String((candidate as any).offeredCtc)
+      : candidate.expected_ctc !== undefined && candidate.expected_ctc !== null
+      ? String(candidate.expected_ctc)
+      : (candidate as any).expectedCtc !== undefined && (candidate as any).expectedCtc !== null
+      ? String((candidate as any).expectedCtc)
+      : '',
   );
-  const [expectedJoiningDate, setExpectedJoiningDate] = useState<string>(
-    candidate.expected_joining_date ? candidate.expected_joining_date.split('T')[0] : '',
-  );
+  const [expectedJoiningDate, setExpectedJoiningDate] = useState<string>(() => {
+    const d = candidate.expected_joining_date || (candidate as any).expectedJoiningDate;
+    return d ? String(d).split('T')[0] : '';
+  });
   const [reportingManagerId, setReportingManagerId] = useState<number | undefined>(
-    candidate.reporting_manager_id || undefined,
+    candidate.reporting_manager_id ?? (candidate as any).reportingManagerId ?? undefined,
   );
   const [employmentType, setEmploymentType] = useState<string>(
-    candidate.employment_type || 'Full-time',
+    candidate.employment_type || (candidate as any).employmentType || 'Full-time',
   );
 
   // On Hold State
-  const [onHoldReviewDate, setOnHoldReviewDate] = useState<string>(
-    candidate.on_hold_review_date ? candidate.on_hold_review_date.split('T')[0] : '',
+  const [onHoldReviewDate, setOnHoldReviewDate] = useState<string>(() => {
+    const d = candidate.on_hold_review_date || (candidate as any).onHoldReviewDate;
+    return d ? String(d).split('T')[0] : '';
+  });
+  const [onHoldNotes, setOnHoldNotes] = useState<string>(
+    candidate.on_hold_notes || (candidate as any).onHoldNotes || '',
   );
-  const [onHoldNotes, setOnHoldNotes] = useState<string>(candidate.on_hold_notes || '');
 
   // Rejected State
   const [rejectionReason, setRejectionReason] = useState<string>(
-    candidate.rejection_reason || (rejectionReasons[0]?.code ?? 'skills_not_matching'),
+    candidate.rejection_reason || (candidate as any).rejectionReason || (rejectionReasons[0]?.code ?? 'skills_not_matching'),
   );
-  const [rejectionNotes, setRejectionNotes] = useState<string>(candidate.rejection_notes || '');
-  const [sendRegretEmail, setSendRegretEmail] = useState<boolean>(Boolean(candidate.send_regret_email));
+  const [rejectionNotes, setRejectionNotes] = useState<string>(
+    candidate.rejection_notes || (candidate as any).rejectionNotes || '',
+  );
+  const [sendRegretEmail, setSendRegretEmail] = useState<boolean>(
+    Boolean(candidate.send_regret_email ?? (candidate as any).sendRegretEmail),
+  );
 
   // Common Notes
-  const [notes, setNotes] = useState<string>(candidate.decision_notes || '');
+  const [notes, setNotes] = useState<string>(
+    candidate.decision_notes || (candidate as any).decisionNotes || '',
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Reset when modal opens with new candidate or initial decision
   useEffect(() => {
+    if (!isOpen || !candidate) return;
     setDecision(initialDecision);
-    setFinalRoleId(candidate.final_role_id || candidate.role_id);
-    setFinalDepId(candidate.final_dep_id || candidate.dep_id);
-    setOfferedCtc(
-      candidate.offered_ctc ? String(candidate.offered_ctc) : candidate.expected_ctc ? String(candidate.expected_ctc) : '',
-    );
-    setExpectedJoiningDate(
-      candidate.expected_joining_date ? candidate.expected_joining_date.split('T')[0] : '',
-    );
-    setReportingManagerId(candidate.reporting_manager_id || undefined);
-    setEmploymentType(candidate.employment_type || 'Full-time');
-    setOnHoldReviewDate(
-      candidate.on_hold_review_date ? candidate.on_hold_review_date.split('T')[0] : '',
-    );
-    setOnHoldNotes(candidate.on_hold_notes || '');
-    setRejectionReason(candidate.rejection_reason || (rejectionReasons[0]?.code ?? 'skills_not_matching'));
-    setRejectionNotes(candidate.rejection_notes || '');
-    setSendRegretEmail(Boolean(candidate.send_regret_email));
-    setNotes(candidate.decision_notes || '');
+    const rId = candidate.final_role_id ?? (candidate as any).finalRoleId ?? candidate.role_id ?? (candidate as any).roleId ?? 0;
+    const dId = candidate.final_dep_id ?? (candidate as any).finalDepId ?? candidate.dep_id ?? (candidate as any).depId ?? 0;
+    setFinalRoleId(rId);
+    setFinalDepId(dId);
+
+    const ctc = candidate.offered_ctc ?? (candidate as any).offeredCtc ?? candidate.expected_ctc ?? (candidate as any).expectedCtc;
+    setOfferedCtc(ctc !== undefined && ctc !== null ? String(ctc) : '');
+
+    const jDate = candidate.expected_joining_date ?? (candidate as any).expectedJoiningDate;
+    setExpectedJoiningDate(jDate ? String(jDate).split('T')[0] : '');
+
+    setReportingManagerId(candidate.reporting_manager_id ?? (candidate as any).reportingManagerId ?? undefined);
+    setEmploymentType(candidate.employment_type ?? (candidate as any).employmentType ?? 'Full-time');
+
+    const revDate = candidate.on_hold_review_date ?? (candidate as any).onHoldReviewDate;
+    setOnHoldReviewDate(revDate ? String(revDate).split('T')[0] : '');
+
+    setOnHoldNotes(candidate.on_hold_notes ?? (candidate as any).onHoldNotes ?? '');
+    setRejectionReason(candidate.rejection_reason ?? (candidate as any).rejectionReason ?? 'skills_not_matching');
+    setRejectionNotes(candidate.rejection_notes ?? (candidate as any).rejectionNotes ?? '');
+    setSendRegretEmail(Boolean(candidate.send_regret_email ?? (candidate as any).sendRegretEmail));
+    setNotes(candidate.decision_notes ?? (candidate as any).decisionNotes ?? '');
     setErrors({});
-  }, [candidate, initialDecision, rejectionReasons]);
+  }, [isOpen, initialDecision, candidate?.candidate_id, (candidate as any)?.candidateId]);
 
   // Auto-sync department when role changes in modal
   const handleRoleChange = (roleIdStr: string) => {
@@ -178,8 +201,14 @@ export const CandidateDecisionModal: React.FC<CandidateDecisionModalProps> = ({
       payload.notes = notes.trim() || undefined;
     }
 
+    const cid = candidate.candidate_id ?? (candidate as any).candidateId;
+    if (!cid) {
+      setErrors({ submit: 'Candidate ID is missing. Please refresh and try again.' });
+      return;
+    }
+
     markDecisionMutation.mutate(
-      { candidateId: candidate.candidate_id, data: payload },
+      { candidateId: cid, data: payload },
       {
         onSuccess: (updated) => {
           onSuccess?.(updated);

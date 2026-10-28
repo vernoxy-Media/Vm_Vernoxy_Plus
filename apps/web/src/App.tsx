@@ -20,6 +20,11 @@ import { EmployeeFormPage } from './pages/admin/EmployeeFormPage';
 import { CandidatesPage } from './pages/admin/recruitment/CandidatesPage';
 import { CandidateFormPage } from './pages/admin/recruitment/CandidateFormPage';
 import { CandidateDetailPage } from './pages/admin/recruitment/CandidateDetailPage';
+import { PayrollRunsPage } from './pages/admin/payroll/PayrollRunsPage';
+import { PayrollRegisterPage } from './pages/admin/payroll/PayrollRegisterPage';
+import { EmployeeSalarySheetPage } from './pages/admin/payroll/EmployeeSalarySheetPage';
+import { MyLeavePage } from './pages/leave/MyLeavePage';
+import { LeaveRequestsPage } from './pages/admin/leave/LeaveRequestsPage';
 import { CompanyRoute } from './features/companies/components/CompanyRoute';
 import { CompaniesListPage } from './features/companies/pages/CompaniesListPage';
 import { CompanyFormPage } from './features/companies/pages/CompanyFormPage';
@@ -78,6 +83,16 @@ export const App: React.FC = () => {
                 <ProtectedRoute>
                   <AppLayout fluid>
                     <AttendancePage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/leave"
+              element={
+                <ProtectedRoute>
+                  <AppLayout fluid>
+                    <MyLeavePage />
                   </AppLayout>
                 </ProtectedRoute>
               }
@@ -223,6 +238,54 @@ export const App: React.FC = () => {
               element={
                 <AdminRoute>
                   <CandidateDetailPage />
+                </AdminRoute>
+              }
+            />
+
+            {/* Payroll Module */}
+            <Route
+              path="/admin/payroll"
+              element={
+                <AdminRoute>
+                  <AppLayout fluid>
+                    <PayrollRunsPage />
+                  </AppLayout>
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/payroll/:year/:month"
+              element={
+                <AdminRoute>
+                  <AppLayout fluid>
+                    <PayrollRegisterPage />
+                  </AppLayout>
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/payroll/:year/:month/employee/:empId"
+              element={
+                <AdminRoute>
+                  <AppLayout fluid>
+                    <EmployeeSalarySheetPage />
+                  </AppLayout>
+                </AdminRoute>
+              }
+            />
+
+            {/* Leave Management Module (Admin) */}
+            <Route
+              path="/admin/leave"
+              element={<Navigate to="/admin/leave/requests" replace />}
+            />
+            <Route
+              path="/admin/leave/requests"
+              element={
+                <AdminRoute>
+                  <AppLayout fluid>
+                    <LeaveRequestsPage />
+                  </AppLayout>
                 </AdminRoute>
               }
             />

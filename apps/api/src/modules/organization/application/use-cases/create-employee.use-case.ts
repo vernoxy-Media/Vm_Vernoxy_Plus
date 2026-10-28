@@ -35,6 +35,20 @@ export interface CreateEmployeeCommand {
   employment_type_id?: number | null;
   salary?: number;
   pf?: number;
+  ot_eligible?: boolean;
+  ot_rate_type?: 'FIXED' | 'MULTIPLIER' | null;
+  ot_rate?: number | null;
+  ot_multiplier?: number | null;
+  minimum_ot_per_day?: number;
+  ot_paid_as?: 'SALARY' | 'COMP_OFF';
+  pf_applicable?: boolean;
+  uan?: string | null;
+  employee_pf_pct?: number;
+  employer_pf_pct?: number;
+  payment_mode?: 'BANK_TRANSFER' | 'CHEQUE' | 'CASH' | null;
+  bank_name?: string | null;
+  account_number?: string | null;
+  ifsc_code?: string | null;
   acting_admin_id: number;
 }
 
@@ -171,6 +185,20 @@ export class CreateEmployeeUseCase {
           employment_type_id: command.employment_type_id ?? null,
           salary: command.salary !== undefined ? Number(command.salary) : 0,
           pf: command.pf !== undefined ? Number(command.pf) : 0,
+          ot_eligible: command.ot_eligible ?? false,
+          ot_rate_type: command.ot_rate_type ?? null,
+          ot_rate: command.ot_rate !== undefined && command.ot_rate !== null ? Number(command.ot_rate) : null,
+          ot_multiplier: command.ot_multiplier !== undefined && command.ot_multiplier !== null ? Number(command.ot_multiplier) : null,
+          minimum_ot_per_day: command.minimum_ot_per_day !== undefined ? Number(command.minimum_ot_per_day) : 0,
+          ot_paid_as: command.ot_paid_as ?? 'SALARY',
+          pf_applicable: command.pf_applicable ?? (Number(command.pf) > 0),
+          uan: command.uan?.trim() || null,
+          employee_pf_pct: command.employee_pf_pct !== undefined ? Number(command.employee_pf_pct) : 12,
+          employer_pf_pct: command.employer_pf_pct !== undefined ? Number(command.employer_pf_pct) : 12,
+          payment_mode: command.payment_mode ?? null,
+          bank_name: command.bank_name?.trim() || null,
+          account_number: command.account_number?.trim() || null,
+          ifsc_code: command.ifsc_code?.trim() || null,
           created_by: command.acting_admin_id,
         },
         tx,

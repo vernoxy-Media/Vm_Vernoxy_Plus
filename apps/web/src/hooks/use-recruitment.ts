@@ -34,6 +34,8 @@ export interface CandidateItem {
   referred_by_name?: string | null;
   notes?: string | null;
   stage: string;
+  converted_to_emp_id?: number | null;
+  converted_to_emp_code?: string | null;
   rejection_reason?: string | null;
   rejection_notes?: string | null;
   final_role_id?: number | null;
@@ -242,4 +244,32 @@ export function useMarkCandidateDecisionMutation() {
     },
   });
 }
+
+export function useNextEmpCodeQuery() {
+  return useQuery({
+    queryKey: ['next-emp-code'],
+    queryFn: () => customFetch<{ next_emp_id: number; next_emp_code: string }>('/api/v1/candidates/next-emp-code'),
+    staleTime: 0,
+  });
+}
+
+export function useConvertCandidateToEmployeeMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ candidateId, office_email }: { candidateId: number; office_email: string }) =>
+      customFetch<{
+        employee: { emp_id: number; name: string; email: string; employee_code: string };
+        candidate: CandidateItem;
+      }>(`/api/v1/candidates/${candidateId}/convert-to-employee`, {
+        method: 'POST',
+        body: JSON.stringify({ office_email }),
+      }),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['candidates'] });
+      queryClient.invalidateQueries({ queryKey: ['candidate', variables.candidateId] });
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+    },
+  });
+}
+
 

@@ -314,7 +314,7 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
   },
   {
     id: 'leave-types',
-    label: 'Leave Types',
+    label: 'Leave Settings',
     path: '/admin/settings/leave-types',
     icon: CalendarOff,
     component: SettingsLeaveTypesSection,

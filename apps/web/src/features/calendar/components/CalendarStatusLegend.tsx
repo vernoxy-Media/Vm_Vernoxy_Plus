@@ -1,9 +1,16 @@
 import React from 'react';
 
-export const CalendarStatusLegend: React.FC = () => {
+interface CalendarStatusLegendProps {
+  mode?: 'attendance' | 'tasks' | 'all';
+}
+
+export const CalendarStatusLegend: React.FC<CalendarStatusLegendProps> = ({ mode = 'all' }) => {
+  const showAttendance = mode === 'attendance' || mode === 'all';
+  const showOperations = mode === 'tasks' || mode === 'all';
+
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-[11px] font-semibold text-slate-600 shadow-2xs select-none">
-      {/* Attendance Codes Legend per HRMS spec */}
+      {showAttendance && (
       <div className="flex flex-wrap items-center gap-2.5">
         <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Attendance:</span>
         <div className="flex items-center gap-1">
@@ -38,9 +45,10 @@ export const CalendarStatusLegend: React.FC = () => {
           <span>LM = Late Mark</span>
         </div>
       </div>
+      )}
 
-      {/* Tasks & Events Legend */}
-      <div className="flex flex-wrap items-center gap-2.5 border-t sm:border-t-0 sm:border-l border-slate-200 sm:pl-3 pt-1.5 sm:pt-0">
+      {showOperations && (
+      <div className={`flex flex-wrap items-center gap-2.5 ${showAttendance ? 'border-t sm:border-t-0 sm:border-l border-slate-200 sm:pl-3 pt-1.5 sm:pt-0' : ''}`}>
         <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Operations:</span>
         <div className="flex items-center gap-1">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
@@ -59,6 +67,7 @@ export const CalendarStatusLegend: React.FC = () => {
           <span>Reminder</span>
         </div>
       </div>
+      )}
     </div>
   );
 };

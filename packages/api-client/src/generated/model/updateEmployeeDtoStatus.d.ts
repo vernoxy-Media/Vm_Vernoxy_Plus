@@ -9,4 +9,5 @@ export type UpdateEmployeeDtoStatus = typeof UpdateEmployeeDtoStatus[keyof typeo
 export declare const UpdateEmployeeDtoStatus: {
     readonly Active: "Active";
     readonly Inactive: "Inactive";
+    readonly Onboarding: "Onboarding";
 };

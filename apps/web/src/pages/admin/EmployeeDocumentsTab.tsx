@@ -101,6 +101,8 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({ empl
   const docs = documents || [];
   const uploadedCount = docs.filter((d) => d.status === 'uploaded' || d.status === 'final').length;
   const pendingCount = docs.filter((d) => d.status === 'file_pending').length;
+  const requiredDocs = docs.filter((d) => d.is_required_for_activation);
+  const requiredUploaded = requiredDocs.filter((d) => d.status === 'uploaded' || d.status === 'final').length;
 
   const givenDocs = docs.filter((d) => d.category === 'given_to_employee');
   const takenDocs = docs.filter((d) => d.category === 'taken_from_employee');
@@ -190,9 +192,16 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({ empl
               onChange={() => handleToggle(doc)}
               className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 disabled:opacity-40 cursor-pointer"
             />
-            <span className={`text-sm font-semibold ${isLocked ? 'text-slate-400' : 'text-slate-800'}`}>
-              {doc.title}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className={`text-sm font-semibold ${isLocked ? 'text-slate-400' : 'text-slate-800'}`}>
+                {doc.title}
+              </span>
+              {doc.is_required_for_activation && (
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200/70 tracking-wide">
+                  Required *
+                </span>
+              )}
+            </div>
           </div>
         </td>
 
@@ -217,25 +226,25 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({ empl
                 <button
                   type="button"
                   onClick={() => setViewingDoc(doc)}
-                  className="text-blue-600 hover:text-blue-800 hover:underline px-1.5 py-1 rounded"
+                  className="text-blue-600 hover:text-blue-800 hover:underline px-1.5 py-1 rounded cursor-pointer"
                 >
                   View
                 </button>
                 <button
                   type="button"
                   onClick={() => handleTriggerUpload(doc.document_type)}
-                  className="text-slate-600 hover:text-slate-800 px-1.5 py-1 rounded hover:bg-slate-100"
+                  className="text-slate-600 hover:text-slate-800 px-1.5 py-1 rounded hover:bg-slate-100 cursor-pointer"
                 >
                   Replace
                 </button>
               </>
             )}
 
-            {!isUploaded && !isLocked && doc.status === 'file_pending' && (
+            {!isUploaded && !isLocked && (
               <button
                 type="button"
                 onClick={() => handleTriggerUpload(doc.document_type)}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition"
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition cursor-pointer"
               >
                 <Upload className="w-3.5 h-3.5" />
                 <span>Upload</span>
@@ -265,14 +274,30 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({ empl
       {/* Top Header & Metrics Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         {/* Metric Cards (Reference Screen 3) */}
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4">
+          {employee.status === 'Onboarding' && (
+            <div className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-purple-50/80 border border-purple-200/80 shadow-2xs">
+              <div className="p-2 rounded-xl bg-purple-600 text-white">
+                <CheckCircle2 className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-lg font-black text-purple-950 font-mono">
+                  {requiredUploaded} / {requiredDocs.length}
+                </div>
+                <div className="text-2xs font-semibold text-purple-700 uppercase tracking-wider">
+                  Required for Activation
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-emerald-50/80 border border-emerald-200/80 shadow-2xs">
             <div className="p-2 rounded-xl bg-emerald-500 text-white">
               <CheckCircle2 className="w-4 h-4" />
             </div>
             <div>
               <div className="text-lg font-black text-emerald-950 font-mono">{uploadedCount} uploaded</div>
-              <div className="text-2xs font-semibold text-emerald-700 uppercase tracking-wider">Files saved</div>
+              <div className="text-2xs font-semibold text-emerald-700 uppercase tracking-wider">Total files saved</div>
             </div>
           </div>
 

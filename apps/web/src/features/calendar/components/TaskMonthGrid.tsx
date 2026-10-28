@@ -15,6 +15,7 @@ interface TaskMonthGridProps {
   currentUserId?: number;
   onSelectEvent?: (event: CalendarEvent) => void;
   onSelectTask?: (taskId: number) => void;
+  displayMode?: 'attendance' | 'tasks';
 }
 
 export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
@@ -28,6 +29,7 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
   currentUserId,
   onSelectEvent,
   onSelectTask,
+  displayMode = 'attendance',
 }) => {
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
@@ -92,6 +94,8 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
 
           // Holiday on this day
           const dayHoliday = holidays.find((h) => h.holiday_date === dateStr);
+          const showAttendance = displayMode === 'attendance';
+          const showOperations = displayMode === 'tasks';
 
           // Meetings scheduled or attended on this day
           const dayMeetings = events.filter(
@@ -141,7 +145,7 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
           );
 
           let attendanceBadge: React.ReactNode = null;
-          if (isCurrentMonth && isPastOrToday) {
+          if (showAttendance && isCurrentMonth && isPastOrToday) {
             if (isToday && attendanceRecord?.punch_in && !attendanceRecord?.punch_out) {
               attendanceBadge = (
                 <span className="px-1.5 py-0.5 rounded text-[8px] font-bold border border-teal-500 text-teal-700 bg-teal-50 shadow-2xs">
@@ -228,7 +232,7 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
                   </span>
 
                   {/* Holiday Purple Badge */}
-                  {isCurrentMonth && dayHoliday && (
+                  {showAttendance && isCurrentMonth && dayHoliday && (
                     <span
                       title={`${dayHoliday.name} (${dayHoliday.type})`}
                       className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-purple-100 text-purple-800 border border-purple-200 truncate max-w-[80px]"
@@ -241,10 +245,10 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
                 {/* Right side: Attendance Status Badge & Notes/Reminders */}
                 <div className="flex items-center gap-1">
                   {attendanceBadge}
-                  {dayNotes.length > 0 && (
+                  {showOperations && dayNotes.length > 0 && (
                     <span title={`${dayNotes.length} Note(s)`} className="w-1.5 h-1.5 rounded-full bg-amber-400" />
                   )}
-                  {dayReminders.length > 0 && (
+                  {showOperations && dayReminders.length > 0 && (
                     <span
                       title={`${dayReminders.length} Reminder(s)`}
                       className="w-1.5 h-1.5 rounded-full bg-blue-500"
@@ -256,7 +260,7 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
               {/* Items List (Meetings + Tasks) */}
               <div className="mt-1 space-y-1 overflow-y-hidden flex-1">
                 {/* Meetings (Blue) */}
-                {dayMeetings.slice(0, 2).map((meeting) => {
+                {showOperations && dayMeetings.slice(0, 2).map((meeting) => {
                   const mTime = new Date(meeting.start_time).toLocaleTimeString('en-US', {
                     hour: 'numeric',
                     minute: '2-digit',
@@ -282,7 +286,7 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
                 })}
 
                 {/* Tasks (Submitted: Amber, Approved: Green) */}
-                {dayTasks
+                {showOperations && dayTasks
                   .slice(0, Math.max(1, 3 - Math.min(dayMeetings.length, 2)))
                   .map((task) => {
                     const isSubmitted = task.stage === 'requested';
@@ -313,7 +317,7 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
                     );
                   })}
 
-                {totalItems > 3 && (
+                {showOperations && totalItems > 3 && (
                   <span className="text-[9px] font-bold text-slate-500 block px-1">
                     +{totalItems - 3} more
                   </span>
@@ -326,7 +330,7 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
 
       {/* Unified Attendance & Operational Legend */}
       <div className="border-t border-slate-200 bg-slate-50/50 p-2">
-        <CalendarStatusLegend />
+        <CalendarStatusLegend mode={displayMode} />
       </div>
     </div>
   );

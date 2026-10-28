@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsArray,
+  IsBoolean,
   IsEmail,
   IsIn,
   IsInt,
@@ -8,11 +9,59 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  Max,
   MaxLength,
   Min,
   MinLength,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
+
+export class EmployeePayPolicyDto {
+  @ApiPropertyOptional({ type: String, format: 'date', nullable: true })
+  salary_effective_from?: Date | null;
+
+  @ApiProperty({ type: Boolean, example: true })
+  pf_applicable!: boolean;
+
+  @ApiPropertyOptional({ type: String, example: '100904838291', nullable: true })
+  uan?: string | null;
+
+  @ApiProperty({ type: Number, example: 12 })
+  employee_pf_pct!: number;
+
+  @ApiProperty({ type: Number, example: 12 })
+  employer_pf_pct!: number;
+
+  @ApiProperty({ type: Boolean, example: true })
+  ot_eligible!: boolean;
+
+  @ApiPropertyOptional({ type: String, enum: ['FIXED', 'MULTIPLIER'], nullable: true })
+  ot_rate_type?: 'FIXED' | 'MULTIPLIER' | null;
+
+  @ApiPropertyOptional({ type: Number, example: 150, nullable: true })
+  ot_rate?: number | null;
+
+  @ApiPropertyOptional({ type: Number, example: 1.5, nullable: true })
+  ot_multiplier?: number | null;
+
+  @ApiProperty({ type: Number, example: 1.0 })
+  minimum_ot_per_day!: number;
+
+  @ApiProperty({ type: String, enum: ['SALARY', 'COMP_OFF'], example: 'SALARY' })
+  ot_paid_as!: 'SALARY' | 'COMP_OFF';
+
+  @ApiPropertyOptional({ type: String, enum: ['BANK_TRANSFER', 'CHEQUE', 'CASH'], nullable: true })
+  payment_mode?: 'BANK_TRANSFER' | 'CHEQUE' | 'CASH' | null;
+
+  @ApiPropertyOptional({ type: String, example: 'HDFC Bank', nullable: true })
+  bank_name?: string | null;
+
+  @ApiPropertyOptional({ type: String, example: '50100492817291', nullable: true })
+  account_number?: string | null;
+
+  @ApiPropertyOptional({ type: String, example: 'HDFC0001234', nullable: true })
+  ifsc_code?: string | null;
+}
 
 export class CreateEmployeeDto {
   @ApiProperty({ type: String, example: 'Alice Johnson', description: 'Employee full name' })
@@ -122,6 +171,83 @@ export class CreateEmployeeDto {
   @IsNumber()
   @Min(0)
   pf?: number;
+
+  @ApiPropertyOptional({ type: Boolean, example: true, description: 'Overtime eligibility' })
+  @IsOptional()
+  @IsBoolean()
+  ot_eligible?: boolean;
+
+  @ApiPropertyOptional({ type: String, enum: ['FIXED', 'MULTIPLIER'], example: 'MULTIPLIER' })
+  @IsOptional()
+  @IsIn(['FIXED', 'MULTIPLIER'])
+  ot_rate_type?: 'FIXED' | 'MULTIPLIER' | null;
+
+  @ApiPropertyOptional({ type: Number, example: 150 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  ot_rate?: number | null;
+
+  @ApiPropertyOptional({ type: Number, example: 1.5 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  ot_multiplier?: number | null;
+
+  @ApiPropertyOptional({ type: Number, example: 1.0 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  minimum_ot_per_day?: number;
+
+  @ApiPropertyOptional({ type: String, enum: ['SALARY', 'COMP_OFF'], example: 'SALARY' })
+  @IsOptional()
+  @IsIn(['SALARY', 'COMP_OFF'])
+  ot_paid_as?: 'SALARY' | 'COMP_OFF';
+
+  @ApiPropertyOptional({ type: Boolean, example: true })
+  @IsOptional()
+  @IsBoolean()
+  pf_applicable?: boolean;
+
+  @ApiPropertyOptional({ type: String, example: '100904838291' })
+  @IsOptional()
+  @IsString()
+  uan?: string | null;
+
+  @ApiPropertyOptional({ type: Number, example: 12 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  employee_pf_pct?: number;
+
+  @ApiPropertyOptional({ type: Number, example: 12 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  employer_pf_pct?: number;
+
+  @ApiPropertyOptional({ type: String, enum: ['BANK_TRANSFER', 'CHEQUE', 'CASH'], example: 'BANK_TRANSFER' })
+  @IsOptional()
+  @IsIn(['BANK_TRANSFER', 'CHEQUE', 'CASH'])
+  payment_mode?: 'BANK_TRANSFER' | 'CHEQUE' | 'CASH' | null;
+
+  @ApiPropertyOptional({ type: String, example: 'HDFC Bank' })
+  @IsOptional()
+  @IsString()
+  bank_name?: string | null;
+
+  @ApiPropertyOptional({ type: String, example: '50100492817291' })
+  @IsOptional()
+  @IsString()
+  account_number?: string | null;
+
+  @ApiPropertyOptional({ type: String, example: 'HDFC0001234' })
+  @IsOptional()
+  @IsString()
+  ifsc_code?: string | null;
 }
 
 export class UpdateEmployeeDto {
@@ -254,6 +380,83 @@ export class UpdateEmployeeDto {
   @IsOptional()
   @IsString()
   deactivation_notes?: string | null;
+
+  @ApiPropertyOptional({ type: Boolean, example: true })
+  @IsOptional()
+  @IsBoolean()
+  ot_eligible?: boolean;
+
+  @ApiPropertyOptional({ type: String, enum: ['FIXED', 'MULTIPLIER'] })
+  @IsOptional()
+  @IsIn(['FIXED', 'MULTIPLIER'])
+  ot_rate_type?: 'FIXED' | 'MULTIPLIER' | null;
+
+  @ApiPropertyOptional({ type: Number, example: 150 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  ot_rate?: number | null;
+
+  @ApiPropertyOptional({ type: Number, example: 1.5 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  ot_multiplier?: number | null;
+
+  @ApiPropertyOptional({ type: Number, example: 1.0 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  minimum_ot_per_day?: number;
+
+  @ApiPropertyOptional({ type: String, enum: ['SALARY', 'COMP_OFF'] })
+  @IsOptional()
+  @IsIn(['SALARY', 'COMP_OFF'])
+  ot_paid_as?: 'SALARY' | 'COMP_OFF';
+
+  @ApiPropertyOptional({ type: Boolean, example: true })
+  @IsOptional()
+  @IsBoolean()
+  pf_applicable?: boolean;
+
+  @ApiPropertyOptional({ type: String, example: '100904838291' })
+  @IsOptional()
+  @IsString()
+  uan?: string | null;
+
+  @ApiPropertyOptional({ type: Number, example: 12 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  employee_pf_pct?: number;
+
+  @ApiPropertyOptional({ type: Number, example: 12 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  employer_pf_pct?: number;
+
+  @ApiPropertyOptional({ type: String, enum: ['BANK_TRANSFER', 'CHEQUE', 'CASH'] })
+  @IsOptional()
+  @IsIn(['BANK_TRANSFER', 'CHEQUE', 'CASH'])
+  payment_mode?: 'BANK_TRANSFER' | 'CHEQUE' | 'CASH' | null;
+
+  @ApiPropertyOptional({ type: String, example: 'HDFC Bank' })
+  @IsOptional()
+  @IsString()
+  bank_name?: string | null;
+
+  @ApiPropertyOptional({ type: String, example: '50100492817291' })
+  @IsOptional()
+  @IsString()
+  account_number?: string | null;
+
+  @ApiPropertyOptional({ type: String, example: 'HDFC0001234' })
+  @IsOptional()
+  @IsString()
+  ifsc_code?: string | null;
 }
 
 export class DeactivateEmployeeDto {
@@ -499,6 +702,51 @@ export class EmployeeResponseDto {
 
   @ApiPropertyOptional({ type: Number, example: 0 })
   pending_documents_count?: number;
+
+  @ApiPropertyOptional({ type: () => EmployeePayPolicyDto })
+  pay_policy?: EmployeePayPolicyDto | null;
+
+  @ApiPropertyOptional({ type: Boolean, example: true })
+  ot_eligible?: boolean;
+
+  @ApiPropertyOptional({ type: String, enum: ['FIXED', 'MULTIPLIER'] })
+  ot_rate_type?: 'FIXED' | 'MULTIPLIER' | null;
+
+  @ApiPropertyOptional({ type: Number, example: 150 })
+  ot_rate?: number | null;
+
+  @ApiPropertyOptional({ type: Number, example: 1.5 })
+  ot_multiplier?: number | null;
+
+  @ApiPropertyOptional({ type: Number, example: 1.0 })
+  minimum_ot_per_day?: number;
+
+  @ApiPropertyOptional({ type: String, enum: ['SALARY', 'COMP_OFF'] })
+  ot_paid_as?: 'SALARY' | 'COMP_OFF';
+
+  @ApiPropertyOptional({ type: Boolean, example: true })
+  pf_applicable?: boolean;
+
+  @ApiPropertyOptional({ type: String, example: '100904838291' })
+  uan?: string | null;
+
+  @ApiPropertyOptional({ type: Number, example: 12 })
+  employee_pf_pct?: number;
+
+  @ApiPropertyOptional({ type: Number, example: 12 })
+  employer_pf_pct?: number;
+
+  @ApiPropertyOptional({ type: String, enum: ['BANK_TRANSFER', 'CHEQUE', 'CASH'] })
+  payment_mode?: 'BANK_TRANSFER' | 'CHEQUE' | 'CASH' | null;
+
+  @ApiPropertyOptional({ type: String, example: 'HDFC Bank' })
+  bank_name?: string | null;
+
+  @ApiPropertyOptional({ type: String, example: '50100492817291' })
+  account_number?: string | null;
+
+  @ApiPropertyOptional({ type: String, example: 'HDFC0001234' })
+  ifsc_code?: string | null;
 }
 
 export class EmployeeHistoryItemDto {

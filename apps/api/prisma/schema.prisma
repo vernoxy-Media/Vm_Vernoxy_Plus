@@ -11,35 +11,68 @@ datasource db {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model companies {
-  company_id                                       Int                @id(map: "pk_companies") @default(autoincrement())
-  name                                             String             @db.VarChar(255)
+  company_id                                       Int                  @id(map: "pk_companies") @default(autoincrement())
+  name                                             String               @db.VarChar(255)
   parent_company_id                                Int?
   customer_type_id                                 Int
   industry_id                                      Int
   sub_industry_id                                  Int?
   address                                          String?
-  city                                             String?            @db.VarChar(100)
-  state                                            String?            @db.VarChar(100)
-  country                                          String?            @db.VarChar(100)
+  city                                             String?              @db.VarChar(100)
+  state                                            String?              @db.VarChar(100)
+  country                                          String?              @db.VarChar(100)
   owner_id                                         Int?
-  is_active                                        Boolean            @default(true)
-  created_at                                       DateTime           @default(now()) @db.Timestamptz(6)
+  is_active                                        Boolean              @default(true)
+  created_at                                       DateTime             @default(now()) @db.Timestamptz(6)
   created_by                                       Int?
-  updated_at                                       DateTime?          @db.Timestamptz(6)
+  updated_at                                       DateTime?            @db.Timestamptz(6)
   updated_by                                       Int?
-  deleted_at                                       DateTime?          @db.Timestamptz(6)
+  deleted_at                                       DateTime?            @db.Timestamptz(6)
   deleted_by                                       Int?
-  employees_companies_created_byToemployees        employees?         @relation("companies_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_companies_created_by")
-  customer_types                                   customer_types     @relation(fields: [customer_type_id], references: [customer_type_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_companies_customer_type_id")
-  employees_companies_deleted_byToemployees        employees?         @relation("companies_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_companies_deleted_by")
-  industries_companies_industry_idToindustries     industries         @relation("companies_industry_idToindustries", fields: [industry_id], references: [industry_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_companies_industry_id")
-  employees_companies_owner_idToemployees          employees?         @relation("companies_owner_idToemployees", fields: [owner_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_companies_owner_id")
-  companies                                        companies?         @relation("companiesTocompanies", fields: [parent_company_id], references: [company_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_companies_parent_company_id")
-  other_companies                                  companies[]        @relation("companiesTocompanies")
-  industries_companies_sub_industry_idToindustries industries?        @relation("companies_sub_industry_idToindustries", fields: [sub_industry_id], references: [industry_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_companies_sub_industry_id")
-  employees_companies_updated_byToemployees        employees?         @relation("companies_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_companies_updated_by")
+  company_code                                     String?              @unique @db.VarChar(50)
+  client_code                                      String?              @unique @db.VarChar(50)
+  is_client                                        Boolean?             @default(false)
+  no_of_branches                                   Int?                 @default(0)
+  no_of_plants                                     Int?                 @default(0)
+  full_address                                     String?
+  pin                                              String?              @db.VarChar(20)
+  google_maps_url                                  String?
+  is_gidc                                          Boolean?             @default(false)
+  gidc_name                                        String?              @db.VarChar(150)
+  gidc_area_phase                                  String?              @db.VarChar(150)
+  contact_person                                   String?              @db.VarChar(150)
+  designation                                      String?              @db.VarChar(100)
+  mobile                                           String?              @db.VarChar(25)
+  email                                            String?              @db.VarChar(255)
+  nature_of_business                               String?              @db.VarChar(100)
+  products_services                                String?
+  estimated_employees                              Int?
+  estimated_turnover                               Decimal?             @db.Decimal(15, 2)
+  year_established                                 Int?
+  existing_major_clients                           String?
+  website                                          String?
+  website_quality                                  String?              @db.VarChar(50)
+  developed_by                                     String?              @db.VarChar(200)
+  linkedin_url                                     String?
+  instagram_url                                    String?
+  facebook_url                                     String?
+  youtube_url                                      String?
+  google_business_profile_url                      String?
+  brochure_url                                     String?
+  employees_companies_created_byToemployees        employees?           @relation("companies_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_companies_created_by")
+  customer_types                                   customer_types       @relation(fields: [customer_type_id], references: [customer_type_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_companies_customer_type_id")
+  employees_companies_deleted_byToemployees        employees?           @relation("companies_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_companies_deleted_by")
+  industries_companies_industry_idToindustries     industries           @relation("companies_industry_idToindustries", fields: [industry_id], references: [industry_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_companies_industry_id")
+  employees_companies_owner_idToemployees          employees?           @relation("companies_owner_idToemployees", fields: [owner_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_companies_owner_id")
+  companies                                        companies?           @relation("companiesTocompanies", fields: [parent_company_id], references: [company_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_companies_parent_company_id")
+  other_companies                                  companies[]          @relation("companiesTocompanies")
+  industries_companies_sub_industry_idToindustries industries?          @relation("companies_sub_industry_idToindustries", fields: [sub_industry_id], references: [industry_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_companies_sub_industry_id")
+  employees_companies_updated_byToemployees        employees?           @relation("companies_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_companies_updated_by")
   company_channels                                 company_channels[]
   company_persons                                  company_persons[]
+  crm_communications                               crm_communications[]
+  crm_follow_ups                                   crm_follow_ups[]
+  crm_lead_notes                                   crm_lead_notes[]
   leads                                            leads[]
 }
 
@@ -164,6 +197,9 @@ model employees {
   deactivation_notes                                                                     String?
   deactivated_at                                                                         DateTime?                         @db.Timestamptz(6)
   deactivated_by                                                                         Int?
+  leave_policy_id                                                                        Int?
+  probation_end_date                                                                     DateTime?                         @db.Date
+  leave_approver_id                                                                      Int?
   app_settings_app_settings_created_byToemployees                                        app_settings[]                    @relation("app_settings_created_byToemployees")
   app_settings_app_settings_deleted_byToemployees                                        app_settings[]                    @relation("app_settings_deleted_byToemployees")
   app_settings_app_settings_updated_byToemployees                                        app_settings[]                    @relation("app_settings_updated_byToemployees")
@@ -217,6 +253,11 @@ model employees {
   company_persons_company_persons_created_byToemployees                                  company_persons[]                 @relation("company_persons_created_byToemployees")
   company_persons_company_persons_deleted_byToemployees                                  company_persons[]                 @relation("company_persons_deleted_byToemployees")
   company_persons_company_persons_updated_byToemployees                                  company_persons[]                 @relation("company_persons_updated_byToemployees")
+  crm_communications                                                                     crm_communications[]
+  crm_follow_ups_crm_follow_ups_assigned_toToemployees                                   crm_follow_ups[]                  @relation("crm_follow_ups_assigned_toToemployees")
+  crm_follow_ups_crm_follow_ups_created_byToemployees                                    crm_follow_ups[]                  @relation("crm_follow_ups_created_byToemployees")
+  crm_import_batches                                                                     crm_import_batches[]
+  crm_lead_notes                                                                         crm_lead_notes[]
   customer_types_customer_types_created_byToemployees                                    customer_types[]                  @relation("customer_types_created_byToemployees")
   customer_types_customer_types_deleted_byToemployees                                    customer_types[]                  @relation("customer_types_deleted_byToemployees")
   customer_types_customer_types_updated_byToemployees                                    customer_types[]                  @relation("customer_types_updated_byToemployees")
@@ -241,10 +282,16 @@ model employees {
   employee_history_employee_history_created_byToemployees                                employee_history[]                @relation("employee_history_created_byToemployees")
   employee_history_employee_history_emp_idToemployees                                    employee_history[]                @relation("employee_history_emp_idToemployees")
   employee_history_employee_history_manager_idToemployees                                employee_history[]                @relation("employee_history_manager_idToemployees")
+  employee_pay_policies_employee_pay_policies_created_byToemployees                      employee_pay_policies[]           @relation("employee_pay_policies_created_byToemployees")
+  employee_pay_policies_employee_pay_policies_emp_idToemployees                          employee_pay_policies?            @relation("employee_pay_policies_emp_idToemployees")
+  employee_pay_policies_employee_pay_policies_updated_byToemployees                      employee_pay_policies[]           @relation("employee_pay_policies_updated_byToemployees")
   employees_employees_deactivated_byToemployees                                          employees?                        @relation("employees_deactivated_byToemployees", fields: [deactivated_by], references: [emp_id], onUpdate: NoAction)
   other_employees_employees_deactivated_byToemployees                                    employees[]                       @relation("employees_deactivated_byToemployees")
   master_lookup_employees_employment_type_idTomaster_lookup                              master_lookup?                    @relation("employees_employment_type_idTomaster_lookup", fields: [employment_type_id], references: [lookup_id], onUpdate: NoAction)
   master_lookup_employees_gender_idTomaster_lookup                                       master_lookup?                    @relation("employees_gender_idTomaster_lookup", fields: [gender_id], references: [lookup_id], onUpdate: NoAction)
+  employees_employees_leave_approver_idToemployees                                       employees?                        @relation("employees_leave_approver_idToemployees", fields: [leave_approver_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+  other_employees_employees_leave_approver_idToemployees                                 employees[]                       @relation("employees_leave_approver_idToemployees")
+  leave_policies_employees_leave_policy_idToleave_policies                               leave_policies?                   @relation("employees_leave_policy_idToleave_policies", fields: [leave_policy_id], references: [policy_id], onDelete: NoAction, onUpdate: NoAction)
   employees_employees_created_byToemployees                                              employees?                        @relation("employees_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_employees_created_by")
   other_employees_employees_created_byToemployees                                        employees[]                       @relation("employees_created_byToemployees")
   employees_employees_deleted_byToemployees                                              employees?                        @relation("employees_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_employees_deleted_by")
@@ -264,6 +311,21 @@ model employees {
   leads_leads_owner_idToemployees                                                        leads[]                           @relation("leads_owner_idToemployees")
   leads_leads_updated_byToemployees                                                      leads[]                           @relation("leads_updated_byToemployees")
   leads_leads_lead_by_idToemployees                                                      leads[]                           @relation("leads_lead_by_idToemployees")
+  leave_balances                                                                         leave_balances[]
+  leave_comp_off_grants                                                                  leave_comp_off_grants[]
+  leave_general_settings                                                                 leave_general_settings[]
+  leave_ledger_leave_ledger_emp_idToemployees                                            leave_ledger[]                    @relation("leave_ledger_emp_idToemployees")
+  leave_ledger_leave_ledger_performed_byToemployees                                      leave_ledger[]                    @relation("leave_ledger_performed_byToemployees")
+  leave_policies_leave_policies_created_byToemployees                                    leave_policies[]                  @relation("leave_policies_created_byToemployees")
+  leave_policies_leave_policies_updated_byToemployees                                    leave_policies[]                  @relation("leave_policies_updated_byToemployees")
+  leave_request_history                                                                  leave_request_history[]
+  leave_requests_leave_requests_applied_byToemployees                                    leave_requests[]                  @relation("leave_requests_applied_byToemployees")
+  leave_requests_leave_requests_cancellation_decided_byToemployees                       leave_requests[]                  @relation("leave_requests_cancellation_decided_byToemployees")
+  leave_requests_leave_requests_decided_byToemployees                                    leave_requests[]                  @relation("leave_requests_decided_byToemployees")
+  leave_requests_leave_requests_emp_idToemployees                                        leave_requests[]                  @relation("leave_requests_emp_idToemployees")
+  leave_settings_change_log                                                              leave_settings_change_log[]
+  leave_types_leave_types_created_byToemployees                                          leave_types[]                     @relation("leave_types_created_byToemployees")
+  leave_types_leave_types_updated_byToemployees                                          leave_types[]                     @relation("leave_types_updated_byToemployees")
   master_lookup_master_lookup_created_byToemployees                                      master_lookup[]                   @relation("master_lookup_created_byToemployees")
   master_lookup_master_lookup_deleted_byToemployees                                      master_lookup[]                   @relation("master_lookup_deleted_byToemployees")
   master_lookup_master_lookup_updated_byToemployees                                      master_lookup[]                   @relation("master_lookup_updated_byToemployees")
@@ -275,6 +337,19 @@ model employees {
   otp_codes_otp_codes_deleted_byToemployees                                              otp_codes[]                       @relation("otp_codes_deleted_byToemployees")
   otp_codes_otp_codes_emp_idToemployees                                                  otp_codes[]                       @relation("otp_codes_emp_idToemployees")
   otp_codes_otp_codes_updated_byToemployees                                              otp_codes[]                       @relation("otp_codes_updated_byToemployees")
+  payroll_adjustments                                                                    payroll_adjustments[]
+  payroll_employees                                                                      payroll_employees[]
+  payroll_ot_entries_payroll_ot_entries_approver_idToemployees                           payroll_ot_entries[]              @relation("payroll_ot_entries_approver_idToemployees")
+  payroll_ot_entries_payroll_ot_entries_emp_idToemployees                                payroll_ot_entries[]              @relation("payroll_ot_entries_emp_idToemployees")
+  payroll_run_history                                                                    payroll_run_history[]
+  payroll_runs_payroll_runs_calculated_byToemployees                                     payroll_runs[]                    @relation("payroll_runs_calculated_byToemployees")
+  payroll_runs_payroll_runs_created_byToemployees                                        payroll_runs[]                    @relation("payroll_runs_created_byToemployees")
+  payroll_runs_payroll_runs_locked_byToemployees                                         payroll_runs[]                    @relation("payroll_runs_locked_byToemployees")
+  payroll_runs_payroll_runs_paid_byToemployees                                           payroll_runs[]                    @relation("payroll_runs_paid_byToemployees")
+  payroll_runs_payroll_runs_unlocked_byToemployees                                       payroll_runs[]                    @relation("payroll_runs_unlocked_byToemployees")
+  payroll_runs_payroll_runs_updated_byToemployees                                        payroll_runs[]                    @relation("payroll_runs_updated_byToemployees")
+  payroll_settings_payroll_settings_updated_byToemployees                                payroll_settings[]                @relation("payroll_settings_updated_byToemployees")
+  payroll_settings_history                                                               payroll_settings_history[]
   persons_persons_created_byToemployees                                                  persons[]                         @relation("persons_created_byToemployees")
   persons_persons_deleted_byToemployees                                                  persons[]                         @relation("persons_deleted_byToemployees")
   persons_persons_updated_byToemployees                                                  persons[]                         @relation("persons_updated_byToemployees")
@@ -345,121 +420,134 @@ model industries {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model leads {
-  lead_id                                           Int             @id(map: "pk_leads") @default(autoincrement())
+  lead_id                                           Int                  @id(map: "pk_leads") @default(autoincrement())
   company_id                                        Int?
   person_id                                         Int?
-  title                                             String?         @db.VarChar(200)
+  title                                             String?              @db.VarChar(200)
   pipeline_stage_id                                 Int
-  status                                            lead_status     @default(open)
+  status                                            lead_status          @default(open)
   owner_id                                          Int
   source_id                                         Int?
-  expected_value                                    Decimal?        @db.Decimal(14, 2)
-  actual_value                                      Decimal?        @db.Decimal(14, 2)
-  currency_code                                     String          @default("INR") @db.VarChar(3)
-  expected_close_date                               DateTime?       @db.Date
+  expected_value                                    Decimal?             @db.Decimal(14, 2)
+  actual_value                                      Decimal?             @db.Decimal(14, 2)
+  currency_code                                     String               @default("INR") @db.VarChar(3)
+  expected_close_date                               DateTime?            @db.Date
   lost_reason_id                                    Int?
-  closed_at                                         DateTime?       @db.Timestamptz(6)
-  created_at                                        DateTime        @default(now()) @db.Timestamptz(6)
+  closed_at                                         DateTime?            @db.Timestamptz(6)
+  created_at                                        DateTime             @default(now()) @db.Timestamptz(6)
   created_by                                        Int?
-  updated_at                                        DateTime?       @db.Timestamptz(6)
+  updated_at                                        DateTime?            @db.Timestamptz(6)
   updated_by                                        Int?
-  deleted_at                                        DateTime?       @db.Timestamptz(6)
+  deleted_at                                        DateTime?            @db.Timestamptz(6)
   deleted_by                                        Int?
-  company_name                                      String?         @db.VarChar(255)
-  no_of_branches                                    Int?            @default(0)
-  no_of_plants                                      Int?            @default(0)
+  company_name                                      String?              @db.VarChar(255)
+  no_of_branches                                    Int?                 @default(0)
+  no_of_plants                                      Int?                 @default(0)
   full_address                                      String?
-  city                                              String?         @db.VarChar(100)
-  state                                             String?         @db.VarChar(100)
-  country                                           String?         @default("India") @db.VarChar(100)
-  pin                                               String?         @db.VarChar(20)
+  city                                              String?              @db.VarChar(100)
+  state                                             String?              @db.VarChar(100)
+  country                                           String?              @default("India") @db.VarChar(100)
+  pin                                               String?              @db.VarChar(20)
   google_maps_url                                   String?
-  is_gidc                                           Boolean?        @default(false)
-  gidc_name                                         String?         @db.VarChar(150)
-  gidc_area_phase                                   String?         @db.VarChar(150)
-  contact_person                                    String?         @db.VarChar(150)
-  designation                                       String?         @db.VarChar(100)
-  mobile                                            String?         @db.VarChar(25)
-  email                                             String?         @db.VarChar(255)
-  nature_of_business                                String?         @db.VarChar(100)
-  industry                                          String?         @db.VarChar(100)
+  is_gidc                                           Boolean?             @default(false)
+  gidc_name                                         String?              @db.VarChar(150)
+  gidc_area_phase                                   String?              @db.VarChar(150)
+  contact_person                                    String?              @db.VarChar(150)
+  designation                                       String?              @db.VarChar(100)
+  mobile                                            String?              @db.VarChar(25)
+  email                                             String?              @db.VarChar(255)
+  nature_of_business                                String?              @db.VarChar(100)
+  industry                                          String?              @db.VarChar(100)
   industry_id                                       Int?
   products_services                                 String?
   estimated_employees                               Int?
-  estimated_turnover                                Decimal?        @db.Decimal(15, 2)
+  estimated_turnover                                Decimal?             @db.Decimal(15, 2)
   year_established                                  Int?
   existing_major_clients                            String?
   website                                           String?
-  website_quality                                   String?         @db.VarChar(50)
-  developed_by                                      String?         @db.VarChar(200)
+  website_quality                                   String?              @db.VarChar(50)
+  developed_by                                      String?              @db.VarChar(200)
   linkedin_url                                      String?
   instagram_url                                     String?
   facebook_url                                      String?
   youtube_url                                       String?
   google_business_profile_url                       String?
   brochure_url                                      String?
-  lead_source                                       String?         @default("Cold calling") @db.VarChar(100)
+  lead_source                                       String?              @default("Cold calling") @db.VarChar(100)
   lead_by_id                                        Int?
-  service_fit                                       String?         @db.VarChar(150)
-  lead_stage                                        String?         @default("New") @db.VarChar(50)
-  companies                                         companies?      @relation(fields: [company_id], references: [company_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_leads_company_id")
-  employees_leads_created_byToemployees             employees?      @relation("leads_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_leads_created_by")
-  employees_leads_deleted_byToemployees             employees?      @relation("leads_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_leads_deleted_by")
-  master_lookup_leads_lost_reason_idTomaster_lookup master_lookup?  @relation("leads_lost_reason_idTomaster_lookup", fields: [lost_reason_id], references: [lookup_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_leads_lost_reason_id")
-  employees_leads_owner_idToemployees               employees       @relation("leads_owner_idToemployees", fields: [owner_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_leads_owner_id")
-  persons                                           persons?        @relation(fields: [person_id], references: [person_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_leads_person_id")
-  pipeline_stages                                   pipeline_stages @relation(fields: [pipeline_stage_id], references: [pipeline_stage_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_leads_pipeline_stage_id")
-  master_lookup_leads_source_idTomaster_lookup      master_lookup?  @relation("leads_source_idTomaster_lookup", fields: [source_id], references: [lookup_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_leads_source_id")
-  employees_leads_updated_byToemployees             employees?      @relation("leads_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_leads_updated_by")
-  industries                                        industries?     @relation(fields: [industry_id], references: [industry_id], onDelete: NoAction, onUpdate: NoAction)
-  employees_leads_lead_by_idToemployees             employees?      @relation("leads_lead_by_idToemployees", fields: [lead_by_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+  service_fit                                       String?              @db.VarChar(150)
+  lead_stage                                        String?              @default("New") @db.VarChar(50)
+  lead_code                                         String?              @unique @db.VarChar(50)
+  won_on                                            DateTime?            @db.Date
+  win_note                                          String?
+  lost_reason                                       String?              @db.VarChar(150)
+  lost_note                                         String?
+  on_hold_reason                                    String?
+  on_hold_follow_up_date                            DateTime?            @db.Timestamptz(6)
+  crm_communications                                crm_communications[]
+  crm_follow_ups                                    crm_follow_ups[]
+  crm_lead_notes                                    crm_lead_notes[]
+  companies                                         companies?           @relation(fields: [company_id], references: [company_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_leads_company_id")
+  employees_leads_created_byToemployees             employees?           @relation("leads_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_leads_created_by")
+  employees_leads_deleted_byToemployees             employees?           @relation("leads_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_leads_deleted_by")
+  master_lookup_leads_lost_reason_idTomaster_lookup master_lookup?       @relation("leads_lost_reason_idTomaster_lookup", fields: [lost_reason_id], references: [lookup_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_leads_lost_reason_id")
+  employees_leads_owner_idToemployees               employees            @relation("leads_owner_idToemployees", fields: [owner_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_leads_owner_id")
+  persons                                           persons?             @relation(fields: [person_id], references: [person_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_leads_person_id")
+  pipeline_stages                                   pipeline_stages      @relation(fields: [pipeline_stage_id], references: [pipeline_stage_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_leads_pipeline_stage_id")
+  master_lookup_leads_source_idTomaster_lookup      master_lookup?       @relation("leads_source_idTomaster_lookup", fields: [source_id], references: [lookup_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_leads_source_id")
+  employees_leads_updated_byToemployees             employees?           @relation("leads_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_leads_updated_by")
+  industries                                        industries?          @relation(fields: [industry_id], references: [industry_id], onDelete: NoAction, onUpdate: NoAction)
+  employees_leads_lead_by_idToemployees             employees?           @relation("leads_lead_by_idToemployees", fields: [lead_by_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model master_lookup {
-  lookup_id                                             Int               @id(map: "pk_master_lookup") @default(autoincrement())
-  lookup_type                                           String            @db.VarChar(50)
-  code                                                  String            @db.VarChar(50)
-  label                                                 String            @db.VarChar(150)
-  sort_order                                            Int               @default(0)
-  is_active                                             Boolean           @default(true)
-  created_at                                            DateTime          @default(now()) @db.Timestamptz(6)
+  lookup_id                                             Int                   @id(map: "pk_master_lookup") @default(autoincrement())
+  lookup_type                                           String                @db.VarChar(50)
+  code                                                  String                @db.VarChar(50)
+  label                                                 String                @db.VarChar(150)
+  sort_order                                            Int                   @default(0)
+  is_active                                             Boolean               @default(true)
+  created_at                                            DateTime              @default(now()) @db.Timestamptz(6)
   created_by                                            Int?
-  updated_at                                            DateTime?         @db.Timestamptz(6)
+  updated_at                                            DateTime?             @db.Timestamptz(6)
   updated_by                                            Int?
-  deleted_at                                            DateTime?         @db.Timestamptz(6)
+  deleted_at                                            DateTime?             @db.Timestamptz(6)
   deleted_by                                            Int?
   candidates                                            candidates[]
   company_persons                                       company_persons[]
-  employees_employees_employment_type_idTomaster_lookup employees[]       @relation("employees_employment_type_idTomaster_lookup")
-  employees_employees_gender_idTomaster_lookup          employees[]       @relation("employees_gender_idTomaster_lookup")
-  leads_leads_lost_reason_idTomaster_lookup             leads[]           @relation("leads_lost_reason_idTomaster_lookup")
-  leads_leads_source_idTomaster_lookup                  leads[]           @relation("leads_source_idTomaster_lookup")
-  employees_master_lookup_created_byToemployees         employees?        @relation("master_lookup_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_master_lookup_created_by")
-  employees_master_lookup_deleted_byToemployees         employees?        @relation("master_lookup_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_master_lookup_deleted_by")
-  employees_master_lookup_updated_byToemployees         employees?        @relation("master_lookup_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_master_lookup_updated_by")
+  employees_employees_employment_type_idTomaster_lookup employees[]           @relation("employees_employment_type_idTomaster_lookup")
+  employees_employees_gender_idTomaster_lookup          employees[]           @relation("employees_gender_idTomaster_lookup")
+  leads_leads_lost_reason_idTomaster_lookup             leads[]               @relation("leads_lost_reason_idTomaster_lookup")
+  leads_leads_source_idTomaster_lookup                  leads[]               @relation("leads_source_idTomaster_lookup")
+  employees_master_lookup_created_byToemployees         employees?            @relation("master_lookup_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_master_lookup_created_by")
+  employees_master_lookup_deleted_byToemployees         employees?            @relation("master_lookup_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_master_lookup_deleted_by")
+  employees_master_lookup_updated_byToemployees         employees?            @relation("master_lookup_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_master_lookup_updated_by")
+  payroll_adjustments                                   payroll_adjustments[]
   tasks                                                 tasks[]
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model persons {
-  person_id                               Int               @id(map: "pk_persons") @default(autoincrement())
-  name                                    String            @db.VarChar(150)
-  email                                   String?           @db.VarChar(255)
-  mobile                                  String?           @db.VarChar(20)
-  linkedin_url                            String?           @db.VarChar(300)
-  is_active                               Boolean           @default(true)
-  created_at                              DateTime          @default(now()) @db.Timestamptz(6)
+  person_id                               Int                  @id(map: "pk_persons") @default(autoincrement())
+  name                                    String               @db.VarChar(150)
+  email                                   String?              @db.VarChar(255)
+  mobile                                  String?              @db.VarChar(20)
+  linkedin_url                            String?              @db.VarChar(300)
+  is_active                               Boolean              @default(true)
+  created_at                              DateTime             @default(now()) @db.Timestamptz(6)
   created_by                              Int?
-  updated_at                              DateTime?         @db.Timestamptz(6)
+  updated_at                              DateTime?            @db.Timestamptz(6)
   updated_by                              Int?
-  deleted_at                              DateTime?         @db.Timestamptz(6)
+  deleted_at                              DateTime?            @db.Timestamptz(6)
   deleted_by                              Int?
   company_persons                         company_persons[]
+  crm_communications                      crm_communications[]
+  crm_follow_ups                          crm_follow_ups[]
   leads                                   leads[]
-  employees_persons_created_byToemployees employees?        @relation("persons_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_persons_created_by")
-  employees_persons_deleted_byToemployees employees?        @relation("persons_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_persons_deleted_by")
-  employees_persons_updated_byToemployees employees?        @relation("persons_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_persons_updated_by")
+  employees_persons_created_byToemployees employees?           @relation("persons_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_persons_created_by")
+  employees_persons_deleted_byToemployees employees?           @relation("persons_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_persons_deleted_by")
+  employees_persons_updated_byToemployees employees?           @relation("persons_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_persons_updated_by")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -743,8 +831,11 @@ model attendance_days {
   is_regularized                                                                   Boolean                  @default(false)
   check_in_mode                                                                    String                   @default("Web") @db.VarChar(50)
   regularization_id                                                                Int?
+  leave_request_id                                                                 Int?
+  leave_half                                                                       String?                  @db.VarChar(20)
   attendance_breaks                                                                attendance_breaks[]
   attendance_corrections                                                           attendance_corrections[]
+  leave_requests                                                                   leave_requests?          @relation(fields: [leave_request_id], references: [request_id], onDelete: NoAction, onUpdate: NoAction)
   attendance_shifts                                                                attendance_shifts?       @relation(fields: [shift_id], references: [shift_id], onDelete: NoAction, onUpdate: NoAction)
   employees_attendance_days_created_byToemployees                                  employees?               @relation("attendance_days_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_attendance_days_created_by")
   employees_attendance_days_deleted_byToemployees                                  employees?               @relation("attendance_days_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_attendance_days_deleted_by")
@@ -1264,21 +1355,305 @@ model employee_history {
   @@index([emp_id], map: "ix_employee_history_emp_id")
 }
 
+model employee_pay_policies {
+  emp_id                                                Int                   @id(map: "pk_employee_pay_policies")
+  salary_effective_from                                 DateTime?             @db.Date
+  pf_applicable                                         Boolean               @default(false)
+  uan                                                   String?               @db.VarChar(30)
+  employee_pf_pct                                       Decimal               @default(12.00) @db.Decimal(5, 2)
+  employer_pf_pct                                       Decimal               @default(12.00) @db.Decimal(5, 2)
+  ot_eligible                                           Boolean               @default(false)
+  ot_rate_type                                          payroll_ot_rate_type?
+  ot_rate                                               Decimal?              @db.Decimal(12, 2)
+  ot_multiplier                                         Decimal?              @db.Decimal(4, 2)
+  minimum_ot_per_day                                    Decimal               @default(0) @db.Decimal(4, 2)
+  ot_paid_as                                            payroll_ot_paid_as    @default(SALARY)
+  payment_mode                                          payroll_payment_mode?
+  bank_name                                             String?               @db.VarChar(150)
+  account_number                                        String?               @db.VarChar(50)
+  ifsc_code                                             String?               @db.VarChar(20)
+  created_at                                            DateTime              @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  created_by                                            Int?
+  updated_at                                            DateTime?             @db.Timestamptz(6)
+  updated_by                                            Int?
+  employees_employee_pay_policies_created_byToemployees employees?            @relation("employee_pay_policies_created_byToemployees", fields: [created_by], references: [emp_id], onUpdate: NoAction, map: "fk_employee_pay_policies_created_by")
+  employees_employee_pay_policies_emp_idToemployees     employees             @relation("employee_pay_policies_emp_idToemployees", fields: [emp_id], references: [emp_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_employee_pay_policies_emp")
+  employees_employee_pay_policies_updated_byToemployees employees?            @relation("employee_pay_policies_updated_byToemployees", fields: [updated_by], references: [emp_id], onUpdate: NoAction, map: "fk_employee_pay_policies_updated_by")
+}
+
+model payroll_settings {
+  settings_id                                      Int                        @id(map: "pk_payroll_settings") @default(autoincrement())
+  default_employee_pf_pct                          Decimal                    @default(12.00) @db.Decimal(5, 2)
+  default_employer_pf_pct                          Decimal                    @default(12.00) @db.Decimal(5, 2)
+  apply_pf_wage_limit                              Boolean                    @default(true)
+  pf_wage_limit                                    Decimal                    @default(15000.00) @db.Decimal(12, 2)
+  missing_punch_default                            payroll_missing_punch      @default(UNPAID)
+  ot_rounding                                      payroll_ot_rounding        @default(THIRTY)
+  total_salary_rounding                            payroll_total_rounding     @default(NEAREST_RUPEE)
+  pay_day                                          Int                        @default(7) @db.SmallInt
+  updated_by                                       Int?
+  updated_at                                       DateTime?                  @db.Timestamptz(6)
+  created_at                                       DateTime                   @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  employees_payroll_settings_updated_byToemployees employees?                 @relation("payroll_settings_updated_byToemployees", fields: [updated_by], references: [emp_id], onUpdate: NoAction, map: "fk_payroll_settings_updated_by")
+  payroll_settings_history                         payroll_settings_history[]
+}
+
+model payroll_settings_history {
+  history_id       Int              @id(map: "pk_payroll_settings_history") @default(autoincrement())
+  settings_id      Int
+  field_name       String           @db.VarChar(80)
+  old_value        String?
+  new_value        String?
+  performed_by     Int?
+  performed_at     DateTime         @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  employees        employees?       @relation(fields: [performed_by], references: [emp_id], onUpdate: NoAction, map: "fk_payroll_settings_history_performed_by")
+  payroll_settings payroll_settings @relation(fields: [settings_id], references: [settings_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_payroll_settings_history_settings")
+
+  @@index([settings_id, performed_at(sort: Desc)], map: "ix_payroll_settings_history_settings")
+}
+
+model payroll_runs {
+  payroll_run_id                                  Int                     @id(map: "pk_payroll_runs") @default(autoincrement())
+  payroll_month                                   Int                     @db.SmallInt
+  payroll_year                                    Int
+  start_date                                      DateTime                @db.Date
+  end_date                                        DateTime                @db.Date
+  status                                          payroll_run_status      @default(DRAFT)
+  calculated_at                                   DateTime?               @db.Timestamptz(6)
+  calculated_by                                   Int?
+  locked_at                                       DateTime?               @db.Timestamptz(6)
+  locked_by                                       Int?
+  unlocked_at                                     DateTime?               @db.Timestamptz(6)
+  unlocked_by                                     Int?
+  unlock_reason                                   String?                 @db.VarChar(250)
+  payment_date                                    DateTime?               @db.Date
+  payment_reference                               String?                 @db.VarChar(100)
+  paid_at                                         DateTime?               @db.Timestamptz(6)
+  paid_by                                         Int?
+  remarks                                         String?
+  attendance_locked                               Boolean                 @default(false)
+  attendance_locked_at                            DateTime?               @db.Timestamptz(6)
+  full_day_hours                                  Decimal?                @db.Decimal(4, 2)
+  apply_pf_wage_limit                             Boolean?
+  pf_wage_limit                                   Decimal?                @db.Decimal(12, 2)
+  missing_punch_default                           payroll_missing_punch?
+  ot_rounding                                     payroll_ot_rounding?
+  total_salary_rounding                           payroll_total_rounding?
+  source_fingerprint                              String?                 @db.VarChar(64)
+  total_employees                                 Int                     @default(0)
+  gross_earnings                                  Decimal                 @default(0) @db.Decimal(14, 2)
+  employee_pf_total                               Decimal                 @default(0) @db.Decimal(14, 2)
+  employer_pf_total                               Decimal                 @default(0) @db.Decimal(14, 2)
+  total_salary                                    Decimal                 @default(0) @db.Decimal(14, 2)
+  row_version                                     Int                     @default(1)
+  created_at                                      DateTime                @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  created_by                                      Int?
+  updated_at                                      DateTime?               @db.Timestamptz(6)
+  updated_by                                      Int?
+  payroll_employees                               payroll_employees[]
+  payroll_ot_entries                              payroll_ot_entries[]
+  payroll_run_history                             payroll_run_history[]
+  employees_payroll_runs_calculated_byToemployees employees?              @relation("payroll_runs_calculated_byToemployees", fields: [calculated_by], references: [emp_id], onDelete: Restrict, onUpdate: NoAction, map: "fk_payroll_runs_calculated_by")
+  employees_payroll_runs_created_byToemployees    employees?              @relation("payroll_runs_created_byToemployees", fields: [created_by], references: [emp_id], onUpdate: NoAction, map: "fk_payroll_runs_created_by")
+  employees_payroll_runs_locked_byToemployees     employees?              @relation("payroll_runs_locked_byToemployees", fields: [locked_by], references: [emp_id], onDelete: Restrict, onUpdate: NoAction, map: "fk_payroll_runs_locked_by")
+  employees_payroll_runs_paid_byToemployees       employees?              @relation("payroll_runs_paid_byToemployees", fields: [paid_by], references: [emp_id], onDelete: Restrict, onUpdate: NoAction, map: "fk_payroll_runs_paid_by")
+  employees_payroll_runs_unlocked_byToemployees   employees?              @relation("payroll_runs_unlocked_byToemployees", fields: [unlocked_by], references: [emp_id], onDelete: Restrict, onUpdate: NoAction, map: "fk_payroll_runs_unlocked_by")
+  employees_payroll_runs_updated_byToemployees    employees?              @relation("payroll_runs_updated_byToemployees", fields: [updated_by], references: [emp_id], onUpdate: NoAction, map: "fk_payroll_runs_updated_by")
+
+  @@unique([payroll_year, payroll_month], map: "ux_payroll_runs_month")
+  @@index([payroll_year, payroll_month], map: "ix_payroll_runs_year_month")
+  @@index([status], map: "ix_payroll_runs_status")
+}
+
+model payroll_run_history {
+  history_id          Int                @id(map: "pk_payroll_run_history") @default(autoincrement())
+  payroll_run_id      Int
+  payroll_employee_id Int?
+  action              payroll_run_action
+  reason              String?            @db.VarChar(250)
+  performed_by        Int?
+  performed_at        DateTime           @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  payroll_employees   payroll_employees? @relation(fields: [payroll_employee_id], references: [payroll_employee_id], onUpdate: NoAction, map: "fk_payroll_run_history_employee")
+  employees           employees?         @relation(fields: [performed_by], references: [emp_id], onUpdate: NoAction, map: "fk_payroll_run_history_performed_by")
+  payroll_runs        payroll_runs       @relation(fields: [payroll_run_id], references: [payroll_run_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_payroll_run_history_run")
+
+  @@index([payroll_run_id, performed_at(sort: Desc)], map: "ix_payroll_run_history_run")
+}
+
+model payroll_employees {
+  payroll_employee_id   Int                     @id(map: "pk_payroll_employees") @default(autoincrement())
+  payroll_run_id        Int
+  emp_id                Int
+  employee_code         String                  @db.VarChar(20)
+  employee_name         String                  @db.VarChar(255)
+  department_names      String?                 @db.VarChar(500)
+  role_name             String?                 @db.VarChar(100)
+  shift_name            String?                 @db.VarChar(100)
+  monthly_salary        Decimal                 @db.Decimal(12, 2)
+  daily_rate            Decimal                 @default(0) @db.Decimal(12, 2)
+  pf_applicable         Boolean                 @default(false)
+  uan                   String?                 @db.VarChar(30)
+  payment_mode          payroll_payment_mode?
+  bank_name             String?                 @db.VarChar(150)
+  account_number        String?                 @db.VarChar(50)
+  ifsc_code             String?                 @db.VarChar(20)
+  total_working_days    Decimal                 @default(0) @db.Decimal(6, 2)
+  present_days          Decimal                 @default(0) @db.Decimal(6, 2)
+  paid_leave_days       Decimal                 @default(0) @db.Decimal(6, 2)
+  unpaid_leave_days     Decimal                 @default(0) @db.Decimal(6, 2)
+  absent_days           Decimal                 @default(0) @db.Decimal(6, 2)
+  missing_punch_days    Decimal                 @default(0) @db.Decimal(6, 2)
+  not_employed_days     Decimal                 @default(0) @db.Decimal(6, 2)
+  full_days             Decimal                 @default(0) @db.Decimal(6, 2)
+  half_days             Decimal                 @default(0) @db.Decimal(6, 2)
+  paid_days             Decimal                 @default(0) @db.Decimal(6, 2)
+  lop_days              Decimal                 @default(0) @db.Decimal(6, 2)
+  basic_salary          Decimal                 @default(0) @db.Decimal(12, 2)
+  ot_hours              Decimal                 @default(0) @db.Decimal(6, 2)
+  ot_rate               Decimal                 @default(0) @db.Decimal(12, 2)
+  ot_amount             Decimal                 @default(0) @db.Decimal(12, 2)
+  pf_wage               Decimal                 @default(0) @db.Decimal(12, 2)
+  employee_pf           Decimal                 @default(0) @db.Decimal(12, 2)
+  employer_pf           Decimal                 @default(0) @db.Decimal(12, 2)
+  total_additions       Decimal                 @default(0) @db.Decimal(12, 2)
+  total_deductions      Decimal                 @default(0) @db.Decimal(12, 2)
+  gross_earnings        Decimal                 @default(0) @db.Decimal(12, 2)
+  total_salary          Decimal                 @default(0) @db.Decimal(12, 2)
+  flag                  payroll_employee_flag   @default(NONE)
+  validation_message    String?
+  is_paid               Boolean                 @default(false)
+  calculated_at         DateTime?               @db.Timestamptz(6)
+  created_at            DateTime                @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at            DateTime?               @db.Timestamptz(6)
+  payroll_adjustments   payroll_adjustments[]
+  payroll_employee_days payroll_employee_days[]
+  employees             employees               @relation(fields: [emp_id], references: [emp_id], onUpdate: NoAction, map: "fk_payroll_employees_emp")
+  payroll_runs          payroll_runs            @relation(fields: [payroll_run_id], references: [payroll_run_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_payroll_employees_run")
+  payroll_ot_entries    payroll_ot_entries[]
+  payroll_run_history   payroll_run_history[]
+  payroll_salary_slips  payroll_salary_slips[]
+
+  @@unique([payroll_run_id, emp_id], map: "ux_payroll_employees_run_emp")
+  @@index([payroll_run_id, emp_id], map: "ix_payroll_employees_run_emp")
+  @@index([flag], map: "ix_payroll_employees_flag")
+  @@index([emp_id], map: "ix_payroll_employees_emp")
+}
+
+model payroll_employee_days {
+  payroll_employee_day_id Int                   @id(map: "pk_payroll_employee_days") @default(autoincrement())
+  payroll_employee_id     Int
+  attendance_date         DateTime              @db.Date
+  attendance_code         String                @db.VarChar(10)
+  day_type                String                @db.VarChar(30)
+  is_working_day          Boolean               @default(true)
+  holiday_name            String?               @db.VarChar(150)
+  paid_as                 payroll_paid_as
+  daily_rate              Decimal               @default(0) @db.Decimal(12, 2)
+  calculated_amount       Decimal               @default(0) @db.Decimal(12, 2)
+  is_adjusted             Boolean               @default(false)
+  original_paid_as        payroll_paid_as?
+  created_at              DateTime              @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  payroll_adjustments     payroll_adjustments[]
+  payroll_employees       payroll_employees     @relation(fields: [payroll_employee_id], references: [payroll_employee_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_payroll_employee_days_employee")
+
+  @@unique([payroll_employee_id, attendance_date], map: "ux_payroll_employee_days_date")
+  @@index([payroll_employee_id, attendance_date], map: "ix_payroll_employee_days_emp_date")
+}
+
+model payroll_adjustments {
+  payroll_adjustment_id   Int                     @id(map: "pk_payroll_adjustments") @default(autoincrement())
+  payroll_employee_id     Int
+  payroll_employee_day_id Int?
+  type                    payroll_adjustment_type
+  category_id             Int?
+  old_paid_as             payroll_paid_as?
+  new_paid_as             payroll_paid_as?
+  amount                  Decimal                 @default(0) @db.Decimal(12, 2)
+  related_date            DateTime?               @db.Date
+  reference_number        String?                 @db.VarChar(80)
+  reason                  String                  @db.VarChar(250)
+  note                    String?                 @db.VarChar(250)
+  attachment_url          String?
+  is_active               Boolean                 @default(true)
+  created_by              Int?
+  created_at              DateTime                @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at              DateTime?               @db.Timestamptz(6)
+  master_lookup           master_lookup?          @relation(fields: [category_id], references: [lookup_id], onDelete: Restrict, onUpdate: NoAction, map: "fk_payroll_adjustments_category")
+  employees               employees?              @relation(fields: [created_by], references: [emp_id], onUpdate: NoAction, map: "fk_payroll_adjustments_created_by")
+  payroll_employee_days   payroll_employee_days?  @relation(fields: [payroll_employee_day_id], references: [payroll_employee_day_id], onUpdate: NoAction, map: "fk_payroll_adjustments_day")
+  payroll_employees       payroll_employees       @relation(fields: [payroll_employee_id], references: [payroll_employee_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_payroll_adjustments_employee")
+
+  @@index([payroll_employee_id, type], map: "ix_payroll_adjustments_employee_type")
+}
+
+model payroll_ot_entries {
+  payroll_ot_entry_id                                 Int                @id(map: "pk_payroll_ot_entries") @default(autoincrement())
+  payroll_run_id                                      Int
+  emp_id                                              Int
+  payroll_employee_id                                 Int?
+  attendance_date                                     DateTime           @db.Date
+  day_type                                            String             @db.VarChar(30)
+  worked_hours                                        Decimal            @default(0) @db.Decimal(6, 2)
+  proposed_hours                                      Decimal            @default(0) @db.Decimal(6, 2)
+  approved_hours                                      Decimal            @default(0) @db.Decimal(6, 2)
+  hourly_rate                                         Decimal            @default(0) @db.Decimal(12, 2)
+  ot_multiplier                                       Decimal?           @db.Decimal(4, 2)
+  ot_amount                                           Decimal            @default(0) @db.Decimal(12, 2)
+  ot_paid_as                                          payroll_ot_paid_as @default(SALARY)
+  comp_off_credited                                   Boolean            @default(false)
+  status                                              payroll_ot_status  @default(PENDING)
+  approver_id                                         Int?
+  comment                                             String?            @db.VarChar(250)
+  approved_at                                         DateTime?          @db.Timestamptz(6)
+  created_at                                          DateTime           @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at                                          DateTime?          @db.Timestamptz(6)
+  employees_payroll_ot_entries_approver_idToemployees employees?         @relation("payroll_ot_entries_approver_idToemployees", fields: [approver_id], references: [emp_id], onUpdate: NoAction, map: "fk_payroll_ot_entries_approver")
+  employees_payroll_ot_entries_emp_idToemployees      employees          @relation("payroll_ot_entries_emp_idToemployees", fields: [emp_id], references: [emp_id], onUpdate: NoAction, map: "fk_payroll_ot_entries_emp")
+  payroll_employees                                   payroll_employees? @relation(fields: [payroll_employee_id], references: [payroll_employee_id], onUpdate: NoAction, map: "fk_payroll_ot_entries_payroll_emp")
+  payroll_runs                                        payroll_runs       @relation(fields: [payroll_run_id], references: [payroll_run_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_payroll_ot_entries_run")
+
+  @@unique([payroll_run_id, emp_id, attendance_date], map: "ux_payroll_ot_entries_day")
+  @@index([payroll_run_id, status], map: "ix_payroll_ot_entries_run_status")
+  @@index([emp_id, attendance_date], map: "ix_payroll_ot_entries_emp_date")
+}
+
+model payroll_salary_slips {
+  payroll_slip_id     Int                 @id(map: "pk_payroll_salary_slips") @default(autoincrement())
+  payroll_employee_id Int
+  template_id         Int?
+  slip_number         String              @unique(map: "ux_payroll_salary_slips_number") @db.VarChar(40)
+  revision_number     Int                 @default(0)
+  status              payroll_slip_status @default(GENERATED)
+  template_version    String?             @db.VarChar(40)
+  pdf_file_url        String?
+  generated_at        DateTime            @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  released_at         DateTime?           @db.Timestamptz(6)
+  released_to_email   String?             @db.VarChar(255)
+  created_at          DateTime            @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at          DateTime?           @db.Timestamptz(6)
+  payroll_employees   payroll_employees   @relation(fields: [payroll_employee_id], references: [payroll_employee_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_payroll_salary_slips_employee")
+  document_templates  document_templates? @relation(fields: [template_id], references: [template_id], onDelete: Restrict, onUpdate: NoAction, map: "fk_payroll_salary_slips_template")
+
+  @@index([payroll_employee_id], map: "ix_payroll_salary_slips_employee")
+  @@index([slip_number], map: "ix_payroll_salary_slips_number")
+}
+
 model document_templates {
-  template_id                                        Int                  @id @default(autoincrement())
-  code                                               String               @unique @db.VarChar(50)
-  name                                               String               @db.VarChar(150)
-  document_type                                      String               @db.VarChar(50)
-  description                                        String?              @db.VarChar(255)
+  template_id                                        Int                    @id @default(autoincrement())
+  code                                               String                 @unique @db.VarChar(50)
+  name                                               String                 @db.VarChar(150)
+  document_type                                      String                 @db.VarChar(50)
+  description                                        String?                @db.VarChar(255)
   content_html                                       String
-  is_active                                          Boolean?             @default(true)
-  created_at                                         DateTime?            @default(now()) @db.Timestamptz(6)
+  is_active                                          Boolean?               @default(true)
+  created_at                                         DateTime?              @default(now()) @db.Timestamptz(6)
   created_by                                         Int?
-  updated_at                                         DateTime?            @db.Timestamptz(6)
+  updated_at                                         DateTime?              @db.Timestamptz(6)
   updated_by                                         Int?
-  employees_document_templates_created_byToemployees employees?           @relation("document_templates_created_byToemployees", fields: [created_by], references: [emp_id], onUpdate: NoAction)
-  employees_document_templates_updated_byToemployees employees?           @relation("document_templates_updated_byToemployees", fields: [updated_by], references: [emp_id], onUpdate: NoAction)
+  employees_document_templates_created_byToemployees employees?             @relation("document_templates_created_byToemployees", fields: [created_by], references: [emp_id], onUpdate: NoAction)
+  employees_document_templates_updated_byToemployees employees?             @relation("document_templates_updated_byToemployees", fields: [updated_by], references: [emp_id], onUpdate: NoAction)
   documents                                          employee_documents[]
+  payroll_salary_slips                               payroll_salary_slips[]
 
   @@index([document_type], map: "ix_document_templates_type")
 }
@@ -1303,6 +1678,7 @@ model employee_documents {
   created_by                                         Int?
   updated_at                                         DateTime?           @db.Timestamptz(6)
   updated_by                                         Int?
+  is_required_for_activation                         Boolean?            @default(false)
   employees_employee_documents_created_byToemployees employees?          @relation("employee_documents_created_byToemployees", fields: [created_by], references: [emp_id], onUpdate: NoAction)
   employees                                          employees           @relation(fields: [emp_id], references: [emp_id], onDelete: Cascade, onUpdate: NoAction)
   employees_employee_documents_issued_byToemployees  employees?          @relation("employee_documents_issued_byToemployees", fields: [issued_by], references: [emp_id], onUpdate: NoAction)
@@ -1394,6 +1770,280 @@ model candidates {
   @@index([final_role_id], map: "ix_candidates_final_role")
 }
 
+model crm_communications {
+  communication_id    Int        @id @default(autoincrement())
+  company_id          Int?
+  lead_id             Int?
+  contact_id          Int?
+  contact_person_name String?    @db.VarChar(150)
+  type                String     @db.VarChar(50)
+  communication_date  DateTime   @default(now()) @db.Timestamptz(6)
+  what_discussed      String
+  outcome             String?    @db.VarChar(100)
+  attachment_url      String?
+  created_by          Int?
+  created_at          DateTime   @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime?  @db.Timestamptz(6)
+  deleted_at          DateTime?  @db.Timestamptz(6)
+  companies           companies? @relation(fields: [company_id], references: [company_id], onDelete: Cascade, onUpdate: NoAction)
+  persons             persons?   @relation(fields: [contact_id], references: [person_id], onUpdate: NoAction)
+  employees           employees? @relation(fields: [created_by], references: [emp_id], onUpdate: NoAction)
+  leads               leads?     @relation(fields: [lead_id], references: [lead_id], onUpdate: NoAction)
+
+  @@index([communication_date(sort: Desc)], map: "idx_crm_comm_date")
+}
+
+model crm_follow_ups {
+  follow_up_id                                    Int        @id @default(autoincrement())
+  company_id                                      Int?
+  lead_id                                         Int?
+  contact_id                                      Int?
+  contact_person_name                             String?    @db.VarChar(150)
+  follow_up_on                                    DateTime   @db.Timestamptz(6)
+  type                                            String     @db.VarChar(50)
+  assigned_to                                     Int
+  purpose                                         String?
+  status                                          String     @default("Pending") @db.VarChar(50)
+  rescheduled_count                               Int        @default(0)
+  done_on                                         DateTime?  @db.Timestamptz(6)
+  outcome                                         String?    @db.VarChar(100)
+  what_happened                                   String?
+  reason                                          String?
+  created_by                                      Int?
+  created_at                                      DateTime   @default(now()) @db.Timestamptz(6)
+  updated_at                                      DateTime?  @db.Timestamptz(6)
+  deleted_at                                      DateTime?  @db.Timestamptz(6)
+  employees_crm_follow_ups_assigned_toToemployees employees  @relation("crm_follow_ups_assigned_toToemployees", fields: [assigned_to], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+  companies                                       companies? @relation(fields: [company_id], references: [company_id], onDelete: Cascade, onUpdate: NoAction)
+  persons                                         persons?   @relation(fields: [contact_id], references: [person_id], onUpdate: NoAction)
+  employees_crm_follow_ups_created_byToemployees  employees? @relation("crm_follow_ups_created_byToemployees", fields: [created_by], references: [emp_id], onUpdate: NoAction)
+  leads                                           leads?     @relation(fields: [lead_id], references: [lead_id], onUpdate: NoAction)
+
+  @@index([follow_up_on], map: "idx_crm_fu_date")
+}
+
+model crm_import_batches {
+  batch_id          Int       @id @default(autoincrement())
+  file_name         String    @db.VarChar(255)
+  imported_by       Int
+  imported_at       DateTime  @default(now()) @db.Timestamptz(6)
+  can_undo_until    DateTime  @db.Timestamptz(6)
+  is_undone         Boolean   @default(false)
+  companies_created Json?     @default("[]")
+  leads_created     Json?     @default("[]")
+  employees         employees @relation(fields: [imported_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model crm_lead_notes {
+  note_id        Int        @id @default(autoincrement())
+  lead_id        Int
+  company_id     Int?
+  note_type      String     @default("General") @db.VarChar(50)
+  note           String
+  is_pinned      Boolean    @default(false)
+  attachment_url String?
+  created_by     Int?
+  created_at     DateTime   @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime?  @db.Timestamptz(6)
+  deleted_at     DateTime?  @db.Timestamptz(6)
+  companies      companies? @relation(fields: [company_id], references: [company_id], onDelete: Cascade, onUpdate: NoAction)
+  employees      employees? @relation(fields: [created_by], references: [emp_id], onUpdate: NoAction)
+  leads          leads      @relation(fields: [lead_id], references: [lead_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([lead_id, is_pinned(sort: Desc)], map: "idx_crm_notes_pinned")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model leave_balances {
+  balance_id           Int         @id(map: "pk_leave_balances") @default(autoincrement())
+  emp_id               Int
+  leave_type_id        Int
+  leave_year           Int
+  opening_balance      Decimal     @default(0.0) @db.Decimal(4, 1)
+  credited_days        Decimal     @default(0.0) @db.Decimal(4, 1)
+  carried_forward_days Decimal     @default(0.0) @db.Decimal(4, 1)
+  days_taken           Decimal     @default(0.0) @db.Decimal(4, 1)
+  days_booked          Decimal     @default(0.0) @db.Decimal(4, 1)
+  lapsed_days          Decimal     @default(0.0) @db.Decimal(4, 1)
+  is_frozen            Boolean     @default(false)
+  created_at           DateTime    @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at           DateTime?   @db.Timestamptz(6)
+  employees            employees   @relation(fields: [emp_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+  leave_types          leave_types @relation(fields: [leave_type_id], references: [leave_type_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([emp_id, leave_type_id, leave_year], map: "uq_leave_balances_emp_type_year")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model leave_comp_off_grants {
+  grant_id      Int       @id(map: "pk_leave_comp_off_grants") @default(autoincrement())
+  emp_id        Int
+  ot_date       DateTime  @db.Date
+  ot_hours      Decimal   @db.Decimal(4, 2)
+  days_credited Decimal   @db.Decimal(3, 1)
+  days_used     Decimal   @default(0.0) @db.Decimal(3, 1)
+  expiry_date   DateTime  @db.Date
+  is_lapsed     Boolean   @default(false)
+  created_at    DateTime  @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  employees     employees @relation(fields: [emp_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model leave_general_settings {
+  setting_id                  Int        @id(map: "pk_leave_general_settings") @default(autoincrement())
+  leave_year_start            String     @default("JANUARY_TO_DECEMBER") @db.VarChar(30)
+  count_sandwich_leave        Boolean    @default(false)
+  pending_reminder_hours      Int        @default(24)
+  approve_after_leave_started Boolean    @default(true)
+  year_end_processing         String     @default("AUTOMATIC") @db.VarChar(20)
+  comp_off_hours_per_day      Decimal    @default(8.00) @db.Decimal(4, 2)
+  updated_at                  DateTime   @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_by                  Int?
+  employees                   employees? @relation(fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model leave_ledger {
+  ledger_id                                      Int             @id(map: "pk_leave_ledger") @default(autoincrement())
+  emp_id                                         Int
+  leave_type_id                                  Int
+  entry_type                                     String          @db.VarChar(30)
+  days                                           Decimal         @db.Decimal(4, 1)
+  balance_after                                  Decimal         @db.Decimal(4, 1)
+  note                                           String          @db.VarChar(500)
+  reference_request_id                           Int?
+  performed_by                                   Int?
+  performed_at                                   DateTime        @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  employees_leave_ledger_emp_idToemployees       employees       @relation("leave_ledger_emp_idToemployees", fields: [emp_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+  leave_types                                    leave_types     @relation(fields: [leave_type_id], references: [leave_type_id], onDelete: NoAction, onUpdate: NoAction)
+  employees_leave_ledger_performed_byToemployees employees?      @relation("leave_ledger_performed_byToemployees", fields: [performed_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+  leave_requests                                 leave_requests? @relation(fields: [reference_request_id], references: [request_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model leave_policies {
+  policy_id                                           Int                  @id(map: "pk_leave_policies") @default(autoincrement())
+  name                                                String               @unique(map: "uq_leave_policies_name") @db.VarChar(100)
+  pro_rata                                            Boolean              @default(true)
+  status                                              String               @default("ACTIVE") @db.VarChar(20)
+  created_at                                          DateTime             @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  created_by                                          Int?
+  updated_at                                          DateTime?            @db.Timestamptz(6)
+  updated_by                                          Int?
+  employees_employees_leave_policy_idToleave_policies employees[]          @relation("employees_leave_policy_idToleave_policies")
+  employees_leave_policies_created_byToemployees      employees?           @relation("leave_policies_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+  employees_leave_policies_updated_byToemployees      employees?           @relation("leave_policies_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+  leave_policy_rules                                  leave_policy_rules[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model leave_policy_rules {
+  rule_id                  Int            @id(map: "pk_leave_policy_rules") @default(autoincrement())
+  policy_id                Int
+  leave_type_id            Int
+  days_per_year            Decimal?       @db.Decimal(4, 1)
+  credit_frequency         String         @default("YEARLY") @db.VarChar(20)
+  carry_forward_days       Decimal        @default(0.0) @db.Decimal(4, 1)
+  max_at_once              Decimal?       @db.Decimal(4, 1)
+  min_notice_days          Int            @default(0)
+  backdated_days           Int            @default(0)
+  attachment_after_days    Decimal?       @db.Decimal(4, 1)
+  allowed_during_probation Boolean        @default(true)
+  comp_off_expiry_days     Int            @default(90)
+  created_at               DateTime       @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at               DateTime?      @db.Timestamptz(6)
+  leave_types              leave_types    @relation(fields: [leave_type_id], references: [leave_type_id], onDelete: NoAction, onUpdate: NoAction)
+  leave_policies           leave_policies @relation(fields: [policy_id], references: [policy_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([policy_id, leave_type_id], map: "uq_leave_policy_rules")
+}
+
+model leave_request_history {
+  history_id     Int            @id(map: "pk_leave_request_history") @default(autoincrement())
+  request_id     Int
+  event          String         @db.VarChar(50)
+  performed_by   Int?
+  performed_at   DateTime       @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  details        String?
+  employees      employees?     @relation(fields: [performed_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+  leave_requests leave_requests @relation(fields: [request_id], references: [request_id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model leave_requests {
+  request_id                                                  Int                     @id(map: "pk_leave_requests") @default(autoincrement())
+  request_no                                                  String                  @unique(map: "uq_leave_requests_request_no") @db.VarChar(30)
+  emp_id                                                      Int
+  leave_type_id                                               Int
+  is_paid                                                     Boolean
+  duration                                                    String                  @default("FULL_DAY") @db.VarChar(20)
+  from_date                                                   DateTime                @db.Date
+  to_date                                                     DateTime                @db.Date
+  leave_days                                                  Decimal                 @db.Decimal(4, 1)
+  reason                                                      String                  @db.VarChar(500)
+  attachment_url                                              String?                 @db.VarChar(500)
+  is_short_notice                                             Boolean                 @default(false)
+  status                                                      String                  @default("PENDING") @db.VarChar(30)
+  applied_at                                                  DateTime                @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  applied_by                                                  Int
+  decided_at                                                  DateTime?               @db.Timestamptz(6)
+  decided_by                                                  Int?
+  decision_remarks                                            String?                 @db.VarChar(500)
+  is_self_approved                                            Boolean                 @default(false)
+  cancellation_reason                                         String?                 @db.VarChar(500)
+  cancellation_requested_at                                   DateTime?               @db.Timestamptz(6)
+  cancellation_decided_by                                     Int?
+  cancellation_decided_at                                     DateTime?               @db.Timestamptz(6)
+  cancellation_remarks                                        String?                 @db.VarChar(500)
+  created_at                                                  DateTime                @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at                                                  DateTime?               @db.Timestamptz(6)
+  attendance_days                                             attendance_days[]
+  leave_ledger                                                leave_ledger[]
+  leave_request_history                                       leave_request_history[]
+  employees_leave_requests_applied_byToemployees              employees               @relation("leave_requests_applied_byToemployees", fields: [applied_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+  employees_leave_requests_cancellation_decided_byToemployees employees?              @relation("leave_requests_cancellation_decided_byToemployees", fields: [cancellation_decided_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+  employees_leave_requests_decided_byToemployees              employees?              @relation("leave_requests_decided_byToemployees", fields: [decided_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+  employees_leave_requests_emp_idToemployees                  employees               @relation("leave_requests_emp_idToemployees", fields: [emp_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+  leave_types                                                 leave_types             @relation(fields: [leave_type_id], references: [leave_type_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model leave_settings_change_log {
+  log_id      Int       @id(map: "pk_leave_settings_change_log") @default(autoincrement())
+  entity_type String    @db.VarChar(30)
+  entity_id   Int
+  field_name  String    @db.VarChar(50)
+  old_value   String?
+  new_value   String?
+  changed_by  Int
+  changed_at  DateTime  @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  employees   employees @relation(fields: [changed_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model leave_types {
+  leave_type_id                               Int                  @id(map: "pk_leave_types") @default(autoincrement())
+  name                                        String               @unique(map: "uq_leave_types_name") @db.VarChar(50)
+  code                                        String               @unique(map: "uq_leave_types_code") @db.VarChar(5)
+  is_paid                                     Boolean              @default(true)
+  balance_tracked                             Boolean              @default(true)
+  half_day_allowed                            Boolean              @default(true)
+  applies_to                                  String               @default("ALL") @db.VarChar(20)
+  calendar_color                              String               @default("blue") @db.VarChar(30)
+  description                                 String?              @db.VarChar(200)
+  status                                      String               @default("ACTIVE") @db.VarChar(20)
+  created_at                                  DateTime             @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  created_by                                  Int?
+  updated_at                                  DateTime?            @db.Timestamptz(6)
+  updated_by                                  Int?
+  leave_balances                              leave_balances[]
+  leave_ledger                                leave_ledger[]
+  leave_policy_rules                          leave_policy_rules[]
+  leave_requests                              leave_requests[]
+  employees_leave_types_created_byToemployees employees?           @relation("leave_types_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+  employees_leave_types_updated_byToemployees employees?           @relation("leave_types_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
 enum channel_type {
   website
   facebook
@@ -1408,6 +2058,7 @@ enum channel_type {
 enum employee_status {
   Active
   Inactive
+  Onboarding
 }
 
 enum lead_status {
@@ -1593,4 +2244,85 @@ enum sprint_status {
   planned
   active
   completed
+}
+
+enum payroll_run_status {
+  DRAFT
+  LOCKED
+  PAID
+}
+
+enum payroll_paid_as {
+  FULL
+  HALF
+  UNPAID
+  NOT_APPLICABLE
+}
+
+enum payroll_adjustment_type {
+  DAY_ADJUSTMENT
+  ADDITION
+  DEDUCTION
+}
+
+enum payroll_employee_flag {
+  NONE
+  ERROR
+  WARNING
+  JOINED_IN_MONTH
+  LEFT_IN_MONTH
+  ADJUSTED
+}
+
+enum payroll_ot_status {
+  PENDING
+  APPROVED
+  REDUCED
+  REJECTED
+}
+
+enum payroll_ot_rate_type {
+  FIXED
+  MULTIPLIER
+}
+
+enum payroll_ot_paid_as {
+  SALARY
+  COMP_OFF
+}
+
+enum payroll_payment_mode {
+  BANK_TRANSFER
+  CHEQUE
+  CASH
+}
+
+enum payroll_slip_status {
+  GENERATED
+  RELEASED
+  REPLACED
+}
+
+enum payroll_run_action {
+  CALCULATED
+  RECALCULATED
+  LOCKED
+  UNLOCKED
+  PAID
+}
+
+enum payroll_total_rounding {
+  NEAREST_RUPEE
+  NONE
+}
+
+enum payroll_ot_rounding {
+  NONE
+  FIFTEEN
+  THIRTY
+}
+
+enum payroll_missing_punch {
+  UNPAID
+  FULL
 }

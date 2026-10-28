@@ -39,6 +39,7 @@ interface DateDetailSidebarProps {
   onDeleteNote: (eventId: number) => Promise<void>;
   onCreateReminder: (title: string, time: string, description?: string) => Promise<void>;
   onDeleteReminder: (eventId: number) => Promise<void>;
+  displayMode?: 'attendance' | 'tasks';
 }
 
 function formatMinutes(minutes: number | null): string {
@@ -69,6 +70,7 @@ export const DateDetailSidebar: React.FC<DateDetailSidebarProps> = ({
   onDeleteNote,
   onCreateReminder,
   onDeleteReminder,
+  displayMode = 'attendance',
 }) => {
   const [activeTab, setActiveTab] = useState<'meetings' | 'tasks' | 'notes' | 'reminders'>('tasks');
 
@@ -186,7 +188,7 @@ export const DateDetailSidebar: React.FC<DateDetailSidebarProps> = ({
         </button>
       </div>
 
-      {/* Action buttons bar */}
+      {displayMode === 'tasks' && (
       <div className="px-4 py-2.5 border-b border-slate-100 bg-white flex items-center justify-between gap-2 overflow-x-auto">
         <div className="flex items-center gap-1.5">
           {isAdmin && onAddHoliday ? (
@@ -246,9 +248,10 @@ export const DateDetailSidebar: React.FC<DateDetailSidebarProps> = ({
           </button>
         )}
       </div>
+      )}
 
       {/* Daily Attendance Summary Card */}
-      {isPastOrToday && (
+      {displayMode === 'attendance' && isPastOrToday && (
         <div className="mx-4 my-2.5 p-2.5 rounded-xl bg-teal-50/70 border border-teal-200/80 flex items-center justify-between gap-2 shadow-2xs">
           <div className="flex items-center gap-2.5 min-w-0">
             <div
@@ -363,6 +366,8 @@ export const DateDetailSidebar: React.FC<DateDetailSidebarProps> = ({
         />
       )}
 
+      {displayMode === 'tasks' && (
+      <>
       {/* Tabs */}
       <div className="flex border-b border-slate-200 bg-slate-50/70 text-xs font-semibold">
         <button
@@ -774,6 +779,8 @@ export const DateDetailSidebar: React.FC<DateDetailSidebarProps> = ({
           </div>
         )}
       </div>
+      </>
+      )}
     </div>
   );
 };

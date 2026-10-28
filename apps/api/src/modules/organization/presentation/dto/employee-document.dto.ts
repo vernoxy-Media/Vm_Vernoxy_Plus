@@ -24,6 +24,9 @@ export class EmployeeDocumentItemDto {
   status!: 'uploaded' | 'file_pending' | 'not_ticked' | 'locked' | 'draft' | 'final';
 
   @ApiPropertyOptional()
+  is_required_for_activation?: boolean;
+
+  @ApiPropertyOptional()
   file_url?: string | null;
 
   @ApiPropertyOptional()
@@ -127,4 +130,41 @@ export class FinalizeDocumentDraftDto {
   @IsOptional()
   @IsString()
   notes?: string;
+}
+
+export class EmployeeActivationStatusDto {
+  @ApiProperty()
+  can_activate!: boolean;
+
+  @ApiProperty()
+  is_already_active!: boolean;
+
+  @ApiProperty({ type: [String] })
+  missing_documents!: string[];
+
+  @ApiProperty()
+  total_required!: number;
+
+  @ApiProperty()
+  completed_required!: number;
+}
+
+export class ActivateEmployeeResponseDto {
+  @ApiProperty()
+  success!: boolean;
+
+  @ApiProperty()
+  message!: string;
+
+  @ApiProperty()
+  emp_id!: number;
+
+  @ApiProperty()
+  office_email!: string;
+
+  @ApiProperty()
+  temporary_password!: string;
+
+  @ApiProperty()
+  must_change_password!: boolean;
 }

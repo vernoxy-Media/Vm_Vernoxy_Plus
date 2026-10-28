@@ -54,5 +54,11 @@ export interface ICandidateRepository {
   checkDuplicates(phone: string, email: string): Promise<CandidateDuplicateMatch[]>;
   updateStage(candidateId: number, stage: string, updatedBy?: number): Promise<CandidateProps>;
   markDecision(candidateId: number, data: MarkDecisionParams, decisionBy?: number): Promise<CandidateProps>;
+  getNextEmployeeCode(): Promise<{ nextEmpId: number; nextEmpCode: string }>;
+  convertToEmployee(
+    candidateId: number,
+    officeEmail: string,
+    adminId?: number,
+  ): Promise<{ employee: { emp_id: number; name: string; email: string; employee_code: string }; candidate: CandidateProps }>;
 }
 

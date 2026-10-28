@@ -63,5 +63,36 @@ export interface Employee {
   deactivated_by?: number | null;
   employee_code?: string;
   pending_documents_count?: number;
+  pay_policy?: {
+    salary_effective_from?: Date | null;
+    pf_applicable: boolean;
+    uan?: string | null;
+    employee_pf_pct: number;
+    employer_pf_pct: number;
+    ot_eligible: boolean;
+    ot_rate_type?: 'FIXED' | 'MULTIPLIER' | null;
+    ot_rate?: number | null;
+    ot_multiplier?: number | null;
+    minimum_ot_per_day: number;
+    ot_paid_as: 'SALARY' | 'COMP_OFF';
+    payment_mode?: 'BANK_TRANSFER' | 'CHEQUE' | 'CASH' | null;
+    bank_name?: string | null;
+    account_number?: string | null;
+    ifsc_code?: string | null;
+  } | null;
+  ot_eligible?: boolean;
+  ot_rate_type?: 'FIXED' | 'MULTIPLIER' | null;
+  ot_rate?: number | null;
+  ot_multiplier?: number | null;
+  minimum_ot_per_day?: number;
+  ot_paid_as?: 'SALARY' | 'COMP_OFF';
+  pf_applicable?: boolean;
+  uan?: string | null;
+  employee_pf_pct?: number;
+  employer_pf_pct?: number;
+  payment_mode?: 'BANK_TRANSFER' | 'CHEQUE' | 'CASH' | null;
+  bank_name?: string | null;
+  account_number?: string | null;
+  ifsc_code?: string | null;
 }
 

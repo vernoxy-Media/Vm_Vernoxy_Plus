@@ -9,6 +9,7 @@ export interface EmployeeDocumentItem {
   title: string;
   is_ticked: boolean;
   status: 'uploaded' | 'file_pending' | 'not_ticked' | 'locked' | 'draft' | 'final';
+  is_required_for_activation?: boolean;
   file_url?: string | null;
   file_name?: string | null;
   file_size?: number | null;
@@ -175,6 +176,61 @@ export function useFinalizeDocumentDraftMutation() {
       }),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['employee-documents', variables.empId] });
+    },
+  });
+}
+
+export interface EmployeeActivationStatus {
+  can_activate: boolean;
+  is_already_active: boolean;
+  missing_documents: string[];
+  total_required: number;
+  completed_required: number;
+}
+
+export interface ActivateEmployeeResult {
+  success: boolean;
+  message: string;
+  emp_id: number;
+  office_email: string;
+  temporary_password: string;
+  must_change_password: boolean;
+}
+
+export function useEmployeeActivationStatusQuery(empId?: number) {
+  return useQuery({
+    queryKey: ['employee-activation-status', empId],
+    queryFn: () => customFetch<EmployeeActivationStatus>(`/api/v1/employees/${empId}/activation-status`),
+    enabled: Boolean(empId),
+  });
+}
+
+export function useActivateEmployeeMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (empId: number) =>
+      customFetch<ActivateEmployeeResult>(`/api/v1/employees/${empId}/activate`, {
+        method: 'POST',
+      }),
+    onSuccess: (_, empId) => {
+      queryClient.invalidateQueries({ queryKey: ['employee', empId] });
+      queryClient.invalidateQueries({ queryKey: ['employee-documents', empId] });
+      queryClient.invalidateQueries({ queryKey: ['employee-activation-status', empId] });
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+    },
+  });
+}
+
+export function useResendEmployeeLoginMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (empId: number) =>
+      customFetch<ActivateEmployeeResult>(`/api/v1/employees/${empId}/resend-login`, {
+        method: 'POST',
+      }),
+    onSuccess: (_, empId) => {
+      queryClient.invalidateQueries({ queryKey: ['employee', empId] });
+      queryClient.invalidateQueries({ queryKey: ['employee-documents', empId] });
     },
   });
 }

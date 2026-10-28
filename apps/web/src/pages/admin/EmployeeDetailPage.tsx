@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { AdminLayout } from '../../components/AdminLayout';
 import { Avatar } from '../../components/Avatar';
 import {
@@ -33,8 +33,19 @@ import {
   TrendingUp,
   UserPlus,
   X,
+  Lock,
+  Key,
+  ShieldCheck,
+  Landmark,
 } from 'lucide-react';
 import { EmployeeDocumentsTab } from './EmployeeDocumentsTab';
+import {
+  useEmployeeActivationStatusQuery,
+  useActivateEmployeeMutation,
+  useResendEmployeeLoginMutation,
+  ActivateEmployeeResult,
+} from '../../hooks/use-employee-documents';
+import { AccountActivatedModal } from './AccountActivatedModal';
 
 function formatDuration(startDate: Date | string, endDate?: Date | string | null): string {
   const start = new Date(startDate);
@@ -63,9 +74,27 @@ export const EmployeeDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const empId = id ? parseInt(id, 10) : undefined;
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user: currentUser } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'documents' | 'history'>('overview');
+  const tabParam = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState<'overview' | 'pay_policy' | 'documents' | 'history'>(
+    tabParam === 'documents' || tabParam === 'onboarding'
+      ? 'documents'
+      : tabParam === 'pay' || tabParam === 'policies'
+      ? 'pay_policy'
+      : 'overview',
+  );
+
+  useEffect(() => {
+    const currentTab = searchParams.get('tab');
+    if (currentTab === 'documents' || currentTab === 'onboarding') {
+      setActiveTab('documents');
+    } else if (currentTab === 'pay' || currentTab === 'policies') {
+      setActiveTab('pay_policy');
+    }
+  }, [searchParams]);
+
   const [isDeactivateModalOpen, setIsDeactivateModalOpen] = useState(false);
 
   // Deactivate form state
@@ -76,7 +105,7 @@ export const EmployeeDetailPage: React.FC = () => {
   const [deactivationError, setDeactivationError] = useState<string | null>(null);
 
   // TanStack queries
-  const { data: employee, isLoading, error } = useEmployeeDetailQuery(empId);
+  const { data: employee, isLoading, error, refetch: refetchEmployee } = useEmployeeDetailQuery(empId);
   const { data: historyList, isLoading: isHistoryLoading } = useEmployeeHistoryQuery(empId);
   const { data: warningData } = useDeactivateWarningQuery(isDeactivateModalOpen ? empId : undefined);
   const { data: deactivationReasonsLookup } = useLookupsQuery('deactivation_reason');
@@ -85,6 +114,44 @@ export const EmployeeDetailPage: React.FC = () => {
 
   const isSelf = currentUser?.emp_id === empId;
   const isInactive = employee?.status === 'Inactive';
+  const isOnboarding = employee?.status === 'Onboarding';
+
+  // Activation queries & mutations
+  const { data: activationStatus } = useEmployeeActivationStatusQuery(
+    isOnboarding ? empId : undefined,
+  );
+  const activateMutation = useActivateEmployeeMutation();
+  const resendLoginMutation = useResendEmployeeLoginMutation();
+  const [activatedResult, setActivatedResult] = useState<ActivateEmployeeResult | null>(null);
+  const [isActivatedModalOpen, setIsActivatedModalOpen] = useState(false);
+  const [modalTitle, setModalTitle] = useState<string>('Account Activated!');
+  const [modalDescription, setModalDescription] = useState<string | undefined>(undefined);
+
+  const handleActivateAccount = async () => {
+    if (!empId || !activationStatus?.can_activate) return;
+    try {
+      const res = await activateMutation.mutateAsync(empId);
+      setActivatedResult(res);
+      setModalTitle('Account Activated!');
+      setModalDescription(`${employee?.name || 'The employee'} has been activated and login credentials are ready.`);
+      setIsActivatedModalOpen(true);
+    } catch (err: any) {
+      alert(err.detail || err.message || 'Failed to activate account.');
+    }
+  };
+
+  const handleResendLogin = async () => {
+    if (!empId) return;
+    try {
+      const res = await resendLoginMutation.mutateAsync(empId);
+      setActivatedResult(res);
+      setModalTitle('Login Credentials Resent!');
+      setModalDescription(`A new temporary password has been generated for ${employee?.name || 'the employee'}. It works once and will be required to be renewed upon next login.`);
+      setIsActivatedModalOpen(true);
+    } catch (err: any) {
+      alert(err.detail || err.message || 'Failed to resend login credentials.');
+    }
+  };
 
   const handleConfirmDeactivate = async () => {
     if (!empId) return;
@@ -171,15 +238,21 @@ export const EmployeeDetailPage: React.FC = () => {
                 <div className="flex flex-wrap items-center gap-3">
                   <h1 className="text-2xl font-bold tracking-tight text-slate-900">{employee.name}</h1>
                   <span
-                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold tracking-wide ${
+                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold tracking-wide border ${
                       isInactive
-                        ? 'bg-rose-50 text-rose-700 border border-rose-200/80'
-                        : 'bg-emerald-50 text-emerald-700 border border-emerald-200/80'
+                        ? 'bg-rose-50 text-rose-700 border-rose-200/80'
+                        : isOnboarding
+                        ? 'bg-purple-50 text-purple-700 border-purple-200/80'
+                        : 'bg-emerald-50 text-emerald-700 border-emerald-200/80'
                     }`}
                   >
                     <span
                       className={`w-2 h-2 rounded-full ${
-                        isInactive ? 'bg-rose-500' : 'bg-emerald-500'
+                        isInactive
+                          ? 'bg-rose-500'
+                          : isOnboarding
+                          ? 'bg-purple-500'
+                          : 'bg-emerald-500'
                       }`}
                     />
                     {employee.status}
@@ -219,7 +292,65 @@ export const EmployeeDetailPage: React.FC = () => {
             </div>
 
             {/* Header Action Buttons */}
-            <div className="flex items-center gap-3 w-full md:w-auto justify-end pt-2 md:pt-0">
+            <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end pt-2 md:pt-0">
+              {/* Activate Account Button (BFD Screen 10 / Figure 8) */}
+              {isOnboarding && (
+                <div className="relative group">
+                  <button
+                    type="button"
+                    disabled={!activationStatus?.can_activate || activateMutation.isPending}
+                    onClick={handleActivateAccount}
+                    className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition shadow-xs ${
+                      activationStatus?.can_activate
+                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer ring-2 ring-emerald-500/20'
+                        : 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+                    }`}
+                  >
+                    {activateMutation.isPending ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : activationStatus?.can_activate ? (
+                      <Sparkles className="w-3.5 h-3.5" />
+                    ) : (
+                      <Lock className="w-3.5 h-3.5" />
+                    )}
+                    <span>Activate Account</span>
+                  </button>
+
+                  {!activationStatus?.can_activate && (
+                    <div className="absolute right-0 top-12 w-72 p-3 bg-slate-900 text-white text-2xs rounded-xl shadow-xl z-30 hidden group-hover:block pointer-events-none animate-in fade-in duration-150">
+                      <p className="font-bold text-amber-300 mb-1">Upload required documents to activate:</p>
+                      {activationStatus?.missing_documents && activationStatus.missing_documents.length > 0 ? (
+                        <ul className="list-disc pl-3.5 space-y-0.5 text-slate-300">
+                          {activationStatus.missing_documents.map((m, idx) => (
+                            <li key={idx}>{m}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-slate-300">Checking document checklist...</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Resend Login Button (BFD Part 7: Temporary password: Works once and expires after 7 days. The Admin can click "Resend login" to send a new one.) */}
+              {!isOnboarding && !isInactive && (
+                <button
+                  type="button"
+                  disabled={resendLoginMutation.isPending}
+                  onClick={handleResendLogin}
+                  title="Generate a new temporary password and resend login"
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition shadow-2xs"
+                >
+                  {resendLoginMutation.isPending ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Key className="w-3.5 h-3.5 text-blue-600" />
+                  )}
+                  <span>Resend login</span>
+                </button>
+              )}
+
               <Link
                 to={`/admin/employees/${employee.emp_id}/edit`}
                 className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition shadow-2xs"
@@ -299,6 +430,18 @@ export const EmployeeDetailPage: React.FC = () => {
               }`}
             >
               Overview
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('pay_policy')}
+              className={`py-3 px-1 border-b-2 font-semibold text-sm transition-colors flex items-center gap-2 ${
+                activeTab === 'pay_policy'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
+              }`}
+            >
+              <Wallet className="w-4 h-4 text-slate-400" />
+              Pay & Policies
             </button>
             <button
               type="button"
@@ -624,6 +767,333 @@ export const EmployeeDetailPage: React.FC = () => {
                   </p>
                   <p className="text-2xs text-slate-400 mt-2">Statutory employee provident fund contribution</p>
                 </div>
+
+                <div className="sm:col-span-2 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold ${
+                        employee.ot_eligible || (employee as any).pay_policy?.ot_eligible
+                          ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                          : 'bg-slate-100 text-slate-600 border border-slate-200'
+                      }`}
+                    >
+                      <Clock className="w-3.5 h-3.5" />
+                      {employee.ot_eligible || (employee as any).pay_policy?.ot_eligible
+                        ? `OT Eligible (${
+                            (employee.ot_rate_type || (employee as any).pay_policy?.ot_rate_type) === 'FIXED'
+                              ? `₹${employee.ot_rate ?? (employee as any).pay_policy?.ot_rate ?? 0}/hr`
+                              : `${employee.ot_multiplier ?? (employee as any).pay_policy?.ot_multiplier ?? 1.5}x Multiplier`
+                          })`
+                        : 'OT Disabled'}
+                    </span>
+
+                    <span
+                      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold ${
+                        employee.pf_applicable || (employee as any).pay_policy?.pf_applicable || Number(employee.pf) > 0
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : 'bg-slate-100 text-slate-600 border border-slate-200'
+                      }`}
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      {employee.pf_applicable || (employee as any).pay_policy?.pf_applicable || Number(employee.pf) > 0
+                        ? `PF Enrolled${(employee.uan || (employee as any).pay_policy?.uan) ? ` (UAN: ${employee.uan || (employee as any).pay_policy?.uan})` : ''}`
+                        : 'PF Exempt'}
+                    </span>
+
+                    {(employee.bank_name || (employee as any).pay_policy?.bank_name) && (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                        <Landmark className="w-3.5 h-3.5" />
+                        {employee.bank_name || (employee as any).pay_policy?.bank_name}
+                      </span>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('pay_policy')}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 transition"
+                  >
+                    View Full Pay Policy Details
+                    <TrendingUp className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* PAY & POLICIES TAB CONTENT                                                */}
+        {/* ========================================================================= */}
+        {activeTab === 'pay_policy' && employee && (
+          <div className="space-y-6">
+            {/* Top Action Header */}
+            <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xs p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-1 rounded-lg text-2xs font-bold uppercase tracking-wider bg-blue-50 text-blue-700">
+                    Payroll & Compliance
+                  </span>
+                  <span className="text-xs text-slate-400">• Automated Calculation Ready</span>
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 mt-1">Pay Policy & Overtime Rules</h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Compensation structure, overtime rates, statutory compliance, and disbursement account
+                </p>
+              </div>
+
+              <Link
+                to={`/admin/employees/${employee.emp_id}/edit`}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition"
+              >
+                <Edit2 className="w-3.5 h-3.5" />
+                Edit Pay Policies
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Card 1: Base Compensation */}
+              <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xs p-6 space-y-5">
+                <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
+                  <div className="p-2 rounded-xl bg-amber-50 text-amber-600">
+                    <Wallet className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900 text-sm">Monthly Compensation</h4>
+                    <p className="text-2xs text-slate-400">Fixed salary and estimated CTC</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/60">
+                    <span className="text-2xs font-bold text-slate-500 uppercase tracking-wider block">
+                      Base Salary
+                    </span>
+                    <p className="text-xl font-bold text-slate-900 mt-1 font-mono">
+                      ₹{Number(employee.salary || 0).toLocaleString()}
+                      <span className="text-2xs font-normal text-slate-400 ml-1">/ mo</span>
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/60">
+                    <span className="text-2xs font-bold text-slate-500 uppercase tracking-wider block">
+                      Annual CTC
+                    </span>
+                    <p className="text-xl font-bold text-slate-900 mt-1 font-mono">
+                      ₹{(Number(employee.salary || 0) * 12).toLocaleString()}
+                      <span className="text-2xs font-normal text-slate-400 ml-1">/ yr</span>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-100 flex items-center justify-between text-xs">
+                  <span className="text-slate-500">Effective Hourly Base Rate:</span>
+                  <span className="font-mono font-semibold text-slate-800">
+                    ₹{((Number(employee.salary || 0) / 208) || 0).toFixed(2)}/hr
+                    <span className="text-2xs text-slate-400 font-normal ml-1">(26d × 8h)</span>
+                  </span>
+                </div>
+              </div>
+
+              {/* Card 2: Overtime (OT) Policy */}
+              <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xs p-6 space-y-5">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-xl bg-amber-50 text-amber-600">
+                      <Clock className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-900 text-sm">Overtime (OT) Policy</h4>
+                      <p className="text-2xs text-slate-400">Rules applied during attendance payroll runs</p>
+                    </div>
+                  </div>
+
+                  <span
+                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-2xs font-bold ${
+                      employee.ot_eligible || (employee as any).pay_policy?.ot_eligible
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        : 'bg-slate-100 text-slate-500 border border-slate-200'
+                    }`}
+                  >
+                    {employee.ot_eligible || (employee as any).pay_policy?.ot_eligible
+                      ? 'Eligible'
+                      : 'Not Eligible'}
+                  </span>
+                </div>
+
+                {employee.ot_eligible || (employee as any).pay_policy?.ot_eligible ? (
+                  <div className="space-y-3.5">
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div className="p-3 rounded-xl bg-slate-50">
+                        <span className="text-slate-400 block text-2xs uppercase font-semibold">Calculation Mode</span>
+                        <span className="font-semibold text-slate-800 mt-0.5 block">
+                          {(employee.ot_rate_type || (employee as any).pay_policy?.ot_rate_type) === 'FIXED'
+                            ? 'Fixed Hourly Rate'
+                            : 'Hourly Base Multiplier'}
+                        </span>
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-slate-50">
+                        <span className="text-slate-400 block text-2xs uppercase font-semibold">Applied Rate</span>
+                        <span className="font-mono font-bold text-amber-600 mt-0.5 block text-sm">
+                          {(employee.ot_rate_type || (employee as any).pay_policy?.ot_rate_type) === 'FIXED'
+                            ? `₹${Number(employee.ot_rate ?? (employee as any).pay_policy?.ot_rate ?? 0)}/hr`
+                            : `${Number(employee.ot_multiplier ?? (employee as any).pay_policy?.ot_multiplier ?? 1.5)}x Base Rate`}
+                        </span>
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-slate-50">
+                        <span className="text-slate-400 block text-2xs uppercase font-semibold">Daily Min Threshold</span>
+                        <span className="font-semibold text-slate-800 mt-0.5 block">
+                          {Number(employee.minimum_ot_per_day ?? (employee as any).pay_policy?.minimum_ot_per_day ?? 0)} hours
+                        </span>
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-slate-50">
+                        <span className="text-slate-400 block text-2xs uppercase font-semibold">Disbursement Type</span>
+                        <span className="font-semibold text-slate-800 mt-0.5 block">
+                          {(employee.ot_paid_as || (employee as any).pay_policy?.ot_paid_as) === 'COMP_OFF'
+                            ? 'Compensatory Off'
+                            : 'Direct Salary Payout'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-xl bg-slate-50 border border-dashed border-slate-200 text-center">
+                    <p className="text-xs text-slate-500">
+                      Overtime computation is turned off. Additional hours logged beyond shift will not accrue OT allowance.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Card 3: Statutory Compliance (PF) */}
+              <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xs p-6 space-y-5">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600">
+                      <ShieldCheck className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-900 text-sm">Provident Fund & Statutory</h4>
+                      <p className="text-2xs text-slate-400">EPFO registration and monthly deductions</p>
+                    </div>
+                  </div>
+
+                  <span
+                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-2xs font-bold ${
+                      employee.pf_applicable || (employee as any).pay_policy?.pf_applicable || Number(employee.pf) > 0
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        : 'bg-slate-100 text-slate-500 border border-slate-200'
+                    }`}
+                  >
+                    {employee.pf_applicable || (employee as any).pay_policy?.pf_applicable || Number(employee.pf) > 0
+                      ? 'Enrolled'
+                      : 'Exempt'}
+                  </span>
+                </div>
+
+                <div className="space-y-3.5">
+                  <div className="p-3.5 rounded-xl bg-slate-50 flex items-center justify-between">
+                    <div>
+                      <span className="text-2xs font-bold text-slate-500 uppercase tracking-wider block">
+                        Universal Account Number (UAN)
+                      </span>
+                      <p className="font-mono font-bold text-slate-900 text-sm mt-0.5">
+                        {employee.uan || (employee as any).pay_policy?.uan || (
+                          <span className="text-slate-400 font-normal italic text-xs">Not configured</span>
+                        )}
+                      </p>
+                    </div>
+                    <span className="text-2xs text-slate-400 font-semibold px-2 py-0.5 rounded bg-white border border-slate-200">
+                      EPFO
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div className="p-3 rounded-xl bg-slate-50">
+                      <span className="text-slate-400 block text-2xs uppercase font-semibold">Employee Share</span>
+                      <span className="font-mono font-bold text-slate-800 mt-0.5 block">
+                        {Number(employee.employee_pf_pct ?? (employee as any).pay_policy?.employee_pf_pct ?? 12)}%
+                      </span>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-slate-50">
+                      <span className="text-slate-400 block text-2xs uppercase font-semibold">Employer Share</span>
+                      <span className="font-mono font-bold text-slate-800 mt-0.5 block">
+                        {Number(employee.employer_pf_pct ?? (employee as any).pay_policy?.employer_pf_pct ?? 12)}%
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-50 flex items-center justify-between text-xs">
+                    <span className="text-slate-500">Current Monthly PF Contribution:</span>
+                    <span className="font-mono font-bold text-slate-900">
+                      ₹{Number(employee.pf || 0).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 4: Banking & Disbursement */}
+              <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xs p-6 space-y-5">
+                <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
+                  <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
+                    <Landmark className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900 text-sm">Disbursement & Banking</h4>
+                    <p className="text-2xs text-slate-400">Account destination for automated salary payouts</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3.5">
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div className="p-3 rounded-xl bg-slate-50">
+                      <span className="text-slate-400 block text-2xs uppercase font-semibold">Payment Mode</span>
+                      <span className="font-semibold text-slate-800 mt-0.5 block">
+                        {(employee.payment_mode || (employee as any).pay_policy?.payment_mode) === 'CASH'
+                          ? 'Cash Payout'
+                          : (employee.payment_mode || (employee as any).pay_policy?.payment_mode) === 'CHEQUE'
+                          ? 'Cheque'
+                          : 'Direct Bank Transfer'}
+                      </span>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-slate-50">
+                      <span className="text-slate-400 block text-2xs uppercase font-semibold">Bank Name</span>
+                      <span className="font-semibold text-slate-800 mt-0.5 block truncate">
+                        {employee.bank_name || (employee as any).pay_policy?.bank_name || (
+                          <span className="text-slate-400 font-normal italic">Not specified</span>
+                        )}
+                      </span>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-slate-50">
+                      <span className="text-slate-400 block text-2xs uppercase font-semibold">Account Number</span>
+                      <span className="font-mono font-semibold text-slate-800 mt-0.5 block truncate">
+                        {employee.account_number || (employee as any).pay_policy?.account_number || (
+                          <span className="text-slate-400 font-normal italic">Not specified</span>
+                        )}
+                      </span>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-slate-50">
+                      <span className="text-slate-400 block text-2xs uppercase font-semibold">IFSC Code</span>
+                      <span className="font-mono font-semibold text-slate-800 uppercase mt-0.5 block">
+                        {employee.ifsc_code || (employee as any).pay_policy?.ifsc_code || (
+                          <span className="text-slate-400 font-normal italic">Not specified</span>
+                        )}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-100 flex items-center gap-2 text-2xs text-emerald-800">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span>Configured for automated payroll sheet generation & bulk bank transfers</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -895,6 +1365,19 @@ export const EmployeeDetailPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Account Activated / Resend Login Modal */}
+      <AccountActivatedModal
+        isOpen={isActivatedModalOpen}
+        onClose={() => {
+          setIsActivatedModalOpen(false);
+          refetchEmployee();
+        }}
+        result={activatedResult}
+        employeeName={employee?.name}
+        title={modalTitle}
+        description={modalDescription}
+      />
     </AdminLayout>
   );
 };

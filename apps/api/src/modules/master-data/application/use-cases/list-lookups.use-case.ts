@@ -23,6 +23,9 @@ export const ALLOWED_LOOKUP_TYPES = [
   'notice_period',
   'candidate_stage',
   'rejection_reason',
+  'addition_category',
+  'deduction_category',
+  'day_adjustment_reason',
 ];
 
 export class ListLookupsUseCase {

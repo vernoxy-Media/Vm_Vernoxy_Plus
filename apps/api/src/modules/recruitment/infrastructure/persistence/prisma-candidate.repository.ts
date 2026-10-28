@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../../../core/prisma/prisma.service';
 import {
   ICandidateRepository,
@@ -283,6 +283,118 @@ export class PrismaCandidateRepository implements ICandidateRepository {
     return this.mapToDomain(updated);
   }
 
+  async getNextEmployeeCode(): Promise<{ nextEmpId: number; nextEmpCode: string }> {
+    const result = await this.prisma.employees.aggregate({
+      _max: { emp_id: true },
+    });
+    const nextId = (result._max.emp_id || 0) + 1;
+    const nextCode = `EMP-${String(nextId).padStart(4, '0')}`;
+    return { nextEmpId: nextId, nextEmpCode: nextCode };
+  }
+
+  async convertToEmployee(
+    candidateId: number,
+    officeEmail: string,
+    adminId?: number,
+  ): Promise<{ employee: { emp_id: number; name: string; email: string; employee_code: string }; candidate: CandidateProps }> {
+    const candidate = await this.prisma.candidates.findUnique({
+      where: { candidate_id: candidateId },
+      include: this.candidateInclude,
+    });
+
+    if (!candidate) {
+      throw new NotFoundException(`Candidate with ID ${candidateId} not found.`);
+    }
+
+    if (candidate.converted_to_emp_id) {
+      throw new BadRequestException(
+        `Candidate has already been converted to employee EMP-${String(candidate.converted_to_emp_id).padStart(4, '0')}.`,
+      );
+    }
+
+    const normalizedEmail = officeEmail.trim().toLowerCase();
+    const existingEmployee = await this.prisma.employees.findFirst({
+      where: {
+        OR: [
+          { email: { equals: normalizedEmail, mode: 'insensitive' } },
+          { office_email: { equals: normalizedEmail, mode: 'insensitive' } },
+        ],
+        deleted_at: null,
+      },
+    });
+
+    if (existingEmployee) {
+      throw new BadRequestException(
+        `Office email "${officeEmail}" is already in use by employee ${existingEmployee.name} (EMP-${String(existingEmployee.emp_id).padStart(4, '0')}).`,
+      );
+    }
+
+    const finalRoleId = candidate.final_role_id || candidate.role_id;
+    const finalDepId = candidate.final_dep_id || candidate.dep_id;
+    const joiningDate = candidate.expected_joining_date || new Date();
+    const salary = candidate.offered_ctc ? Number(candidate.offered_ctc) : candidate.expected_ctc ? Number(candidate.expected_ctc) : 0;
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      // 1. Create employee
+      const createdEmployee = await tx.employees.create({
+        data: {
+          name: candidate.name,
+          email: normalizedEmail,
+          office_email: normalizedEmail,
+          mob: candidate.phone,
+          personal_email: candidate.email,
+          gender_id: candidate.gender_id,
+          dep_id: finalDepId,
+          role_id: finalRoleId,
+          reporting_manager: candidate.reporting_manager_id || null,
+          joining_date: joiningDate,
+          salary: salary,
+          status: 'Onboarding' as any,
+          created_by: adminId || null,
+        },
+      });
+
+      // 2. Set employee_departments
+      await tx.employee_departments.upsert({
+        where: {
+          emp_id_dep_id: { emp_id: createdEmployee.emp_id, dep_id: finalDepId },
+        },
+        create: {
+          emp_id: createdEmployee.emp_id,
+          dep_id: finalDepId,
+          is_primary: true,
+          created_by: adminId || null,
+        },
+        update: {
+          is_primary: true,
+        },
+      });
+
+      // 3. Update candidate
+      const updatedCandidate = await tx.candidates.update({
+        where: { candidate_id: candidateId },
+        data: {
+          stage: 'onboarding',
+          converted_to_emp_id: createdEmployee.emp_id,
+          updated_at: new Date(),
+        },
+        include: this.candidateInclude,
+      });
+
+      return {
+        employee: {
+          emp_id: createdEmployee.emp_id,
+          name: createdEmployee.name,
+          email: createdEmployee.email,
+          employee_code: `EMP-${String(createdEmployee.emp_id).padStart(4, '0')}`,
+        },
+        candidate: this.mapToDomain(updatedCandidate),
+      };
+    });
+
+    return result;
+  }
+
   private mapToDomain(row: any): CandidateProps {
     return {
       candidateId: row.candidate_id,
@@ -319,6 +431,7 @@ export class PrismaCandidateRepository implements ICandidateRepository {
       rejectionReason: row.rejection_reason,
       rejectionNotes: row.rejection_notes,
       convertedToEmpId: row.converted_to_emp_id,
+      convertedToEmpCode: row.converted_to_emp_id ? `EMP-${String(row.converted_to_emp_id).padStart(4, '0')}` : null,
       roleName: row.roles?.role_name,
       departmentName: row.departments?.name,
       genderLabel: row.master_lookup?.label,

@@ -36,6 +36,8 @@ import {
   ToggleDocumentDto,
   GenerateDocumentDraftDto,
   FinalizeDocumentDraftDto,
+  EmployeeActivationStatusDto,
+  ActivateEmployeeResponseDto,
 } from '../dto/employee-document.dto';
 
 @ApiTags('Organization Documents')
@@ -44,6 +46,40 @@ import {
 @Controller()
 export class EmployeeDocumentController {
   constructor(private readonly documentService: EmployeeDocumentService) {}
+
+  @Get('employees/:id/activation-status')
+  @ApiOperation({ summary: 'Check if employee has uploaded all mandatory documents to activate account' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiResponse({ status: 200, type: EmployeeActivationStatusDto })
+  async getActivationStatus(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<EmployeeActivationStatusDto> {
+    return this.documentService.getActivationEligibility(id);
+  }
+
+  @Post('employees/:id/activate')
+  @ApiOperation({ summary: 'Activate employee account and generate temporary login credentials' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiResponse({ status: 200, type: ActivateEmployeeResponseDto })
+  async activateEmployee(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: any,
+  ): Promise<ActivateEmployeeResponseDto> {
+    const adminId = req.user?.emp_id || 1;
+    return this.documentService.activateEmployee(id, adminId);
+  }
+
+  @Post('employees/:id/resend-login')
+  @ApiOperation({ summary: 'Resend login credentials (generates a new temporary password, Part 7)' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiResponse({ status: 200, type: ActivateEmployeeResponseDto })
+  async resendLogin(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: any,
+  ): Promise<ActivateEmployeeResponseDto> {
+    const adminId = req.user?.emp_id || 1;
+    return this.documentService.resendLogin(id, adminId);
+  }
 
   @Get('employees/:id/documents')
   @ApiOperation({ summary: 'List all employee documents grouped with statuses' })

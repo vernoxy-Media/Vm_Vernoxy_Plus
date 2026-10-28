@@ -13,4 +13,5 @@ export type EmployeeResponseDtoStatus = typeof EmployeeResponseDtoStatus[keyof t
 export const EmployeeResponseDtoStatus = {
   Active: 'Active',
   Inactive: 'Inactive',
+  Onboarding: 'Onboarding',
 } as const;

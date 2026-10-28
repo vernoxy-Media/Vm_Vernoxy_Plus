@@ -64,4 +64,18 @@ export interface CreateEmployeeDto {
   salary?: number;
   /** PF (cannot be negative) */
   pf?: number;
+  ot_eligible?: boolean;
+  ot_rate_type?: 'FIXED' | 'MULTIPLIER' | null;
+  ot_rate?: number | null;
+  ot_multiplier?: number | null;
+  minimum_ot_per_day?: number;
+  ot_paid_as?: 'SALARY' | 'COMP_OFF';
+  pf_applicable?: boolean;
+  uan?: string | null;
+  employee_pf_pct?: number;
+  employer_pf_pct?: number;
+  payment_mode?: 'BANK_TRANSFER' | 'CHEQUE' | 'CASH' | null;
+  bank_name?: string | null;
+  account_number?: string | null;
+  ifsc_code?: string | null;
 }
