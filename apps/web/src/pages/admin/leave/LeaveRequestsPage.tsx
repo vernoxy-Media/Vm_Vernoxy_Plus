@@ -25,7 +25,7 @@ import {
 import { useEmployeeOptionsQuery } from '../../../hooks/use-organization';
 
 export const LeaveRequestsPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'Pending' | 'Approved' | 'Rejected' | 'All'>('Pending');
+  const [activeTab, setActiveTab] = useState<'Pending' | 'Approved' | 'Rejected' | 'Cancelled' | 'All'>('Pending');
   const [searchQuery, setSearchQuery] = useState('');
 
   const { data } = useAdminLeaveRequestsQuery(activeTab, searchQuery);
@@ -286,7 +286,7 @@ export const LeaveRequestsPage: React.FC = () => {
       <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex bg-slate-100 p-1 rounded-xl gap-1">
-            {(['Pending', 'Approved', 'Rejected', 'All'] as const).map((tab) => (
+            {(['Pending', 'Approved', 'Rejected', 'Cancelled', 'All'] as const).map((tab) => (
               <button
                 key={tab}
                 type="button"

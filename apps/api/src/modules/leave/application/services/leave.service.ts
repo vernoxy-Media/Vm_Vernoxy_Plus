@@ -868,8 +868,15 @@ export class LeaveService {
       statusCondition = "WHERE r.status = 'APPROVED'";
     } else if (tab === 'Rejected') {
       statusCondition = "WHERE r.status = 'REJECTED'";
+    } else if (tab === 'Cancelled') {
+      statusCondition = "WHERE r.status = 'CANCELLED'";
     } else {
       statusCondition = 'WHERE 1=1';
+    }
+
+    if (search && search.trim()) {
+      const sanitized = search.trim().replace(/'/g, "''");
+      statusCondition += ` AND (r.request_no ILIKE '%${sanitized}%' OR e.name ILIKE '%${sanitized}%')`;
     }
 
     const requests = await this.prisma.$queryRawUnsafe<any[]>(`
