@@ -2,6 +2,8 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import * as express from 'express';
+import * as path from 'path';
+import * as fs from 'fs';
 const cookieParser = require('cookie-parser');
 import { GlobalExceptionFilter } from './core/filters/global-exception.filter';
 import { createValidationException } from './core/filters/validation-exception.factory';
@@ -27,9 +29,18 @@ export function configureApp(app: INestApplication, env?: EnvConfig): void {
     credentials: true,
   });
 
-  // Global REST API prefix /api/v1, excluding .well-known
+  // Static file serving for storage attachments
+  const storageCandidate1 = path.resolve(process.cwd(), 'storage');
+  const storageCandidate2 = path.resolve(__dirname, '../../..', 'storage');
+  const storagePath = fs.existsSync(storageCandidate1) ? storageCandidate1 : storageCandidate2;
+  if (fs.existsSync(storagePath)) {
+    app.use('/files', express.static(storagePath));
+    app.use('/api/v1/files', express.static(storagePath));
+  }
+
+  // Global REST API prefix /api/v1, excluding .well-known and files
   app.setGlobalPrefix('api/v1', {
-    exclude: ['\\.well-known/(.*)'],
+    exclude: ['\\.well-known/(.*)', 'files/(.*)'],
   });
 
   // Global Validation Pipe with whitelist & forbidNonWhitelisted

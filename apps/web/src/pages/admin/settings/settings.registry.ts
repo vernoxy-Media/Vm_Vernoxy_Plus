@@ -27,6 +27,8 @@ import {
   Layers,
   XCircle,
   UserPlus,
+  Receipt,
+  AlertCircle,
   LucideIcon,
 } from 'lucide-react';
 import type { MeResponseDto } from '@vernoxy-pulse/api-client';
@@ -81,6 +83,12 @@ const SettingsShiftTypesSection = React.lazy(() =>
 );
 const SettingsLeaveTypesSection = React.lazy(() =>
   import('./SettingsLeaveTypesSection').then((m) => ({ default: m.SettingsLeaveTypesSection }))
+);
+const SettingsExpenseSettingsSection = React.lazy(() =>
+  import('./SettingsExpenseSettingsSection').then((m) => ({ default: m.SettingsExpenseSettingsSection }))
+);
+const SettingsComplaintSettingsSection = React.lazy(() =>
+  import('./SettingsComplaintSettingsSection').then((m) => ({ default: m.SettingsComplaintSettingsSection }))
 );
 const SettingsEmploymentTypesSection = React.lazy(() =>
   import('./SettingsEmploymentTypesSection').then((m) => ({ default: m.SettingsEmploymentTypesSection }))
@@ -318,6 +326,24 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     path: '/admin/settings/leave-types',
     icon: CalendarOff,
     component: SettingsLeaveTypesSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'HR',
+  },
+  {
+    id: 'expense-settings',
+    label: 'Expense Settings',
+    path: '/admin/settings/expense-settings',
+    icon: Receipt,
+    component: SettingsExpenseSettingsSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'HR',
+  },
+  {
+    id: 'complaint-settings',
+    label: 'Complaint Settings',
+    path: '/admin/settings/complaint-settings',
+    icon: AlertCircle,
+    component: SettingsComplaintSettingsSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
     group: 'HR',
   },

@@ -16,6 +16,8 @@ import {
   UserPlus,
   Banknote,
   CalendarOff,
+  Receipt,
+  AlertCircle,
 } from 'lucide-react';
 
 export interface SidebarProps {
@@ -42,6 +44,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { name: 'My Tasks', path: '/my-tasks', icon: CheckSquare },
     { name: 'Attendance', path: '/attendance', icon: Clock },
     { name: 'Leave', path: '/leave', icon: CalendarOff },
+    { name: 'Expenses', path: '/expense', icon: Receipt },
+    { name: 'Complaints', path: '/complaints', icon: AlertCircle },
     { name: 'Calendar', path: '/calendar', icon: Calendar },
     ...(user.access?.can_manage_companies
       ? [{ name: 'Companies', path: '/companies', icon: Building2 }]
@@ -49,7 +53,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     ...(user.access?.can_manage_organization
       ? [
           { name: 'Employees', path: '/admin/employees', icon: Users },
-          { name: 'Leave Requests', path: '/admin/leave/requests', icon: CalendarOff },
           { name: 'Recruitment', path: '/admin/recruitment', icon: UserPlus },
           { name: 'Payroll', path: '/admin/payroll', icon: Banknote },
           { name: 'Attendance Settings', path: '/admin/attendance-settings', icon: CalendarClock },
@@ -102,9 +105,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 : item.path === '/attendance'
                 ? location.pathname === '/attendance'
                 : item.path === '/leave'
-                ? location.pathname === '/leave'
+                ? location.pathname.startsWith('/leave') || location.pathname.startsWith('/admin/leave')
+                : item.path === '/expense'
+                ? location.pathname.startsWith('/expense') || location.pathname.startsWith('/expenses') || location.pathname.startsWith('/admin/expense') || location.pathname.startsWith('/admin/expenses')
                 : item.path === '/my-tasks'
                 ? location.pathname.startsWith('/my-tasks') || location.pathname.startsWith('/admin/tasks')
+                : item.path === '/complaints'
+                ? location.pathname.startsWith('/complaints') || location.pathname.startsWith('/admin/complaint')
                 : location.pathname.startsWith(item.path);
 
             return (

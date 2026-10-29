@@ -13,6 +13,10 @@ export default defineConfig({
   server: {
     port: Number(process.env.VITE_PORT) || 5173,
     proxy: {
+      '/files': {
+        target: process.env.VITE_API_URL || 'http://127.0.0.1:3000',
+        changeOrigin: true,
+      },
       '/api': {
         target: process.env.VITE_API_URL || 'http://127.0.0.1:3000',
         changeOrigin: true,

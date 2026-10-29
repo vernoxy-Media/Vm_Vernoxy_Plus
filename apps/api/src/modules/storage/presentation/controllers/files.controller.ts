@@ -16,7 +16,7 @@ import { FileStoragePort } from '../../application/ports/file-storage.port';
 import { StorageValidator } from '../../domain/storage.validator';
 
 @ApiTags('Files')
-@Controller('files')
+@Controller(['files', 'api/v1/files'])
 export class FilesController {
   constructor(
     @Inject(STORAGE_TOKENS.FileStoragePort)

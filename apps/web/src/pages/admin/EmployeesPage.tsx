@@ -85,7 +85,8 @@ export const EmployeesPage: React.FC = () => {
   const [selectedRoleId, setSelectedRoleId] = useState<number | undefined>(undefined);
   const [statusFilter, setStatusFilter] = useState<'Active' | 'Inactive' | 'All'>('Active');
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 8;
+  const pageSize = 10;
+  const [imageErrors, setImageErrors] = useState<Record<number, boolean>>({});
 
   const [deletingEmp, setDeletingEmp] = useState<EmployeeResponseDto | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -495,11 +496,12 @@ export const EmployeesPage: React.FC = () => {
                           {/* Marker 5: EMPLOYEE column: Initials Circle, Name & Emp ID */}
                           <td className="py-3.5 px-5">
                             <div className="flex items-center gap-3">
-                              {emp.profile_picture_url ? (
+                              {emp.profile_picture_url && !imageErrors[emp.emp_id] ? (
                                 <img
                                   src={emp.profile_picture_url}
                                   alt={emp.name}
                                   className="w-10 h-10 rounded-full object-cover shrink-0 ring-1 ring-slate-200"
+                                  onError={() => setImageErrors((prev) => ({ ...prev, [emp.emp_id]: true }))}
                                 />
                               ) : (
                                 <div
@@ -637,11 +639,12 @@ export const EmployeesPage: React.FC = () => {
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-center gap-3">
-                          {emp.profile_picture_url ? (
+                          {emp.profile_picture_url && !imageErrors[emp.emp_id] ? (
                             <img
                               src={emp.profile_picture_url}
                               alt={emp.name}
                               className="w-10 h-10 rounded-full object-cover shrink-0 ring-1 ring-slate-200"
+                              onError={() => setImageErrors((prev) => ({ ...prev, [emp.emp_id]: true }))}
                             />
                           ) : (
                             <div

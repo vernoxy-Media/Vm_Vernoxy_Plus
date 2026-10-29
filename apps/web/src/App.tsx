@@ -23,8 +23,9 @@ import { CandidateDetailPage } from './pages/admin/recruitment/CandidateDetailPa
 import { PayrollRunsPage } from './pages/admin/payroll/PayrollRunsPage';
 import { PayrollRegisterPage } from './pages/admin/payroll/PayrollRegisterPage';
 import { EmployeeSalarySheetPage } from './pages/admin/payroll/EmployeeSalarySheetPage';
-import { MyLeavePage } from './pages/leave/MyLeavePage';
-import { LeaveRequestsPage } from './pages/admin/leave/LeaveRequestsPage';
+import { LeavePage } from './pages/leave/LeavePage';
+import { ExpensesPage } from './pages/expense/ExpensesPage';
+import { ComplaintsPage } from './pages/complaint/ComplaintsPage';
 import { CompanyRoute } from './features/companies/components/CompanyRoute';
 import { CompaniesListPage } from './features/companies/pages/CompaniesListPage';
 import { CompanyFormPage } from './features/companies/pages/CompanyFormPage';
@@ -92,10 +93,40 @@ export const App: React.FC = () => {
               element={
                 <ProtectedRoute>
                   <AppLayout fluid>
-                    <MyLeavePage />
+                    <LeavePage />
                   </AppLayout>
                 </ProtectedRoute>
               }
+            />
+            {/* Expense Management Module (Unified Hub) */}
+            <Route
+              path="/expense"
+              element={
+                <ProtectedRoute>
+                  <AppLayout fluid>
+                    <ExpensesPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/expenses"
+              element={<Navigate to="/expense" replace />}
+            />
+            {/* Complaint Management Module (Unified Hub) */}
+            <Route
+              path="/complaints"
+              element={
+                <ProtectedRoute>
+                  <AppLayout fluid>
+                    <ComplaintsPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/complaint"
+              element={<Navigate to="/complaints" replace />}
             />
             <Route
               path="/attendance/calendar"
@@ -274,20 +305,46 @@ export const App: React.FC = () => {
               }
             />
 
-            {/* Leave Management Module (Admin) */}
+            {/* Leave Management Module (Redirects to Unified Hub) */}
             <Route
               path="/admin/leave"
-              element={<Navigate to="/admin/leave/requests" replace />}
+              element={<Navigate to="/leave?tab=requests" replace />}
             />
             <Route
               path="/admin/leave/requests"
-              element={
-                <AdminRoute>
-                  <AppLayout fluid>
-                    <LeaveRequestsPage />
-                  </AppLayout>
-                </AdminRoute>
-              }
+              element={<Navigate to="/leave?tab=requests" replace />}
+            />
+
+            {/* Expense Management Module (Redirects to Unified Hub) */}
+            <Route
+              path="/admin/expense"
+              element={<Navigate to="/expense?tab=claims" replace />}
+            />
+            <Route
+              path="/admin/expense/reports"
+              element={<Navigate to="/expense?tab=reports" replace />}
+            />
+            <Route
+              path="/admin/expenses"
+              element={<Navigate to="/expense?tab=claims" replace />}
+            />
+            <Route
+              path="/admin/expenses/reports"
+              element={<Navigate to="/expense?tab=reports" replace />}
+            />
+
+            {/* Complaint Management Module Redirects to Unified Hub */}
+            <Route
+              path="/admin/complaints"
+              element={<Navigate to="/complaints?tab=manage" replace />}
+            />
+            <Route
+              path="/admin/complaint"
+              element={<Navigate to="/complaints?tab=manage" replace />}
+            />
+            <Route
+              path="/admin/complaints/reports"
+              element={<Navigate to="/complaints?tab=reports" replace />}
             />
 
             {/* Companies Module */}

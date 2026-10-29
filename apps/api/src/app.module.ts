@@ -20,6 +20,9 @@ import { WebsocketsModule } from './modules/websockets/public-api';
 import { RecruitmentModule } from './modules/recruitment/recruitment.module';
 import { PayrollModule } from './modules/payroll/payroll.module';
 import { LeaveModule } from './modules/leave/leave.module';
+import { ExpenseModule } from './modules/expense/expense.module';
+import { AttachmentsModule } from './modules/attachments/attachments.module';
+import { ComplaintModule } from './modules/complaint/complaint.module';
 
 @Module({
 
@@ -46,6 +49,9 @@ import { LeaveModule } from './modules/leave/leave.module';
     RecruitmentModule,
     PayrollModule,
     LeaveModule,
+    ExpenseModule,
+    AttachmentsModule,
+    ComplaintModule,
   ],
   controllers: [HealthController],
   providers: [
