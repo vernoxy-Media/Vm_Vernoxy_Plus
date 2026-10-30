@@ -20,9 +20,6 @@ export const SettingsHrPolicySection: React.FC = () => {
     <div className="space-y-6 max-w-3xl">
       <div>
         <h2 className="text-xl font-bold text-slate-900 tracking-tight">HR Policy Settings</h2>
-        <p className="text-sm text-slate-500 mt-1">
-          Configure work schedule conventions, calendar start days, and standard attendance guidelines.
-        </p>
       </div>
 
       {isSaved && (

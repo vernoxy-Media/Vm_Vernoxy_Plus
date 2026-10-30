@@ -94,20 +94,6 @@ export const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({
 
   return (
     <div id="attendance-calendar-card" className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-slate-100">
-        <div>
-          <h2 className="text-lg font-bold text-blue-600 tracking-tight">Attendance Calendar</h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Overview grid with day statuses, work duration, and roving keyboard navigation.
-          </p>
-        </div>
-        <div className="text-xs text-slate-400 font-medium">
-          Week starts on: <span className="font-semibold text-slate-700 capitalize">{weekStart}</span>
-        </div>
-      </div>
-
-      <CalendarLegend />
-
       <CalendarGridDesktop
         weekdayHeaders={weekdayHeaders}
         weekdayOffset={weekdayOffset}
@@ -128,6 +114,8 @@ export const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({
         recordsMap={recordsMap}
         onSelectDate={onSelectDate}
       />
+
+      <CalendarLegend />
     </div>
   );
 };

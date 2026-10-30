@@ -378,3 +378,129 @@ export class StartBreakDto {
   @IsOptional()
   reason?: string;
 }
+
+export class CreateRegularizationDto {
+  @ApiPropertyOptional({ type: Number, example: 12, description: 'Optional employee ID for HR requesting on behalf' })
+  @IsOptional()
+  emp_id?: number;
+
+  @ApiProperty({ type: String, example: '2026-10-21', description: 'Attendance Date' })
+  @IsString()
+  @IsNotEmpty()
+  work_date!: string;
+
+  @ApiProperty({
+    type: String,
+    example: 'Missing Check-out',
+    enum: [
+      'Missing Check-in',
+      'Missing Check-out',
+      'Incorrect Time',
+      'Full Day Missed',
+      'On Duty / Field Work',
+    ],
+  })
+  @IsString()
+  @IsNotEmpty()
+  request_type!: string;
+
+  @ApiPropertyOptional({ type: String, example: '2026-10-21T09:34:00.000Z' })
+  @IsOptional()
+  current_check_in_at?: string | null;
+
+  @ApiPropertyOptional({ type: String, example: '2026-10-21T18:30:00.000Z' })
+  @IsOptional()
+  current_check_out_at?: string | null;
+
+  @ApiPropertyOptional({ type: String, example: '2026-10-21T09:30:00.000Z' })
+  @IsOptional()
+  requested_check_in_at?: string | null;
+
+  @ApiPropertyOptional({ type: String, example: '2026-10-21T19:00:00.000Z' })
+  @IsOptional()
+  requested_check_out_at?: string | null;
+
+  @ApiProperty({
+    type: String,
+    example: 'Forgot to Punch',
+    enum: [
+      'Forgot to Punch',
+      'Device or Network Issue',
+      'Client Visit',
+      'Work From Home',
+      'Power Failure',
+      'Other',
+    ],
+  })
+  @IsString()
+  @IsNotEmpty()
+  reason!: string;
+
+  @ApiProperty({ type: String, example: 'Left the office in a hurry and forgot to check out.' })
+  @IsString()
+  @IsNotEmpty()
+  remarks!: string;
+
+  @ApiPropertyOptional({ type: String })
+  @IsOptional()
+  attachment_url?: string | null;
+
+  @ApiPropertyOptional({ type: String })
+  @IsOptional()
+  attachment_name?: string | null;
+}
+
+export class ApproveRegularizationDto {
+  @ApiPropertyOptional({ type: String, example: 'Approved after verification' })
+  @IsString()
+  @IsOptional()
+  comment?: string;
+}
+
+export class RejectRegularizationDto {
+  @ApiProperty({ type: String, example: 'Punch times do not match badge log' })
+  @IsString()
+  @IsNotEmpty()
+  comment!: string;
+}
+
+export class BulkApproveRegularizationDto {
+  @ApiProperty({ type: [Number], example: [7, 8, 9] })
+  @IsNotEmpty()
+  ids!: number[];
+}
+
+export class RegularizationQueryDto {
+  @ApiPropertyOptional({ type: String, enum: ['pending', 'approved', 'rejected'] })
+  @IsOptional()
+  tab?: string;
+
+  @ApiPropertyOptional({ type: String })
+  @IsOptional()
+  status?: string;
+
+  @ApiPropertyOptional({ type: Number })
+  @IsOptional()
+  department_id?: number;
+
+  @ApiPropertyOptional({ type: String })
+  @IsOptional()
+  request_type?: string;
+
+  @ApiPropertyOptional({ type: String })
+  @IsOptional()
+  from_date?: string;
+
+  @ApiPropertyOptional({ type: String })
+  @IsOptional()
+  to_date?: string;
+
+  @ApiPropertyOptional({ type: String })
+  @IsOptional()
+  search?: string;
+
+  @ApiPropertyOptional({ type: String, enum: ['me', 'team', 'all'] })
+  @IsOptional()
+  scope?: string;
+}
+

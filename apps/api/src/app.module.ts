@@ -17,6 +17,13 @@ import { TasksModule } from './modules/tasks/public-api';
 import { CalendarModule } from './modules/calendar/public-api';
 import { ProjectsModule } from './modules/projects/public-api';
 import { WebsocketsModule } from './modules/websockets/public-api';
+import { RecruitmentModule } from './modules/recruitment/recruitment.module';
+import { PayrollModule } from './modules/payroll/payroll.module';
+import { LeaveModule } from './modules/leave/leave.module';
+import { ExpenseModule } from './modules/expense/expense.module';
+import { AttachmentsModule } from './modules/attachments/attachments.module';
+import { ComplaintModule } from './modules/complaint/complaint.module';
+import { LicenseModule } from './modules/license/license.module';
 
 @Module({
 
@@ -40,6 +47,13 @@ import { WebsocketsModule } from './modules/websockets/public-api';
     CalendarModule,
     ProjectsModule,
     WebsocketsModule,
+    RecruitmentModule,
+    PayrollModule,
+    LeaveModule,
+    ExpenseModule,
+    AttachmentsModule,
+    ComplaintModule,
+    LicenseModule,
   ],
   controllers: [HealthController],
   providers: [

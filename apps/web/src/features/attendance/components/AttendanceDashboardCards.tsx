@@ -5,11 +5,11 @@ import type {
   MonthSummary,
   DayRecord,
 } from '../types/attendance.types';
-import { AttendanceTopSummaryCards } from './AttendanceTopSummaryCards';
 import { CurrentSessionCard } from './CurrentSessionCard';
-import { MonthlyAttendancePanel } from './MonthlyAttendancePanel';
 import { CurrentTimeTimingsCard } from './CurrentTimeTimingsCard';
 import { RecentAttendanceRecordsCard } from './RecentAttendanceRecordsCard';
+import { AttendanceBreakdownRow } from './AttendanceMetricsOverview';
+import { AttendancePunctualityCard } from './AttendancePunctualityCard';
 
 export interface AttendanceDashboardCardsProps {
   today: TodayAttendanceData;
@@ -36,6 +36,7 @@ export interface AttendanceDashboardCardsProps {
   weekLabel?: string;
   monthLabel?: string;
   statusLabel?: string;
+  onOpenMyRequests?: () => void;
 }
 
 export const AttendanceDashboardCards: React.FC<AttendanceDashboardCardsProps> = ({
@@ -56,10 +57,8 @@ export const AttendanceDashboardCards: React.FC<AttendanceDashboardCardsProps> =
   isSelectedToday = true,
   onRequestCorrection,
   onSelectDate,
-  selectedMonth,
-  onSelectMonth,
+  onOpenMyRequests,
 }) => {
-  const currentMonthStr = selectedMonth || (today.date ? today.date.slice(0, 7) : new Date().toISOString().slice(0, 7));
 
   // Live ticking offset so worked time & break time update smoothly in real time
   const [secondsOffset, setSecondsOffset] = useState(0);
@@ -99,76 +98,56 @@ export const AttendanceDashboardCards: React.FC<AttendanceDashboardCardsProps> =
   const punchInTime = today.punched_in_at || selectedRecord?.punch_in || null;
 
   return (
-    <div className="space-y-6 w-full">
-      {/* Section 1: Today's Performance */}
-      <section aria-labelledby="section-todays-performance">
-        <h2
-          id="section-todays-performance"
-          className="text-[17px] font-bold text-slate-900 tracking-tight mb-3"
-        >
-          Today&apos;s Performance
-        </h2>
-        <AttendanceTopSummaryCards
-          statistics={statistics}
+    <div className="space-y-5 w-full">
+      {/* Row 1: Current Session (Circle on Left) + Compliance & Punctuality (Middle) + Current Time & Shift (Right) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 auto-rows-fr gap-4.5 lg:gap-5 items-stretch">
+        {/* Card 1 (Left): Current Session (Attendance circle on left side) */}
+        <CurrentSessionCard
+          today={liveToday}
+          isPending={isPending}
+          onPunchIn={onPunchIn}
+          onPunchOut={onPunchOut}
+          onStartBreak={onStartBreak}
+          onResumeBreak={onResumeBreak}
+          errorMessage={actionError}
+          infoToast={infoToast}
+          onDismissToast={onDismissToast}
+          isSelectedToday={isSelectedToday}
+        />
+
+        {/* Card 2 (Middle): Punctuality Score, In/Out Times, Overtime, Total Leaves */}
+        <AttendancePunctualityCard
           records={records}
+          monthSummary={monthSummary}
+          statistics={statistics}
+        />
+
+        {/* Card 3 (Right): Current Time & Shift (Current time and shift remains as it is) */}
+        <CurrentTimeTimingsCard
           todayWorkedSeconds={liveWorkedSeconds}
           todayBreakSeconds={liveBreakSeconds}
+          todayTargetSeconds={today.target_seconds}
+          punchInTime={punchInTime}
+          shiftStart="09:00 AM"
+          shiftEnd="05:30 PM"
+          timeline={liveToday.timeline}
+          todayState={liveToday.state}
         />
-      </section>
+      </div>
 
-      {/* Section 2: Today's Attendance */}
-      <section aria-labelledby="section-todays-attendance">
+      {/* Row 2: Monthly Attendance + Exceptions + Hours Summary matching Reference Image */}
+      <AttendanceBreakdownRow
+        monthSummary={monthSummary}
+        records={records}
+      />
+
+      {/* Section 3: Attendance Logs */}
+      <section aria-labelledby="section-attendance-logs">
         <h2
-          id="section-todays-attendance"
+          id="section-attendance-logs"
           className="text-[17px] font-bold text-slate-900 tracking-tight mb-3"
         >
-          Today&apos;s Attendance
-        </h2>
-        {/* Middle row: Equal 3-column grid (1fr 1fr 1fr) with auto-rows-fr for identical card width & height */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 auto-rows-fr gap-4.5 lg:gap-5 items-stretch">
-          {/* Left Panel: Current Session (Hero) */}
-          <CurrentSessionCard
-            today={liveToday}
-            isPending={isPending}
-            onPunchIn={onPunchIn}
-            onPunchOut={onPunchOut}
-            onStartBreak={onStartBreak}
-            onResumeBreak={onResumeBreak}
-            errorMessage={actionError}
-            infoToast={infoToast}
-            onDismissToast={onDismissToast}
-            isSelectedToday={isSelectedToday}
-          />
-
-          {/* Middle Panel: Monthly Attendance */}
-          <MonthlyAttendancePanel
-            summary={monthSummary}
-            records={records}
-            selectedMonth={currentMonthStr}
-            onSelectMonth={onSelectMonth}
-          />
-
-          {/* Right Panel: Current Time & Shift */}
-          <CurrentTimeTimingsCard
-            todayWorkedSeconds={liveWorkedSeconds}
-            todayBreakSeconds={liveBreakSeconds}
-            todayTargetSeconds={today.target_seconds}
-            punchInTime={punchInTime}
-            shiftStart="09:00 AM"
-            shiftEnd="05:30 PM"
-            timeline={liveToday.timeline}
-            todayState={liveToday.state}
-          />
-        </div>
-      </section>
-
-      {/* Section 3: Attendance History */}
-      <section aria-labelledby="section-attendance-history">
-        <h2
-          id="section-attendance-history"
-          className="text-[17px] font-bold text-slate-900 tracking-tight mb-3"
-        >
-          Attendance History
+          Attendance Logs
         </h2>
         <RecentAttendanceRecordsCard
           records={records}
@@ -176,6 +155,7 @@ export const AttendanceDashboardCards: React.FC<AttendanceDashboardCardsProps> =
           onRequestCorrection={onRequestCorrection}
           onSelectDate={onSelectDate}
           onSuccessCorrection={onSuccessCorrection}
+          onOpenMyRequests={onOpenMyRequests}
         />
       </section>
     </div>

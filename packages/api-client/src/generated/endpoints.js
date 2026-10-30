@@ -61,7 +61,7 @@ export const getAuthControllerLoginMutationOptions = (options) => {
     return { mutationFn, ...mutationOptions };
 };
 /**
-* @summary Initiate login with email and password (sends 2FA email OTP)
+* @summary Login directly with email and password
 */
 export const useAuthControllerLogin = (options, queryClient) => {
     const mutationOptions = getAuthControllerLoginMutationOptions(options);
@@ -993,6 +993,98 @@ export const useEmployeeControllerDelete = (options, queryClient) => {
     const mutationOptions = getEmployeeControllerDeleteMutationOptions(options);
     return useMutation(mutationOptions, queryClient);
 };
+;
+export const getEmployeeControllerGetDeactivateWarningUrl = (id) => {
+    return `/api/v1/employees/${id}/deactivate-warning`;
+};
+export const employeeControllerGetDeactivateWarning = async (id, options) => {
+    return customFetch(getEmployeeControllerGetDeactivateWarningUrl(id), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getEmployeeControllerGetDeactivateWarningQueryKey = (id) => {
+    return [
+        `/api/v1/employees/${id}/deactivate-warning`
+    ];
+};
+export const getEmployeeControllerGetDeactivateWarningQueryOptions = (id, options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getEmployeeControllerGetDeactivateWarningQueryKey(id);
+    const queryFn = ({ signal }) => employeeControllerGetDeactivateWarning(id, { signal, ...requestOptions });
+    return { queryKey, queryFn, enabled: !!(id), ...queryOptions };
+};
+/**
+ * @summary Get direct reports warning before deactivating an employee
+ */
+export function useEmployeeControllerGetDeactivateWarning(id, options, queryClient) {
+    const queryOptions = getEmployeeControllerGetDeactivateWarningQueryOptions(id, options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
+export const getEmployeeControllerDeactivateUrl = (id) => {
+    return `/api/v1/employees/${id}/deactivate`;
+};
+export const employeeControllerDeactivate = async (id, deactivateEmployeeDto, options) => {
+    return customFetch(getEmployeeControllerDeactivateUrl(id), {
+        ...options,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        body: JSON.stringify(deactivateEmployeeDto)
+    });
+};
+export const getEmployeeControllerDeactivateMutationOptions = (options) => {
+    const mutationKey = ['employeeControllerDeactivate'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { id, data } = props ?? {};
+        return employeeControllerDeactivate(id, data, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Deactivate an employee (with reason, termination date, and notes)
+*/
+export const useEmployeeControllerDeactivate = (options, queryClient) => {
+    const mutationOptions = getEmployeeControllerDeactivateMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getEmployeeControllerGetHistoryUrl = (id) => {
+    return `/api/v1/employees/${id}/history`;
+};
+export const employeeControllerGetHistory = async (id, options) => {
+    return customFetch(getEmployeeControllerGetHistoryUrl(id), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getEmployeeControllerGetHistoryQueryKey = (id) => {
+    return [
+        `/api/v1/employees/${id}/history`
+    ];
+};
+export const getEmployeeControllerGetHistoryQueryOptions = (id, options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getEmployeeControllerGetHistoryQueryKey(id);
+    const queryFn = ({ signal }) => employeeControllerGetHistory(id, { signal, ...requestOptions });
+    return { queryKey, queryFn, enabled: !!(id), ...queryOptions };
+};
+/**
+ * @summary Get employee milestone and growth timeline history
+ */
+export function useEmployeeControllerGetHistory(id, options, queryClient) {
+    const queryOptions = getEmployeeControllerGetHistoryQueryOptions(id, options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
 export const getEmployeeControllerUploadPhotoUrl = (id) => {
     return `/api/v1/employees/${id}/photo`;
 };
@@ -1475,7 +1567,7 @@ export const getLookupControllerGetOptionsQueryOptions = (params, options) => {
     return { queryKey, queryFn, ...queryOptions };
 };
 /**
- * @summary Get active lookup options by type (e.g. person_department)
+ * @summary Get active lookup options by type (for dropdowns)
  */
 export function useLookupControllerGetOptions(params, options, queryClient) {
     const queryOptions = getLookupControllerGetOptionsQueryOptions(params, options);
@@ -1483,6 +1575,144 @@ export function useLookupControllerGetOptions(params, options, queryClient) {
     query.queryKey = queryOptions.queryKey;
     return query;
 }
+;
+export const getLookupControllerListAllUrl = (params) => {
+    const normalizedParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+        if (value !== undefined) {
+            normalizedParams.append(key, value === null ? 'null' : value.toString());
+        }
+    });
+    const stringifiedParams = normalizedParams.toString();
+    return stringifiedParams.length > 0 ? `/api/v1/lookups?${stringifiedParams}` : `/api/v1/lookups`;
+};
+export const lookupControllerListAll = async (params, options) => {
+    return customFetch(getLookupControllerListAllUrl(params), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getLookupControllerListAllQueryKey = (params) => {
+    return [
+        `/api/v1/lookups`, ...(params ? [params] : [])
+    ];
+};
+export const getLookupControllerListAllQueryOptions = (params, options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getLookupControllerListAllQueryKey(params);
+    const queryFn = ({ signal }) => lookupControllerListAll(params, { signal, ...requestOptions });
+    return { queryKey, queryFn, ...queryOptions };
+};
+/**
+ * @summary List all lookup items (including inactive) by type
+ */
+export function useLookupControllerListAll(params, options, queryClient) {
+    const queryOptions = getLookupControllerListAllQueryOptions(params, options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
+export const getLookupControllerCreateUrl = (params) => {
+    const normalizedParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+        if (value !== undefined) {
+            normalizedParams.append(key, value === null ? 'null' : value.toString());
+        }
+    });
+    const stringifiedParams = normalizedParams.toString();
+    return stringifiedParams.length > 0 ? `/api/v1/lookups?${stringifiedParams}` : `/api/v1/lookups`;
+};
+export const lookupControllerCreate = async (createLookupDto, params, options) => {
+    return customFetch(getLookupControllerCreateUrl(params), {
+        ...options,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        body: JSON.stringify(createLookupDto)
+    });
+};
+export const getLookupControllerCreateMutationOptions = (options) => {
+    const mutationKey = ['lookupControllerCreate'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { data, params } = props ?? {};
+        return lookupControllerCreate(data, params, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Create a new lookup item
+*/
+export const useLookupControllerCreate = (options, queryClient) => {
+    const mutationOptions = getLookupControllerCreateMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getLookupControllerUpdateUrl = (id) => {
+    return `/api/v1/lookups/${id}`;
+};
+export const lookupControllerUpdate = async (id, updateLookupDto, options) => {
+    return customFetch(getLookupControllerUpdateUrl(id), {
+        ...options,
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        body: JSON.stringify(updateLookupDto)
+    });
+};
+export const getLookupControllerUpdateMutationOptions = (options) => {
+    const mutationKey = ['lookupControllerUpdate'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { id, data } = props ?? {};
+        return lookupControllerUpdate(id, data, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Update a lookup item
+*/
+export const useLookupControllerUpdate = (options, queryClient) => {
+    const mutationOptions = getLookupControllerUpdateMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getLookupControllerRemoveUrl = (id) => {
+    return `/api/v1/lookups/${id}`;
+};
+export const lookupControllerRemove = async (id, options) => {
+    return customFetch(getLookupControllerRemoveUrl(id), {
+        ...options,
+        method: 'DELETE'
+    });
+};
+export const getLookupControllerRemoveMutationOptions = (options) => {
+    const mutationKey = ['lookupControllerRemove'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { id } = props ?? {};
+        return lookupControllerRemove(id, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Delete (soft delete) a lookup item
+*/
+export const useLookupControllerRemove = (options, queryClient) => {
+    const mutationOptions = getLookupControllerRemoveMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
 ;
 export const getCompanyDataTransferControllerDownloadTemplateUrl = (params) => {
     const normalizedParams = new URLSearchParams();
@@ -2123,61 +2353,125 @@ export const useAttendanceControllerPunchOut = (options, queryClient) => {
     return useMutation(mutationOptions, queryClient);
 };
 ;
-export const getAttendanceControllerStartBreakUrl = () => {
+export const getAttendanceControllerStartBreak0Url = () => {
     return `/api/v1/attendance/break/start`;
 };
-export const attendanceControllerStartBreak = async (options) => {
-    return customFetch(getAttendanceControllerStartBreakUrl(), {
+export const attendanceControllerStartBreak0 = async (startBreakDto, options) => {
+    return customFetch(getAttendanceControllerStartBreak0Url(), {
         ...options,
-        method: 'POST'
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        body: JSON.stringify(startBreakDto)
     });
 };
-export const getAttendanceControllerStartBreakMutationOptions = (options) => {
-    const mutationKey = ['attendanceControllerStartBreak'];
+export const getAttendanceControllerStartBreak0MutationOptions = (options) => {
+    const mutationKey = ['attendanceControllerStartBreak0'];
     const { mutation: mutationOptions, request: requestOptions } = options ?
         options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
             options
             : { ...options, mutation: { ...options.mutation, mutationKey } }
         : { mutation: { mutationKey, }, request: undefined };
-    const mutationFn = () => {
-        return attendanceControllerStartBreak(requestOptions);
+    const mutationFn = (props) => {
+        const { data } = props ?? {};
+        return attendanceControllerStartBreak0(data, requestOptions);
     };
     return { mutationFn, ...mutationOptions };
 };
 /**
 * @summary Start a break
 */
-export const useAttendanceControllerStartBreak = (options, queryClient) => {
-    const mutationOptions = getAttendanceControllerStartBreakMutationOptions(options);
+export const useAttendanceControllerStartBreak0 = (options, queryClient) => {
+    const mutationOptions = getAttendanceControllerStartBreak0MutationOptions(options);
     return useMutation(mutationOptions, queryClient);
 };
 ;
-export const getAttendanceControllerEndBreakUrl = () => {
+export const getAttendanceControllerStartBreak1Url = () => {
+    return `/api/v1/attendance/me/break`;
+};
+export const attendanceControllerStartBreak1 = async (startBreakDto, options) => {
+    return customFetch(getAttendanceControllerStartBreak1Url(), {
+        ...options,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        body: JSON.stringify(startBreakDto)
+    });
+};
+export const getAttendanceControllerStartBreak1MutationOptions = (options) => {
+    const mutationKey = ['attendanceControllerStartBreak1'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { data } = props ?? {};
+        return attendanceControllerStartBreak1(data, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Start a break
+*/
+export const useAttendanceControllerStartBreak1 = (options, queryClient) => {
+    const mutationOptions = getAttendanceControllerStartBreak1MutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getAttendanceControllerEndBreak0Url = () => {
     return `/api/v1/attendance/break/end`;
 };
-export const attendanceControllerEndBreak = async (options) => {
-    return customFetch(getAttendanceControllerEndBreakUrl(), {
+export const attendanceControllerEndBreak0 = async (options) => {
+    return customFetch(getAttendanceControllerEndBreak0Url(), {
         ...options,
         method: 'POST'
     });
 };
-export const getAttendanceControllerEndBreakMutationOptions = (options) => {
-    const mutationKey = ['attendanceControllerEndBreak'];
+export const getAttendanceControllerEndBreak0MutationOptions = (options) => {
+    const mutationKey = ['attendanceControllerEndBreak0'];
     const { mutation: mutationOptions, request: requestOptions } = options ?
         options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
             options
             : { ...options, mutation: { ...options.mutation, mutationKey } }
         : { mutation: { mutationKey, }, request: undefined };
     const mutationFn = () => {
-        return attendanceControllerEndBreak(requestOptions);
+        return attendanceControllerEndBreak0(requestOptions);
     };
     return { mutationFn, ...mutationOptions };
 };
 /**
 * @summary End a break (resume working)
 */
-export const useAttendanceControllerEndBreak = (options, queryClient) => {
-    const mutationOptions = getAttendanceControllerEndBreakMutationOptions(options);
+export const useAttendanceControllerEndBreak0 = (options, queryClient) => {
+    const mutationOptions = getAttendanceControllerEndBreak0MutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getAttendanceControllerEndBreak1Url = () => {
+    return `/api/v1/attendance/me/resume`;
+};
+export const attendanceControllerEndBreak1 = async (options) => {
+    return customFetch(getAttendanceControllerEndBreak1Url(), {
+        ...options,
+        method: 'POST'
+    });
+};
+export const getAttendanceControllerEndBreak1MutationOptions = (options) => {
+    const mutationKey = ['attendanceControllerEndBreak1'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = () => {
+        return attendanceControllerEndBreak1(requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary End a break (resume working)
+*/
+export const useAttendanceControllerEndBreak1 = (options, queryClient) => {
+    const mutationOptions = getAttendanceControllerEndBreak1MutationOptions(options);
     return useMutation(mutationOptions, queryClient);
 };
 ;
@@ -2406,6 +2700,231 @@ export const getAttendanceControllerRejectCorrectionMutationOptions = (options) 
 */
 export const useAttendanceControllerRejectCorrection = (options, queryClient) => {
     const mutationOptions = getAttendanceControllerRejectCorrectionMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getAttendanceControllerListRegularizationsUrl = (params) => {
+    const normalizedParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+        if (value !== undefined) {
+            normalizedParams.append(key, value === null ? 'null' : value.toString());
+        }
+    });
+    const stringifiedParams = normalizedParams.toString();
+    return stringifiedParams.length > 0 ? `/api/v1/attendance/regularizations?${stringifiedParams}` : `/api/v1/attendance/regularizations`;
+};
+export const attendanceControllerListRegularizations = async (params, options) => {
+    return customFetch(getAttendanceControllerListRegularizationsUrl(params), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getAttendanceControllerListRegularizationsQueryKey = (params) => {
+    return [
+        `/api/v1/attendance/regularizations`, ...(params ? [params] : [])
+    ];
+};
+export const getAttendanceControllerListRegularizationsQueryOptions = (params, options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getAttendanceControllerListRegularizationsQueryKey(params);
+    const queryFn = ({ signal }) => attendanceControllerListRegularizations(params, { signal, ...requestOptions });
+    return { queryKey, queryFn, ...queryOptions };
+};
+/**
+ * @summary List attendance regularization requests
+ */
+export function useAttendanceControllerListRegularizations(params, options, queryClient) {
+    const queryOptions = getAttendanceControllerListRegularizationsQueryOptions(params, options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
+export const getAttendanceControllerCreateRegularizationUrl = () => {
+    return `/api/v1/attendance/regularizations`;
+};
+export const attendanceControllerCreateRegularization = async (createRegularizationDto, options) => {
+    return customFetch(getAttendanceControllerCreateRegularizationUrl(), {
+        ...options,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        body: JSON.stringify(createRegularizationDto)
+    });
+};
+export const getAttendanceControllerCreateRegularizationMutationOptions = (options) => {
+    const mutationKey = ['attendanceControllerCreateRegularization'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { data } = props ?? {};
+        return attendanceControllerCreateRegularization(data, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Create attendance regularization request
+*/
+export const useAttendanceControllerCreateRegularization = (options, queryClient) => {
+    const mutationOptions = getAttendanceControllerCreateRegularizationMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getAttendanceControllerGetRegularizationDetailUrl = (id) => {
+    return `/api/v1/attendance/regularizations/${id}`;
+};
+export const attendanceControllerGetRegularizationDetail = async (id, options) => {
+    return customFetch(getAttendanceControllerGetRegularizationDetailUrl(id), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getAttendanceControllerGetRegularizationDetailQueryKey = (id) => {
+    return [
+        `/api/v1/attendance/regularizations/${id}`
+    ];
+};
+export const getAttendanceControllerGetRegularizationDetailQueryOptions = (id, options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getAttendanceControllerGetRegularizationDetailQueryKey(id);
+    const queryFn = ({ signal }) => attendanceControllerGetRegularizationDetail(id, { signal, ...requestOptions });
+    return { queryKey, queryFn, enabled: !!(id), ...queryOptions };
+};
+/**
+ * @summary Get regularization request detail
+ */
+export function useAttendanceControllerGetRegularizationDetail(id, options, queryClient) {
+    const queryOptions = getAttendanceControllerGetRegularizationDetailQueryOptions(id, options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
+export const getAttendanceControllerCancelRegularizationUrl = (id) => {
+    return `/api/v1/attendance/regularizations/${id}/cancel`;
+};
+export const attendanceControllerCancelRegularization = async (id, options) => {
+    return customFetch(getAttendanceControllerCancelRegularizationUrl(id), {
+        ...options,
+        method: 'POST'
+    });
+};
+export const getAttendanceControllerCancelRegularizationMutationOptions = (options) => {
+    const mutationKey = ['attendanceControllerCancelRegularization'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { id } = props ?? {};
+        return attendanceControllerCancelRegularization(id, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Cancel regularization request
+*/
+export const useAttendanceControllerCancelRegularization = (options, queryClient) => {
+    const mutationOptions = getAttendanceControllerCancelRegularizationMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getAttendanceControllerApproveRegularizationUrl = (id) => {
+    return `/api/v1/attendance/regularizations/${id}/approve`;
+};
+export const attendanceControllerApproveRegularization = async (id, approveRegularizationDto, options) => {
+    return customFetch(getAttendanceControllerApproveRegularizationUrl(id), {
+        ...options,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        body: JSON.stringify(approveRegularizationDto)
+    });
+};
+export const getAttendanceControllerApproveRegularizationMutationOptions = (options) => {
+    const mutationKey = ['attendanceControllerApproveRegularization'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { id, data } = props ?? {};
+        return attendanceControllerApproveRegularization(id, data, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Approve regularization request
+*/
+export const useAttendanceControllerApproveRegularization = (options, queryClient) => {
+    const mutationOptions = getAttendanceControllerApproveRegularizationMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getAttendanceControllerRejectRegularizationUrl = (id) => {
+    return `/api/v1/attendance/regularizations/${id}/reject`;
+};
+export const attendanceControllerRejectRegularization = async (id, rejectRegularizationDto, options) => {
+    return customFetch(getAttendanceControllerRejectRegularizationUrl(id), {
+        ...options,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        body: JSON.stringify(rejectRegularizationDto)
+    });
+};
+export const getAttendanceControllerRejectRegularizationMutationOptions = (options) => {
+    const mutationKey = ['attendanceControllerRejectRegularization'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { id, data } = props ?? {};
+        return attendanceControllerRejectRegularization(id, data, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Reject regularization request
+*/
+export const useAttendanceControllerRejectRegularization = (options, queryClient) => {
+    const mutationOptions = getAttendanceControllerRejectRegularizationMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getAttendanceControllerBulkApproveRegularizationsUrl = () => {
+    return `/api/v1/attendance/regularizations/bulk-approve`;
+};
+export const attendanceControllerBulkApproveRegularizations = async (bulkApproveRegularizationDto, options) => {
+    return customFetch(getAttendanceControllerBulkApproveRegularizationsUrl(), {
+        ...options,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        body: JSON.stringify(bulkApproveRegularizationDto)
+    });
+};
+export const getAttendanceControllerBulkApproveRegularizationsMutationOptions = (options) => {
+    const mutationKey = ['attendanceControllerBulkApproveRegularizations'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { data } = props ?? {};
+        return attendanceControllerBulkApproveRegularizations(data, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Bulk approve regularization requests
+*/
+export const useAttendanceControllerBulkApproveRegularizations = (options, queryClient) => {
+    const mutationOptions = getAttendanceControllerBulkApproveRegularizationsMutationOptions(options);
     return useMutation(mutationOptions, queryClient);
 };
 ;
@@ -2689,6 +3208,334 @@ export const getAttendanceControllerUpdateEmployeeHoursMutationOptions = (option
 */
 export const useAttendanceControllerUpdateEmployeeHours = (options, queryClient) => {
     const mutationOptions = getAttendanceControllerUpdateEmployeeHoursMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getAttendanceControllerGetShiftsUrl = () => {
+    return `/api/v1/attendance/settings/shifts`;
+};
+export const attendanceControllerGetShifts = async (options) => {
+    return customFetch(getAttendanceControllerGetShiftsUrl(), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getAttendanceControllerGetShiftsQueryKey = () => {
+    return [
+        `/api/v1/attendance/settings/shifts`
+    ];
+};
+export const getAttendanceControllerGetShiftsQueryOptions = (options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getAttendanceControllerGetShiftsQueryKey();
+    const queryFn = ({ signal }) => attendanceControllerGetShifts({ signal, ...requestOptions });
+    return { queryKey, queryFn, ...queryOptions };
+};
+/**
+ * @summary Get all attendance shifts
+ */
+export function useAttendanceControllerGetShifts(options, queryClient) {
+    const queryOptions = getAttendanceControllerGetShiftsQueryOptions(options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
+export const getAttendanceControllerCreateShiftUrl = () => {
+    return `/api/v1/attendance/settings/shifts`;
+};
+export const attendanceControllerCreateShift = async (options) => {
+    return customFetch(getAttendanceControllerCreateShiftUrl(), {
+        ...options,
+        method: 'POST'
+    });
+};
+export const getAttendanceControllerCreateShiftMutationOptions = (options) => {
+    const mutationKey = ['attendanceControllerCreateShift'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = () => {
+        return attendanceControllerCreateShift(requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Create a new attendance shift
+*/
+export const useAttendanceControllerCreateShift = (options, queryClient) => {
+    const mutationOptions = getAttendanceControllerCreateShiftMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getAttendanceControllerUpdateShiftUrl = (id) => {
+    return `/api/v1/attendance/settings/shifts/${id}`;
+};
+export const attendanceControllerUpdateShift = async (id, options) => {
+    return customFetch(getAttendanceControllerUpdateShiftUrl(id), {
+        ...options,
+        method: 'PATCH'
+    });
+};
+export const getAttendanceControllerUpdateShiftMutationOptions = (options) => {
+    const mutationKey = ['attendanceControllerUpdateShift'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { id } = props ?? {};
+        return attendanceControllerUpdateShift(id, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Update an attendance shift
+*/
+export const useAttendanceControllerUpdateShift = (options, queryClient) => {
+    const mutationOptions = getAttendanceControllerUpdateShiftMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getAttendanceControllerDeleteShiftUrl = (id) => {
+    return `/api/v1/attendance/settings/shifts/${id}`;
+};
+export const attendanceControllerDeleteShift = async (id, options) => {
+    return customFetch(getAttendanceControllerDeleteShiftUrl(id), {
+        ...options,
+        method: 'DELETE'
+    });
+};
+export const getAttendanceControllerDeleteShiftMutationOptions = (options) => {
+    const mutationKey = ['attendanceControllerDeleteShift'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { id } = props ?? {};
+        return attendanceControllerDeleteShift(id, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Delete an attendance shift
+*/
+export const useAttendanceControllerDeleteShift = (options, queryClient) => {
+    const mutationOptions = getAttendanceControllerDeleteShiftMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getAttendanceControllerSetDefaultShiftUrl = (id) => {
+    return `/api/v1/attendance/settings/shifts/${id}/set-default`;
+};
+export const attendanceControllerSetDefaultShift = async (id, options) => {
+    return customFetch(getAttendanceControllerSetDefaultShiftUrl(id), {
+        ...options,
+        method: 'POST'
+    });
+};
+export const getAttendanceControllerSetDefaultShiftMutationOptions = (options) => {
+    const mutationKey = ['attendanceControllerSetDefaultShift'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { id } = props ?? {};
+        return attendanceControllerSetDefaultShift(id, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Set a shift as the company default shift
+*/
+export const useAttendanceControllerSetDefaultShift = (options, queryClient) => {
+    const mutationOptions = getAttendanceControllerSetDefaultShiftMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getAttendanceControllerGetStatusesUrl = () => {
+    return `/api/v1/attendance/settings/statuses`;
+};
+export const attendanceControllerGetStatuses = async (options) => {
+    return customFetch(getAttendanceControllerGetStatusesUrl(), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getAttendanceControllerGetStatusesQueryKey = () => {
+    return [
+        `/api/v1/attendance/settings/statuses`
+    ];
+};
+export const getAttendanceControllerGetStatusesQueryOptions = (options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getAttendanceControllerGetStatusesQueryKey();
+    const queryFn = ({ signal }) => attendanceControllerGetStatuses({ signal, ...requestOptions });
+    return { queryKey, queryFn, ...queryOptions };
+};
+/**
+ * @summary Get all attendance statuses
+ */
+export function useAttendanceControllerGetStatuses(options, queryClient) {
+    const queryOptions = getAttendanceControllerGetStatusesQueryOptions(options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
+export const getAttendanceControllerCreateStatusUrl = () => {
+    return `/api/v1/attendance/settings/statuses`;
+};
+export const attendanceControllerCreateStatus = async (options) => {
+    return customFetch(getAttendanceControllerCreateStatusUrl(), {
+        ...options,
+        method: 'POST'
+    });
+};
+export const getAttendanceControllerCreateStatusMutationOptions = (options) => {
+    const mutationKey = ['attendanceControllerCreateStatus'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = () => {
+        return attendanceControllerCreateStatus(requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Create a custom attendance status
+*/
+export const useAttendanceControllerCreateStatus = (options, queryClient) => {
+    const mutationOptions = getAttendanceControllerCreateStatusMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getAttendanceControllerUpdateStatusUrl = (id) => {
+    return `/api/v1/attendance/settings/statuses/${id}`;
+};
+export const attendanceControllerUpdateStatus = async (id, options) => {
+    return customFetch(getAttendanceControllerUpdateStatusUrl(id), {
+        ...options,
+        method: 'PATCH'
+    });
+};
+export const getAttendanceControllerUpdateStatusMutationOptions = (options) => {
+    const mutationKey = ['attendanceControllerUpdateStatus'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { id } = props ?? {};
+        return attendanceControllerUpdateStatus(id, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Update an attendance status
+*/
+export const useAttendanceControllerUpdateStatus = (options, queryClient) => {
+    const mutationOptions = getAttendanceControllerUpdateStatusMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getAttendanceControllerDeleteStatusUrl = (id) => {
+    return `/api/v1/attendance/settings/statuses/${id}`;
+};
+export const attendanceControllerDeleteStatus = async (id, options) => {
+    return customFetch(getAttendanceControllerDeleteStatusUrl(id), {
+        ...options,
+        method: 'DELETE'
+    });
+};
+export const getAttendanceControllerDeleteStatusMutationOptions = (options) => {
+    const mutationKey = ['attendanceControllerDeleteStatus'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { id } = props ?? {};
+        return attendanceControllerDeleteStatus(id, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Delete a custom attendance status
+*/
+export const useAttendanceControllerDeleteStatus = (options, queryClient) => {
+    const mutationOptions = getAttendanceControllerDeleteStatusMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getAttendanceControllerGetShiftAssignmentsUrl = () => {
+    return `/api/v1/attendance/settings/shifts/assignments`;
+};
+export const attendanceControllerGetShiftAssignments = async (options) => {
+    return customFetch(getAttendanceControllerGetShiftAssignmentsUrl(), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getAttendanceControllerGetShiftAssignmentsQueryKey = () => {
+    return [
+        `/api/v1/attendance/settings/shifts/assignments`
+    ];
+};
+export const getAttendanceControllerGetShiftAssignmentsQueryOptions = (options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getAttendanceControllerGetShiftAssignmentsQueryKey();
+    const queryFn = ({ signal }) => attendanceControllerGetShiftAssignments({ signal, ...requestOptions });
+    return { queryKey, queryFn, ...queryOptions };
+};
+/**
+ * @summary Get employee shift assignments
+ */
+export function useAttendanceControllerGetShiftAssignments(options, queryClient) {
+    const queryOptions = getAttendanceControllerGetShiftAssignmentsQueryOptions(options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
+export const getAttendanceControllerAssignShiftUrl = (empId) => {
+    return `/api/v1/attendance/settings/shifts/assignments/${empId}`;
+};
+export const attendanceControllerAssignShift = async (empId, options) => {
+    return customFetch(getAttendanceControllerAssignShiftUrl(empId), {
+        ...options,
+        method: 'PUT'
+    });
+};
+export const getAttendanceControllerAssignShiftMutationOptions = (options) => {
+    const mutationKey = ['attendanceControllerAssignShift'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { empId } = props ?? {};
+        return attendanceControllerAssignShift(empId, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Assign a shift to an employee
+*/
+export const useAttendanceControllerAssignShift = (options, queryClient) => {
+    const mutationOptions = getAttendanceControllerAssignShiftMutationOptions(options);
     return useMutation(mutationOptions, queryClient);
 };
 ;
@@ -3384,7 +4231,7 @@ export const getCalendarControllerGetEventsQueryOptions = (params, options) => {
     return { queryKey, queryFn, ...queryOptions };
 };
 /**
- * @summary Get calendar events in time window for current employee
+ * @summary Get calendar events in time window for current employee or all if admin
  */
 export function useCalendarControllerGetEvents(params, options, queryClient) {
     const queryOptions = getCalendarControllerGetEventsQueryOptions(params, options);
@@ -4013,5 +4860,253 @@ export const getProjectsControllerCreateProjectTaskMutationOptions = (options) =
 */
 export const useProjectsControllerCreateProjectTask = (options, queryClient) => {
     const mutationOptions = getProjectsControllerCreateProjectTaskMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getProjectsControllerGetProjectDiscussionsUrl = (id) => {
+    return `/api/v1/projects/${id}/discussions`;
+};
+export const projectsControllerGetProjectDiscussions = async (id, options) => {
+    return customFetch(getProjectsControllerGetProjectDiscussionsUrl(id), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getProjectsControllerGetProjectDiscussionsQueryKey = (id) => {
+    return [
+        `/api/v1/projects/${id}/discussions`
+    ];
+};
+export const getProjectsControllerGetProjectDiscussionsQueryOptions = (id, options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getProjectsControllerGetProjectDiscussionsQueryKey(id);
+    const queryFn = ({ signal }) => projectsControllerGetProjectDiscussions(id, { signal, ...requestOptions });
+    return { queryKey, queryFn, enabled: !!(id), ...queryOptions };
+};
+/**
+ * @summary Get discussion messages for a project
+ */
+export function useProjectsControllerGetProjectDiscussions(id, options, queryClient) {
+    const queryOptions = getProjectsControllerGetProjectDiscussionsQueryOptions(id, options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
+export const getProjectsControllerCreateProjectDiscussionUrl = (id) => {
+    return `/api/v1/projects/${id}/discussions`;
+};
+export const projectsControllerCreateProjectDiscussion = async (id, createDiscussionDto, options) => {
+    return customFetch(getProjectsControllerCreateProjectDiscussionUrl(id), {
+        ...options,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        body: JSON.stringify(createDiscussionDto)
+    });
+};
+export const getProjectsControllerCreateProjectDiscussionMutationOptions = (options) => {
+    const mutationKey = ['projectsControllerCreateProjectDiscussion'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { id, data } = props ?? {};
+        return projectsControllerCreateProjectDiscussion(id, data, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Post a discussion message to a project
+*/
+export const useProjectsControllerCreateProjectDiscussion = (options, queryClient) => {
+    const mutationOptions = getProjectsControllerCreateProjectDiscussionMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getProjectsControllerGetProjectActivityLogsUrl = (id) => {
+    return `/api/v1/projects/${id}/activity-logs`;
+};
+export const projectsControllerGetProjectActivityLogs = async (id, options) => {
+    return customFetch(getProjectsControllerGetProjectActivityLogsUrl(id), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getProjectsControllerGetProjectActivityLogsQueryKey = (id) => {
+    return [
+        `/api/v1/projects/${id}/activity-logs`
+    ];
+};
+export const getProjectsControllerGetProjectActivityLogsQueryOptions = (id, options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getProjectsControllerGetProjectActivityLogsQueryKey(id);
+    const queryFn = ({ signal }) => projectsControllerGetProjectActivityLogs(id, { signal, ...requestOptions });
+    return { queryKey, queryFn, enabled: !!(id), ...queryOptions };
+};
+/**
+ * @summary Get activity logs for a project
+ */
+export function useProjectsControllerGetProjectActivityLogs(id, options, queryClient) {
+    const queryOptions = getProjectsControllerGetProjectActivityLogsQueryOptions(id, options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
+export const getProjectsControllerGetProjectBugsUrl = (id) => {
+    return `/api/v1/projects/${id}/bugs`;
+};
+export const projectsControllerGetProjectBugs = async (id, options) => {
+    return customFetch(getProjectsControllerGetProjectBugsUrl(id), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getProjectsControllerGetProjectBugsQueryKey = (id) => {
+    return [
+        `/api/v1/projects/${id}/bugs`
+    ];
+};
+export const getProjectsControllerGetProjectBugsQueryOptions = (id, options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getProjectsControllerGetProjectBugsQueryKey(id);
+    const queryFn = ({ signal }) => projectsControllerGetProjectBugs(id, { signal, ...requestOptions });
+    return { queryKey, queryFn, enabled: !!(id), ...queryOptions };
+};
+/**
+ * @summary Get bugs for a project
+ */
+export function useProjectsControllerGetProjectBugs(id, options, queryClient) {
+    const queryOptions = getProjectsControllerGetProjectBugsQueryOptions(id, options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
+export const getProjectsControllerCreateProjectBugUrl = (id) => {
+    return `/api/v1/projects/${id}/bugs`;
+};
+export const projectsControllerCreateProjectBug = async (id, createBugDto, options) => {
+    return customFetch(getProjectsControllerCreateProjectBugUrl(id), {
+        ...options,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        body: JSON.stringify(createBugDto)
+    });
+};
+export const getProjectsControllerCreateProjectBugMutationOptions = (options) => {
+    const mutationKey = ['projectsControllerCreateProjectBug'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { id, data } = props ?? {};
+        return projectsControllerCreateProjectBug(id, data, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Report a bug for a project
+*/
+export const useProjectsControllerCreateProjectBug = (options, queryClient) => {
+    const mutationOptions = getProjectsControllerCreateProjectBugMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getProjectsControllerGetProjectBugDetailUrl = (id, bugId) => {
+    return `/api/v1/projects/${id}/bugs/${bugId}`;
+};
+export const projectsControllerGetProjectBugDetail = async (id, bugId, options) => {
+    return customFetch(getProjectsControllerGetProjectBugDetailUrl(id, bugId), {
+        ...options,
+        method: 'GET'
+    });
+};
+export const getProjectsControllerGetProjectBugDetailQueryKey = (id, bugId) => {
+    return [
+        `/api/v1/projects/${id}/bugs/${bugId}`
+    ];
+};
+export const getProjectsControllerGetProjectBugDetailQueryOptions = (id, bugId, options) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+    const queryKey = queryOptions?.queryKey ?? getProjectsControllerGetProjectBugDetailQueryKey(id, bugId);
+    const queryFn = ({ signal }) => projectsControllerGetProjectBugDetail(id, bugId, { signal, ...requestOptions });
+    return { queryKey, queryFn, enabled: !!(id && bugId), ...queryOptions };
+};
+/**
+ * @summary Get bug details including time tracking, comments, and history
+ */
+export function useProjectsControllerGetProjectBugDetail(id, bugId, options, queryClient) {
+    const queryOptions = getProjectsControllerGetProjectBugDetailQueryOptions(id, bugId, options);
+    const query = useQuery(queryOptions, queryClient);
+    query.queryKey = queryOptions.queryKey;
+    return query;
+}
+;
+export const getProjectsControllerUpdateProjectBugStatusUrl = (id, bugId) => {
+    return `/api/v1/projects/${id}/bugs/${bugId}/status`;
+};
+export const projectsControllerUpdateProjectBugStatus = async (id, bugId, updateBugStatusDto, options) => {
+    return customFetch(getProjectsControllerUpdateProjectBugStatusUrl(id, bugId), {
+        ...options,
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        body: JSON.stringify(updateBugStatusDto)
+    });
+};
+export const getProjectsControllerUpdateProjectBugStatusMutationOptions = (options) => {
+    const mutationKey = ['projectsControllerUpdateProjectBugStatus'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { id, bugId, data } = props ?? {};
+        return projectsControllerUpdateProjectBugStatus(id, bugId, data, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Update bug status, track dev/qa time, and notify stakeholders
+*/
+export const useProjectsControllerUpdateProjectBugStatus = (options, queryClient) => {
+    const mutationOptions = getProjectsControllerUpdateProjectBugStatusMutationOptions(options);
+    return useMutation(mutationOptions, queryClient);
+};
+;
+export const getProjectsControllerAddProjectBugCommentUrl = (id, bugId) => {
+    return `/api/v1/projects/${id}/bugs/${bugId}/comments`;
+};
+export const projectsControllerAddProjectBugComment = async (id, bugId, addBugCommentDto, options) => {
+    return customFetch(getProjectsControllerAddProjectBugCommentUrl(id, bugId), {
+        ...options,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        body: JSON.stringify(addBugCommentDto)
+    });
+};
+export const getProjectsControllerAddProjectBugCommentMutationOptions = (options) => {
+    const mutationKey = ['projectsControllerAddProjectBugComment'];
+    const { mutation: mutationOptions, request: requestOptions } = options ?
+        options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+            options
+            : { ...options, mutation: { ...options.mutation, mutationKey } }
+        : { mutation: { mutationKey, }, request: undefined };
+    const mutationFn = (props) => {
+        const { id, bugId, data } = props ?? {};
+        return projectsControllerAddProjectBugComment(id, bugId, data, requestOptions);
+    };
+    return { mutationFn, ...mutationOptions };
+};
+/**
+* @summary Add a comment to a project bug
+*/
+export const useProjectsControllerAddProjectBugComment = (options, queryClient) => {
+    const mutationOptions = getProjectsControllerAddProjectBugCommentMutationOptions(options);
     return useMutation(mutationOptions, queryClient);
 };

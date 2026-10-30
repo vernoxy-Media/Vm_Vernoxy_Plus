@@ -72,11 +72,17 @@ import { UpdateEmployeeUseCase } from './application/use-cases/update-employee.u
 import { DeleteEmployeeUseCase } from './application/use-cases/delete-employee.use-case';
 import { UploadEmployeePhotoUseCase } from './application/use-cases/upload-employee-photo.use-case';
 import { RemoveEmployeePhotoUseCase } from './application/use-cases/remove-employee-photo.use-case';
+import { DeactivateEmployeeUseCase } from './application/use-cases/deactivate-employee.use-case';
+import { GetDeactivateWarningUseCase } from './application/use-cases/get-deactivate-warning.use-case';
+import { GetEmployeeHistoryUseCase } from './application/use-cases/get-employee-history.use-case';
+import { EmployeeDocumentController } from './presentation/controllers/employee-document.controller';
+import { EmployeeDocumentService } from './application/services/employee-document.service';
 
 @Module({
   imports: [AuthModule, StorageModule],
-  controllers: [DepartmentController, RoleController, EmployeeController],
+  controllers: [DepartmentController, RoleController, EmployeeController, EmployeeDocumentController],
   providers: [
+    EmployeeDocumentService,
     // Ports Implementations
     {
       provide: DEPARTMENT_REPOSITORY_TOKEN,
@@ -254,15 +260,34 @@ import { RemoveEmployeePhotoUseCase } from './application/use-cases/remove-emplo
       ) => new RemoveEmployeePhotoUseCase(eRepo, ps, uow),
     },
     {
+      provide: DeactivateEmployeeUseCase,
+      inject: [EMPLOYEE_REPOSITORY_TOKEN, ROLE_REPOSITORY_TOKEN],
+      useFactory: (eRepo: EmployeeRepositoryPort, rRepo: RoleRepositoryPort) =>
+        new DeactivateEmployeeUseCase(eRepo, rRepo),
+    },
+    {
+      provide: GetDeactivateWarningUseCase,
+      inject: [EMPLOYEE_REPOSITORY_TOKEN],
+      useFactory: (eRepo: EmployeeRepositoryPort) => new GetDeactivateWarningUseCase(eRepo),
+    },
+    {
+      provide: GetEmployeeHistoryUseCase,
+      inject: [EMPLOYEE_REPOSITORY_TOKEN],
+      useFactory: (eRepo: EmployeeRepositoryPort) => new GetEmployeeHistoryUseCase(eRepo),
+    },
+    {
       provide: ORGANIZATION_PUBLIC_API_TOKEN,
       useClass: OrganizationPublicApiService,
     },
+
   ],
   exports: [
     DEPARTMENT_REPOSITORY_TOKEN,
     ROLE_REPOSITORY_TOKEN,
     EMPLOYEE_REPOSITORY_TOKEN,
     ORGANIZATION_PUBLIC_API_TOKEN,
+    OrganizationAdminGuard,
+    ACCESS_POLICY_PORT_TOKEN,
   ],
 })
 export class OrganizationModule {}

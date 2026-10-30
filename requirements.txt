@@ -1,0 +1,94 @@
+================================================================================
+VERNOXY PULSE - SYSTEM REQUIREMENTS & REVIEWER SETUP GUIDE
+================================================================================
+
+1. PROJECT OVERVIEW
+--------------------------------------------------------------------------------
+Vernoxy Pulse is an enterprise-grade ERP & workforce management portal built as
+a modular TypeScript monorepo:
+  - Backend API  : NestJS 11 + Express + Prisma + Socket.io (Port 3000)
+  - Frontend Web : React 18 + Vite + Tailwind/Vanilla CSS + React Query (Port 5173)
+  - Database     : PostgreSQL (Neon Cloud) with Dbmate & Prisma migrations
+
+2. SYSTEM PREREQUISITES
+--------------------------------------------------------------------------------
+  - Node.js       : v20.x or v22.x LTS (tested on Node v22.15.0)
+  - Package Manager: pnpm (v9+ or v12+) OR npm (v10+)
+  - Ports Required:
+      * Port 3000 : Backend REST API & WebSocket Gateway
+      * Port 5173 : Frontend Vite Development Server
+
+3. HOW TO INSTALL & RUN (SINGLE COMMAND)
+--------------------------------------------------------------------------------
+Step 1: Install dependencies from the repository root
+  $ pnpm install
+  (or: npm install)
+
+Step 2: Run BOTH Backend and Frontend simultaneously with ONE command
+  $ npm run dev
+  (or: pnpm dev)
+
+This launches both services in parallel with color-coded terminal output:
+  - [api] Backend boots on http://localhost:3000/api/v1
+  - [web] Frontend boots on http://localhost:5173
+
+Step 3: Open the application in your browser
+  Navigate to: http://localhost:5173
+
+Optional individual service commands:
+  - Run Backend only  : pnpm dev:api
+  - Run Frontend only : pnpm dev:web
+  - Build for prod    : npm run build (or: pnpm build)
+
+4. VERIFIED LOGIN CREDENTIALS (DIRECT LOGIN - NO OTP)
+--------------------------------------------------------------------------------
+Direct authentication is enabled (no OTP step required):
+
+  PRIMARY ADMIN ACCOUNT:
+    Email    : vernoxy3@gmail.com
+    Password : 123456123456
+    Role     : Admin (Full Permissions)
+
+  SECONDARY ADMIN ACCOUNT:
+    Email    : dipak@gmail.com
+    Password : Admin@12345678
+    Role     : Admin (Full Permissions)
+
+  SYSTEM ADMIN ACCOUNT:
+    Email    : admin@vernoxy.com
+    Password : Admin@12345678
+    Role     : Admin (Full Permissions)
+
+5. DATABASE & ENVIRONMENT SPECIFICATIONS
+--------------------------------------------------------------------------------
+  - Cloud Database : Neon PostgreSQL
+  - Connection Config: Preconfigured in apps/api/.env (DATABASE_URL & DIRECT_URL)
+  - Authentication : Argon2id password hashing + RS256 JWT tokens + HTTP-only cookies
+  - No 5-time failed login lockouts (unlimited login attempts allowed)
+  - All database tables follow the mandatory 6 audit fields:
+      * created_at, created_by
+      * updated_at, updated_by
+      * deleted_at, deleted_by (soft delete enforcement)
+
+6. API DOCUMENTATION & SWAGGER
+--------------------------------------------------------------------------------
+Interactive OpenAPI / Swagger documentation is available at:
+  http://localhost:3000/api/docs
+
+7. CORE MODULES IMPLEMENTED
+--------------------------------------------------------------------------------
+  [x] Attendance Management:
+      - Daily punch in / out & break management
+      - Attendance Regularization Workflow (Missing Check-in, Missing Check-out, Incorrect Time)
+      - Multi-level approvals panel with batch "Approve Selected" & reject modal
+      - Complete approval history tracking
+  [x] Task Management:
+      - Kanban Board with drag-and-drop status moves
+      - Task summaries, subtasks, and work session logging
+  [x] Project Management:
+      - Sprint tracking, discussions, activity logs, and bug reporting
+  [x] Calendar & Scheduling:
+      - Monthly events, holidays, RSVP tracking, and unscheduled tasks
+  [x] Master Data & Settings:
+      - Departments, Roles, Customer Types, Industries, Shifts, and Statuses
+================================================================================

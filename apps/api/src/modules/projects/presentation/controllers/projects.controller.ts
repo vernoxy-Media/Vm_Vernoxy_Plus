@@ -313,10 +313,12 @@ export class ProjectsController {
   @Get(':id/bugs/:bugId')
   @ApiOperation({ summary: 'Get bug details including time tracking, comments, and history' })
   async getProjectBugDetail(
+    @Param('id', ParseIntPipe) id: number,
     @Param('bugId', ParseIntPipe) bugId: number,
   ) {
     return this.projectRepo.getBugDetail(bugId);
   }
+
 
   @Patch(':id/bugs/:bugId/status')
   @ApiOperation({ summary: 'Update bug status, track dev/qa time, and notify stakeholders' })

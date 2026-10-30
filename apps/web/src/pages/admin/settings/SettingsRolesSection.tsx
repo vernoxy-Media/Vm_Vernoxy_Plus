@@ -162,9 +162,6 @@ export const SettingsRolesSection: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-100">
         <div>
           <h2 className="text-xl font-bold text-slate-900 tracking-tight">Roles</h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Configure job positions, titles, department mappings, and administrator responsibilities.
-          </p>
         </div>
         <button
           type="button"

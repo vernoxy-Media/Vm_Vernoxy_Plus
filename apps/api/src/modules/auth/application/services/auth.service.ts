@@ -124,26 +124,13 @@ export class AuthService {
       throw new UnauthorizedAuthException(GENERIC_AUTH_ERROR_MESSAGE);
     }
 
-    // Check account lockout
-    if (isAccountLocked(emp.credentials.locked_until, this.clock.now())) {
-      await this.passwordHasher.verify(password, DUMMY_ARGON2ID_HASH);
-      await this.authEventRepo.createEvent({
-        emp_id: emp.emp_id,
-        event_type: 'login_locked',
-        ip_address: clientIp,
-        user_agent: userAgent,
-      });
-      throw new UnauthorizedAuthException(GENERIC_AUTH_ERROR_MESSAGE);
-    }
-
     // Verify password with argon2id
     const passwordValid = await this.passwordHasher.verify(password, emp.credentials.password_hash);
     if (!passwordValid) {
-      const incrementResult = await this.employeeRepo.incrementFailedAttempts(emp.emp_id);
-      const isNowLocked = isAccountLocked(incrementResult.lockedUntil, this.clock.now());
+      await this.employeeRepo.incrementFailedAttempts(emp.emp_id);
       await this.authEventRepo.createEvent({
         emp_id: emp.emp_id,
-        event_type: isNowLocked ? 'login_locked' : 'login_password_failed',
+        event_type: 'login_password_failed',
         ip_address: clientIp,
         user_agent: userAgent,
       });
@@ -207,6 +194,86 @@ export class AuthService {
       expires_in_seconds: OTP_EXPIRY_SECONDS,
       resend_available_in_seconds: OTP_RESEND_COOLDOWN_SECONDS,
       otp_code: code,
+    };
+  }
+
+  async loginDirect(
+    email: string,
+    password: string,
+    clientIp?: string,
+    userAgent?: string,
+  ): Promise<VerifyLoginResult> {
+    const normalizedEmail = email.trim().toLowerCase();
+    const identifierHash = crypto.createHash('sha256').update(normalizedEmail).digest('hex');
+
+    const emp = await this.employeeRepo.findByEmail(normalizedEmail);
+
+    // Timing equalization for unknown, inactive, or soft-deleted employees
+    if (!emp || emp.status !== 'Active' || emp.deleted_at !== null || !emp.credentials) {
+      await this.passwordHasher.verify(password, DUMMY_ARGON2ID_HASH);
+      await this.authEventRepo.createEvent({
+        identifier_hash: identifierHash,
+        event_type: 'login_password_failed',
+        ip_address: clientIp,
+        user_agent: userAgent,
+      });
+      throw new UnauthorizedAuthException(GENERIC_AUTH_ERROR_MESSAGE);
+    }
+
+    // Verify password with argon2id
+    const passwordValid = await this.passwordHasher.verify(password, emp.credentials.password_hash);
+    if (!passwordValid) {
+      await this.employeeRepo.incrementFailedAttempts(emp.emp_id);
+      await this.authEventRepo.createEvent({
+        emp_id: emp.emp_id,
+        event_type: 'login_password_failed',
+        ip_address: clientIp,
+        user_agent: userAgent,
+      });
+      throw new UnauthorizedAuthException(GENERIC_AUTH_ERROR_MESSAGE);
+    }
+
+    // Password valid -> reset failed attempts and record last login
+    await this.employeeRepo.resetFailedAttemptsAndSetLastLogin(emp.emp_id, this.clock.now());
+
+    // Issue session immediately (no OTP)
+    const rawRefreshToken = generateRawRefreshToken();
+    const refreshHash = hashRefreshToken(rawRefreshToken);
+    const sessionExpiresAt = new Date(this.clock.now().getTime() + 7 * 86400 * 1000); // 7 days
+
+    const session = await this.sessionRepo.createSession({
+      emp_id: emp.emp_id,
+      refresh_token_hash: refreshHash,
+      expires_at: sessionExpiresAt,
+      ip_address: clientIp,
+      user_agent: userAgent,
+    });
+
+    // Issue access token
+    const { token: accessToken, expiresIn } = await this.tokenService.signAccessToken({
+      emp_id: emp.emp_id,
+      session_id: session.session_id,
+    });
+
+    await this.authEventRepo.createEvent({
+      emp_id: emp.emp_id,
+      session_id: session.session_id,
+      event_type: 'login_succeeded',
+      ip_address: clientIp,
+      user_agent: userAgent,
+    });
+
+    return {
+      access_token: accessToken,
+      token_type: 'Bearer',
+      expires_in: expiresIn,
+      raw_refresh_token: rawRefreshToken,
+      must_change_password: emp.credentials?.must_change_password ?? false,
+      user: {
+        emp_id: emp.emp_id,
+        name: emp.name,
+        email: emp.email,
+      },
     };
   }
 

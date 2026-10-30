@@ -19,6 +19,22 @@ export const ALLOWED_LOOKUP_TYPES = [
   'lead_source',
   'lost_reason',
   'person_department',
+  'request_type',
+  'attendance_reason',
+  'shift_type',
+  'leave_type',
+  'employment_type',
+  'gender',
+  'blood_group',
+  'deactivation_reason',
+  'candidate_source',
+  'job_portal',
+  'notice_period',
+  'candidate_stage',
+  'rejection_reason',
+  'addition_category',
+  'deduction_category',
+  'day_adjustment_reason',
 ];
 
 export class LookupOptionsQueryDto {

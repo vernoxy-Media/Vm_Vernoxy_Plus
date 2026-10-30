@@ -101,9 +101,6 @@ export const CompaniesListPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-100">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Companies</h1>
-          <p className="text-sm text-slate-500 mt-0.5">
-            Manage your CRM client accounts, subsidiaries, communication channels, and contacts.
-          </p>
         </div>
         <div className="flex items-center gap-2.5">
           {/* Export Dropdown */}

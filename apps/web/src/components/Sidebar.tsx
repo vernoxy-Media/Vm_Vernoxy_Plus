@@ -12,8 +12,13 @@ import {
   Calendar,
   CalendarClock,
   CheckSquare,
-  LayoutGrid,
   FolderKanban,
+  UserPlus,
+  Banknote,
+  CalendarOff,
+  Receipt,
+  AlertCircle,
+  Laptop,
 } from 'lucide-react';
 
 export interface SidebarProps {
@@ -34,19 +39,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   if (!user) return null;
 
-  // Base navigation items: Projects, My Tasks, Attendance, Companies, Employees, Settings
+  // Base navigation items: Projects, My Tasks, Attendance, Leave, Companies, Employees, Recruitment, Settings
   const navItems = [
     { name: 'Projects', path: '/projects', icon: FolderKanban },
     { name: 'My Tasks', path: '/my-tasks', icon: CheckSquare },
     { name: 'Attendance', path: '/attendance', icon: Clock },
+    { name: 'Leave', path: '/leave', icon: CalendarOff },
+    { name: 'Expenses', path: '/expense', icon: Receipt },
+    { name: 'Complaints', path: '/complaints', icon: AlertCircle },
+    { name: 'Licenses', path: '/licenses', icon: Laptop },
     { name: 'Calendar', path: '/calendar', icon: Calendar },
     ...(user.access?.can_manage_companies
       ? [{ name: 'Companies', path: '/companies', icon: Building2 }]
       : []),
     ...(user.access?.can_manage_organization
       ? [
-          { name: 'Task Management', path: '/admin/tasks', icon: LayoutGrid },
           { name: 'Employees', path: '/admin/employees', icon: Users },
+          { name: 'Recruitment', path: '/admin/recruitment', icon: UserPlus },
+          { name: 'Payroll', path: '/admin/payroll', icon: Banknote },
           { name: 'Attendance Settings', path: '/admin/attendance-settings', icon: CalendarClock },
           { name: 'Settings', path: '/admin/settings/departments', icon: Settings },
         ]
@@ -96,6 +106,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 ? location.pathname === '/'
                 : item.path === '/attendance'
                 ? location.pathname === '/attendance'
+                : item.path === '/leave'
+                ? location.pathname.startsWith('/leave') || location.pathname.startsWith('/admin/leave')
+                : item.path === '/expense'
+                ? location.pathname.startsWith('/expense') || location.pathname.startsWith('/expenses') || location.pathname.startsWith('/admin/expense') || location.pathname.startsWith('/admin/expenses')
+                : item.path === '/my-tasks'
+                ? location.pathname.startsWith('/my-tasks') || location.pathname.startsWith('/admin/tasks')
+                : item.path === '/complaints'
+                ? location.pathname.startsWith('/complaints') || location.pathname.startsWith('/admin/complaint')
+                : item.path === '/licenses'
+                ? location.pathname.startsWith('/licenses') || location.pathname.startsWith('/my-software')
                 : location.pathname.startsWith(item.path);
 
             return (

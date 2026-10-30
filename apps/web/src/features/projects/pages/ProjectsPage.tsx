@@ -197,9 +197,6 @@ export const ProjectsPage: React.FC = () => {
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
             Projects
           </h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Track client and internal projects, deliverables, milestones, and credentials
-          </p>
         </div>
 
         {canCreate && (

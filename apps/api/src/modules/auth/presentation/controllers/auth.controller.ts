@@ -108,17 +108,25 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @Throttle({ default: { limit: 10, ttl: 60000 } })
-  @ApiOperation({ summary: 'Initiate login with email and password (sends 2FA email OTP)' })
-  @ApiResponse({ status: 200, type: LoginResponseDto })
+  @ApiOperation({ summary: 'Login directly with email and password' })
+  @ApiResponse({ status: 200, type: VerifyLoginResponseDto })
   @ApiResponse({ status: 401, description: 'Invalid email or password' })
   async login(
     @Body() dto: LoginDto,
     @Req() req: Request,
-  ): Promise<LoginResponseDto> {
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<VerifyLoginResponseDto> {
     const { ip, userAgent } = getClientInfo(req);
     try {
-      return await this.authService.login(dto.email, dto.password, ip, userAgent);
+      const result = await this.authService.loginDirect(dto.email, dto.password, ip, userAgent);
+      this.setRefreshCookie(res, result.raw_refresh_token);
+      return {
+        access_token: result.access_token,
+        token_type: result.token_type,
+        expires_in: result.expires_in,
+        must_change_password: result.must_change_password,
+        user: result.user,
+      };
     } catch (err) {
       mapAuthErrorToHttp(err);
     }

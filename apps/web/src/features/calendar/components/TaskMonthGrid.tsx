@@ -1,6 +1,8 @@
 import React from 'react';
 import { Check, Send, Video } from 'lucide-react';
 import type { CalendarMonthTaskItem, CalendarHolidayItem, CalendarEvent } from '../types';
+import type { DayRecord } from '../../attendance/types/attendance.types';
+import { CalendarStatusLegend } from './CalendarStatusLegend';
 
 interface TaskMonthGridProps {
   currentMonth: Date;
@@ -9,9 +11,11 @@ interface TaskMonthGridProps {
   tasks: CalendarMonthTaskItem[];
   holidays: CalendarHolidayItem[];
   events: CalendarEvent[]; // for meetings, notes & reminders
+  attendanceRecords?: Record<string, DayRecord>;
   currentUserId?: number;
   onSelectEvent?: (event: CalendarEvent) => void;
   onSelectTask?: (taskId: number) => void;
+  displayMode?: 'attendance' | 'tasks';
 }
 
 export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
@@ -21,9 +25,11 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
   tasks,
   holidays,
   events,
+  attendanceRecords = {},
   currentUserId,
   onSelectEvent,
   onSelectTask,
+  displayMode = 'attendance',
 }) => {
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
@@ -88,6 +94,8 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
 
           // Holiday on this day
           const dayHoliday = holidays.find((h) => h.holiday_date === dateStr);
+          const showAttendance = displayMode === 'attendance';
+          const showOperations = displayMode === 'tasks';
 
           // Meetings scheduled or attended on this day
           const dayMeetings = events.filter(
@@ -110,6 +118,91 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
               e.start_time.slice(0, 10) === dateStr &&
               (!currentUserId || e.organizer_id === currentUserId)
           );
+
+          // Attendance info for this day per HRMS spec
+          const attendanceRecord = attendanceRecords[dateStr];
+          const isPastOrToday = dateStr <= todayStr;
+          const dayOfWeek = date.getDay();
+          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+          const isLate = Boolean(
+            (attendanceRecord as any)?.is_late ||
+            (attendanceRecord?.punch_in && (() => {
+              const m = attendanceRecord.punch_in.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+              if (!m) return false;
+              let h = parseInt(m[1], 10);
+              const min = parseInt(m[2], 10);
+              const ampm = m[3]?.toUpperCase();
+              if (ampm === 'PM' && h < 12) h += 12;
+              if (ampm === 'AM' && h === 12) h = 0;
+              return h * 60 + min > 580; // After 09:40 AM
+            })())
+          );
+
+          const isMissingPunch = !isToday && Boolean(
+            attendanceRecord?.status === 'incomplete' ||
+            (attendanceRecord?.punch_in && !attendanceRecord?.punch_out)
+          );
+
+          let attendanceBadge: React.ReactNode = null;
+          if (showAttendance && isCurrentMonth && isPastOrToday) {
+            if (isToday && attendanceRecord?.punch_in && !attendanceRecord?.punch_out) {
+              attendanceBadge = (
+                <span className="px-1.5 py-0.5 rounded text-[8px] font-bold border border-teal-500 text-teal-700 bg-teal-50 shadow-2xs">
+                  Checked in
+                </span>
+              );
+            } else if (dayHoliday || attendanceRecord?.status === 'holiday') {
+              attendanceBadge = (
+                <span className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black text-white bg-purple-600 shadow-2xs" title={dayHoliday?.name || 'Holiday'}>
+                  H
+                </span>
+              );
+            } else if (attendanceRecord?.status === 'weekly_off' || (isWeekend && !attendanceRecord?.punch_in)) {
+              attendanceBadge = (
+                <span className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold text-white bg-slate-400 shadow-2xs" title="Weekly Off">
+                  WO
+                </span>
+              );
+            } else if (attendanceRecord?.status === 'leave' || attendanceRecord?.leave_type) {
+              attendanceBadge = (
+                <span className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black text-white bg-blue-500 shadow-2xs" title={`On Leave: ${attendanceRecord.leave_type || ''}`}>
+                  L
+                </span>
+              );
+            } else if (isMissingPunch) {
+              attendanceBadge = (
+                <span className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-black text-white bg-orange-600 shadow-2xs" title="Missing Punch">
+                  MP
+                </span>
+              );
+            } else if (attendanceRecord?.status === 'half_day') {
+              attendanceBadge = (
+                <span className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-black text-white bg-amber-500 shadow-2xs" title="Half Day">
+                  HD
+                </span>
+              );
+            } else if (attendanceRecord?.status === 'absent' || (!attendanceRecord?.punch_in && !isWeekend && isPastOrToday && !isToday)) {
+              attendanceBadge = (
+                <span className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black text-white bg-rose-600 shadow-2xs" title="Absent">
+                  A
+                </span>
+              );
+            } else if (attendanceRecord?.status === 'present' || attendanceRecord?.punch_in) {
+              attendanceBadge = (
+                <div className="flex items-center gap-0.5" title={isLate ? 'Present (Late Mark)' : 'Present'}>
+                  <span className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black text-white bg-emerald-600 shadow-2xs">
+                    P
+                  </span>
+                  {isLate && (
+                    <span className="text-[9px] font-black text-orange-600 tracking-tight">
+                      LM
+                    </span>
+                  )}
+                </div>
+              );
+            }
+          }
 
           const totalItems = dayMeetings.length + dayTasks.length;
 
@@ -139,7 +232,7 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
                   </span>
 
                   {/* Holiday Purple Badge */}
-                  {isCurrentMonth && dayHoliday && (
+                  {showAttendance && isCurrentMonth && dayHoliday && (
                     <span
                       title={`${dayHoliday.name} (${dayHoliday.type})`}
                       className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-purple-100 text-purple-800 border border-purple-200 truncate max-w-[80px]"
@@ -149,12 +242,13 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
                   )}
                 </div>
 
-                {/* Notes & Reminders Indicator Dots */}
+                {/* Right side: Attendance Status Badge & Notes/Reminders */}
                 <div className="flex items-center gap-1">
-                  {dayNotes.length > 0 && (
+                  {attendanceBadge}
+                  {showOperations && dayNotes.length > 0 && (
                     <span title={`${dayNotes.length} Note(s)`} className="w-1.5 h-1.5 rounded-full bg-amber-400" />
                   )}
-                  {dayReminders.length > 0 && (
+                  {showOperations && dayReminders.length > 0 && (
                     <span
                       title={`${dayReminders.length} Reminder(s)`}
                       className="w-1.5 h-1.5 rounded-full bg-blue-500"
@@ -166,7 +260,7 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
               {/* Items List (Meetings + Tasks) */}
               <div className="mt-1 space-y-1 overflow-y-hidden flex-1">
                 {/* Meetings (Blue) */}
-                {dayMeetings.slice(0, 2).map((meeting) => {
+                {showOperations && dayMeetings.slice(0, 2).map((meeting) => {
                   const mTime = new Date(meeting.start_time).toLocaleTimeString('en-US', {
                     hour: 'numeric',
                     minute: '2-digit',
@@ -192,7 +286,7 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
                 })}
 
                 {/* Tasks (Submitted: Amber, Approved: Green) */}
-                {dayTasks
+                {showOperations && dayTasks
                   .slice(0, Math.max(1, 3 - Math.min(dayMeetings.length, 2)))
                   .map((task) => {
                     const isSubmitted = task.stage === 'requested';
@@ -223,7 +317,7 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
                     );
                   })}
 
-                {totalItems > 3 && (
+                {showOperations && totalItems > 3 && (
                   <span className="text-[9px] font-bold text-slate-500 block px-1">
                     +{totalItems - 3} more
                   </span>
@@ -232,6 +326,11 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
             </div>
           );
         })}
+      </div>
+
+      {/* Unified Attendance & Operational Legend */}
+      <div className="border-t border-slate-200 bg-slate-50/50 p-2">
+        <CalendarStatusLegend mode={displayMode} />
       </div>
     </div>
   );

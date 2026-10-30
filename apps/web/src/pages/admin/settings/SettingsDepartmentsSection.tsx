@@ -110,9 +110,6 @@ export const SettingsDepartmentsSection: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-100">
         <div>
           <h2 className="text-xl font-bold text-slate-900 tracking-tight">Departments</h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Manage organizational divisions, operational units, and functional hierarchy.
-          </p>
         </div>
         <button
           type="button"

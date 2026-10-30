@@ -26,6 +26,47 @@ export interface AttendanceRepository {
   createCorrection(data: Omit<AttendanceCorrectionEntity, 'correctionId' | 'createdAt'>): Promise<AttendanceCorrectionEntity>;
   findCorrectionById(correctionId: number): Promise<AttendanceCorrectionEntity | null>;
   findCorrectionByEmpAndDate(empId: number, workDate: string): Promise<AttendanceCorrectionEntity | null>;
+  listRegularizations(params: {
+    empId?: number;
+    status?: string;
+    tab?: string;
+    departmentId?: number;
+    requestType?: string;
+    fromDate?: string;
+    toDate?: string;
+    search?: string;
+    isManagerOrAdmin?: boolean;
+    viewerEmpId?: number;
+  }): Promise<AttendanceCorrectionEntity[]>;
+  createRegularization(data: {
+    empId: number;
+    workDate: string;
+    requestType: string;
+    currentCheckInAt?: Date | null;
+    currentCheckOutAt?: Date | null;
+    requestedCheckInAt?: Date | null;
+    requestedCheckOutAt?: Date | null;
+    reason: string;
+    remarks: string;
+    attachmentUrl?: string | null;
+    attachmentName?: string | null;
+    createdBy: number;
+  }): Promise<AttendanceCorrectionEntity>;
+  cancelRegularization(correctionId: number, empId: number): Promise<AttendanceCorrectionEntity>;
+  approveRegularization(
+    correctionId: number,
+    approverId: number,
+    comment?: string,
+  ): Promise<AttendanceCorrectionEntity>;
+  rejectRegularization(
+    correctionId: number,
+    approverId: number,
+    comment: string,
+  ): Promise<AttendanceCorrectionEntity>;
+  bulkApproveRegularizations(
+    correctionIds: number[],
+    approverId: number,
+  ): Promise<{ successCount: number; failedCount: number }>;
   approveCorrection(
     correctionId: number,
     decidedBy: number,

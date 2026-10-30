@@ -5,7 +5,6 @@
  * Sales CRM + HRMS REST API contracts
  * OpenAPI spec version: 1.0.0
  */
-import type { CreateProjectDtoProjectType } from './createProjectDtoProjectType';
 import type { CreateProjectDtoCategory } from './createProjectDtoCategory';
 import type { CreateProjectDtoProjectStatus } from './createProjectDtoProjectStatus';
 import type { CreateDeploymentDto } from './createDeploymentDto';
@@ -13,7 +12,8 @@ import type { CreateCredentialDto } from './createCredentialDto';
 
 export interface CreateProjectDto {
   project_name: string;
-  project_type: CreateProjectDtoProjectType;
+  /** Project type (client, internal, product, maintenance, or custom lookup code) */
+  project_type: string;
   category: CreateProjectDtoCategory;
   other_category?: string;
   start_date: string;

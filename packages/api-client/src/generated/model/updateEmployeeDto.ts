@@ -10,10 +10,13 @@ import type { UpdateEmployeeDtoStatus } from './updateEmployeeDtoStatus';
 export interface UpdateEmployeeDto {
   /** Employee full name */
   name?: string;
+  email?: string;
   /** Mobile phone number */
   mob?: string;
-  /** Department ID */
+  /** Primary Department ID */
   dep_id?: number;
+  /** List of Department IDs */
+  department_ids?: number[];
   /**
    * Role ID
    * @nullable
@@ -32,4 +35,49 @@ export interface UpdateEmployeeDto {
    */
   exit_date?: string | null;
   status?: UpdateEmployeeDtoStatus;
+  /**
+   * Gender lookup ID
+   * @nullable
+   */
+  gender_id?: number | null;
+  /** @nullable */
+  personal_email?: string | null;
+  /** @nullable */
+  office_email?: string | null;
+  /** @nullable */
+  birth_date?: string | null;
+  /** @nullable */
+  blood_group?: string | null;
+  /** @nullable */
+  address?: string | null;
+  /** @nullable */
+  emergency_contact_name?: string | null;
+  /** @nullable */
+  emergency_contact_number?: string | null;
+  /** @nullable */
+  emergency_contact_relation?: string | null;
+  /** @nullable */
+  employment_type_id?: number | null;
+  salary?: number;
+  pf?: number;
+  ot_eligible?: boolean;
+  ot_rate_type?: 'FIXED' | 'MULTIPLIER' | null;
+  ot_rate?: number | null;
+  ot_multiplier?: number | null;
+  minimum_ot_per_day?: number;
+  ot_paid_as?: 'SALARY' | 'COMP_OFF';
+  pf_applicable?: boolean;
+  uan?: string | null;
+  employee_pf_pct?: number;
+  employer_pf_pct?: number;
+  payment_mode?: 'BANK_TRANSFER' | 'CHEQUE' | 'CASH' | null;
+  bank_name?: string | null;
+  account_number?: string | null;
+  ifsc_code?: string | null;
+  /** @nullable */
+  termination_date?: string | null;
+  /** @nullable */
+  deactivation_reason?: string | null;
+  /** @nullable */
+  deactivation_notes?: string | null;
 }

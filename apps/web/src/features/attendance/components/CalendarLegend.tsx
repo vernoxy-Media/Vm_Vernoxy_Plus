@@ -1,47 +1,64 @@
 import React from 'react';
-import {
-  CheckCircle2,
-  Clock,
-  AlertTriangle,
-  CalendarOff,
-  Sun,
-  Coffee,
-  XCircle,
-} from 'lucide-react';
 
 export const CalendarLegend: React.FC = () => {
   return (
     <div
-      className="flex flex-wrap items-center gap-2 py-3 border-b border-slate-100 text-xs font-semibold"
+      className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-4 pb-2 border-t border-slate-100 text-xs text-slate-700 font-medium"
       aria-label="Attendance status legend"
     >
-      <span className="text-slate-400 font-bold uppercase tracking-wider text-[11px] mr-1">
-        Legend:
-      </span>
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200">
-        <CheckCircle2 className="w-3 h-3" /> Present
-      </span>
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200">
-        <Clock className="w-3 h-3" /> Half Day
-      </span>
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-orange-50 text-orange-800 border border-orange-200">
-        <Clock className="w-3 h-3" /> Short
-      </span>
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-50 text-rose-800 border border-rose-200">
-        <AlertTriangle className="w-3 h-3" /> Incomplete
-      </span>
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-violet-50 text-violet-800 border border-violet-200">
-        <CalendarOff className="w-3 h-3" /> Leave
-      </span>
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-900 border border-emerald-300">
-        <Sun className="w-3 h-3" /> Holiday
-      </span>
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
-        <Coffee className="w-3 h-3" /> Off
-      </span>
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-50 text-red-800 border border-red-200">
-        <XCircle className="w-3 h-3" /> Absent
-      </span>
+      <div className="flex items-center gap-1.5">
+        <span className="w-5 h-5 rounded-full bg-emerald-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0">
+          P
+        </span>
+        <span className="text-slate-700 font-medium text-xs">Present</span>
+      </div>
+
+      <div className="flex items-center gap-1.5">
+        <span className="w-5 h-5 rounded-full bg-rose-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0">
+          A
+        </span>
+        <span className="text-slate-700 font-medium text-xs">Absent</span>
+      </div>
+
+      <div className="flex items-center gap-1.5">
+        <span className="w-5 h-5 rounded-full bg-amber-500 text-white font-bold text-[9px] flex items-center justify-center shrink-0">
+          HD
+        </span>
+        <span className="text-slate-700 font-medium text-xs">Half Day</span>
+      </div>
+
+      <div className="flex items-center gap-1.5">
+        <span className="w-5 h-5 rounded-full bg-blue-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0">
+          L
+        </span>
+        <span className="text-slate-700 font-medium text-xs">On Leave</span>
+      </div>
+
+      <div className="flex items-center gap-1.5">
+        <span className="px-1.5 py-0.5 rounded-full bg-slate-300 text-slate-700 font-bold text-[9px] shrink-0">
+          WO
+        </span>
+        <span className="text-slate-700 font-medium text-xs">Weekly Off</span>
+      </div>
+
+      <div className="flex items-center gap-1.5">
+        <span className="w-5 h-5 rounded-full bg-purple-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0">
+          H
+        </span>
+        <span className="text-slate-700 font-medium text-xs">Holiday</span>
+      </div>
+
+      <div className="flex items-center gap-1.5">
+        <span className="w-5 h-5 rounded-full bg-orange-700 text-white font-bold text-[9px] flex items-center justify-center shrink-0">
+          MP
+        </span>
+        <span className="text-slate-700 font-medium text-xs">Missing Punch</span>
+      </div>
+
+      <div className="flex items-center gap-1.5 text-slate-500 font-semibold text-xs ml-auto">
+        <span className="text-amber-600 font-bold">LM</span>
+        <span>= Late Mark</span>
+      </div>
     </div>
   );
 };

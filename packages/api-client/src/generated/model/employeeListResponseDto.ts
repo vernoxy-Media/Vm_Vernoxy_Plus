@@ -11,4 +11,9 @@ export interface EmployeeListResponseDto {
   items: EmployeeResponseDto[];
   /** @nullable */
   next_cursor?: string | null;
+  stats?: {
+    total: number;
+    active: number;
+    inactive: number;
+  };
 }

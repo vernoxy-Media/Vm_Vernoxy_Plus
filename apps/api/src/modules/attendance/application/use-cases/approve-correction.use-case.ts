@@ -23,27 +23,30 @@ export class ApproveCorrectionUseCase {
       );
     }
 
+    const checkInAt = correction.requestedCheckInAt || correction.currentCheckInAt || new Date(`${correction.workDate}T09:30:00.000Z`);
+    const checkOutAt = correction.requestedCheckOutAt || correction.currentCheckOutAt || new Date(`${correction.workDate}T18:30:00.000Z`);
+
     const sessionSeconds = Math.max(
       0,
       Math.floor(
-        (correction.requestedCheckOutAt.getTime() - correction.requestedCheckInAt.getTime()) / 1000,
+        (checkOutAt.getTime() - checkInAt.getTime()) / 1000,
       ),
     );
-    const breakSeconds = correction.requestedBreakMinutes * 60;
+    const breakSeconds = (correction.requestedBreakMinutes || 0) * 60;
     const workSeconds = Math.max(0, sessionSeconds - breakSeconds);
     const productionMinutes = Math.floor(workSeconds / 60);
 
     const dayStatus = determineDayStatus(
-      correction.requestedCheckOutAt,
+      checkOutAt,
       productionMinutes,
     );
 
     return this.attendanceRepo.approveCorrection(correctionId, adminId, {
       empId: correction.empId,
       workDate: correction.workDate,
-      checkInAt: correction.requestedCheckInAt,
-      checkOutAt: correction.requestedCheckOutAt,
-      breakMinutes: correction.requestedBreakMinutes,
+      checkInAt,
+      checkOutAt,
+      breakMinutes: correction.requestedBreakMinutes || 0,
       productionMinutes,
       dayStatus: dayStatus === 'incomplete' ? 'short' : dayStatus,
     });

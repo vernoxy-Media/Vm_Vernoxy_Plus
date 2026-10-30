@@ -87,6 +87,12 @@ export class RoleOptionDto {
 
   @ApiProperty({ type: String, example: 'Software Engineer' })
   role_name!: string;
+
+  @ApiPropertyOptional({ type: Number, example: 1 })
+  dep_id?: number;
+
+  @ApiPropertyOptional({ type: String, example: 'Engineering' })
+  dep_name?: string;
 }
 
 export class RoleResponseDto {

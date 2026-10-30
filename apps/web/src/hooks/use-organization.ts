@@ -127,11 +127,20 @@ export function useRolesQuery(params?: {
   });
 }
 
-export function useRoleOptionsQuery(depId?: number) {
+export function useRoleOptionsQuery(depId?: number | number[]) {
+  const depIdsArray = Array.isArray(depId)
+    ? depId.filter((id) => typeof id === 'number' && id > 0)
+    : typeof depId === 'number' && depId > 0
+    ? [depId]
+    : [];
+  const depIdsParam = depIdsArray.join(',');
+
   return useQuery({
-    queryKey: ['role-options', depId],
-    queryFn: () => customFetch<RoleOptionDto[]>(`/api/v1/roles/options?dep_id=${depId}`),
-    enabled: Boolean(depId),
+    queryKey: ['role-options', depIdsParam || 'all'],
+    queryFn: () => {
+      const qs = depIdsParam ? `?dep_ids=${depIdsParam}` : '';
+      return customFetch<RoleOptionDto[]>(`/api/v1/roles/options${qs}`);
+    },
   });
 }
 
@@ -308,4 +317,47 @@ export function useRemoveEmployeePhotoMutation() {
     },
   });
 }
+
+export function useDeactivateWarningQuery(id?: number) {
+  return useQuery({
+    queryKey: ['employee-deactivate-warning', id],
+    queryFn: () =>
+      customFetch<{
+        direct_reports_count: number;
+        direct_reports: Array<{ emp_id: number; name: string; email: string }>;
+      }>(`/api/v1/employees/${id}/deactivate-warning`),
+    enabled: Boolean(id),
+  });
+}
+
+export function useDeactivateEmployeeMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: number;
+      data: { termination_date: string; reason: string; notes?: string };
+    }) =>
+      customFetch<EmployeeResponseDto>(`/api/v1/employees/${id}/deactivate`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      queryClient.invalidateQueries({ queryKey: ['employee', id] });
+      queryClient.invalidateQueries({ queryKey: ['employee-history', id] });
+    },
+  });
+}
+
+export function useEmployeeHistoryQuery(id?: number) {
+  return useQuery({
+    queryKey: ['employee-history', id],
+    queryFn: () => customFetch<any[]>(`/api/v1/employees/${id}/history`),
+    enabled: Boolean(id),
+  });
+}
+
 

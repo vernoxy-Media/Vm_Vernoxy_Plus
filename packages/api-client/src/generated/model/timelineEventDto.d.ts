@@ -9,4 +9,8 @@ import type { TimelineEventDtoType } from './timelineEventDtoType';
 export interface TimelineEventDto {
     type: TimelineEventDtoType;
     at: string;
+    /** @nullable */
+    break_type?: string | null;
+    /** @nullable */
+    reason?: string | null;
 }

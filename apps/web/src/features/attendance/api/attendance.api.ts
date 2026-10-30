@@ -9,6 +9,9 @@ import type {
   WorkingHoursConfig,
   AttendanceShift,
   AttendanceStatus,
+  AttendanceRegularization,
+  CreateRegularizationPayload,
+  RegularizationFilterParams,
 } from '../types/attendance.types';
 import { generateMockDashboard, getMockDayDetail, updateMockPunchAction } from './attendance.mock';
 
@@ -254,5 +257,84 @@ export async function assignEmployeeShift(
     body: JSON.stringify({ shift_id: shiftId }),
   });
 }
+
+// ----------------------------------------------------
+// ATTENDANCE REGULARIZATION API
+// ----------------------------------------------------
+
+export async function fetchRegularizations(
+  params: RegularizationFilterParams = {},
+): Promise<AttendanceRegularization[]> {
+  const query = new URLSearchParams();
+  if (params.tab) query.append('tab', params.tab);
+  if (params.status) query.append('status', params.status);
+  if (params.department_id) query.append('department_id', String(params.department_id));
+  if (params.request_type) query.append('request_type', params.request_type);
+  if (params.from_date) query.append('from_date', params.from_date);
+  if (params.to_date) query.append('to_date', params.to_date);
+  if (params.search) query.append('search', params.search);
+  if (params.scope) query.append('scope', params.scope);
+
+  const qs = query.toString();
+  return await customFetch<AttendanceRegularization[]>(
+    `${BASE_URL}/regularizations${qs ? `?${qs}` : ''}`
+  );
+}
+
+export async function fetchRegularizationDetail(
+  id: number,
+): Promise<AttendanceRegularization> {
+  return await customFetch<AttendanceRegularization>(`${BASE_URL}/regularizations/${id}`);
+}
+
+export async function createRegularizationRequest(
+  payload: CreateRegularizationPayload,
+): Promise<AttendanceRegularization> {
+  return await customFetch<AttendanceRegularization>(`${BASE_URL}/regularizations`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function cancelRegularizationRequest(
+  id: number,
+): Promise<AttendanceRegularization> {
+  return await customFetch<AttendanceRegularization>(`${BASE_URL}/regularizations/${id}/cancel`, {
+    method: 'POST',
+  });
+}
+
+export async function approveRegularizationRequest(
+  id: number,
+  comment?: string,
+): Promise<AttendanceRegularization> {
+  return await customFetch<AttendanceRegularization>(`${BASE_URL}/regularizations/${id}/approve`, {
+    method: 'POST',
+    body: JSON.stringify({ comment }),
+  });
+}
+
+export async function rejectRegularizationRequest(
+  id: number,
+  comment: string,
+): Promise<AttendanceRegularization> {
+  return await customFetch<AttendanceRegularization>(`${BASE_URL}/regularizations/${id}/reject`, {
+    method: 'POST',
+    body: JSON.stringify({ comment }),
+  });
+}
+
+export async function bulkApproveRegularizationRequests(
+  ids: number[],
+): Promise<{ successCount: number; failedCount: number }> {
+  return await customFetch<{ successCount: number; failedCount: number }>(
+    `${BASE_URL}/regularizations/bulk-approve`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ ids }),
+    }
+  );
+}
+
 
 

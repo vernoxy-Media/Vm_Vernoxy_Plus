@@ -17,10 +17,12 @@ export interface CreateEmployeeDto {
     mob?: string | null;
     /** Initial account password (min 6 chars) */
     password: string;
-    /** Department ID */
+    /** Primary Department ID */
     dep_id: number;
+    /** List of Department IDs (multi-department support) */
+    department_ids?: number[];
     /**
-     * Role ID (optional, must belong to department if provided)
+     * Role ID (designation)
      * @nullable
      */
     role_id?: number | null;
@@ -31,4 +33,34 @@ export interface CreateEmployeeDto {
     reporting_manager?: number | null;
     /** Joining date */
     joining_date: string;
+    /**
+     * Gender lookup ID
+     * @nullable
+     */
+    gender_id?: number | null;
+    /** @nullable */
+    personal_email?: string | null;
+    /** @nullable */
+    office_email?: string | null;
+    /** @nullable */
+    birth_date?: string | null;
+    /** @nullable */
+    blood_group?: string | null;
+    /** @nullable */
+    address?: string | null;
+    /** @nullable */
+    emergency_contact_name?: string | null;
+    /** @nullable */
+    emergency_contact_number?: string | null;
+    /** @nullable */
+    emergency_contact_relation?: string | null;
+    /**
+     * Employment Type lookup ID
+     * @nullable
+     */
+    employment_type_id?: number | null;
+    /** Salary (cannot be negative) */
+    salary?: number;
+    /** PF (cannot be negative) */
+    pf?: number;
 }

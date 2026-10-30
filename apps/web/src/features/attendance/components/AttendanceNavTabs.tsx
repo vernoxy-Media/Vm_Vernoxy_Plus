@@ -33,6 +33,21 @@ export const AttendanceNavTabs: React.FC<AttendanceNavTabsProps> = ({ activeTab 
           <span>Timesheet & Dashboard</span>
         </NavLink>
 
+        <NavLink
+          to="/calendar"
+          id="attendance-tab-calendar"
+          role="tab"
+          aria-selected={activeTab === 'calendar'}
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+            activeTab === 'calendar'
+              ? 'bg-white text-blue-600 shadow-xs'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+          }`}
+        >
+          <CalendarClock className="w-3.5 h-3.5" />
+          <span>Calendar</span>
+        </NavLink>
+
         {isAdmin && (
           <NavLink
             to="/admin/attendance-settings"

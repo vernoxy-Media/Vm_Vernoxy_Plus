@@ -30,9 +30,6 @@ export const SettingsAttendanceSection: React.FC = () => {
     <div className="space-y-6 max-w-4xl">
       <div>
         <h2 className="text-xl font-bold text-slate-900 tracking-tight">Attendance Settings</h2>
-        <p className="text-sm text-slate-500 mt-1">
-          Configure work schedules, weekly off days, statutory holidays, and customize daily working hour targets.
-        </p>
       </div>
 
       <div className="p-4 rounded-xl bg-blue-50/70 border border-blue-200/80 flex items-start gap-3 text-xs text-blue-900">

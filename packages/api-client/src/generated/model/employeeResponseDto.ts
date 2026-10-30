@@ -5,10 +5,12 @@
  * Sales CRM + HRMS REST API contracts
  * OpenAPI spec version: 1.0.0
  */
-import type { EmployeeResponseDtoStatus } from './employeeResponseDtoStatus';
 import type { EmployeeRelationDepartmentDto } from './employeeRelationDepartmentDto';
+import type { EmployeeResponseDtoStatus } from './employeeResponseDtoStatus';
 import type { EmployeeResponseDtoRole } from './employeeResponseDtoRole';
 import type { EmployeeResponseDtoManager } from './employeeResponseDtoManager';
+import type { EmployeeResponseDtoGender } from './employeeResponseDtoGender';
+import type { EmployeeResponseDtoEmploymentType } from './employeeResponseDtoEmploymentType';
 
 export interface EmployeeResponseDto {
   emp_id: number;
@@ -16,6 +18,7 @@ export interface EmployeeResponseDto {
   email: string;
   mob: string;
   dep_id: number;
+  departments?: EmployeeRelationDepartmentDto[];
   /** @nullable */
   role_id?: number | null;
   /** @nullable */
@@ -31,6 +34,57 @@ export interface EmployeeResponseDto {
   role?: EmployeeResponseDtoRole;
   /** @nullable */
   manager?: EmployeeResponseDtoManager;
+  /** @nullable */
+  gender_id?: number | null;
+  /** @nullable */
+  gender?: EmployeeResponseDtoGender;
+  /** @nullable */
+  personal_email?: string | null;
+  /** @nullable */
+  office_email?: string | null;
+  /** @nullable */
+  birth_date?: string | null;
+  /** @nullable */
+  blood_group?: string | null;
+  /** @nullable */
+  address?: string | null;
+  /** @nullable */
+  emergency_contact_name?: string | null;
+  /** @nullable */
+  emergency_contact_number?: string | null;
+  /** @nullable */
+  emergency_contact_relation?: string | null;
+  /** @nullable */
+  employment_type_id?: number | null;
+  /** @nullable */
+  employment_type?: EmployeeResponseDtoEmploymentType;
+  salary?: number;
+  pf?: number;
+  ot_eligible?: boolean;
+  ot_rate_type?: 'FIXED' | 'MULTIPLIER' | null;
+  ot_rate?: number | null;
+  ot_multiplier?: number | null;
+  minimum_ot_per_day?: number;
+  ot_paid_as?: 'SALARY' | 'COMP_OFF';
+  pf_applicable?: boolean;
+  uan?: string | null;
+  employee_pf_pct?: number;
+  employer_pf_pct?: number;
+  payment_mode?: 'BANK_TRANSFER' | 'CHEQUE' | 'CASH' | null;
+  bank_name?: string | null;
+  account_number?: string | null;
+  ifsc_code?: string | null;
+  pay_policy?: any;
+  /** @nullable */
+  termination_date?: string | null;
+  /** @nullable */
+  deactivation_reason?: string | null;
+  /** @nullable */
+  deactivation_notes?: string | null;
+  /** @nullable */
+  deactivated_at?: string | null;
+  /** @nullable */
+  deactivated_by?: number | null;
   created_at: string;
   /** @nullable */
   created_by?: number | null;
@@ -38,4 +92,6 @@ export interface EmployeeResponseDto {
   updated_at?: string | null;
   /** @nullable */
   updated_by?: number | null;
+  employee_code?: string;
+  pending_documents_count?: number;
 }

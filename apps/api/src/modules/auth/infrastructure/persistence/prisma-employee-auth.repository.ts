@@ -127,7 +127,6 @@ export class PrismaEmployeeAuthRepository implements EmployeeAuthRepository {
     const result: any[] = await this.prisma.$queryRaw`
       UPDATE employee_credentials
       SET failed_attempts = failed_attempts + 1,
-          locked_until = CASE WHEN failed_attempts + 1 >= 5 THEN NOW() + INTERVAL '15 minutes' ELSE locked_until END,
           updated_at = NOW()
       WHERE emp_id = ${empId} AND deleted_at IS NULL
       RETURNING failed_attempts, locked_until;
@@ -139,7 +138,7 @@ export class PrismaEmployeeAuthRepository implements EmployeeAuthRepository {
 
     return {
       failedAttempts: result[0].failed_attempts,
-      lockedUntil: result[0].locked_until ? new Date(result[0].locked_until) : null,
+      lockedUntil: null,
     };
   }
 

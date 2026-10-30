@@ -303,7 +303,10 @@ export function usePunchActions({ month, onConflict, onAnnounce }: PunchMutation
         const res = await startBreak(variables?.breakType, variables?.reason);
         return (res as any)?.today ?? (res as any)?.data ?? res;
       } catch (err) {
-        const res = await attendanceControllerStartBreak();
+        const res = await attendanceControllerStartBreak({
+          break_type: variables?.breakType as any,
+          reason: variables?.reason,
+        });
         return (res as any)?.data ?? res;
       }
     },

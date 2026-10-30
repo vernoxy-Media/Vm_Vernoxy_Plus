@@ -13,6 +13,23 @@ import {
   Antenna,
   ThumbsDown,
   UserSquare,
+  ClipboardCheck,
+  HelpCircle,
+  Clock,
+  CalendarOff,
+  UserCheck,
+  Briefcase,
+  Heart,
+  UserX,
+  Share2,
+  Globe,
+  CalendarClock,
+  Layers,
+  XCircle,
+  UserPlus,
+  Receipt,
+  AlertCircle,
+  Laptop,
   LucideIcon,
 } from 'lucide-react';
 import type { MeResponseDto } from '@vernoxy-pulse/api-client';
@@ -56,6 +73,54 @@ const SettingsLostReasonsSection = React.lazy(() =>
 const SettingsPersonDepartmentsSection = React.lazy(() =>
   import('./SettingsPersonDepartmentsSection').then((m) => ({ default: m.SettingsPersonDepartmentsSection }))
 );
+const SettingsRequestTypesSection = React.lazy(() =>
+  import('./SettingsRequestTypesSection').then((m) => ({ default: m.SettingsRequestTypesSection }))
+);
+const SettingsAttendanceReasonsSection = React.lazy(() =>
+  import('./SettingsAttendanceReasonsSection').then((m) => ({ default: m.SettingsAttendanceReasonsSection }))
+);
+const SettingsShiftTypesSection = React.lazy(() =>
+  import('./SettingsShiftTypesSection').then((m) => ({ default: m.SettingsShiftTypesSection }))
+);
+const SettingsLeaveTypesSection = React.lazy(() =>
+  import('./SettingsLeaveTypesSection').then((m) => ({ default: m.SettingsLeaveTypesSection }))
+);
+const SettingsExpenseSettingsSection = React.lazy(() =>
+  import('./SettingsExpenseSettingsSection').then((m) => ({ default: m.SettingsExpenseSettingsSection }))
+);
+const SettingsComplaintSettingsSection = React.lazy(() =>
+  import('./SettingsComplaintSettingsSection').then((m) => ({ default: m.SettingsComplaintSettingsSection }))
+);
+const SettingsLicenseSection = React.lazy(() =>
+  import('./SettingsLicenseSection').then((m) => ({ default: m.SettingsLicenseSection }))
+);
+const SettingsEmploymentTypesSection = React.lazy(() =>
+  import('./SettingsEmploymentTypesSection').then((m) => ({ default: m.SettingsEmploymentTypesSection }))
+);
+const SettingsGendersSection = React.lazy(() =>
+  import('./SettingsGendersSection').then((m) => ({ default: m.SettingsGendersSection }))
+);
+const SettingsBloodGroupsSection = React.lazy(() =>
+  import('./SettingsBloodGroupsSection').then((m) => ({ default: m.SettingsBloodGroupsSection }))
+);
+const SettingsDeactivationReasonsSection = React.lazy(() =>
+  import('./SettingsDeactivationReasonsSection').then((m) => ({ default: m.SettingsDeactivationReasonsSection }))
+);
+const SettingsCandidateSourcesSection = React.lazy(() =>
+  import('./SettingsCandidateSourcesSection').then((m) => ({ default: m.SettingsCandidateSourcesSection }))
+);
+const SettingsJobPortalsSection = React.lazy(() =>
+  import('./SettingsJobPortalsSection').then((m) => ({ default: m.SettingsJobPortalsSection }))
+);
+const SettingsNoticePeriodsSection = React.lazy(() =>
+  import('./SettingsNoticePeriodsSection').then((m) => ({ default: m.SettingsNoticePeriodsSection }))
+);
+const SettingsCandidateStagesSection = React.lazy(() =>
+  import('./SettingsCandidateStagesSection').then((m) => ({ default: m.SettingsCandidateStagesSection }))
+);
+const SettingsRejectionReasonsSection = React.lazy(() =>
+  import('./SettingsRejectionReasonsSection').then((m) => ({ default: m.SettingsRejectionReasonsSection }))
+);
 
 export interface SettingsSectionConfig {
   id: string;
@@ -95,6 +160,44 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     component: SettingsHrPolicySection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
     group: 'Organization',
+  },
+
+  // ── Employee ──────────────────────────────────────
+  {
+    id: 'employment-types',
+    label: 'Employment Types',
+    path: '/admin/settings/employment-types',
+    icon: Briefcase,
+    component: SettingsEmploymentTypesSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Employee',
+  },
+  {
+    id: 'genders',
+    label: 'Genders',
+    path: '/admin/settings/genders',
+    icon: Users,
+    component: SettingsGendersSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Employee',
+  },
+  {
+    id: 'blood-groups',
+    label: 'Blood Groups',
+    path: '/admin/settings/blood-groups',
+    icon: Heart,
+    component: SettingsBloodGroupsSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Employee',
+  },
+  {
+    id: 'deactivation-reasons',
+    label: 'Deactivation Reasons',
+    path: '/admin/settings/deactivation-reasons',
+    icon: UserX,
+    component: SettingsDeactivationReasonsSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Employee',
   },
 
   // ── CRM ───────────────────────────────────────────
@@ -186,6 +289,24 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
 
   // ── HR / Attendance ───────────────────────────────
   {
+    id: 'request-types',
+    label: 'Request Types',
+    path: '/admin/settings/request-types',
+    icon: ClipboardCheck,
+    component: SettingsRequestTypesSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'HR',
+  },
+  {
+    id: 'attendance-reasons',
+    label: 'Regularization Reasons',
+    path: '/admin/settings/attendance-reasons',
+    icon: HelpCircle,
+    component: SettingsAttendanceReasonsSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'HR',
+  },
+  {
     id: 'break-types',
     label: 'Break Types',
     path: '/admin/settings/break-types',
@@ -193,6 +314,98 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     component: SettingsBreakTypesSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
     group: 'HR',
+  },
+  {
+    id: 'shift-types',
+    label: 'Shift Types',
+    path: '/admin/settings/shift-types',
+    icon: Clock,
+    component: SettingsShiftTypesSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'HR',
+  },
+  {
+    id: 'leave-types',
+    label: 'Leave Settings',
+    path: '/admin/settings/leave-types',
+    icon: CalendarOff,
+    component: SettingsLeaveTypesSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'HR',
+  },
+  {
+    id: 'expense-settings',
+    label: 'Expense Settings',
+    path: '/admin/settings/expense-settings',
+    icon: Receipt,
+    component: SettingsExpenseSettingsSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'HR',
+  },
+  {
+    id: 'complaint-settings',
+    label: 'Complaint Settings',
+    path: '/admin/settings/complaint-settings',
+    icon: AlertCircle,
+    component: SettingsComplaintSettingsSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'HR',
+  },
+  {
+    id: 'license-settings',
+    label: 'License Settings',
+    path: '/admin/settings/license-settings',
+    icon: Laptop,
+    component: SettingsLicenseSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'HR',
+  },
+
+  // ── Recruitment ───────────────────────────────────
+  {
+    id: 'candidate-sources',
+    label: 'Candidate Sources',
+    path: '/admin/settings/candidate-sources',
+    icon: Share2,
+    component: SettingsCandidateSourcesSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Recruitment',
+  },
+  {
+    id: 'job-portals',
+    label: 'Job Portals',
+    path: '/admin/settings/job-portals',
+    icon: Globe,
+    component: SettingsJobPortalsSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Recruitment',
+  },
+  {
+    id: 'notice-periods',
+    label: 'Notice Periods',
+    path: '/admin/settings/notice-periods',
+    icon: CalendarClock,
+    component: SettingsNoticePeriodsSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Recruitment',
+  },
+  {
+    id: 'candidate-stages',
+    label: 'Candidate Stages',
+    path: '/admin/settings/candidate-stages',
+    icon: Layers,
+    component: SettingsCandidateStagesSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Recruitment',
+  },
+  {
+    id: 'rejection-reasons',
+    label: 'Rejection Reasons',
+    path: '/admin/settings/rejection-reasons',
+    icon: XCircle,
+    component: SettingsRejectionReasonsSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Recruitment',
   },
 ];
 
@@ -215,3 +428,19 @@ export function getSettingsSectionGroups(user: MeResponseDto | null): Record<str
     return acc;
   }, {});
 }
+
+export interface SettingsMainGroup {
+  id: string;
+  name: string;
+  icon: LucideIcon;
+}
+
+export const SETTINGS_MAIN_GROUPS: SettingsMainGroup[] = [
+  { id: 'Organization', name: 'Organization', icon: Building2 },
+  { id: 'Employee', name: 'Employee', icon: UserCheck },
+  { id: 'CRM', name: 'CRM', icon: Users },
+  { id: 'Tasks', name: 'Tasks', icon: Tag },
+  { id: 'Projects', name: 'Projects', icon: Shapes },
+  { id: 'HR', name: 'HR', icon: Clock },
+  { id: 'Recruitment', name: 'Recruitment', icon: UserPlus },
+];

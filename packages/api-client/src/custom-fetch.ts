@@ -38,11 +38,42 @@ export async function restoreSession(): Promise<string | null> {
   return refreshPromise;
 }
 
+function isTokenExpired(token: string): boolean {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return true;
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload =
+      typeof atob !== 'undefined'
+        ? atob(base64)
+        : Buffer.from(base64, 'base64').toString('utf-8');
+    const payload = JSON.parse(jsonPayload);
+    // Refresh if expiring within 15 seconds
+    return typeof payload.exp === 'number' && Date.now() >= payload.exp * 1000 - 15000;
+  } catch {
+    return false;
+  }
+}
+
 export async function customFetch<T>(
   url: string,
   options: RequestInit = {},
 ): Promise<T> {
-  const token = getAccessToken();
+  const isAuthRoute =
+    url.includes('/auth/login') ||
+    url.includes('/auth/refresh') ||
+    url.includes('/auth/password/forgot') ||
+    url.includes('/auth/password/reset');
+
+  let token = getAccessToken();
+
+  // Proactively restore session if token is missing or expired before opening stream/upload
+  if ((!token || isTokenExpired(token)) && !isAuthRoute) {
+    const restored = await restoreSession();
+    if (restored) {
+      token = restored;
+    }
+  }
 
   const headers = new Headers(options.headers || {});
   headers.set('X-Requested-With', 'pulse-web');
@@ -60,12 +91,6 @@ export async function customFetch<T>(
   });
 
   // Single-flight refresh on 401 (excluding public endpoints)
-  const isAuthRoute =
-    url.includes('/auth/login') ||
-    url.includes('/auth/refresh') ||
-    url.includes('/auth/password/forgot') ||
-    url.includes('/auth/password/reset');
-
   if (response.status === 401 && !isAuthRoute) {
     const newToken = await restoreSession();
     if (newToken) {
