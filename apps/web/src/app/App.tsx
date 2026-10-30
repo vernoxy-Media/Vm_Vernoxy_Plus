@@ -178,7 +178,9 @@ export const App: React.FC = () => {
                 path="/knowledge-base/new"
                 element={
                   <ProtectedRoute>
-                    <ArticleEditorPage />
+                    <AppLayout fluid>
+                      <ArticleEditorPage />
+                    </AppLayout>
                   </ProtectedRoute>
                 }
               />
@@ -186,7 +188,9 @@ export const App: React.FC = () => {
                 path="/knowledge-base/articles/:identifier"
                 element={
                   <ProtectedRoute>
-                    <ArticleDetailPage />
+                    <AppLayout fluid>
+                      <ArticleDetailPage />
+                    </AppLayout>
                   </ProtectedRoute>
                 }
               />
@@ -194,7 +198,9 @@ export const App: React.FC = () => {
                 path="/knowledge-base/articles/:identifier/edit"
                 element={
                   <ProtectedRoute>
-                    <ArticleEditorPage />
+                    <AppLayout fluid>
+                      <ArticleEditorPage />
+                    </AppLayout>
                   </ProtectedRoute>
                 }
               />
