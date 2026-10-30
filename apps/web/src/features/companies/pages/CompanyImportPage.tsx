@@ -7,9 +7,9 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { customFetch, getAccessToken } from '@vernoxy-pulse/api-client';
-import { useAuthenticatedDownload } from '../../../hooks/use-authenticated-download';
-import { ImportSummary } from '../../../components/ImportSummary';
-import { JobProgress } from '../../../components/JobProgress';
+import { useAuthenticatedDownload } from '@/shared/hooks/use-authenticated-download';
+import { ImportSummary } from '@/features/data-transfer/components/ImportSummary';
+import { JobProgress } from '@/features/data-transfer/components/JobProgress';
 import { ImportHistoryModal } from '../components/ImportHistoryModal';
 import { ImportUploadSection } from '../components/ImportUploadSection';
 import { ImportReviewSection } from '../components/ImportReviewSection';

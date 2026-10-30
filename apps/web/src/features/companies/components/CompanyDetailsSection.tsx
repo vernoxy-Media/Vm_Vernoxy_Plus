@@ -2,10 +2,10 @@ import React from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { customFetch, IndustryOptionDto } from '@vernoxy-pulse/api-client';
 import { CompanyFormData } from '../schemas/company-form.schema';
-import { useCustomerTypeOptionsQuery, useIndustryOptionsQuery } from '../../../hooks/use-master-data';
-import { useEmployeesQuery } from '../../../hooks/use-organization';
+import { useCustomerTypeOptionsQuery, useIndustryOptionsQuery } from '@/features/organization/hooks/use-master-data';
+import { useEmployeesQuery } from '@/features/organization/hooks/use-organization';
 import { useCompanyOptionsQuery } from '../api/companies.api';
-import { DependentSelect } from '../../../components/DependentSelect';
+import { DependentSelect } from './DependentSelect';
 
 export interface CompanyDetailsSectionProps {
   form: UseFormReturn<CompanyFormData>;

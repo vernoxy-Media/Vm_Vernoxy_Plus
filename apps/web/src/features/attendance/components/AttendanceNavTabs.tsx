@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { Clock, CalendarClock, Shield } from 'lucide-react';
-import { useAuth } from '../../../context/AuthContext';
+import { useAuth } from '@/features/auth/context/AuthContext';
 
 export interface AttendanceNavTabsProps {
   activeTab?: 'timesheet' | 'calendar' | 'settings';

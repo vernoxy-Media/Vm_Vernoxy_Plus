@@ -1,7 +1,7 @@
 import React from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useCompanyDetailQuery, useDeleteCompanyMutation } from '../api/companies.api';
-import { LinkValue } from '../../../components/LinkValue';
+import { LinkValue } from '../components/LinkValue';
 import {
   Building2,
   Edit2,

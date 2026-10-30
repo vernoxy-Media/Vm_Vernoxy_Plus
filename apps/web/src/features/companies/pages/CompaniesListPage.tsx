@@ -5,11 +5,11 @@ import {
   useCompaniesQuery,
   useDeleteCompanyMutation,
 } from '../api/companies.api';
-import { useCustomerTypeOptionsQuery, useIndustryOptionsQuery } from '../../../hooks/use-master-data';
-import { useEmployeesQuery } from '../../../hooks/use-organization';
-import { useAuthenticatedDownload } from '../../../hooks/use-authenticated-download';
-import { DependentSelect } from '../../../components/DependentSelect';
-import { LinkValue } from '../../../components/LinkValue';
+import { useCustomerTypeOptionsQuery, useIndustryOptionsQuery } from '@/features/organization/hooks/use-master-data';
+import { useEmployeesQuery } from '@/features/organization/hooks/use-organization';
+import { useAuthenticatedDownload } from '@/shared/hooks/use-authenticated-download';
+import { DependentSelect } from '../components/DependentSelect';
+import { LinkValue } from '../components/LinkValue';
 import { CompanyCard } from '../components/CompanyCard';
 import {
   Building2,

@@ -32,8 +32,8 @@ import {
   RotateCcw,
   Search,
 } from 'lucide-react';
-import { useAuth } from '../../../context/AuthContext';
-import { useSocket } from '../../../core/socket/SocketContext';
+import { useAuth } from '@/features/auth/context/AuthContext';
+import { useSocket } from '@/shared/socket/SocketContext';
 import {
   fetchProjectDetail,
   updateProject,

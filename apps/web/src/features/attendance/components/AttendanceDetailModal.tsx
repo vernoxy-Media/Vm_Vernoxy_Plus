@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
 import { X } from 'lucide-react';
-import { useAuth } from '../../../context/AuthContext';
+import { useAuth } from '@/features/auth/context/AuthContext';
 import { useDayDetail } from '../hooks/use-attendance';
 import type { DayRecord } from '../types/attendance.types';
 import {

@@ -18,9 +18,9 @@ import {
 } from 'lucide-react';
 import { TaskBoardCardDto } from '@vernoxy-pulse/api-client';
 import type { TaskPriority, TaskStage } from '../types';
-import { AvatarStack } from '../../../components/AvatarStack';
-import { formatMinutesToHuman } from '../../../components/DurationField';
-import { formatDisplayDate } from '../../../utils/date.utils';
+import { AvatarStack } from './AvatarStack';
+import { formatMinutesToHuman } from './DurationField';
+import { formatDisplayDate } from '@/shared/utils/date.utils';
 
 export interface TaskCardProps {
   task: TaskBoardCardDto;

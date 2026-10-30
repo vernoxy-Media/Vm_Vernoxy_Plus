@@ -1,7 +1,7 @@
 import React from 'react';
 import { UseFormReturn, useFieldArray } from 'react-hook-form';
 import { CompanyFormData } from '../schemas/company-form.schema';
-import { RepeaterSection } from '../../../components/RepeaterSection';
+import { RepeaterSection } from './RepeaterSection';
 import { Radio } from 'lucide-react';
 
 export interface CompanyChannelsSectionProps {

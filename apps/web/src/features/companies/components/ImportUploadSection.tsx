@@ -1,6 +1,6 @@
 import React from 'react';
 import { Play, Loader2 } from 'lucide-react';
-import { FileDropzone } from '../../../components/FileDropzone';
+import { FileDropzone } from '@/features/data-transfer/components/FileDropzone';
 
 export interface ImportUploadSectionProps {
   file: File | null;

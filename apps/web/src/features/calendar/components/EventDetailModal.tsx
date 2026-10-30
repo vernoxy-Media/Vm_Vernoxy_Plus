@@ -14,7 +14,7 @@ import {
   MapPin,
 } from 'lucide-react';
 import type { CalendarEvent } from '../types';
-import { useAuth } from '../../../context/AuthContext';
+import { useAuth } from '@/features/auth/context/AuthContext';
 
 interface EventDetailModalProps {
   event: CalendarEvent | null;

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { CompanyListItemDto } from '@vernoxy-pulse/api-client';
-import { LinkValue } from '../../../components/LinkValue';
+import { LinkValue } from './LinkValue';
 import { Users, Eye, Edit2, Trash2 } from 'lucide-react';
 
 export interface CompanyCardProps {

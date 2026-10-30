@@ -1,7 +1,7 @@
 import React from 'react';
 import { CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
-import { ImportSummary } from '../../../components/ImportSummary';
-import { IssueTable } from '../../../components/IssueTable';
+import { ImportSummary } from '@/features/data-transfer/components/ImportSummary';
+import { IssueTable } from '@/features/data-transfer/components/IssueTable';
 
 export interface ImportReviewSectionProps {
   previewResult: any;

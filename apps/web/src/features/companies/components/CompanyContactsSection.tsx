@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { UseFormReturn, useFieldArray } from 'react-hook-form';
 import { CompanyFormData } from '../schemas/company-form.schema';
-import { useLookupsQuery } from '../../../hooks/use-master-data';
+import { useLookupsQuery } from '@/features/organization/hooks/use-master-data';
 import { usePersonsLookupQuery } from '../api/companies.api';
-import { RepeaterSection } from '../../../components/RepeaterSection';
+import { RepeaterSection } from './RepeaterSection';
 import { CompanyContactRow } from './CompanyContactRow';
 import { Users } from 'lucide-react';
 

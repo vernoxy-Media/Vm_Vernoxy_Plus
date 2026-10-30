@@ -6,11 +6,11 @@ import {
   customFetch,
 } from '@vernoxy-pulse/api-client';
 import type { TaskPriority } from '../types';
-import { DurationField, formatMinutesToHuman } from '../../../components/DurationField';
+import { DurationField, formatMinutesToHuman } from './DurationField';
 import {
   MultiEmployeeSelect,
   AssignableEmployee,
-} from '../../../components/MultiEmployeeSelect';
+} from '@/shared/ui/MultiEmployeeSelect';
 
 export interface TaskFormModalProps {
   isOpen: boolean;
