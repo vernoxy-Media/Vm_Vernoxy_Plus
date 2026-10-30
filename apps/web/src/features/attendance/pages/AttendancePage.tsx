@@ -66,7 +66,7 @@ export const AttendancePage: React.FC = () => {
     try {
       await action();
     } catch (err: any) {
-      if (err?.status !== 409) setActionError(err.message || fallbackError);
+      if (err?.status !== 409) setActionError(err?.detail || err?.message || fallbackError);
     }
   };
 

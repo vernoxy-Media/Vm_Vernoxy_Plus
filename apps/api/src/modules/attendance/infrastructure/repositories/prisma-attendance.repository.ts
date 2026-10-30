@@ -980,7 +980,17 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
       let brkMinutes = r.break_minutes || 0;
       let dayStatus = r.day_status || null;
 
-      if (r.check_in_at) {
+      if (r.day_status === 'leave') {
+        state = 'leave';
+        dayStatus = 'leave';
+        prodMinutes = 0;
+        brkMinutes = 0;
+      } else if (r.day_status === 'absent') {
+        state = 'absent';
+        dayStatus = 'absent';
+        prodMinutes = 0;
+        brkMinutes = 0;
+      } else if (r.check_in_at) {
         if (r.check_out_at) {
           state = determineDayStatus(new Date(r.check_out_at), prodMinutes, fullDayMins, halfDayMins);
           dayStatus = state;

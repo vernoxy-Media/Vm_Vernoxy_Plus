@@ -1028,7 +1028,7 @@ export class LeaveService {
         INSERT INTO attendance_days (
           emp_id, work_date, check_in_at, day_status, leave_request_id, leave_half
         ) VALUES (
-          ${req.emp_id}, ${dateStr}::date, clock_timestamp(), 'leave', ${requestId},
+          ${req.emp_id}, ${dateStr}::date, (${dateStr}::date + interval '9 hours'), 'leave', ${requestId},
           ${req.duration === 'FULL_DAY' ? null : req.duration}
         )
         ON CONFLICT (emp_id, work_date) WHERE deleted_at IS NULL
@@ -1139,11 +1139,26 @@ export class LeaveService {
         );
       `;
 
-      // Remove 'leave' status from attendance
+      // Remove 'leave' status from attendance:
+      // For today and future days: soft-delete the placeholder attendance record so employee can punch in normally
+      // For past days: mark as 'absent' since the date has already passed
       await this.prisma.$executeRaw`
         UPDATE attendance_days
-        SET day_status = 'absent', leave_request_id = NULL, leave_half = NULL, updated_at = clock_timestamp()
-        WHERE leave_request_id = ${requestId};
+        SET deleted_at = clock_timestamp(),
+            deleted_by = ${adminId},
+            updated_at = clock_timestamp()
+        WHERE leave_request_id = ${requestId}
+          AND work_date >= CURRENT_DATE;
+      `;
+
+      await this.prisma.$executeRaw`
+        UPDATE attendance_days
+        SET day_status = 'absent',
+            leave_request_id = NULL,
+            leave_half = NULL,
+            updated_at = clock_timestamp()
+        WHERE leave_request_id = ${requestId}
+          AND work_date < CURRENT_DATE;
       `;
 
       await this.prisma.$executeRaw`
@@ -1216,11 +1231,26 @@ export class LeaveService {
       );
     `;
 
-    // Revert attendance
+    // Revert attendance:
+    // For today and future days: soft-delete the placeholder attendance record so employee can punch in normally
+    // For past days: mark as 'absent' since the date has already passed
     await this.prisma.$executeRaw`
       UPDATE attendance_days
-      SET day_status = 'absent', leave_request_id = NULL, leave_half = NULL, updated_at = clock_timestamp()
-      WHERE leave_request_id = ${requestId};
+      SET deleted_at = clock_timestamp(),
+          deleted_by = ${adminId},
+          updated_at = clock_timestamp()
+      WHERE leave_request_id = ${requestId}
+        AND work_date >= CURRENT_DATE;
+    `;
+
+    await this.prisma.$executeRaw`
+      UPDATE attendance_days
+      SET day_status = 'absent',
+          leave_request_id = NULL,
+          leave_half = NULL,
+          updated_at = clock_timestamp()
+      WHERE leave_request_id = ${requestId}
+        AND work_date < CURRENT_DATE;
     `;
 
     await this.prisma.$executeRaw`
@@ -1293,7 +1323,7 @@ export class LeaveService {
         INSERT INTO attendance_days (
           emp_id, work_date, check_in_at, day_status, leave_request_id, leave_half
         ) VALUES (
-          ${dto.emp_id}, ${dateStr}::date, clock_timestamp(), 'leave', ${created.request_id},
+          ${dto.emp_id}, ${dateStr}::date, (${dateStr}::date + interval '9 hours'), 'leave', ${created.request_id},
           ${dto.duration === 'FULL_DAY' ? null : dto.duration}
         )
         ON CONFLICT (emp_id, work_date) WHERE deleted_at IS NULL

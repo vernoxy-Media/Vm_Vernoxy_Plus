@@ -29,6 +29,7 @@ import {
   UserPlus,
   Receipt,
   AlertCircle,
+  Laptop,
   LucideIcon,
 } from 'lucide-react';
 import type { MeResponseDto } from '@vernoxy-pulse/api-client';
@@ -89,6 +90,9 @@ const SettingsExpenseSettingsSection = React.lazy(() =>
 );
 const SettingsComplaintSettingsSection = React.lazy(() =>
   import('./SettingsComplaintSettingsSection').then((m) => ({ default: m.SettingsComplaintSettingsSection }))
+);
+const SettingsLicenseSection = React.lazy(() =>
+  import('./SettingsLicenseSection').then((m) => ({ default: m.SettingsLicenseSection }))
 );
 const SettingsEmploymentTypesSection = React.lazy(() =>
   import('./SettingsEmploymentTypesSection').then((m) => ({ default: m.SettingsEmploymentTypesSection }))
@@ -344,6 +348,15 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     path: '/admin/settings/complaint-settings',
     icon: AlertCircle,
     component: SettingsComplaintSettingsSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'HR',
+  },
+  {
+    id: 'license-settings',
+    label: 'License Settings',
+    path: '/admin/settings/license-settings',
+    icon: Laptop,
+    component: SettingsLicenseSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
     group: 'HR',
   },

@@ -18,6 +18,7 @@ import {
   CalendarOff,
   Receipt,
   AlertCircle,
+  Laptop,
 } from 'lucide-react';
 
 export interface SidebarProps {
@@ -46,6 +47,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { name: 'Leave', path: '/leave', icon: CalendarOff },
     { name: 'Expenses', path: '/expense', icon: Receipt },
     { name: 'Complaints', path: '/complaints', icon: AlertCircle },
+    { name: 'Licenses', path: '/licenses', icon: Laptop },
     { name: 'Calendar', path: '/calendar', icon: Calendar },
     ...(user.access?.can_manage_companies
       ? [{ name: 'Companies', path: '/companies', icon: Building2 }]
@@ -112,6 +114,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 ? location.pathname.startsWith('/my-tasks') || location.pathname.startsWith('/admin/tasks')
                 : item.path === '/complaints'
                 ? location.pathname.startsWith('/complaints') || location.pathname.startsWith('/admin/complaint')
+                : item.path === '/licenses'
+                ? location.pathname.startsWith('/licenses') || location.pathname.startsWith('/my-software')
                 : location.pathname.startsWith(item.path);
 
             return (

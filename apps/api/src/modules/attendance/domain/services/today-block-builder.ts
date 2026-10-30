@@ -55,7 +55,8 @@ export function buildTodayBlock(params: TodayBlockParams): TodayAttendanceBlock 
   const timezone = params.timezone || 'Asia/Kolkata';
   const workDate = params.attendanceDay?.workDate || formatWorkDate(params.now, timezone);
 
-  const isFullDayLeave = params.leave?.part === 'full';
+  const isLeaveDayStatus = params.attendanceDay?.dayStatus === 'leave';
+  const isFullDayLeave = params.leave?.part === 'full' || isLeaveDayStatus;
   const isHalfDayLeave = params.leave?.part === 'half';
   const isHoliday = !!params.isHoliday;
   const isWeeklyOff = params.isWeeklyOff !== undefined
@@ -63,7 +64,7 @@ export function buildTodayBlock(params: TodayBlockParams): TodayAttendanceBlock 
     : new Date(workDate).getUTCDay() === 0 || new Date(workDate).getUTCDay() === 6;
 
   const state = evaluateTodayState({
-    checkInAt: params.attendanceDay?.checkInAt || null,
+    checkInAt: isFullDayLeave ? null : (params.attendanceDay?.checkInAt || null),
     checkOutAt: params.attendanceDay?.checkOutAt || null,
     activeBreakStartedAt: params.openBreak?.startedAt || null,
     isFullDayLeave,
@@ -75,7 +76,7 @@ export function buildTodayBlock(params: TodayBlockParams): TodayAttendanceBlock 
   const targetMinutes = calculateDailyTargetMinutes({
     isWeeklyOff,
     isHoliday,
-    leaveType: params.leave?.part || null,
+    leaveType: params.leave?.part || (isLeaveDayStatus ? 'full' : null),
     fullDayMinutes: params.fullDayMinutes ?? DEFAULT_FULL_DAY_MINUTES,
     halfDayMinutes: params.halfDayMinutes ?? DEFAULT_HALF_DAY_MINUTES,
   });
@@ -84,7 +85,7 @@ export function buildTodayBlock(params: TodayBlockParams): TodayAttendanceBlock 
   let breakMinutes = 0;
   let productionMinutes: number | null = null;
 
-  if (params.attendanceDay) {
+  if (params.attendanceDay && !isFullDayLeave) {
     if (params.attendanceDay.checkOutAt) {
       productionMinutes = params.attendanceDay.productionMinutes;
       workedMinutes = params.attendanceDay.productionMinutes;
@@ -107,7 +108,7 @@ export function buildTodayBlock(params: TodayBlockParams): TodayAttendanceBlock 
     reason?: string | null;
   }> = [];
 
-  if (params.attendanceDay?.checkInAt) {
+  if (params.attendanceDay?.checkInAt && !isFullDayLeave) {
     events.push({
       type: 'punch_in',
       at: params.attendanceDay.checkInAt.toISOString(),
@@ -148,7 +149,7 @@ export function buildTodayBlock(params: TodayBlockParams): TodayAttendanceBlock 
     flags: {
       worked_on_non_working_day: params.attendanceDay?.workedOnNonWorkingDay || false,
     },
-    check_in_at: params.attendanceDay?.checkInAt ? params.attendanceDay.checkInAt.toISOString() : null,
+    check_in_at: (params.attendanceDay?.checkInAt && !isFullDayLeave) ? params.attendanceDay.checkInAt.toISOString() : null,
     check_out_at: params.attendanceDay?.checkOutAt ? params.attendanceDay.checkOutAt.toISOString() : null,
     current_break_started_at: params.openBreak?.startedAt ? params.openBreak.startedAt.toISOString() : null,
     current_break_type: params.openBreak?.breakType || null,
@@ -158,7 +159,9 @@ export function buildTodayBlock(params: TodayBlockParams): TodayAttendanceBlock 
     target_minutes: targetMinutes,
     production_minutes: productionMinutes,
     events,
-    leave: params.leave ? { type_name: params.leave.typeName, part: params.leave.part } : null,
+    leave: params.leave
+      ? { type_name: params.leave.typeName, part: params.leave.part }
+      : (isLeaveDayStatus ? { type_name: 'Approved Leave', part: 'full' } : null),
     holiday_name: params.holidayName || null,
   };
 }

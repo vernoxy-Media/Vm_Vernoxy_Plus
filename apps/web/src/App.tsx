@@ -26,6 +26,7 @@ import { EmployeeSalarySheetPage } from './pages/admin/payroll/EmployeeSalaryShe
 import { LeavePage } from './pages/leave/LeavePage';
 import { ExpensesPage } from './pages/expense/ExpensesPage';
 import { ComplaintsPage } from './pages/complaint/ComplaintsPage';
+import { SoftwareLicensesPage } from './pages/license/SoftwareLicensesPage';
 import { CompanyRoute } from './features/companies/components/CompanyRoute';
 import { CompaniesListPage } from './features/companies/pages/CompaniesListPage';
 import { CompanyFormPage } from './features/companies/pages/CompanyFormPage';
@@ -128,6 +129,36 @@ export const App: React.FC = () => {
               path="/complaint"
               element={<Navigate to="/complaints" replace />}
             />
+
+            {/* Software License Management Module (Unified Hub) */}
+            <Route
+              path="/licenses"
+              element={
+                <ProtectedRoute>
+                  <AppLayout fluid>
+                    <SoftwareLicensesPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/licenses/:id"
+              element={
+                <ProtectedRoute>
+                  <AppLayout fluid>
+                    <SoftwareLicensesPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/my-software"
+              element={<Navigate to="/licenses?tab=my" replace />}
+            />
+            <Route
+              path="/admin/licenses"
+              element={<Navigate to="/licenses" replace />}
+            />
             <Route
               path="/attendance/calendar"
               element={<Navigate to="/calendar" replace />}
@@ -203,6 +234,10 @@ export const App: React.FC = () => {
             <Route
               path="/admin/settings/attendance"
               element={<Navigate to="/admin/attendance-settings" replace />}
+            />
+            <Route
+              path="/admin/settings/licenses"
+              element={<Navigate to="/admin/settings/license-settings" replace />}
             />
 
             {/* Backward-compatibility redirects for old URLs */}

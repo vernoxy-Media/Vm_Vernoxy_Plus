@@ -30,6 +30,9 @@ export interface DayContext {
  * Pure state evaluator for today
  */
 export function evaluateTodayState(ctx: DayContext): TodayAttendanceState {
+  if (ctx.isFullDayLeave) {
+    return 'on_leave';
+  }
   if (ctx.checkOutAt) {
     return 'done';
   }
@@ -41,9 +44,6 @@ export function evaluateTodayState(ctx: DayContext): TodayAttendanceState {
   }
 
   // Not yet punched in
-  if (ctx.isFullDayLeave) {
-    return 'on_leave';
-  }
   if (ctx.isHoliday) {
     return 'holiday';
   }

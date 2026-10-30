@@ -23,6 +23,7 @@ import { LeaveModule } from './modules/leave/leave.module';
 import { ExpenseModule } from './modules/expense/expense.module';
 import { AttachmentsModule } from './modules/attachments/attachments.module';
 import { ComplaintModule } from './modules/complaint/complaint.module';
+import { LicenseModule } from './modules/license/license.module';
 
 @Module({
 
@@ -52,6 +53,7 @@ import { ComplaintModule } from './modules/complaint/complaint.module';
     ExpenseModule,
     AttachmentsModule,
     ComplaintModule,
+    LicenseModule,
   ],
   controllers: [HealthController],
   providers: [

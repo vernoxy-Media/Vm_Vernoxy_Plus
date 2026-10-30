@@ -6,7 +6,7 @@ export interface AttendanceDayEntity {
   checkOutAt: Date | null;
   breakMinutes: number;
   productionMinutes: number;
-  dayStatus: 'present' | 'half_day' | 'short' | 'incomplete';
+  dayStatus: 'present' | 'half_day' | 'short' | 'incomplete' | 'leave' | 'absent' | 'holiday' | 'weekly_off';
   source: 'web' | 'correction' | 'admin';
   workedOnNonWorkingDay: boolean;
   note?: string | null;
