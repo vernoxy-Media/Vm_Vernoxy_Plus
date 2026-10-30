@@ -2,7 +2,7 @@ import * as dotenv from 'dotenv';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Client } from 'pg';
-import { assertTestEnvironment } from '../database/utils/env-guard';
+import { assertTestEnvironment } from '../../database/utils/env-guard';
 
 const envConfig = dotenv.parse(fs.readFileSync('.env.test'));
 const directUrl = envConfig.DIRECT_URL || envConfig.DATABASE_URL;
