@@ -73,6 +73,7 @@ model companies {
   crm_communications                               crm_communications[]
   crm_follow_ups                                   crm_follow_ups[]
   crm_lead_notes                                   crm_lead_notes[]
+  kb_feedback                                      kb_feedback[]
   leads                                            leads[]
 }
 
@@ -341,6 +342,23 @@ model employees {
   industries_industries_created_byToemployees                                                industries[]                      @relation("industries_created_byToemployees")
   industries_industries_deleted_byToemployees                                                industries[]                      @relation("industries_deleted_byToemployees")
   industries_industries_updated_byToemployees                                                industries[]                      @relation("industries_updated_byToemployees")
+  kb_acknowledgements                                                                        kb_acknowledgements[]
+  kb_article_versions_kb_article_versions_created_byToemployees                              kb_article_versions[]             @relation("kb_article_versions_created_byToemployees")
+  kb_article_versions_kb_article_versions_decided_byToemployees                              kb_article_versions[]             @relation("kb_article_versions_decided_byToemployees")
+  kb_article_versions_kb_article_versions_published_byToemployees                            kb_article_versions[]             @relation("kb_article_versions_published_byToemployees")
+  kb_article_versions_kb_article_versions_submitted_byToemployees                            kb_article_versions[]             @relation("kb_article_versions_submitted_byToemployees")
+  kb_article_versions_kb_article_versions_updated_byToemployees                              kb_article_versions[]             @relation("kb_article_versions_updated_byToemployees")
+  kb_articles_kb_articles_archived_byToemployees                                             kb_articles[]                     @relation("kb_articles_archived_byToemployees")
+  kb_articles_kb_articles_created_byToemployees                                              kb_articles[]                     @relation("kb_articles_created_byToemployees")
+  kb_articles_kb_articles_deleted_byToemployees                                              kb_articles[]                     @relation("kb_articles_deleted_byToemployees")
+  kb_articles_kb_articles_last_reviewed_byToemployees                                        kb_articles[]                     @relation("kb_articles_last_reviewed_byToemployees")
+  kb_articles_kb_articles_owner_emp_idToemployees                                            kb_articles[]                     @relation("kb_articles_owner_emp_idToemployees")
+  kb_articles_kb_articles_updated_byToemployees                                              kb_articles[]                     @relation("kb_articles_updated_byToemployees")
+  kb_categories_kb_categories_created_byToemployees                                          kb_categories[]                   @relation("kb_categories_created_byToemployees")
+  kb_categories_kb_categories_default_approver_idToemployees                                 kb_categories[]                   @relation("kb_categories_default_approver_idToemployees")
+  kb_categories_kb_categories_default_owner_idToemployees                                    kb_categories[]                   @relation("kb_categories_default_owner_idToemployees")
+  kb_categories_kb_categories_updated_byToemployees                                          kb_categories[]                   @relation("kb_categories_updated_byToemployees")
+  kb_feedback                                                                                kb_feedback[]
   leads_leads_created_byToemployees                                                          leads[]                           @relation("leads_created_byToemployees")
   leads_leads_deleted_byToemployees                                                          leads[]                           @relation("leads_deleted_byToemployees")
   leads_leads_owner_idToemployees                                                            leads[]                           @relation("leads_owner_idToemployees")
@@ -1259,6 +1277,7 @@ model projects {
   deleted_at                                       DateTime?             @db.Timestamptz(6)
   deleted_by                                       Int?
   complaints                                       complaints[]
+  kb_feedback                                      kb_feedback[]
   project_bugs                                     project_bugs[]
   project_credentials                              project_credentials[]
   project_deployments                              project_deployments?
@@ -2438,6 +2457,173 @@ model settings_change_log {
   employees   employees @relation(fields: [changed_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([module, changed_at(sort: Desc)], map: "ix_settings_change_log_module_date")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model kb_acknowledgements {
+  ack_id                Int                 @id @default(autoincrement())
+  article_id            Int
+  version_id            Int
+  emp_id                Int
+  status                String              @default("PENDING") @db.VarChar(20)
+  due_date              DateTime            @db.Date
+  acknowledged_at       DateTime?           @db.Timestamptz(6)
+  reminders_sent_count  Int                 @default(0)
+  last_reminder_sent_at DateTime?           @db.Timestamptz(6)
+  created_at            DateTime            @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  kb_articles           kb_articles         @relation(fields: [article_id], references: [article_id], onDelete: Cascade, onUpdate: NoAction)
+  employees             employees           @relation(fields: [emp_id], references: [emp_id], onDelete: Cascade, onUpdate: NoAction)
+  kb_article_versions   kb_article_versions @relation(fields: [version_id], references: [version_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([version_id, emp_id], map: "ux_kb_ack_version_emp")
+  @@index([emp_id, status], map: "ix_kb_ack_emp_status")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model kb_article_versions {
+  version_id                                                                Int                   @id @default(autoincrement())
+  article_id                                                                Int
+  version_number                                                            Int
+  status                                                                    String                @default("DRAFT") @db.VarChar(20)
+  change_type                                                               String?               @db.VarChar(10)
+  change_summary                                                            String?
+  title                                                                     String                @db.VarChar(120)
+  summary                                                                   String                @db.VarChar(300)
+  content                                                                   String?
+  video_url                                                                 String?               @db.VarChar(500)
+  effective_from                                                            DateTime?             @db.Date
+  tags                                                                      String[]              @default([])
+  related_article_ids                                                       Int[]                 @default([])
+  submitted_at                                                              DateTime?             @db.Timestamptz(6)
+  submitted_by                                                              Int?
+  decided_at                                                                DateTime?             @db.Timestamptz(6)
+  decided_by                                                                Int?
+  decision_comment                                                          String?
+  is_self_approved                                                          Boolean               @default(false)
+  published_at                                                              DateTime?             @db.Timestamptz(6)
+  published_by                                                              Int?
+  created_at                                                                DateTime              @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  created_by                                                                Int?
+  updated_at                                                                DateTime?             @db.Timestamptz(6)
+  updated_by                                                                Int?
+  kb_acknowledgements                                                       kb_acknowledgements[]
+  kb_articles_kb_article_versions_article_idTokb_articles                   kb_articles           @relation("kb_article_versions_article_idTokb_articles", fields: [article_id], references: [article_id], onDelete: Cascade, onUpdate: NoAction)
+  employees_kb_article_versions_created_byToemployees                       employees?            @relation("kb_article_versions_created_byToemployees", fields: [created_by], references: [emp_id], onUpdate: NoAction)
+  employees_kb_article_versions_decided_byToemployees                       employees?            @relation("kb_article_versions_decided_byToemployees", fields: [decided_by], references: [emp_id], onUpdate: NoAction)
+  employees_kb_article_versions_published_byToemployees                     employees?            @relation("kb_article_versions_published_byToemployees", fields: [published_by], references: [emp_id], onUpdate: NoAction)
+  employees_kb_article_versions_submitted_byToemployees                     employees?            @relation("kb_article_versions_submitted_byToemployees", fields: [submitted_by], references: [emp_id], onUpdate: NoAction)
+  employees_kb_article_versions_updated_byToemployees                       employees?            @relation("kb_article_versions_updated_byToemployees", fields: [updated_by], references: [emp_id], onUpdate: NoAction)
+  kb_articles_kb_articles_current_published_version_idTokb_article_versions kb_articles[]         @relation("kb_articles_current_published_version_idTokb_article_versions")
+  kb_feedback                                                               kb_feedback[]
+
+  @@unique([article_id, version_number], map: "ux_kb_article_versions_article_num")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model kb_articles {
+  article_id                                                                        Int                   @id @default(autoincrement())
+  article_code                                                                      String                @unique @db.VarChar(20)
+  space                                                                             String                @db.VarChar(20)
+  category_id                                                                       Int
+  current_published_version_id                                                      Int?
+  owner_emp_id                                                                      Int
+  content_type                                                                      String                @default("WRITTEN") @db.VarChar(20)
+  review_cycle_months                                                               Int?
+  next_review_date                                                                  DateTime?             @db.Date
+  last_reviewed_at                                                                  DateTime?             @db.Timestamptz(6)
+  last_reviewed_by                                                                  Int?
+  review_notes                                                                      String?
+  ack_required                                                                      Boolean               @default(false)
+  ack_due_days                                                                      Int                   @default(7)
+  audience_scope                                                                    String                @default("ALL") @db.VarChar(20)
+  audience_departments                                                              Int[]                 @default([])
+  audience_roles                                                                    Int[]                 @default([])
+  audience_employees                                                                Int[]                 @default([])
+  audience_companies                                                                Int[]                 @default([])
+  audience_projects                                                                 Int[]                 @default([])
+  is_restricted                                                                     Boolean               @default(false)
+  is_pinned                                                                         Boolean               @default(false)
+  is_archived                                                                       Boolean               @default(false)
+  archived_at                                                                       DateTime?             @db.Timestamptz(6)
+  archived_by                                                                       Int?
+  archive_reason                                                                    String?
+  replacement_article_id                                                            Int?
+  views_count                                                                       Int                   @default(0)
+  downloads_count                                                                   Int                   @default(0)
+  requests_deflected_count                                                          Int                   @default(0)
+  created_at                                                                        DateTime              @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  created_by                                                                        Int
+  updated_at                                                                        DateTime?             @db.Timestamptz(6)
+  updated_by                                                                        Int?
+  deleted_at                                                                        DateTime?             @db.Timestamptz(6)
+  deleted_by                                                                        Int?
+  kb_acknowledgements                                                               kb_acknowledgements[]
+  kb_article_versions_kb_article_versions_article_idTokb_articles                   kb_article_versions[] @relation("kb_article_versions_article_idTokb_articles")
+  kb_article_versions_kb_articles_current_published_version_idTokb_article_versions kb_article_versions?  @relation("kb_articles_current_published_version_idTokb_article_versions", fields: [current_published_version_id], references: [version_id], onUpdate: NoAction, map: "fk_kb_articles_published_version")
+  employees_kb_articles_archived_byToemployees                                      employees?            @relation("kb_articles_archived_byToemployees", fields: [archived_by], references: [emp_id], onUpdate: NoAction)
+  kb_categories                                                                     kb_categories         @relation(fields: [category_id], references: [category_id], onUpdate: NoAction)
+  employees_kb_articles_created_byToemployees                                       employees             @relation("kb_articles_created_byToemployees", fields: [created_by], references: [emp_id], onUpdate: NoAction)
+  employees_kb_articles_deleted_byToemployees                                       employees?            @relation("kb_articles_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onUpdate: NoAction)
+  employees_kb_articles_last_reviewed_byToemployees                                 employees?            @relation("kb_articles_last_reviewed_byToemployees", fields: [last_reviewed_by], references: [emp_id], onUpdate: NoAction)
+  employees_kb_articles_owner_emp_idToemployees                                     employees             @relation("kb_articles_owner_emp_idToemployees", fields: [owner_emp_id], references: [emp_id], onUpdate: NoAction)
+  kb_articles                                                                       kb_articles?          @relation("kb_articlesTokb_articles", fields: [replacement_article_id], references: [article_id], onUpdate: NoAction)
+  other_kb_articles                                                                 kb_articles[]         @relation("kb_articlesTokb_articles")
+  employees_kb_articles_updated_byToemployees                                       employees?            @relation("kb_articles_updated_byToemployees", fields: [updated_by], references: [emp_id], onUpdate: NoAction)
+  kb_feedback                                                                       kb_feedback[]
+
+  @@index([owner_emp_id], map: "ix_kb_articles_owner")
+  @@index([next_review_date], map: "ix_kb_articles_review")
+  @@index([space, category_id], map: "ix_kb_articles_space_cat")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model kb_categories {
+  category_id                                            Int           @id @default(autoincrement())
+  space                                                  String        @db.VarChar(20)
+  name                                                   String        @db.VarChar(100)
+  description                                            String?       @db.VarChar(300)
+  icon                                                   String?       @db.VarChar(50)
+  default_owner_id                                       Int?
+  default_approver_id                                    Int?
+  default_review_cycle_months                            Int?
+  default_ack_required                                   Boolean       @default(false)
+  default_audience_scope                                 String        @default("ALL") @db.VarChar(20)
+  default_audience_departments                           Int[]         @default([])
+  default_audience_roles                                 Int[]         @default([])
+  default_audience_employees                             Int[]         @default([])
+  default_audience_companies                             Int[]         @default([])
+  default_audience_projects                              Int[]         @default([])
+  display_order                                          Int           @default(0)
+  is_active                                              Boolean       @default(true)
+  created_at                                             DateTime      @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  created_by                                             Int?
+  updated_at                                             DateTime?     @db.Timestamptz(6)
+  updated_by                                             Int?
+  kb_articles                                            kb_articles[]
+  employees_kb_categories_created_byToemployees          employees?    @relation("kb_categories_created_byToemployees", fields: [created_by], references: [emp_id], onUpdate: NoAction)
+  employees_kb_categories_default_approver_idToemployees employees?    @relation("kb_categories_default_approver_idToemployees", fields: [default_approver_id], references: [emp_id], onUpdate: NoAction)
+  employees_kb_categories_default_owner_idToemployees    employees?    @relation("kb_categories_default_owner_idToemployees", fields: [default_owner_id], references: [emp_id], onUpdate: NoAction)
+  employees_kb_categories_updated_byToemployees          employees?    @relation("kb_categories_updated_byToemployees", fields: [updated_by], references: [emp_id], onUpdate: NoAction)
+}
+
+model kb_feedback {
+  feedback_id         Int                 @id @default(autoincrement())
+  article_id          Int
+  version_id          Int
+  is_helpful          Boolean
+  comment             String?
+  emp_id              Int?
+  company_id          Int?
+  project_id          Int?
+  created_at          DateTime            @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  kb_articles         kb_articles         @relation(fields: [article_id], references: [article_id], onDelete: Cascade, onUpdate: NoAction)
+  companies           companies?          @relation(fields: [company_id], references: [company_id], onUpdate: NoAction)
+  employees           employees?          @relation(fields: [emp_id], references: [emp_id], onUpdate: NoAction)
+  projects            projects?           @relation(fields: [project_id], references: [project_id], onUpdate: NoAction)
+  kb_article_versions kb_article_versions @relation(fields: [version_id], references: [version_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([article_id, version_id], map: "ix_kb_feedback_article")
 }
 
 enum channel_type {

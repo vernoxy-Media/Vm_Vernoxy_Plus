@@ -27,6 +27,9 @@ import { LeavePage } from './pages/leave/LeavePage';
 import { ExpensesPage } from './pages/expense/ExpensesPage';
 import { ComplaintsPage } from './pages/complaint/ComplaintsPage';
 import { SoftwareLicensesPage } from './pages/license/SoftwareLicensesPage';
+import { KnowledgeBasePage } from './pages/knowledge-base/KnowledgeBasePage';
+import { ArticleDetailPage } from './pages/knowledge-base/ArticleDetailPage';
+import { ArticleEditorPage } from './pages/knowledge-base/ArticleEditorPage';
 import { CompanyRoute } from './features/companies/components/CompanyRoute';
 import { CompaniesListPage } from './features/companies/pages/CompaniesListPage';
 import { CompanyFormPage } from './features/companies/pages/CompanyFormPage';
@@ -159,6 +162,42 @@ export const App: React.FC = () => {
               path="/admin/licenses"
               element={<Navigate to="/licenses" replace />}
             />
+
+            {/* Knowledge Base Module (Unified Hub) */}
+            <Route
+              path="/knowledge-base"
+              element={
+                <ProtectedRoute>
+                  <AppLayout fluid>
+                    <KnowledgeBasePage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/knowledge-base/new"
+              element={
+                <ProtectedRoute>
+                  <ArticleEditorPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/knowledge-base/articles/:identifier"
+              element={
+                <ProtectedRoute>
+                  <ArticleDetailPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/knowledge-base/articles/:identifier/edit"
+              element={
+                <ProtectedRoute>
+                  <ArticleEditorPage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/attendance/calendar"
               element={<Navigate to="/calendar" replace />}
@@ -212,6 +251,10 @@ export const App: React.FC = () => {
             <Route
               path="/admin/settings"
               element={<Navigate to="/admin/settings/departments" replace />}
+            />
+            <Route
+              path="/admin/settings/knowledge-base"
+              element={<Navigate to="/admin/settings/knowledge-base-categories" replace />}
             />
             <Route
               path="/admin/settings/:sectionId"

@@ -19,6 +19,7 @@ import {
   Receipt,
   AlertCircle,
   Laptop,
+  BookOpen,
 } from 'lucide-react';
 
 export interface SidebarProps {
@@ -48,6 +49,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { name: 'Expenses', path: '/expense', icon: Receipt },
     { name: 'Complaints', path: '/complaints', icon: AlertCircle },
     { name: 'Licenses', path: '/licenses', icon: Laptop },
+    { name: 'Knowledge Base', path: '/knowledge-base', icon: BookOpen },
     { name: 'Calendar', path: '/calendar', icon: Calendar },
     ...(user.access?.can_manage_companies
       ? [{ name: 'Companies', path: '/companies', icon: Building2 }]

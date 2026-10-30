@@ -24,6 +24,7 @@ import { ExpenseModule } from './modules/expense/expense.module';
 import { AttachmentsModule } from './modules/attachments/attachments.module';
 import { ComplaintModule } from './modules/complaint/complaint.module';
 import { LicenseModule } from './modules/license/license.module';
+import { KnowledgeBaseModule } from './modules/knowledge-base/knowledge-base.module';
 
 @Module({
 
@@ -54,6 +55,7 @@ import { LicenseModule } from './modules/license/license.module';
     AttachmentsModule,
     ComplaintModule,
     LicenseModule,
+    KnowledgeBaseModule,
   ],
   controllers: [HealthController],
   providers: [
