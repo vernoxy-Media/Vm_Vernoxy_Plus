@@ -18,7 +18,7 @@ import type {
   ProjectStatus,
   ProjectType,
 } from '../types';
-import { useLookupsQuery } from '../../../hooks/use-master-data';
+import { useLookupsQuery } from '@/features/organization/hooks/use-master-data';
 
 const DEFAULT_PROJECT_TYPES = [
   { code: 'client', label: 'Client Project (VM-CL)' },

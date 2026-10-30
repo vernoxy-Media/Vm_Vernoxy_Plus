@@ -17,9 +17,9 @@ import {
 } from 'lucide-react';
 import { TaskBoardCardDto, TaskBoardResultDto, TaskDetailDto, customFetch } from '@vernoxy-pulse/api-client';
 import type { TaskPriority, TaskStage } from '../types';
-import { AvatarStack } from '../../../components/AvatarStack';
-import { Avatar } from '../../../components/Avatar';
-import { formatMinutesToHuman } from '../../../components/DurationField';
+import { AvatarStack } from './AvatarStack';
+import { Avatar } from '@/shared/ui/Avatar';
+import { formatMinutesToHuman } from './DurationField';
 import { StageDecisionDialog } from './StageDecisionDialog';
 import { HoldReasonModal } from './HoldReasonModal';
 

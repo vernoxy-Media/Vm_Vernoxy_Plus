@@ -14,10 +14,10 @@ import {
   Play,
   Loader2,
 } from 'lucide-react';
-import { useAuth } from '../../../context/AuthContext';
+import { useAuth } from '@/features/auth/context/AuthContext';
 import { useDayDetail } from '../hooks/use-attendance';
 import { createRegularizationRequest } from '../api/attendance.api';
-import { useLookupsQuery } from '../../../hooks/use-master-data';
+import { useLookupsQuery } from '@/features/organization/hooks/use-master-data';
 import type { DayRecord, CreateRegularizationPayload } from '../types/attendance.types';
 
 export interface AttendanceInsightDrawerProps {

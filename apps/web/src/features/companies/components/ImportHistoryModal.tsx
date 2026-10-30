@@ -2,7 +2,7 @@ import React from 'react';
 import { X, FileSpreadsheet, Download, Loader2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { customFetch } from '@vernoxy-pulse/api-client';
-import { useAuthenticatedDownload } from '../../../hooks/use-authenticated-download';
+import { useAuthenticatedDownload } from '@/shared/hooks/use-authenticated-download';
 
 export interface ImportHistoryModalProps {
   isOpen: boolean;

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, Settings } from 'lucide-react';
-import { useAuth } from '../../../context/AuthContext';
+import { useAuth } from '@/features/auth/context/AuthContext';
 import { useAttendanceDashboard, usePunchActions, useDayDetail } from '../hooks/use-attendance';
 import { AttendanceCalendarPicker } from '../components/AttendanceCalendarPicker';
 import { AttendanceSkeleton } from '../components/AttendanceSkeleton';

@@ -14,8 +14,8 @@ import {
   Check,
   SlidersHorizontal,
 } from 'lucide-react';
-import { useAuth } from '../../../context/AuthContext';
-import { useLookupsQuery } from '../../../hooks/use-master-data';
+import { useAuth } from '@/features/auth/context/AuthContext';
+import { useLookupsQuery } from '@/features/organization/hooks/use-master-data';
 import {
   useMyTasksControllerGetTaskDetail,
   useMyTasksControllerMoveStage,

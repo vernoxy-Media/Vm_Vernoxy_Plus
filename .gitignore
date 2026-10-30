@@ -18,6 +18,9 @@ out/
 .cache/
 .parcel-cache/
 .eslintcache/
+# api-client: `tsc --build` emits .js/.d.ts next to the .ts sources; only the .ts files are source
+packages/api-client/src/**/*.js
+packages/api-client/src/**/*.d.ts
 /storage/
 storage/
 uploads/
