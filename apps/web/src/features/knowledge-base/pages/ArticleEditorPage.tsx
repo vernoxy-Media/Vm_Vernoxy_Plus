@@ -220,6 +220,7 @@ export const ArticleEditorPage: React.FC = () => {
       }
 
       await submitMutation.mutateAsync({
+        articleId: targetArticleId,
         change_type: changeType,
         change_summary: changeSummary.trim(),
       });
@@ -241,6 +242,7 @@ export const ArticleEditorPage: React.FC = () => {
       }
 
       await directPublishMutation.mutateAsync({
+        articleId: targetArticleId,
         change_type: changeType,
         change_summary: changeSummary.trim() || 'Initial published edition',
         reason: publishReason.trim() || 'Directly published by administrator',

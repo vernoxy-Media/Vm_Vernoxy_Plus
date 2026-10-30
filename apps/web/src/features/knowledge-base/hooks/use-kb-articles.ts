@@ -184,33 +184,48 @@ export function useCreateKbArticleMutation() {
   });
 }
 
-export function useUpdateKbDraftMutation(articleId: number) {
+export function useUpdateKbDraftMutation(articleId?: number) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (payload: any) => {
-        return customFetch<any>(`${API_BASE}/articles/${articleId}/draft`, {
-          method: 'PUT',
-          body: JSON.stringify(payload),
-        });
-  },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['kb-article', articleId] });
+      const id = payload?.articleId ?? articleId;
+      return customFetch<any>(`${API_BASE}/articles/${id}/draft`, {
+        method: 'PUT',
+        body: JSON.stringify(payload?.data ?? payload),
+      });
+    },
+    onSuccess: (_data, variables: any) => {
+      const id = variables?.articleId ?? articleId;
+      if (id) {
+        queryClient.invalidateQueries({ queryKey: ['kb-article', id] });
+      }
       queryClient.invalidateQueries({ queryKey: ['kb-articles'] });
     },
   });
 }
 
-export function useSubmitKbArticleMutation(articleId: number) {
+export function useSubmitKbArticleMutation(articleId?: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: { change_type: 'MAJOR' | 'MINOR'; change_summary: string }) => {
-        return customFetch<any>(`${API_BASE}/articles/${articleId}/submit`, {
-          method: 'POST',
-          body: JSON.stringify(payload),
-        });
-  },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['kb-article', articleId] });
+    mutationFn: async (payload: {
+      articleId?: number;
+      change_type: 'MAJOR' | 'MINOR';
+      change_summary: string;
+    }) => {
+      const id = payload.articleId ?? articleId;
+      return customFetch<any>(`${API_BASE}/articles/${id}/submit`, {
+        method: 'POST',
+        body: JSON.stringify({
+          change_type: payload.change_type,
+          change_summary: payload.change_summary,
+        }),
+      });
+    },
+    onSuccess: (_data, variables) => {
+      const id = variables.articleId ?? articleId;
+      if (id) {
+        queryClient.invalidateQueries({ queryKey: ['kb-article', id] });
+      }
       queryClient.invalidateQueries({ queryKey: ['kb-articles'] });
       queryClient.invalidateQueries({ queryKey: ['kb-kpis'] });
       queryClient.invalidateQueries({ queryKey: ['kb-approvals'] });
@@ -222,9 +237,9 @@ export function useWithdrawKbArticleMutation(articleId: number) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async () => {
-        return customFetch<any>(`${API_BASE}/articles/${articleId}/withdraw`, {
-          method: 'POST',
-        });
+      return customFetch<any>(`${API_BASE}/articles/${articleId}/withdraw`, {
+        method: 'POST',
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['kb-article', articleId] });
@@ -247,11 +262,11 @@ export function useReviewKbArticleMutation(articleId: number) {
       action: 'APPROVE' | 'REJECT';
       comment?: string;
     }) => {
-        return customFetch<any>(`${API_BASE}/articles/${articleId}/versions/${versionId}/review`, {
-          method: 'POST',
-          body: JSON.stringify({ action, comment }),
-        });
-  },
+      return customFetch<any>(`${API_BASE}/articles/${articleId}/versions/${versionId}/review`, {
+        method: 'POST',
+        body: JSON.stringify({ action, comment }),
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['kb-article', articleId] });
       queryClient.invalidateQueries({ queryKey: ['kb-articles'] });
@@ -261,27 +276,35 @@ export function useReviewKbArticleMutation(articleId: number) {
   });
 }
 
-export function useDirectPublishMutation(articleId: number) {
+export function useDirectPublishMutation(articleId?: number) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (payload: {
+      articleId?: number;
       change_type: 'MAJOR' | 'MINOR';
       change_summary: string;
       reason: string;
     }) => {
-        return customFetch<any>(`${API_BASE}/articles/${articleId}/publish-direct`, {
-          method: 'POST',
-          body: JSON.stringify(payload),
-        });
-  },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['kb-article', articleId] });
+      const id = payload.articleId ?? articleId;
+      return customFetch<any>(`${API_BASE}/articles/${id}/publish-direct`, {
+        method: 'POST',
+        body: JSON.stringify({
+          change_type: payload.change_type,
+          change_summary: payload.change_summary,
+          reason: payload.reason,
+        }),
+      });
+    },
+    onSuccess: (_data, variables) => {
+      const id = variables.articleId ?? articleId;
+      if (id) {
+        queryClient.invalidateQueries({ queryKey: ['kb-article', id] });
+      }
       queryClient.invalidateQueries({ queryKey: ['kb-articles'] });
       queryClient.invalidateQueries({ queryKey: ['kb-kpis'] });
     },
   });
 }
-
 export function useAcknowledgePolicyMutation(articleId: number) {
   const queryClient = useQueryClient();
   return useMutation({
