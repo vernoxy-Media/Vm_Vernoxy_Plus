@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Search, CheckSquare, Square, Eye } from 'lucide-react';
 import { fetchRegularizations, bulkApproveRegularizationRequests } from '../api/attendance.api';
-import { useLookupsQuery } from '../../../hooks/use-master-data';
+import { useLookupsQuery } from '@/features/organization/hooks/use-master-data';
 import type { AttendanceRegularization } from '../types/attendance.types';
 import { RegularizationDetailModal } from './RegularizationDetailModal';
 

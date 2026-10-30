@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../../../context/AuthContext';
-import { ProtectedRoute } from '../../../components/ProtectedRoute';
+import { useAuth } from '@/features/auth/context/AuthContext';
+import { ProtectedRoute } from '@/features/auth/components/ProtectedRoute';
 import { Building2 } from 'lucide-react';
 
 export const CompanyRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {

@@ -12,7 +12,7 @@ import {
 import { CompanyDetailsSection } from '../components/CompanyDetailsSection';
 import { CompanyChannelsSection } from '../components/CompanyChannelsSection';
 import { CompanyContactsSection } from '../components/CompanyContactsSection';
-import { DuplicateNotice } from '../../../components/DuplicateNotice';
+import { DuplicateNotice } from '../components/DuplicateNotice';
 import { buildCreateCompanyPayload, buildUpdateCompanyPayload } from '../utils/company-payload';
 import { ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
 

@@ -8,7 +8,7 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "lint": "tsc --noEmit",
-    "test": "node --import tsx --test src/pages/admin/employee-form-and-settings.spec.ts",
+    "test": "node --import tsx --test src/features/employees/employee-form-and-settings.spec.ts",
     "test:e2e": "playwright test"
   },
   "dependencies": {

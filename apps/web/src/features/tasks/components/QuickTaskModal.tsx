@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Loader2, Zap } from 'lucide-react';
 import { CreateTaskDto } from '@vernoxy-pulse/api-client';
 import type { TaskPriority } from '../types';
-import { DurationField } from '../../../components/DurationField';
+import { DurationField } from './DurationField';
 
 export interface QuickTaskModalProps {
   isOpen: boolean;

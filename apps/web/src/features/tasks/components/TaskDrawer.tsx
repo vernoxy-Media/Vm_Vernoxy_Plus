@@ -22,9 +22,9 @@ import {
 } from 'lucide-react';
 import { TaskDetailDto } from '@vernoxy-pulse/api-client';
 import type { TaskStage, TaskPriority } from '../types';
-import { Avatar } from '../../../components/Avatar';
+import { Avatar } from '@/shared/ui/Avatar';
 import { TaskHistoryTimeline } from './TaskHistoryTimeline';
-import { useAuth } from '../../../context/AuthContext';
+import { useAuth } from '@/features/auth/context/AuthContext';
 
 export interface TaskDrawerProps {
   task: TaskDetailDto | null;
