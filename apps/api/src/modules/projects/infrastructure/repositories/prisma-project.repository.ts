@@ -142,11 +142,15 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
 
     return this.prisma.$transaction(async (tx) => {
       // 1. Increment project counter
-      const counter = await tx.project_counters.upsert({
-        where: { project_type: input.project_type as any },
-        create: { project_type: input.project_type as any, last_number: 1 },
-        update: { last_number: { increment: 1 } },
-      });
+      const counterRows: any[] = await tx.$queryRawUnsafe(
+        `INSERT INTO entity_counters (entity_type, counter_key, last_number)
+         VALUES ('PROJECT', $1, 1)
+         ON CONFLICT (entity_type, counter_key)
+         DO UPDATE SET last_number = entity_counters.last_number + 1
+         RETURNING last_number;`,
+        input.project_type,
+      );
+      const counter = { last_number: counterRows[0]?.last_number ?? 1 };
 
       const projectNo = `${prefix}${String(counter.last_number).padStart(3, '0')}`;
 
@@ -215,12 +219,13 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
       }
 
       // 6. Log activity
-      await tx.project_activity_logs.create({
+      await tx.activity_logs.create({
         data: {
-          project_id: project.project_id,
-          actor_emp_id: input.created_by,
-          action_type: 'project_created',
-          description: `Project "${project.project_name}" (${projectNo}) was created.`,
+          entity_type: 'PROJECT',
+          entity_id: project.project_id,
+          event: 'project_created',
+          summary: `Project "${project.project_name}" (${projectNo}) was created.`,
+          performed_by: input.created_by,
         },
       });
 
@@ -426,12 +431,13 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
       },
     });
 
-    await this.prisma.project_activity_logs.create({
+    await this.prisma.activity_logs.create({
       data: {
-        project_id: projectId,
-        actor_emp_id: actorId,
-        action_type: 'status_changed',
-        description: `Status changed from ${existing.project_status} to ${status}${reason ? `. Reason: ${reason}` : ''}`,
+        entity_type: 'PROJECT',
+        entity_id: projectId,
+        event: 'status_changed',
+        summary: `Status changed from ${existing.project_status} to ${status}${reason ? `. Reason: ${reason}` : ''}`,
+        performed_by: actorId,
       },
     });
 
@@ -485,12 +491,13 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
       },
     });
 
-    await this.prisma.project_activity_logs.create({
+    await this.prisma.activity_logs.create({
       data: {
-        project_id: input.project_id,
-        actor_emp_id: input.created_by,
-        action_type: 'sprint_created',
-        description: `Sprint "${sprint.sprint_name}" was created.`,
+        entity_type: 'PROJECT',
+        entity_id: input.project_id,
+        event: 'sprint_created',
+        summary: `Sprint "${sprint.sprint_name}" was created.`,
+        performed_by: input.created_by,
       },
     });
 
@@ -585,12 +592,12 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
       // Generate task code using task_counters
       const year = new Date().getFullYear();
       const counterRows: any[] = await tx.$queryRawUnsafe(
-        `INSERT INTO task_counters (counter_year, last_number)
-         VALUES ($1, 1)
-         ON CONFLICT (counter_year)
-         DO UPDATE SET last_number = task_counters.last_number + 1
+        `INSERT INTO entity_counters (entity_type, counter_key, last_number)
+         VALUES ('TASK', $1, 1)
+         ON CONFLICT (entity_type, counter_key)
+         DO UPDATE SET last_number = entity_counters.last_number + 1
          RETURNING last_number;`,
-        year,
+        String(year),
       );
       const seq = counterRows[0]?.last_number ?? 1;
       const taskCode = `TSK-${year}-${seq.toString().padStart(4, '0')}`;
@@ -626,23 +633,25 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
       }
 
       // Task history
-      await tx.task_history.create({
+      await tx.activity_logs.create({
         data: {
-          task_id: created.task_id,
-          event_type: 'created',
-          actor_id: input.created_by,
-          to_stage: 'assigned',
-          note: `Project task created for ${project.project_name}`,
+          entity_type: 'TASK',
+          entity_id: created.task_id,
+          event: 'created',
+          summary: `Project task created for ${project.project_name}`,
+          details: { to_stage: 'assigned' },
+          performed_by: input.created_by,
         },
       });
 
       // Project activity log
-      await tx.project_activity_logs.create({
+      await tx.activity_logs.create({
         data: {
-          project_id: input.project_id,
-          actor_emp_id: input.created_by,
-          action_type: 'task_created',
-          description: `Task "${created.title}" (${taskCode}) was added to project.`,
+          entity_type: 'PROJECT',
+          entity_id: input.project_id,
+          event: 'task_created',
+          summary: `Task "${created.title}" (${taskCode}) was added to project.`,
+          performed_by: input.created_by,
         },
       });
 
@@ -843,12 +852,13 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
       }
 
       // Log activity
-      await tx.project_activity_logs.create({
+      await tx.activity_logs.create({
         data: {
-          project_id: projectId,
-          actor_emp_id: actorEmpId,
-          action_type: 'project_updated',
-          description: `Project details were updated.`,
+          entity_type: 'PROJECT',
+          entity_id: projectId,
+          event: 'project_updated',
+          summary: `Project details were updated.`,
+          performed_by: actorEmpId,
         },
       });
 
@@ -937,26 +947,27 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
   }
 
   async getActivityLogs(projectId: number): Promise<any[]> {
-    const rows = await this.prisma.project_activity_logs.findMany({
-      where: { project_id: projectId },
+    const rows = await this.prisma.activity_logs.findMany({
+      where: { entity_type: 'PROJECT', entity_id: projectId },
       include: {
         employees: {
           select: { emp_id: true, name: true, profile_picture: true },
         },
       },
-      orderBy: { created_at: 'desc' },
+      orderBy: { performed_at: 'desc' },
       take: 100,
     });
 
-    return rows.map((r) => ({
+    return rows.map((r: any) => ({
       log_id: r.log_id.toString(),
-      project_id: r.project_id,
-      actor_emp_id: r.actor_emp_id,
+      project_id: r.entity_id,
+      actor_emp_id: r.performed_by,
       actor_name: r.employees?.name ?? 'System',
       actor_avatar: r.employees?.profile_picture ?? null,
-      action_type: r.action_type,
-      description: r.description,
-      created_at: r.created_at.toISOString(),
+      action_type: r.event,
+      description: r.summary,
+      metadata: r.details,
+      created_at: r.performed_at.toISOString(),
     }));
   }
 
@@ -1021,14 +1032,7 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
           },
           orderBy: { created_at: 'asc' },
         },
-        bug_history: {
-          include: {
-            employees: {
-              select: { emp_id: true, name: true },
-            },
-          },
-          orderBy: { created_at: 'desc' },
-        },
+        
       },
     });
 
@@ -1072,16 +1076,26 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
         comment: c.comment,
         created_at: c.created_at.toISOString(),
       })),
-      history: bug.bug_history.map((h) => ({
-        history_id: h.history_id.toString(),
-        bug_id: h.bug_id,
-        actor_emp_id: h.actor_emp_id,
-        actor_name: h.employees?.name ?? 'User',
-        from_status: h.from_status,
-        to_status: h.to_status,
-        note: h.note,
-        created_at: h.created_at.toISOString(),
-      })),
+      history: await (async () => {
+        const historyRows = await this.prisma.activity_logs.findMany({
+          where: { entity_type: 'BUG', entity_id: bugId },
+          include: { employees: { select: { emp_id: true, name: true } } },
+          orderBy: { performed_at: 'desc' },
+        });
+        return historyRows.map((h: any) => {
+          const details = (h.details as any) || {};
+          return {
+            history_id: h.log_id.toString(),
+            bug_id: h.entity_id,
+            actor_emp_id: h.performed_by,
+            actor_name: h.employees?.name ?? 'User',
+            from_status: details.from_status ?? null,
+            to_status: details.to_status ?? h.event,
+            note: details.note ?? h.summary,
+            created_at: h.performed_at.toISOString(),
+          };
+        });
+      })(),
     };
   }
 
@@ -1092,12 +1106,12 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
   ): Promise<any> {
     const year = new Date().getFullYear();
     const counterRows: any[] = await this.prisma.$queryRawUnsafe(
-      `INSERT INTO bug_counters (counter_year, last_number)
-       VALUES ($1, 1)
-       ON CONFLICT (counter_year)
-       DO UPDATE SET last_number = bug_counters.last_number + 1
+      `INSERT INTO entity_counters (entity_type, counter_key, last_number)
+       VALUES ('BUG', $1, 1)
+       ON CONFLICT (entity_type, counter_key)
+       DO UPDATE SET last_number = entity_counters.last_number + 1
        RETURNING last_number;`,
-      year,
+      String(year),
     );
     const seq = counterRows[0]?.last_number ?? 1;
     const bugCode = `BUG-${year}-${seq.toString().padStart(3, '0')}`;
@@ -1132,23 +1146,25 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
     });
 
     // Record initial history
-    await this.prisma.bug_history.create({
+    await this.prisma.activity_logs.create({
       data: {
-        bug_id: created.bug_id,
-        actor_emp_id: reporterEmpId,
-        from_status: null,
-        to_status: 'new',
-        note: 'Bug reported',
+        entity_type: 'BUG',
+        entity_id: created.bug_id,
+        event: 'new',
+        summary: 'Bug reported',
+        details: { from_status: null, to_status: 'new', note: 'Bug reported' },
+        performed_by: reporterEmpId,
       },
     });
 
     // Log in project_activity_logs
-    await this.prisma.project_activity_logs.create({
+    await this.prisma.activity_logs.create({
       data: {
-        project_id: projectId,
-        actor_emp_id: reporterEmpId,
-        action_type: 'bug_created',
-        description: `Bug "${created.title}" (${bugCode}) was reported.`,
+        entity_type: 'PROJECT',
+        entity_id: projectId,
+        event: 'bug_created',
+        summary: `Bug "${created.title}" (${bugCode}) was reported.`,
+        performed_by: reporterEmpId,
       },
     });
 
@@ -1243,14 +1259,19 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
     });
 
     // Record transition history (Section 3.7)
-    await this.prisma.bug_history.create({
+    await this.prisma.activity_logs.create({
       data: {
-        bug_id: bugId,
-        actor_emp_id: actorEmpId,
-        from_status: bug.status,
-        to_status: newStatus as any,
-        note: note || null,
-        created_at: now,
+        entity_type: 'BUG',
+        entity_id: bugId,
+        event: newStatus,
+        summary: note || `Status changed to ${newStatus}`,
+        details: {
+          from_status: bug.status,
+          to_status: newStatus,
+          note: note || null,
+        },
+        performed_by: actorEmpId,
+        performed_at: now,
       },
     });
 
@@ -1281,13 +1302,14 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
       });
     }
 
-    // Log in project activity logs
-    await this.prisma.project_activity_logs.create({
+    // Log in activity_logs
+    await this.prisma.activity_logs.create({
       data: {
-        project_id: bug.project_id,
-        actor_emp_id: actorEmpId,
-        action_type: 'bug_status_updated',
-        description: `Bug "${bug.title}" (${bug.bug_code}) moved to ${newStatus.replace(/_/g, ' ')}.`,
+        entity_type: 'PROJECT',
+        entity_id: bug.project_id,
+        event: 'bug_status_updated',
+        summary: `Bug "${bug.title}" (${bug.bug_code}) moved to ${newStatus.replace(/_/g, ' ')}.`,
+        performed_by: actorEmpId,
       },
     });
 

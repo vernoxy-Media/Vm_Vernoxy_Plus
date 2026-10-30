@@ -786,53 +786,56 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
     created_by: number | null;
   }>> {
     const client = this.getClient(tx);
-    const rows = await client.employee_history.findMany({
-      where: { emp_id: empId },
-      orderBy: [{ effective_date: 'desc' }, { created_at: 'desc' }],
-      include: {
-        roles: {
-          select: { role_id: true, role_name: true },
-        },
-        employees_employee_history_manager_idToemployees: {
-          select: { emp_id: true, name: true },
-        },
-      },
+    const rows = await client.activity_logs.findMany({
+      where: { entity_type: 'EMPLOYEE', entity_id: empId },
+      orderBy: { performed_at: 'desc' },
     });
 
-    const allDepIds = Array.from(new Set(rows.flatMap((r) => r.department_ids || [])));
-    const deps =
-      allDepIds.length > 0
-        ? await client.departments.findMany({
-            where: { dep_id: { in: allDepIds } },
-            select: { dep_id: true, name: true },
-          })
-        : [];
-    const depMap = new Map(deps.map((d) => [d.dep_id, d]));
+    const detailsList = rows.map((r: any) => (r.details as any) || {});
+    const roleIds = Array.from(new Set(detailsList.map((d: any) => d.role_id).filter(Boolean))) as number[];
+    const managerIds = Array.from(new Set(detailsList.map((d: any) => d.manager_id).filter(Boolean))) as number[];
+    const allDepIds = Array.from(new Set(detailsList.flatMap((d: any) => d.department_ids || []).filter(Boolean))) as number[];
 
-    return rows.map((r) => ({
-      history_id: r.history_id,
-      emp_id: r.emp_id,
-      event_type: r.event_type,
-      title: r.title,
-      department_ids: r.department_ids,
-      departments: (r.department_ids || []).map((dId) => depMap.get(dId)).filter(Boolean) as any,
-      role_id: r.role_id,
-      role: r.roles ? { role_id: r.roles.role_id, role_name: r.roles.role_name } : null,
-      manager_id: r.manager_id,
-      manager: r.employees_employee_history_manager_idToemployees
-        ? {
-            emp_id: r.employees_employee_history_manager_idToemployees.emp_id,
-            name: r.employees_employee_history_manager_idToemployees.name,
-          }
-        : null,
-      employment_type: r.employment_type,
-      salary: r.salary !== null && r.salary !== undefined ? Number(r.salary) : null,
-      effective_date: r.effective_date,
-      reason: r.reason,
-      notes: r.notes,
-      created_at: r.created_at ?? new Date(),
-      created_by: r.created_by,
-    }));
+    const [roleList, managerList, deps] = await Promise.all([
+      roleIds.length > 0
+        ? client.roles.findMany({ where: { role_id: { in: roleIds } }, select: { role_id: true, role_name: true } })
+        : [],
+      managerIds.length > 0
+        ? client.employees.findMany({ where: { emp_id: { in: managerIds } }, select: { emp_id: true, name: true } })
+        : [],
+      allDepIds.length > 0
+        ? client.departments.findMany({ where: { dep_id: { in: allDepIds } }, select: { dep_id: true, name: true } })
+        : [],
+    ]);
+
+    const roleMap = new Map(roleList.map((ro: any) => [ro.role_id, ro]));
+    const managerMap = new Map(managerList.map((m: any) => [m.emp_id, m]));
+    const depMap = new Map(deps.map((d: any) => [d.dep_id, d]));
+
+    return rows.map((r: any) => {
+      const details = (r.details as any) || {};
+      const ro = details.role_id ? roleMap.get(details.role_id) : null;
+      const mgr = details.manager_id ? managerMap.get(details.manager_id) : null;
+      return {
+        history_id: Number(r.log_id),
+        emp_id: r.entity_id,
+        event_type: r.event,
+        title: r.summary,
+        department_ids: details.department_ids || [],
+        departments: (details.department_ids || []).map((dId: number) => depMap.get(dId)).filter(Boolean) as any,
+        role_id: details.role_id ?? null,
+        role: ro ? { role_id: ro.role_id, role_name: ro.role_name } : null,
+        manager_id: details.manager_id ?? null,
+        manager: mgr ? { emp_id: mgr.emp_id, name: mgr.name } : null,
+        employment_type: details.employment_type ?? null,
+        salary: details.salary !== null && details.salary !== undefined ? Number(details.salary) : null,
+        effective_date: details.effective_date ? new Date(details.effective_date) : r.performed_at,
+        reason: details.reason ?? null,
+        notes: details.notes ?? null,
+        created_at: r.performed_at,
+        created_by: r.performed_by,
+      };
+    });
   }
 
   async addHistory(
@@ -853,20 +856,24 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
     tx?: unknown,
   ): Promise<void> {
     const client = this.getClient(tx);
-    await client.employee_history.create({
+    await client.activity_logs.create({
       data: {
-        emp_id: data.emp_id,
-        event_type: data.event_type,
-        title: data.title,
-        department_ids: data.department_ids ?? [],
-        role_id: data.role_id ?? null,
-        manager_id: data.manager_id ?? null,
-        employment_type: data.employment_type ?? null,
-        salary: data.salary !== undefined && data.salary !== null ? data.salary : null,
-        effective_date: data.effective_date,
-        reason: data.reason ?? null,
-        notes: data.notes ?? null,
-        created_by: data.created_by ?? null,
+        entity_type: 'EMPLOYEE',
+        entity_id: data.emp_id,
+        event: data.event_type,
+        summary: data.title,
+        details: {
+          department_ids: data.department_ids ?? [],
+          role_id: data.role_id ?? null,
+          manager_id: data.manager_id ?? null,
+          employment_type: data.employment_type ?? null,
+          salary: data.salary !== undefined && data.salary !== null ? data.salary : null,
+          effective_date: data.effective_date,
+          reason: data.reason ?? null,
+          notes: data.notes ?? null,
+        },
+        performed_by: data.created_by ?? null,
+        performed_at: data.effective_date,
       },
     });
   }

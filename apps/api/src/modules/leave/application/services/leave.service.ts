@@ -433,8 +433,9 @@ export class LeaveService {
     return this.prisma.$queryRaw<any[]>`
       SELECT 
         l.*, e.name as changed_by_name
-      FROM leave_settings_change_log l
+      FROM settings_change_log l
       LEFT JOIN employees e ON l.changed_by = e.emp_id
+      WHERE l.module = 'LEAVE'
       ORDER BY l.changed_at DESC
       LIMIT 100;
     `;
@@ -771,10 +772,12 @@ export class LeaveService {
 
     // Log history
     await this.prisma.$executeRaw`
-      INSERT INTO leave_request_history (request_id, event, performed_by, details)
+      INSERT INTO activity_logs (entity_type, entity_id, event, summary, details, performed_by, performed_at)
       VALUES (
-        ${created.request_id}, 'Submitted', ${empId},
-        ${calc.is_short_notice ? 'Submitted with Short Notice warning' : 'Submitted successfully'}
+        'LEAVE_REQUEST', ${created.request_id}, 'Submitted',
+        ${calc.is_short_notice ? 'Submitted with Short Notice warning' : 'Submitted successfully'},
+        jsonb_build_object('details', ${calc.is_short_notice ? 'Submitted with Short Notice warning' : 'Submitted successfully'}),
+        ${empId}, clock_timestamp()
       );
     `;
 
@@ -806,8 +809,8 @@ export class LeaveService {
     `;
 
     await this.prisma.$executeRaw`
-      INSERT INTO leave_request_history (request_id, event, performed_by, details)
-      VALUES (${requestId}, 'Withdrawn', ${empId}, 'Withdrawn by employee while Pending');
+      INSERT INTO activity_logs (entity_type, entity_id, event, summary, details, performed_by, performed_at)
+      VALUES ('LEAVE_REQUEST', ${requestId}, 'Withdrawn', 'Withdrawn by employee while Pending', jsonb_build_object('details', 'Withdrawn by employee while Pending'), ${empId}, clock_timestamp());
     `;
 
     return { success: true, message: 'Leave request withdrawn.' };
@@ -833,8 +836,8 @@ export class LeaveService {
     `;
 
     await this.prisma.$executeRaw`
-      INSERT INTO leave_request_history (request_id, event, performed_by, details)
-      VALUES (${requestId}, 'Cancellation requested', ${empId}, ${dto.cancellation_reason});
+      INSERT INTO activity_logs (entity_type, entity_id, event, summary, details, performed_by, performed_at)
+      VALUES ('LEAVE_REQUEST', ${requestId}, 'Cancellation requested', ${dto.cancellation_reason}, jsonb_build_object('details', ${dto.cancellation_reason}), ${empId}, clock_timestamp());
     `;
 
     return { success: true, message: 'Cancellation requested and awaiting Admin decision.' };
@@ -953,10 +956,17 @@ export class LeaveService {
 
     // History events
     const history = await this.prisma.$queryRaw<any[]>`
-      SELECT h.*, e.name as performed_by_name
-      FROM leave_request_history h
+      SELECT
+        h.log_id as history_id,
+        h.entity_id as request_id,
+        h.event,
+        h.performed_by,
+        h.performed_at,
+        COALESCE(h.details->>'details', h.summary) as details,
+        e.name as performed_by_name
+      FROM activity_logs h
       LEFT JOIN employees e ON h.performed_by = e.emp_id
-      WHERE h.request_id = ${requestId}
+      WHERE h.entity_type = 'LEAVE_REQUEST' AND h.entity_id = ${requestId}
       ORDER BY h.performed_at DESC;
     `;
 
@@ -1043,10 +1053,12 @@ export class LeaveService {
 
     // History log
     await this.prisma.$executeRaw`
-      INSERT INTO leave_request_history (request_id, event, performed_by, details)
+      INSERT INTO activity_logs (entity_type, entity_id, event, summary, details, performed_by, performed_at)
       VALUES (
-        ${requestId}, 'Approved', ${adminId},
-        ${(isSelfApproved ? '[Self-approved] ' : '') + (dto.remarks || 'Approved by Admin')}
+        'LEAVE_REQUEST', ${requestId}, 'Approved',
+        ${(isSelfApproved ? '[Self-approved] ' : '') + (dto.remarks || 'Approved by Admin')},
+        jsonb_build_object('details', ${(isSelfApproved ? '[Self-approved] ' : '') + (dto.remarks || 'Approved by Admin')}),
+        ${adminId}, clock_timestamp()
       );
     `;
 
@@ -1086,8 +1098,8 @@ export class LeaveService {
     `;
 
     await this.prisma.$executeRaw`
-      INSERT INTO leave_request_history (request_id, event, performed_by, details)
-      VALUES (${requestId}, 'Rejected', ${adminId}, ${dto.remarks});
+      INSERT INTO activity_logs (entity_type, entity_id, event, summary, details, performed_by, performed_at)
+      VALUES ('LEAVE_REQUEST', ${requestId}, 'Rejected', ${dto.remarks}, jsonb_build_object('details', ${dto.remarks}), ${adminId}, clock_timestamp());
     `;
 
     return rejected;
@@ -1162,8 +1174,8 @@ export class LeaveService {
       `;
 
       await this.prisma.$executeRaw`
-        INSERT INTO leave_request_history (request_id, event, performed_by, details)
-        VALUES (${requestId}, 'Cancellation agreed', ${adminId}, ${dto.remarks});
+        INSERT INTO activity_logs (entity_type, entity_id, event, summary, details, performed_by, performed_at)
+        VALUES ('LEAVE_REQUEST', ${requestId}, 'Cancellation agreed', ${dto.remarks}, jsonb_build_object('details', ${dto.remarks}), ${adminId}, clock_timestamp());
       `;
 
       return { success: true, message: 'Cancellation approved. Days returned to balance.' };
@@ -1178,8 +1190,8 @@ export class LeaveService {
       `;
 
       await this.prisma.$executeRaw`
-        INSERT INTO leave_request_history (request_id, event, performed_by, details)
-        VALUES (${requestId}, 'Cancellation refused', ${adminId}, ${dto.remarks});
+        INSERT INTO activity_logs (entity_type, entity_id, event, summary, details, performed_by, performed_at)
+        VALUES ('LEAVE_REQUEST', ${requestId}, 'Cancellation refused', ${dto.remarks}, jsonb_build_object('details', ${dto.remarks}), ${adminId}, clock_timestamp());
       `;
 
       return { success: true, message: 'Cancellation rejected. Leave kept as Approved.' };
@@ -1254,8 +1266,8 @@ export class LeaveService {
     `;
 
     await this.prisma.$executeRaw`
-      INSERT INTO leave_request_history (request_id, event, performed_by, details)
-      VALUES (${requestId}, 'Cancelled by Admin', ${adminId}, ${dto.reason});
+      INSERT INTO activity_logs (entity_type, entity_id, event, summary, details, performed_by, performed_at)
+      VALUES ('LEAVE_REQUEST', ${requestId}, 'Cancelled by Admin', ${dto.reason}, jsonb_build_object('details', ${dto.reason}), ${adminId}, clock_timestamp());
     `;
 
     return { success: true, message: 'Leave cancelled by Admin.' };
@@ -1337,8 +1349,8 @@ export class LeaveService {
     }
 
     await this.prisma.$executeRaw`
-      INSERT INTO leave_request_history (request_id, event, performed_by, details)
-      VALUES (${created.request_id}, 'Added by Admin', ${adminId}, ${dto.reason});
+      INSERT INTO activity_logs (entity_type, entity_id, event, summary, details, performed_by, performed_at)
+      VALUES ('LEAVE_REQUEST', ${created.request_id}, 'Added by Admin', ${dto.reason}, jsonb_build_object('details', ${dto.reason}), ${adminId}, clock_timestamp());
     `;
 
     return created;
@@ -1478,10 +1490,10 @@ export class LeaveService {
   ) {
     try {
       await this.prisma.$executeRaw`
-        INSERT INTO leave_settings_change_log (
-          entity_type, entity_id, field_name, old_value, new_value, changed_by
+        INSERT INTO settings_change_log (
+          module, entity_type, entity_id, field_name, old_value, new_value, changed_by
         ) VALUES (
-          ${entityType}, ${entityId}, ${fieldName}, ${oldValue}, ${newValue}, ${adminId}
+          'LEAVE', ${entityType}, ${entityId}, ${fieldName}, ${oldValue}, ${newValue}, ${adminId}
         );
       `;
     } catch (err) {

@@ -153,12 +153,6 @@ export class ExpenseClaimsService {
         employees_expense_claims_decided_byToemployees: {
           select: { emp_id: true, name: true, email: true },
         },
-        expense_claim_history: {
-          orderBy: { performed_at: 'desc' },
-          include: {
-            employees: { select: { emp_id: true, name: true } },
-          },
-        },
       },
     });
 
@@ -170,6 +164,18 @@ export class ExpenseClaimsService {
     if (claim.emp_id !== currentEmpId && claim.approver_emp_id !== currentEmpId && !isAdmin) {
       throw new ForbiddenException('You do not have permission to view this expense claim');
     }
+
+    // Fetch history from activity_logs
+    const historyRows = await this.prisma.activity_logs.findMany({
+      where: {
+        entity_type: 'EXPENSE_CLAIM',
+        entity_id: claimId,
+      },
+      include: {
+        employees: { select: { emp_id: true, name: true } },
+      },
+      orderBy: { performed_at: 'desc' },
+    });
 
     // Fetch department details
     const department = claim.employees_expense_claims_emp_idToemployees?.dep_id
@@ -209,10 +215,19 @@ export class ExpenseClaimsService {
       approver: claim.employees_expense_claims_approver_emp_idToemployees,
       decided_by_user: claim.employees_expense_claims_decided_byToemployees,
       attachments,
-      history: claim.expense_claim_history.map((h: any) => ({
-        ...h,
-        performed_by_name: h.employees?.name || `Emp #${h.performed_by}`,
-      })),
+      history: historyRows.map((h: any) => {
+        const details = (h.details as any) || {};
+        return {
+          history_id: Number(h.log_id),
+          claim_id: h.entity_id,
+          event: h.event,
+          performed_by: h.performed_by,
+          performed_at: h.performed_at,
+          remarks: details.remarks || null,
+          details: details.details || null,
+          performed_by_name: h.employees?.name || `Emp #${h.performed_by}`,
+        };
+      }),
     };
   }
 
@@ -1440,13 +1455,17 @@ export class ExpenseClaimsService {
     details?: string,
   ) {
     try {
-      await this.prisma.expense_claim_history.create({
+      await this.prisma.activity_logs.create({
         data: {
-          claim_id: claimId,
+          entity_type: 'EXPENSE_CLAIM',
+          entity_id: claimId,
           event,
+          summary: remarks || details || event,
+          details: {
+            remarks: remarks || null,
+            details: details || null,
+          },
           performed_by: performedBy,
-          remarks: remarks || null,
-          details: details || null,
         },
       });
     } catch (err) {

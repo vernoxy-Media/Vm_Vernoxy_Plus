@@ -398,8 +398,9 @@ export class ExpenseSettingsService {
         l.changed_at,
         l.changed_by,
         e.name as changed_by_name
-      FROM expense_settings_change_log l
+      FROM settings_change_log l
       LEFT JOIN employees e ON l.changed_by = e.emp_id
+      WHERE l.module = 'EXPENSE'
       ORDER BY l.changed_at DESC
       LIMIT 200;
     `;
@@ -415,10 +416,10 @@ export class ExpenseSettingsService {
   ) {
     try {
       await this.prisma.$executeRaw`
-        INSERT INTO expense_settings_change_log (
-          entity_type, entity_id, field_name, old_value, new_value, changed_by
+        INSERT INTO settings_change_log (
+          module, entity_type, entity_id, field_name, old_value, new_value, changed_by
         ) VALUES (
-          ${entityType}, ${entityId}, ${fieldName}, ${oldValue}, ${newValue}, ${adminId}
+          'EXPENSE', ${entityType}, ${entityId}, ${fieldName}, ${oldValue}, ${newValue}, ${adminId}
         );
       `;
     } catch (err) {

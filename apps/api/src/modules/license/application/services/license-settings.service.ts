@@ -114,34 +114,62 @@ export class LicenseSettingsService {
   }
 
   // ---------------------------------------------------------------------------
-  // 3. Revoke Reasons
+  // 3. Revoke Reasons (Consolidated in master_lookup)
   // ---------------------------------------------------------------------------
   async getRevokeReasons(includeInactive = false) {
-    return this.prisma.software_license_revoke_reasons.findMany({
-      where: includeInactive ? undefined : { is_active: true },
-      orderBy: [{ display_order: 'asc' }, { name: 'asc' }],
+    const list = await this.prisma.master_lookup.findMany({
+      where: {
+        lookup_type: 'software_revoke_reason',
+        deleted_at: null,
+        ...(includeInactive ? {} : { is_active: true }),
+      },
+      orderBy: [{ sort_order: 'asc' }, { label: 'asc' }],
     });
+    return list.map((l) => ({
+      reason_id: l.lookup_id,
+      name: l.label,
+      display_order: l.sort_order ?? 1,
+      is_active: l.is_active,
+    }));
   }
 
   async createRevokeReason(dto: CreateReasonDto) {
-    return this.prisma.software_license_revoke_reasons.create({
+    const code = dto.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_');
+    const created = await this.prisma.master_lookup.create({
       data: {
-        name: dto.name.trim(),
-        display_order: dto.display_order ?? 1,
+        lookup_type: 'software_revoke_reason',
+        code,
+        label: dto.name.trim(),
+        sort_order: dto.display_order ?? 1,
         is_active: dto.is_active ?? true,
       },
     });
+    return {
+      reason_id: created.lookup_id,
+      name: created.label,
+      display_order: created.sort_order ?? 1,
+      is_active: created.is_active,
+    };
   }
 
   async updateRevokeReason(reasonId: number, dto: UpdateReasonDto) {
-    return this.prisma.software_license_revoke_reasons.update({
-      where: { reason_id: reasonId },
+    const updated = await this.prisma.master_lookup.update({
+      where: { lookup_id: reasonId },
       data: {
-        ...(dto.name && { name: dto.name.trim() }),
-        ...(dto.display_order !== undefined && { display_order: dto.display_order }),
+        ...(dto.name && {
+          label: dto.name.trim(),
+          code: dto.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_'),
+        }),
+        ...(dto.display_order !== undefined && { sort_order: dto.display_order }),
         ...(dto.is_active !== undefined && { is_active: dto.is_active }),
       },
     });
+    return {
+      reason_id: updated.lookup_id,
+      name: updated.label,
+      display_order: updated.sort_order ?? 1,
+      is_active: updated.is_active,
+    };
   }
 
   async deleteRevokeReason(reasonId: number) {
@@ -149,45 +177,75 @@ export class LicenseSettingsService {
       where: { revoke_reason_id: reasonId },
     });
     if (inUse > 0) {
-      return this.prisma.software_license_revoke_reasons.update({
-        where: { reason_id: reasonId },
+      await this.prisma.master_lookup.update({
+        where: { lookup_id: reasonId },
         data: { is_active: false },
       });
+      return { success: true, deactivated: true };
     }
-    return this.prisma.software_license_revoke_reasons.delete({
-      where: { reason_id: reasonId },
+    await this.prisma.master_lookup.delete({
+      where: { lookup_id: reasonId },
     });
+    return { success: true, deleted: true };
   }
 
   // ---------------------------------------------------------------------------
-  // 4. Discontinue Reasons
+  // 4. Discontinue Reasons (Consolidated in master_lookup)
   // ---------------------------------------------------------------------------
   async getDiscontinueReasons(includeInactive = false) {
-    return this.prisma.software_license_discontinue_reasons.findMany({
-      where: includeInactive ? undefined : { is_active: true },
-      orderBy: [{ display_order: 'asc' }, { name: 'asc' }],
+    const list = await this.prisma.master_lookup.findMany({
+      where: {
+        lookup_type: 'software_discontinue_reason',
+        deleted_at: null,
+        ...(includeInactive ? {} : { is_active: true }),
+      },
+      orderBy: [{ sort_order: 'asc' }, { label: 'asc' }],
     });
+    return list.map((l) => ({
+      reason_id: l.lookup_id,
+      name: l.label,
+      display_order: l.sort_order ?? 1,
+      is_active: l.is_active,
+    }));
   }
 
   async createDiscontinueReason(dto: CreateReasonDto) {
-    return this.prisma.software_license_discontinue_reasons.create({
+    const code = dto.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_');
+    const created = await this.prisma.master_lookup.create({
       data: {
-        name: dto.name.trim(),
-        display_order: dto.display_order ?? 1,
+        lookup_type: 'software_discontinue_reason',
+        code,
+        label: dto.name.trim(),
+        sort_order: dto.display_order ?? 1,
         is_active: dto.is_active ?? true,
       },
     });
+    return {
+      reason_id: created.lookup_id,
+      name: created.label,
+      display_order: created.sort_order ?? 1,
+      is_active: created.is_active,
+    };
   }
 
   async updateDiscontinueReason(reasonId: number, dto: UpdateReasonDto) {
-    return this.prisma.software_license_discontinue_reasons.update({
-      where: { reason_id: reasonId },
+    const updated = await this.prisma.master_lookup.update({
+      where: { lookup_id: reasonId },
       data: {
-        ...(dto.name && { name: dto.name.trim() }),
-        ...(dto.display_order !== undefined && { display_order: dto.display_order }),
+        ...(dto.name && {
+          label: dto.name.trim(),
+          code: dto.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_'),
+        }),
+        ...(dto.display_order !== undefined && { sort_order: dto.display_order }),
         ...(dto.is_active !== undefined && { is_active: dto.is_active }),
       },
     });
+    return {
+      reason_id: updated.lookup_id,
+      name: updated.label,
+      display_order: updated.sort_order ?? 1,
+      is_active: updated.is_active,
+    };
   }
 
   async deleteDiscontinueReason(reasonId: number) {
@@ -195,14 +253,16 @@ export class LicenseSettingsService {
       where: { discontinue_reason_id: reasonId },
     });
     if (inUse > 0) {
-      return this.prisma.software_license_discontinue_reasons.update({
-        where: { reason_id: reasonId },
+      await this.prisma.master_lookup.update({
+        where: { lookup_id: reasonId },
         data: { is_active: false },
       });
+      return { success: true, deactivated: true };
     }
-    return this.prisma.software_license_discontinue_reasons.delete({
-      where: { reason_id: reasonId },
+    await this.prisma.master_lookup.delete({
+      where: { lookup_id: reasonId },
     });
+    return { success: true, deleted: true };
   }
 
   // ---------------------------------------------------------------------------
@@ -295,8 +355,15 @@ export class LicenseSettingsService {
     }
 
     if (changeLogs.length > 0) {
-      await this.prisma.software_license_settings_change_log.createMany({
-        data: changeLogs,
+      const unifiedLogs = changeLogs.map((l) => ({
+        module: 'LICENSE',
+        field_name: l.setting_field,
+        old_value: l.old_value,
+        new_value: l.new_value,
+        changed_by: l.changed_by,
+      }));
+      await this.prisma.settings_change_log.createMany({
+        data: unifiedLogs,
       });
     }
 

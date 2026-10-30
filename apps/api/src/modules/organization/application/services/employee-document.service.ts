@@ -587,10 +587,20 @@ export class EmployeeDocumentService {
         updated_at = NOW()
     `;
 
-    // 3. Log into employee history
-    await this.prisma.$queryRaw`
-      INSERT INTO employee_history (emp_id, event_type, title, department_ids, role_id, effective_date, reason, notes, created_by)
-      VALUES (${empId}, 'ACTIVATED', 'Account Activated', ARRAY[${emp.dep_id}]::integer[], ${emp.role_id || null}, NOW(), 'Onboarding completed & credentials provisioned', 'System generated temporary login credentials', ${adminId})
+    // 3. Log into activity_logs
+    await this.prisma.$executeRaw`
+      INSERT INTO activity_logs (entity_type, entity_id, event, summary, details, performed_by, performed_at)
+      VALUES (
+        'EMPLOYEE', ${empId}, 'ACTIVATED', 'Account Activated',
+        jsonb_build_object(
+          'department_ids', ARRAY[${emp.dep_id}]::integer[],
+          'role_id', ${emp.role_id || null}::integer,
+          'effective_date', NOW(),
+          'reason', 'Onboarding completed & credentials provisioned',
+          'notes', 'System generated temporary login credentials'
+        ),
+        ${adminId}, NOW()
+      )
     `;
 
     // 4. Log auth event
@@ -650,10 +660,20 @@ export class EmployeeDocumentService {
         updated_at = NOW()
     `;
 
-    // Log into employee history
+    // Log into activity_logs
     await this.prisma.$executeRaw`
-      INSERT INTO employee_history (emp_id, event_type, title, department_ids, role_id, effective_date, reason, notes, created_by)
-      VALUES (${empId}, 'CREDENTIALS_RESET', 'Login Resent', ARRAY[${emp.dep_id}]::integer[], ${emp.role_id || null}, NOW(), 'Admin resent login credentials', 'System generated fresh temporary password', ${adminId})
+      INSERT INTO activity_logs (entity_type, entity_id, event, summary, details, performed_by, performed_at)
+      VALUES (
+        'EMPLOYEE', ${empId}, 'CREDENTIALS_RESET', 'Login Resent',
+        jsonb_build_object(
+          'department_ids', ARRAY[${emp.dep_id}]::integer[],
+          'role_id', ${emp.role_id || null}::integer,
+          'effective_date', NOW(),
+          'reason', 'Admin resent login credentials',
+          'notes', 'System generated fresh temporary password'
+        ),
+        ${adminId}, NOW()
+      )
     `;
 
     // Log auth event

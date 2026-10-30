@@ -318,8 +318,9 @@ export class ComplaintSettingsService {
 
     // Write change log entries
     for (const ch of changes) {
-      await this.prisma.complaint_settings_change_log.create({
+      await this.prisma.settings_change_log.create({
         data: {
+          module: 'COMPLAINT',
           field_name: ch.field,
           old_value: ch.oldVal,
           new_value: ch.newVal,
@@ -332,9 +333,10 @@ export class ComplaintSettingsService {
   }
 
   async getChangeLog() {
-    const logs = await this.prisma.complaint_settings_change_log.findMany({
+    const logs = await this.prisma.settings_change_log.findMany({
+      where: { module: 'COMPLAINT' },
       include: {
-        employees_complaint_settings_change_logToemployees: {
+        employees: {
           select: { emp_id: true, name: true, email: true },
         },
       },
@@ -347,7 +349,7 @@ export class ComplaintSettingsService {
       field_name: l.field_name,
       old_value: l.old_value,
       new_value: l.new_value,
-      changed_by_name: l.employees_complaint_settings_change_logToemployees?.name || 'Admin',
+      changed_by_name: l.employees?.name || 'Admin',
       changed_at: l.changed_at,
     }));
   }

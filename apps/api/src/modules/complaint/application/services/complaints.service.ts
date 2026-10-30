@@ -427,14 +427,6 @@ export class ComplaintsService {
           },
           orderBy: { cycle_number: 'desc' },
         },
-        complaint_history: {
-          include: {
-            employees_complaint_history_performed_byToemployees: {
-              select: { emp_id: true, name: true },
-            },
-          },
-          orderBy: { created_at: 'desc' },
-        },
         linked_complaint: {
           select: { complaint_id: true, complaint_no: true, subject: true, status: true },
         },
@@ -453,14 +445,40 @@ export class ComplaintsService {
       throw new ForbiddenException('You do not have permission to view this confidential complaint.');
     }
 
-    // Filter out internal remarks and internal history from complainant (BFD Pg 9, 22, 23)
+    // Filter out internal remarks from complainant (BFD Pg 9, 22, 23)
     const visibleRemarks = complaint.complaint_remarks.filter(
       (r) => !r.is_internal || !isComplainant,
     );
 
-    const visibleHistory = complaint.complaint_history.filter(
-      (h) => !h.is_internal || !isComplainant,
-    );
+    // Fetch history from activity_logs
+    const historyRows = await this.prisma.activity_logs.findMany({
+      where: {
+        entity_type: 'COMPLAINT',
+        entity_id: complaintId,
+      },
+      include: {
+        employees: {
+          select: { emp_id: true, name: true },
+        },
+      },
+      orderBy: { performed_at: 'desc' },
+    });
+
+    const visibleHistory = historyRows
+      .map((h: any) => {
+        const details = (h.details as any) || {};
+        return {
+          history_id: Number(h.log_id),
+          event: h.event,
+          performed_by_name: h.employees?.name || 'System',
+          old_value: details.old_value || null,
+          new_value: details.new_value || null,
+          remarks: details.remarks || h.summary || null,
+          is_internal: Boolean(details.is_internal),
+          created_at: h.performed_at,
+        };
+      })
+      .filter((h: any) => !h.is_internal || !isComplainant);
 
     // Fetch attachments for complaint, actions, and resolutions
     const rawAttachments = await this.prisma.attachments.findMany({
@@ -575,16 +593,7 @@ export class ComplaintsService {
           (a) => a.entity_type === 'COMPLAINT_RESOLUTION' && a.entity_id === res.resolution_id,
         ),
       })),
-      history: visibleHistory.map((h) => ({
-        history_id: h.history_id,
-        event: h.event,
-        performed_by_name: h.employees_complaint_history_performed_byToemployees?.name || 'System',
-        old_value: h.old_value,
-        new_value: h.new_value,
-        remarks: h.remarks,
-        is_internal: h.is_internal,
-        created_at: h.created_at,
-      })),
+      history: visibleHistory,
     };
   }
 
@@ -1530,15 +1539,19 @@ export class ComplaintsService {
     isInternal: boolean = false,
   ) {
     try {
-      await this.prisma.complaint_history.create({
+      await this.prisma.activity_logs.create({
         data: {
-          complaint_id: complaintId,
+          entity_type: 'COMPLAINT',
+          entity_id: complaintId,
           event,
+          summary: remarks || event,
+          details: {
+            old_value: oldValue || null,
+            new_value: newValue || null,
+            remarks: remarks || null,
+            is_internal: isInternal,
+          },
           performed_by: performedBy || null,
-          old_value: oldValue || null,
-          new_value: newValue || null,
-          remarks: remarks || null,
-          is_internal: isInternal,
         },
       });
     } catch (err) {

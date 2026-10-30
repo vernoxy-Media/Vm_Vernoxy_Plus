@@ -35,7 +35,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
        ON CONFLICT (counter_year)
        DO UPDATE SET last_number = task_counters.last_number + 1
        RETURNING last_number;`,
-      year,
+      String(year),
     );
     const seq = rows[0]?.last_number ?? 1;
     return `TSK-${year}-${seq.toString().padStart(4, '0')}`;
@@ -69,13 +69,14 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
         })),
       });
 
-      await tx.task_history.create({
+      await tx.activity_logs.create({
         data: {
-          task_id: created.task_id,
-          event_type: 'created',
-          actor_id: input.created_by,
-          to_stage: 'assigned',
-          note: 'Task created',
+          entity_type: 'TASK',
+          entity_id: created.task_id,
+          event: 'created',
+          summary: 'Task created',
+          details: { to_stage: 'assigned' },
+          performed_by: input.created_by,
         },
       });
 
@@ -121,13 +122,14 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
             })),
           });
 
-          await tx.task_history.create({
+          await tx.activity_logs.create({
             data: {
-              task_id: subTask.task_id,
-              event_type: 'created',
-              actor_id: input.created_by,
-              to_stage: 'assigned',
-              note: `Sub task created under ${input.task_code}`,
+              entity_type: 'TASK',
+              entity_id: subTask.task_id,
+              event: 'created',
+              summary: `Sub task created under ${input.task_code}`,
+              details: { to_stage: 'assigned' },
+              performed_by: input.created_by,
             },
           });
 
@@ -222,12 +224,14 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
         }
       }
 
-      await tx.task_history.create({
+      await tx.activity_logs.create({
         data: {
-          task_id: taskId,
-          event_type: 'edited',
-          actor_id: input.updated_by,
-          note: 'Task details updated',
+          entity_type: 'TASK',
+          entity_id: taskId,
+          event: 'edited',
+          summary: 'Task details updated',
+          details: { note: 'Task details updated' },
+          performed_by: input.updated_by,
         },
       });
 
@@ -376,14 +380,18 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
         data: updateData,
       });
 
-      await tx.task_history.create({
+      await tx.activity_logs.create({
         data: {
-          task_id: taskId,
-          event_type: eventType,
-          actor_id: input.actor_emp_id,
-          from_stage: fromStage,
-          to_stage: toStage,
-          note: input.hold_reason || input.note || null,
+          entity_type: 'TASK',
+          entity_id: taskId,
+          event: eventType,
+          summary: input.hold_reason || input.note || `Stage changed to ${toStage}`,
+          details: {
+            from_stage: fromStage,
+            to_stage: toStage,
+            note: input.hold_reason || input.note || null,
+          },
+          performed_by: input.actor_emp_id,
         },
       });
 
@@ -424,14 +432,17 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
                   updated_at: new Date(),
                 },
               });
-              await tx.task_history.create({
+              await tx.activity_logs.create({
                 data: {
-                  task_id: existing.parent_task_id,
-                  event_type: 'approved',
-                  actor_id: input.actor_emp_id,
-                  from_stage: parent.stage,
-                  to_stage: 'completed',
-                  note: 'All sub tasks approved. Main task approved automatically.',
+                  entity_type: 'TASK',
+                  entity_id: existing.parent_task_id,
+                  event: 'approved',
+                  summary: 'All sub tasks approved. Main task approved automatically.',
+                  details: {
+                    from_stage: parent.stage,
+                    to_stage: 'completed',
+                  },
+                  performed_by: input.actor_emp_id,
                 },
               });
 
@@ -458,14 +469,18 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
                   updated_at: new Date(),
                 },
               });
-              await tx.task_history.create({
+              await tx.activity_logs.create({
                 data: {
-                  task_id: existing.parent_task_id,
-                  event_type: 'stage_changed',
-                  actor_id: input.actor_emp_id,
-                  from_stage: parent.stage,
-                  to_stage: 'hold',
-                  note: holdReason,
+                  entity_type: 'TASK',
+                  entity_id: existing.parent_task_id,
+                  event: 'stage_changed',
+                  summary: holdReason,
+                  details: {
+                    from_stage: parent.stage,
+                    to_stage: 'hold',
+                    note: holdReason,
+                  },
+                  performed_by: input.actor_emp_id,
                 },
               });
             }
@@ -481,14 +496,17 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
                   updated_at: new Date(),
                 },
               });
-              await tx.task_history.create({
+              await tx.activity_logs.create({
                 data: {
-                  task_id: existing.parent_task_id,
-                  event_type: 'stage_changed',
-                  actor_id: input.actor_emp_id,
-                  from_stage: 'assigned',
-                  to_stage: 'in_progress',
-                  note: `Sub-task ${existing.task_code || `#${taskId}`} started.`,
+                  entity_type: 'TASK',
+                  entity_id: existing.parent_task_id,
+                  event: 'stage_changed',
+                  summary: `Sub-task ${existing.task_code || `#${taskId}`} started.`,
+                  details: {
+                    from_stage: 'assigned',
+                    to_stage: 'in_progress',
+                  },
+                  performed_by: input.actor_emp_id,
                 },
               });
             } else if (parent.stage === 'hold') {
@@ -511,14 +529,17 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
                     updated_at: new Date(),
                   },
                 });
-                await tx.task_history.create({
+                await tx.activity_logs.create({
                   data: {
-                    task_id: existing.parent_task_id,
-                    event_type: 'stage_changed',
-                    actor_id: input.actor_emp_id,
-                    from_stage: 'hold',
-                    to_stage: 'in_progress',
-                    note: `Sub-task ${existing.task_code || `#${taskId}`} resumed.`,
+                    entity_type: 'TASK',
+                    entity_id: existing.parent_task_id,
+                    event: 'stage_changed',
+                    summary: `Sub-task ${existing.task_code || `#${taskId}`} resumed.`,
+                    details: {
+                      from_stage: 'hold',
+                      to_stage: 'in_progress',
+                    },
+                    performed_by: input.actor_emp_id,
                   },
                 });
               }
@@ -543,14 +564,17 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
                   updated_at: new Date(),
                 },
               });
-              await tx.task_history.create({
+              await tx.activity_logs.create({
                 data: {
-                  task_id: existing.parent_task_id,
-                  event_type: 'requested',
-                  actor_id: input.actor_emp_id,
-                  from_stage: 'in_progress',
-                  to_stage: 'requested',
-                  note: 'All sub-tasks submitted for approval.',
+                  entity_type: 'TASK',
+                  entity_id: existing.parent_task_id,
+                  event: 'requested',
+                  summary: 'All sub-tasks submitted for approval.',
+                  details: {
+                    from_stage: 'in_progress',
+                    to_stage: 'requested',
+                  },
+                  performed_by: input.actor_emp_id,
                 },
               });
             }
@@ -699,14 +723,17 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
           data: updateData,
         });
 
-        await tx.task_history.create({
+        await tx.activity_logs.create({
           data: {
-            task_id: taskId,
-            event_type: existing.stage === 'assigned' ? 'stage_changed' : 'edited',
-            actor_id: input.actor_emp_id,
-            from_stage: existing.stage,
-            to_stage: existing.stage === 'assigned' ? 'in_progress' : existing.stage,
-            note: existing.started_at ? 'Work session resumed' : 'Work started',
+            entity_type: 'TASK',
+            entity_id: taskId,
+            event: existing.stage === 'assigned' ? 'stage_changed' : 'edited',
+            summary: existing.started_at ? 'Work session resumed' : 'Work started',
+            details: {
+              from_stage: existing.stage,
+              to_stage: existing.stage === 'assigned' ? 'in_progress' : existing.stage,
+            },
+            performed_by: input.actor_emp_id,
           },
         });
 
@@ -724,14 +751,17 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
                 updated_at: now,
               },
             });
-            await tx.task_history.create({
+            await tx.activity_logs.create({
               data: {
-                task_id: existing.parent_task_id,
-                event_type: 'stage_changed',
-                actor_id: input.actor_emp_id,
-                from_stage: 'assigned',
-                to_stage: 'in_progress',
-                note: `Sub-task ${existing.task_code || `#${taskId}`} started work.`,
+                entity_type: 'TASK',
+                entity_id: existing.parent_task_id,
+                event: 'stage_changed',
+                summary: `Sub-task ${existing.task_code || `#${taskId}`} started work.`,
+                details: {
+                  from_stage: 'assigned',
+                  to_stage: 'in_progress',
+                },
+                performed_by: input.actor_emp_id,
               },
             });
           }
@@ -765,12 +795,16 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
           data: updateData,
         });
 
-        await tx.task_history.create({
+        await tx.activity_logs.create({
           data: {
-            task_id: taskId,
-            event_type: 'edited',
-            actor_id: input.actor_emp_id,
-            note: `Work session paused (${Math.floor(elapsedSeconds / 60)}m ${elapsedSeconds % 60}s elapsed)`,
+            entity_type: 'TASK',
+            entity_id: taskId,
+            event: 'edited',
+            summary: `Work session paused (${Math.floor(elapsedSeconds / 60)}m ${elapsedSeconds % 60}s elapsed)`,
+            details: {
+              note: `Work session paused (${Math.floor(elapsedSeconds / 60)}m ${elapsedSeconds % 60}s elapsed)`,
+            },
+            performed_by: input.actor_emp_id,
           },
         });
       } else if (input.action === 'finish') {
@@ -804,14 +838,18 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
           data: updateData,
         });
 
-        await tx.task_history.create({
+        await tx.activity_logs.create({
           data: {
-            task_id: taskId,
-            event_type: 'requested',
-            actor_id: input.actor_emp_id,
-            from_stage: existing.stage,
-            to_stage: 'requested',
-            note: input.note || 'Work finished and submitted for approval',
+            entity_type: 'TASK',
+            entity_id: taskId,
+            event: 'requested',
+            summary: input.note || 'Work finished and submitted for approval',
+            details: {
+              from_stage: existing.stage,
+              to_stage: 'requested',
+              note: input.note || null,
+            },
+            performed_by: input.actor_emp_id,
           },
         });
 
@@ -833,14 +871,17 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
                 updated_at: now,
               },
             });
-            await tx.task_history.create({
+            await tx.activity_logs.create({
               data: {
-                task_id: existing.parent_task_id,
-                event_type: 'requested',
-                actor_id: input.actor_emp_id,
-                from_stage: 'in_progress',
-                to_stage: 'requested',
-                note: 'All sub-tasks finished and submitted for approval.',
+                entity_type: 'TASK',
+                entity_id: existing.parent_task_id,
+                event: 'requested',
+                summary: 'All sub-tasks finished and submitted for approval.',
+                details: {
+                  from_stage: 'in_progress',
+                  to_stage: 'requested',
+                },
+                performed_by: input.actor_emp_id,
               },
             });
           }
@@ -891,24 +932,27 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
   }
 
   async getHistory(taskId: number): Promise<TaskHistoryEntity[]> {
-    const rows = await this.prisma.task_history.findMany({
-      where: { task_id: taskId },
+    const rows = await this.prisma.activity_logs.findMany({
+      where: { entity_type: 'TASK', entity_id: taskId },
       include: { employees: true },
-      orderBy: { history_id: 'desc' },
+      orderBy: { log_id: 'desc' },
     });
 
-    return rows.map((r: any) => ({
-      history_id: r.history_id.toString(),
-      task_id: r.task_id,
-      event_type: r.event_type as any,
-      actor_id: r.actor_id,
-      actor_name: r.employees?.name ?? null,
-      from_stage: r.from_stage as any,
-      to_stage: r.to_stage as any,
-      note: r.note,
-      changes: r.changes as any,
-      created_at: r.created_at,
-    }));
+    return rows.map((r: any) => {
+      const details = (r.details as any) || {};
+      return {
+        history_id: r.log_id.toString(),
+        task_id: r.entity_id,
+        event_type: r.event as any,
+        actor_id: r.performed_by,
+        actor_name: r.employees?.name ?? null,
+        from_stage: details.from_stage ?? null,
+        to_stage: details.to_stage ?? null,
+        note: details.note ?? r.summary ?? null,
+        changes: details.changes ?? null,
+        created_at: r.performed_at,
+      };
+    });
   }
 
   async getTaskHistory(taskId: number): Promise<TaskHistoryEntity[]> {

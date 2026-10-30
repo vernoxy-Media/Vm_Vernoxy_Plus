@@ -74,8 +74,8 @@ export class PayrollService {
     for (const [key, val] of Object.entries(dto)) {
       if (val !== undefined && current[key] !== val) {
         await this.prisma.$executeRaw`
-          INSERT INTO payroll_settings_history (settings_id, field_name, old_value, new_value, performed_by)
-          VALUES (${current.settings_id}, ${key}, ${String(current[key])}, ${String(val)}, ${adminId});
+          INSERT INTO settings_change_log (module, entity_type, entity_id, field_name, old_value, new_value, changed_by)
+          VALUES ('PAYROLL', 'PAYROLL_SETTINGS', ${current.settings_id}, ${key}, ${String(current[key])}, ${String(val)}, ${adminId});
         `;
       }
     }

@@ -16,8 +16,13 @@ export class PrismaCandidateRepository implements ICandidateRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async getNextCandidateCode(): Promise<string> {
-    const counter = await this.prisma.candidate_counters.findUnique({
-      where: { counter_name: 'candidate_code' },
+    const counter = await this.prisma.entity_counters.findUnique({
+      where: {
+        entity_type_counter_key: {
+          entity_type: 'CANDIDATE',
+          counter_key: 'candidate_code',
+        },
+      },
     });
     const nextNum = (counter?.last_number || 0) + 1;
     return `CAN-${String(nextNum).padStart(4, '0')}`;
@@ -29,10 +34,15 @@ export class PrismaCandidateRepository implements ICandidateRepository {
     return this.prisma.$transaction(
       async (tx) => {
         // Increment atomic counter
-        const counter = await tx.candidate_counters.upsert({
-          where: { counter_name: 'candidate_code' },
+        const counter = await tx.entity_counters.upsert({
+          where: {
+            entity_type_counter_key: {
+              entity_type: 'CANDIDATE',
+              counter_key: 'candidate_code',
+            },
+          },
           update: { last_number: { increment: 1 } },
-          create: { counter_name: 'candidate_code', last_number: 1 },
+          create: { entity_type: 'CANDIDATE', counter_key: 'candidate_code', last_number: 1 },
         });
 
         const code = `CAN-${String(counter.last_number).padStart(4, '0')}`;
