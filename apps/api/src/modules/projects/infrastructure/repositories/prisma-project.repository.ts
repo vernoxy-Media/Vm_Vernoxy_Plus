@@ -124,6 +124,7 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
       tech_frontend: p.tech_frontend,
       tech_backend: p.tech_backend,
       tech_cloud: p.tech_cloud,
+      description: p.description,
       members,
       deployment,
       credentials,
@@ -172,6 +173,7 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
           tech_frontend: input.tech_frontend?.trim() || null,
           tech_backend: input.tech_backend?.trim() || null,
           tech_cloud: input.tech_cloud?.trim() || null,
+          description: input.description?.trim() || null,
           created_by: input.created_by,
         },
       });
@@ -458,6 +460,9 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
         roles_employees_role_idToroles: {
           select: { role_name: true },
         },
+        departments_employees_dep_idTodepartments: {
+          select: { name: true },
+        },
       },
       orderBy: { name: 'asc' },
     });
@@ -468,6 +473,7 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
       email: r.email,
       profile_picture: r.profile_picture,
       role_name: r.roles_employees_role_idToroles?.role_name ?? null,
+      department_name: r.departments_employees_dep_idTodepartments?.name ?? null,
     }));
   }
 
@@ -777,6 +783,7 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
       if (input.tech_frontend !== undefined) dataToUpdate.tech_frontend = input.tech_frontend?.trim() || null;
       if (input.tech_backend !== undefined) dataToUpdate.tech_backend = input.tech_backend?.trim() || null;
       if (input.tech_cloud !== undefined) dataToUpdate.tech_cloud = input.tech_cloud?.trim() || null;
+      if (input.description !== undefined) dataToUpdate.description = input.description?.trim() || null;
 
       if (Object.keys(dataToUpdate).length > 0) {
         await tx.projects.update({

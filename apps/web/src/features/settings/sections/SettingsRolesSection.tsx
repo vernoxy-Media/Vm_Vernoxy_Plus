@@ -159,18 +159,18 @@ export const SettingsRolesSection: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Section Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-100">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-200">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 tracking-tight">Roles</h2>
+          <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">Designations</h2>
         </div>
         <button
           type="button"
           id="add-role-button"
           onClick={handleOpenCreate}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 transition-colors focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 shrink-0"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-xs font-bold text-white shadow-xs hover:bg-blue-700 transition-colors focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 shrink-0 cursor-pointer"
         >
-          <Plus className="w-4 h-4" />
-          Add Role
+          <Plus className="w-4 h-4 stroke-[2.5]" />
+          Add Designation
         </button>
       </div>
 
@@ -187,7 +187,7 @@ export const SettingsRolesSection: React.FC = () => {
 
       {/* Filters and Search Bar (stitched / sticky to top) */}
       <div className="sticky top-16 lg:top-0 z-20 bg-[#f4f6fa]/95 backdrop-blur-xs py-1">
-        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-white p-3 rounded-xl border border-slate-300 shadow-xs">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1">
           <div className="relative flex-1">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -199,8 +199,8 @@ export const SettingsRolesSection: React.FC = () => {
                 setSearch(e.target.value);
                 setCursor(undefined);
               }}
-              placeholder="Search roles by title..."
-              className="w-full pl-10 pr-4 py-2 rounded-lg text-xs border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all"
+              placeholder="Search designations by title..."
+              className="w-full pl-10 pr-4 py-2 rounded-lg text-sm border border-slate-300 bg-white text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all shadow-2xs"
             />
           </div>
 
@@ -214,7 +214,7 @@ export const SettingsRolesSection: React.FC = () => {
                 setSelectedDepId(val);
                 setCursor(undefined);
               }}
-              className="w-full sm:w-auto appearance-none pl-3.5 pr-8 py-2 rounded-lg text-xs border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all font-medium text-slate-700"
+              className="w-full sm:w-auto appearance-none pl-3.5 pr-8 py-2 rounded-lg text-sm border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all font-bold text-slate-800 shadow-2xs cursor-pointer"
             >
               <option value="">All Departments</option>
               {selectedDepId && !deptOptions?.some((d) => d.dep_id === selectedDepId) && (
@@ -226,11 +226,11 @@ export const SettingsRolesSection: React.FC = () => {
                 </option>
               ))}
             </select>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <ChevronDown className="w-4 h-4 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none stroke-[2]" />
           </div>
         </div>
 
-        <div className="flex items-center gap-1 p-1 bg-white rounded-lg border border-slate-200 text-xs font-medium self-start md:self-auto">
+        <div className="flex items-center gap-1 p-1 bg-white rounded-lg border border-slate-300 text-xs font-bold self-start md:self-auto shadow-2xs">
           <button
             type="button"
             id="filter-role-all"
@@ -238,10 +238,10 @@ export const SettingsRolesSection: React.FC = () => {
               setStatusFilter(undefined);
               setCursor(undefined);
             }}
-            className={`px-2.5 py-1 rounded-md transition-all ${
+            className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
               statusFilter === undefined
-                ? 'bg-blue-50 text-blue-700 font-semibold'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-blue-600 text-white font-bold'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
             }`}
           >
             All
@@ -253,10 +253,10 @@ export const SettingsRolesSection: React.FC = () => {
               setStatusFilter(true);
               setCursor(undefined);
             }}
-            className={`px-2.5 py-1 rounded-md transition-all ${
+            className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
               statusFilter === true
-                ? 'bg-emerald-50 text-emerald-700 font-semibold'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-emerald-600 text-white font-bold'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
             }`}
           >
             Active
@@ -268,10 +268,10 @@ export const SettingsRolesSection: React.FC = () => {
               setStatusFilter(false);
               setCursor(undefined);
             }}
-            className={`px-2.5 py-1 rounded-md transition-all ${
+            className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
               statusFilter === false
-                ? 'bg-slate-100 text-slate-900 font-semibold'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-slate-700 text-white font-bold'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
             }`}
           >
             Inactive
@@ -281,7 +281,7 @@ export const SettingsRolesSection: React.FC = () => {
     </div>
 
       {/* Roles Table */}
-      <div className="rounded-xl border border-slate-200 overflow-hidden bg-white">
+      <div className="rounded-xl border border-slate-300 overflow-hidden bg-white shadow-xs">
         {isLoading ? (
           <div className="py-16 flex flex-col items-center justify-center gap-3">
             <Loader2 className="w-7 h-7 text-blue-600 animate-spin" />
@@ -304,9 +304,9 @@ export const SettingsRolesSection: React.FC = () => {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-360px)] min-h-[350px]">
+          <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-360px)] min-h-[350px] custom-scrollbar">
             <table className="w-full text-left text-xs relative" id="roles-table">
-              <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider shadow-2xs">
+              <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-300 text-xs sm:text-[13px] font-extrabold text-slate-900 uppercase tracking-wide shadow-2xs">
                 <tr>
                   <th className="py-3 px-5">ID</th>
                   <th className="py-3 px-5">Role Name</th>

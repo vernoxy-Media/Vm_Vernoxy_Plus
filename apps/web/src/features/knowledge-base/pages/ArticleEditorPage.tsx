@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth/context/AuthContext';
+import { SearchableSelect } from '@/shared/ui/SearchableSelect';
 import {
   useKbArticleDetailQuery,
   useCreateKbArticleMutation,
   useUpdateKbDraftMutation,
   useSubmitKbArticleMutation,
   useDirectPublishMutation,
+  useKbAccessQuery,
 } from '../hooks/use-kb-articles';
 import { useKbCategoriesQuery } from '../hooks/use-kb-settings';
 import {
@@ -56,10 +58,19 @@ export const ArticleEditorPage: React.FC = () => {
   const { data: existingArticle } = useKbArticleDetailQuery(
     identifier || '',
   );
+  const { data: access } = useKbAccessQuery();
+  const canAccessClient = Boolean(access?.can_access_client);
 
   // Form State
   const [space, setSpace] = useState<'INTERNAL' | 'CLIENT'>('INTERNAL');
   const [categoryId, setCategoryId] = useState<number | ''>('');
+
+  useEffect(() => {
+    if (!isEdit && space === 'CLIENT' && access && !canAccessClient) {
+      setSpace('INTERNAL');
+      setCategoryId('');
+    }
+  }, [space, access, canAccessClient, isEdit]);
   const [title, setTitle] = useState('');
   const [summary, setSummary] = useState('');
   const [contentType, setContentType] = useState<'WRITTEN' | 'DOCUMENT' | 'VIDEO'>('WRITTEN');
@@ -161,8 +172,8 @@ export const ArticleEditorPage: React.FC = () => {
   };
 
   // Category auto-fill logic (BFD Marker 3)
-  const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const val = Number(e.target.value);
+  const handleCategoryChange = (value: number | string) => {
+    const val = Number(value);
     setCategoryId(val);
     const cat = categories?.find((c) => c.category_id === val);
     if (cat) {
@@ -895,24 +906,26 @@ export const ArticleEditorPage: React.FC = () => {
                   </span>
                 </button>
 
-                <button
-                  type="button"
-                  disabled={isEdit}
-                  onClick={() => handleSpaceChange('CLIENT')}
-                  className={`p-2.5 rounded-xl border text-left transition-all ${
-                    space === 'CLIENT'
-                      ? 'border-blue-600 bg-blue-50/70 text-blue-900 ring-2 ring-blue-500/20'
-                      : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <Globe className="w-3.5 h-3.5 text-blue-600" />
-                    <span className="text-xs font-bold">Client</span>
-                  </div>
-                  <span className="text-[10px] text-slate-500 block leading-tight">
-                    For clients & partners
-                  </span>
-                </button>
+                {canAccessClient && (
+                  <button
+                    type="button"
+                    disabled={isEdit}
+                    onClick={() => handleSpaceChange('CLIENT')}
+                    className={`p-2.5 rounded-xl border text-left transition-all ${
+                      space === 'CLIENT'
+                        ? 'border-blue-600 bg-blue-50/70 text-blue-900 ring-2 ring-blue-500/20'
+                        : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <Globe className="w-3.5 h-3.5 text-blue-600" />
+                      <span className="text-xs font-bold">Client</span>
+                    </div>
+                    <span className="text-[10px] text-slate-500 block leading-tight">
+                      For clients & partners
+                    </span>
+                  </button>
+                )}
               </div>
               {isEdit && (
                 <span className="text-[10px] text-slate-400 mt-1 block">
@@ -926,18 +939,17 @@ export const ArticleEditorPage: React.FC = () => {
               <label className="block text-xs font-semibold text-slate-700 mb-1">
                 Category <span className="text-rose-500">*</span>
               </label>
-              <select
+              <SearchableSelect
+                placeholder="Select Category..."
+                searchPlaceholder="Search category..."
                 value={categoryId}
                 onChange={handleCategoryChange}
-                className="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500 bg-white"
-              >
-                <option value="">Select Category...</option>
-                {categories?.map((cat) => (
-                  <option key={cat.category_id} value={cat.category_id}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
+                options={(categories || []).map((cat) => ({
+                  value: cat.category_id,
+                  label: cat.name,
+                  sublabel: cat.space ? `${cat.space} Space` : undefined,
+                }))}
+              />
             </div>
 
             {/* Owner */}
@@ -945,18 +957,17 @@ export const ArticleEditorPage: React.FC = () => {
               <label className="block text-xs font-semibold text-slate-700 mb-1">
                 Article Owner <span className="text-rose-500">*</span>
               </label>
-              <select
+              <SearchableSelect
+                placeholder="Select Responsible Owner..."
+                searchPlaceholder="Search owner by name or email..."
                 value={ownerEmpId}
-                onChange={(e) => setOwnerEmpId(Number(e.target.value))}
-                className="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500 bg-white"
-              >
-                <option value="">Select Responsible Owner...</option>
-                {employeeOptions?.map((emp) => (
-                  <option key={emp.emp_id} value={emp.emp_id}>
-                    {emp.name} ({emp.email})
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setOwnerEmpId(val === '' ? '' : Number(val))}
+                options={(employeeOptions || []).map((emp) => ({
+                  value: emp.emp_id,
+                  label: emp.name,
+                  sublabel: emp.email,
+                }))}
+              />
               <span className="text-[10px] text-slate-400 mt-1 block">
                 Responsible for article accuracy and periodic review.
               </span>
@@ -1021,19 +1032,19 @@ export const ArticleEditorPage: React.FC = () => {
               <label className="block text-xs font-semibold text-slate-700 mb-1">
                 Review Cycle Schedule
               </label>
-              <select
+              <SearchableSelect
+                placeholder="No Scheduled Review"
+                searchPlaceholder="Search review frequency..."
                 value={reviewCycleMonths}
-                onChange={(e) =>
-                  setReviewCycleMonths(e.target.value === '' ? '' : Number(e.target.value))
-                }
-                className="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500 bg-white"
-              >
-                <option value="">No Scheduled Review</option>
-                <option value={3}>Every 3 Months</option>
-                <option value={6}>Every 6 Months</option>
-                <option value={12}>Every 12 Months (1 Year)</option>
-                <option value={24}>Every 24 Months (2 Years)</option>
-              </select>
+                onChange={(val) => setReviewCycleMonths(val === '' ? '' : Number(val))}
+                options={[
+                  { value: '', label: 'No Scheduled Review' },
+                  { value: 3, label: 'Every 3 Months' },
+                  { value: 6, label: 'Every 6 Months' },
+                  { value: 12, label: 'Every 12 Months (1 Year)' },
+                  { value: 24, label: 'Every 24 Months (2 Years)' },
+                ]}
+              />
             </div>
           </div>
 

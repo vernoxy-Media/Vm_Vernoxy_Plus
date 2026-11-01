@@ -90,7 +90,7 @@ export class AttendanceController {
     private readonly appSettingsRepo: AppSettingsRepository,
   ) {}
 
-  @Post('check-in')
+  @Post(['check-in', 'me/punch-in'])
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Punch in for today' })
   @ApiResponse({ status: 200, type: TodayAttendanceBlockDto })
@@ -103,7 +103,7 @@ export class AttendanceController {
     }
   }
 
-  @Post('check-out')
+  @Post(['check-out', 'me/punch-out'])
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Punch out for today' })
   @ApiResponse({ status: 200, type: TodayAttendanceBlockDto })

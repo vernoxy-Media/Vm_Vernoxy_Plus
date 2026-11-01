@@ -48,14 +48,6 @@ export const CreateBugModal: React.FC<CreateBugModalProps> = ({
       setError('Bug description is required');
       return;
     }
-    if (!stepsToReproduce.trim()) {
-      setError('Steps to reproduce are required');
-      return;
-    }
-    if (!expectedResult.trim() || !actualResult.trim()) {
-      setError('Expected and actual results are required');
-      return;
-    }
     if (!assignedTo) {
       setError('Please assign the bug to a project team member');
       return;
@@ -66,9 +58,9 @@ export const CreateBugModal: React.FC<CreateBugModalProps> = ({
       await onSubmit({
         title: title.trim(),
         description: description.trim(),
-        steps_to_reproduce: stepsToReproduce.trim(),
-        expected_result: expectedResult.trim(),
-        actual_result: actualResult.trim(),
+        steps_to_reproduce: stepsToReproduce.trim() || 'See description',
+        expected_result: expectedResult.trim() || 'Work as expected',
+        actual_result: actualResult.trim() || 'Defect observed',
         assigned_to: Number(assignedTo),
         priority,
         bug_type: bugType,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Users,
@@ -17,6 +17,9 @@ import {
   Clock,
   Sparkles,
   Lock,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
 } from 'lucide-react';
 import { AdminLayout } from '@/shared/layouts/AdminLayout';
 import {
@@ -28,6 +31,7 @@ import { useRoleOptionsQuery } from '@/features/organization/hooks/use-organizat
 import { useLookupsQuery } from '@/features/organization/hooks/use-master-data';
 import { CandidateDecisionModal } from '../components/CandidateDecisionModal';
 import { ConvertCandidateToEmployeeModal } from '../components/ConvertCandidateToEmployeeModal';
+import { AddCandidateModal } from '../components/AddCandidateModal';
 
 const AVATAR_COLORS = [
   'bg-amber-600',
@@ -94,8 +98,19 @@ export const CandidatesPage: React.FC = () => {
   const [roleFilter, setRoleFilter] = useState<number | undefined>(undefined);
   const [sourceFilter, setSourceFilter] = useState<string>('');
   const [stageFilter, setStageFilter] = useState<string>('Open');
+  const [sortField, setSortField] = useState<'candidate' | 'experience' | 'applied_date'>('applied_date');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
+
+  const handleToggleSort = (field: 'candidate' | 'experience' | 'applied_date') => {
+    if (sortField === field) {
+      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortDirection(field === 'applied_date' ? 'desc' : 'asc');
+    }
+  };
 
   // Stage Dropdown & Decision Modal state
   const [activeStageMenuCandidateId, setActiveStageMenuCandidateId] = useState<number | null>(null);
@@ -103,6 +118,7 @@ export const CandidatesPage: React.FC = () => {
   const [decisionInitialStage, setDecisionInitialStage] = useState<'selected' | 'on_hold' | 'rejected'>('selected');
   const [isDecisionModalOpen, setIsDecisionModalOpen] = useState(false);
   const [convertCandidate, setConvertCandidate] = useState<CandidateItem | null>(null);
+  const [isAddCandidateModalOpen, setIsAddCandidateModalOpen] = useState(false);
 
   // Close floating stage menu on click outside
   useEffect(() => {
@@ -164,6 +180,29 @@ export const CandidatesPage: React.FC = () => {
   };
   const totalPages = Math.ceil(totalCount / pageSize) || 1;
 
+  const sortedCandidates = useMemo(() => {
+    const list = [...candidates];
+    if (sortField === 'candidate') {
+      list.sort((a, b) => {
+        const res = (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' });
+        return sortDirection === 'asc' ? res : -res;
+      });
+    } else if (sortField === 'experience') {
+      list.sort((a, b) => {
+        const expA = (a.exp_years || 0) * 12 + (a.exp_months || 0);
+        const expB = (b.exp_years || 0) * 12 + (b.exp_months || 0);
+        return sortDirection === 'asc' ? expA - expB : expB - expA;
+      });
+    } else if (sortField === 'applied_date') {
+      list.sort((a, b) => {
+        const da = new Date(a.created_at || 0).getTime();
+        const db = new Date(b.created_at || 0).getTime();
+        return sortDirection === 'asc' ? da - db : db - da;
+      });
+    }
+    return list;
+  }, [candidates, sortField, sortDirection]);
+
   const hasActiveFilters = Boolean(
     searchTerm.trim() || roleFilter !== undefined || sourceFilter || stageFilter !== 'Open',
   );
@@ -194,82 +233,127 @@ export const CandidatesPage: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <Link
-              to="/admin/recruitment/new"
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 transition shadow-sm shadow-blue-500/20 text-sm"
+            <button
+              type="button"
+              onClick={() => setIsAddCandidateModalOpen(true)}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 transition shadow-sm shadow-blue-500/20 text-sm cursor-pointer"
               id="add-candidate-btn"
             >
               <Plus className="w-4 h-4" />
               <span>Add Candidate</span>
-            </Link>
+            </button>
           </div>
         </div>
 
-        {/* 4 KPI Summary Cards matching Reference Screen 1 */}
+        {/* 4 KPI Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Total Candidates */}
-          <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Candidates</p>
-              <h3 className="text-2xl font-bold text-slate-900 mt-1">{stats.total}</h3>
-              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 mt-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-                In recruitment database
-              </span>
+          <div
+            onClick={() => {
+              setStageFilter(stageFilter === 'All' ? 'Open' : 'All');
+              setCurrentPage(1);
+            }}
+            className={`bg-white rounded-2xl p-5 border shadow-2xs flex items-center justify-between gap-4 cursor-pointer transition-all hover:border-slate-400 ${
+              stageFilter === 'All'
+                ? 'border-blue-500 bg-blue-50/15 ring-2 ring-blue-500/10'
+                : 'border-slate-300'
+            }`}
+            title="Click to view all candidates"
+          >
+            <div className="space-y-1 min-w-0">
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Candidates</p>
+              <h3 className="text-2xl font-extrabold text-slate-900 leading-tight">{stats.total}</h3>
+              <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500 pt-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-400 shrink-0"></span>
+                <span className="truncate">In recruitment database</span>
+              </div>
             </div>
-            <div className="w-12 h-12 rounded-xl bg-slate-50 text-slate-600 flex items-center justify-center">
-              <Users className="w-6 h-6" />
+            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100/80 shadow-2xs">
+              <Users className="w-6 h-6 stroke-[2]" />
             </div>
           </div>
 
           {/* Interviewing */}
-          <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-amber-700 uppercase tracking-wider">Interviewing</p>
-              <h3 className="text-2xl font-bold text-amber-600 mt-1">{stats.interviewing}</h3>
-              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-600 mt-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                Active rounds
-              </span>
+          <div
+            onClick={() => {
+              setStageFilter(stageFilter === 'interviewing' ? 'Open' : 'interviewing');
+              setCurrentPage(1);
+            }}
+            className={`bg-white rounded-2xl p-5 border shadow-2xs flex items-center justify-between gap-4 cursor-pointer transition-all hover:border-slate-400 ${
+              stageFilter === 'interviewing'
+                ? 'border-amber-500 bg-amber-50/15 ring-2 ring-amber-500/10'
+                : 'border-slate-300'
+            }`}
+            title="Click to filter by interviewing"
+          >
+            <div className="space-y-1 min-w-0">
+              <p className="text-xs font-bold text-amber-700 uppercase tracking-wider">Interviewing</p>
+              <h3 className="text-2xl font-extrabold text-amber-600 leading-tight">{stats.interviewing}</h3>
+              <div className="flex items-center gap-1.5 text-[11px] font-medium text-amber-600 pt-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0"></span>
+                <span className="truncate">Active rounds</span>
+              </div>
             </div>
-            <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-              <Clock className="w-6 h-6" />
+            <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-100/80 shadow-2xs">
+              <Clock className="w-6 h-6 stroke-[2]" />
             </div>
           </div>
 
           {/* Selected */}
-          <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-indigo-700 uppercase tracking-wider">Selected</p>
-              <h3 className="text-2xl font-bold text-indigo-600 mt-1">{stats.selected}</h3>
-              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-indigo-600 mt-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
-                Offer stage
-              </span>
+          <div
+            onClick={() => {
+              setStageFilter(stageFilter === 'selected' ? 'Open' : 'selected');
+              setCurrentPage(1);
+            }}
+            className={`bg-white rounded-2xl p-5 border shadow-2xs flex items-center justify-between gap-4 cursor-pointer transition-all hover:border-slate-400 ${
+              stageFilter === 'selected'
+                ? 'border-indigo-500 bg-indigo-50/15 ring-2 ring-indigo-500/10'
+                : 'border-slate-300'
+            }`}
+            title="Click to filter by selected"
+          >
+            <div className="space-y-1 min-w-0">
+              <p className="text-xs font-bold text-indigo-700 uppercase tracking-wider">Selected</p>
+              <h3 className="text-2xl font-extrabold text-indigo-600 leading-tight">{stats.selected}</h3>
+              <div className="flex items-center gap-1.5 text-[11px] font-medium text-indigo-600 pt-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0"></span>
+                <span className="truncate">Offer stage</span>
+              </div>
             </div>
-            <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-              <Sparkles className="w-6 h-6" />
+            <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 border border-indigo-100/80 shadow-2xs">
+              <Sparkles className="w-6 h-6 stroke-[2]" />
             </div>
           </div>
 
           {/* Onboarding */}
-          <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-emerald-700 uppercase tracking-wider">Onboarding</p>
-              <h3 className="text-2xl font-bold text-emerald-600 mt-1">{stats.onboarding}</h3>
-              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 mt-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                Joining soon
-              </span>
+          <div
+            onClick={() => {
+              setStageFilter(stageFilter === 'onboarding' ? 'Open' : 'onboarding');
+              setCurrentPage(1);
+            }}
+            className={`bg-white rounded-2xl p-5 border shadow-2xs flex items-center justify-between gap-4 cursor-pointer transition-all hover:border-slate-400 ${
+              stageFilter === 'onboarding'
+                ? 'border-emerald-500 bg-emerald-50/15 ring-2 ring-emerald-500/10'
+                : 'border-slate-300'
+            }`}
+            title="Click to filter by onboarding"
+          >
+            <div className="space-y-1 min-w-0">
+              <p className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Onboarding</p>
+              <h3 className="text-2xl font-extrabold text-emerald-600 leading-tight">{stats.onboarding}</h3>
+              <div className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-600 pt-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                <span className="truncate">Joining soon</span>
+              </div>
             </div>
-            <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-              <UserCheck className="w-6 h-6" />
+            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100/80 shadow-2xs">
+              <UserCheck className="w-6 h-6 stroke-[2]" />
             </div>
           </div>
         </div>
 
         {/* Filters Bar */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs space-y-3">
+        <div className="bg-white rounded-2xl p-4 border border-slate-300 shadow-xs space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-center">
             {/* Search Input */}
             <div className="lg:col-span-4 relative">
@@ -282,7 +366,7 @@ export const CandidatesPage: React.FC = () => {
                   setCurrentPage(1);
                 }}
                 placeholder="Search candidate name, ID, phone, email..."
-                className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-slate-50/50 hover:bg-white transition"
+                className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 bg-white text-slate-900 font-medium transition shadow-2xs"
               />
             </div>
 
@@ -294,7 +378,7 @@ export const CandidatesPage: React.FC = () => {
                   setRoleFilter(e.target.value ? parseInt(e.target.value, 10) : undefined);
                   setCurrentPage(1);
                 }}
-                className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white"
+                className="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 bg-white text-slate-900 font-bold shadow-2xs cursor-pointer"
               >
                 <option value="">All Positions</option>
                 {roles.map((r: any) => (
@@ -313,7 +397,7 @@ export const CandidatesPage: React.FC = () => {
                   setSourceFilter(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white"
+                className="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 bg-white text-slate-900 font-bold shadow-2xs cursor-pointer"
               >
                 <option value="">All Sources</option>
                 {sources.map((s: any) => (
@@ -332,7 +416,7 @@ export const CandidatesPage: React.FC = () => {
                   setStageFilter(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white"
+                className="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 bg-white text-slate-900 font-bold shadow-2xs cursor-pointer"
               >
                 <option value="Open">Stage: Open</option>
                 <option value="All">Stage: All</option>
@@ -364,7 +448,7 @@ export const CandidatesPage: React.FC = () => {
         </div>
 
         {/* Candidate Table */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+        <div className="bg-white rounded-2xl border border-slate-300 shadow-xs overflow-hidden flex flex-col">
           {isLoading ? (
             <div className="p-12 text-center text-slate-400 flex flex-col items-center justify-center gap-3">
               <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
@@ -387,7 +471,7 @@ export const CandidatesPage: React.FC = () => {
               <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400">
                 <Users className="w-7 h-7" />
               </div>
-              <h3 className="text-base font-semibold text-slate-800">No candidates found</h3>
+              <h3 className="text-base font-semibold text-slate-800">No candidates match your search</h3>
               <p className="text-sm text-slate-500 max-w-sm">
                 {hasActiveFilters
                   ? 'No candidates match your current filter criteria. Try clearing filters.'
@@ -396,10 +480,11 @@ export const CandidatesPage: React.FC = () => {
               {hasActiveFilters ? (
                 <button
                   type="button"
+                  id="empty-clear-filters-link"
                   onClick={resetFilters}
-                  className="mt-2 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl transition"
+                  className="mt-2 text-sm font-semibold text-blue-600 hover:text-blue-700 hover:underline cursor-pointer"
                 >
-                  Clear Filters
+                  Clear filters
                 </button>
               ) : (
                 <Link
@@ -412,22 +497,73 @@ export const CandidatesPage: React.FC = () => {
               )}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-sm">
-                <thead>
-                  <tr className="bg-slate-50/80 border-b border-slate-200/80 text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                    <th className="py-3 px-4">Candidate</th>
+            <div className="overflow-x-auto overflow-y-auto max-h-[500px] custom-scrollbar">
+              <table className="w-full min-w-[860px] text-left border-collapse text-sm">
+                <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-300 text-xs sm:text-[13px] font-extrabold text-slate-900 uppercase tracking-wide shadow-2xs">
+                  <tr>
+                    <th
+                      onClick={() => handleToggleSort('candidate')}
+                      className="py-3 px-4 cursor-pointer hover:text-blue-600 select-none group"
+                      title="Sort by Candidate Name"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-extrabold text-slate-900 group-hover:text-blue-600">Candidate</span>
+                        {sortField === 'candidate' ? (
+                          sortDirection === 'asc' ? (
+                            <ArrowUp className="w-3.5 h-3.5 text-blue-600 stroke-[2.5]" />
+                          ) : (
+                            <ArrowDown className="w-3.5 h-3.5 text-blue-600 stroke-[2.5]" />
+                          )
+                        ) : (
+                          <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600" />
+                        )}
+                      </div>
+                    </th>
                     <th className="py-3 px-4">Position & Dept</th>
-                    <th className="py-3 px-4">Experience</th>
+                    <th
+                      onClick={() => handleToggleSort('experience')}
+                      className="py-3 px-4 cursor-pointer hover:text-blue-600 select-none group"
+                      title="Sort by Experience"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-extrabold text-slate-900 group-hover:text-blue-600">Experience</span>
+                        {sortField === 'experience' ? (
+                          sortDirection === 'asc' ? (
+                            <ArrowUp className="w-3.5 h-3.5 text-blue-600 stroke-[2.5]" />
+                          ) : (
+                            <ArrowDown className="w-3.5 h-3.5 text-blue-600 stroke-[2.5]" />
+                          )
+                        ) : (
+                          <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600" />
+                        )}
+                      </div>
+                    </th>
                     <th className="py-3 px-4">Contact</th>
                     <th className="py-3 px-4">Source</th>
                     <th className="py-3 px-4">Stage</th>
-                    <th className="py-3 px-4">Applied Date</th>
+                    <th
+                      onClick={() => handleToggleSort('applied_date')}
+                      className="py-3 px-4 cursor-pointer hover:text-blue-600 select-none group"
+                      title="Sort by Applied Date"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-extrabold text-slate-900 group-hover:text-blue-600">Applied Date</span>
+                        {sortField === 'applied_date' ? (
+                          sortDirection === 'asc' ? (
+                            <ArrowUp className="w-3.5 h-3.5 text-blue-600 stroke-[2.5]" />
+                          ) : (
+                            <ArrowDown className="w-3.5 h-3.5 text-blue-600 stroke-[2.5]" />
+                          )
+                        ) : (
+                          <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600" />
+                        )}
+                      </div>
+                    </th>
                     <th className="py-3 px-4 text-right">Resume</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {candidates.map((cand) => {
+                  {sortedCandidates.map((cand) => {
                     const badge = getStageBadge(cand.stage);
                     const isFresher = cand.experience_type === 'fresher';
 
@@ -680,30 +816,33 @@ export const CandidatesPage: React.FC = () => {
 
           {/* Pagination Footer */}
           {totalCount > pageSize && (
-            <div className="p-4 border-t border-slate-200/80 bg-slate-50/50 flex items-center justify-between text-xs text-slate-600">
+            <div className="p-4 border-t border-slate-300 bg-slate-50/80 flex items-center justify-between text-xs text-slate-600">
               <div>
-                Showing {(currentPage - 1) * pageSize + 1} to{' '}
-                {Math.min(currentPage * pageSize, totalCount)} of {totalCount} candidates
+                Showing <strong className="font-bold text-slate-900">{(currentPage - 1) * pageSize + 1}</strong> to{' '}
+                <strong className="font-bold text-slate-900">{Math.min(currentPage * pageSize, totalCount)}</strong> of{' '}
+                <strong className="font-bold text-slate-900">{totalCount}</strong> candidates
               </div>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   disabled={currentPage <= 1}
                   onClick={() => setCurrentPage((p) => p - 1)}
-                  className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none transition"
+                  className="p-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none transition shadow-2xs font-bold"
+                  title="Previous Page"
                 >
-                  <ChevronLeft className="w-4 h-4" />
+                  <ChevronLeft className="w-4 h-4 stroke-[2]" />
                 </button>
-                <span className="font-medium text-slate-700">
+                <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-white border border-slate-300 font-bold text-slate-800 shadow-2xs">
                   Page {currentPage} of {totalPages}
                 </span>
                 <button
                   type="button"
                   disabled={currentPage >= totalPages}
                   onClick={() => setCurrentPage((p) => p + 1)}
-                  className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none transition"
+                  className="p-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none transition shadow-2xs font-bold"
+                  title="Next Page"
                 >
-                  <ChevronRight className="w-4 h-4" />
+                  <ChevronRight className="w-4 h-4 stroke-[2]" />
                 </button>
               </div>
             </div>
@@ -729,6 +868,13 @@ export const CandidatesPage: React.FC = () => {
           setConvertCandidate(null);
           refetch();
         }}
+      />
+
+      {/* Add Candidate Modal */}
+      <AddCandidateModal
+        isOpen={isAddCandidateModalOpen}
+        onClose={() => setIsAddCandidateModalOpen(false)}
+        onSuccess={() => refetch()}
       />
     </AdminLayout>
   );

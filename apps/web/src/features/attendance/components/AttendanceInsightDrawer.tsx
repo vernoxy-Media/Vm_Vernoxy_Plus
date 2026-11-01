@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   Clock,
@@ -291,20 +292,20 @@ export const AttendanceInsightDrawer: React.FC<AttendanceInsightDrawerProps> = (
 
   const isOther = reasonCategory.toLowerCase() === 'other';
 
-  return (
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 overflow-hidden select-none"
+      className="fixed inset-0 z-50 overflow-hidden"
     >
       {/* Backdrop */}
       <div
         onClick={onClose}
-        className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+        className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity animate-in fade-in duration-200 z-50"
       />
 
-      <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
-        <div className="w-screen max-w-md bg-white shadow-2xl flex flex-col justify-between border-l border-slate-200 animate-in slide-in-from-right duration-250">
+      <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10 z-50 pointer-events-none">
+        <div className="w-screen max-w-md h-full bg-white shadow-2xl flex flex-col justify-between border-l border-slate-200 animate-in slide-in-from-right duration-250 pointer-events-auto">
           {/* Top Section / Header matching reference images 2 & 3 */}
           <div className="p-6 border-b border-slate-100 flex items-start justify-between bg-white shrink-0">
             <div>
@@ -688,6 +689,7 @@ export const AttendanceInsightDrawer: React.FC<AttendanceInsightDrawerProps> = (
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };

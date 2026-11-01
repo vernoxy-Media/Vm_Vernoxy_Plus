@@ -400,6 +400,16 @@ model employees {
   payroll_runs_payroll_runs_unlocked_byToemployees                                           payroll_runs[]                    @relation("payroll_runs_unlocked_byToemployees")
   payroll_runs_payroll_runs_updated_byToemployees                                            payroll_runs[]                    @relation("payroll_runs_updated_byToemployees")
   payroll_settings_payroll_settings_updated_byToemployees                                    payroll_settings[]                @relation("payroll_settings_updated_byToemployees")
+  perf_cycles_perf_cycles_created_byToemployees                                              perf_cycles[]                     @relation("perf_cycles_created_byToemployees")
+  perf_cycles_perf_cycles_updated_byToemployees                                              perf_cycles[]                     @relation("perf_cycles_updated_byToemployees")
+  perf_forms_perf_forms_created_byToemployees                                                perf_forms[]                      @relation("perf_forms_created_byToemployees")
+  perf_forms_perf_forms_updated_byToemployees                                                perf_forms[]                      @relation("perf_forms_updated_byToemployees")
+  perf_project_ratings_perf_project_ratings_emp_idToemployees                                perf_project_ratings[]            @relation("perf_project_ratings_emp_idToemployees")
+  perf_project_ratings_perf_project_ratings_project_manager_idToemployees                    perf_project_ratings[]            @relation("perf_project_ratings_project_manager_idToemployees")
+  perf_reviews_perf_reviews_admin_emp_idToemployees                                          perf_reviews[]                    @relation("perf_reviews_admin_emp_idToemployees")
+  perf_reviews_perf_reviews_emp_idToemployees                                                perf_reviews[]                    @relation("perf_reviews_emp_idToemployees")
+  perf_reviews_perf_reviews_manager_emp_idToemployees                                        perf_reviews[]                    @relation("perf_reviews_manager_emp_idToemployees")
+  perf_reviews_perf_reviews_reopened_byToemployees                                           perf_reviews[]                    @relation("perf_reviews_reopened_byToemployees")
   persons_persons_created_byToemployees                                                      persons[]                         @relation("persons_created_byToemployees")
   persons_persons_deleted_byToemployees                                                      persons[]                         @relation("persons_deleted_byToemployees")
   persons_persons_updated_byToemployees                                                      persons[]                         @relation("persons_updated_byToemployees")
@@ -1251,43 +1261,45 @@ model project_sprints {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model projects {
-  project_id                                       Int                   @id(map: "pk_projects") @default(autoincrement())
-  project_no                                       String                @db.VarChar(30)
-  project_name                                     String                @db.VarChar(150)
-  project_type                                     String                @db.VarChar(50)
+  project_id                                       Int                    @id(map: "pk_projects") @default(autoincrement())
+  project_no                                       String                 @db.VarChar(30)
+  project_name                                     String                 @db.VarChar(150)
+  project_type                                     String                 @db.VarChar(50)
   category                                         project_category
-  other_category                                   String?               @db.VarChar(100)
-  project_status                                   project_status        @default(new)
-  start_date                                       DateTime              @db.Date
-  deadline                                         DateTime              @db.Date
-  actual_end_date                                  DateTime?             @db.Date
+  other_category                                   String?                @db.VarChar(100)
+  project_status                                   project_status         @default(new)
+  start_date                                       DateTime               @db.Date
+  deadline                                         DateTime               @db.Date
+  actual_end_date                                  DateTime?              @db.Date
   project_manager_id                               Int
   status_change_reason                             String?
-  client_name                                      String?               @db.VarChar(150)
-  lead_received_date                               DateTime?             @db.Date
-  project_approved_date                            DateTime?             @db.Date
+  client_name                                      String?                @db.VarChar(150)
+  lead_received_date                               DateTime?              @db.Date
+  project_approved_date                            DateTime?              @db.Date
   tech_frontend                                    String?
   tech_backend                                     String?
   tech_cloud                                       String?
-  row_version                                      Int                   @default(1)
-  created_at                                       DateTime              @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  description                                      String?
+  row_version                                      Int                    @default(1)
+  created_at                                       DateTime               @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
   created_by                                       Int?
-  updated_at                                       DateTime?             @db.Timestamptz(6)
+  updated_at                                       DateTime?              @db.Timestamptz(6)
   updated_by                                       Int?
-  deleted_at                                       DateTime?             @db.Timestamptz(6)
+  deleted_at                                       DateTime?              @db.Timestamptz(6)
   deleted_by                                       Int?
   complaints                                       complaints[]
   kb_feedback                                      kb_feedback[]
+  perf_project_ratings                             perf_project_ratings[]
   project_bugs                                     project_bugs[]
   project_credentials                              project_credentials[]
   project_deployments                              project_deployments?
   project_discussions                              project_discussions[]
   project_members                                  project_members[]
   project_sprints                                  project_sprints[]
-  employees_projects_created_byToemployees         employees?            @relation("projects_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_projects_created_by")
-  employees_projects_deleted_byToemployees         employees?            @relation("projects_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_projects_deleted_by")
-  employees_projects_project_manager_idToemployees employees             @relation("projects_project_manager_idToemployees", fields: [project_manager_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_projects_project_manager_id")
-  employees_projects_updated_byToemployees         employees?            @relation("projects_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_projects_updated_by")
+  employees_projects_created_byToemployees         employees?             @relation("projects_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_projects_created_by")
+  employees_projects_deleted_byToemployees         employees?             @relation("projects_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_projects_deleted_by")
+  employees_projects_project_manager_idToemployees employees              @relation("projects_project_manager_idToemployees", fields: [project_manager_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_projects_project_manager_id")
+  employees_projects_updated_byToemployees         employees?             @relation("projects_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_projects_updated_by")
   tasks                                            tasks[]
 }
 
@@ -2624,6 +2636,122 @@ model kb_feedback {
   kb_article_versions kb_article_versions @relation(fields: [version_id], references: [version_id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([article_id, version_id], map: "ix_kb_feedback_article")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model perf_cycles {
+  cycle_id                                    Int                    @id(map: "pk_perf_cycles") @default(autoincrement())
+  cycle_name                                  String                 @db.VarChar(100)
+  cycle_type                                  String                 @db.VarChar(20)
+  year                                        Int
+  quarter                                     Int?                   @db.SmallInt
+  month                                       Int?                   @db.SmallInt
+  start_date                                  DateTime               @db.Date
+  end_date                                    DateTime               @db.Date
+  review_start_date                           DateTime               @db.Date
+  review_end_date                             DateTime               @db.Date
+  status                                      String                 @default("UPCOMING") @db.VarChar(20)
+  created_at                                  DateTime               @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  created_by                                  Int?
+  updated_at                                  DateTime?              @db.Timestamptz(6)
+  updated_by                                  Int?
+  employees_perf_cycles_created_byToemployees employees?             @relation("perf_cycles_created_byToemployees", fields: [created_by], references: [emp_id], onUpdate: NoAction, map: "fk_perf_cycles_created_by")
+  employees_perf_cycles_updated_byToemployees employees?             @relation("perf_cycles_updated_byToemployees", fields: [updated_by], references: [emp_id], onUpdate: NoAction, map: "fk_perf_cycles_updated_by")
+  perf_forms                                  perf_forms[]
+  perf_project_ratings                        perf_project_ratings[]
+  perf_reviews                                perf_reviews[]
+
+  @@index([status, review_start_date, review_end_date], map: "ix_perf_cycles_status")
+}
+
+model perf_forms {
+  form_id                                    Int            @id(map: "pk_perf_forms") @default(autoincrement())
+  cycle_id                                   Int
+  form_name                                  String         @db.VarChar(150)
+  description                                String?
+  department_ids                             Int[]          @default([])
+  questions                                  Json           @default("[]")
+  is_published                               Boolean        @default(false)
+  created_at                                 DateTime       @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  created_by                                 Int?
+  updated_at                                 DateTime?      @db.Timestamptz(6)
+  updated_by                                 Int?
+  employees_perf_forms_created_byToemployees employees?     @relation("perf_forms_created_byToemployees", fields: [created_by], references: [emp_id], onUpdate: NoAction, map: "fk_perf_forms_created_by")
+  perf_cycles                                perf_cycles    @relation(fields: [cycle_id], references: [cycle_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_perf_forms_cycle")
+  employees_perf_forms_updated_byToemployees employees?     @relation("perf_forms_updated_byToemployees", fields: [updated_by], references: [emp_id], onUpdate: NoAction, map: "fk_perf_forms_updated_by")
+  perf_reviews                               perf_reviews[]
+
+  @@index([cycle_id, is_published], map: "ix_perf_forms_cycle")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model perf_project_ratings {
+  project_rating_id                                            Int         @id(map: "pk_perf_project_ratings") @default(autoincrement())
+  cycle_id                                                     Int
+  project_id                                                   Int
+  emp_id                                                       Int
+  project_manager_id                                           Int
+  rating                                                       Int         @db.SmallInt
+  comment                                                      String?
+  submitted_at                                                 DateTime    @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  created_at                                                   DateTime    @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at                                                   DateTime?   @db.Timestamptz(6)
+  perf_cycles                                                  perf_cycles @relation(fields: [cycle_id], references: [cycle_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_perf_proj_ratings_cycle")
+  employees_perf_project_ratings_emp_idToemployees             employees   @relation("perf_project_ratings_emp_idToemployees", fields: [emp_id], references: [emp_id], onUpdate: NoAction, map: "fk_perf_proj_ratings_emp")
+  employees_perf_project_ratings_project_manager_idToemployees employees   @relation("perf_project_ratings_project_manager_idToemployees", fields: [project_manager_id], references: [emp_id], onUpdate: NoAction, map: "fk_perf_proj_ratings_pm")
+  projects                                                     projects    @relation(fields: [project_id], references: [project_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_perf_proj_ratings_project")
+
+  @@unique([cycle_id, project_id, emp_id], map: "uq_perf_proj_ratings_member")
+  @@index([cycle_id, project_id], map: "ix_perf_proj_ratings_cycle_proj")
+  @@index([emp_id, cycle_id], map: "ix_perf_proj_ratings_emp")
+  @@index([project_manager_id, cycle_id], map: "ix_perf_proj_ratings_pm")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model perf_reviews {
+  review_id                                        Int         @id(map: "pk_perf_reviews") @default(autoincrement())
+  cycle_id                                         Int
+  form_id                                          Int
+  emp_id                                           Int
+  manager_emp_id                                   Int?
+  admin_emp_id                                     Int?
+  self_status                                      String      @default("PENDING") @db.VarChar(20)
+  self_submitted_at                                DateTime?   @db.Timestamptz(6)
+  self_ratings                                     Json        @default("{}")
+  self_answers                                     Json        @default("{}")
+  self_comment                                     String?
+  self_avg_rating                                  Decimal?    @db.Decimal(3, 1)
+  manager_status                                   String      @default("PENDING") @db.VarChar(20)
+  manager_submitted_at                             DateTime?   @db.Timestamptz(6)
+  manager_ratings                                  Json        @default("{}")
+  manager_answers                                  Json        @default("{}")
+  manager_comment                                  String?
+  manager_avg_rating                               Decimal?    @db.Decimal(3, 1)
+  admin_status                                     String      @default("PENDING") @db.VarChar(20)
+  admin_submitted_at                               DateTime?   @db.Timestamptz(6)
+  admin_ratings                                    Json        @default("{}")
+  admin_answers                                    Json        @default("{}")
+  admin_comment                                    String?
+  admin_avg_rating                                 Decimal?    @db.Decimal(3, 1)
+  final_rating                                     Decimal?    @db.Decimal(3, 1)
+  is_locked                                        Boolean     @default(false)
+  reopened_reason                                  String?
+  reopened_at                                      DateTime?   @db.Timestamptz(6)
+  reopened_by                                      Int?
+  created_at                                       DateTime    @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at                                       DateTime?   @db.Timestamptz(6)
+  employees_perf_reviews_admin_emp_idToemployees   employees?  @relation("perf_reviews_admin_emp_idToemployees", fields: [admin_emp_id], references: [emp_id], onUpdate: NoAction, map: "fk_perf_reviews_admin")
+  perf_cycles                                      perf_cycles @relation(fields: [cycle_id], references: [cycle_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_perf_reviews_cycle")
+  employees_perf_reviews_emp_idToemployees         employees   @relation("perf_reviews_emp_idToemployees", fields: [emp_id], references: [emp_id], onUpdate: NoAction, map: "fk_perf_reviews_emp")
+  perf_forms                                       perf_forms  @relation(fields: [form_id], references: [form_id], onUpdate: NoAction, map: "fk_perf_reviews_form")
+  employees_perf_reviews_manager_emp_idToemployees employees?  @relation("perf_reviews_manager_emp_idToemployees", fields: [manager_emp_id], references: [emp_id], onUpdate: NoAction, map: "fk_perf_reviews_manager")
+  employees_perf_reviews_reopened_byToemployees    employees?  @relation("perf_reviews_reopened_byToemployees", fields: [reopened_by], references: [emp_id], onUpdate: NoAction, map: "fk_perf_reviews_reopened_by")
+
+  @@unique([cycle_id, emp_id], map: "uq_perf_reviews_cycle_employee")
+  @@index([cycle_id, self_status, manager_status, admin_status], map: "ix_perf_reviews_cycle_status")
+  @@index([emp_id, cycle_id], map: "ix_perf_reviews_emp")
+  @@index([manager_emp_id, cycle_id], map: "ix_perf_reviews_manager")
 }
 
 enum channel_type {

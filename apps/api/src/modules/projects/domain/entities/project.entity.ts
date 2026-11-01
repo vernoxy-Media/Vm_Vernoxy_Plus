@@ -72,6 +72,7 @@ export interface ProjectEntity {
   tech_frontend?: string | null;
   tech_backend?: string | null;
   tech_cloud?: string | null;
+  description?: string | null;
   members: ProjectMemberEntity[];
   deployment?: ProjectDeploymentEntity | null;
   credentials?: ProjectCredentialEntity[];

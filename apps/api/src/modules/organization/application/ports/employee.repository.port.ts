@@ -14,7 +14,19 @@ export interface EmployeeRepositoryPort {
     filter: EmployeeListFilter,
     tx?: unknown,
   ): Promise<{ items: Employee[]; next_cursor: string | null; stats?: { total: number; active: number; inactive: number } }>;
-  findActiveOptions(q?: string, tx?: unknown): Promise<Array<{ emp_id: number; name: string; email: string }>>;
+  findActiveOptions(
+    q?: string,
+    tx?: unknown,
+  ): Promise<
+    Array<{
+      emp_id: number;
+      name: string;
+      email: string;
+      employee_code?: string;
+      role_name?: string | null;
+      status?: string;
+    }>
+  >;
   findById(id: number, tx?: unknown): Promise<Employee | null>;
   findByEmail(email: string, tx?: unknown): Promise<Employee | null>;
   findByMobile(mobile: string, tx?: unknown): Promise<Employee | null>;

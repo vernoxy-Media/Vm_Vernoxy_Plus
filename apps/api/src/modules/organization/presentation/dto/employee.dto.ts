@@ -542,6 +542,18 @@ export class EmployeeOptionDto {
 
   @ApiProperty({ type: String, example: 'alice@vernoxy.com' })
   email!: string;
+
+  @ApiPropertyOptional({ type: String, example: 'EMP-0001' })
+  @IsOptional()
+  employee_code?: string;
+
+  @ApiPropertyOptional({ type: String, example: 'Software Engineer', nullable: true })
+  @IsOptional()
+  role_name?: string | null;
+
+  @ApiPropertyOptional({ type: String, example: 'Active' })
+  @IsOptional()
+  status?: string;
 }
 
 export class EmployeeRelationDepartmentDto {

@@ -177,6 +177,11 @@ export class CreateProjectDto {
   @MaxLength(150)
   client_name?: string;
 
+  @ApiPropertyOptional({ description: 'Detailed project description' })
+  @IsOptional()
+  @IsString()
+  description?: string;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsDateString()
@@ -326,6 +331,11 @@ export class UpdateProjectDto {
   @IsString()
   @MaxLength(150)
   client_name?: string;
+
+  @ApiPropertyOptional({ description: 'Detailed project description' })
+  @IsOptional()
+  @IsString()
+  description?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -539,6 +549,11 @@ export class CreateDiscussionDto {
   @IsOptional()
   @IsArray()
   attachments?: string[];
+
+  @ApiPropertyOptional({ type: [Number], description: 'Employee IDs tagged with @ in the message' })
+  @IsOptional()
+  @IsArray()
+  tagged_employee_ids?: number[];
 }
 
 export class CreateBugDto {

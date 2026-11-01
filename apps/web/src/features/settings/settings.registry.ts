@@ -31,13 +31,11 @@ import {
   AlertCircle,
   Laptop,
   BookOpen,
+  Award,
   LucideIcon,
 } from 'lucide-react';
 import type { MeResponseDto } from '@vernoxy-pulse/api-client';
 
-const SettingsDepartmentsSection = React.lazy(() =>
-  import('./sections/SettingsDepartmentsSection').then((m) => ({ default: m.SettingsDepartmentsSection }))
-);
 const SettingsRolesSection = React.lazy(() =>
   import('./sections/SettingsRolesSection').then((m) => ({ default: m.SettingsRolesSection }))
 );
@@ -98,6 +96,9 @@ const SettingsLicenseSection = React.lazy(() =>
 const SettingsKnowledgeBaseSection = React.lazy(() =>
   import('./sections/SettingsKnowledgeBaseSection').then((m) => ({ default: m.SettingsKnowledgeBaseSection }))
 );
+const SettingsPerformanceSection = React.lazy(() =>
+  import('./sections/SettingsPerformanceSection').then((m) => ({ default: m.SettingsPerformanceSection }))
+);
 const SettingsEmploymentTypesSection = React.lazy(() =>
   import('./sections/SettingsEmploymentTypesSection').then((m) => ({ default: m.SettingsEmploymentTypesSection }))
 );
@@ -138,16 +139,7 @@ export interface SettingsSectionConfig {
 
 export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
   // ── Organization ──────────────────────────────────
-  {
-    id: 'departments',
-    label: 'Departments',
-    path: '/admin/settings/departments',
-    icon: Building2,
-    component: SettingsDepartmentsSection,
-    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
-    group: 'Organization',
-  },
-  {
+    {
     id: 'roles',
     label: 'Roles',
     path: '/admin/settings/roles',
@@ -375,6 +367,26 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     group: 'Knowledge Base',
   },
 
+  // ── Performance Management ─────────────────────────
+  {
+    id: 'performance-cycles',
+    label: 'Performance Cycles',
+    path: '/admin/settings/performance-cycles',
+    icon: Award,
+    component: SettingsPerformanceSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Performance',
+  },
+  {
+    id: 'performance-forms',
+    label: 'Performance Forms',
+    path: '/admin/settings/performance-forms',
+    icon: ClipboardCheck,
+    component: SettingsPerformanceSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Performance',
+  },
+
   // ── Recruitment ───────────────────────────────────
   {
     id: 'candidate-sources',
@@ -458,4 +470,5 @@ export const SETTINGS_MAIN_GROUPS: SettingsMainGroup[] = [
   { id: 'HR', name: 'HR', icon: Clock },
   { id: 'Recruitment', name: 'Recruitment', icon: UserPlus },
   { id: 'Knowledge Base', name: 'Knowledge Base', icon: BookOpen },
+  { id: 'Performance', name: 'Performance', icon: Award },
 ];

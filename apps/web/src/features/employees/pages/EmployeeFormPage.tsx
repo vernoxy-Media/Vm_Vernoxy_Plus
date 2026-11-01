@@ -15,7 +15,11 @@ import {
 import { useLookupsQuery } from '@/features/organization/hooks/use-master-data';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { AdminLayout } from '@/shared/layouts/AdminLayout';
+import { EmployeesPage } from './EmployeesPage';
+import { AddEmployeeModal } from '../components/AddEmployeeModal';
+import { useLeavePoliciesQuery } from '@/features/leave/hooks/use-leave';
 import { PhotoPicker } from '../components/PhotoPicker';
+import { CountryPhoneInput } from '@/shared/ui';
 import {
   useAttendanceSettingsQuery,
   useAssignEmployeeShiftMutation,
@@ -116,8 +120,27 @@ const FIELD_TO_ID_MAP: Record<string, string> = {
 
 export const EmployeeFormPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const isEdit = Boolean(id);
-  const employeeId = id ? parseInt(id, 10) : undefined;
+  const navigate = useNavigate();
+
+  if (!id) {
+    return (
+      <>
+        <EmployeesPage />
+        <AddEmployeeModal
+          isOpen={true}
+          onClose={() => navigate('/admin/employees')}
+          onSuccess={() => navigate('/admin/employees')}
+        />
+      </>
+    );
+  }
+
+  return <EmployeeEditInner id={id} />;
+};
+
+const EmployeeEditInner: React.FC<{ id: string }> = ({ id }) => {
+  const isEdit = true;
+  const employeeId = parseInt(id, 10);
   const navigate = useNavigate();
   const { user: currentUser, refreshProfile } = useAuth();
   const isSelf = currentUser?.emp_id === employeeId;
@@ -148,6 +171,7 @@ export const EmployeeFormPage: React.FC = () => {
 
   // TanStack queries
   const { data: deptOptions } = useDepartmentOptionsQuery();
+  const { data: leavePolicies = [] } = useLeavePoliciesQuery();
   const { data: managerOptions } = useEmployeeOptionsQuery();
   const { data: existingEmployee, isLoading: isEmployeeLoading } =
     useEmployeeDetailQuery(employeeId);
@@ -215,6 +239,8 @@ export const EmployeeFormPage: React.FC = () => {
     },
   });
 
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
+
   const {
     register,
     handleSubmit,
@@ -222,7 +248,7 @@ export const EmployeeFormPage: React.FC = () => {
     setValue,
     setError,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
   } = form;
 
   const watchedDepartmentIds = watch('department_ids') || [];
@@ -264,6 +290,7 @@ export const EmployeeFormPage: React.FC = () => {
         department_ids: assignedDepIds,
         role_id: existingEmployee.role_id,
         reporting_manager: existingEmployee.reporting_manager ?? null,
+        leave_policy_id: (existingEmployee as any).leave_policy_id ?? ('' as any),
         employment_type_id: existingEmployee.employment_type_id ?? ('' as any),
         joining_date: existingEmployee.joining_date
           ? new Date(existingEmployee.joining_date).toISOString().split('T')[0]
@@ -516,6 +543,7 @@ export const EmployeeFormPage: React.FC = () => {
             birth_date: values.birth_date || null,
             blood_group: values.blood_group || undefined,
             address: values.address?.trim() || undefined,
+            leave_policy_id: values.leave_policy_id ? Number(values.leave_policy_id) : undefined,
             employment_type_id: values.employment_type_id ? Number(values.employment_type_id) : null,
             joining_date: values.joining_date,
             salary: Number(values.salary || 0),
@@ -731,18 +759,17 @@ export const EmployeeFormPage: React.FC = () => {
 
                 {/* Mobile Phone */}
                 <div className="space-y-1.5">
-                  <label htmlFor="employee-mob-input" className="block text-sm font-semibold text-slate-700">
-                    Phone Number
-                  </label>
-                  <input
-                    type="text"
-                    id="employee-mob-input"
-                    autoComplete="tel"
-                    placeholder="+919876543210"
-                    {...register('mob')}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all font-mono"
+                  <div className="flex items-center justify-between">
+                    <label htmlFor="employee-mob-input" className="block text-sm font-semibold text-slate-700">
+                      Phone Number
+                    </label>
+                    <span className="text-[11px] text-slate-400">10 digits</span>
+                  </div>
+                  <CountryPhoneInput
+                    value={watch('mob') || ''}
+                    onChange={(val) => setValue('mob', val, { shouldValidate: true })}
+                    error={errors.mob?.message}
                   />
-                  {errors.mob && <p className="text-xs text-red-600 font-medium">{errors.mob.message}</p>}
                 </div>
 
                 {/* Office Email */}
@@ -1041,11 +1068,16 @@ export const EmployeeFormPage: React.FC = () => {
                       <option value="">None (Top-level Executive)</option>
                       {managerOptions
                         ?.filter((m) => !isEdit || m.emp_id !== employeeId)
-                        ?.map((m) => (
-                          <option key={m.emp_id} value={m.emp_id}>
-                            {m.name} ({m.email})
-                          </option>
-                        ))}
+                        ?.map((m: any) => {
+                          const code = m.employee_code || `EMP-${String(m.emp_id).padStart(4, '0')}`;
+                          const role = m.role_name;
+                          const isInactive = m.status === 'Inactive';
+                          return (
+                            <option key={m.emp_id} value={m.emp_id}>
+                              {m.name} ({code}){role ? ` - ${role}` : ''}{isInactive ? ' [Inactive]' : ''}
+                            </option>
+                          );
+                        })}
                     </select>
                     <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   </div>
@@ -1071,6 +1103,29 @@ export const EmployeeFormPage: React.FC = () => {
                     </select>
                     <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   </div>
+                </div>
+
+                {/* Leave Policy (BFD Section 3 & 4) */}
+                <div className="space-y-1.5">
+                  <label htmlFor="employee-leave-policy-select" className="block text-sm font-semibold text-slate-700">
+                    Leave Policy
+                  </label>
+                  <div className="relative">
+                    <select
+                      id="employee-leave-policy-select"
+                      {...register('leave_policy_id')}
+                      className="w-full appearance-none px-3.5 py-2.5 pr-10 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all font-medium"
+                    >
+                      <option value="">Standard Leave Policy (Default)</option>
+                      {leavePolicies.map((lp) => (
+                        <option key={lp.policy_id} value={lp.policy_id}>
+                          {lp.name}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                  <p className="text-2xs text-slate-400">Leave entitlement and pro-rata rules are configured per policy.</p>
                 </div>
 
                 {/* Joining Date */}
@@ -1575,13 +1630,20 @@ export const EmployeeFormPage: React.FC = () => {
 
             {/* Footer Buttons */}
             <div className="border-t border-slate-200/90 pt-6 mt-8 flex items-center justify-between gap-3 sticky bottom-0 bg-white/95 backdrop-blur-xs py-3">
-              <Link
-                to={isEdit && employeeId ? `/admin/employees/${employeeId}` : '/admin/employees'}
+              <button
+                type="button"
                 id="employee-form-cancel-button"
-                className="px-5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors text-center"
+                onClick={() => {
+                  if (isDirty) {
+                    setShowLeaveModal(true);
+                  } else {
+                    navigate(isEdit && employeeId ? `/admin/employees/${employeeId}` : '/admin/employees');
+                  }
+                }}
+                className="px-5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors text-center cursor-pointer"
               >
                 Cancel
-              </Link>
+              </button>
 
               <button
                 type="submit"
@@ -1613,7 +1675,7 @@ export const EmployeeFormPage: React.FC = () => {
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600 mb-4 shadow-xs">
                 <CheckCircle className="w-7 h-7" />
               </div>
-              <h2 className="text-xl font-bold text-slate-900">Employee Created Successfully!</h2>
+              <h2 className="text-xl font-bold text-slate-900">Employee added</h2>
               <p className="text-xs text-slate-500 mt-1">
                 Please securely share these initial credentials with the employee.
               </p>
@@ -1679,6 +1741,41 @@ export const EmployeeFormPage: React.FC = () => {
                   View Profile
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Leave this page confirmation modal (BFD Page 14) */}
+      {showLeaveModal && (
+        <div
+          id="leave-page-modal"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in"
+        >
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200 p-6 space-y-4">
+            <h3 className="text-lg font-bold text-slate-900">Leave this page?</h3>
+            <p className="text-sm text-slate-500">
+              You have unsaved changes that will be lost if you leave without saving.
+            </p>
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                id="leave-page-stay-btn"
+                onClick={() => setShowLeaveModal(false)}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+              >
+                Stay
+              </button>
+              <button
+                type="button"
+                id="leave-page-confirm-btn"
+                onClick={() => {
+                  setShowLeaveModal(false);
+                  navigate(isEdit && employeeId ? `/admin/employees/${employeeId}` : '/admin/employees');
+                }}
+                className="px-4 py-2 rounded-xl bg-rose-600 text-xs font-semibold text-white hover:bg-rose-700 transition cursor-pointer"
+              >
+                Leave
+              </button>
             </div>
           </div>
         </div>

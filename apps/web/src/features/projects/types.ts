@@ -26,6 +26,7 @@ export interface AssignableEmployee {
   email: string;
   profile_picture?: string | null;
   role_name?: string | null;
+  department_name?: string | null;
 }
 
 export interface ProjectMember {
@@ -82,6 +83,7 @@ export interface ProjectItem {
   tech_frontend?: string | null;
   tech_backend?: string | null;
   tech_cloud?: string | null;
+  description?: string | null;
   members: ProjectMember[];
   deployment?: ProjectDeployment | null;
   credentials: ProjectCredential[];
@@ -110,6 +112,7 @@ export interface CreateProjectPayload {
   tech_frontend?: string;
   tech_backend?: string;
   tech_cloud?: string;
+  description?: string;
   deployment?: {
     vercel_account?: string;
     vercel_link?: string;

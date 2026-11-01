@@ -3,7 +3,16 @@ import { EmployeeRepositoryPort } from '../ports/employee.repository.port';
 export class GetEmployeeOptionsUseCase {
   constructor(private readonly employeeRepo: EmployeeRepositoryPort) {}
 
-  async execute(q?: string): Promise<Array<{ emp_id: number; name: string; email: string }>> {
+  async execute(q?: string): Promise<
+    Array<{
+      emp_id: number;
+      name: string;
+      email: string;
+      employee_code?: string;
+      role_name?: string | null;
+      status?: string;
+    }>
+  > {
     return this.employeeRepo.findActiveOptions(q);
   }
 }

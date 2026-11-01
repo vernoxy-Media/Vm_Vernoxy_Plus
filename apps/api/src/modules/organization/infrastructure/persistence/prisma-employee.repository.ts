@@ -213,6 +213,8 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       const orConditions: any[] = [
         { name: { contains: qClean, mode: 'insensitive' } },
         { email: { contains: qClean, mode: 'insensitive' } },
+        { office_email: { contains: qClean, mode: 'insensitive' } },
+        { personal_email: { contains: qClean, mode: 'insensitive' } },
         { mob: { contains: qClean, mode: 'insensitive' } },
       ];
 
@@ -302,31 +304,53 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
   async findActiveOptions(
     q?: string,
     tx?: unknown,
-  ): Promise<Array<{ emp_id: number; name: string; email: string }>> {
+  ): Promise<
+    Array<{
+      emp_id: number;
+      name: string;
+      email: string;
+      employee_code?: string;
+      role_name?: string | null;
+      status?: string;
+    }>
+  > {
     const client = this.getClient(tx);
     const where: any = {
       deleted_at: null,
-      status: 'Active',
     };
 
     if (q) {
       where.OR = [
         { name: { contains: q, mode: 'insensitive' } },
         { email: { contains: q, mode: 'insensitive' } },
+        { roles_employees_role_idToroles: { role_name: { contains: q, mode: 'insensitive' } } },
       ];
     }
 
-    return client.employees.findMany({
+    const records = await client.employees.findMany({
       where,
       select: {
         emp_id: true,
         name: true,
         email: true,
+        status: true,
+        roles_employees_role_idToroles: {
+          select: { role_name: true },
+        },
       },
       orderBy: {
         name: 'asc',
       },
     });
+
+    return records.map((r) => ({
+      emp_id: r.emp_id,
+      name: r.name,
+      email: r.email,
+      employee_code: `EMP-${String(r.emp_id).padStart(4, '0')}`,
+      role_name: r.roles_employees_role_idToroles?.role_name ?? null,
+      status: r.status,
+    }));
   }
 
   async findById(id: number, tx?: unknown): Promise<Employee | null> {
@@ -737,6 +761,19 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       },
       include: this.getEmployeeIncludes(),
     });
+
+    // Invalidate all active auth sessions immediately (BFD Page 20: CRM login blocked at once)
+    try {
+      await client.auth_sessions.updateMany({
+        where: { emp_id: id, revoked_at: null },
+        data: {
+          revoked_at: new Date(),
+          revoked_reason: 'deactivated',
+        },
+      });
+    } catch {
+      // ignore
+    }
 
     return this.mapToEntity(updated);
   }

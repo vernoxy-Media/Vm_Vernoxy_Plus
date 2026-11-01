@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth/context/AuthContext';
+import { SearchableSelect } from '@/shared/ui/SearchableSelect';
 import {
   useKbKpisQuery,
   useKbArticlesQuery,
+  useKbAccessQuery,
 } from '../hooks/use-kb-articles';
 import { useKbCategoriesQuery } from '../hooks/use-kb-settings';
 import { KnowledgeBaseApprovalsModal } from '../components/KnowledgeBaseApprovalsModal';
@@ -38,6 +40,17 @@ export const KnowledgeBasePage: React.FC = () => {
   const [approvalsModalOpen, setApprovalsModalOpen] = useState(false);
 
   const isAdmin = Boolean(user?.access?.can_manage_organization);
+  const { data: access } = useKbAccessQuery();
+  const canAccessClient = Boolean(access?.can_access_client);
+  const canCreateArticle = isAdmin || Boolean(access?.can_create_article);
+
+  React.useEffect(() => {
+    if (activeSpace === 'CLIENT' && access && !canAccessClient) {
+      setActiveSpace('INTERNAL');
+      setSelectedCategoryId(undefined);
+      setPage(1);
+    }
+  }, [activeSpace, access, canAccessClient]);
 
   const { data: kpis } = useKbKpisQuery();
   const { data: categories } = useKbCategoriesQuery(activeSpace);
@@ -89,14 +102,16 @@ export const KnowledgeBasePage: React.FC = () => {
             </button>
           )}
 
-          <button
-            type="button"
-            onClick={() => navigate('/knowledge-base/new')}
-            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl flex items-center gap-2 shadow-xs transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            <span>New Article</span>
-          </button>
+          {canCreateArticle && (
+            <button
+              type="button"
+              onClick={() => navigate('/knowledge-base/new')}
+              className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl flex items-center gap-2 shadow-xs transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              <span>New Article</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -177,20 +192,22 @@ export const KnowledgeBasePage: React.FC = () => {
             )}
           </button>
 
-          <button
-            type="button"
-            onClick={() => handleSpaceChange('CLIENT')}
-            className={`pb-3 text-xs sm:text-sm font-semibold transition-all relative ${
-              activeSpace === 'CLIENT'
-                ? 'text-blue-600'
-                : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            Client Knowledge
-            {activeSpace === 'CLIENT' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full" />
-            )}
-          </button>
+          {canAccessClient && (
+            <button
+              type="button"
+              onClick={() => handleSpaceChange('CLIENT')}
+              className={`pb-3 text-xs sm:text-sm font-semibold transition-all relative ${
+                activeSpace === 'CLIENT'
+                  ? 'text-blue-600'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              Client Knowledge
+              {activeSpace === 'CLIENT' && (
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full" />
+              )}
+            </button>
+          )}
         </div>
 
         {/* Filter & Search Bar */}
@@ -211,38 +228,46 @@ export const KnowledgeBasePage: React.FC = () => {
 
           <div className="flex items-center gap-2.5 flex-wrap">
             {/* Category filter */}
-            <select
-              value={selectedCategoryId ?? ''}
-              onChange={(e) => {
-                setSelectedCategoryId(e.target.value ? Number(e.target.value) : undefined);
-                setPage(1);
-              }}
-              className="text-xs py-2 px-3 rounded-xl border border-slate-200 bg-white text-slate-700 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All Categories</option>
-              {categories?.map((cat) => (
-                <option key={cat.category_id} value={cat.category_id}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
+            <div className="w-44">
+              <SearchableSelect
+                placeholder="All Categories"
+                searchPlaceholder="Search categories..."
+                value={selectedCategoryId ?? ''}
+                onChange={(val) => {
+                  setSelectedCategoryId(val ? Number(val) : undefined);
+                  setPage(1);
+                }}
+                clearable
+                options={[
+                  { value: '', label: 'All Categories' },
+                  ...(categories || []).map((cat) => ({
+                    value: cat.category_id,
+                    label: cat.name,
+                  })),
+                ]}
+              />
+            </div>
 
             {/* Status filter */}
-            <select
-              value={selectedStatus}
-              onChange={(e) => {
-                setSelectedStatus(e.target.value);
-                setPage(1);
-              }}
-              className="text-xs py-2 px-3 rounded-xl border border-slate-200 bg-white text-slate-700 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All Statuses</option>
-              <option value="PUBLISHED">Published</option>
-              <option value="DRAFT">Draft</option>
-              <option value="IN_REVIEW">In Review</option>
-              <option value="REVIEW_DUE">Review Due</option>
-              <option value="ARCHIVED">Archived</option>
-            </select>
+            <div className="w-36">
+              <SearchableSelect
+                placeholder="All Statuses"
+                searchPlaceholder="Search status..."
+                value={selectedStatus}
+                onChange={(val) => {
+                  setSelectedStatus(val || '');
+                  setPage(1);
+                }}
+                options={[
+                  { value: '', label: 'All Statuses' },
+                  { value: 'PUBLISHED', label: 'Published' },
+                  { value: 'DRAFT', label: 'Draft' },
+                  { value: 'IN_REVIEW', label: 'In Review' },
+                  { value: 'REVIEW_DUE', label: 'Review Due' },
+                  { value: 'ARCHIVED', label: 'Archived' },
+                ]}
+              />
+            </div>
 
             {/* My articles toggle */}
             <button

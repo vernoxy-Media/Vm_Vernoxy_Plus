@@ -1,15 +1,14 @@
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, Settings } from 'lucide-react';
+import { Settings, ClipboardCheck, RefreshCw, Download } from 'lucide-react';
+import { getAccessToken } from '@vernoxy-pulse/api-client';
 import { useAuth } from '@/features/auth/context/AuthContext';
-import { useAttendanceDashboard, usePunchActions, useDayDetail } from '../hooks/use-attendance';
-import { AttendanceCalendarPicker } from '../components/AttendanceCalendarPicker';
+import { useAttendanceDashboard, usePunchActions } from '../hooks/use-attendance';
 import { AttendanceSkeleton } from '../components/AttendanceSkeleton';
 import { AttendanceDashboardCards } from '../components/AttendanceDashboardCards';
 import { AddRegularizationModal } from '../components/AddRegularizationModal';
 import { MyRegularizationsPanel } from '../components/MyRegularizationsPanel';
 import { ApprovalsPanel } from '../components/ApprovalsPanel';
-import type { TodayAttendanceData, AttendanceStatistics, SpecialStatus } from '../types/attendance.types';
 
 export const AttendancePage: React.FC = () => {
   const { user } = useAuth();
@@ -29,11 +28,10 @@ export const AttendancePage: React.FC = () => {
   const [actionError, setActionError] = useState<string | null>(null);
   const [attendanceTab, setAttendanceTab] = useState<'timesheet' | 'regularization' | 'approvals'>('timesheet');
   const [correctionModalDate, setCorrectionModalDate] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
-  const { data, isLoading, error } = useAttendanceDashboard(selectedMonth);
+  const { data, isLoading, error, refetch } = useAttendanceDashboard(selectedMonth);
 
-  const isSelectedToday = selectedDate === todayDateStr;
-  const { data: dayDetail } = useDayDetail(!isSelectedToday ? selectedDate : null);
 
   const {
     punchInMutation,
@@ -76,6 +74,50 @@ export const AttendancePage: React.FC = () => {
     runAction(() => startBreakMutation.mutateAsync({ breakType, reason }), 'Failed to start break');
   const handleResumeBreak = () => runAction(() => resumeBreakMutation.mutateAsync(), 'Failed to resume break');
 
+  const handleExportCsv = async () => {
+    try {
+      setIsExporting(true);
+      const token = getAccessToken();
+      const headers: Record<string, string> = {
+        'X-Requested-With': 'pulse-web',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      const response = await fetch(
+        `/api/v1/attendance/report/csv?month=${selectedMonth}`,
+        {
+          method: 'GET',
+          headers,
+          credentials: 'include',
+        }
+      );
+      if (!response.ok) {
+        let errText = 'Failed to export attendance report';
+        try {
+          const errJson = await response.json();
+          errText = errJson.message || errJson.detail || errText;
+        } catch {
+          // ignore
+        }
+        throw new Error(errText);
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `attendance-report-${selectedMonth}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      alert(err?.detail || err?.message || 'Failed to export attendance report');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   if (isLoading && !data) return <AttendanceSkeleton />;
 
   if (error && !data) {
@@ -90,159 +132,9 @@ export const AttendancePage: React.FC = () => {
   }
 
   const { today, statistics, month_summary, records } = data!;
-  const selectedRecord = records.find((r) => r.date === selectedDate);
 
-  // Compute daily timesheet & activity model for selected date
-  let displayToday: TodayAttendanceData = today;
-  let statusLabel = 'Live Shift';
 
-  if (!isSelectedToday) {
-    statusLabel = selectedRecord?.status_label || (selectedRecord?.punch_in ? 'PRESENT' : 'ABSENT');
-    displayToday = {
-      date: selectedDate,
-      company_timezone: today.company_timezone || 'Asia/Kolkata',
-      state: selectedRecord?.punch_in
-        ? (selectedRecord.punch_out ? 'done' : 'working')
-        : 'not_started',
-      special_status: (selectedRecord?.status === 'holiday'
-        ? 'holiday'
-        : selectedRecord?.status === 'weekly_off'
-        ? 'weekly_off'
-        : selectedRecord?.leave_type
-        ? 'on_leave'
-        : null) as SpecialStatus,
-      special_status_reason: selectedRecord?.holiday_name || selectedRecord?.leave_type || null,
-      punched_in_at: dayDetail?.punched_in_at || (selectedRecord?.punch_in ? `${selectedDate}T${selectedRecord.punch_in}` : null),
-      punched_out_at: dayDetail?.punched_out_at || (selectedRecord?.punch_out ? `${selectedDate}T${selectedRecord.punch_out}` : null),
-      worked_seconds: selectedRecord?.production_seconds ?? 0,
-      break_seconds: selectedRecord?.break_seconds ?? 0,
-      target_seconds: (selectedRecord?.status === 'weekly_off' || selectedRecord?.status === 'holiday') ? 0 : 28800,
-      active_break_start: null,
-      server_now: today.server_now,
-      timeline: dayDetail?.timeline && dayDetail.timeline.length > 0
-        ? dayDetail.timeline
-        : (selectedRecord?.punch_in ? [
-            {
-              id: 'punch-in-rec',
-              type: 'punch_in' as const,
-              timestamp: selectedRecord.punch_in,
-              display_time: selectedRecord.punch_in,
-              label: `Punched in at ${selectedRecord.punch_in}`,
-            },
-            ...(selectedRecord.punch_out ? [{
-              id: 'punch-out-rec',
-              type: 'punch_out' as const,
-              timestamp: selectedRecord.punch_out,
-              display_time: selectedRecord.punch_out,
-              label: `Punched out at ${selectedRecord.punch_out}`,
-            }] : []),
-          ] : []),
-    };
-  }
 
-  // Work statistics calculations according to the chosen date
-  // 1. Day Metric
-  const dayWorkedHours = isSelectedToday
-    ? statistics.today.worked_hours
-    : selectedRecord
-    ? Math.round(((selectedRecord.production_seconds || 0) / 3600) * 10) / 10
-    : 0;
-  const dayTargetHours = (selectedRecord?.status === 'weekly_off' || selectedRecord?.status === 'holiday')
-    ? 0
-    : isSelectedToday
-    ? statistics.today.target_hours
-    : 8.0;
-
-  const dayDateObj = new Date(`${selectedDate}T00:00:00Z`);
-  const dayFormatted = dayDateObj.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    timeZone: 'UTC',
-  });
-  const dayLabel = isSelectedToday ? 'Today' : `Selected Day (${dayFormatted})`;
-
-  // 2. Week Metric (Week containing selectedDate: Monday - Sunday)
-  const refDate = new Date(`${selectedDate}T00:00:00Z`);
-  const dayOfWeek = refDate.getUTCDay(); // 0 is Sun, 1 is Mon
-  const diffToMon = (dayOfWeek < 1 ? 7 : 0) + dayOfWeek - 1;
-  const weekStartObj = new Date(refDate);
-  weekStartObj.setUTCDate(refDate.getUTCDate() - diffToMon);
-  const weekEndObj = new Date(weekStartObj);
-  weekEndObj.setUTCDate(weekStartObj.getUTCDate() + 6);
-
-  const weekStartStr = weekStartObj.toISOString().slice(0, 10);
-  const weekEndStr = weekEndObj.toISOString().slice(0, 10);
-
-  const todayObj = new Date(`${todayDateStr}T00:00:00Z`);
-  const todayDow = todayObj.getUTCDay();
-  const todayDiffToMon = (todayDow < 1 ? 7 : 0) + todayDow - 1;
-  const currentWeekStart = new Date(todayObj);
-  currentWeekStart.setUTCDate(todayObj.getUTCDate() - todayDiffToMon);
-  const isCurrentWeek = weekStartStr === currentWeekStart.toISOString().slice(0, 10);
-
-  const weekRecords = records.filter((r) => r.date >= weekStartStr && r.date <= weekEndStr);
-  const weekWorkingDays = weekRecords.filter(
-    (r) => r.status !== 'weekly_off' && r.status !== 'holiday' && !r.holiday_name
-  );
-  const weekWorkedSec = weekRecords.reduce((acc, r) => acc + (r.production_seconds || 0), 0);
-  const weekTargetSec = weekWorkingDays.length > 0 ? weekWorkingDays.length * 8 * 3600 : (40 * 3600);
-
-  const weekWorkedHours = Math.round((weekWorkedSec / 3600) * 10) / 10;
-  const weekTargetHours = Math.round((weekTargetSec / 3600) * 10) / 10;
-
-  const weekStartFormatted = weekStartObj.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    timeZone: 'UTC',
-  });
-  const weekEndFormatted = weekEndObj.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    timeZone: 'UTC',
-  });
-  const weekLabel = isCurrentWeek ? 'This Week' : `Week (${weekStartFormatted} - ${weekEndFormatted})`;
-
-  // 3. Month Metric (Month containing selectedDate, removing holidays & weekly off)
-  const isCurrentMonth = selectedMonth === currentMonthStr;
-  const [yNum, mNum] = selectedMonth.split('-').map(Number);
-  const monthName = new Date(Date.UTC(yNum, mNum - 1, 1)).toLocaleDateString('en-US', {
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC',
-  });
-  const monthLabel = isCurrentMonth ? 'This Month' : monthName;
-  const monthWorkedSec = records.reduce((acc, r) => acc + (r.production_seconds || 0), 0);
-  const monthWorkedHours = Math.round((monthWorkedSec / 3600) * 10) / 10;
-
-  const monthWorkingDays = records.filter(
-    (r) => r.status !== 'weekly_off' && r.status !== 'holiday' && !r.holiday_name
-  );
-  const monthTargetHours = monthWorkingDays.length > 0
-    ? monthWorkingDays.length * 8
-    : statistics.this_month.target_hours;
-
-  const remainingHours = Math.max(0, Math.round((monthTargetHours - monthWorkedHours) * 10) / 10);
-  const overtimeHours = Math.max(0, Math.round((monthWorkedHours - monthTargetHours) * 10) / 10);
-
-  const computedStatistics: AttendanceStatistics = {
-    today: {
-      worked_hours: dayWorkedHours,
-      target_hours: dayTargetHours,
-    },
-    this_week: {
-      worked_hours: weekWorkedHours,
-      target_hours: weekTargetHours,
-    },
-    this_month: {
-      worked_hours: monthWorkedHours,
-      target_hours: monthTargetHours,
-    },
-    remaining: {
-      worked_hours: remainingHours,
-      target_hours: monthTargetHours,
-    },
-    overtime_hours: overtimeHours,
-  };
 
   const correctionRow = correctionModalDate
     ? records.find((r) => r.date === correctionModalDate)
@@ -254,88 +146,94 @@ export const AttendancePage: React.FC = () => {
         {announcement}
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-1">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 border border-blue-100/70 flex items-center justify-center shrink-0 shadow-2xs">
-            <Calendar className="w-4 h-4 stroke-[2.2]" />
+      {/* Top Header matching reference image */}
+      <div className="flex items-center justify-between pb-1">
+        <div className="flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-2xl bg-indigo-50/80 border border-indigo-100 text-[#5B4CF8] flex items-center justify-center shrink-0 shadow-2xs">
+            <ClipboardCheck className="w-5 h-5 stroke-[1.75]" />
           </div>
           <div>
-            <h1 className="text-[26px] md:text-[28px] font-extrabold tracking-tight text-slate-900 leading-tight">Attendance</h1>
+            <h1 className="text-3xl sm:text-[34px] font-bold tracking-tight text-[#1E293B] leading-tight">
+              Attendance
+            </h1>
+            <p className="text-xs sm:text-sm text-[#64748B] mt-0.5 font-medium">
+              Manage your presence logs
+            </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2.5 shrink-0">
-          {/* Date, Month, Year Calendar Picker */}
-          <AttendanceCalendarPicker
-            selectedDate={selectedDate}
-            onSelectDate={handleSelectDate}
-            records={records}
-            maxDate={todayDateStr}
-          />
+          <button
+            type="button"
+            onClick={handleExportCsv}
+            disabled={isExporting}
+            className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 bg-white border border-[#E2E8F0] hover:border-slate-300 hover:bg-slate-50 text-[#1E293B] rounded-[14px] text-xs font-semibold shadow-2xs btn-hover-lift transition cursor-pointer disabled:opacity-50"
+            title="Export Monthly Attendance Report (CSV)"
+          >
+            <Download className="w-3.5 h-3.5 text-slate-500 stroke-[1.75]" />
+            <span>{isExporting ? 'Exporting...' : 'Export'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white border border-[#E2E8F0] hover:border-slate-300 hover:bg-slate-50 text-[#1E293B] rounded-[14px] text-xs font-semibold shadow-2xs btn-hover-lift transition cursor-pointer"
+          >
+            <RefreshCw className="w-3.5 h-3.5 text-slate-500 stroke-[1.75]" />
+            <span>Refresh</span>
+          </button>
 
           {canManageAttendance && (
             <Link
               to="/admin/attendance-settings"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white border border-slate-300 hover:border-slate-400 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold shadow-2xs transition cursor-pointer"
+              className="inline-flex items-center justify-center w-10 h-10 bg-white border border-[#E2E8F0] hover:border-slate-300 hover:bg-slate-50 text-slate-700 rounded-[14px] text-xs font-semibold shadow-2xs btn-hover-lift transition cursor-pointer"
+              title="Attendance Settings"
             >
-              <Settings className="w-3.5 h-3.5 text-slate-500" />
-              <span>Attendance Settings</span>
+              <Settings className="w-4 h-4 text-slate-600 stroke-[1.75]" />
             </Link>
           )}
         </div>
       </div>
 
-      {/* Attendance Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
-        <button
-          type="button"
-          onClick={() => setAttendanceTab('timesheet')}
-          className={`rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
-            attendanceTab === 'timesheet'
-              ? 'bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900 shadow-2xs'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800'
-          }`}
-        >
-          Timesheet & Attendance
-        </button>
-        <Link
-          to="/calendar"
-          id="attendance-view-calendar-tab-link"
-          className="inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition"
-        >
-          <Calendar className="w-3.5 h-3.5 text-teal-600" />
-          <span>Calendar</span>
-        </Link>
-        <button
-          type="button"
-          onClick={() => setAttendanceTab('regularization')}
-          className={`rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
-            attendanceTab === 'regularization'
-              ? 'bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900 shadow-2xs'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800'
-          }`}
-        >
-          My Regularizations
-        </button>
-        {canManageAttendance && (
+      {/* Sub-panel navigation when inside Regularization or Approvals */}
+      {attendanceTab !== 'timesheet' && (
+        <div className="flex items-center justify-between pb-2 border-b border-slate-200">
           <button
             type="button"
-            onClick={() => setAttendanceTab('approvals')}
-            className={`rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
-              attendanceTab === 'approvals'
-                ? 'bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900 shadow-2xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800'
-            }`}
+            onClick={() => setAttendanceTab('timesheet')}
+            className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1"
           >
-            Approvals
+            &larr; Back to Attendance Dashboard
           </button>
-        )}
-      </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setAttendanceTab('regularization')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
+                attendanceTab === 'regularization' ? 'bg-slate-800 text-white' : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              My Regularizations
+            </button>
+            {canManageAttendance && (
+              <button
+                type="button"
+                onClick={() => setAttendanceTab('approvals')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
+                  attendanceTab === 'approvals' ? 'bg-slate-800 text-white' : 'text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                Approvals
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {attendanceTab === 'timesheet' && (
         <AttendanceDashboardCards
-          today={displayToday}
-          statistics={computedStatistics}
+          today={today}
+          statistics={statistics}
           monthSummary={month_summary}
           records={records}
           isPending={isPending}
@@ -348,17 +246,16 @@ export const AttendancePage: React.FC = () => {
           onDismissToast={() => setInfoToast(null)}
           onSuccessCorrection={(msg) => setInfoToast(msg)}
           selectedDate={selectedDate}
-          isSelectedToday={isSelectedToday}
+          isSelectedToday={true}
           onRequestCorrection={(date) => setCorrectionModalDate(date)}
           onReturnToToday={() => handleSelectDate(todayDateStr)}
           onSelectDate={handleSelectDate}
           selectedMonth={selectedMonth}
           onSelectMonth={(m) => setSelectedMonth(m)}
-          dayLabel={dayLabel}
-          weekLabel={weekLabel}
-          monthLabel={monthLabel}
-          statusLabel={statusLabel}
-          onOpenMyRequests={() => setAttendanceTab('regularization')}
+          dayLabel="Today"
+          weekLabel="This Week"
+          monthLabel="This Month"
+          statusLabel="Live Shift"
         />
       )}
 

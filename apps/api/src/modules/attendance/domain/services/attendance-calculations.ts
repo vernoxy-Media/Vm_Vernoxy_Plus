@@ -93,7 +93,7 @@ export function determineDayStatus(
   productionMinutes: number,
   fullDayMinutes = DEFAULT_FULL_DAY_MINUTES,
   halfDayMinutes = DEFAULT_HALF_DAY_MINUTES,
-): 'present' | 'half_day' | 'short' | 'incomplete' {
+): 'present' | 'half_day' | 'absent' | 'short' | 'incomplete' {
   if (!checkOutAt) {
     return 'incomplete';
   }
@@ -103,7 +103,8 @@ export function determineDayStatus(
   if (productionMinutes >= halfDayMinutes) {
     return 'half_day';
   }
-  return 'short';
+  // BFD Section 2: Working Hours below Half Day Hours (< 4 hours) is Absent (A)
+  return 'absent';
 }
 
 /**
@@ -173,7 +174,7 @@ export interface MonthSummaryDayInput {
     checkOutAt: Date | null;
     productionMinutes: number;
     breakMinutes: number;
-    dayStatus: 'present' | 'half_day' | 'short' | 'incomplete';
+    dayStatus: 'present' | 'half_day' | 'absent' | 'short' | 'incomplete';
   } | null;
   isPast: boolean;
   isToday: boolean;
@@ -255,9 +256,10 @@ export function calculateMonthSummary(
       } else if (d.attendance.dayStatus === 'half_day') {
         days_half++;
         days_present++;
-      } else if (d.attendance.dayStatus === 'short') {
+      } else if (d.attendance.dayStatus === 'short' || d.attendance.dayStatus === 'absent') {
         days_short++;
-        days_present++;
+        // BFD Section 2: Hours below Half Day (< 4 hours) is Absent (A)
+        days_absent++;
       } else if (d.attendance.dayStatus === 'incomplete') {
         days_incomplete++;
       }

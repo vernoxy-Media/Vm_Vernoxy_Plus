@@ -128,6 +128,26 @@ export interface QueryKbArticlesParams {
 
 const API_BASE = '/api/v1/kb';
 
+export interface KbAccessContext {
+  can_access_client: boolean;
+  is_admin: boolean;
+  is_client_editor: boolean;
+  can_create_article: boolean;
+  is_pm_or_support: boolean;
+  managed_project_ids: number[];
+  client_category_ids: number[];
+}
+
+export function useKbAccessQuery() {
+  return useQuery<KbAccessContext>({
+    queryKey: ['kb-access'],
+    queryFn: async () => {
+      return customFetch<KbAccessContext>(`${API_BASE}/access`);
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 export function useKbKpisQuery() {
   return useQuery<KbKpiStats>({
     queryKey: ['kb-kpis'],

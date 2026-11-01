@@ -37,9 +37,10 @@ import { CompanyDetailPage } from '@/features/companies/pages/CompanyDetailPage'
 import { CompanyImportPage } from '@/features/companies/pages/CompanyImportPage';
 import { AttendancePage } from '@/features/attendance/pages/AttendancePage';
 import { CalendarPage } from '@/features/calendar/pages/CalendarPage';
+import { PerformancePage } from '@/features/performance/pages/PerformancePage';
 import { ProjectsPage } from '@/features/projects/pages/ProjectsPage';
-import { ProjectDetailPage } from '@/features/projects/pages/ProjectDetailPage';
 import { MyTasksPage } from '@/features/tasks/pages/MyTasksPage';
+import { DepartmentsPage } from '@/features/organization/pages/DepartmentsPage';
 import { AppLayout } from '@/shared/layouts/AppLayout';
 
 const queryClient = new QueryClient({
@@ -219,6 +220,16 @@ export const App: React.FC = () => {
                 }
               />
               <Route
+                path="/performance"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout fluid>
+                      <PerformancePage />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/projects"
                 element={
                   <ProtectedRoute>
@@ -233,7 +244,7 @@ export const App: React.FC = () => {
                 element={
                   <ProtectedRoute>
                     <AppLayout fluid>
-                      <ProjectDetailPage />
+                      <ProjectsPage />
                     </AppLayout>
                   </ProtectedRoute>
                 }
@@ -253,10 +264,42 @@ export const App: React.FC = () => {
                 element={<Navigate to="/my-tasks?tab=management" replace />}
               />
 
+              {/* Department Module (Top-Level Sidebar) */}
+              <Route
+                path="/departments"
+                element={
+                  <AdminRoute>
+                    <AppLayout fluid>
+                      <DepartmentsPage />
+                    </AppLayout>
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/departments"
+                element={<Navigate to="/departments" replace />}
+              />
+              <Route
+                path="/admin/settings/departments"
+                element={<Navigate to="/departments" replace />}
+              />
+              <Route
+                path="/support"
+                element={<Navigate to="/recruitment" replace />}
+              />
+              <Route
+                path="/tasks"
+                element={<Navigate to="/my-tasks" replace />}
+              />
+              <Route
+                path="/payroll"
+                element={<Navigate to="/admin/payroll" replace />}
+              />
+
               {/* Settings & Master Data */}
               <Route
                 path="/admin/settings"
-                element={<Navigate to="/admin/settings/departments" replace />}
+                element={<Navigate to="/admin/settings/roles" replace />}
               />
               <Route
                 path="/admin/settings/knowledge-base"
@@ -288,12 +331,12 @@ export const App: React.FC = () => {
                 path="/admin/settings/licenses"
                 element={<Navigate to="/admin/settings/license-settings" replace />}
               />
+              <Route
+                path="/admin/settings/performance"
+                element={<Navigate to="/admin/settings/performance-cycles" replace />}
+              />
 
               {/* Backward-compatibility redirects for old URLs */}
-              <Route
-                path="/admin/departments"
-                element={<Navigate to="/admin/settings/departments" replace />}
-              />
               <Route
                 path="/admin/roles"
                 element={<Navigate to="/admin/settings/roles" replace />}
@@ -332,6 +375,30 @@ export const App: React.FC = () => {
               />
 
               {/* Recruitment Module */}
+              <Route
+                path="/recruitment"
+                element={
+                  <AdminRoute>
+                    <CandidatesPage />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/recruitment/new"
+                element={
+                  <AdminRoute>
+                    <CandidateFormPage />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/recruitment/:id"
+                element={
+                  <AdminRoute>
+                    <CandidateDetailPage />
+                  </AdminRoute>
+                }
+              />
               <Route
                 path="/admin/recruitment"
                 element={

@@ -34,6 +34,12 @@ import { Throttle } from '@nestjs/throttler';
 import { Request } from 'express';
 import { JwtAuthGuard } from '../../../../modules/auth/public-api';
 import { OrganizationAdminGuard } from '../guards/organization-admin.guard';
+import { OrganizationAdminOrSelfGuard } from '../guards/organization-admin-or-self.guard';
+import {
+  ACCESS_POLICY_PORT_TOKEN,
+  AccessPolicyPort,
+} from '../../application/ports/access-policy.port';
+import { Inject } from '@nestjs/common';
 import { mapDomainErrorToHttpException } from '../organization-error.mapper';
 import { StorageValidator } from '../../../storage/public-api';
 import {
@@ -67,7 +73,7 @@ function toEmployeeResponseDto(emp: any): EmployeeResponseDto {
 
 @ApiTags('Organization')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, OrganizationAdminGuard)
+@UseGuards(JwtAuthGuard)
 @Controller('employees')
 export class EmployeeController {
   constructor(
@@ -82,9 +88,12 @@ export class EmployeeController {
     private readonly deactivateEmployeeUseCase: DeactivateEmployeeUseCase,
     private readonly getDeactivateWarningUseCase: GetDeactivateWarningUseCase,
     private readonly getEmployeeHistoryUseCase: GetEmployeeHistoryUseCase,
+    @Inject(ACCESS_POLICY_PORT_TOKEN)
+    private readonly accessPolicy: AccessPolicyPort,
   ) {}
 
   @Get()
+  @UseGuards(OrganizationAdminGuard)
   @ApiOperation({ summary: 'List employees with keyset pagination' })
   @ApiResponse({ status: 200, type: EmployeeListResponseDto })
   async list(@Query() query: EmployeeQueryDto): Promise<EmployeeListResponseDto> {
@@ -125,6 +134,7 @@ export class EmployeeController {
   }
 
   @Get(':id/deactivate-warning')
+  @UseGuards(OrganizationAdminGuard)
   @ApiOperation({ summary: 'Get direct reports warning before deactivating an employee' })
   @ApiParam({ name: 'id', type: Number, description: 'Employee ID' })
   @ApiResponse({ status: 200, type: DeactivateWarningResponseDto })
@@ -139,6 +149,7 @@ export class EmployeeController {
   }
 
   @Post(':id/deactivate')
+  @UseGuards(OrganizationAdminGuard)
   @ApiOperation({ summary: 'Deactivate an employee (with reason, termination date, and notes)' })
   @ApiParam({ name: 'id', type: Number, description: 'Employee ID' })
   @ApiBody({ type: DeactivateEmployeeDto })
@@ -177,6 +188,7 @@ export class EmployeeController {
   }
 
   @Post()
+  @UseGuards(OrganizationAdminGuard)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create employee and provision credentials' })
   @ApiBody({ type: CreateEmployeeDto })
@@ -232,6 +244,7 @@ export class EmployeeController {
   }
 
   @Patch(':id')
+  @UseGuards(OrganizationAdminOrSelfGuard)
   @ApiOperation({ summary: 'Update employee details' })
   @ApiParam({ name: 'id', type: Number, description: 'Employee ID' })
   @ApiBody({ type: UpdateEmployeeDto })
@@ -243,18 +256,49 @@ export class EmployeeController {
   ): Promise<EmployeeResponseDto> {
     try {
       const actingAdminId = req.user!.emp_id;
+      const canManage = await this.accessPolicy.canManageOrganization(actingAdminId);
+
+      // If user is editing their own profile and is not an org admin, strip restricted organization/compensation fields
+      const effectiveDto = { ...dto };
+      if (!canManage) {
+        delete effectiveDto.dep_id;
+        delete effectiveDto.department_ids;
+        delete effectiveDto.role_id;
+        delete effectiveDto.reporting_manager;
+        delete effectiveDto.joining_date;
+        delete effectiveDto.exit_date;
+        delete effectiveDto.status;
+        delete effectiveDto.employment_type_id;
+        delete effectiveDto.salary;
+        delete effectiveDto.pf;
+        delete effectiveDto.ot_eligible;
+        delete effectiveDto.ot_rate_type;
+        delete effectiveDto.ot_rate;
+        delete effectiveDto.ot_multiplier;
+        delete effectiveDto.minimum_ot_per_day;
+        delete effectiveDto.ot_paid_as;
+        delete effectiveDto.pf_applicable;
+        delete effectiveDto.uan;
+        delete effectiveDto.employee_pf_pct;
+        delete effectiveDto.employer_pf_pct;
+        delete effectiveDto.payment_mode;
+        delete effectiveDto.bank_name;
+        delete effectiveDto.account_number;
+        delete effectiveDto.ifsc_code;
+      }
+
       const emp = await this.updateEmployeeUseCase.execute({
         id,
-        name: dto.name,
-        email: dto.email,
-        mob: dto.mob,
-        dep_id: dto.dep_id,
-        department_ids: dto.department_ids,
-        role_id: dto.role_id,
-        reporting_manager: dto.reporting_manager,
-        joining_date: dto.joining_date,
-        exit_date: dto.exit_date,
-        status: dto.status,
+        name: effectiveDto.name,
+        email: effectiveDto.email,
+        mob: effectiveDto.mob,
+        dep_id: effectiveDto.dep_id,
+        department_ids: effectiveDto.department_ids,
+        role_id: effectiveDto.role_id,
+        reporting_manager: effectiveDto.reporting_manager,
+        joining_date: effectiveDto.joining_date,
+        exit_date: effectiveDto.exit_date,
+        status: effectiveDto.status,
         gender_id: dto.gender_id,
         personal_email: dto.personal_email,
         office_email: dto.office_email,
@@ -294,6 +338,7 @@ export class EmployeeController {
 
 
   @Delete(':id')
+  @UseGuards(OrganizationAdminGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Soft delete employee' })
   @ApiParam({ name: 'id', type: Number, description: 'Employee ID' })
@@ -311,6 +356,7 @@ export class EmployeeController {
   }
 
   @Put(':id/photo')
+  @UseGuards(OrganizationAdminOrSelfGuard)
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
@@ -365,6 +411,7 @@ export class EmployeeController {
   }
 
   @Delete(':id/photo')
+  @UseGuards(OrganizationAdminOrSelfGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remove employee profile photo' })
   @ApiParam({ name: 'id', type: Number, description: 'Employee ID' })

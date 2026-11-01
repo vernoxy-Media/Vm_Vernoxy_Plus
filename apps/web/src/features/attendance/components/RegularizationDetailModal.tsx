@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, FileText, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import {
@@ -116,7 +117,7 @@ export const RegularizationDetailModal: React.FC<RegularizationDetailModalProps>
     }
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 overflow-y-auto">
       <div className="relative w-full max-w-3xl my-8 rounded-lg border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900">
         {/* Header */}
@@ -370,6 +371,7 @@ export const RegularizationDetailModal: React.FC<RegularizationDetailModalProps>
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };

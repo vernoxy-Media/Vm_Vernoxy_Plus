@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, UserPlus, Trash2, AlertCircle } from 'lucide-react';
 import { useAssignLicenseMutation } from '../hooks/use-licenses';
 import { useEmployeeOptionsQuery } from '@/features/organization/hooks/use-organization';
+import { SearchableSelect } from '@/shared/ui/SearchableSelect';
 
 interface AssignLicenseModalProps {
  isOpen: boolean;
@@ -187,25 +188,17 @@ export const AssignLicenseModal: React.FC<AssignLicenseModalProps> = ({
  >
  {/* Employee Dropdown */}
  <div className="w-full sm:w-5/12">
- <select
- required
- value={row.emp_id}
- onChange={(e) =>
- handleRowChange(
- idx,
- 'emp_id',
- e.target.value ? Number(e.target.value) : '',
- )
- }
- className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white text-slate-900 "
- >
- <option value="">Select Employee</option>
- {employeeOptions.map((emp: any) => (
- <option key={emp.emp_id} value={emp.emp_id}>
- {emp.name} ({emp.email})
- </option>
- ))}
- </select>
+ <SearchableSelect
+                        placeholder="Select Employee"
+                        searchPlaceholder="Search by employee name or email..."
+                        value={row.emp_id}
+                        onChange={(val) => handleRowChange(idx, 'emp_id', val ? Number(val) : '')}
+                        options={employeeOptions.map((emp: any) => ({
+                          value: emp.emp_id,
+                          label: emp.name,
+                          sublabel: emp.email,
+                        }))}
+                      />
  </div>
 
  {/* Login Account ID */}

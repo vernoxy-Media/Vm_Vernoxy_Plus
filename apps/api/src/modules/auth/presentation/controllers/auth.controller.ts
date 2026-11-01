@@ -23,6 +23,7 @@ import {
 } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import { Throttle } from '@nestjs/throttler';
+import { PrismaService } from '../../../../core/prisma/prisma.service';
 import { AuthService } from '../../application/services/auth.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import {
@@ -81,10 +82,67 @@ export class AuthController {
   constructor(
     @Inject(AuthService)
     private readonly authService: AuthService,
+    private readonly prisma: PrismaService,
   ) {
     this.cookieSecure = process.env.COOKIE_SECURE === 'true';
     const refreshDays = Number(process.env.REFRESH_TOKEN_TTL_DAYS || 7);
     this.refreshTtlMs = refreshDays * 24 * 60 * 60 * 1000;
+  }
+
+  private async tryAutoPunchIn(empId: number): Promise<void> {
+    try {
+      const now = new Date();
+      // Format current date in Asia/Kolkata timezone (e.g. "2026-10-30")
+      const dateStr = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Kolkata',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(now);
+      const workDate = new Date(`${dateStr}T00:00:00.000Z`);
+
+      const existing = await this.prisma.attendance_days.findFirst({
+        where: {
+          emp_id: empId,
+          work_date: workDate,
+          deleted_at: null,
+        },
+      });
+
+      if (!existing) {
+        const dayOfWeek = workDate.getUTCDay();
+        const isWeeklyOff = dayOfWeek === 0 || dayOfWeek === 6;
+
+        await this.prisma.attendance_days.create({
+          data: {
+            emp_id: empId,
+            work_date: workDate,
+            check_in_at: now,
+            check_out_at: null,
+            break_minutes: 0,
+            production_minutes: 0,
+            day_status: 'incomplete',
+            source: 'web',
+            worked_on_non_working_day: isWeeklyOff,
+            note: 'Auto punched in on login',
+            created_by: empId,
+          },
+        });
+      } else if (!existing.check_in_at) {
+        await this.prisma.attendance_days.update({
+          where: { attendance_id: existing.attendance_id },
+          data: {
+            check_in_at: now,
+            source: 'web',
+            updated_at: now,
+            updated_by: empId,
+          },
+        });
+      }
+    } catch (e) {
+      // Auto punch-in should never prevent successful login
+      console.warn('Auto punch-in on login skipped or failed:', e);
+    }
   }
 
   private setRefreshCookie(res: Response, token: string) {
@@ -120,6 +178,7 @@ export class AuthController {
     try {
       const result = await this.authService.loginDirect(dto.email, dto.password, ip, userAgent);
       this.setRefreshCookie(res, result.raw_refresh_token);
+      await this.tryAutoPunchIn(result.user.emp_id);
       return {
         access_token: result.access_token,
         token_type: result.token_type,
@@ -147,6 +206,7 @@ export class AuthController {
     try {
       const result = await this.authService.verifyLoginOtp(dto.challenge_id, dto.code, ip, userAgent);
       this.setRefreshCookie(res, result.raw_refresh_token);
+      await this.tryAutoPunchIn(result.user.emp_id);
       return {
         access_token: result.access_token,
         token_type: result.token_type,

@@ -97,6 +97,15 @@ export class UpdateEmployeeUseCase {
       }
     }
 
+    if (command.office_email !== undefined && command.office_email) {
+      const normEmail = OrganizationNormalizationService.normalizeEmail(command.office_email);
+      const existingEmail = await this.employeeRepo.findByEmail(normEmail);
+      if (existingEmail && existingEmail.emp_id !== command.id) {
+        const code = existingEmail.employee_code || `EMP-${String(existingEmail.emp_id).padStart(4, '0')}`;
+        throw new ConflictDomainError('EMAIL_EXISTS', `This email already belongs to ${code}.`, 'office_email');
+      }
+    }
+
     if (command.salary !== undefined && command.salary < 0) {
       throw new ValidationDomainError('Salary cannot be negative', 'salary');
     }
@@ -212,6 +221,15 @@ export class UpdateEmployeeUseCase {
         parsedBirthDate = new Date(command.birth_date);
         if (isNaN(parsedBirthDate.getTime())) {
           throw new ValidationDomainError('Invalid birth date format', 'birth_date');
+        }
+        const today = new Date();
+        let age = today.getFullYear() - parsedBirthDate.getFullYear();
+        const m = today.getMonth() - parsedBirthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < parsedBirthDate.getDate())) {
+          age--;
+        }
+        if (age < 18) {
+          throw new ValidationDomainError('Employees must be 18 or older.', 'birth_date');
         }
       }
     }

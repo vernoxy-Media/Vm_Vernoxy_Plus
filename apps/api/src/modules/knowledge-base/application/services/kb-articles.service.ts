@@ -48,20 +48,108 @@ export class KbArticlesService {
   }
 
   /**
+   * Resolve user access rights for the CLIENT knowledge space.
+   * Per Knowledge Base BFD Section 11 & Section 10.8:
+   * Only Admin, editors of client categories, and Project Managers & Support Employees
+   * of projects have access to Client Knowledge. Regular employees cannot view Client Knowledge.
+   */
+  async getClientAccessContext(user: RequestUser): Promise<{
+    can_access_client: boolean;
+    is_admin: boolean;
+    is_client_editor: boolean;
+    can_create_article: boolean;
+    is_pm_or_support: boolean;
+    managed_project_ids: number[];
+    client_category_ids: number[];
+  }> {
+    const admin = this.isAdmin(user);
+    if (admin) {
+      return {
+        can_access_client: true,
+        is_admin: true,
+        is_client_editor: true,
+        can_create_article: true,
+        is_pm_or_support: true,
+        managed_project_ids: [],
+        client_category_ids: [],
+      };
+    }
+
+    const empId = this.getEmpId(user);
+
+    // 1. Check if user is editor / owner / approver / creator of any CLIENT category
+    const clientCategories = await this.prisma.kb_categories.findMany({
+      where: {
+        space: 'CLIENT',
+        is_active: true,
+        OR: [
+          { default_owner_id: empId },
+          { default_approver_id: empId },
+          { created_by: empId },
+        ],
+      },
+      select: { category_id: true },
+    });
+    const clientCategoryIds = clientCategories.map((c) => c.category_id);
+    const isClientEditor = clientCategoryIds.length > 0;
+
+    // Check if user is an editor in any category (Internal or Client)
+    const allEditableCategories = await this.prisma.kb_categories.findMany({
+      where: {
+        is_active: true,
+        OR: [
+          { default_owner_id: empId },
+          { default_approver_id: empId },
+          { created_by: empId },
+        ],
+      },
+      select: { category_id: true },
+    });
+    const canCreateArticle = allEditableCategories.length > 0;
+
+    // Per BFD Section 11 & Reference Screen 1:
+    // Regular employees do NOT have access to the Client Knowledge tab.
+    // Only Admin or users specifically designated as editors of client categories can access Client Knowledge.
+    const canAccessClient = isClientEditor;
+
+    return {
+      can_access_client: canAccessClient,
+      is_admin: false,
+      is_client_editor: isClientEditor,
+      can_create_article: canCreateArticle,
+      is_pm_or_support: false,
+      managed_project_ids: [],
+      client_category_ids: clientCategoryIds,
+    };
+  }
+
+  /**
    * KPI Dashboard statistics
    */
   async getKpiStats(user: RequestUser) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    const clientAccess = await this.getClientAccessContext(user);
+    const publishedWhere: any = {
+      is_archived: false,
+      current_published_version_id: { not: null },
+    };
+    const reviewDueWhere: any = {
+      is_archived: false,
+      next_review_date: { lte: today },
+    };
+
+    if (!clientAccess.can_access_client) {
+      publishedWhere.space = 'INTERNAL';
+      reviewDueWhere.space = 'INTERNAL';
+    }
+
     const [publishedCount, inReviewCount, openDraftsCount, reviewDueCount, overdueAckCount] =
       await Promise.all([
         // 1. Published articles
         this.prisma.kb_articles.count({
-          where: {
-            is_archived: false,
-            current_published_version_id: { not: null },
-          },
+          where: publishedWhere,
         }),
         // 2. Pending approvals
         this.prisma.kb_article_versions.count({
@@ -78,10 +166,7 @@ export class KbArticlesService {
           }),
         // 4. Articles due for review
         this.prisma.kb_articles.count({
-          where: {
-            is_archived: false,
-            next_review_date: { lte: today },
-          },
+          where: reviewDueWhere,
         }),
         // 5. Overdue acknowledgements for current employee
         this.prisma.kb_acknowledgements.count({
@@ -117,6 +202,35 @@ export class KbArticlesService {
       where.space = query.space;
     } else {
       where.space = 'INTERNAL';
+    }
+
+    // Access control for CLIENT space per BFD Section 11 & Section 10.8
+    if (where.space === 'CLIENT') {
+      const clientAccess = await this.getClientAccessContext(user);
+      if (!clientAccess.can_access_client) {
+        throw new ForbiddenException('Access denied: You do not have permission to view Client Knowledge.');
+      }
+
+      if (!clientAccess.is_admin) {
+        const clientConditions: any[] = [
+          { owner_emp_id: this.getEmpId(user) },
+          { created_by: this.getEmpId(user) },
+          { audience_scope: 'ALL' },
+        ];
+
+        if (clientAccess.client_category_ids.length > 0) {
+          clientConditions.push({ category_id: { in: clientAccess.client_category_ids } });
+        }
+
+        if (clientAccess.managed_project_ids.length > 0) {
+          clientConditions.push({ audience_projects: { hasSome: clientAccess.managed_project_ids } });
+        }
+
+        where.AND = [
+          ...(where.AND || []),
+          { OR: clientConditions },
+        ];
+      }
     }
 
     // Category filter
@@ -369,20 +483,46 @@ export class KbArticlesService {
         throw new NotFoundException('Article not found');
       }
 
-      // Audience Check
-      if (!this.isAdmin(user) && article.space === 'INTERNAL') {
-        const empId = this.getEmpId(user);
-        const depId = this.getDepId(user);
-        const allowed =
-          article.audience_scope === 'ALL' ||
-        article.owner_emp_id === empId ||
-          article.created_by === empId ||
-          (Boolean(depId) && article.audience_departments.includes(depId as number)) ||
-          (Boolean(user.role_id) && article.audience_roles.includes(user.role_id as number)) ||
-          article.audience_employees.includes(empId);
+      if (article.space === 'CLIENT') {
+        const clientAccess = await this.getClientAccessContext(user);
+        if (!clientAccess.can_access_client) {
+          throw new ForbiddenException('You do not have permission to edit Client Knowledge articles.');
+        }
+      }
 
-        if (!allowed) {
-          throw new ForbiddenException('You do not have permission to view this article');
+      // Audience Check
+      if (!this.isAdmin(user)) {
+        const empId = this.getEmpId(user);
+
+        if (article.space === 'CLIENT') {
+          const clientAccess = await this.getClientAccessContext(user);
+          if (!clientAccess.can_access_client) {
+            throw new ForbiddenException('You do not have permission to view Client Knowledge articles');
+          }
+
+          const isOwner = article.owner_emp_id === empId || article.created_by === empId;
+          const isCategoryEditor = clientAccess.client_category_ids.includes(article.category_id);
+          const isAllClients = article.audience_scope === 'ALL';
+          const hasProjectMatch =
+            clientAccess.managed_project_ids.length > 0 &&
+            article.audience_projects.some((pId) => clientAccess.managed_project_ids.includes(pId));
+
+          if (!isOwner && !isCategoryEditor && !isAllClients && !hasProjectMatch) {
+            throw new ForbiddenException('You do not have permission to view this client article');
+          }
+        } else {
+          const depId = this.getDepId(user);
+          const allowed =
+            article.audience_scope === 'ALL' ||
+            article.owner_emp_id === empId ||
+            article.created_by === empId ||
+            (Boolean(depId) && article.audience_departments.includes(depId as number)) ||
+            (Boolean(user.role_id) && article.audience_roles.includes(user.role_id as number)) ||
+            article.audience_employees.includes(empId);
+
+          if (!allowed) {
+            throw new ForbiddenException('You do not have permission to view this article');
+          }
         }
       }
 
@@ -504,6 +644,20 @@ export class KbArticlesService {
       }
       if (category.space !== dto.space) {
         throw new BadRequestException('Category space does not match requested space');
+      }
+
+      if (dto.space === 'CLIENT') {
+        const clientAccess = await this.getClientAccessContext(user);
+        if (!clientAccess.can_access_client) {
+          throw new ForbiddenException('You do not have permission to create articles in Client Knowledge.');
+        }
+        if (!clientAccess.is_admin) {
+          const isCategoryEditor = clientAccess.client_category_ids.includes(dto.category_id);
+          const isPmOrSupport = clientAccess.is_pm_or_support;
+          if (!isCategoryEditor && !isPmOrSupport) {
+            throw new ForbiddenException('You are not authorized to create articles in this client category.');
+          }
+        }
       }
 
       const counterResult: any[] = await this.prisma.$queryRawUnsafe(`

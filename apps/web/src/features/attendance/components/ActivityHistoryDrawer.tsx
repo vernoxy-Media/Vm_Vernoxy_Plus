@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   Clock,
@@ -47,16 +48,16 @@ export const ActivityHistoryDrawer: React.FC<ActivityHistoryDrawerProps> = ({
     timeZone: 'UTC',
   });
 
-  return (
-    <div className="fixed inset-0 z-50 overflow-hidden select-none">
+  return createPortal(
+    <div className="fixed inset-0 z-50 overflow-hidden">
       {/* Backdrop */}
       <div
         onClick={onClose}
-        className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+        className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity animate-in fade-in duration-200 z-50"
       />
 
-      <div className="fixed inset-y-0 right-0 pl-10 max-w-full flex">
-        <div className="w-screen max-w-md bg-white shadow-2xl flex flex-col justify-between border-l border-slate-200 animate-in slide-in-from-right duration-250">
+      <div className="fixed inset-y-0 right-0 pl-6 sm:pl-10 max-w-full flex z-50 pointer-events-none">
+        <div className="w-screen max-w-md h-full bg-white shadow-2xl flex flex-col justify-between border-l border-slate-200 animate-in slide-in-from-right duration-250 pointer-events-auto">
           {/* Header */}
           <div className="p-6 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
             <div className="flex items-center gap-3">
@@ -173,6 +174,7 @@ export const ActivityHistoryDrawer: React.FC<ActivityHistoryDrawerProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };

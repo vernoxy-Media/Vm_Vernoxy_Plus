@@ -31,6 +31,8 @@ import {
   DecideCancellationDto,
   AdminCancelLeaveDto,
   AdjustBalanceDto,
+  BulkAdjustBalanceDto,
+  AssignEmployeePolicyDto,
 } from '../dto/leave.dto';
 
 @ApiTags('Leave')

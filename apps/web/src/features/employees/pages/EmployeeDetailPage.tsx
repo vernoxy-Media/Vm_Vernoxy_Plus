@@ -39,6 +39,8 @@ import {
   Landmark,
 } from 'lucide-react';
 import { EmployeeDocumentsTab } from '../components/EmployeeDocumentsTab';
+import { useLeavePoliciesQuery, useAssignEmployeePolicyMutation, useAllLeaveBalancesQuery } from '@/features/leave/hooks/use-leave';
+import { SearchableSelect } from '@/shared/ui/SearchableSelect';
 import {
   useEmployeeActivationStatusQuery,
   useActivateEmployeeMutation,
@@ -46,6 +48,7 @@ import {
   ActivateEmployeeResult,
 } from '../hooks/use-employee-documents';
 import { AccountActivatedModal } from '../components/AccountActivatedModal';
+import { EditProfileModal } from '../components/EditProfileModal';
 
 function formatDuration(startDate: Date | string, endDate?: Date | string | null): string {
   const start = new Date(startDate);
@@ -75,7 +78,8 @@ export const EmployeeDetailPage: React.FC = () => {
   const empId = id ? parseInt(id, 10) : undefined;
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, refreshProfile } = useAuth();
+  const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
 
   const tabParam = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState<'overview' | 'pay_policy' | 'documents' | 'history'>(
@@ -106,6 +110,17 @@ export const EmployeeDetailPage: React.FC = () => {
 
   // TanStack queries
   const { data: employee, isLoading, error, refetch: refetchEmployee } = useEmployeeDetailQuery(empId);
+  const { data: leavePolicies = [] } = useLeavePoliciesQuery();
+  const assignPolicyMut = useAssignEmployeePolicyMutation();
+  const { data: allBalances = [] } = useAllLeaveBalancesQuery();
+  const [selectedPolicyId, setSelectedPolicyId] = useState<number | null>(null);
+  const [isChangingPolicy, setIsChangingPolicy] = useState(false);
+
+  const empLeaveBalances = React.useMemo(() => {
+    if (!employee || !allBalances) return [];
+    const found = allBalances.find((b: any) => b.emp_id === employee.emp_id);
+    return found?.balances || [];
+  }, [employee, allBalances]);
   const { data: historyList, isLoading: isHistoryLoading } = useEmployeeHistoryQuery(empId);
   const { data: warningData } = useDeactivateWarningQuery(isDeactivateModalOpen ? empId : undefined);
   const { data: deactivationReasonsLookup } = useLookupsQuery('deactivation_reason');
@@ -351,13 +366,14 @@ export const EmployeeDetailPage: React.FC = () => {
                 </button>
               )}
 
-              <Link
-                to={`/admin/employees/${employee.emp_id}/edit`}
-                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition shadow-2xs"
+              <button
+                type="button"
+                onClick={() => setIsEditProfileModalOpen(true)}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition shadow-2xs cursor-pointer"
               >
                 <Edit2 className="w-3.5 h-3.5" />
                 Edit Profile
-              </Link>
+              </button>
 
               {isInactive ? (
                 <button
@@ -663,7 +679,17 @@ export const EmployeeDetailPage: React.FC = () => {
                   </label>
                   <p className="mt-1 font-semibold text-slate-800 flex items-center gap-1.5">
                     <UserCheck className="w-3.5 h-3.5 text-blue-500" />
-                    {employee.manager ? employee.manager.name : 'None (Top-level Executive)'}
+                    {employee.manager ? (
+                      <Link
+                        to={`/admin/employees/${employee.manager.emp_id || employee.reporting_manager}`}
+                        className="text-blue-600 hover:text-blue-800 hover:underline font-semibold"
+                        title="View Manager Profile"
+                      >
+                        {employee.manager.name}
+                      </Link>
+                    ) : (
+                      'None (Top-level Executive)'
+                    )}
                   </p>
                 </div>
 
@@ -731,7 +757,7 @@ export const EmployeeDetailPage: React.FC = () => {
               </div>
             </div>
 
-            {/* 3. Compensation & Statutory Card */}
+            {/* 3. Compensation & Statutory Card (BFD Page 15 Marker 8: Admin only with lock) */}
             <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xs p-6 space-y-6 sm:col-span-2">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div className="flex items-center gap-2.5">
@@ -739,9 +765,15 @@ export const EmployeeDetailPage: React.FC = () => {
                     <Wallet className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-slate-900 text-base">Compensation & Statutory</h3>
+                    <h3 className="font-bold text-slate-900 text-base">Salary & PF (Compensation)</h3>
                     <p className="text-xs text-slate-400">Strictly confidential employee payroll information</p>
                   </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 shadow-2xs">
+                    <Lock className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Admin Only</span>
+                  </span>
                 </div>
               </div>
 
@@ -1095,6 +1127,127 @@ export const EmployeeDetailPage: React.FC = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Card 5: Leave Policy & Entitlements (BFD Pages 5, 9, 13) */}
+              <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xs p-6 space-y-5 md:col-span-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
+                      <Calendar className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-900 text-sm">Leave Policy & Entitlement</h4>
+                      <p className="text-2xs text-slate-400">Assigned leave rules, quota, and pro-rata opening balance</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {!isChangingPolicy ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedPolicyId((employee as any).leave_policy_id || (leavePolicies[0]?.policy_id ?? null));
+                          setIsChangingPolicy(true);
+                        }}
+                        className="px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 cursor-pointer"
+                      >
+                        Change Leave Policy
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <div className="min-w-[180px]">
+                          <SearchableSelect
+                            placeholder="Select Leave Policy"
+                            value={selectedPolicyId}
+                            onChange={(v) => setSelectedPolicyId(v ? Number(v) : null)}
+                            options={leavePolicies.map((p) => ({ value: p.policy_id, label: p.name }))}
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          disabled={!selectedPolicyId || assignPolicyMut.isPending}
+                          onClick={async () => {
+                            if (!selectedPolicyId || !employee?.emp_id) return;
+                            try {
+                              await assignPolicyMut.mutateAsync({
+                                empId: employee.emp_id,
+                                policyId: selectedPolicyId,
+                              });
+                              setIsChangingPolicy(false);
+                              alert('Leave policy updated and opening balance calculated.');
+                            } catch (err: any) {
+                              alert(err?.detail || err?.message || 'Failed to update leave policy.');
+                            }
+                          }}
+                          className="px-3 py-1.5 bg-blue-600 text-white rounded-xl text-xs font-semibold hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
+                        >
+                          {assignPolicyMut.isPending ? 'Saving...' : 'Save'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIsChangingPolicy(false)}
+                          className="px-2.5 py-1.5 border border-slate-200 text-slate-500 rounded-xl text-xs hover:bg-slate-50 cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/60">
+                    <span className="text-2xs font-bold text-slate-500 uppercase tracking-wider block">Assigned Policy</span>
+                    <p className="text-base font-bold text-slate-900 mt-1">
+                      {leavePolicies.find((p) => p.policy_id === (employee as any).leave_policy_id)?.name || 'Standard Leave Policy'}
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/60">
+                    <span className="text-2xs font-bold text-slate-500 uppercase tracking-wider block">Policy Status</span>
+                    <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      Active
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/60">
+                    <span className="text-2xs font-bold text-slate-500 uppercase tracking-wider block">Pro-Rata Rule</span>
+                    <p className="text-xs text-slate-700 mt-1">
+                      Calculated from Joining Date ({new Date(employee.joining_date).toISOString().split('T')[0]})
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <h5 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                    Current Year Available Balances
+                  </h5>
+                  {empLeaveBalances.length === 0 ? (
+                    <div className="p-4 bg-slate-50 border border-dashed border-slate-200 rounded-xl text-center text-xs text-slate-400">
+                      Balances will initialize when employee logs in or when an adjustment is saved.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {empLeaveBalances.map((bal: any) => (
+                        <div key={bal.leave_type_id} className="p-3 rounded-xl border border-slate-200 bg-white">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-slate-800 text-xs">{bal.name}</span>
+                            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 font-bold">
+                              {bal.code}
+                            </span>
+                          </div>
+                          <div className="mt-2 text-xl font-bold text-blue-600 font-mono">
+                            {bal.available_balance} <span className="text-xs font-normal text-slate-400">days</span>
+                          </div>
+                          <div className="mt-1 text-[10px] text-slate-400">
+                            {bal.credited_days} credited • {bal.days_taken} taken
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -1377,6 +1530,19 @@ export const EmployeeDetailPage: React.FC = () => {
         employeeName={employee?.name}
         title={modalTitle}
         description={modalDescription}
+      />
+
+      {/* Edit Profile Modal (Employee can edit personal info only) */}
+      <EditProfileModal
+        isOpen={isEditProfileModalOpen}
+        onClose={() => setIsEditProfileModalOpen(false)}
+        employee={employee}
+        onSuccess={async () => {
+          refetchEmployee();
+          if (isSelf) {
+            await refreshProfile();
+          }
+        }}
       />
     </AdminLayout>
   );

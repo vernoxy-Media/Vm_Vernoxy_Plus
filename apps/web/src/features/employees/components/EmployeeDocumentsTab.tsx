@@ -41,6 +41,7 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({ empl
 
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
   const [selectedDocForUpload, setSelectedDocForUpload] = useState<string | null>(null);
+  const [untickDocConfirm, setUntickDocConfirm] = useState<EmployeeDocumentItem | null>(null);
   const [viewingDoc, setViewingDoc] = useState<EmployeeDocumentItem | null>(null);
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [isLoadingFile, setIsLoadingFile] = useState(false);
@@ -120,6 +121,37 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({ empl
     const file = e.target.files?.[0];
     if (!file || !selectedDocForUpload) return;
 
+    // Check size limit: 5MB (BFD Page 11 & 14)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Only PDF, JPG or PNG up to 5 MB.');
+      return;
+    }
+
+    // Check NDA must strictly be a PDF (BFD Page 11 & 13)
+    if (selectedDocForUpload.includes('nda')) {
+      const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+      if (!isPdf) {
+        alert('The NDA must be a PDF.');
+        return;
+      }
+    }
+
+    // Check passport photos: JPG or PNG (BFD Page 11)
+    if (selectedDocForUpload.includes('passport_photos')) {
+      const isImg = file.type.startsWith('image/') || /\.(jpg|jpeg|png)$/i.test(file.name);
+      if (!isImg) {
+        alert('Passport photos must be a JPG or PNG.');
+        return;
+      }
+    }
+
+    // Check general allowed extensions: PDF, JPG, PNG
+    const validExts = /\.(pdf|jpg|jpeg|png)$/i;
+    if (!validExts.test(file.name)) {
+      alert('Only PDF, JPG or PNG up to 5 MB.');
+      return;
+    }
+
     try {
       await uploadMutation.mutateAsync({
         empId: employee.emp_id,
@@ -134,6 +166,13 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({ empl
 
   const handleToggle = async (doc: EmployeeDocumentItem) => {
     if (doc.status === 'locked') return;
+
+    // If file is already uploaded, ask confirmation before unticking (BFD Page 11)
+    if (doc.is_ticked && (doc.status === 'uploaded' || doc.status === 'final' || doc.file_url)) {
+      setUntickDocConfirm(doc);
+      return;
+    }
+
     try {
       await toggleMutation.mutateAsync({
         empId: employee.emp_id,
@@ -142,6 +181,20 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({ empl
       });
     } catch (err: any) {
       alert(err?.message || 'Failed to toggle document');
+    }
+  };
+
+  const handleConfirmUntick = async () => {
+    if (!untickDocConfirm) return;
+    try {
+      await toggleMutation.mutateAsync({
+        empId: employee.emp_id,
+        documentType: untickDocConfirm.document_type,
+        isTicked: false,
+      });
+      setUntickDocConfirm(null);
+    } catch (err: any) {
+      alert(err?.message || 'Failed to untick document');
     }
   };
 
@@ -485,6 +538,38 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({ empl
           </div>
         );
       })()}
+      {/* Untick confirmation popup (BFD Page 11) */}
+      {untickDocConfirm && (
+        <div
+          id="untick-doc-modal"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in"
+        >
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200 p-6 space-y-4">
+            <h3 className="text-base font-bold text-slate-900">Remove Uploaded Document?</h3>
+            <p className="text-sm text-slate-600">
+              The uploaded file will be removed. Continue?
+            </p>
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                id="untick-doc-cancel-btn"
+                onClick={() => setUntickDocConfirm(null)}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                id="untick-doc-confirm-btn"
+                onClick={handleConfirmUntick}
+                className="px-4 py-2 rounded-xl bg-rose-600 text-xs font-semibold text-white hover:bg-rose-700 transition cursor-pointer"
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

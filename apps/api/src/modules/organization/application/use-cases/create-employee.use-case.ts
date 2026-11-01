@@ -91,6 +91,15 @@ export class CreateEmployeeUseCase {
       if (isNaN(parsedBirthDate.getTime())) {
         throw new ValidationDomainError('Invalid birth date format', 'birth_date');
       }
+      const today = new Date();
+      let age = today.getFullYear() - parsedBirthDate.getFullYear();
+      const m = today.getMonth() - parsedBirthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < parsedBirthDate.getDate())) {
+        age--;
+      }
+      if (age < 18) {
+        throw new ValidationDomainError('Employees must be 18 or older.', 'birth_date');
+      }
     }
 
     if (command.salary !== undefined && command.salary < 0) {
@@ -146,7 +155,8 @@ export class CreateEmployeeUseCase {
 
     const existingEmail = await this.employeeRepo.findByEmail(normalizedEmail);
     if (existingEmail) {
-      throw new ConflictDomainError('EMAIL_EXISTS', 'An employee with this email already exists', 'email');
+      const code = existingEmail.employee_code || `EMP-${String(existingEmail.emp_id).padStart(4, '0')}`;
+      throw new ConflictDomainError('EMAIL_EXISTS', `This email already belongs to ${code}.`, 'email');
     }
 
     if (command.mob && command.mob.trim()) {

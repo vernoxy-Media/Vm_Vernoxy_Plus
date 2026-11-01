@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import React, { useState, useMemo } from 'react';
 import {
   FileText,
@@ -15,6 +16,8 @@ import {
   ChevronRight,
   Download,
   RotateCcw,
+  BarChart3,
+  Users,
 } from 'lucide-react';
 import {
   useAdminLeaveRequestsQuery,
@@ -25,6 +28,7 @@ import {
   useAdminCancelLeaveMutation,
   useAddLeaveForEmployeeMutation,
   useAdjustLeaveBalanceMutation,
+  useBulkAdjustLeaveBalanceMutation,
   useLeaveTypesQuery,
 } from '../hooks/use-leave';
 import { useEmployeeOptionsQuery } from '@/features/organization/hooks/use-organization';
@@ -97,6 +101,46 @@ export const LeaveRequestsPage: React.FC<LeaveRequestsPageProps> = ({ hideBreadc
     duration: 'FULL_DAY',
     reason: '',
   });
+
+  // Bulk adjust balance modal state
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [bulkSelectAll, setBulkSelectAll] = useState(false);
+  const [bulkSelectedEmpIds, setBulkSelectedEmpIds] = useState<number[]>([]);
+  const [bulkForm, setBulkForm] = useState({
+    leave_type_id: 1,
+    direction: 'CREDIT' as 'CREDIT' | 'DEBIT',
+    days: 1.0,
+    note: '',
+  });
+  const bulkAdjustMut = useBulkAdjustLeaveBalanceMutation();
+
+  const handleBulkSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const targetEmpIds = bulkSelectAll
+      ? employees.map((emp: any) => emp.emp_id || emp.id)
+      : bulkSelectedEmpIds;
+
+    if (targetEmpIds.length === 0) {
+      alert('Please select at least one employee.');
+      return;
+    }
+    try {
+      await bulkAdjustMut.mutateAsync({
+        emp_ids: targetEmpIds,
+        leave_type_id: bulkForm.leave_type_id,
+        direction: bulkForm.direction,
+        days: bulkForm.days,
+        note: bulkForm.note,
+      });
+      setIsBulkModalOpen(false);
+      setBulkSelectedEmpIds([]);
+      setBulkSelectAll(false);
+      setBulkForm({ ...bulkForm, note: '', days: 1.0 });
+      alert(`Successfully adjusted balance for ${targetEmpIds.length} employee(s).`);
+    } catch (err: any) {
+      alert(err?.detail || err?.message || 'Failed to bulk adjust balances.');
+    }
+  };
 
   // Adjust balance modal state
   const [isAdjustModalOpen, setIsAdjustModalOpen] = useState(false);
@@ -321,7 +365,29 @@ export const LeaveRequestsPage: React.FC<LeaveRequestsPageProps> = ({ hideBreadc
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Link
+            to="/leave?tab=calendar"
+            className="inline-flex items-center gap-1.5 px-3 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
+          >
+            <Calendar className="w-4 h-4 text-blue-600" />
+            <span>Leave Calendar</span>
+          </Link>
+          <Link
+            to="/leave?tab=reports"
+            className="inline-flex items-center gap-1.5 px-3 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
+          >
+            <BarChart3 className="w-4 h-4 text-blue-600" />
+            <span>Reports</span>
+          </Link>
+          <button
+            type="button"
+            onClick={() => setIsBulkModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
+          >
+            <Users className="w-4 h-4 text-slate-500" />
+            <span>Bulk Credit</span>
+          </button>
           <button
             type="button"
             onClick={() => setIsAdjustModalOpen(true)}
@@ -1239,6 +1305,171 @@ export const LeaveRequestsPage: React.FC<LeaveRequestsPageProps> = ({ hideBreadc
                   className="px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 shadow-xs cursor-pointer"
                 >
                   Save Adjustment & Record in Ledger
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* ========================================================================= */}
+      {/* MODAL: BULK ADJUST BALANCE (BFD Section 10)                               */}
+      {/* ========================================================================= */}
+      {isBulkModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 space-y-4 border border-slate-200 text-xs">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Users className="w-5 h-5 text-blue-600" />
+                Bulk Credit / Adjust Leave Balance
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsBulkModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-700 rounded-lg cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleBulkSubmit} className="space-y-4">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="font-semibold text-slate-700">Target Employees *</label>
+                  <label className="flex items-center gap-1.5 text-xs text-blue-600 font-semibold cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={bulkSelectAll}
+                      onChange={(e) => {
+                        setBulkSelectAll(e.target.checked);
+                        if (e.target.checked) {
+                          setBulkSelectedEmpIds(employees.map((emp: any) => emp.emp_id || emp.id));
+                        } else {
+                          setBulkSelectedEmpIds([]);
+                        }
+                      }}
+                      className="rounded text-blue-600"
+                    />
+                    Select All ({employees.length})
+                  </label>
+                </div>
+                {!bulkSelectAll && (
+                  <div className="max-h-36 overflow-y-auto border border-slate-200 rounded-xl p-2 space-y-1 bg-slate-50">
+                    {employees.map((emp: any) => {
+                      const id = emp.emp_id || emp.id;
+                      const isChecked = bulkSelectedEmpIds.includes(id);
+                      return (
+                        <label
+                          key={id}
+                          className="flex items-center gap-2 p-1.5 hover:bg-white rounded-lg cursor-pointer text-xs transition"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setBulkSelectedEmpIds([...bulkSelectedEmpIds, id]);
+                              } else {
+                                setBulkSelectedEmpIds(bulkSelectedEmpIds.filter((x) => x !== id));
+                              }
+                            }}
+                            className="rounded text-blue-600"
+                          />
+                          <span className="font-medium text-slate-800">{emp.name}</span>
+                          <span className="text-slate-400 text-[11px] truncate">
+                            {emp.email || emp.dep_name || ''}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+                {bulkSelectAll && (
+                  <p className="text-[11px] text-emerald-600 font-medium mt-1">
+                    ✓ All {employees.length} active employees will receive this adjustment.
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Leave Type *</label>
+                <select
+                  value={bulkForm.leave_type_id}
+                  onChange={(e) =>
+                    setBulkForm({ ...bulkForm, leave_type_id: parseInt(e.target.value, 10) })
+                  }
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white"
+                >
+                  {allTypes
+                    .filter((t) => t.balance_tracked)
+                    .map((t) => (
+                      <option key={t.leave_type_id} value={t.leave_type_id}>
+                        {t.name} ({t.code})
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Credit / Debit *</label>
+                  <select
+                    value={bulkForm.direction}
+                    onChange={(e) =>
+                      setBulkForm({ ...bulkForm, direction: e.target.value as any })
+                    }
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-semibold"
+                  >
+                    <option value="CREDIT">Credit (Add days)</option>
+                    <option value="DEBIT">Debit (Subtract days)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Days * (0.5 steps)</label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    min="0.5"
+                    max="365"
+                    required
+                    value={bulkForm.days}
+                    onChange={(e) =>
+                      setBulkForm({ ...bulkForm, days: parseFloat(e.target.value) || 0.5 })
+                    }
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Mandatory Note * (10 to 500 characters)
+                </label>
+                <textarea
+                  rows={2}
+                  required
+                  minLength={10}
+                  maxLength={500}
+                  placeholder='e.g. "Company Anniversary Bonus Leave"'
+                  value={bulkForm.note}
+                  onChange={(e) => setBulkForm({ ...bulkForm, note: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsBulkModalOpen(false)}
+                  className="px-4 py-2 border border-slate-200 text-slate-600 rounded-xl font-semibold cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={bulkAdjustMut.isPending}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 shadow-xs cursor-pointer flex items-center gap-1.5"
+                >
+                  {bulkAdjustMut.isPending ? 'Processing...' : 'Execute Bulk Adjustment'}
                 </button>
               </div>
             </form>

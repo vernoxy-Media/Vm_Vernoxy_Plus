@@ -152,7 +152,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
     checkOutAt: Date,
     breakMinutes: number,
     productionMinutes: number,
-    dayStatus: 'present' | 'half_day' | 'short' | 'incomplete',
+    dayStatus: 'present' | 'half_day' | 'short' | 'incomplete' | 'absent',
   ): Promise<AttendanceDayEntity> {
     return this.prisma.$transaction(async (tx) => {
       // 1. End any open break at the same instant
@@ -696,7 +696,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
       checkOutAt: Date;
       breakMinutes: number;
       productionMinutes: number;
-      dayStatus: 'present' | 'half_day' | 'short';
+      dayStatus: 'present' | 'half_day' | 'short' | 'absent';
     },
   ): Promise<AttendanceDayEntity> {
     return this.prisma.$transaction(async (tx) => {
@@ -790,7 +790,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
     checkOutAt: Date,
     breakMinutes: number,
     productionMinutes: number,
-    dayStatus: 'present' | 'half_day' | 'short',
+    dayStatus: 'present' | 'half_day' | 'short' | 'absent',
     adminId: number,
     note?: string | null,
   ): Promise<AttendanceDayEntity> {
@@ -985,11 +985,6 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
         dayStatus = 'leave';
         prodMinutes = 0;
         brkMinutes = 0;
-      } else if (r.day_status === 'absent') {
-        state = 'absent';
-        dayStatus = 'absent';
-        prodMinutes = 0;
-        brkMinutes = 0;
       } else if (r.check_in_at) {
         if (r.check_out_at) {
           state = determineDayStatus(new Date(r.check_out_at), prodMinutes, fullDayMins, halfDayMins);
@@ -1022,6 +1017,11 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
             dayStatus = state;
           }
         }
+      } else if (r.day_status === 'absent') {
+        state = 'absent';
+        dayStatus = 'absent';
+        prodMinutes = 0;
+        brkMinutes = 0;
       } else {
         if (isHoliday) {
           state = 'holiday';

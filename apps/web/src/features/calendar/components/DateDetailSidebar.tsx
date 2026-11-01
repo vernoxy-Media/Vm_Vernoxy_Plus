@@ -19,6 +19,7 @@ import {
   Lock,
 } from 'lucide-react';
 import type { CalendarMonthTaskItem, CalendarHolidayItem, CalendarEvent } from '../types';
+import type { LeaveCalendarItem } from '@/features/leave/hooks/use-leave';
 
 interface DateDetailSidebarProps {
   isOpen: boolean;
@@ -27,6 +28,7 @@ interface DateDetailSidebarProps {
   holiday?: CalendarHolidayItem | null;
   tasks: CalendarMonthTaskItem[];
   events: CalendarEvent[]; // For meetings, notes and reminders on this date
+  leaves?: LeaveCalendarItem[];
   currentUserId?: number;
   isAdmin: boolean;
   onSelectTask: (taskId: number) => void;
@@ -39,7 +41,7 @@ interface DateDetailSidebarProps {
   onDeleteNote: (eventId: number) => Promise<void>;
   onCreateReminder: (title: string, time: string, description?: string) => Promise<void>;
   onDeleteReminder: (eventId: number) => Promise<void>;
-  displayMode?: 'attendance' | 'tasks';
+  displayMode?: 'attendance' | 'tasks' | 'leaves';
 }
 
 function formatMinutes(minutes: number | null): string {
@@ -58,6 +60,7 @@ export const DateDetailSidebar: React.FC<DateDetailSidebarProps> = ({
   holiday,
   tasks,
   events,
+  leaves = [],
   currentUserId,
   isAdmin,
   onSelectTask,
@@ -72,7 +75,15 @@ export const DateDetailSidebar: React.FC<DateDetailSidebarProps> = ({
   onDeleteReminder,
   displayMode = 'attendance',
 }) => {
-  const [activeTab, setActiveTab] = useState<'meetings' | 'tasks' | 'notes' | 'reminders'>('tasks');
+  const [activeTab, setActiveTab] = useState<'meetings' | 'tasks' | 'notes' | 'reminders' | 'leaves'>(
+    displayMode === 'leaves' ? 'leaves' : 'tasks'
+  );
+
+  React.useEffect(() => {
+    if (displayMode === 'leaves') {
+      setActiveTab('leaves');
+    }
+  }, [displayMode]);
 
   // Note form state
   const [isAddingNote, setIsAddingNote] = useState(false);
@@ -111,6 +122,13 @@ export const DateDetailSidebar: React.FC<DateDetailSidebarProps> = ({
   const dayMeetings = events.filter(
     (e) => e.event_type === 'meeting' && e.start_time.slice(0, 10) === selectedDateYMD
   );
+
+  // Filter leaves for this date
+  const dayLeaves = leaves.filter((l) => {
+    const fromStr = l.from_date.slice(0, 10);
+    const toStr = l.to_date.slice(0, 10);
+    return selectedDateYMD >= fromStr && selectedDateYMD <= toStr;
+  });
 
   // Group tasks project-wise
   const tasksByProject: Record<string, CalendarMonthTaskItem[]> = {};
@@ -188,7 +206,7 @@ export const DateDetailSidebar: React.FC<DateDetailSidebarProps> = ({
         </button>
       </div>
 
-      {displayMode === 'tasks' && (
+      {(displayMode === 'tasks' || displayMode === 'leaves' || displayMode === 'attendance') && (
       <div className="px-4 py-2.5 border-b border-slate-100 bg-white flex items-center justify-between gap-2 overflow-x-auto">
         <div className="flex items-center gap-1.5">
           {isAdmin && onAddHoliday ? (
@@ -366,13 +384,23 @@ export const DateDetailSidebar: React.FC<DateDetailSidebarProps> = ({
         />
       )}
 
-      {displayMode === 'tasks' && (
+      {(displayMode === 'tasks' || displayMode === 'leaves' || displayMode === 'attendance') && (
       <>
       {/* Tabs */}
-      <div className="flex border-b border-slate-200 bg-slate-50/70 text-xs font-semibold">
+      <div className="flex border-b border-slate-200 bg-slate-50/70 text-xs font-semibold overflow-x-auto">
+        <button
+          onClick={() => setActiveTab('leaves')}
+          className={`flex-1 min-w-[70px] py-2.5 text-center border-b-2 transition-colors cursor-pointer ${
+            activeTab === 'leaves'
+              ? 'border-blue-600 text-blue-700 bg-white font-bold'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          Leaves ({dayLeaves.length})
+        </button>
         <button
           onClick={() => setActiveTab('meetings')}
-          className={`flex-1 py-2.5 text-center border-b-2 transition-colors ${
+          className={`flex-1 min-w-[70px] py-2.5 text-center border-b-2 transition-colors cursor-pointer ${
             activeTab === 'meetings'
               ? 'border-blue-600 text-blue-700 bg-white font-bold'
               : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -382,7 +410,7 @@ export const DateDetailSidebar: React.FC<DateDetailSidebarProps> = ({
         </button>
         <button
           onClick={() => setActiveTab('tasks')}
-          className={`flex-1 py-2.5 text-center border-b-2 transition-colors ${
+          className={`flex-1 min-w-[70px] py-2.5 text-center border-b-2 transition-colors cursor-pointer ${
             activeTab === 'tasks'
               ? 'border-blue-600 text-blue-700 bg-white font-bold'
               : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -392,7 +420,7 @@ export const DateDetailSidebar: React.FC<DateDetailSidebarProps> = ({
         </button>
         <button
           onClick={() => setActiveTab('notes')}
-          className={`flex-1 py-2.5 text-center border-b-2 transition-colors ${
+          className={`flex-1 min-w-[70px] py-2.5 text-center border-b-2 transition-colors cursor-pointer ${
             activeTab === 'notes'
               ? 'border-blue-600 text-blue-700 bg-white font-bold'
               : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -402,7 +430,7 @@ export const DateDetailSidebar: React.FC<DateDetailSidebarProps> = ({
         </button>
         <button
           onClick={() => setActiveTab('reminders')}
-          className={`flex-1 py-2.5 text-center border-b-2 transition-colors ${
+          className={`flex-1 min-w-[70px] py-2.5 text-center border-b-2 transition-colors cursor-pointer ${
             activeTab === 'reminders'
               ? 'border-blue-600 text-blue-700 bg-white font-bold'
               : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -414,6 +442,69 @@ export const DateDetailSidebar: React.FC<DateDetailSidebarProps> = ({
 
       {/* Content Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {/* LEAVES TAB */}
+        {activeTab === 'leaves' && (
+          <div className="space-y-3">
+            {dayLeaves.length === 0 ? (
+              <div className="py-12 text-center text-slate-400">
+                <Users className="w-10 h-10 mx-auto text-slate-300 mb-2 stroke-[1.5]" />
+                <p className="text-sm font-medium">No employees on approved leave on this date</p>
+                <p className="text-xs text-slate-400 mt-1">
+                  Team members on approved leave will appear here automatically.
+                </p>
+              </div>
+            ) : (
+              dayLeaves.map((l) => (
+                <div
+                  key={l.request_id}
+                  className={`p-3.5 rounded-xl border shadow-2xs space-y-2 transition-all ${
+                    l.is_paid
+                      ? 'bg-blue-50/50 border-blue-200'
+                      : 'bg-rose-50/50 border-rose-200'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0">
+                        {l.employee_name.slice(0, 2).toUpperCase()}
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-900">{l.employee_name}</h4>
+                        <p className="text-[11px] text-slate-500">{l.department_name || 'General Department'}</p>
+                      </div>
+                    </div>
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        l.is_paid
+                          ? 'bg-blue-100 text-blue-800'
+                          : 'bg-rose-100 text-rose-800'
+                      }`}
+                    >
+                      {l.is_paid ? 'Paid' : 'Unpaid (LOP)'}
+                    </span>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                    <span className="font-semibold text-slate-800">
+                      {l.leave_type_name}
+                    </span>
+                    <span className="capitalize px-1.5 py-0.5 rounded bg-white border border-slate-200 text-[10px] text-slate-600 font-medium">
+                      {l.duration.replace('_', ' ')}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-mono">
+                      #{l.request_no}
+                    </span>
+                  </div>
+
+                  <div className="text-[10px] text-slate-400">
+                    Duration: {l.from_date.slice(0, 10)} to {l.to_date.slice(0, 10)} ({l.leave_days} day(s))
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
         {/* MEETINGS TAB */}
         {activeTab === 'meetings' && (
           <div className="space-y-3">

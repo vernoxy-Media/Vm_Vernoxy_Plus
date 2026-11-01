@@ -30,9 +30,10 @@ export class KbSettingsController {
   async listCategories(
     @Query('space') space?: 'INTERNAL' | 'CLIENT',
     @Query('includeInactive') includeInactive?: string,
+    @Req() req?: any,
   ) {
     const showInactive = includeInactive === 'true' || includeInactive === '1';
-    return this.kbSettingsService.listCategories(space, showInactive);
+    return this.kbSettingsService.listCategories(space, showInactive, req?.user);
   }
 
   @Get('categories/:id')

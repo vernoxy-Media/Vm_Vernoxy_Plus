@@ -42,10 +42,11 @@ export function useDepartmentsQuery(params?: {
   });
 }
 
-export function useDepartmentOptionsQuery() {
+export function useDepartmentOptionsQuery(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['department-options'],
     queryFn: () => customFetch<DepartmentOptionDto[]>('/api/v1/departments/options'),
+    enabled: options?.enabled ?? true,
   });
 }
 

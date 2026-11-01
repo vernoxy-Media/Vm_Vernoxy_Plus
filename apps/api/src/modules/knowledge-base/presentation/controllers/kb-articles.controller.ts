@@ -28,6 +28,11 @@ import {
 export class KbArticlesController {
   constructor(private readonly articlesService: KbArticlesService) {}
 
+  @Get('access')
+  async getAccessContext(@Req() req: any) {
+    return this.articlesService.getClientAccessContext(req.user);
+  }
+
   @Get('kpis')
   async getKpis(@Req() req: any) {
     return this.articlesService.getKpiStats(req.user);

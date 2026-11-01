@@ -6,7 +6,29 @@ import { CreateKbCategoryDto, UpdateKbCategoryDto } from '../../presentation/dto
 export class KbSettingsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async listCategories(space?: 'INTERNAL' | 'CLIENT', includeInactive = false) {
+  async listCategories(space?: 'INTERNAL' | 'CLIENT', includeInactive = false, user?: any) {
+    if (space === 'CLIENT' && user) {
+      const isAdmin = Boolean(
+        user?.role_name?.toLowerCase().includes('admin') ||
+        user?.emp_id === 1 ||
+        user?.access?.can_manage_organization
+      );
+
+      if (!isAdmin) {
+        const empId = Number(user?.emp_id || user?.sub || 0);
+        const isEditor = await this.prisma.kb_categories.count({
+          where: {
+            space: 'CLIENT',
+            OR: [{ default_owner_id: empId }, { default_approver_id: empId }, { created_by: empId }],
+          },
+        });
+
+        if (isEditor === 0) {
+          return [];
+        }
+      }
+    }
+
     const where: any = {};
     if (space) {
       where.space = space;

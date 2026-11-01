@@ -545,3 +545,134 @@ export function useAllLeaveBalancesQuery(year?: number) {
     queryFn: () => customFetch<any[]>(`/api/v1/leave/balances${year ? `?year=${year}` : ''}`),
   });
 }
+// =============================================================================
+// Reports, Calendar, Bulk & Policy Assignment Hooks (BFD Section 10 & 13)
+// =============================================================================
+
+export interface LeaveReportsData {
+  totals: {
+    received: number;
+    paid: number;
+    unpaid: number;
+    pending: number;
+  };
+  trend: Array<{
+    label: string;
+    received: number;
+    paid: number;
+    unpaid: number;
+    is_selected: boolean;
+  }>;
+  breakdown: Array<{
+    name: string;
+    paid_unpaid?: string;
+    days: number;
+    employees: number;
+    avg_days: number;
+  }>;
+  requests: any[];
+  balances: any[];
+  on_leave_today: any[];
+}
+
+export function useLeaveReportsQuery(filters: {
+  report_type?: string;
+  month?: string;
+  from_date?: string;
+  to_date?: string;
+  department_id?: number;
+  employee_id?: number;
+  leave_type_id?: number;
+  status?: string;
+  paid_unpaid?: string;
+  group_by?: string;
+}) {
+  return useQuery({
+    queryKey: ['leave-reports', filters],
+    queryFn: () => {
+      const q = new URLSearchParams();
+      if (filters.report_type) q.set('report_type', filters.report_type);
+      if (filters.month) q.set('month', filters.month);
+      if (filters.from_date) q.set('from_date', filters.from_date);
+      if (filters.to_date) q.set('to_date', filters.to_date);
+      if (filters.department_id) q.set('department_id', String(filters.department_id));
+      if (filters.employee_id) q.set('employee_id', String(filters.employee_id));
+      if (filters.leave_type_id) q.set('leave_type_id', String(filters.leave_type_id));
+      if (filters.status) q.set('status', filters.status);
+      if (filters.paid_unpaid) q.set('paid_unpaid', filters.paid_unpaid);
+      if (filters.group_by) q.set('group_by', filters.group_by);
+      return customFetch<LeaveReportsData>(`/api/v1/leave/reports?${q.toString()}`);
+    },
+  });
+}
+
+export interface LeaveCalendarItem {
+  request_id: number;
+  request_no: string;
+  emp_id: number;
+  employee_name: string;
+  department_name?: string;
+  dep_id?: number;
+  leave_type_id: number;
+  leave_type_name: string;
+  calendar_color: string;
+  is_paid: boolean;
+  duration: string;
+  from_date: string;
+  to_date: string;
+  leave_days: number;
+}
+
+export function useLeaveCalendarQuery(month?: string, departmentId?: number) {
+  return useQuery({
+    queryKey: ['leave-calendar', month, departmentId],
+    queryFn: () => {
+      const q = new URLSearchParams();
+      if (month) q.set('month', month);
+      if (departmentId) q.set('department_id', String(departmentId));
+      return customFetch<LeaveCalendarItem[]>(`/api/v1/leave/calendar?${q.toString()}`);
+    },
+  });
+}
+
+export function useBulkAdjustLeaveBalanceMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      emp_ids: number[];
+      leave_type_id: number;
+      direction: 'CREDIT' | 'DEBIT';
+      days: number;
+      note: string;
+    }) =>
+      customFetch<any>('/api/v1/leave/admin/bulk-adjust-balance', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['leave-ledger'] });
+      qc.invalidateQueries({ queryKey: ['leave-balances'] });
+      qc.invalidateQueries({ queryKey: ['all-leave-balances'] });
+      qc.invalidateQueries({ queryKey: ['my-leave'] });
+    },
+  });
+}
+
+export function useAssignEmployeePolicyMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ empId, policyId }: { empId: number; policyId: number }) =>
+      customFetch<any>(`/api/v1/leave/admin/employee-policy/${empId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ policy_id: policyId }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['all-leave-balances'] });
+      qc.invalidateQueries({ queryKey: ['leave-balances'] });
+      qc.invalidateQueries({ queryKey: ['employee'] });
+      qc.invalidateQueries({ queryKey: ['employees'] });
+    },
+  });
+}
+
+

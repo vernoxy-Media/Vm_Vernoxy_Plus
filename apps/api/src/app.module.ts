@@ -25,6 +25,7 @@ import { AttachmentsModule } from './modules/attachments/attachments.module';
 import { ComplaintModule } from './modules/complaint/complaint.module';
 import { LicenseModule } from './modules/license/license.module';
 import { KnowledgeBaseModule } from './modules/knowledge-base/knowledge-base.module';
+import { PerformanceModule } from './modules/performance/performance.module';
 
 @Module({
 
@@ -56,6 +57,7 @@ import { KnowledgeBaseModule } from './modules/knowledge-base/knowledge-base.mod
     ComplaintModule,
     LicenseModule,
     KnowledgeBaseModule,
+    PerformanceModule,
   ],
   controllers: [HealthController],
   providers: [

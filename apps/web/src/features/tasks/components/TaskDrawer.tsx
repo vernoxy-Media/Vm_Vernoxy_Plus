@@ -19,6 +19,10 @@ import {
   Activity,
   Timer,
   FileText,
+  Image as ImageIcon,
+  Paperclip,
+  AtSign,
+  Send,
 } from 'lucide-react';
 import { TaskDetailDto } from '@vernoxy-pulse/api-client';
 import type { TaskStage, TaskPriority } from '../types';
@@ -30,10 +34,13 @@ export interface TaskDrawerProps {
   task: TaskDetailDto | null;
   isOpen: boolean;
   isAdmin: boolean;
+  embedded?: boolean;
   onClose: () => void;
   onEdit?: (task: TaskDetailDto) => void;
   onMoveStage?: (taskId: number, targetStage: TaskStage, note?: string) => void;
   onTrackWorkSession?: (taskId: number, action: 'start' | 'pause' | 'finish', note?: string) => void | Promise<void>;
+  onAddSubTask?: (taskId: number) => void;
+  onSendMessage?: (taskId: number, message: string) => void | Promise<void>;
 }
 
 const STAGE_LABELS: Record<TaskStage, { label: string; badge: string }> = {
@@ -120,16 +127,20 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
   task,
   isOpen,
   isAdmin,
+  embedded = false,
   onClose,
   onEdit,
   onMoveStage,
   onTrackWorkSession,
+  onAddSubTask,
+  onSendMessage,
 }) => {
   const { user } = useAuth();
   const [nowMs, setNowMs] = React.useState<number>(Date.now());
   const [expandedLogs, setExpandedLogs] = React.useState<boolean>(false);
   const [expandedSubTaskLogs, setExpandedSubTaskLogs] = React.useState<Record<number, boolean>>({});
   const [submittingAction, setSubmittingAction] = React.useState<string | null>(null);
+  const [commentText, setCommentText] = React.useState<string>('');
 
   const subTasks = task?.sub_tasks || [];
   // If task has sub-tasks, check if the current user is assigned to one of them
@@ -309,16 +320,15 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
     }));
   };
 
-  return (
-    <div className="fixed inset-0 z-50 overflow-hidden">
-      <div
-        className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity"
-        onClick={onClose}
-      />
-
-      <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10">
-        <div className="w-screen max-w-xl bg-white shadow-2xl flex flex-col border-l border-slate-200">
-          {/* Header */}
+  const drawerInner = (
+    <div
+      className={`flex flex-col bg-white ${
+        embedded
+          ? 'w-full rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden'
+          : 'w-screen max-w-xl shadow-2xl border-l border-slate-200 h-full'
+      }`}
+    >
+      {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/70">
             <div className="flex items-center gap-2.5">
               <span className="font-mono font-bold text-sm text-slate-800 tracking-tight">
@@ -425,8 +435,8 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
             </div>
 
             {/* TIME PRECISION ENGINE CARD */}
-            <div className="rounded-2xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50/40 via-white to-emerald-50/20 p-4 shadow-xs">
-              <div className="flex items-center justify-between pb-3 border-b border-emerald-100/70">
+            <div className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-2xs space-y-3">
+              <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 tracking-wider uppercase">
                   <Zap className="w-4 h-4 text-emerald-600 fill-emerald-500/20" />
                   TIME PRECISION ENGINE
@@ -444,13 +454,13 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4 mt-3">
-                {/* Allocated */}
+              {/* Row 1: Allocated & Actual Spent */}
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <span className="text-[11px] font-semibold uppercase text-slate-400 tracking-wider block">
+                  <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider block">
                     ALLOCATED
                   </span>
-                  <div className="text-lg font-bold text-slate-900 mt-0.5 tracking-tight">
+                  <div className="text-base font-bold text-slate-900 mt-0.5 tracking-tight">
                     {totalAllocatedHoursStr}
                   </div>
                   {mySubTask && mySubTaskAllocatedStr && (
@@ -460,12 +470,11 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
                   )}
                 </div>
 
-                {/* Actual Spent */}
                 <div>
-                  <span className="text-[11px] font-semibold uppercase text-slate-400 tracking-wider block">
+                  <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider block">
                     ACTUAL SPENT
                   </span>
-                  <div className="text-lg font-bold text-emerald-600 mt-0.5 font-mono tracking-tight">
+                  <div className="text-base font-bold text-slate-900 mt-0.5 font-mono tracking-tight">
                     {formatHMS(combinedTotalSec)}
                   </div>
                   {mySubTask && mySubTaskSec !== null && (
@@ -482,13 +491,38 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
                 </div>
               </div>
 
+              {/* Row 2: Start Date & Due Date */}
+              <div className="grid grid-cols-2 gap-4 pt-2.5 border-t border-slate-100">
+                <div>
+                  <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider block">
+                    START DATE
+                  </span>
+                  <div className="text-xs font-semibold text-slate-700 mt-1 flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                    {task.started_at || task.created_at ? formatDateDisplay(task.started_at || task.created_at) : '---'}
+                  </div>
+                </div>
+
+                <div>
+                  <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider block">
+                    DUE DATE
+                  </span>
+                  <div className="text-xs font-semibold text-slate-700 mt-1 flex items-center gap-1.5">
+                    <Calendar className={`w-3.5 h-3.5 ${isOverdue ? 'text-rose-500' : 'text-slate-400'}`} />
+                    <span className={isOverdue ? 'text-rose-600 font-bold' : ''}>
+                      {task.due_date ? formatDateDisplay(task.due_date) : '---'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
               {/* Projected Efficiency */}
-              <div className="mt-3.5 pt-3 border-t border-emerald-100/70 flex items-center justify-between">
-                <span className="text-[11px] font-semibold uppercase text-slate-500 tracking-wider">
+              <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">
                   PROJECTED EFFICIENCY
                 </span>
                 <span
-                  className={`text-sm font-bold ${
+                  className={`text-xs font-bold ${
                     efficiencyPct >= 100
                       ? 'text-emerald-600'
                       : efficiencyPct >= 70
@@ -501,46 +535,41 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
               </div>
             </div>
 
-            {/* START DATE & DUE DATE CARDS */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-3 flex items-center gap-2.5">
-                <div className="p-2 rounded-lg bg-white border border-slate-200 text-slate-500 shrink-0">
-                  <Calendar className="w-4 h-4 text-emerald-600" />
-                </div>
-                <div className="min-w-0">
+            {/* EXECUTION TIMELINE CARD (Image 2) */}
+            <div className="rounded-2xl border border-slate-200/90 bg-white p-4 space-y-3 shadow-2xs">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 tracking-wider uppercase pb-2 border-b border-slate-100">
+                <History className="w-4 h-4 text-slate-500" />
+                EXECUTION TIMELINE
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-slate-50/70 p-3 rounded-xl border border-slate-100">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                    START DATE
+                    FIRST STARTED
                   </span>
-                  <span className="text-xs font-semibold text-slate-800 truncate block mt-0.5">
-                    {formatDateDisplay(task.started_at || task.created_at)}
+                  <span className="text-xs font-semibold text-slate-800 block mt-1">
+                    {task.started_at ? formatDateTimeDisplay(task.started_at) : '---'}
+                  </span>
+                </div>
+                <div className="bg-slate-50/70 p-3 rounded-xl border border-slate-100">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                    TOTAL PAUSE TIME
+                  </span>
+                  <span className="text-xs font-semibold text-amber-700 font-mono block mt-1">
+                    {formatHMS(
+                      (task.work_logs || [])
+                        .filter((l: any) => l.action === 'pause' && typeof l.duration_seconds === 'number')
+                        .reduce((acc: number, l: any) => acc + l.duration_seconds, 0)
+                    )}
                   </span>
                 </div>
               </div>
-
-              <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-3 flex items-center gap-2.5">
-                <div
-                  className={`p-2 rounded-lg bg-white border shrink-0 ${
-                    isOverdue
-                      ? 'border-rose-300 text-rose-600'
-                      : 'border-slate-200 text-slate-500'
-                  }`}
-                >
-                  <Calendar
-                    className={`w-4 h-4 ${isOverdue ? 'text-rose-600' : 'text-slate-500'}`}
-                  />
-                </div>
-                <div className="min-w-0">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                    DUE DATE
-                  </span>
-                  <span
-                    className={`text-xs font-semibold truncate block mt-0.5 ${
-                      isOverdue ? 'text-rose-600 font-bold' : 'text-slate-800'
-                    }`}
-                  >
-                    {formatDateDisplay(task.due_date)}
-                  </span>
-                </div>
+              <div className="bg-slate-50/70 p-3 rounded-xl border border-slate-100">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                  END TIME / COMPLETED AT
+                </span>
+                <span className="text-xs font-semibold text-slate-800 block mt-1">
+                  {task.completed_at ? formatDateTimeDisplay(task.completed_at) : '---'}
+                </span>
               </div>
             </div>
 
@@ -777,19 +806,23 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
               </div>
             )}
 
-            {/* SUB-TASK DELEGATION SECTION */}
-            {(task.has_sub_tasks || subTasks.length > 0) && (
-              <div className="space-y-3 pt-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-800">
-                    <GitBranch className="w-4 h-4 text-sky-600" />
-                    SUB-TASK DELEGATION ({subTasks.length})
-                  </div>
-                  <span className="text-[11px] font-semibold text-slate-500">
-                    {subTasks.filter((s) => s.stage === 'completed').length} /{' '}
-                    {subTasks.length} Completed
-                  </span>
+            {/* SUB-TASK DELEGATION SECTION (Image 2) */}
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-800">
+                  <GitBranch className="w-4 h-4 text-sky-600" />
+                  SUB-TASK DELEGATION {subTasks.length > 0 ? `(${subTasks.length})` : ''}
                 </div>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => onAddSubTask?.(task.task_id)}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold shadow-xs transition cursor-pointer"
+                  >
+                    + Add Member Sub-task
+                  </button>
+                )}
+              </div>
 
                 {subTasks.length > 0 ? (
                   <div className="space-y-3">
@@ -992,7 +1025,6 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
                   </div>
                 )}
               </div>
-            )}
 
             {/* COMBINED SUB-TASK SUMMARY & COMBINED FINISH TIME */}
             {subTasks.length > 0 && (
@@ -1129,7 +1161,65 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
               <TaskHistoryTimeline history={task.history} />
             </div>
           </div>
+
+          {/* Discussion Message Bar (Image 2) */}
+          <div className="p-3 bg-white border-t border-slate-200 shrink-0">
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2 focus-within:border-blue-400 focus-within:bg-white transition">
+              <input
+                type="text"
+                placeholder="Type your message..."
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (commentText.trim() && onSendMessage) {
+                      onSendMessage(task.task_id, commentText.trim());
+                      setCommentText('');
+                    }
+                  }
+                }}
+                className="flex-1 bg-transparent text-xs text-slate-800 placeholder-slate-400 focus:outline-none"
+              />
+              <button type="button" className="text-slate-400 hover:text-slate-600 p-1" title="Attach image">
+                <ImageIcon className="w-4 h-4" />
+              </button>
+              <button type="button" className="text-slate-400 hover:text-slate-600 p-1" title="Attach file">
+                <Paperclip className="w-4 h-4" />
+              </button>
+              <button type="button" className="text-slate-400 hover:text-slate-600 p-1" title="Mention team member">
+                <AtSign className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (commentText.trim() && onSendMessage) {
+                    onSendMessage(task.task_id, commentText.trim());
+                    setCommentText('');
+                  }
+                }}
+                disabled={!commentText.trim()}
+                className="p-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-xl transition cursor-pointer"
+              >
+                <Send className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
         </div>
+  );
+
+  if (embedded) {
+    return drawerInner;
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-hidden">
+      <div
+        className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity"
+        onClick={onClose}
+      />
+      <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10">
+        {drawerInner}
       </div>
     </div>
   );
