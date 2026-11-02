@@ -9,11 +9,9 @@ import {
   ShieldCheck,
   AlertCircle,
   Loader2,
-  RefreshCw,
+  Lock,
   Copy,
   CheckCircle,
-  Eye,
-  EyeOff,
   Upload,
 } from 'lucide-react';
 import {
@@ -27,7 +25,7 @@ import { useLookupsQuery } from '@/features/organization/hooks/use-master-data';
 import { useAttendanceSettingsQuery, useAssignEmployeeShiftMutation } from '@/features/attendance/hooks/use-attendance-settings';
 import { useLeavePoliciesQuery } from '@/features/leave/hooks/use-leave';
 import { employeeCreateSchema, type EmployeeFormValues } from '../schemas/employee-form.schema';
-import { CountryPhoneInput, DepartmentMultiSelect, SearchableSelect } from '@/shared/ui';
+import { CountryPhoneInput, DepartmentMultiSelect, SearchableSelect, ReportingManagerSelect } from '@/shared/ui';
 
 function generateSecurePassword(length = 16): string {
   const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -71,16 +69,13 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'personal' | 'job' | 'salary' | 'security'>('personal');
   const [globalError, setGlobalError] = useState<string | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
-  const [copiedPassword, setCopiedPassword] = useState(false);
-  const [copiedHandover, setCopiedHandover] = useState(false);
+  const [copiedEmail, setCopiedEmail] = useState(false);
   const [selectedPhotoFile, setSelectedPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [createdResult, setCreatedResult] = useState<{
     emp_id: number;
     name: string;
     email: string;
-    password: string;
   } | null>(null);
 
   // TanStack Queries
@@ -157,32 +152,17 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
 
   const watchedDepIds = watch('department_ids') || [];
   const primaryDepId = watch('dep_id');
-  const { data: roleOptions = [] } = useRoleOptionsQuery(
-    primaryDepId ? Number(primaryDepId) : undefined,
-  );
-  const watchedPassword = watch('password');
+  const effectiveDepIds = watchedDepIds.length > 0 ? watchedDepIds : (primaryDepId ? [Number(primaryDepId)] : undefined);
+  const { data: roleOptions = [] } = useRoleOptionsQuery(effectiveDepIds);
   const watchedPfApplicable = watch('pf_applicable');
+  const watchedOtEligible = watch('ot_eligible');
+  const watchedOtRateType = watch('ot_rate_type') || 'MULTIPLIER';
 
-  const handleGeneratePassword = () => {
-    const pwd = generateSecurePassword(16);
-    setValue('password', pwd, { shouldValidate: true });
-    setValue('confirm_password', pwd, { shouldValidate: true });
-  };
-
-  const handleCopyPassword = () => {
-    if (watchedPassword) {
-      navigator.clipboard.writeText(watchedPassword);
-      setCopiedPassword(true);
-      setTimeout(() => setCopiedPassword(false), 2000);
-    }
-  };
-
-  const handleCopyHandover = () => {
-    if (createdResult) {
-      const text = `Vernoxy Pulse Login Credentials:\nEmail: ${createdResult.email}\nPassword: ${createdResult.password}`;
-      navigator.clipboard.writeText(text);
-      setCopiedHandover(true);
-      setTimeout(() => setCopiedHandover(false), 2000);
+  const handleCopyEmail = () => {
+    if (createdResult?.email) {
+      navigator.clipboard.writeText(createdResult.email);
+      setCopiedEmail(true);
+      setTimeout(() => setCopiedEmail(false), 2000);
     }
   };
 
@@ -196,6 +176,14 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
 
 
   const onSubmit = async (values: EmployeeFormValues) => {
+    // Prevent premature submission before reaching the final Emergency & Access tab
+    if (activeTab !== 'security') {
+      if (activeTab === 'personal') setActiveTab('job');
+      else if (activeTab === 'job') setActiveTab('salary');
+      else if (activeTab === 'salary') setActiveTab('security');
+      return;
+    }
+
     setGlobalError(null);
     try {
       const pDepId = Number(values.dep_id);
@@ -261,7 +249,6 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
         emp_id: createdEmp.emp_id,
         name: values.name.trim(),
         email: values.email.trim().toLowerCase(),
-        password: values.password!,
       });
 
       if (onSuccess) {
@@ -295,29 +282,38 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
             </div>
             <h3 className="text-xl font-bold text-slate-900">Employee Created Successfully!</h3>
             <p className="text-xs text-slate-500">
-              Account created for <span className="font-semibold text-slate-800">{createdResult.name}</span>. Provide these login details to the employee:
+              Account created for <span className="font-semibold text-slate-800">{createdResult.name}</span>. Login activation details have been dispatched to their email:
             </p>
           </div>
 
           <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2.5 text-xs">
             <div className="flex items-center justify-between">
-              <span className="text-slate-500 font-medium">Login Email:</span>
-              <span className="font-bold text-slate-800 select-all">{createdResult.email}</span>
+              <span className="text-slate-500 font-medium">Employee Name:</span>
+              <span className="font-bold text-slate-800">{createdResult.name}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-slate-500 font-medium">Password:</span>
-              <span className="font-mono font-bold text-slate-800 select-all">{createdResult.password}</span>
+              <span className="text-slate-500 font-medium">Login Email:</span>
+              <span className="font-mono font-bold text-slate-800 select-all">{createdResult.email}</span>
             </div>
+            <div className="flex items-center justify-between">
+              <span className="text-slate-500 font-medium">System Access:</span>
+              <span className="inline-flex items-center gap-1 font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                <CheckCircle className="w-3 h-3 text-emerald-600" /> Auto-Generated & Emailed
+              </span>
+            </div>
+            <p className="pt-1.5 text-[11px] text-slate-400 border-t border-slate-200/60 leading-relaxed">
+              In accordance with security and privacy protocol (BFD Section 8), passwords are never shown to administrators. The employee will set their permanent password upon first login.
+            </p>
           </div>
 
           <div className="flex items-center gap-3 pt-2">
             <button
               type="button"
-              onClick={handleCopyHandover}
+              onClick={handleCopyEmail}
               className="flex-1 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 flex items-center justify-center gap-1.5 transition cursor-pointer"
             >
-              {copiedHandover ? <CheckCircle className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-slate-500" />}
-              <span>{copiedHandover ? 'Copied Details' : 'Copy Credentials'}</span>
+              {copiedEmail ? <CheckCircle className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-slate-500" />}
+              <span>{copiedEmail ? 'Copied Email' : 'Copy Login Email'}</span>
             </button>
             <button
               type="button"
@@ -408,7 +404,18 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
         </div>
 
         {/* Scrollable Form Body */}
-        <form onSubmit={handleSubmit(onSubmit)} className="flex-1 overflow-y-auto p-7 space-y-5 custom-scrollbar">
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT' && activeTab !== 'security') {
+              e.preventDefault();
+              if (activeTab === 'personal') setActiveTab('job');
+              else if (activeTab === 'job') setActiveTab('salary');
+              else if (activeTab === 'salary') setActiveTab('security');
+            }
+          }}
+          className="flex-1 overflow-y-auto p-7 space-y-5 custom-scrollbar"
+        >
           {globalError && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2.5 text-xs text-red-600 font-medium animate-in fade-in">
               <AlertCircle className="w-4 h-4 shrink-0" />
@@ -549,7 +556,7 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
               {/* Department Selection with Search Bar & Checkbox Dropdown */}
               <div className="space-y-1.5">
                 <label className="text-[13px] font-semibold text-slate-700 tracking-tight">
-                  Assigned Department(s) <span className="text-red-500">*</span>
+                  Departments <span className="text-red-500">*</span>
                 </label>
                 <DepartmentMultiSelect
                   departments={deptOptions}
@@ -567,12 +574,12 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div className="space-y-1.5">
                   <label className="text-[13px] font-semibold text-slate-700 tracking-tight">
-                    Designation / Role
+                    Designation <span className="text-red-500">*</span>
                   </label>
                   <SearchableSelect
-                    options={roleOptions.map((r) => ({
+                    options={roleOptions.map((r: any) => ({
                       value: r.role_id,
-                      label: r.role_name,
+                      label: r.role_name || r.name,
                     }))}
                     value={watch('role_id')}
                     onChange={(val) =>
@@ -607,17 +614,19 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div className="space-y-1.5">
                   <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Reporting Manager</label>
-                  <select
-                    {...register('reporting_manager')}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition cursor-pointer"
-                  >
-                    <option value="">None / Self</option>
-                    {managerOptions.map((mgr) => (
-                      <option key={mgr.emp_id} value={mgr.emp_id}>
-                        {mgr.name} ({mgr.email || `EMP-${mgr.emp_id}`})
-                      </option>
-                    ))}
-                  </select>
+                  <ReportingManagerSelect
+                    options={managerOptions}
+                    value={watch('reporting_manager')}
+                    onChange={(val) =>
+                      setValue('reporting_manager', val ? Number(val) : ('' as any), {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                      })
+                    }
+                    placeholder="None / Self"
+                    searchPlaceholder="Search by name or Emp ID..."
+                    error={errors.reporting_manager?.message}
+                  />
                 </div>
 
                 <div className="space-y-1.5">
@@ -716,9 +725,9 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
                   </div>
                 )}
 
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 sm:col-span-2">
                   <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Overtime Policy</label>
-                  <div className="flex items-center gap-2 pt-2">
+                  <div className="flex items-center gap-2 pt-1">
                     <label className="inline-flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700">
                       <input
                         type="checkbox"
@@ -728,6 +737,79 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
                       <span>OT Eligible</span>
                     </label>
                   </div>
+
+                  {watchedOtEligible && (
+                    <div className="mt-3 p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3.5 animate-in fade-in duration-150">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-slate-700">OT Rate Calculation</label>
+                          <select
+                            {...register('ot_rate_type')}
+                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                          >
+                            <option value="MULTIPLIER">Multiplier (e.g. 1.5x of hourly pay)</option>
+                            <option value="FIXED">Fixed Hourly Rate (₹ per hour)</option>
+                          </select>
+                        </div>
+
+                        {watchedOtRateType === 'FIXED' ? (
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-slate-700">Hourly OT Rate (₹)</label>
+                            <input
+                              type="number"
+                              step="1"
+                              min="0"
+                              {...register('ot_rate')}
+                              placeholder="e.g. 250"
+                              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono font-medium focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                            />
+                            {errors.ot_rate && <p className="text-[11px] text-red-500 font-medium">{errors.ot_rate.message}</p>}
+                          </div>
+                        ) : (
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-slate-700">OT Multiplier</label>
+                            <input
+                              type="number"
+                              step="0.1"
+                              min="1"
+                              max="5"
+                              {...register('ot_multiplier')}
+                              placeholder="1.5"
+                              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono font-medium focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                            />
+                            {errors.ot_multiplier && <p className="text-[11px] text-red-500 font-medium">{errors.ot_multiplier.message}</p>}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-slate-700">Daily Minimum OT Threshold (Mins)</label>
+                          <input
+                            type="number"
+                            step="5"
+                            min="0"
+                            {...register('minimum_ot_per_day')}
+                            placeholder="0 (e.g. 30 mins)"
+                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono font-medium focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                          />
+                          <p className="text-[10px] text-slate-400">Minutes worked past shift before OT accumulates</p>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-slate-700">Disbursement Method</label>
+                          <select
+                            {...register('ot_paid_as')}
+                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                          >
+                            <option value="SALARY">Direct Payroll Payout (₹)</option>
+                            <option value="COMP_OFF">Compensatory Off (Leave)</option>
+                          </select>
+                          <p className="text-[10px] text-slate-400">Whether OT is paid or credited as comp-off leave</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -813,50 +895,46 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
                 </div>
               </div>
 
-              {/* Password / Access */}
-              <div className="pt-3 border-t border-slate-100 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-[13px] font-semibold text-slate-700 tracking-tight">
-                      System Password <span className="text-red-500">*</span>
-                    </h4>
-                    <p className="text-[11px] text-slate-500">Auto-generated secure password for first-time login</p>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={handleGeneratePassword}
-                      className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 transition cursor-pointer"
-                      title="Generate new password"
-                    >
-                      <RefreshCw className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleCopyPassword}
-                      className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 transition cursor-pointer"
-                      title="Copy password"
-                    >
-                      {copiedPassword ? <CheckCircle className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                    </button>
-                  </div>
-                </div>
+              {/* Password / Access (BFD Part 7, Marker 5: "The system makes a one-time temporary password. Nobody types it, and the Admin never sees it.") */}
+              <input type="hidden" {...register('password')} />
+              <input type="hidden" {...register('confirm_password')} />
 
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    {...register('password')}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
+              <div className="pt-3 border-t border-slate-100">
+                <div className="p-3.5 rounded-2xl bg-gradient-to-br from-slate-50 to-blue-50/30 border border-blue-100/80 shadow-xs space-y-2.5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+                      <Lock className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-800 tracking-tight flex items-center gap-1.5">
+                        System Temporary Password
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                          Automated & Secure
+                        </span>
+                      </h4>
+                      <p className="text-[11px] text-slate-500">
+                        Cryptographically generated for one-time employee activation
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-200/80">
+                    <div className="font-mono text-xs text-slate-400 tracking-widest pl-1 select-none">
+                      ••••••••••••••••
+                    </div>
+                    <span className="text-[10px] font-medium text-slate-500 flex items-center gap-1">
+                      <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+                      Zero-Knowledge Protection
+                    </span>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-blue-50/60 border border-blue-100 text-[11px] text-blue-900 leading-relaxed flex items-start gap-1.5">
+                    <span className="font-bold text-blue-700 shrink-0">•</span>
+                    <span>
+                      <strong>BFD Security Protocol (Page 23, Marker 5):</strong> The system generates a one-time temporary password. Nobody types it, and the Admin never sees it. Credentials will be securely emailed directly to the employee.
+                    </span>
+                  </div>
                 </div>
-                {errors.password && <p className="text-[11px] text-red-500 font-medium">{errors.password.message}</p>}
               </div>
             </div>
           )}
@@ -888,8 +966,11 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
 
               {activeTab !== 'security' ? (
                 <button
+                  key="btn-next-step"
                   type="button"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                     if (activeTab === 'personal') setActiveTab('job');
                     else if (activeTab === 'job') setActiveTab('salary');
                     else if (activeTab === 'salary') setActiveTab('security');
@@ -900,6 +981,7 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
                 </button>
               ) : (
                 <button
+                  key="btn-create-employee"
                   type="submit"
                   disabled={isSubmitting}
                   className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-2 cursor-pointer disabled:opacity-50"

@@ -78,7 +78,7 @@ export class PrismaCandidateRepository implements ICandidateRepository {
             college_name: data.collegeName || null,
             source_details: data.sourceDetails || null,
             notes: data.notes || null,
-            stage: data.stage || 'new',
+            stage: data.stage || 'open',
             created_by: data.createdBy || null,
           },
         });
@@ -135,7 +135,7 @@ export class PrismaCandidateRepository implements ICandidateRepository {
 
     if (params.stage && params.stage !== 'All') {
       if (params.stage === 'Open') {
-        where.stage = { in: ['new', 'screening', 'interviewing', 'on_hold', 'selected', 'onboarding'] };
+        where.stage = { in: ['open', 'new', 'screening', 'interviewing', 'on_hold', 'selected', 'onboarding'] };
       } else {
         where.stage = params.stage.toLowerCase();
       }
@@ -287,6 +287,57 @@ export class PrismaCandidateRepository implements ICandidateRepository {
     const updated = await this.prisma.candidates.update({
       where: { candidate_id: candidateId },
       data: updatePayload,
+      include: this.candidateInclude,
+    });
+
+    return this.mapToDomain(updated);
+  }
+
+  async update(candidateId: number, data: any, _adminId?: number): Promise<CandidateProps> {
+    const existing = await this.prisma.candidates.findUnique({
+      where: { candidate_id: candidateId },
+    });
+    if (!existing) {
+      throw new NotFoundException(`Candidate #${candidateId} not found`);
+    }
+
+    const payload: any = {
+      updated_at: new Date(),
+    };
+
+    if (data.name !== undefined) payload.name = data.name;
+    if (data.phone !== undefined) payload.phone = data.phone;
+    if (data.email !== undefined) payload.email = data.email.trim().toLowerCase();
+    if (data.gender_id !== undefined) payload.gender_id = data.gender_id;
+    if (data.current_location !== undefined) payload.current_location = data.current_location;
+    if (data.resume_url !== undefined) payload.resume_url = data.resume_url;
+    if (data.resume_filename !== undefined) payload.resume_filename = data.resume_filename;
+    if (data.resume_size !== undefined) payload.resume_size = data.resume_size;
+    if (data.resume_mime !== undefined) payload.resume_mime = data.resume_mime;
+    if (data.role_id !== undefined) payload.role_id = data.role_id;
+    if (data.dep_id !== undefined) payload.dep_id = data.dep_id;
+    if (data.experience_type !== undefined) payload.experience_type = data.experience_type;
+    if (data.exp_years !== undefined) payload.exp_years = data.exp_years;
+    if (data.exp_months !== undefined) payload.exp_months = data.exp_months;
+    if (data.current_company !== undefined) payload.current_company = data.current_company;
+    if (data.current_designation !== undefined) payload.current_designation = data.current_designation;
+    if (data.current_ctc !== undefined) payload.current_ctc = data.current_ctc ? Number(data.current_ctc) : null;
+    if (data.expected_ctc !== undefined) payload.expected_ctc = data.expected_ctc ? Number(data.expected_ctc) : null;
+    if (data.notice_period !== undefined) payload.notice_period = data.notice_period;
+    if (data.serving_notice_lwd !== undefined) payload.serving_notice_lwd = data.serving_notice_lwd;
+    if (data.key_skills !== undefined) payload.key_skills = data.key_skills;
+    if (data.source !== undefined) payload.source = data.source;
+    if (data.source_portal !== undefined) payload.source_portal = data.source_portal;
+    if (data.referred_by_emp_id !== undefined) payload.referred_by_emp_id = data.referred_by_emp_id;
+    if (data.consultancy_name !== undefined) payload.consultancy_name = data.consultancy_name;
+    if (data.college_name !== undefined) payload.college_name = data.college_name;
+    if (data.source_details !== undefined) payload.source_details = data.source_details;
+    if (data.notes !== undefined) payload.notes = data.notes;
+    if (data.stage !== undefined) payload.stage = data.stage;
+
+    const updated = await this.prisma.candidates.update({
+      where: { candidate_id: candidateId },
+      data: payload,
       include: this.candidateInclude,
     });
 

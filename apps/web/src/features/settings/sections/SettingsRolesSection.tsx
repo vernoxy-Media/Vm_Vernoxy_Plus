@@ -8,6 +8,7 @@ import {
   useUpdateRoleMutation,
   useDeleteRoleMutation,
 } from '@/features/organization/hooks/use-organization';
+import { SearchableSelect } from '@/shared/ui';
 import {
   ShieldCheck,
   Plus,
@@ -17,10 +18,10 @@ import {
   Loader2,
   AlertCircle,
   X,
+  ChevronLeft,
   ChevronRight,
   Shield,
   Building2,
-  ChevronDown,
 } from 'lucide-react';
 
 export const SettingsRolesSection: React.FC = () => {
@@ -35,6 +36,7 @@ export const SettingsRolesSection: React.FC = () => {
   );
   const [statusFilter, setStatusFilter] = useState<boolean | undefined>(undefined);
   const [cursor, setCursor] = useState<string | undefined>(undefined);
+  const [cursorHistory, setCursorHistory] = useState<string[]>([]);
 
   // Modals state
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -52,6 +54,23 @@ export const SettingsRolesSection: React.FC = () => {
 
   // Query departments options for filter & create modal
   const { data: deptOptions } = useDepartmentOptionsQuery();
+
+  const deptSelectOptions = React.useMemo(() => {
+    return (deptOptions || []).map((d) => ({
+      value: d.dep_id,
+      label: d.name,
+    }));
+  }, [deptOptions]);
+
+  const deptFilterOptions = React.useMemo(() => {
+    return [
+      { value: '', label: 'All Departments' },
+      ...(deptOptions || []).map((d) => ({
+        value: d.dep_id,
+        label: d.name,
+      })),
+    ];
+  }, [deptOptions]);
 
   // Query roles
   const { data, isLoading, error } = useRolesQuery({
@@ -96,7 +115,7 @@ export const SettingsRolesSection: React.FC = () => {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formName.trim()) {
-      setFormError('Role name is required');
+      setFormError('Designation is required');
       return;
     }
     if (!formDepId) {
@@ -126,7 +145,7 @@ export const SettingsRolesSection: React.FC = () => {
     e.preventDefault();
     if (!editingRole) return;
     if (!formName.trim()) {
-      setFormError('Role name is required');
+      setFormError('Designation is required');
       return;
     }
     setFormError(null);
@@ -198,35 +217,28 @@ export const SettingsRolesSection: React.FC = () => {
               onChange={(e) => {
                 setSearch(e.target.value);
                 setCursor(undefined);
+                setCursorHistory([]);
               }}
               placeholder="Search designations by title..."
               className="w-full pl-10 pr-4 py-2 rounded-lg text-sm border border-slate-300 bg-white text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all shadow-2xs"
             />
           </div>
 
-          <div className="relative">
-            <select
+          <div className="w-full sm:w-64">
+            <SearchableSelect
               id="roles-dep-filter-select"
-              aria-label="Filter by department"
+              options={deptFilterOptions}
               value={selectedDepId ?? ''}
-              onChange={(e) => {
-                const val = e.target.value ? Number(e.target.value) : undefined;
-                setSelectedDepId(val);
+              onChange={(val) => {
+                const nextVal = val ? Number(val) : undefined;
+                setSelectedDepId(nextVal);
                 setCursor(undefined);
+                setCursorHistory([]);
               }}
-              className="w-full sm:w-auto appearance-none pl-3.5 pr-8 py-2 rounded-lg text-sm border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all font-bold text-slate-800 shadow-2xs cursor-pointer"
-            >
-              <option value="">All Departments</option>
-              {selectedDepId && !deptOptions?.some((d) => d.dep_id === selectedDepId) && (
-                <option value={selectedDepId}>Department #{selectedDepId}</option>
-              )}
-              {deptOptions?.map((d) => (
-                <option key={d.dep_id} value={d.dep_id}>
-                  {d.name}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="w-4 h-4 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none stroke-[2]" />
+              placeholder="All Departments"
+              searchPlaceholder="Search department..."
+              className="!rounded-lg !border-slate-300 !py-2 !text-sm !font-bold !text-slate-800 shadow-2xs"
+            />
           </div>
         </div>
 
@@ -237,6 +249,7 @@ export const SettingsRolesSection: React.FC = () => {
             onClick={() => {
               setStatusFilter(undefined);
               setCursor(undefined);
+              setCursorHistory([]);
             }}
             className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
               statusFilter === undefined
@@ -252,6 +265,7 @@ export const SettingsRolesSection: React.FC = () => {
             onClick={() => {
               setStatusFilter(true);
               setCursor(undefined);
+              setCursorHistory([]);
             }}
             className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
               statusFilter === true
@@ -267,6 +281,7 @@ export const SettingsRolesSection: React.FC = () => {
             onClick={() => {
               setStatusFilter(false);
               setCursor(undefined);
+              setCursorHistory([]);
             }}
             className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
               statusFilter === false
@@ -309,7 +324,7 @@ export const SettingsRolesSection: React.FC = () => {
               <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-300 text-xs sm:text-[13px] font-extrabold text-slate-900 uppercase tracking-wide shadow-2xs">
                 <tr>
                   <th className="py-3 px-5">ID</th>
-                  <th className="py-3 px-5">Role Name</th>
+                  <th className="py-3 px-5">Designation</th>
                   <th className="py-3 px-5">Department</th>
                   <th className="py-3 px-5">Description</th>
                   <th className="py-3 px-5">Type & Status</th>
@@ -376,7 +391,7 @@ export const SettingsRolesSection: React.FC = () => {
                             id={`edit-role-${role.role_id}`}
                             onClick={() => handleOpenEdit(role)}
                             className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="Edit Role"
+                            title="Edit Designation"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
                           </button>
@@ -389,7 +404,7 @@ export const SettingsRolesSection: React.FC = () => {
                                 setFormError(null);
                               }}
                               className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                              title="Delete Role"
+                              title="Delete Designation"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -411,27 +426,51 @@ export const SettingsRolesSection: React.FC = () => {
           </div>
         )}
 
-        {/* Keyset Pagination Bar */}
-        {data?.next_cursor && (
-          <div className="p-3 border-t border-slate-200 bg-slate-50/50 flex items-center justify-end">
-            <button
-              type="button"
-              id="roles-next-page-button"
-              onClick={() => {
-                if (data?.next_cursor) {
-                  setCursor(data.next_cursor);
-                }
-              }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-slate-200 text-slate-700 shadow-xs hover:bg-slate-100 transition-colors"
-            >
-              Next Page
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
+        {/* Pagination Bar with Previous and Next Page navigation */}
+        {(cursorHistory.length > 0 || Boolean(data?.next_cursor)) && (
+          <div className="p-3 border-t border-slate-200 bg-slate-50/70 flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-500">
+              Page {cursorHistory.length + 1}
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                id="roles-prev-page-button"
+                disabled={cursorHistory.length === 0}
+                onClick={() => {
+                  if (cursorHistory.length > 0) {
+                    const prevCursor = cursorHistory[cursorHistory.length - 1];
+                    setCursorHistory((prev) => prev.slice(0, -1));
+                    setCursor(prevCursor || undefined);
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-slate-300 text-slate-700 shadow-2xs hover:bg-slate-100 disabled:opacity-40 disabled:pointer-events-none transition-colors cursor-pointer"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+                Previous Page
+              </button>
+
+              <button
+                type="button"
+                id="roles-next-page-button"
+                disabled={!data?.next_cursor}
+                onClick={() => {
+                  if (data?.next_cursor) {
+                    setCursorHistory((prev) => [...prev, cursor || '']);
+                    setCursor(data.next_cursor);
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-slate-300 text-slate-700 shadow-2xs hover:bg-slate-100 disabled:opacity-40 disabled:pointer-events-none transition-colors cursor-pointer"
+              >
+                Next Page
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         )}
       </div>
 
-      {/* Create Role Modal */}
+      {/* Create Designation Modal */}
       {isCreateOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in">
           <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
@@ -440,7 +479,7 @@ export const SettingsRolesSection: React.FC = () => {
                 <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
                   <ShieldCheck className="w-5 h-5" />
                 </div>
-                <h3 className="text-base font-bold text-slate-900">New Role</h3>
+                <h3 className="text-base font-bold text-slate-900">New Designation</h3>
               </div>
               <button
                 onClick={() => setIsCreateOpen(false)}
@@ -459,32 +498,16 @@ export const SettingsRolesSection: React.FC = () => {
               )}
 
               <div>
-                <label
-                  htmlFor="role-dep-select"
-                  className="block text-xs font-semibold text-slate-700 mb-1.5"
-                >
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
                   Department *
                 </label>
-                <div className="relative">
-                  <select
-                    id="role-dep-select"
-                    value={formDepId}
-                    onChange={(e) => setFormDepId(e.target.value ? Number(e.target.value) : '')}
-                    className="w-full appearance-none px-3.5 py-2.5 pr-8 rounded-xl text-sm border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all font-medium"
-                    required
-                  >
-                    <option value="">Select Department</option>
-                    {formDepId && !deptOptions?.some((d) => d.dep_id === formDepId) && (
-                      <option value={formDepId}>Selected Department (#{formDepId})</option>
-                    )}
-                    {deptOptions?.map((d) => (
-                      <option key={d.dep_id} value={d.dep_id}>
-                        {d.name}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
+                <SearchableSelect
+                  options={deptSelectOptions}
+                  value={formDepId || null}
+                  onChange={(val) => setFormDepId(val ? Number(val) : '')}
+                  placeholder="Select Department"
+                  searchPlaceholder="Search department..."
+                />
               </div>
 
               <div>
@@ -492,7 +515,7 @@ export const SettingsRolesSection: React.FC = () => {
                   htmlFor="role-name-input"
                   className="block text-xs font-semibold text-slate-700 mb-1.5"
                 >
-                  Role Name *
+                  Designation *
                 </label>
                 <input
                   type="text"
@@ -537,7 +560,7 @@ export const SettingsRolesSection: React.FC = () => {
                   className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 disabled:opacity-50 transition-colors"
                 >
                   {createMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  Create Role
+                  Create Designation
                 </button>
               </div>
             </form>
@@ -554,7 +577,7 @@ export const SettingsRolesSection: React.FC = () => {
                 <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
                   <Edit2 className="w-5 h-5" />
                 </div>
-                <h3 className="text-base font-bold text-slate-900">Edit Role</h3>
+                <h3 className="text-base font-bold text-slate-900">Edit Designation</h3>
               </div>
               <button
                 onClick={() => setEditingRole(null)}
@@ -587,7 +610,7 @@ export const SettingsRolesSection: React.FC = () => {
                   htmlFor="edit-role-name-input"
                   className="block text-xs font-semibold text-slate-700 mb-1.5"
                 >
-                  Role Name *
+                  Designation *
                 </label>
                 <input
                   type="text"
@@ -617,10 +640,10 @@ export const SettingsRolesSection: React.FC = () => {
 
               <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 border border-slate-200">
                 <div>
-                  <span className="text-xs font-semibold text-slate-800 block">Role Active</span>
+                  <span className="text-xs font-semibold text-slate-800 block">Designation Active</span>
                   <span className="text-xs text-slate-500">
                     {editingRole.is_admin
-                      ? 'Admin roles cannot be deactivated.'
+                      ? 'Admin designations cannot be deactivated.'
                       : 'Deactivating is blocked if active employees are assigned.'}
                   </span>
                 </div>
@@ -665,9 +688,9 @@ export const SettingsRolesSection: React.FC = () => {
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-50 text-rose-600 mb-4">
                 <Trash2 className="w-6 h-6" />
               </div>
-              <h3 className="text-base font-bold text-slate-900 mb-1">Delete Role?</h3>
+              <h3 className="text-base font-bold text-slate-900 mb-1">Delete Designation?</h3>
               <p className="text-xs text-slate-500 mb-4">
-                Are you sure you want to soft delete role{' '}
+                Are you sure you want to soft delete designation{' '}
                 <span className="font-semibold text-slate-900">"{deletingRole.role_name}"</span>?
                 This action is blocked if active employees are currently assigned to it.
               </p>
@@ -695,7 +718,7 @@ export const SettingsRolesSection: React.FC = () => {
                   className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rose-600 text-xs font-semibold text-white shadow-xs hover:bg-rose-500 disabled:opacity-50 transition-all"
                 >
                   {deleteMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  Delete Role
+                  Delete Designation
                 </button>
               </div>
             </div>

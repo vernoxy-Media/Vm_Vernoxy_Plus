@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CheckCircle2, Copy, Check, Eye, EyeOff, ShieldCheck, X } from 'lucide-react';
+import { CheckCircle2, Copy, Check, ShieldCheck, X } from 'lucide-react';
 import { ActivateEmployeeResult } from '../hooks/use-employee-documents';
 
 interface AccountActivatedModalProps {
@@ -19,18 +19,17 @@ export const AccountActivatedModal: React.FC<AccountActivatedModalProps> = ({
   title,
   description,
 }) => {
-  const [showPassword, setShowPassword] = useState(false);
-  const [copiedField, setCopiedField] = useState<'email' | 'password' | 'all' | null>(null);
+  const [copiedField, setCopiedField] = useState<'email' | 'all' | null>(null);
 
   if (!isOpen || !result) return null;
 
-  const handleCopy = (text: string, field: 'email' | 'password' | 'all') => {
+  const handleCopy = (text: string, field: 'email' | 'all') => {
     navigator.clipboard.writeText(text);
     setCopiedField(field);
     setTimeout(() => setCopiedField(null), 2000);
   };
 
-  const allCredentialsText = `Vernoxy Pulse Employee Login\nName: ${employeeName || 'Employee'}\nOffice Email: ${result.office_email}\nTemporary Password: ${result.temporary_password}\n(You will be required to change your password on first login)`;
+  const allCredentialsText = `Vernoxy Pulse Employee Login\nName: ${employeeName || 'Employee'}\nOffice Email: ${result.office_email}\nNote: One-time temporary activation credentials have been sent directly to your email inbox.\n(You will be required to change your password on first login)`;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
@@ -93,40 +92,20 @@ export const AccountActivatedModal: React.FC<AccountActivatedModalProps> = ({
             </div>
           </div>
 
-          {/* Temporary Password Card */}
-          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
-            <div className="flex items-center justify-between text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1">
-              <span>Temporary One-Time Password</span>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="text-slate-500 hover:text-slate-700 transition"
-                  title={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleCopy(result.temporary_password, 'password')}
-                  className="text-blue-600 hover:text-blue-700 flex items-center gap-1 font-semibold normal-case transition"
-                >
-                  {copiedField === 'password' ? (
-                    <>
-                      <Check className="w-3 h-3 text-emerald-600" />
-                      <span className="text-emerald-600 text-xs">Copied</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3 h-3" />
-                      <span className="text-xs">Copy</span>
-                    </>
-                  )}
-                </button>
-              </div>
+          {/* Temporary Password Card (BFD Marker 5: Nobody types it, and the Admin never sees it) */}
+          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5">
+            <div className="flex items-center justify-between text-2xs font-bold text-slate-400 uppercase tracking-wider">
+              <span>One-Time System Password</span>
+              <span className="text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full text-[10px] font-semibold flex items-center gap-1 normal-case">
+                <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                Emailed Directly
+              </span>
             </div>
-            <div className="font-mono text-base font-bold text-slate-900 tracking-wider select-all">
-              {showPassword ? result.temporary_password : '••••••••••••'}
+            <div className="flex items-center justify-between">
+              <div className="font-mono text-base font-bold text-slate-400 tracking-widest select-none">
+                ••••••••••••••••
+              </div>
+              <span className="text-[11px] text-slate-500 font-medium">Never visible to Admin</span>
             </div>
           </div>
 
@@ -149,12 +128,12 @@ export const AccountActivatedModal: React.FC<AccountActivatedModalProps> = ({
             {copiedField === 'all' ? (
               <>
                 <Check className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Copied All</span>
+                <span>Copied Details</span>
               </>
             ) : (
               <>
                 <Copy className="w-3.5 h-3.5 text-slate-500" />
-                <span>Copy Credentials</span>
+                <span>Copy Login Details</span>
               </>
             )}
           </button>

@@ -13,6 +13,7 @@ import { UpdateCandidateStageUseCase } from './application/use-cases/update-cand
 import { MarkCandidateDecisionUseCase } from './application/use-cases/mark-candidate-decision.use-case';
 import { GetNextEmployeeCodeUseCase } from './application/use-cases/get-next-employee-code.use-case';
 import { ConvertCandidateToEmployeeUseCase } from './application/use-cases/convert-candidate-to-employee.use-case';
+import { UpdateCandidateUseCase } from './application/use-cases/update-candidate.use-case';
 
 @Module({
   imports: [PrismaModule, AuthModule],
@@ -23,6 +24,7 @@ import { ConvertCandidateToEmployeeUseCase } from './application/use-cases/conve
       useClass: PrismaCandidateRepository,
     },
     CreateCandidateUseCase,
+    UpdateCandidateUseCase,
     ListCandidatesUseCase,
     GetCandidateDetailUseCase,
     CheckDuplicateCandidateUseCase,

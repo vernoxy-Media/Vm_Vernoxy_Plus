@@ -1,5 +1,7 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Inject, Optional, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../../core/prisma/prisma.service';
+import { AUTH_TOKENS } from '../../../auth/application/ports/tokens';
+import { MailPort } from '../../../auth/application/ports/auth.ports';
 import {
   EmployeeDocumentItemDto,
   DocumentTemplateItemDto,
@@ -13,7 +15,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as argon2 from 'argon2';
 
-interface PredefinedDoc {
+export interface PredefinedDoc {
   type: string;
   category: 'given_to_employee' | 'taken_from_employee' | 'agreement';
   title: string;
@@ -21,7 +23,7 @@ interface PredefinedDoc {
   isRequiredForActivation?: boolean;
 }
 
-const PREDEFINED_DOCS: PredefinedDoc[] = [
+export const PREDEFINED_DOCS: PredefinedDoc[] = [
   // Given to employee
   { type: 'offer_letter', category: 'given_to_employee', title: 'Offer Letter' },
   { type: 'joining_letter', category: 'given_to_employee', title: 'Joining Letter' },
@@ -76,8 +78,11 @@ function generateTemporaryPassword(): string {
 
 @Injectable()
 export class EmployeeDocumentService {
+  private readonly logger = new Logger(EmployeeDocumentService.name);
+
   constructor(
     private readonly prisma: PrismaService,
+    @Optional() @Inject(AUTH_TOKENS.MailPort) private readonly mailPort?: MailPort,
   ) {}
 
   async getEmployeeDocuments(empId: number): Promise<EmployeeDocumentItemDto[]> {
@@ -103,11 +108,14 @@ export class EmployeeDocumentService {
     // Check and create missing predefined docs
     for (const def of PREDEFINED_DOCS) {
       if (!existingMap.has(def.type)) {
-        const defaultStatus = def.lockWhenActive && isEmployeeActive ? 'locked' : 'not_ticked';
         const isReq = def.isRequiredForActivation ?? false;
+        const defaultStatus = def.lockWhenActive && isEmployeeActive
+          ? 'locked'
+          : (isReq ? 'file_pending' : 'not_ticked');
+        const defaultTicked = isReq;
         const inserted = await this.prisma.$queryRaw<any[]>`
           INSERT INTO employee_documents (emp_id, category, document_type, title, is_ticked, status, is_required_for_activation)
-          VALUES (${empId}, ${def.category}, ${def.type}, ${def.title}, FALSE, ${defaultStatus}, ${isReq})
+          VALUES (${empId}, ${def.category}, ${def.type}, ${def.title}, ${defaultTicked}, ${defaultStatus}, ${isReq})
           ON CONFLICT (emp_id, document_type) DO UPDATE SET updated_at = NOW()
           RETURNING *
         `;
@@ -124,7 +132,7 @@ export class EmployeeDocumentService {
       if (doc) {
         let status = doc.status;
         if (def.lockWhenActive) {
-          if (isEmployeeActive && status !== 'uploaded' && status !== 'final') {
+          if (isEmployeeActive) {
             status = 'locked';
           } else if (!isEmployeeActive && status === 'locked') {
             status = doc.is_ticked ? 'file_pending' : 'not_ticked';
@@ -335,6 +343,26 @@ export class EmployeeDocumentService {
     }
     const emp = empRows[0];
 
+    const isExitDoc = ['experience_letter', 'relieving_letter', 'salary_slip'].includes(dto.document_type);
+    if (isExitDoc && emp.status !== 'Inactive') {
+      throw new BadRequestException(
+        `Document "${dto.document_type}" is an exit document and can only be generated after employee deactivation.`,
+      );
+    }
+
+    if (dto.document_type === 'joining_letter') {
+      const offerRows = await this.prisma.$queryRaw<any[]>`
+        SELECT status FROM employee_documents
+        WHERE emp_id = ${empId} AND document_type = 'offer_letter'
+      `;
+      const offerStatus = offerRows && offerRows[0]?.status;
+      if (offerStatus !== 'uploaded' && offerStatus !== 'final') {
+        throw new BadRequestException(
+          'Joining Letter can only be generated after the Offer Letter is Accepted / Signed.',
+        );
+      }
+    }
+
     // Fetch all department names
     const deptRows = await this.prisma.$queryRaw<any[]>`
       SELECT d.name FROM employee_departments ed
@@ -416,11 +444,22 @@ export class EmployeeDocumentService {
     dto: FinalizeDocumentDraftDto,
     adminId: number,
   ): Promise<EmployeeDocumentItemDto> {
-    const empResult = await this.prisma.$queryRaw<Array<{ name: string }>>`
-      SELECT name FROM employees WHERE emp_id = ${empId}
+    const empResult = await this.prisma.$queryRaw<Array<{ name: string; status: string }>>`
+      SELECT name, status FROM employees WHERE emp_id = ${empId}
     `;
-    const empName = empResult?.[0]?.name || 'Employee';
-    const cleanName = empName.replace(/[^a-zA-Z0-9]/g, '_');
+    const emp = empResult?.[0];
+    if (!emp) {
+      throw new NotFoundException(`Employee ${empId} not found`);
+    }
+
+    const isExitDoc = ['experience_letter', 'relieving_letter', 'salary_slip'].includes(dto.document_type);
+    if (isExitDoc && emp.status === 'Active') {
+      throw new BadRequestException(
+        `Document "${dto.document_type}" is an exit document and can only be finalized after employee deactivation.`,
+      );
+    }
+
+    const cleanName = emp.name.replace(/[^a-zA-Z0-9]/g, '_');
     const fileName = `${dto.document_type}_${cleanName}.doc`;
     const fileUrl = `/api/v1/employees/${empId}/documents/${dto.document_type}/download`;
 
@@ -624,6 +663,20 @@ export class EmployeeDocumentService {
       `.catch(() => {});
     }
 
+    if (this.mailPort) {
+      try {
+        await this.mailPort.sendWelcomeCredentials({
+          officeEmail,
+          personalEmail: emp.personal_email?.trim().toLowerCase() || undefined,
+          employeeName: emp.name,
+          temporaryPassword: tempPassword,
+          loginUrl: process.env.WEB_ORIGIN || 'http://localhost:5173',
+        });
+      } catch (mailErr: any) {
+        this.logger.warn(`Failed to dispatch activation email to ${officeEmail}: ${mailErr.message}`);
+      }
+    }
+
     return {
       success: true,
       message: 'Employee account activated successfully. Login credentials generated.',
@@ -681,6 +734,20 @@ export class EmployeeDocumentService {
       INSERT INTO auth_events (emp_id, actor_emp_id, event_type, details)
       VALUES (${empId}, ${adminId}, 'credentials_resent', '{"source":"resend_login","must_change_password":true}'::jsonb)
     `;
+
+    if (this.mailPort) {
+      try {
+        await this.mailPort.sendWelcomeCredentials({
+          officeEmail,
+          personalEmail: emp.personal_email?.trim().toLowerCase() || undefined,
+          employeeName: emp.name,
+          temporaryPassword: tempPassword,
+          loginUrl: process.env.WEB_ORIGIN || 'http://localhost:5173',
+        });
+      } catch (mailErr: any) {
+        this.logger.warn(`Failed to dispatch resend credentials email to ${officeEmail}: ${mailErr.message}`);
+      }
+    }
 
     return {
       success: true,

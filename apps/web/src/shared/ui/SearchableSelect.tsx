@@ -74,15 +74,19 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
     return options.find((opt) => String(opt.value) === String(value));
   }, [options, value]);
 
+  const sortedOptions = useMemo(() => {
+    return [...options].sort((a, b) => a.label.localeCompare(b.label));
+  }, [options]);
+
   const filteredOptions = useMemo(() => {
-    if (!searchTerm.trim()) return options;
+    if (!searchTerm.trim()) return sortedOptions;
     const term = searchTerm.toLowerCase().trim();
-    return options.filter(
+    return sortedOptions.filter(
       (opt) =>
         opt.label.toLowerCase().includes(term) ||
         (opt.sublabel && opt.sublabel.toLowerCase().includes(term))
     );
-  }, [options, searchTerm]);
+  }, [sortedOptions, searchTerm]);
 
   const handleSelect = (opt: SearchableSelectOption) => {
     if (opt.disabled) return;
@@ -190,49 +194,55 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
           </div>
 
           {/* Options List */}
-          <div className="max-h-56 overflow-y-auto space-y-0.5 py-0.5">
+          <div className="max-h-56 overflow-y-auto space-y-0.5 py-0.5 custom-scrollbar">
             {filteredOptions.length === 0 ? (
               <div className="py-5 text-center text-xs text-slate-400 font-medium">
-                No matching options found
+                No results found
               </div>
             ) : (
-              filteredOptions.map((opt) => {
-                const isSelected = String(opt.value) === String(value);
-                return (
-                  <button
-                    key={String(opt.value)}
-                    type="button"
-                    disabled={opt.disabled}
-                    onClick={() => handleSelect(opt)}
-                    className={`w-full flex items-center justify-between text-left px-3 py-2 text-xs rounded-lg transition-colors ${opt.disabled
-                      ? 'opacity-40 cursor-not-allowed'
-                      : isSelected
-                        ? 'bg-blue-50/80 text-blue-700 font-semibold'
-                        : 'text-slate-700 hover:bg-slate-50'
+              <>
+                {filteredOptions.map((opt) => {
+                  const isSelected = String(opt.value) === String(value);
+                  return (
+                    <button
+                      key={String(opt.value)}
+                      type="button"
+                      disabled={opt.disabled}
+                      onClick={() => handleSelect(opt)}
+                      className={`w-full flex items-center justify-between text-left px-3 py-2 text-xs rounded-lg transition-colors cursor-pointer ${
+                        opt.disabled
+                          ? 'opacity-40 cursor-not-allowed'
+                          : isSelected
+                          ? 'bg-blue-50/80 text-blue-700 font-semibold'
+                          : 'text-slate-700 hover:bg-slate-50'
                       }`}
-                    role="option"
-                    aria-selected={isSelected}
-                  >
-                    <div className="overflow-hidden pr-2">
-                      {renderOption ? (
-                        renderOption(opt)
-                      ) : (
-                        <>
-                          <span className="block truncate">{opt.label}</span>
-                          {opt.sublabel && (
-                            <span className="block truncate text-[11px] text-slate-400 font-normal mt-0.5">
-                              {opt.sublabel}
-                            </span>
-                          )}
-                        </>
+                      role="option"
+                      aria-selected={isSelected}
+                    >
+                      <div className="overflow-hidden pr-2">
+                        {renderOption ? (
+                          renderOption(opt)
+                        ) : (
+                          <>
+                            <span className="block truncate">{opt.label}</span>
+                            {opt.sublabel && (
+                              <span className="block truncate text-[11px] text-slate-400 font-normal mt-0.5">
+                                {opt.sublabel}
+                              </span>
+                            )}
+                          </>
+                        )}
+                      </div>
+                      {isSelected && (
+                        <Check className="w-3.5 h-3.5 text-blue-600 shrink-0 ml-2" />
                       )}
-                    </div>
-                    {isSelected && (
-                      <Check className="w-3.5 h-3.5 text-blue-600 shrink-0 ml-2" />
-                    )}
-                  </button>
-                );
-              })
+                    </button>
+                  );
+                })}
+                <div className="text-[11px] text-slate-400 text-center py-1.5 border-t border-slate-100 font-normal">
+                  No more results
+                </div>
+              </>
             )}
           </div>
         </div>

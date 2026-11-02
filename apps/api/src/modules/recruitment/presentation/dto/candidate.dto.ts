@@ -22,7 +22,7 @@ export class CreateCandidateDto {
   @ApiProperty({ description: '10-digit mobile number', example: '+919825011223' })
   @IsString()
   @IsNotEmpty({ message: 'Please fill this field.' })
-  @Matches(/^(\+91)?[6-9]\d{9}$/, { message: 'The phone number must be 10 digits.' })
+  @Matches(/^(\+?\d{1,4})?\d{10}$/, { message: 'The phone number must be 10 digits.' })
   phone!: string;
 
   @ApiProperty({ description: 'Personal email address', example: 'rohan.mehta@gmail.com' })
@@ -174,15 +174,15 @@ export class CreateCandidateDto {
 }
 
 export class CheckDuplicateCandidateDto {
-  @ApiProperty({ description: 'Phone number to verify' })
+  @ApiPropertyOptional({ description: 'Phone number to verify' })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  phone!: string;
+  phone?: string;
 
-  @ApiProperty({ description: 'Email address to verify' })
+  @ApiPropertyOptional({ description: 'Email address to verify' })
+  @IsOptional()
   @IsEmail()
-  @IsNotEmpty()
-  email!: string;
+  email?: string;
 }
 
 export class DuplicateMatchDto {

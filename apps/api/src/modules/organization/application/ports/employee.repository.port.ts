@@ -13,7 +13,7 @@ export interface EmployeeRepositoryPort {
   findMany(
     filter: EmployeeListFilter,
     tx?: unknown,
-  ): Promise<{ items: Employee[]; next_cursor: string | null; stats?: { total: number; active: number; inactive: number } }>;
+  ): Promise<{ items: Employee[]; next_cursor: string | null; stats?: { total: number; active: number; inactive: number; onboarding?: number } }>;
   findActiveOptions(
     q?: string,
     tx?: unknown,

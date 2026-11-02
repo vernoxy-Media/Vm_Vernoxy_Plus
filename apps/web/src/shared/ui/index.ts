@@ -6,4 +6,5 @@ export * from './SummaryCards';
 export * from './SearchableSelect';
 export * from './CountryPhoneInput';
 export * from './DepartmentMultiSelect';
+export * from './ReportingManagerSelect';
 

@@ -10,6 +10,7 @@ import {
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { AdminLayout } from '@/shared/layouts/AdminLayout';
 import { AddEmployeeModal } from '../components/AddEmployeeModal';
+import { SearchableSelect } from '@/shared/ui';
 import {
   Users,
   User,
@@ -122,6 +123,28 @@ export const EmployeesPage: React.FC = () => {
   // Role dropdown options (loads all roles if no department selected)
   const { data: roleOptions } = useRoleOptionsQuery(selectedDepId);
 
+  const deptFilterOptions = useMemo(
+    () => [
+      { value: '', label: 'All Departments' },
+      ...(deptOptions || []).map((d) => ({
+        value: String(d.dep_id),
+        label: d.name,
+      })),
+    ],
+    [deptOptions],
+  );
+
+  const roleFilterOptions = useMemo(
+    () => [
+      { value: '', label: 'All Designations' },
+      ...(roleOptions || []).map((r: any) => ({
+        value: String(r.role_id),
+        label: r.role_name || r.name,
+      })),
+    ],
+    [roleOptions],
+  );
+
   // Employees Query
   const { data, isLoading, error, refetch } = useEmployeesQuery({
     q: search || undefined,
@@ -156,7 +179,10 @@ export const EmployeesPage: React.FC = () => {
     search || selectedDepId || selectedRoleId || statusFilter !== 'Active',
   );
 
-  const allItems = data?.items || [];
+  const allItems = useMemo(
+    () => (data?.items || []).filter((emp) => emp.status !== 'Onboarding'),
+    [data?.items],
+  );
 
   // Sorting calculation (BFD Page 6)
   const sortedItems = useMemo(() => {
@@ -212,10 +238,13 @@ export const EmployeesPage: React.FC = () => {
   };
 
   // Metric stats
-  const totalEmployeesCount = data?.stats?.total ?? (statusFilter === 'All' ? totalItems : 24);
-  const activeEmployeesCount = data?.stats?.active ?? (statusFilter === 'Active' ? totalItems : 21);
+  const totalEmployeesCount =
+    data?.stats?.total ??
+    (statusFilter === 'All' ? totalItems : (data?.stats?.active ?? 0) + (data?.stats?.inactive ?? 0));
+  const activeEmployeesCount =
+    data?.stats?.active ?? (statusFilter === 'Active' ? totalItems : 0);
   const inactiveEmployeesCount =
-    data?.stats?.inactive ?? (statusFilter === 'Inactive' ? totalItems : 3);
+    data?.stats?.inactive ?? (statusFilter === 'Inactive' ? totalItems : 0);
 
   const isInactiveView = statusFilter === 'Inactive';
 
@@ -365,52 +394,38 @@ export const EmployeesPage: React.FC = () => {
             </div>
 
             {/* Department Filter */}
-            <div className="relative min-w-[150px]">
-              <select
-                id="employees-department-select"
-                value={selectedDepId ?? ''}
-                onChange={(e) => {
-                  const val = e.target.value ? Number(e.target.value) : undefined;
-                  setSelectedDepId(val);
+            <div className="min-w-[175px]">
+              <SearchableSelect
+                options={deptFilterOptions}
+                value={selectedDepId ? String(selectedDepId) : ''}
+                onChange={(val) => {
+                  const num = val ? Number(val) : undefined;
+                  setSelectedDepId(num);
                   setSelectedRoleId(undefined);
                   setCurrentPage(1);
                 }}
-                className="w-full appearance-none pl-3.5 pr-8 py-2 rounded-xl text-sm border border-slate-300 bg-white text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer"
-              >
-                <option value="">Department</option>
-                {deptOptions?.map((d) => (
-                  <option key={d.dep_id} value={d.dep_id}>
-                    {d.name}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                placeholder="Department"
+                searchPlaceholder="Search department..."
+              />
             </div>
 
             {/* Designation Filter */}
-            <div className="relative min-w-[150px]">
-              <select
-                id="employees-designation-select"
-                value={selectedRoleId ?? ''}
-                onChange={(e) => {
-                  const val = e.target.value ? Number(e.target.value) : undefined;
-                  setSelectedRoleId(val);
+            <div className="min-w-[175px]">
+              <SearchableSelect
+                options={roleFilterOptions}
+                value={selectedRoleId ? String(selectedRoleId) : ''}
+                onChange={(val) => {
+                  const num = val ? Number(val) : undefined;
+                  setSelectedRoleId(num);
                   setCurrentPage(1);
                 }}
-                className="w-full appearance-none pl-3.5 pr-8 py-2 rounded-xl text-sm border border-slate-300 bg-white text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer"
-              >
-                <option value="">Designation</option>
-                {roleOptions?.map((r) => (
-                  <option key={r.role_id} value={r.role_id}>
-                    {r.role_name}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                placeholder="Designation"
+                searchPlaceholder="Search designation..."
+              />
             </div>
 
             {/* Status Filter Dropdown */}
-            <div className="relative min-w-[120px]">
+            <div className="relative min-w-[130px]">
               <select
                 id="employees-status-select"
                 value={statusFilter}
@@ -765,6 +780,11 @@ export const EmployeesPage: React.FC = () => {
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                             Active
+                          </span>
+                        ) : emp.status === 'Onboarding' ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-50 text-purple-700">
+                            <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+                            Onboarding
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700">

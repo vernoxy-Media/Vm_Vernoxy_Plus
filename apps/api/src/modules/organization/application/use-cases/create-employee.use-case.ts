@@ -1,8 +1,10 @@
+import { Logger } from '@nestjs/common';
 import { EmployeeRepositoryPort } from '../ports/employee.repository.port';
 import { DepartmentRepositoryPort } from '../ports/department.repository.port';
 import { RoleRepositoryPort } from '../ports/role.repository.port';
 import { CredentialProvisionerPort } from '../ports/credential-provisioner.port';
 import { UnitOfWorkPort } from '../ports/unit-of-work.port';
+import { MailPort } from '../../../auth/application/ports/auth.ports';
 import { Employee } from '../../domain/entities/employee.entity';
 import { OrganizationNormalizationService } from '../../domain/services/organization-normalization.service';
 import { OrganizationPolicyService } from '../../domain/services/organization-policy.service';
@@ -53,12 +55,15 @@ export interface CreateEmployeeCommand {
 }
 
 export class CreateEmployeeUseCase {
+  private readonly logger = new Logger(CreateEmployeeUseCase.name);
+
   constructor(
     private readonly employeeRepo: EmployeeRepositoryPort,
     private readonly departmentRepo: DepartmentRepositoryPort,
     private readonly roleRepo: RoleRepositoryPort,
     private readonly credentialProvisioner: CredentialProvisionerPort,
     private readonly unitOfWork: UnitOfWorkPort,
+    private readonly mailPort?: MailPort,
   ) {}
 
   async execute(command: CreateEmployeeCommand): Promise<Employee> {
@@ -172,7 +177,7 @@ export class CreateEmployeeUseCase {
 
     const allDepIds = Array.from(new Set([command.dep_id, ...(command.department_ids || [])]));
 
-    return this.unitOfWork.run(async (tx) => {
+    const createdEmployee = await this.unitOfWork.run(async (tx) => {
       const created = await this.employeeRepo.create(
         {
           name: trimmedName,
@@ -242,6 +247,23 @@ export class CreateEmployeeUseCase {
 
       return created;
     });
+
+    if (this.mailPort) {
+      try {
+        const targetOfficeEmail = (command.office_email || command.email).trim().toLowerCase();
+        await this.mailPort.sendWelcomeCredentials({
+          officeEmail: targetOfficeEmail,
+          personalEmail: command.personal_email?.trim().toLowerCase() || undefined,
+          employeeName: command.name,
+          temporaryPassword: command.password,
+          loginUrl: process.env.WEB_ORIGIN || 'http://localhost:5173',
+        });
+      } catch (mailErr: any) {
+        this.logger.warn(`Failed to dispatch welcome email: ${mailErr.message}`);
+      }
+    }
+
+    return createdEmployee;
   }
 }
 

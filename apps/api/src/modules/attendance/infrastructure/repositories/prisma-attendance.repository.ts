@@ -882,6 +882,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
       holidays?: Array<{ date: string; name: string }>;
       fullDayMinutes?: number;
       halfDayMinutes?: number;
+      graceMinutes?: number;
     },
   ): Promise<{
     days: Array<{
@@ -953,6 +954,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
     const holidaysList = options?.holidays || [];
     const fullDayMins = options?.fullDayMinutes ?? 480;
     const halfDayMins = options?.halfDayMinutes ?? 240;
+    const graceMins = options?.graceMinutes ?? 0;
 
     const days = rawRows.map((r) => {
       const dateStr = r.date;
@@ -987,7 +989,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
         brkMinutes = 0;
       } else if (r.check_in_at) {
         if (r.check_out_at) {
-          state = determineDayStatus(new Date(r.check_out_at), prodMinutes, fullDayMins, halfDayMins);
+          state = determineDayStatus(new Date(r.check_out_at), prodMinutes, fullDayMins, halfDayMins, graceMins);
           dayStatus = state;
         } else {
           // Open day (e.g. today)
@@ -1013,6 +1015,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
               prodMinutes,
               fullDayMins,
               halfDayMins,
+              graceMins,
             );
             dayStatus = state;
           }

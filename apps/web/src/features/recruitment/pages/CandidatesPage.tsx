@@ -16,7 +16,6 @@ import {
   Loader2,
   Clock,
   Sparkles,
-  Lock,
   ArrowUp,
   ArrowDown,
   ArrowUpDown,
@@ -62,6 +61,8 @@ function getAvatarBgColor(name: string): string {
 function getStageBadge(stage: string) {
   const s = (stage || '').toLowerCase();
   switch (s) {
+    case 'open':
+      return { label: 'Open', bg: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
     case 'new':
       return { label: 'New', bg: 'bg-sky-50 text-sky-700 border-sky-200' };
     case 'screening':
@@ -72,6 +73,10 @@ function getStageBadge(stage: string) {
       return { label: 'Selected', bg: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
     case 'onboarding':
       return { label: 'Onboarding', bg: 'bg-purple-50 text-purple-700 border-purple-200' };
+    case 'joined':
+      return { label: 'Joined', bg: 'bg-teal-50 text-teal-700 border-teal-200' };
+    case 'did_not_join':
+      return { label: 'Did not join', bg: 'bg-slate-100 text-slate-700 border-slate-300' };
     case 'rejected':
       return { label: 'Rejected', bg: 'bg-rose-50 text-rose-700 border-rose-200' };
     case 'on_hold':
@@ -419,14 +424,17 @@ export const CandidatesPage: React.FC = () => {
                 className="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 bg-white text-slate-900 font-bold shadow-2xs cursor-pointer"
               >
                 <option value="Open">Stage: Open</option>
-                <option value="All">Stage: All</option>
+                <option value="open">Open</option>
                 <option value="new">New</option>
                 <option value="screening">Screening</option>
                 <option value="interviewing">Interviewing</option>
+                <option value="on_hold">On Hold</option>
                 <option value="selected">Selected</option>
                 <option value="onboarding">Onboarding</option>
+                <option value="joined">Joined</option>
+                <option value="did_not_join">Did not join</option>
                 <option value="rejected">Rejected</option>
-                <option value="on_hold">On Hold</option>
+                <option value="All">Stage: All</option>
               </select>
             </div>
 
@@ -597,12 +605,12 @@ export const CandidatesPage: React.FC = () => {
                                   <>
                                     <span>•</span>
                                     <Link
-                                      to={`/admin/employees/${cand.converted_to_emp_id}?tab=documents`}
+                                      to={`/admin/recruitment/candidates/${cand.candidate_id}?tab=documents`}
                                       onClick={(e) => e.stopPropagation()}
-                                      className="font-mono text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.5 rounded hover:bg-emerald-100 transition inline-flex items-center gap-1"
-                                      title="View Converted Employee Record"
+                                      className="font-mono text-[11px] font-bold text-purple-700 bg-purple-50 border border-purple-200/80 px-1.5 py-0.5 rounded hover:bg-purple-100 transition inline-flex items-center gap-1"
+                                      title="View Onboarding Documents"
                                     >
-                                      <span>{cand.converted_to_emp_code || `EMP-${cand.converted_to_emp_id}`}</span>
+                                      <span>Onboarding Documents</span>
                                     </Link>
                                   </>
                                 )}
@@ -681,12 +689,12 @@ export const CandidatesPage: React.FC = () => {
                         >
                           {cand.converted_to_emp_id ? (
                             <Link
-                              to={`/admin/employees/${cand.converted_to_emp_id}?tab=documents`}
-                              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80 hover:bg-emerald-100 transition"
-                              title="Converted to Employee (Onboarding)"
+                              to={`/admin/recruitment/candidates/${cand.candidate_id}?tab=documents`}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200/80 hover:bg-purple-100 transition"
+                              title="View Onboarding Documents"
                             >
                               <span>Onboarding</span>
-                              <Lock className="w-3 h-3 opacity-60" />
+                              <FileText className="w-3 h-3 text-purple-600" />
                             </Link>
                           ) : (
                             <button
@@ -865,8 +873,12 @@ export const CandidatesPage: React.FC = () => {
         onClose={() => setConvertCandidate(null)}
         candidate={convertCandidate}
         onConverted={() => {
+          const candId = convertCandidate?.candidate_id;
           setConvertCandidate(null);
           refetch();
+          if (candId) {
+            navigate(`/admin/recruitment/candidates/${candId}?tab=documents`);
+          }
         }}
       />
 

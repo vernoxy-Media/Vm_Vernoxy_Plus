@@ -142,8 +142,8 @@ export class PrismaAppSettingsRepository implements AppSettingsRepository {
     const default_shift = shifts.find((s) => s.is_default) || shifts[0] || null;
 
     let default_working_hours: WorkingHoursConfig = default_shift
-      ? { full_day_hours: default_shift.full_day_hours, half_day_hours: default_shift.half_day_hours }
-      : { full_day_hours: 8, half_day_hours: 4 };
+      ? { full_day_hours: default_shift.full_day_hours, half_day_hours: default_shift.half_day_hours, grace_minutes: 0 }
+      : { full_day_hours: 8, half_day_hours: 4, grace_minutes: 0 };
 
     if (defaultHoursStr) {
       try {
@@ -152,6 +152,7 @@ export class PrismaAppSettingsRepository implements AppSettingsRepository {
           default_working_hours = {
             full_day_hours: parsed.full_day_hours,
             half_day_hours: parsed.half_day_hours ?? (parsed.full_day_hours / 2),
+            grace_minutes: typeof parsed.grace_minutes === 'number' ? parsed.grace_minutes : 0,
           };
         }
       } catch {}
@@ -186,6 +187,7 @@ export class PrismaAppSettingsRepository implements AppSettingsRepository {
       statuses,
       default_shift,
       employee_shifts,
+      working_hours_grace_minutes: default_working_hours.grace_minutes ?? 0,
     };
   }
 
@@ -289,13 +291,16 @@ export class PrismaAppSettingsRepository implements AppSettingsRepository {
     await this.setSetting('attendance_holidays', JSON.stringify(formatted), userId);
   }
 
-  async saveDefaultWorkingHours(config: { full_day_hours: number; half_day_hours: number }, userId?: number): Promise<void> {
+  async saveDefaultWorkingHours(
+    config: { full_day_hours: number; half_day_hours: number; grace_minutes?: number },
+    userId?: number,
+  ): Promise<void> {
     await this.setSetting('attendance_default_hours', JSON.stringify(config), userId);
   }
 
   async saveEmployeeWorkingHours(
     empId: number,
-    config: { full_day_hours: number; half_day_hours: number } | null,
+    config: { full_day_hours: number; half_day_hours: number; grace_minutes?: number } | null,
     userId?: number,
   ): Promise<void> {
     const settings = await this.getAttendanceSettings();
@@ -312,6 +317,7 @@ export class PrismaAppSettingsRepository implements AppSettingsRepository {
   async getEmployeeWorkingMinutes(empId: number) {
     const settings = await this.getAttendanceSettings();
     const empKey = String(empId);
+    const defaultGrace = settings.default_working_hours.grace_minutes ?? 0;
 
     // 1. Shift assignment override
     const assignedShiftId = settings.employee_shifts?.[empKey];
@@ -325,6 +331,7 @@ export class PrismaAppSettingsRepository implements AppSettingsRepository {
           halfDayHours,
           fullDayMinutes: Math.round(fullDayHours * 60),
           halfDayMinutes: Math.round(halfDayHours * 60),
+          graceMinutes: defaultGrace,
         };
       }
     }
@@ -339,6 +346,7 @@ export class PrismaAppSettingsRepository implements AppSettingsRepository {
         halfDayHours,
         fullDayMinutes: Math.round(fullDayHours * 60),
         halfDayMinutes: Math.round(halfDayHours * 60),
+        graceMinutes: custom.grace_minutes ?? defaultGrace,
       };
     }
 
@@ -352,6 +360,7 @@ export class PrismaAppSettingsRepository implements AppSettingsRepository {
       halfDayHours,
       fullDayMinutes: Math.round(fullDayHours * 60),
       halfDayMinutes: Math.round(halfDayHours * 60),
+      graceMinutes: defaultGrace,
     };
   }
 

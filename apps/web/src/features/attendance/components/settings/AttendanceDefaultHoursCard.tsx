@@ -30,11 +30,12 @@ export interface AttendanceDefaultHoursCardProps {
 }
 
 export const AttendanceDefaultHoursCard: React.FC<AttendanceDefaultHoursCardProps> = ({
-  initialConfig = { full_day_hours: 8, half_day_hours: 4 },
+  initialConfig = { full_day_hours: 8, half_day_hours: 4, grace_minutes: 0 },
   shifts = [],
 }) => {
   const [fullDay, setFullDay] = useState<number>(initialConfig.full_day_hours || 8);
   const [halfDay, setHalfDay] = useState<number>(initialConfig.half_day_hours || 4);
+  const [graceMinutes, setGraceMinutes] = useState<number>(initialConfig.grace_minutes ?? 0);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   // Shift Modal State
@@ -49,6 +50,7 @@ export const AttendanceDefaultHoursCard: React.FC<AttendanceDefaultHoursCardProp
     if (initialConfig) {
       setFullDay(initialConfig.full_day_hours || 8);
       setHalfDay(initialConfig.half_day_hours || 4);
+      setGraceMinutes(initialConfig.grace_minutes ?? 0);
     }
   }, [initialConfig]);
 
@@ -57,15 +59,20 @@ export const AttendanceDefaultHoursCard: React.FC<AttendanceDefaultHoursCardProp
     setHalfDay(Math.round((val / 2) * 10) / 10);
   };
 
-  const applyPreset = (full: number, half: number) => {
+  const applyPreset = (full: number, half: number, grace = 0) => {
     setFullDay(full);
     setHalfDay(half);
+    setGraceMinutes(grace);
   };
 
   const handleSaveDefaultHours = async (e: React.FormEvent) => {
     e.preventDefault();
-    await mutation.mutateAsync({ full_day_hours: fullDay, half_day_hours: halfDay });
-    setSuccessMsg('Default working hours updated successfully.');
+    await mutation.mutateAsync({
+      full_day_hours: fullDay,
+      half_day_hours: halfDay,
+      grace_minutes: graceMinutes,
+    });
+    setSuccessMsg('Default working hours & grace updated successfully.');
     setTimeout(() => setSuccessMsg(null), 3000);
   };
 
@@ -274,12 +281,12 @@ export const AttendanceDefaultHoursCard: React.FC<AttendanceDefaultHoursCardProp
             </div>
           </div>
           <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700">
-            Full: {fullDay}h · Half: {halfDay}h
+            Full: {fullDay}h · Half: {halfDay}h · Grace: {graceMinutes}m
           </span>
         </div>
 
         <form onSubmit={handleSaveDefaultHours} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-1.5">
               <label htmlFor="default-full-day-input" className="block text-xs font-bold text-slate-700">
                 Standard Full Day Hours *
@@ -319,6 +326,26 @@ export const AttendanceDefaultHoursCard: React.FC<AttendanceDefaultHoursCardProp
               </div>
               <p className="text-[11px] text-slate-400">Production needed to be marked Half Day (default 4 hours).</p>
             </div>
+
+            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-1.5">
+              <label htmlFor="default-grace-minutes-input" className="block text-xs font-bold text-slate-700">
+                Working Hours Grace *
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  id="default-grace-minutes-input"
+                  min="0"
+                  max="60"
+                  step="1"
+                  value={graceMinutes}
+                  onChange={(e) => setGraceMinutes(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                  className="w-full px-3 py-2 rounded-lg text-sm border border-slate-200 bg-white font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                />
+                <span className="text-xs font-semibold text-slate-500">Min</span>
+              </div>
+              <p className="text-[11px] text-slate-400">Allowed deficit on working hours (e.g. 10m allows 7h 50m to count as 8h Full Day).</p>
+            </div>
           </div>
 
           {/* Presets */}
@@ -328,24 +355,31 @@ export const AttendanceDefaultHoursCard: React.FC<AttendanceDefaultHoursCardProp
             </span>
             <button
               type="button"
-              onClick={() => applyPreset(8, 4)}
-              className="px-2.5 py-1 rounded-md bg-white border border-slate-200 font-semibold text-slate-600 hover:bg-slate-100"
+              onClick={() => applyPreset(8, 4, 0)}
+              className="px-2.5 py-1 rounded-md bg-white border border-slate-200 font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer"
             >
-              8h / 4h (Standard)
+              8h / 4h (Strict, 0m grace)
             </button>
             <button
               type="button"
-              onClick={() => applyPreset(7, 3.5)}
-              className="px-2.5 py-1 rounded-md bg-white border border-slate-200 font-semibold text-slate-600 hover:bg-slate-100"
+              onClick={() => applyPreset(8, 4, 10)}
+              className="px-2.5 py-1 rounded-md bg-white border border-slate-200 font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer"
             >
-              7h / 3.5h
+              8h / 4h (10m grace)
             </button>
             <button
               type="button"
-              onClick={() => applyPreset(9, 4.5)}
-              className="px-2.5 py-1 rounded-md bg-white border border-slate-200 font-semibold text-slate-600 hover:bg-slate-100"
+              onClick={() => applyPreset(8, 4, 15)}
+              className="px-2.5 py-1 rounded-md bg-white border border-slate-200 font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer"
             >
-              9h / 4.5h
+              8h / 4h (15m grace)
+            </button>
+            <button
+              type="button"
+              onClick={() => applyPreset(7, 3.5, 0)}
+              className="px-2.5 py-1 rounded-md bg-white border border-slate-200 font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer"
+            >
+              7h / 3.5h (0m grace)
             </button>
           </div>
 

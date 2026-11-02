@@ -13,6 +13,7 @@ import {
 import { PrismaClient, Prisma, employee_status } from '@prisma/client';
 import { ConflictDomainError } from '../../domain/errors/organization.errors';
 import { FileStoragePort, STORAGE_TOKENS } from '../../../storage/public-api';
+import { PREDEFINED_DOCS } from '../../application/services/employee-document.service';
 
 @Injectable()
 export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
@@ -77,7 +78,7 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
         record.profile_picture && this.storage
           ? this.storage.getSignedUrl(record.profile_picture)
           : null,
-      status: record.status as 'Active' | 'Inactive',
+      status: record.status as 'Active' | 'Inactive' | 'Onboarding',
       joining_date: record.joining_date,
       exit_date: record.exit_date,
       created_at: record.created_at,
@@ -181,7 +182,7 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
   async findMany(
     filter: EmployeeListFilter,
     tx?: unknown,
-  ): Promise<{ items: Employee[]; next_cursor: string | null; stats?: { total: number; active: number; inactive: number } }> {
+  ): Promise<{ items: Employee[]; next_cursor: string | null; stats?: { total: number; active: number; inactive: number; onboarding?: number } }> {
     const client = this.getClient(tx);
     const limit = parseLimit(filter.limit);
 
@@ -204,8 +205,11 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       where.role_id = filter.role_id;
     }
 
-    if (filter.status) {
+    if (filter.status && filter.status !== 'All' && (filter.status as string) !== 'Onboarding') {
       where.status = filter.status as employee_status;
+    } else {
+      // Exclude onboarding candidates from employee list - onboarding belongs to recruitment
+      where.status = { not: 'Onboarding' };
     }
 
     if (filter.q) {
@@ -242,16 +246,17 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       where.emp_id = { gt: decoded.id };
     }
 
-    const [records, total_count, active_count, inactive_count] = await Promise.all([
+    const [records, total_count, active_count, inactive_count, onboarding_count] = await Promise.all([
       client.employees.findMany({
         where,
         take: limit + 1,
         orderBy: { emp_id: 'asc' },
         include: this.getEmployeeIncludes(),
       }),
-      client.employees.count({ where: { deleted_at: null } }),
+      client.employees.count({ where: { deleted_at: null, status: { not: 'Onboarding' } } }),
       client.employees.count({ where: { deleted_at: null, status: 'Active' } }),
       client.employees.count({ where: { deleted_at: null, status: 'Inactive' } }),
+      client.employees.count({ where: { deleted_at: null, status: 'Onboarding' } }),
     ]);
 
     const hasNext = records.length > limit;
@@ -297,6 +302,7 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
         total: total_count,
         active: active_count,
         inactive: inactive_count,
+        onboarding: onboarding_count,
       },
     };
   }
@@ -523,6 +529,28 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
         updated_by: data.created_by,
       },
     });
+
+    // Seed predefined employee_documents so required documents start in file_pending status
+    try {
+      await (client as any).employee_documents.createMany({
+        data: PREDEFINED_DOCS.map((def) => {
+          const isReq = def.isRequiredForActivation ?? false;
+          return {
+            emp_id: created.emp_id,
+            category: def.category,
+            document_type: def.type,
+            title: def.title,
+            is_ticked: isReq,
+            status: isReq ? 'file_pending' : 'not_ticked',
+            is_required_for_activation: isReq,
+            created_by: data.created_by,
+          };
+        }),
+        skipDuplicates: true,
+      });
+    } catch {
+      // Best effort seeding
+    }
 
     // Refresh created with updated departments
     const refreshed = await client.employees.findUnique({

@@ -16,6 +16,7 @@ import {
   useCheckDuplicateCandidateMutation,
   useUploadCandidateResumeMutation,
   useCreateCandidateMutation,
+  useUpdateCandidateMutation,
   type DuplicateMatch,
 } from '../hooks/use-recruitment';
 import {
@@ -30,12 +31,14 @@ interface AddCandidateModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  candidateToEdit?: any | null;
 }
 
 export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
+  candidateToEdit,
 }) => {
   const [activeTab, setActiveTab] = useState<'info' | 'experience' | 'source'>('info');
   const [globalError, setGlobalError] = useState<string | null>(null);
@@ -47,8 +50,11 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
 
   // Queries
   const { data: nextCodeData } = useNextCandidateCodeQuery();
-  const { data: roles = [] } = useRoleOptionsQuery();
+  const [selectedDepId, setSelectedDepId] = useState<number | undefined>(undefined);
+  const [selectedRoleId, setSelectedRoleId] = useState<number | undefined>(undefined);
+
   const { data: departments = [] } = useDepartmentOptionsQuery();
+  const { data: roles = [] } = useRoleOptionsQuery(selectedDepId);
   const { data: employees = [] } = useEmployeeOptionsQuery();
 
   const { data: genders = [] } = useLookupsQuery('gender');
@@ -61,10 +67,12 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
   const checkDuplicateMutation = useCheckDuplicateCandidateMutation();
   const uploadResumeMutation = useUploadCandidateResumeMutation();
   const createCandidateMutation = useCreateCandidateMutation();
+  const updateCandidateMutation = useUpdateCandidateMutation();
 
   // Form State - Candidate Info
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [countryCode, setCountryCode] = useState('+91');
   const [email, setEmail] = useState('');
   const [genderId, setGenderId] = useState<number | undefined>(undefined);
   const [currentLocation, setCurrentLocation] = useState('');
@@ -78,9 +86,7 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form State - Role & Experience
-  const [selectedRoleId, setSelectedRoleId] = useState<number | undefined>(undefined);
-  const [selectedDepId, setSelectedDepId] = useState<number | undefined>(undefined);
-  const [stage, setStage] = useState('new');
+  const [stage, setStage] = useState('open');
   const [experienceType, setExperienceType] = useState<'fresher' | 'experienced'>('experienced');
   const [expYears, setExpYears] = useState(0);
   const [expMonths, setExpMonths] = useState(0);
@@ -108,38 +114,83 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
   const [duplicates, setDuplicates] = useState<DuplicateMatch[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Auto-select department when role changes
-  const handleRoleChange = (roleIdStr: string) => {
-    const roleId = roleIdStr ? parseInt(roleIdStr, 10) : undefined;
+  // Prefill state when editing existing candidate
+  useEffect(() => {
+    if (isOpen && candidateToEdit) {
+      setName(candidateToEdit.name || '');
+      setPhone(candidateToEdit.phone ? String(candidateToEdit.phone).replace(/\D/g, '').slice(-10) : '');
+      setEmail(candidateToEdit.email || '');
+      setGenderId(candidateToEdit.gender_id ?? candidateToEdit.genderId ?? undefined);
+      setCurrentLocation(candidateToEdit.current_location || candidateToEdit.currentLocation || '');
+      setResumeUrl(candidateToEdit.resume_url || candidateToEdit.resumeUrl || '');
+      setResumeFilename(candidateToEdit.resume_filename || candidateToEdit.resumeFilename || '');
+      setResumeSize(candidateToEdit.resume_size ?? candidateToEdit.resumeSize ?? undefined);
+      setResumeMime(candidateToEdit.resume_mime || candidateToEdit.resumeMime || '');
+      setSelectedDepId(candidateToEdit.dep_id ?? candidateToEdit.depId ?? undefined);
+      setSelectedRoleId(candidateToEdit.role_id ?? candidateToEdit.roleId ?? undefined);
+      setStage(candidateToEdit.stage || 'open');
+      setExperienceType(candidateToEdit.experience_type || candidateToEdit.experienceType || 'experienced');
+      setExpYears(candidateToEdit.exp_years ?? candidateToEdit.expYears ?? 0);
+      setExpMonths(candidateToEdit.exp_months ?? candidateToEdit.expMonths ?? 0);
+      setCurrentCompany(candidateToEdit.current_company || candidateToEdit.currentCompany || '');
+      setCurrentDesignation(candidateToEdit.current_designation || candidateToEdit.currentDesignation || '');
+      setCurrentCtc(candidateToEdit.current_ctc ? String(candidateToEdit.current_ctc) : candidateToEdit.currentCtc ? String(candidateToEdit.currentCtc) : '');
+      setExpectedCtc(candidateToEdit.expected_ctc ? String(candidateToEdit.expected_ctc) : candidateToEdit.expectedCtc ? String(candidateToEdit.expectedCtc) : '');
+      setNoticePeriod(candidateToEdit.notice_period || candidateToEdit.noticePeriod || '30_days');
+      setServingNoticeLwd(candidateToEdit.serving_notice_lwd ? String(candidateToEdit.serving_notice_lwd).slice(0, 10) : candidateToEdit.servingNoticeLwd ? String(candidateToEdit.servingNoticeLwd).slice(0, 10) : '');
+      setSkills(Array.isArray(candidateToEdit.key_skills) ? candidateToEdit.key_skills : Array.isArray(candidateToEdit.keySkills) ? candidateToEdit.keySkills : []);
+      setSource(candidateToEdit.source || 'job_portal');
+      setSourcePortal(candidateToEdit.source_portal || candidateToEdit.sourcePortal || 'naukri');
+      setReferredByEmpId(candidateToEdit.referred_by_emp_id ?? candidateToEdit.referredByEmpId ?? undefined);
+      setConsultancyName(candidateToEdit.consultancy_name || candidateToEdit.consultancyName || '');
+      setCollegeName(candidateToEdit.college_name || candidateToEdit.collegeName || '');
+      setSourceDetails(candidateToEdit.source_details || candidateToEdit.sourceDetails || '');
+      setNotes(candidateToEdit.notes || '');
+      setActiveTab('info');
+      setGlobalError(null);
+      setErrors({});
+    } else if (isOpen && !candidateToEdit) {
+      resetForm();
+    }
+  }, [isOpen, candidateToEdit]);
+
+  // Handle Department Change: sets department and filters roles
+  const handleDepartmentChange = (depIdVal: any) => {
+    const depId = depIdVal ? Number(depIdVal) : undefined;
+    setSelectedDepId(depId);
+
+    // If current selected role doesn't match new department, clear it
+    if (selectedRoleId && depId) {
+      const matchedRole = roles.find((r: any) => r.role_id === selectedRoleId);
+      if (matchedRole?.dep_id && matchedRole.dep_id !== depId) {
+        setSelectedRoleId(undefined);
+      }
+    }
+
+    setErrors((prev) => {
+      const rest = { ...prev };
+      delete rest.department;
+      return rest;
+    });
+  };
+
+  // Handle Role (Designation) Change: sets role and auto-fills department if not set
+  const handleRoleChange = (roleIdVal: any) => {
+    const roleId = roleIdVal ? Number(roleIdVal) : undefined;
     setSelectedRoleId(roleId);
 
     if (roleId) {
       const matchedRole = roles.find((r: any) => r.role_id === roleId);
-      if (matchedRole && matchedRole.dep_id) {
+      if (matchedRole?.dep_id && !selectedDepId) {
         setSelectedDepId(matchedRole.dep_id);
-      } else {
-        setSelectedDepId(undefined);
       }
       setErrors((prev) => {
         const rest = { ...prev };
         delete rest.role;
-        delete rest.department;
         return rest;
       });
-    } else {
-      setSelectedDepId(undefined);
     }
   };
-
-  // Sync department automatically whenever role selection or roles list changes
-  useEffect(() => {
-    if (selectedRoleId) {
-      const matched = roles.find((r: any) => r.role_id === selectedRoleId);
-      if (matched?.dep_id && matched.dep_id !== selectedDepId) {
-        setSelectedDepId(matched.dep_id);
-      }
-    }
-  }, [selectedRoleId, roles]);
 
   // Debounced Duplicate Check
   useEffect(() => {
@@ -149,10 +200,18 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
     if (cleanPhone.length === 10 || isValidEmail) {
       const timer = setTimeout(() => {
         checkDuplicateMutation.mutate(
-          { phone: cleanPhone, email: email.trim() },
+          {
+            phone: cleanPhone.length === 10 ? cleanPhone : undefined,
+            email: isValidEmail ? email.trim() : undefined,
+          },
           {
             onSuccess: (matches) => {
-              setDuplicates(matches);
+              const currentId = candidateToEdit?.candidate_id ?? candidateToEdit?.candidateId;
+              const filteredMatches = (matches || []).filter((m: any) => m.candidate_id !== currentId);
+              setDuplicates(filteredMatches);
+            },
+            onError: () => {
+              setDuplicates([]);
             },
           },
         );
@@ -162,7 +221,7 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
     } else {
       setDuplicates([]);
     }
-  }, [phone, email]);
+  }, [phone, email, candidateToEdit]);
 
   // Skill Chip Handlers
   const handleAddSkill = (val: string) => {
@@ -230,6 +289,62 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
   };
 
   // Validation
+  const validateInfoTab = () => {
+    const errs: Record<string, string> = {};
+    if (!name.trim()) errs.name = 'Please enter candidate full name.';
+    const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+    if (!cleanPhone || cleanPhone.length !== 10) {
+      errs.phone = 'The phone number must be 10 digits.';
+    }
+    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      errs.email = 'Please enter a valid email address.';
+    }
+
+    setErrors((prev) => {
+      const next = { ...prev };
+      if (errs.name) next.name = errs.name; else delete next.name;
+      if (errs.phone) next.phone = errs.phone; else delete next.phone;
+      if (errs.email) next.email = errs.email; else delete next.email;
+      return next;
+    });
+
+    return !errs.name && !errs.phone && !errs.email;
+  };
+
+  const validateExperienceTab = () => {
+    const errs: Record<string, string> = {};
+    if (!selectedRoleId) errs.role = 'Please select a position applied for.';
+    if (!selectedDepId) errs.department = 'Please select a department.';
+
+    if (experienceType === 'experienced') {
+      if (noticePeriod === 'serving_notice' && !servingNoticeLwd) {
+        errs.servingNoticeLwd = 'Please specify the last working day.';
+      }
+    }
+
+    setErrors((prev) => {
+      const next = { ...prev };
+      if (errs.role) next.role = errs.role; else delete next.role;
+      if (errs.department) next.department = errs.department; else delete next.department;
+      if (errs.servingNoticeLwd) next.servingNoticeLwd = errs.servingNoticeLwd; else delete next.servingNoticeLwd;
+      return next;
+    });
+
+    return !errs.role && !errs.department && !errs.servingNoticeLwd;
+  };
+
+  const handleContinue = () => {
+    if (activeTab === 'info') {
+      if (validateInfoTab()) {
+        setActiveTab('experience');
+      }
+    } else if (activeTab === 'experience') {
+      if (validateExperienceTab()) {
+        setActiveTab('source');
+      }
+    }
+  };
+
   const validateForm = () => {
     const errs: Record<string, string> = {};
 
@@ -283,6 +398,7 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
   const resetForm = () => {
     setName('');
     setPhone('');
+    setCountryCode('+91');
     setEmail('');
     setGenderId(undefined);
     setCurrentLocation('');
@@ -292,7 +408,7 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
     setResumeMime('');
     setSelectedRoleId(undefined);
     setSelectedDepId(undefined);
-    setStage('new');
+    setStage('open');
     setExperienceType('experienced');
     setExpYears(0);
     setExpMonths(0);
@@ -323,47 +439,69 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
     onClose();
   };
 
-  // Submit Handler
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  // Final Candidate Creation Handler (Strictly executed ONLY from Tab 3: Source & Notes)
+  const handleFinalSubmit = () => {
+    if (activeTab !== 'source') {
+      return;
+    }
     if (!validateForm()) return;
 
     setGlobalError(null);
+    const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+    const payload = {
+      name: name.trim(),
+      phone: cleanPhone,
+      email: email.trim().toLowerCase(),
+      gender_id: genderId,
+      current_location: currentLocation.trim() || undefined,
+      resume_url: resumeUrl || undefined,
+      resume_filename: resumeFilename || undefined,
+      resume_size: resumeSize,
+      resume_mime: resumeMime || undefined,
+      role_id: selectedRoleId!,
+      dep_id: selectedDepId!,
+      stage: stage || 'open',
+      experience_type: experienceType,
+      exp_years: experienceType === 'fresher' ? 0 : expYears,
+      exp_months: experienceType === 'fresher' ? 0 : expMonths,
+      current_company: experienceType === 'fresher' ? undefined : currentCompany.trim() || undefined,
+      current_designation: experienceType === 'fresher' ? undefined : currentDesignation.trim() || undefined,
+      current_ctc: experienceType === 'fresher' || !currentCtc ? undefined : Number(currentCtc),
+      expected_ctc: expectedCtc ? Number(expectedCtc) : undefined,
+      notice_period: experienceType === 'fresher' ? undefined : noticePeriod,
+      serving_notice_lwd:
+        experienceType === 'fresher' || noticePeriod !== 'serving_notice'
+          ? undefined
+          : servingNoticeLwd || undefined,
+      key_skills: skills,
+      source,
+      source_portal: source === 'job_portal' ? sourcePortal : undefined,
+      referred_by_emp_id: source === 'employee_referral' ? referredByEmpId : undefined,
+      consultancy_name: source === 'consultancy' ? consultancyName.trim() : undefined,
+      college_name: source === 'campus' ? collegeName.trim() : undefined,
+      source_details: source === 'other' ? sourceDetails.trim() : undefined,
+      notes: notes.trim() || undefined,
+    };
+
+    if (candidateToEdit) {
+      const cid = candidateToEdit.candidate_id ?? candidateToEdit.candidateId;
+      updateCandidateMutation.mutate(
+        { candidateId: cid, data: payload },
+        {
+          onSuccess: () => {
+            if (onSuccess) onSuccess();
+            handleClose();
+          },
+          onError: (err: any) => {
+            setGlobalError(err?.detail || err?.message || 'Failed to update candidate. Please try again.');
+          },
+        },
+      );
+      return;
+    }
+
     createCandidateMutation.mutate(
-      {
-        name: name.trim(),
-        phone: phone.trim(),
-        email: email.trim().toLowerCase(),
-        gender_id: genderId,
-        current_location: currentLocation.trim() || undefined,
-        resume_url: resumeUrl || undefined,
-        resume_filename: resumeFilename || undefined,
-        resume_size: resumeSize,
-        resume_mime: resumeMime || undefined,
-        role_id: selectedRoleId!,
-        dep_id: selectedDepId!,
-        stage: stage || 'new',
-        experience_type: experienceType,
-        exp_years: experienceType === 'fresher' ? 0 : expYears,
-        exp_months: experienceType === 'fresher' ? 0 : expMonths,
-        current_company: experienceType === 'fresher' ? undefined : currentCompany.trim() || undefined,
-        current_designation: experienceType === 'fresher' ? undefined : currentDesignation.trim() || undefined,
-        current_ctc: experienceType === 'fresher' || !currentCtc ? undefined : Number(currentCtc),
-        expected_ctc: expectedCtc ? Number(expectedCtc) : undefined,
-        notice_period: experienceType === 'fresher' ? undefined : noticePeriod,
-        serving_notice_lwd:
-          experienceType === 'fresher' || noticePeriod !== 'serving_notice'
-            ? undefined
-            : servingNoticeLwd || undefined,
-        key_skills: skills,
-        source,
-        source_portal: source === 'job_portal' ? sourcePortal : undefined,
-        referred_by_emp_id: source === 'employee_referral' ? referredByEmpId : undefined,
-        consultancy_name: source === 'consultancy' ? consultancyName.trim() : undefined,
-        college_name: source === 'campus' ? collegeName.trim() : undefined,
-        source_details: source === 'other' ? sourceDetails.trim() : undefined,
-        notes: notes.trim() || undefined,
-      },
+      payload,
       {
         onSuccess: (res) => {
           setCreatedCandidate({
@@ -432,15 +570,19 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
         <div className="flex items-center justify-between px-7 py-5 border-b border-slate-100">
           <div>
             <div className="flex items-center gap-2.5">
-              <h2 className="text-xl font-bold text-slate-900">Add Candidate</h2>
-              {nextCodeData?.candidate_code && (
+              <h2 className="text-xl font-bold text-slate-900">
+                {candidateToEdit ? 'Edit Candidate' : 'Add Candidate'}
+              </h2>
+              {(candidateToEdit?.candidate_code || nextCodeData?.candidate_code) && (
                 <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                  {nextCodeData.candidate_code}
+                  {candidateToEdit?.candidate_code || nextCodeData?.candidate_code}
                 </span>
               )}
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Fill in candidate details to add them to your recruitment pipeline
+              {candidateToEdit
+                ? 'Update candidate details and recruitment record'
+                : 'Fill in candidate details to add them to your recruitment pipeline'}
             </p>
           </div>
           <button
@@ -469,7 +611,11 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
 
           <button
             type="button"
-            onClick={() => setActiveTab('experience')}
+            onClick={() => {
+              if (validateInfoTab()) {
+                setActiveTab('experience');
+              }
+            }}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
               activeTab === 'experience'
                 ? 'bg-blue-600 text-white shadow-2xs'
@@ -482,7 +628,11 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
 
           <button
             type="button"
-            onClick={() => setActiveTab('source')}
+            onClick={() => {
+              if (validateInfoTab() && validateExperienceTab()) {
+                setActiveTab('source');
+              }
+            }}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
               activeTab === 'source'
                 ? 'bg-blue-600 text-white shadow-2xs'
@@ -495,7 +645,22 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
         </div>
 
         {/* Scrollable Form Body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-7 space-y-5 custom-scrollbar">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              const target = e.target as HTMLElement;
+              if (target.tagName === 'TEXTAREA') return;
+              if (target.tagName === 'INPUT' && (target as HTMLInputElement).placeholder?.toLowerCase().includes('skill')) {
+                return;
+              }
+              e.preventDefault();
+            }
+          }}
+          className="flex-1 overflow-y-auto p-7 space-y-5 custom-scrollbar"
+        >
           {globalError && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2.5 text-xs text-red-600 font-medium">
               <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -577,6 +742,8 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
                   </div>
                   <CountryPhoneInput
                     value={phone}
+                    countryCode={countryCode}
+                    onCountryCodeChange={setCountryCode}
                     onChange={(val) => {
                       setPhone(val);
                       if (errors.phone) setErrors((prev) => ({ ...prev, phone: '' }));
@@ -676,27 +843,8 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
           {/* TAB 2: POSITION & EXPERIENCE */}
           {activeTab === 'experience' && (
             <div className="space-y-4 animate-in fade-in duration-150">
-              {/* Position & Department */}
+              {/* Department & Position (Swapped: Department First, Designation Second) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div className="space-y-1.5">
-                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">
-                    Position Applied For <span className="text-red-500">*</span>
-                  </label>
-                  <SearchableSelect
-                    options={roles.map((r: any) => ({
-                      value: r.role_id,
-                      label: r.name,
-                      sublabel: r.dep_name ? r.dep_name : undefined,
-                    }))}
-                    value={selectedRoleId}
-                    onChange={(val) => handleRoleChange(val ? String(val) : '')}
-                    placeholder="Select Position / Designation"
-                    searchPlaceholder="Search position..."
-                    error={errors.role}
-                  />
-                  {errors.role && <p className="text-[11px] text-red-500 font-medium">{errors.role}</p>}
-                </div>
-
                 <div className="space-y-1.5">
                   <label className="text-[13px] font-semibold text-slate-700 tracking-tight">
                     Department <span className="text-red-500">*</span>
@@ -704,15 +852,33 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
                   <SearchableSelect
                     options={departments.map((d: any) => ({
                       value: d.dep_id,
-                      label: d.name,
+                      label: d.name || (d as any).dep_name,
                     }))}
                     value={selectedDepId}
-                    onChange={(val) => setSelectedDepId(val ? Number(val) : undefined)}
+                    onChange={(val) => handleDepartmentChange(val)}
                     placeholder="Select Department"
                     searchPlaceholder="Search departments..."
                     error={errors.department}
                   />
                   {errors.department && <p className="text-[11px] text-red-500 font-medium">{errors.department}</p>}
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">
+                    Position Applied For <span className="text-red-500">*</span>
+                  </label>
+                  <SearchableSelect
+                    options={roles.map((r: any) => ({
+                      value: r.role_id,
+                      label: r.role_name || r.name,
+                    }))}
+                    value={selectedRoleId}
+                    onChange={(val) => handleRoleChange(val)}
+                    placeholder={selectedDepId ? 'Select Position / Designation' : 'Select Department first or choose Position'}
+                    searchPlaceholder="Search position..."
+                    error={errors.role}
+                  />
+                  {errors.role && <p className="text-[11px] text-red-500 font-medium">{errors.role}</p>}
                 </div>
               </div>
 
@@ -1034,6 +1200,9 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
                   onChange={(e) => setStage(e.target.value)}
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition cursor-pointer"
                 >
+                  {!stages.some((st) => st.code.toLowerCase() === 'open') && (
+                    <option value="open">Open</option>
+                  )}
                   {stages.map((st) => (
                     <option key={st.id} value={st.code}>
                       {st.label}
@@ -1086,10 +1255,12 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
 
               {activeTab !== 'source' ? (
                 <button
+                  key="btn-modal-continue"
                   type="button"
-                  onClick={() => {
-                    if (activeTab === 'info') setActiveTab('experience');
-                    else if (activeTab === 'experience') setActiveTab('source');
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleContinue();
                   }}
                   className="px-5 py-2.5 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-semibold transition cursor-pointer"
                 >
@@ -1097,17 +1268,23 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
                 </button>
               ) : (
                 <button
-                  type="submit"
-                  disabled={createCandidateMutation.isPending}
+                  key="btn-modal-submit"
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleFinalSubmit();
+                  }}
+                  disabled={createCandidateMutation.isPending || updateCandidateMutation.isPending}
                   className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold transition shadow-xs cursor-pointer flex items-center gap-2 disabled:opacity-50"
                 >
-                  {createCandidateMutation.isPending ? (
+                  {(createCandidateMutation.isPending || updateCandidateMutation.isPending) ? (
                     <>
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Adding Candidate...</span>
+                      <span>{candidateToEdit ? 'Saving Changes...' : 'Adding Candidate...'}</span>
                     </>
                   ) : (
-                    <span>Add Candidate</span>
+                    <span>{candidateToEdit ? 'Save Changes' : 'Add Candidate'}</span>
                   )}
                 </button>
               )}

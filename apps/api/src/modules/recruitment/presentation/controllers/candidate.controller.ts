@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Patch,
+  Put,
   Param,
   Body,
   Query,
@@ -38,6 +39,7 @@ import { UpdateCandidateStageUseCase } from '../../application/use-cases/update-
 import { MarkCandidateDecisionUseCase } from '../../application/use-cases/mark-candidate-decision.use-case';
 import { GetNextEmployeeCodeUseCase } from '../../application/use-cases/get-next-employee-code.use-case';
 import { ConvertCandidateToEmployeeUseCase } from '../../application/use-cases/convert-candidate-to-employee.use-case';
+import { UpdateCandidateUseCase } from '../../application/use-cases/update-candidate.use-case';
 import {
   CreateCandidateDto,
   CheckDuplicateCandidateDto,
@@ -175,6 +177,7 @@ export class CandidateController {
     private readonly markCandidateDecisionUseCase: MarkCandidateDecisionUseCase,
     private readonly getNextEmployeeCodeUseCase: GetNextEmployeeCodeUseCase,
     private readonly convertCandidateToEmployeeUseCase: ConvertCandidateToEmployeeUseCase,
+    private readonly updateCandidateUseCase: UpdateCandidateUseCase,
   ) {}
 
   @Get('next-code')
@@ -329,6 +332,19 @@ export class CandidateController {
   ): Promise<CandidateItemDto> {
     const candidate = await this.getCandidateDetailUseCase.execute(id);
     return toCandidateItemDto(candidate);
+  }
+
+  @Put(':id')
+  @ApiOperation({ summary: 'Update candidate details' })
+  @ApiResponse({ status: 200, type: CandidateItemDto })
+  async updateCandidate(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: any,
+    @Req() req: any,
+  ): Promise<CandidateItemDto> {
+    const adminId = req.user?.emp_id || 1;
+    const res = await this.updateCandidateUseCase.execute(id, dto, adminId);
+    return toCandidateItemDto(res);
   }
 
   @Patch(':id/stage')

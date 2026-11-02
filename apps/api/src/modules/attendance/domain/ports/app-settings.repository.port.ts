@@ -8,6 +8,7 @@ export interface AttendanceHoliday {
 export interface WorkingHoursConfig {
   full_day_hours: number; // e.g. 8
   half_day_hours: number; // e.g. 4
+  grace_minutes?: number; // working hours grace in minutes (default 0)
   start_time?: string; // e.g. "09:30"
   end_time?: string; // e.g. "18:30"
 }
@@ -50,6 +51,7 @@ export interface AttendanceSettingsDto {
   statuses: AttendanceStatusDto[];
   default_shift: AttendanceShiftDto | null;
   employee_shifts: Record<string, number>;
+  working_hours_grace_minutes: number;
 }
 
 export interface AppSettingsRepository {
@@ -67,6 +69,7 @@ export interface AppSettingsRepository {
     halfDayMinutes: number;
     fullDayHours: number;
     halfDayHours: number;
+    graceMinutes: number;
   }>;
   // Shift Management
   getShifts(): Promise<AttendanceShiftDto[]>;

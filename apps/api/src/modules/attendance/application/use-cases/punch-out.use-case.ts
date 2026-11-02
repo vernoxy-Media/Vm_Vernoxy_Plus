@@ -38,7 +38,7 @@ export class PunchOutUseCase {
 
     const empHours = this.appSettingsRepo
       ? await this.appSettingsRepo.getEmployeeWorkingMinutes(empId)
-      : { fullDayMinutes: 480, halfDayMinutes: 240, fullDayHours: 8, halfDayHours: 4 };
+      : { fullDayMinutes: 480, halfDayMinutes: 240, fullDayHours: 8, halfDayHours: 4, graceMinutes: 0 };
 
     if (!existingDay || !existingDay.checkInAt || existingDay.dayStatus === 'leave') {
       throw new NotWorkingError('Cannot punch out before punching in');
@@ -85,6 +85,7 @@ export class PunchOutUseCase {
       productionMinutes,
       empHours.fullDayMinutes,
       empHours.halfDayMinutes,
+      empHours.graceMinutes,
     );
 
     const closedDay = await this.attendanceRepo.closeAttendanceDayWithBreak(

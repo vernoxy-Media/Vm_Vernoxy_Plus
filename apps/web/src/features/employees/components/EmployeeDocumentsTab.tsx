@@ -9,6 +9,7 @@ import {
   Plus,
   Loader2,
   ExternalLink,
+  Sparkles,
 } from 'lucide-react';
 import { getAccessToken } from '@vernoxy-pulse/api-client';
 import {
@@ -32,9 +33,20 @@ interface EmployeeDocumentsTabProps {
     role?: { role_name: string } | null;
     status: string;
   };
+  onOpenActivateModal?: () => void;
+  activationStatus?: {
+    can_activate: boolean;
+    missing_documents: string[];
+    total_required: number;
+    completed_required: number;
+  } | null;
 }
 
-export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({ employee }) => {
+export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({
+  employee,
+  onOpenActivateModal,
+  activationStatus,
+}) => {
   const { data: documents, isLoading, refetch } = useEmployeeDocumentsQuery(employee.emp_id);
   const uploadMutation = useUploadEmployeeDocumentMutation();
   const toggleMutation = useToggleEmployeeDocumentMutation();
@@ -365,16 +377,115 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({ empl
           </div>
         </div>
 
-        {/* Generate Document Action Button (Marker 4) */}
-        <button
-          type="button"
-          onClick={() => setIsGenerateModalOpen(true)}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-sm transition"
-        >
-          <Plus className="w-4 h-4" />
-          <span>+ Generate Document</span>
-        </button>
+        {/* Action Buttons: Generate Document + Activate Account (Marker 4 & Screen 10) */}
+        <div className="flex items-center gap-3">
+          {employee.status === 'Onboarding' && onOpenActivateModal && (
+            <div className="relative group">
+              <button
+                type="button"
+                disabled={!activationStatus?.can_activate}
+                onClick={onOpenActivateModal}
+                className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-bold transition shadow-sm ${
+                  activationStatus?.can_activate
+                    ? 'text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 cursor-pointer ring-2 ring-emerald-500/20 shadow-emerald-500/10'
+                    : 'text-slate-400 bg-slate-100 border border-slate-200 cursor-not-allowed'
+                }`}
+              >
+                {activationStatus?.can_activate ? (
+                  <Sparkles className="w-4 h-4 text-emerald-100" />
+                ) : (
+                  <Lock className="w-4 h-4 text-slate-400" />
+                )}
+                <span>Activate Account</span>
+              </button>
+
+              {!activationStatus?.can_activate && activationStatus?.missing_documents && (
+                <div className="absolute right-0 top-12 w-72 p-3 bg-slate-900 text-white text-2xs rounded-xl shadow-xl z-30 hidden group-hover:block pointer-events-none animate-in fade-in duration-150">
+                  <p className="font-bold text-amber-300 mb-1">Upload required documents to activate:</p>
+                  <ul className="list-disc pl-3.5 space-y-0.5 text-slate-300">
+                    {activationStatus.missing_documents.map((m, idx) => (
+                      <li key={idx}>{m}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setIsGenerateModalOpen(true)}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-sm transition cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Generate Document</span>
+          </button>
+        </div>
       </div>
+
+      {/* Onboarding Checklist Status Banner (BFD Reference Screen 10) */}
+      {employee.status === 'Onboarding' && (
+        <div
+          className={`p-4 md:p-5 rounded-3xl border transition flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${
+            activationStatus?.can_activate
+              ? 'bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border-emerald-200 shadow-xs'
+              : 'bg-gradient-to-r from-purple-50/70 via-indigo-50/50 to-purple-50/70 border-purple-200/80 shadow-xs'
+          }`}
+        >
+          <div className="flex items-start sm:items-center gap-3.5">
+            <div
+              className={`p-2.5 rounded-2xl text-white shrink-0 ${
+                activationStatus?.can_activate ? 'bg-emerald-600' : 'bg-purple-600'
+              }`}
+            >
+              {activationStatus?.can_activate ? (
+                <CheckCircle2 className="w-5 h-5" />
+              ) : (
+                <Sparkles className="w-5 h-5" />
+              )}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-900">
+                  {activationStatus?.can_activate
+                    ? 'All Required Onboarding Items Complete!'
+                    : 'Onboarding Checklist in Progress'}
+                </h4>
+                <span
+                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    activationStatus?.can_activate
+                      ? 'bg-emerald-100 text-emerald-800'
+                      : 'bg-purple-100 text-purple-800'
+                  }`}
+                >
+                  {activationStatus?.completed_required ?? requiredUploaded} of{' '}
+                  {activationStatus?.total_required ?? requiredDocs.length} Mandatory Done
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 mt-0.5">
+                {activationStatus?.can_activate
+                  ? 'All mandatory onboarding papers are uploaded. Click Activate Account to provision temporary login credentials.'
+                  : activationStatus?.missing_documents && activationStatus.missing_documents.length > 0
+                  ? `Pending mandatory documents: ${activationStatus.missing_documents.slice(0, 3).join(', ')}${
+                      activationStatus.missing_documents.length > 3 ? '...' : ''
+                    }`
+                  : 'Upload all required documents marked with a purple asterisk to unlock account activation.'}
+              </p>
+            </div>
+          </div>
+
+          {activationStatus?.can_activate && onOpenActivateModal && (
+            <button
+              type="button"
+              onClick={onOpenActivateModal}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition shrink-0 cursor-pointer"
+            >
+              <Sparkles className="w-4 h-4 text-emerald-200" />
+              <span>Activate Account Now</span>
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Main Documents Table Card */}
       <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xs overflow-hidden">

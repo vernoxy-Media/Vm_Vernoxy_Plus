@@ -11,11 +11,13 @@ import {
   ArrowRight,
   ArrowLeft,
   FileCheck,
+  Lock,
 } from 'lucide-react';
 import {
   useDocumentTemplatesQuery,
   useGenerateDocumentDraftMutation,
   useFinalizeDocumentDraftMutation,
+  useEmployeeDocumentsQuery,
 } from '../hooks/use-employee-documents';
 
 interface GenerateDocumentModalProps {
@@ -46,6 +48,13 @@ export const GenerateDocumentModal: React.FC<GenerateDocumentModalProps> = ({
   const [docType, setDocType] = useState<string>('offer_letter');
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | undefined>(undefined);
 
+  const { data: employeeDocs } = useEmployeeDocumentsQuery(employee.emp_id);
+  const isOfferLetterAccepted = Boolean(
+    employeeDocs?.some(
+      (d) => d.document_type === 'offer_letter' && (d.status === 'uploaded' || d.status === 'final'),
+    ),
+  );
+
   // Document-specific inputs
   const todayStr = new Date().toISOString().split('T')[0];
   const [proposedJoiningDate, setProposedJoiningDate] = useState<string>(
@@ -59,6 +68,27 @@ export const GenerateDocumentModal: React.FC<GenerateDocumentModalProps> = ({
   const [draftContent, setDraftContent] = useState<string>('');
   const [isFinalized, setIsFinalized] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const resetModal = () => {
+    setCurrentStep(1);
+    setDocType('offer_letter');
+    setSelectedTemplateId(undefined);
+    setProposedJoiningDate(
+      employee.joining_date ? new Date(employee.joining_date).toISOString().split('T')[0] : todayStr,
+    );
+    setCustomSalary(employee.salary ? Number(employee.salary) : 0);
+    setCustomPf(employee.pf ? Number(employee.pf) : 0);
+    setDocNotes('');
+    setDraftContent('');
+    setIsFinalized(false);
+    setErrorMessage(null);
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      resetModal();
+    }
+  }, [isOpen]);
 
   // Queries & Mutations
   const { data: templates, isLoading: isTemplatesLoading } = useDocumentTemplatesQuery();
@@ -212,34 +242,65 @@ export const GenerateDocumentModal: React.FC<GenerateDocumentModalProps> = ({
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {[
-                    { id: 'offer_letter', title: 'Offer Letter', desc: 'Pre-joining appointment offer' },
-                    { id: 'joining_letter', title: 'Joining Letter', desc: 'Official appointment confirmation' },
-                    { id: 'experience_letter', title: 'Experience Letter', desc: 'Relieving & tenure certification' },
-                    { id: 'relieving_letter', title: 'Relieving Letter', desc: 'Formal release order' },
-                    { id: 'salary_slip', title: 'Final Settlement Slip', desc: 'Final pay statement summary' },
-                  ].map((doc) => (
-                    <button
-                      key={doc.id}
-                      type="button"
-                      onClick={() => {
-                        setDocType(doc.id);
-                        setSelectedTemplateId(undefined);
-                      }}
-                      className={`p-4 rounded-2xl border text-left transition flex items-start gap-3 ${
-                        docType === doc.id
-                          ? 'border-blue-600 bg-blue-50/50 shadow-xs ring-1 ring-blue-600'
-                          : 'border-slate-200 hover:border-slate-300 bg-white'
-                      }`}
-                    >
-                      <div className={`p-2 rounded-xl mt-0.5 ${docType === doc.id ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
-                        <FileText className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-bold text-slate-900">{doc.title}</h4>
-                        <p className="text-xs text-slate-500 mt-0.5">{doc.desc}</p>
-                      </div>
-                    </button>
-                  ))}
+                    { id: 'offer_letter', title: 'Offer Letter', desc: 'Pre-joining appointment offer', isExit: false },
+                    { id: 'joining_letter', title: 'Joining Letter', desc: 'Official appointment confirmation', isExit: false },
+                    { id: 'experience_letter', title: 'Experience Letter', desc: 'Relieving & tenure certification', isExit: true },
+                    { id: 'relieving_letter', title: 'Relieving Letter', desc: 'Formal release order', isExit: true },
+                    { id: 'salary_slip', title: 'Final Settlement Slip', desc: 'Final pay statement summary', isExit: true },
+                  ].map((doc) => {
+                    const isExitLocked = doc.isExit && employee.status !== 'Inactive';
+                    const isJoiningLocked = doc.id === 'joining_letter' && !isOfferLetterAccepted;
+                    const isLocked = isExitLocked || isJoiningLocked;
+                    const lockReason = isExitLocked
+                      ? 'Opens after deactivation'
+                      : isJoiningLocked
+                      ? 'Only after Offer Letter accepted'
+                      : null;
+                    return (
+                      <button
+                        key={doc.id}
+                        type="button"
+                        disabled={isLocked}
+                        onClick={() => {
+                          if (isLocked) return;
+                          setDocType(doc.id);
+                          setSelectedTemplateId(undefined);
+                        }}
+                        className={`p-4 rounded-2xl border text-left transition flex items-start gap-3 ${
+                          isLocked
+                            ? 'border-slate-200 bg-slate-50/70 opacity-60 cursor-not-allowed select-none'
+                            : docType === doc.id
+                            ? 'border-blue-600 bg-blue-50/50 shadow-xs ring-1 ring-blue-600 cursor-pointer'
+                            : 'border-slate-200 hover:border-slate-300 bg-white cursor-pointer'
+                        }`}
+                      >
+                        <div
+                          className={`p-2 rounded-xl mt-0.5 ${
+                            isLocked
+                              ? 'bg-slate-200 text-slate-400'
+                              : docType === doc.id
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-slate-100 text-slate-600'
+                          }`}
+                        >
+                          {isLocked ? <Lock className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h4 className={`text-sm font-bold ${isLocked ? 'text-slate-500' : 'text-slate-900'}`}>
+                              {doc.title}
+                            </h4>
+                            {lockReason && (
+                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-200 text-slate-600">
+                                {lockReason}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-500 mt-0.5">{doc.desc}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -438,6 +499,17 @@ export const GenerateDocumentModal: React.FC<GenerateDocumentModalProps> = ({
           </div>
 
           <div className="flex items-center gap-3">
+            {isFinalized && (
+              <button
+                type="button"
+                onClick={resetModal}
+                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Generate Another Document</span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={onClose}

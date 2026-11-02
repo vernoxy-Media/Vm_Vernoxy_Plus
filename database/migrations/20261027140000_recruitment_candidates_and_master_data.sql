@@ -105,6 +105,7 @@ DO NOTHING;
 -- Seed Candidate Stages
 INSERT INTO master_lookup (lookup_type, code, label, sort_order, is_active)
 VALUES
+    ('candidate_stage', 'open', 'Open', 5, true),
     ('candidate_stage', 'new', 'New', 10, true),
     ('candidate_stage', 'screening', 'Screening', 20, true),
     ('candidate_stage', 'interviewing', 'Interviewing', 30, true),

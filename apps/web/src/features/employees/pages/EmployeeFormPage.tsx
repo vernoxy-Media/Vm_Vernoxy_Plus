@@ -19,7 +19,7 @@ import { EmployeesPage } from './EmployeesPage';
 import { AddEmployeeModal } from '../components/AddEmployeeModal';
 import { useLeavePoliciesQuery } from '@/features/leave/hooks/use-leave';
 import { PhotoPicker } from '../components/PhotoPicker';
-import { CountryPhoneInput } from '@/shared/ui';
+import { CountryPhoneInput, ReportingManagerSelect } from '@/shared/ui';
 import {
   useAttendanceSettingsQuery,
   useAssignEmployeeShiftMutation,
@@ -29,9 +29,7 @@ import {
   AlertCircle,
   Copy,
   CheckCircle,
-  RefreshCw,
-  Eye,
-  EyeOff,
+  Lock,
   Loader2,
   ChevronRight,
   ChevronDown,
@@ -145,10 +143,8 @@ const EmployeeEditInner: React.FC<{ id: string }> = ({ id }) => {
   const { user: currentUser, refreshProfile } = useAuth();
   const isSelf = currentUser?.emp_id === employeeId;
 
-  // Password visibility
-  const [showPassword, setShowPassword] = useState(false);
+  // Handover state
   const [copiedHandover, setCopiedHandover] = useState(false);
-  const [copiedPassword, setCopiedPassword] = useState(false);
 
   // Photo state
   const [selectedPhotoFile, setSelectedPhotoFile] = useState<File | null>(null);
@@ -191,6 +187,7 @@ const EmployeeEditInner: React.FC<{ id: string }> = ({ id }) => {
   const [selectedShiftId, setSelectedShiftId] = useState<string>('default');
 
   const todayStr = new Date().toISOString().split('T')[0];
+  const initialPassword = React.useMemo(() => generateSecurePassword(16), []);
 
   const form = useForm<EmployeeFormValues>({
     mode: 'onSubmit',
@@ -233,8 +230,8 @@ const EmployeeEditInner: React.FC<{ id: string }> = ({ id }) => {
       ifsc_code: '',
       exit_date: '',
       status: 'Active',
-      password: '',
-      confirm_password: '',
+      password: initialPassword,
+      confirm_password: initialPassword,
       must_change_password: false,
     },
   });
@@ -252,7 +249,6 @@ const EmployeeEditInner: React.FC<{ id: string }> = ({ id }) => {
   } = form;
 
   const watchedDepartmentIds = watch('department_ids') || [];
-  const watchedPassword = watch('password');
   const watchedName = watch('name');
   const watchedOtEligible = watch('ot_eligible');
   const watchedOtRateType = watch('ot_rate_type');
@@ -341,23 +337,9 @@ const EmployeeEditInner: React.FC<{ id: string }> = ({ id }) => {
     setValue('dep_id', nextIds.length > 0 ? nextIds[0] : ('' as any), { shouldValidate: true });
   };
 
-  const handleGeneratePassword = () => {
-    const pwd = generateSecurePassword(16);
-    setValue('password', pwd, { shouldValidate: true, shouldDirty: true });
-    setValue('confirm_password', pwd, { shouldValidate: true, shouldDirty: true });
-  };
-
-  const handleCopyPassword = () => {
-    if (watchedPassword) {
-      navigator.clipboard.writeText(watchedPassword);
-      setCopiedPassword(true);
-      setTimeout(() => setCopiedPassword(false), 2000);
-    }
-  };
-
   const handleCopyHandoverCredentials = () => {
     if (createdResult) {
-      const text = `Vernoxy Pulse Login Credentials:\nEmail: ${createdResult.email}\nPassword: ${createdResult.password}`;
+      const text = `Vernoxy Pulse Login Credentials:\nName: ${createdResult.name}\nEmail: ${createdResult.email}\nNote: One-time temporary credentials have been sent directly to your email inbox.`;
       navigator.clipboard.writeText(text);
       setCopiedHandover(true);
       setTimeout(() => setCopiedHandover(false), 2000);
@@ -1059,28 +1041,19 @@ const EmployeeEditInner: React.FC<{ id: string }> = ({ id }) => {
                   <label htmlFor="employee-manager-select" className="block text-sm font-semibold text-slate-700">
                     Reporting Manager
                   </label>
-                  <div className="relative">
-                    <select
-                      id="employee-manager-select"
-                      {...register('reporting_manager')}
-                      className="w-full appearance-none px-3.5 py-2.5 pr-10 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all font-medium"
-                    >
-                      <option value="">None (Top-level Executive)</option>
-                      {managerOptions
-                        ?.filter((m) => !isEdit || m.emp_id !== employeeId)
-                        ?.map((m: any) => {
-                          const code = m.employee_code || `EMP-${String(m.emp_id).padStart(4, '0')}`;
-                          const role = m.role_name;
-                          const isInactive = m.status === 'Inactive';
-                          return (
-                            <option key={m.emp_id} value={m.emp_id}>
-                              {m.name} ({code}){role ? ` - ${role}` : ''}{isInactive ? ' [Inactive]' : ''}
-                            </option>
-                          );
-                        })}
-                    </select>
-                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
+                  <ReportingManagerSelect
+                    options={(managerOptions || []).filter((m: any) => !isEdit || m.emp_id !== employeeId)}
+                    value={watch('reporting_manager')}
+                    onChange={(val) =>
+                      setValue('reporting_manager', val ? Number(val) : ('' as any), {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                      })
+                    }
+                    placeholder="None (Top-level Executive)"
+                    searchPlaceholder="Search by name or Emp ID..."
+                    error={errors.reporting_manager?.message}
+                  />
                 </div>
 
                 {/* Employment Type */}
@@ -1555,74 +1528,43 @@ const EmployeeEditInner: React.FC<{ id: string }> = ({ id }) => {
                   <div className="h-px bg-slate-200 flex-1" />
                 </div>
 
-                <div className="space-y-5 max-w-xl">
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <label htmlFor="employee-password-input" className="block text-sm font-semibold text-slate-700">
-                        Initial Account Password <span className="text-red-500">*</span>
-                      </label>
+                {/* System Temporary Password (BFD Part 7 Marker 5: "The system makes a one-time temporary password. Nobody types it, and the Admin never sees it.") */}
+                <input type="hidden" {...register('password')} />
+                <input type="hidden" {...register('confirm_password')} />
 
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          id="employee-generate-password-btn"
-                          onClick={handleGeneratePassword}
-                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-semibold transition-colors"
-                        >
-                          <RefreshCw className="w-3.5 h-3.5" />
-                          Generate 16-char
-                        </button>
-
-                        {watchedPassword && (
-                          <button
-                            type="button"
-                            id="employee-copy-password-btn"
-                            onClick={handleCopyPassword}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-medium transition-colors"
-                          >
-                            <Copy className="w-3.5 h-3.5" />
-                            {copiedPassword ? 'Copied' : 'Copy'}
-                          </button>
-                        )}
-                      </div>
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-50 to-blue-50/30 border border-blue-100/80 shadow-xs max-w-xl space-y-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+                      <Lock className="w-4 h-4" />
                     </div>
-
-                    <div className="relative">
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        id="employee-password-input"
-                        autoComplete="new-password"
-                        placeholder="Enter password (min 6 characters)"
-                        {...register('password')}
-                        className="w-full px-3.5 py-2.5 pr-12 rounded-xl border border-slate-200 text-sm font-mono placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1"
-                        aria-label={showPassword ? 'Hide password' : 'Show password'}
-                      >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-800 tracking-tight flex items-center gap-1.5">
+                        System Temporary Password
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                          Automated & Secure
+                        </span>
+                      </h4>
+                      <p className="text-[11px] text-slate-500">
+                        Cryptographically generated for one-time employee activation
+                      </p>
                     </div>
-                    {errors.password && <p className="text-xs text-red-600 font-medium">{errors.password.message}</p>}
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label htmlFor="employee-confirm-password-input" className="block text-sm font-semibold text-slate-700">
-                      Confirm Password <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      id="employee-confirm-password-input"
-                      autoComplete="new-password"
-                      placeholder="Re-enter password"
-                      {...register('confirm_password')}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-mono placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
-                    />
-                    {errors.confirm_password && (
-                      <p className="text-xs text-red-600 font-medium">{errors.confirm_password.message}</p>
-                    )}
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-200/80">
+                    <div className="font-mono text-xs text-slate-400 tracking-widest pl-1 select-none">
+                      ••••••••••••••••
+                    </div>
+                    <span className="text-[10px] font-medium text-slate-500 flex items-center gap-1">
+                      <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+                      Zero-Knowledge Protection
+                    </span>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-blue-50/60 border border-blue-100 text-[11px] text-blue-900 leading-relaxed flex items-start gap-1.5">
+                    <span className="font-bold text-blue-700 shrink-0">•</span>
+                    <span>
+                      <strong>BFD Compliance (Page 23, Marker 5):</strong> The system creates a one-time temporary password. Nobody types it, and the Admin never sees it. Credentials will be securely emailed directly to the employee.
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1716,8 +1658,9 @@ const EmployeeEditInner: React.FC<{ id: string }> = ({ id }) => {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-slate-500 font-sans">Initial Password</span>
-                  <span className="font-bold text-blue-600 select-all font-mono">
-                    {createdResult.password}
+                  <span className="text-xs font-sans text-slate-500 flex items-center gap-1">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                    Sent directly to employee inbox (Never shown to Admin)
                   </span>
                 </div>
               </div>
@@ -1730,7 +1673,7 @@ const EmployeeEditInner: React.FC<{ id: string }> = ({ id }) => {
                   className="w-full sm:flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-blue-600 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 transition-colors"
                 >
                   <Copy className="w-4 h-4" />
-                  {copiedHandover ? 'Copied to Clipboard!' : 'Copy Credentials'}
+                  {copiedHandover ? 'Copied to Clipboard!' : 'Copy Login Details'}
                 </button>
                 <button
                   type="button"

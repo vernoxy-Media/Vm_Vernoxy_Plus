@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDown, Search, Check } from 'lucide-react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { ChevronDown, Search, Check, X } from 'lucide-react';
 
 export interface DepartmentOption {
   dep_id: number;
@@ -26,6 +26,7 @@ export const DepartmentMultiSelect: React.FC<DepartmentMultiSelectProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Close on outside click
   useEffect(() => {
@@ -42,9 +43,24 @@ export const DepartmentMultiSelect: React.FC<DepartmentMultiSelectProps> = ({
     };
   }, [isOpen]);
 
-  const filteredDepartments = departments.filter((d) =>
-    d.name.toLowerCase().includes(search.toLowerCase()),
-  );
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 30);
+    }
+  }, [isOpen]);
+
+  // Alphabetical sort A to Z
+  const sortedDepartments = useMemo(() => {
+    return [...departments].sort((a, b) => a.name.localeCompare(b.name));
+  }, [departments]);
+
+  const filteredDepartments = useMemo(() => {
+    if (!search.trim()) return sortedDepartments;
+    const term = search.toLowerCase().trim();
+    return sortedDepartments.filter((d) => d.name.toLowerCase().includes(term));
+  }, [sortedDepartments, search]);
 
   const toggleDepartment = (id: number) => {
     if (selectedIds.includes(id)) {
@@ -52,6 +68,10 @@ export const DepartmentMultiSelect: React.FC<DepartmentMultiSelectProps> = ({
     } else {
       onChange([...selectedIds, id]);
     }
+  };
+
+  const removeDepartment = (id: number) => {
+    onChange(selectedIds.filter((item) => item !== id));
   };
 
   const selectAll = () => {
@@ -62,64 +82,81 @@ export const DepartmentMultiSelect: React.FC<DepartmentMultiSelectProps> = ({
     onChange([]);
   };
 
-  // Label for the trigger
-  const selectedDepartments = departments.filter((d) => selectedIds.includes(d.dep_id));
+  // Selected department objects
+  const selectedDepartments = useMemo(() => {
+    return departments.filter((d) => selectedIds.includes(d.dep_id));
+  }, [departments, selectedIds]);
 
   return (
     <div className="relative w-full" ref={containerRef}>
-      {/* Trigger Button */}
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => setIsOpen((prev) => !prev)}
-        className={`w-full px-3.5 py-2.5 bg-slate-50 border rounded-xl text-left flex items-center justify-between transition cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 ${
+      {/* Trigger Button with Tags */}
+      <div
+        role="button"
+        tabIndex={0}
+        aria-disabled={disabled}
+        onClick={() => !disabled && setIsOpen((prev) => !prev)}
+        className={`w-full min-h-[44px] px-3 py-1.5 bg-slate-50 border rounded-xl text-left flex items-center justify-between gap-2 transition cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 ${
           error ? 'border-red-400 bg-red-50/20' : 'border-slate-200 hover:border-slate-300'
-        }`}
+        } ${isOpen ? 'ring-2 ring-blue-500/20 border-blue-500 bg-white' : ''}`}
       >
-        <div className="flex items-center gap-1.5 overflow-hidden flex-1 mr-2">
+        <div className="flex items-center gap-1.5 flex-wrap flex-1 min-w-0 py-0.5">
           {selectedDepartments.length === 0 ? (
-            <span className="text-xs sm:text-sm text-slate-400 font-normal truncate">
+            <span className="text-[13.5px] text-slate-400 font-normal px-1">
               {placeholder}
             </span>
           ) : (
-            <div className="flex items-center gap-1 flex-wrap">
-              <span className="text-xs sm:text-sm font-semibold text-slate-800 truncate">
-                {selectedDepartments.length === 1
-                  ? selectedDepartments[0].name
-                  : `${selectedDepartments[0].name}, ${selectedDepartments[1].name}${
-                      selectedDepartments.length > 2
-                        ? ` (+${selectedDepartments.length - 2} more)`
-                        : ''
-                    }`}
+            selectedDepartments.map((dept) => (
+              <span
+                key={dept.dep_id}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200/80 shadow-2xs animate-in fade-in duration-150"
+              >
+                <span>{dept.name}</span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeDepartment(dept.dep_id);
+                  }}
+                  className="p-0.5 hover:text-blue-900 hover:bg-blue-200/60 rounded cursor-pointer transition-colors"
+                  title={`Remove ${dept.name}`}
+                >
+                  <X className="w-3 h-3" />
+                </button>
               </span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700">
-                {selectedDepartments.length}
-              </span>
-            </div>
+            ))
           )}
         </div>
 
         <ChevronDown
-          className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-150 ${
-            isOpen ? 'rotate-180' : ''
+          className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${
+            isOpen ? 'rotate-180 text-blue-600' : ''
           }`}
         />
-      </button>
+      </div>
 
       {/* Dropdown Panel */}
       {isOpen && (
-        <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-2.5 space-y-2 animate-in fade-in zoom-in-95 duration-100">
+        <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-2xl shadow-2xl z-50 p-2.5 space-y-2 animate-in fade-in zoom-in-95 duration-100">
           {/* Search Bar */}
           <div className="relative">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
+              ref={searchInputRef}
               type="text"
-              autoFocus
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search departments..."
-              className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+              placeholder="Type to search..."
+              className="w-full pl-8 pr-7 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition text-slate-800 placeholder:text-slate-400"
             />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 rounded"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            )}
           </div>
 
           {/* Quick Actions (Select All / Clear) */}
@@ -147,9 +184,9 @@ export const DepartmentMultiSelect: React.FC<DepartmentMultiSelectProps> = ({
           </div>
 
           {/* Department List with Checkboxes */}
-          <div className="max-h-48 overflow-y-auto space-y-0.5 custom-scrollbar pr-1">
+          <div className="max-h-52 overflow-y-auto space-y-0.5 custom-scrollbar pr-1">
             {filteredDepartments.length === 0 ? (
-              <p className="text-xs text-slate-400 text-center py-3">No departments found</p>
+              <p className="text-xs text-slate-400 text-center py-5 font-medium">No results found</p>
             ) : (
               filteredDepartments.map((dept) => {
                 const isSelected = selectedIds.includes(dept.dep_id);
@@ -164,17 +201,23 @@ export const DepartmentMultiSelect: React.FC<DepartmentMultiSelectProps> = ({
                         : 'hover:bg-slate-50 text-slate-700 font-medium'
                     }`}
                   >
-                    <div className="flex items-center gap-2.5">
-                      <div
-                        className={`w-4 h-4 rounded-md border flex items-center justify-center transition-colors ${
-                          isSelected
-                            ? 'bg-blue-600 border-blue-600 text-white'
-                            : 'border-slate-300 bg-white'
-                        }`}
-                      >
-                        {isSelected && <Check className="w-3 h-3 stroke-[2.5]" />}
-                      </div>
+                    <div className="flex items-center gap-1.5 truncate pr-2">
                       <span className="truncate">{dept.name}</span>
+                      {isSelected && (
+                        <span className="text-[11px] text-slate-400 font-normal shrink-0">
+                          (already chosen)
+                        </span>
+                      )}
+                    </div>
+
+                    <div
+                      className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                        isSelected
+                          ? 'bg-blue-600 border-blue-600 text-white'
+                          : 'border-slate-300 bg-white'
+                      }`}
+                    >
+                      {isSelected && <Check className="w-3 h-3 stroke-[2.5]" />}
                     </div>
                   </button>
                 );

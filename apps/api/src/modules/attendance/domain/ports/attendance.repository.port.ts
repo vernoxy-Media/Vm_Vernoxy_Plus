@@ -108,6 +108,7 @@ export interface AttendanceRepository {
       holidays?: Array<{ date: string; name: string }>;
       fullDayMinutes?: number;
       halfDayMinutes?: number;
+      graceMinutes?: number;
     },
   ): Promise<{
     days: Array<{

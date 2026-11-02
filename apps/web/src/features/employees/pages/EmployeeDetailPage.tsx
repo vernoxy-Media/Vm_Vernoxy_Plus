@@ -48,6 +48,7 @@ import {
   ActivateEmployeeResult,
 } from '../hooks/use-employee-documents';
 import { AccountActivatedModal } from '../components/AccountActivatedModal';
+import { ActivateEmployeeAccountModal } from '../components/ActivateEmployeeAccountModal';
 import { EditProfileModal } from '../components/EditProfileModal';
 
 function formatDuration(startDate: Date | string, endDate?: Date | string | null): string {
@@ -110,6 +111,12 @@ export const EmployeeDetailPage: React.FC = () => {
 
   // TanStack queries
   const { data: employee, isLoading, error, refetch: refetchEmployee } = useEmployeeDetailQuery(empId);
+
+  useEffect(() => {
+    if (employee?.status === 'Onboarding' && !searchParams.get('tab')) {
+      setActiveTab('documents');
+    }
+  }, [employee?.status, searchParams]);
   const { data: leavePolicies = [] } = useLeavePoliciesQuery();
   const assignPolicyMut = useAssignEmployeePolicyMutation();
   const { data: allBalances = [] } = useAllLeaveBalancesQuery();
@@ -142,14 +149,23 @@ export const EmployeeDetailPage: React.FC = () => {
   const [modalTitle, setModalTitle] = useState<string>('Account Activated!');
   const [modalDescription, setModalDescription] = useState<string | undefined>(undefined);
 
-  const handleActivateAccount = async () => {
+  const [isActivateAccountModalOpen, setIsActivateAccountModalOpen] = useState(false);
+
+  const handleOpenActivateModal = () => {
     if (!empId || !activationStatus?.can_activate) return;
+    setIsActivateAccountModalOpen(true);
+  };
+
+  const handleConfirmActivateAccount = async () => {
+    if (!empId) return;
     try {
       const res = await activateMutation.mutateAsync(empId);
+      setIsActivateAccountModalOpen(false);
       setActivatedResult(res);
       setModalTitle('Account Activated!');
       setModalDescription(`${employee?.name || 'The employee'} has been activated and login credentials are ready.`);
       setIsActivatedModalOpen(true);
+      refetchEmployee();
     } catch (err: any) {
       alert(err.detail || err.message || 'Failed to activate account.');
     }
@@ -314,7 +330,7 @@ export const EmployeeDetailPage: React.FC = () => {
                   <button
                     type="button"
                     disabled={!activationStatus?.can_activate || activateMutation.isPending}
-                    onClick={handleActivateAccount}
+                    onClick={handleOpenActivateModal}
                     className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition shadow-xs ${
                       activationStatus?.can_activate
                         ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer ring-2 ring-emerald-500/20'
@@ -369,10 +385,10 @@ export const EmployeeDetailPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsEditProfileModalOpen(true)}
-                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition shadow-2xs cursor-pointer"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition shadow-2xs cursor-pointer"
               >
                 <Edit2 className="w-3.5 h-3.5" />
-                Edit Profile
+                Edit Employee
               </button>
 
               {isInactive ? (
@@ -464,12 +480,19 @@ export const EmployeeDetailPage: React.FC = () => {
               onClick={() => setActiveTab('documents')}
               className={`py-3 px-1 border-b-2 font-semibold text-sm transition-colors flex items-center gap-2 ${
                 activeTab === 'documents'
-                  ? 'border-blue-600 text-blue-600'
+                  ? isOnboarding
+                    ? 'border-purple-600 text-purple-700'
+                    : 'border-blue-600 text-blue-600'
                   : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
               }`}
             >
-              <FileText className="w-4 h-4 text-slate-400" />
-              Documents
+              <FileText className={`w-4 h-4 ${isOnboarding ? 'text-purple-600' : 'text-slate-400'}`} />
+              <span>{isOnboarding ? 'Onboarding & Documents' : 'Documents'}</span>
+              {isOnboarding && (
+                <span className="px-2 py-0.5 rounded-full text-2xs font-bold bg-purple-100 text-purple-700">
+                  {activationStatus?.completed_required ?? 0}/{activationStatus?.total_required ?? 7}
+                </span>
+              )}
             </button>
             <button
               type="button"
@@ -1256,7 +1279,11 @@ export const EmployeeDetailPage: React.FC = () => {
         {/* DOCUMENTS TAB CONTENT (Placeholder per user instructions)                 */}
         {/* ========================================================================= */}
         {activeTab === 'documents' && employee && (
-          <EmployeeDocumentsTab employee={employee as any} />
+          <EmployeeDocumentsTab
+            employee={employee as any}
+            onOpenActivateModal={handleOpenActivateModal}
+            activationStatus={activationStatus}
+          />
         )}
 
         {/* ========================================================================= */}
@@ -1517,6 +1544,17 @@ export const EmployeeDetailPage: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Activate Employee Account Modal (BFD Screen 11 / Image 4) */}
+      {employee && (
+        <ActivateEmployeeAccountModal
+          isOpen={isActivateAccountModalOpen}
+          onClose={() => setIsActivateAccountModalOpen(false)}
+          employee={employee as any}
+          onConfirm={handleConfirmActivateAccount}
+          isSubmitting={activateMutation.isPending}
+        />
       )}
 
       {/* Account Activated / Resend Login Modal */}

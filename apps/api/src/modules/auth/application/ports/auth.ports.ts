@@ -24,8 +24,17 @@ export interface OtpCodeService {
   verifyCode(otpId: string, purpose: string, code: string, storedHash: string): boolean;
 }
 
+export interface WelcomeCredentialsParams {
+  officeEmail: string;
+  personalEmail?: string;
+  employeeName: string;
+  temporaryPassword: string;
+  loginUrl?: string;
+}
+
 export interface MailPort {
   sendOtp(to: string, code: string, purpose: 'login_2fa' | 'password_reset'): Promise<void>;
+  sendWelcomeCredentials(params: WelcomeCredentialsParams): Promise<void>;
 }
 
 export interface EmployeeWithAuth {
