@@ -13,6 +13,7 @@ import {
 import { PrismaClient, Prisma, employee_status } from '@prisma/client';
 import { ConflictDomainError } from '../../domain/errors/organization.errors';
 import { FileStoragePort, STORAGE_TOKENS } from '../../../storage/public-api';
+import { PREDEFINED_DOCS } from '../../application/services/employee-document.service';
 
 @Injectable()
 export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
@@ -77,7 +78,7 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
         record.profile_picture && this.storage
           ? this.storage.getSignedUrl(record.profile_picture)
           : null,
-      status: record.status as 'Active' | 'Inactive',
+      status: record.status as 'Active' | 'Inactive' | 'Onboarding',
       joining_date: record.joining_date,
       exit_date: record.exit_date,
       created_at: record.created_at,
@@ -133,6 +134,8 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
             label: record.master_lookup_employees_employment_type_idTomaster_lookup.label,
           }
         : null,
+      probation_period: record.probation_period ?? null,
+      notice_period: record.notice_period ?? null,
       salary: record.salary !== null && record.salary !== undefined ? Number(record.salary) : 0,
       pf: record.pf !== null && record.pf !== undefined ? Number(record.pf) : 0,
       termination_date: record.termination_date ?? null,
@@ -181,7 +184,7 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
   async findMany(
     filter: EmployeeListFilter,
     tx?: unknown,
-  ): Promise<{ items: Employee[]; next_cursor: string | null; stats?: { total: number; active: number; inactive: number } }> {
+  ): Promise<{ items: Employee[]; next_cursor: string | null; stats?: { total: number; active: number; inactive: number; onboarding?: number } }> {
     const client = this.getClient(tx);
     const limit = parseLimit(filter.limit);
 
@@ -204,8 +207,11 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       where.role_id = filter.role_id;
     }
 
-    if (filter.status) {
+    if (filter.status && filter.status !== 'All' && (filter.status as string) !== 'Onboarding') {
       where.status = filter.status as employee_status;
+    } else {
+      // Exclude onboarding candidates from employee list - onboarding belongs to recruitment
+      where.status = { not: 'Onboarding' };
     }
 
     if (filter.q) {
@@ -213,6 +219,8 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       const orConditions: any[] = [
         { name: { contains: qClean, mode: 'insensitive' } },
         { email: { contains: qClean, mode: 'insensitive' } },
+        { office_email: { contains: qClean, mode: 'insensitive' } },
+        { personal_email: { contains: qClean, mode: 'insensitive' } },
         { mob: { contains: qClean, mode: 'insensitive' } },
       ];
 
@@ -240,16 +248,17 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       where.emp_id = { gt: decoded.id };
     }
 
-    const [records, total_count, active_count, inactive_count] = await Promise.all([
+    const [records, total_count, active_count, inactive_count, onboarding_count] = await Promise.all([
       client.employees.findMany({
         where,
         take: limit + 1,
         orderBy: { emp_id: 'asc' },
         include: this.getEmployeeIncludes(),
       }),
-      client.employees.count({ where: { deleted_at: null } }),
+      client.employees.count({ where: { deleted_at: null, status: { not: 'Onboarding' } } }),
       client.employees.count({ where: { deleted_at: null, status: 'Active' } }),
       client.employees.count({ where: { deleted_at: null, status: 'Inactive' } }),
+      client.employees.count({ where: { deleted_at: null, status: 'Onboarding' } }),
     ]);
 
     const hasNext = records.length > limit;
@@ -295,6 +304,7 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
         total: total_count,
         active: active_count,
         inactive: inactive_count,
+        onboarding: onboarding_count,
       },
     };
   }
@@ -302,31 +312,53 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
   async findActiveOptions(
     q?: string,
     tx?: unknown,
-  ): Promise<Array<{ emp_id: number; name: string; email: string }>> {
+  ): Promise<
+    Array<{
+      emp_id: number;
+      name: string;
+      email: string;
+      employee_code?: string;
+      role_name?: string | null;
+      status?: string;
+    }>
+  > {
     const client = this.getClient(tx);
     const where: any = {
       deleted_at: null,
-      status: 'Active',
     };
 
     if (q) {
       where.OR = [
         { name: { contains: q, mode: 'insensitive' } },
         { email: { contains: q, mode: 'insensitive' } },
+        { roles_employees_role_idToroles: { role_name: { contains: q, mode: 'insensitive' } } },
       ];
     }
 
-    return client.employees.findMany({
+    const records = await client.employees.findMany({
       where,
       select: {
         emp_id: true,
         name: true,
         email: true,
+        status: true,
+        roles_employees_role_idToroles: {
+          select: { role_name: true },
+        },
       },
       orderBy: {
         name: 'asc',
       },
     });
+
+    return records.map((r) => ({
+      emp_id: r.emp_id,
+      name: r.name,
+      email: r.email,
+      employee_code: `EMP-${String(r.emp_id).padStart(4, '0')}`,
+      role_name: r.roles_employees_role_idToroles?.role_name ?? null,
+      status: r.status,
+    }));
   }
 
   async findById(id: number, tx?: unknown): Promise<Employee | null> {
@@ -392,6 +424,8 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       emergency_contact_relation?: string | null;
       employment_type_id?: number | null;
       salary?: number;
+      probation_period?: string | null;
+      notice_period?: string | null;
       pf?: number;
       ot_eligible?: boolean;
       ot_rate_type?: 'FIXED' | 'MULTIPLIER' | null;
@@ -407,6 +441,7 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       bank_name?: string | null;
       account_number?: string | null;
       ifsc_code?: string | null;
+      leave_policy_id?: number | null;
       created_by: number;
     },
     tx?: unknown,
@@ -433,6 +468,7 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
         employment_type_id: data.employment_type_id ?? null,
         salary: data.salary ?? 0,
         pf: data.pf ?? 0,
+        leave_policy_id: data.leave_policy_id ?? null,
         created_by: data.created_by,
         status: 'Active',
       },
@@ -500,6 +536,28 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       },
     });
 
+    // Seed predefined employee_documents so required documents start in file_pending status
+    try {
+      await (client as any).employee_documents.createMany({
+        data: PREDEFINED_DOCS.map((def) => {
+          const isReq = def.isRequiredForActivation ?? false;
+          return {
+            emp_id: created.emp_id,
+            category: def.category,
+            document_type: def.type,
+            title: def.title,
+            is_ticked: isReq,
+            status: isReq ? 'file_pending' : 'not_ticked',
+            is_required_for_activation: isReq,
+            created_by: data.created_by,
+          };
+        }),
+        skipDuplicates: true,
+      });
+    } catch {
+      // Best effort seeding
+    }
+
     // Refresh created with updated departments
     const refreshed = await client.employees.findUnique({
       where: { emp_id: created.emp_id },
@@ -521,7 +579,7 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       reporting_manager?: number | null;
       joining_date?: Date;
       exit_date?: Date | null;
-      status?: 'Active' | 'Inactive';
+      status?: 'Active' | 'Inactive' | 'Onboarding';
       profile_picture?: string | null;
       gender_id?: number | null;
       personal_email?: string | null;
@@ -534,6 +592,8 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       emergency_contact_relation?: string | null;
       employment_type_id?: number | null;
       salary?: number;
+      probation_period?: string | null;
+      notice_period?: string | null;
       pf?: number;
       ot_eligible?: boolean;
       ot_rate_type?: 'FIXED' | 'MULTIPLIER' | null;
@@ -549,6 +609,7 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       bank_name?: string | null;
       account_number?: string | null;
       ifsc_code?: string | null;
+      leave_policy_id?: number | null;
       termination_date?: Date | null;
       deactivation_reason?: string | null;
       deactivation_notes?: string | null;
@@ -583,7 +644,10 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
     if (data.emergency_contact_relation !== undefined) updateData.emergency_contact_relation = data.emergency_contact_relation;
     if (data.employment_type_id !== undefined) updateData.employment_type_id = data.employment_type_id;
     if (data.salary !== undefined) updateData.salary = data.salary;
+    if (data.probation_period !== undefined) updateData.probation_period = data.probation_period;
+    if (data.notice_period !== undefined) updateData.notice_period = data.notice_period;
     if (data.pf !== undefined) updateData.pf = data.pf;
+    if (data.leave_policy_id !== undefined) updateData.leave_policy_id = data.leave_policy_id;
     if (data.termination_date !== undefined) updateData.termination_date = data.termination_date;
     if (data.deactivation_reason !== undefined) updateData.deactivation_reason = data.deactivation_reason;
     if (data.deactivation_notes !== undefined) updateData.deactivation_notes = data.deactivation_notes;
@@ -737,6 +801,19 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       },
       include: this.getEmployeeIncludes(),
     });
+
+    // Invalidate all active auth sessions immediately (BFD Page 20: CRM login blocked at once)
+    try {
+      await client.auth_sessions.updateMany({
+        where: { emp_id: id, revoked_at: null },
+        data: {
+          revoked_at: new Date(),
+          revoked_reason: 'deactivated',
+        },
+      });
+    } catch {
+      // ignore
+    }
 
     return this.mapToEntity(updated);
   }

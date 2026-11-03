@@ -346,3 +346,33 @@ export class AdjustBalanceDto {
   @Length(10, 500)
   note!: string;
 }
+export class BulkAdjustBalanceDto {
+  @ApiProperty({ type: [Number], description: 'List of employee IDs to adjust' })
+  @IsArray()
+  emp_ids!: number[];
+
+  @ApiProperty()
+  @IsInt()
+  leave_type_id!: number;
+
+  @ApiProperty({ enum: ['CREDIT', 'DEBIT'] })
+  @IsEnum(['CREDIT', 'DEBIT'])
+  direction!: 'CREDIT' | 'DEBIT';
+
+  @ApiProperty({ description: 'Days to adjust (0.5 to 365 in 0.5 steps)' })
+  @IsNumber()
+  @Min(0.5)
+  @Max(365)
+  days!: number;
+
+  @ApiProperty({ description: 'Mandatory reason note (10 to 500 characters)' })
+  @IsString()
+  @Length(10, 500)
+  note!: string;
+}
+
+export class AssignEmployeePolicyDto {
+  @ApiProperty({ description: 'Leave Policy ID' })
+  @IsInt()
+  policy_id!: number;
+}

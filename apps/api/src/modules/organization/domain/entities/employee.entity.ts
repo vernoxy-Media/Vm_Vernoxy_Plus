@@ -8,7 +8,7 @@ export interface Employee {
   reporting_manager: number | null;
   profile_picture?: string | null;
   profile_picture_url?: string | null;
-  status: 'Active' | 'Inactive';
+  status: 'Active' | 'Inactive' | 'Onboarding';
   joining_date: Date;
   exit_date: Date | null;
   created_at: Date;
@@ -55,6 +55,8 @@ export interface Employee {
     label: string;
   } | null;
   salary?: number | null;
+  probation_period?: string | null;
+  notice_period?: string | null;
   pf?: number | null;
   termination_date?: Date | null;
   deactivation_reason?: string | null;

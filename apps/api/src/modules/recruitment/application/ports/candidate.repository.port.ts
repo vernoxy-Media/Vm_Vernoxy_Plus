@@ -47,6 +47,7 @@ export const CANDIDATE_REPOSITORY = Symbol('CANDIDATE_REPOSITORY');
 
 export interface ICandidateRepository {
   create(data: Omit<CandidateProps, 'candidateId' | 'candidateCode' | 'createdAt' | 'updatedAt'>): Promise<CandidateProps>;
+  update(candidateId: number, data: any, adminId?: number): Promise<CandidateProps>;
   getNextCandidateCode(): Promise<string>;
   findById(candidateId: number): Promise<CandidateProps | null>;
   findMany(params: CandidateFilterParams): Promise<{ items: CandidateProps[]; total: number }>;

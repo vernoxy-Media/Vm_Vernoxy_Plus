@@ -28,6 +28,7 @@ export interface CreateProjectInput {
   tech_frontend?: string;
   tech_backend?: string;
   tech_cloud?: string;
+  description?: string;
   // Deployment details
   deployment?: {
     vercel_account?: string;
@@ -64,6 +65,7 @@ export interface UpdateProjectInput {
   tech_frontend?: string;
   tech_backend?: string;
   tech_cloud?: string;
+  description?: string;
   deployment?: {
     vercel_account?: string;
     vercel_link?: string;
@@ -98,6 +100,7 @@ export interface AssignableEmployee {
   email: string;
   profile_picture?: string | null;
   role_name?: string | null;
+  department_name?: string | null;
 }
 
 export interface CreateSprintInput {

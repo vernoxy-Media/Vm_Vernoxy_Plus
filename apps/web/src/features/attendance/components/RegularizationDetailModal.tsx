@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { X, FileText, AlertCircle } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { X, FileText, AlertCircle, Check } from 'lucide-react';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import {
   cancelRegularizationRequest,
@@ -116,156 +117,166 @@ export const RegularizationDetailModal: React.FC<RegularizationDetailModalProps>
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="relative w-full max-w-3xl my-8 rounded-lg border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900">
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 overflow-y-auto">
+      <div className="relative w-full max-w-2xl my-8 rounded-2xl border border-slate-200 bg-white shadow-2xl overflow-hidden animate-in zoom-in-95">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-slate-800">
+        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4 bg-slate-50/60">
           <div>
             <div className="flex items-center gap-3">
-              <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
-                {regularization.requestId} • {regularization.employeeName || 'Employee'} • {regularization.workDate}
+              <h2 className="text-base font-bold text-slate-800">
+                {regularization.requestId} • {regularization.employeeName || 'Employee'}
               </h2>
               <span
-                className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium capitalize ${
+                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold capitalize border ${
                   regularization.status === 'approved'
-                    ? 'bg-slate-100 text-slate-800 border border-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700'
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                     : regularization.status === 'rejected'
-                    ? 'bg-slate-100 text-slate-700 border border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
-                    : 'bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/50'
+                    ? 'bg-rose-50 text-rose-700 border-rose-200'
+                    : regularization.status === 'cancelled'
+                    ? 'bg-slate-100 text-slate-600 border-slate-200'
+                    : 'bg-amber-50 text-amber-700 border-amber-200'
                 }`}
               >
                 {regularization.status}
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              {isApproverView ? 'Review Request' : 'Regularization Request Details'}
+              {isApproverView ? 'Review Regularization Request' : 'Regularization Request Details'} • Date: {regularization.workDate}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-300"
+            className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition cursor-pointer"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-5">
           {error && (
-            <div className="flex items-center gap-2 rounded border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300">
+            <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs text-rose-700">
               <AlertCircle className="h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
           {/* Details Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border border-slate-200 rounded p-4 dark:border-slate-800">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 border border-slate-200/90 rounded-2xl p-4 bg-slate-50/40 text-xs">
             <div>
-              <span className="block text-xs text-slate-500 dark:text-slate-400">Request ID</span>
-              <span className="text-sm font-medium text-slate-900 dark:text-slate-100">{regularization.requestId}</span>
+              <span className="block text-[11px] font-semibold text-slate-400 mb-0.5">Request ID</span>
+              <span className="font-bold text-slate-800">{regularization.requestId}</span>
             </div>
             <div>
-              <span className="block text-xs text-slate-500 dark:text-slate-400">Employee</span>
-              <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
+              <span className="block text-[11px] font-semibold text-slate-400 mb-0.5">Employee</span>
+              <span className="font-semibold text-slate-800">
                 {regularization.employeeName} ({regularization.employeeCode || `EMP-${regularization.empId}`})
               </span>
             </div>
             <div>
-              <span className="block text-xs text-slate-500 dark:text-slate-400">Department</span>
-              <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
+              <span className="block text-[11px] font-semibold text-slate-400 mb-0.5">Department</span>
+              <span className="font-semibold text-slate-800">
                 {regularization.departmentName || 'General'}
               </span>
             </div>
 
             <div>
-              <span className="block text-xs text-slate-500 dark:text-slate-400">Attendance Date</span>
-              <span className="text-sm font-medium text-slate-900 dark:text-slate-100">{regularization.workDate}</span>
+              <span className="block text-[11px] font-semibold text-slate-400 mb-0.5">Attendance Date</span>
+              <span className="font-semibold text-slate-800">{regularization.workDate}</span>
             </div>
             <div>
-              <span className="block text-xs text-slate-500 dark:text-slate-400">Request Type</span>
-              <span className="text-sm font-medium text-slate-900 dark:text-slate-100">{regularization.requestType}</span>
+              <span className="block text-[11px] font-semibold text-slate-400 mb-0.5">Request Type</span>
+              <span className="font-semibold text-slate-800">{regularization.requestType}</span>
             </div>
             <div>
-              <span className="block text-xs text-slate-500 dark:text-slate-400">Submitted On</span>
-              <span className="text-sm font-medium text-slate-900 dark:text-slate-100">{submittedOnStr}</span>
+              <span className="block text-[11px] font-semibold text-slate-400 mb-0.5">Submitted On</span>
+              <span className="font-medium text-slate-600">{submittedOnStr}</span>
             </div>
 
             <div>
-              <span className="block text-xs text-slate-500 dark:text-slate-400">Recorded In / Out</span>
-              <span className="text-sm font-medium text-slate-900 dark:text-slate-100">{recordedInOut}</span>
+              <span className="block text-[11px] font-semibold text-slate-400 mb-0.5">Recorded In / Out</span>
+              <span className="font-semibold text-slate-700">{recordedInOut}</span>
             </div>
             <div>
-              <span className="block text-xs text-slate-500 dark:text-slate-400">Requested In / Out</span>
-              <span className="text-sm font-medium text-slate-900 dark:text-slate-100">{requestedInOut}</span>
+              <span className="block text-[11px] font-semibold text-slate-400 mb-0.5">Requested In / Out</span>
+              <span className="font-bold text-[#5B4CF8]">{requestedInOut}</span>
             </div>
             <div>
-              <span className="block text-xs text-slate-500 dark:text-slate-400">Pending With</span>
-              <span className="text-sm font-medium text-slate-900 dark:text-slate-100">{pendingWithStr}</span>
+              <span className="block text-[11px] font-semibold text-slate-400 mb-0.5">Pending With</span>
+              <span className="font-semibold text-slate-700">{pendingWithStr}</span>
             </div>
 
-            <div className="md:col-span-2">
-              <span className="block text-xs text-slate-500 dark:text-slate-400">Reason and Remarks</span>
-              <span className="text-sm text-slate-800 dark:text-slate-200">{reasonAndRemarks}</span>
+            <div className="sm:col-span-2">
+              <span className="block text-[11px] font-semibold text-slate-400 mb-0.5">Reason &amp; Remarks</span>
+              <span className="font-medium text-slate-700">{reasonAndRemarks}</span>
             </div>
             <div>
-              <span className="block text-xs text-slate-500 dark:text-slate-400">Attachment</span>
+              <span className="block text-[11px] font-semibold text-slate-400 mb-0.5">Attachment</span>
               {regularization.attachmentName ? (
-                <span className="inline-flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300">
+                <span className="inline-flex items-center gap-1.5 font-medium text-slate-700">
                   <FileText className="h-3.5 w-3.5 text-slate-400" />
                   {regularization.attachmentName}
                 </span>
               ) : (
-                <span className="text-xs text-slate-400">None</span>
+                <span className="text-slate-400 font-medium">None</span>
               )}
             </div>
           </div>
 
           {/* Approval History Table */}
           <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
-              Approval History
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+              Approval Trail
             </h3>
-            <div className="overflow-x-auto rounded border border-slate-200 dark:border-slate-800">
+            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 text-slate-600 border-b border-slate-200 dark:bg-slate-800/60 dark:text-slate-300 dark:border-slate-800">
+                <thead className="bg-slate-50/80 text-slate-600 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider">
                   <tr>
-                    <th className="px-3 py-2 font-medium">Level</th>
-                    <th className="px-3 py-2 font-medium">Approver</th>
-                    <th className="px-3 py-2 font-medium">Action</th>
-                    <th className="px-3 py-2 font-medium">Date</th>
-                    <th className="px-3 py-2 font-medium">Comment</th>
+                    <th className="px-3.5 py-2.5">Level</th>
+                    <th className="px-3.5 py-2.5">Approver</th>
+                    <th className="px-3.5 py-2.5">Action</th>
+                    <th className="px-3.5 py-2.5">Date</th>
+                    <th className="px-3.5 py-2.5">Comment</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                <tbody className="divide-y divide-slate-100">
                   {regularization.approvals && regularization.approvals.length > 0 ? (
                     regularization.approvals.map((item, idx) => (
                       <tr key={item.approvalId || idx}>
-                        <td className="px-3 py-2 text-slate-700 dark:text-slate-300">{item.levelName}</td>
-                        <td className="px-3 py-2 text-slate-800 dark:text-slate-200">{item.approverName || '--'}</td>
-                        <td className="px-3 py-2">
-                          <span className="capitalize font-medium text-slate-700 dark:text-slate-300">
+                        <td className="px-3.5 py-2.5 text-slate-700 font-medium">{item.levelName}</td>
+                        <td className="px-3.5 py-2.5 text-slate-800 font-semibold">{item.approverName || '--'}</td>
+                        <td className="px-3.5 py-2.5">
+                          <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold capitalize border ${
+                            item.action === 'approved'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : item.action === 'rejected'
+                              ? 'bg-rose-50 text-rose-700 border-rose-200'
+                              : 'bg-amber-50 text-amber-700 border-amber-200'
+                          }`}>
                             {item.action}
                           </span>
                         </td>
-                        <td className="px-3 py-2 text-slate-500">
+                        <td className="px-3.5 py-2.5 text-slate-500">
                           {item.actionDate ? new Date(item.actionDate).toLocaleDateString() : '--'}
                         </td>
-                        <td className="px-3 py-2 text-slate-600 dark:text-slate-400">{item.comment || '--'}</td>
+                        <td className="px-3.5 py-2.5 text-slate-600">{item.comment || '--'}</td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td className="px-3 py-2 text-slate-700 dark:text-slate-300">Level 1 - HR</td>
-                      <td className="px-3 py-2 text-slate-500">--</td>
-                      <td className="px-3 py-2 capitalize font-medium text-slate-700 dark:text-slate-300">
-                        {regularization.status}
+                      <td className="px-3.5 py-2.5 text-slate-700 font-medium">Level 1 - HR</td>
+                      <td className="px-3.5 py-2.5 text-slate-500">--</td>
+                      <td className="px-3.5 py-2.5">
+                        <span className="capitalize font-bold text-slate-700">
+                          {regularization.status}
+                        </span>
                       </td>
-                      <td className="px-3 py-2 text-slate-500">
+                      <td className="px-3.5 py-2.5 text-slate-500">
                         {regularization.decidedAt ? new Date(regularization.decidedAt).toLocaleDateString() : '--'}
                       </td>
-                      <td className="px-3 py-2 text-slate-600 dark:text-slate-400">
+                      <td className="px-3.5 py-2.5 text-slate-600">
                         {regularization.rejectionReason || '--'}
                       </td>
                     </tr>
@@ -277,24 +288,24 @@ export const RegularizationDetailModal: React.FC<RegularizationDetailModalProps>
 
           {/* Approver Action Panel */}
           {isApproverView && isPending && (
-            <div className="rounded border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/40 space-y-3">
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+            <div className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-4 space-y-2.5">
+              <label className="block text-xs font-bold text-slate-700">
                 Approver Comment
               </label>
               <textarea
                 rows={2}
                 maxLength={250}
-                placeholder="Enter a comment (required when rejecting)"
+                placeholder="Enter remarks or reason (required if rejecting)"
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
-                className="w-full rounded border border-slate-300 bg-white p-2.5 text-xs text-slate-800 focus:border-slate-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs text-slate-800 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none"
               />
             </div>
           )}
 
           {/* Confirm Dialog Inline */}
           {confirmAction && (
-            <div className="rounded border border-slate-300 bg-slate-100 p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 flex items-center justify-between">
+            <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-3.5 text-xs text-indigo-950 flex items-center justify-between">
               <span>
                 Are you sure you want to <strong>{confirmAction}</strong> this regularization request?
               </span>
@@ -302,7 +313,7 @@ export const RegularizationDetailModal: React.FC<RegularizationDetailModalProps>
                 <button
                   type="button"
                   onClick={() => setConfirmAction(null)}
-                  className="rounded border border-slate-300 bg-white px-2.5 py-1 text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300"
+                  className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-slate-700 hover:bg-slate-50 cursor-pointer font-medium"
                 >
                   No
                 </button>
@@ -313,7 +324,11 @@ export const RegularizationDetailModal: React.FC<RegularizationDetailModalProps>
                     else if (confirmAction === 'reject') handleReject();
                     else if (confirmAction === 'cancel') handleCancel();
                   }}
-                  className="rounded bg-slate-800 px-3 py-1 font-medium text-white hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900"
+                  className={`rounded-lg px-3 py-1.5 font-bold text-white cursor-pointer ${
+                    confirmAction === 'reject' || confirmAction === 'cancel'
+                      ? 'bg-rose-600 hover:bg-rose-700'
+                      : 'bg-emerald-600 hover:bg-emerald-700'
+                  }`}
                 >
                   Yes, Confirm
                 </button>
@@ -323,26 +338,26 @@ export const RegularizationDetailModal: React.FC<RegularizationDetailModalProps>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-slate-200 px-6 py-4 dark:border-slate-800">
+        <div className="flex items-center justify-between border-t border-slate-100 px-6 py-3.5 bg-slate-50/80">
           <div>
             {!isApproverView && isRequester && isPending && (
               <button
                 type="button"
                 onClick={() => setConfirmAction('cancel')}
                 disabled={isSubmitting}
-                className="rounded border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100 transition cursor-pointer"
               >
                 Cancel Request
               </button>
             )}
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2.5">
             <button
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="rounded border border-slate-300 px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-2xs transition cursor-pointer"
             >
               Back
             </button>
@@ -353,7 +368,7 @@ export const RegularizationDetailModal: React.FC<RegularizationDetailModalProps>
                   type="button"
                   onClick={() => setConfirmAction('reject')}
                   disabled={isSubmitting}
-                  className="rounded border border-slate-400 bg-white px-4 py-2 text-xs font-medium text-slate-800 hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                  className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100 shadow-2xs transition cursor-pointer"
                 >
                   Reject
                 </button>
@@ -361,15 +376,17 @@ export const RegularizationDetailModal: React.FC<RegularizationDetailModalProps>
                   type="button"
                   onClick={() => setConfirmAction('approve')}
                   disabled={isSubmitting}
-                  className="rounded bg-slate-800 px-4 py-2 text-xs font-medium text-white hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white"
+                  className="rounded-xl bg-emerald-600 hover:bg-emerald-700 px-4 py-2 text-xs font-semibold text-white shadow-xs transition flex items-center gap-1.5 cursor-pointer"
                 >
-                  Approve
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Approve</span>
                 </button>
               </>
             )}
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };

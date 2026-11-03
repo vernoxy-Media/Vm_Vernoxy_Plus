@@ -1,11 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Video, Check, Send, Clock, ExternalLink } from 'lucide-react';
+import { Video, Check, Send, Clock, ExternalLink, Users } from 'lucide-react';
 import type { CalendarEvent } from '../types';
+import type { LeaveCalendarItem } from '@/features/leave/hooks/use-leave';
 import { formatLocalDate, classifyCalendarDay, AttendanceDayRecordInfo } from '../date-utils';
 
 interface DailyTimeGridProps {
   currentDate: Date;
   events: CalendarEvent[];
+  leaves?: LeaveCalendarItem[];
   attendanceRecords?: Record<string, AttendanceDayRecordInfo>;
   holidays?: Array<{ date: string; name: string }>;
   workingDays?: number[];
@@ -20,6 +22,7 @@ const ROW_HEIGHT = 64; // px per hour
 export const DailyTimeGrid: React.FC<DailyTimeGridProps> = ({
   currentDate,
   events,
+  leaves = [],
   attendanceRecords = {},
   holidays = [],
   workingDays = [1, 2, 3, 4, 5],
@@ -55,6 +58,11 @@ export const DailyTimeGrid: React.FC<DailyTimeGridProps> = ({
   const dateStr = formatLocalDate(currentDate);
   const record = attendanceRecords[dateStr];
   const classification = classifyCalendarDay(currentDate, record, holidays, workingDays);
+  const dayLeaves = leaves.filter((l) => {
+    const fromStr = l.from_date.slice(0, 10);
+    const toStr = l.to_date.slice(0, 10);
+    return dateStr >= fromStr && dateStr <= toStr;
+  });
   const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
   const dayNumber = currentDate.getDate();
 
@@ -147,6 +155,17 @@ export const DailyTimeGrid: React.FC<DailyTimeGridProps> = ({
             <span className="text-xs font-bold text-slate-500 bg-white border border-slate-200 px-2.5 py-1 rounded-full shadow-2xs">
               {dayEvents.length} {dayEvents.length === 1 ? 'event' : 'events'}
             </span>
+
+            {/* Team Leaves Count pill */}
+            {dayLeaves.length > 0 && (
+              <span
+                className="text-xs font-bold px-2.5 py-1 rounded-full bg-blue-100 text-blue-800 border border-blue-200 flex items-center gap-1 shadow-2xs"
+                title={dayLeaves.map((l) => `${l.employee_name} (${l.leave_type_name})`).join(', ')}
+              >
+                <Users className="w-3.5 h-3.5" />
+                {dayLeaves.length} on Leave
+              </span>
+            )}
           </div>
         </div>
       </div>

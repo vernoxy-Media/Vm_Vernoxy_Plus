@@ -47,6 +47,7 @@ import {
 } from '../dto/project.dto';
 
 import { EventsService } from '../../../websockets/public-api';
+import { CreateNotificationUseCase } from '../../../notifications/public-api';
 
 @ApiTags('Projects')
 @ApiBearerAuth()
@@ -68,6 +69,7 @@ export class ProjectsController {
     private readonly createProjectTaskUseCase: CreateProjectTaskUseCase,
     private readonly getSprintTasksUseCase: GetSprintTasksUseCase,
     private readonly updateProjectUseCase: UpdateProjectUseCase,
+    private readonly createNotificationUseCase: CreateNotificationUseCase,
   ) {}
 
   @Get()
@@ -257,6 +259,33 @@ export class ProjectsController {
       dto.attachments,
     );
     this.eventsService.emitToProject(id, 'discussion:new_message', msg);
+
+    // If employees are tagged in this discussion message, notify ONLY the tagged employees
+    if (dto.tagged_employee_ids && dto.tagged_employee_ids.length > 0) {
+      try {
+        const project = await this.projectRepo.getProjectById(id, user.emp_id, true);
+        const projectName = project?.project_name || `Project #${id}`;
+        const senderName = user.name || 'Team member';
+
+        const uniqueTaggedIds = Array.from(
+          new Set(dto.tagged_employee_ids.map(Number))
+        ).filter((empId) => empId !== user.emp_id);
+
+        for (const taggedEmpId of uniqueTaggedIds) {
+          await this.createNotificationUseCase.execute({
+            recipient_id: taggedEmpId,
+            kind: 'project_discussion_mention',
+            title: `Tagged in ${projectName}`,
+            body: `${senderName} tagged you in discussion: "${dto.message.slice(0, 100)}"`,
+            entity_type: 'project',
+            entity_id: id,
+            created_by: user.emp_id,
+          });
+        }
+      } catch (err) {
+        console.error('Failed to dispatch discussion tag notifications:', err);
+      }
+    }
     return msg;
   }
 

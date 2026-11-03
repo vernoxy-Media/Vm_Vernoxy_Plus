@@ -35,7 +35,7 @@ import { DeleteDepartmentUseCase } from '../../application/use-cases/delete-depa
 
 @ApiTags('Organization')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, OrganizationAdminGuard)
+@UseGuards(JwtAuthGuard)
 @Controller('departments')
 export class DepartmentController {
   constructor(
@@ -48,6 +48,7 @@ export class DepartmentController {
   ) {}
 
   @Get()
+  @UseGuards(OrganizationAdminGuard)
   @ApiOperation({ summary: 'List departments with keyset pagination' })
   @ApiResponse({ status: 200, type: DepartmentListResponseDto })
   async list(@Query() query: DepartmentQueryDto): Promise<DepartmentListResponseDto> {
@@ -70,6 +71,7 @@ export class DepartmentController {
   }
 
   @Get(':id')
+  @UseGuards(OrganizationAdminGuard)
   @ApiOperation({ summary: 'Get department details by ID' })
   @ApiParam({ name: 'id', type: Number, description: 'Department ID' })
   @ApiResponse({ status: 200, type: DepartmentResponseDto })
@@ -82,6 +84,7 @@ export class DepartmentController {
   }
 
   @Post()
+  @UseGuards(OrganizationAdminGuard)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create department' })
   @ApiBody({ type: CreateDepartmentDto })
@@ -102,6 +105,7 @@ export class DepartmentController {
   }
 
   @Patch(':id')
+  @UseGuards(OrganizationAdminGuard)
   @ApiOperation({ summary: 'Update department' })
   @ApiParam({ name: 'id', type: Number, description: 'Department ID' })
   @ApiBody({ type: UpdateDepartmentDto })
@@ -125,6 +129,7 @@ export class DepartmentController {
   }
 
   @Delete(':id')
+  @UseGuards(OrganizationAdminGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Soft delete department' })
   @ApiParam({ name: 'id', type: Number, description: 'Department ID' })

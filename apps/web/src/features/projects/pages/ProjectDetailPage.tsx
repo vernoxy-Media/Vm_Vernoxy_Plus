@@ -66,13 +66,12 @@ import type {
   SprintItem,
 } from '../types';
 import type { TaskStage } from '../../tasks/types';
-import { TaskBoard } from '../../tasks/components/TaskBoard';
 import { TaskDrawer } from '../../tasks/components/TaskDrawer';
 import { CreateSprintModal } from '../components/CreateSprintModal';
 import { CreateProjectTaskModal } from '../components/CreateProjectTaskModal';
 import { CreateBugModal } from '../components/CreateBugModal';
 import { BugDetailsModal } from '../components/BugDetailsModal';
-import type { TaskBoardResultDto, TaskDetailDto } from '@vernoxy-pulse/api-client';
+import type { TaskDetailDto } from '@vernoxy-pulse/api-client';
 
 const STATUS_CONFIGS: Record<ProjectStatus, { label: string; bg: string; text: string; dot: string }> = {
   new: { label: 'New', bg: 'bg-blue-50 text-blue-700 border-blue-200', text: 'text-blue-700', dot: 'bg-blue-500' },
@@ -83,6 +82,14 @@ const STATUS_CONFIGS: Record<ProjectStatus, { label: string; bg: string; text: s
   delivered: { label: 'Delivered', bg: 'bg-emerald-50 text-emerald-700 border-emerald-200', text: 'text-emerald-700', dot: 'bg-emerald-500' },
   on_hold: { label: 'On Hold', bg: 'bg-rose-50 text-rose-700 border-rose-200', text: 'text-rose-700', dot: 'bg-rose-500' },
   cancelled: { label: 'Cancelled', bg: 'bg-red-50 text-red-700 border-red-200', text: 'text-red-700', dot: 'bg-red-500' },
+};
+
+const STAGE_CONFIG: Record<TaskStage, { label: string; badge: string }> = {
+  assigned: { label: 'Assigned', badge: 'bg-slate-100 text-slate-700 border-slate-200' },
+  in_progress: { label: 'In Progress', badge: 'bg-blue-100 text-blue-700 border-blue-200' },
+  hold: { label: 'Hold', badge: 'bg-amber-100 text-amber-800 border-amber-200' },
+  requested: { label: 'Submitted', badge: 'bg-purple-100 text-purple-700 border-purple-200' },
+  completed: { label: 'Approved', badge: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
 };
 
 export const ProjectDetailPage: React.FC = () => {
@@ -115,7 +122,8 @@ export const ProjectDetailPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   // Tabs
-  const [activeTab, setActiveTab] = useState<number>(0);
+  const [activeTab, setActiveTab] = useState<'tasks' | 'details' | 'team' | 'discussion' | 'activity'>('tasks');
+  const [tasksSubTab, setTasksSubTab] = useState<'board' | 'sprints' | 'bugs'>('board');
 
   // Filters & Period
   const [periodStartDate, setPeriodStartDate] = useState('');
@@ -184,7 +192,7 @@ export const ProjectDetailPage: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (activeTab === 5) {
+    if (activeTab === 'discussion') {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [discussions, activeTab]);
@@ -240,11 +248,11 @@ export const ProjectDetailPage: React.FC = () => {
       setEditCredentials(
         projData.credentials && projData.credentials.length > 0
           ? projData.credentials.map((c) => ({
-              admin_label: c.admin_label,
-              admin_id: c.admin_id,
-              admin_password: c.admin_password_encrypted || '',
-              showPassword: false,
-            }))
+            admin_label: c.admin_label,
+            admin_id: c.admin_id,
+            admin_password: c.admin_password_encrypted || '',
+            showPassword: false,
+          }))
           : []
       );
     } catch (err: any) {
@@ -276,15 +284,15 @@ export const ProjectDetailPage: React.FC = () => {
     };
 
     const handleTaskChange = () => {
-      fetchSprintTasks(projectId).then(setTasks).catch(() => {});
+      fetchSprintTasks(projectId).then(setTasks).catch(() => { });
     };
 
     const handleBugChange = () => {
-      fetchProjectBugs(projectId).then(setBugs).catch(() => {});
+      fetchProjectBugs(projectId).then(setBugs).catch(() => { });
     };
 
     const handleSprintChange = () => {
-      fetchProjectSprints(projectId).then(setSprints).catch(() => {});
+      fetchProjectSprints(projectId).then(setSprints).catch(() => { });
     };
 
     socket.on('discussion:new_message', handleNewDiscussion);
@@ -470,53 +478,6 @@ export const ProjectDetailPage: React.FC = () => {
       done: bugs.filter((b) => b.status === 'done').length,
     };
   }, [bugs]);
-
-  // Task Board DTO for Kanban
-  const taskBoardDto: TaskBoardResultDto = useMemo(() => {
-    const columns: {
-      assigned: any[];
-      in_progress: any[];
-      hold: any[];
-      requested: any[];
-      completed: any[];
-    } = {
-      assigned: [],
-      in_progress: [],
-      hold: [],
-      requested: [],
-      completed: [],
-    };
-
-    filteredTasks.forEach((t) => {
-      const stage = (t.stage || 'assigned') as TaskStage;
-      if (columns[stage]) {
-        columns[stage].push({
-          task_id: t.task_id,
-          task_code: t.task_code || `TSK-${t.task_id}`,
-          title: t.title,
-          stage,
-          priority: t.priority || 'medium',
-          due_date: t.due_date,
-          allocated_minutes: t.allocated_minutes,
-          actual_minutes: (t as any).actual_minutes || 0,
-          progress_percentage: t.progress_percentage || 0,
-          assignees: t.assignees || [],
-        });
-      }
-    });
-
-    return {
-      columns,
-      counts: {
-        total: filteredTasks.length,
-        assigned: columns.assigned.length,
-        in_progress: columns.in_progress.length,
-        hold: columns.hold.length,
-        requested: columns.requested.length,
-        completed: columns.completed.length,
-      } as any,
-    };
-  }, [filteredTasks]);
 
   // Handle Drag-and-Drop Move Stage
   const handleMoveStage = async (
@@ -787,13 +748,11 @@ export const ProjectDetailPage: React.FC = () => {
   const statusStyle = STATUS_CONFIGS[project.project_status] || STATUS_CONFIGS.new;
 
   const tabsList = [
-    { id: 0, label: 'Project Details', icon: FileText },
-    { id: 1, label: 'Team & Workload', icon: Users, badge: project.members?.length || 0 },
-    { id: 2, label: 'Sprints', icon: Layers, badge: sprints.length },
-    { id: 3, label: 'Tasks', icon: CheckSquare, badge: filteredTasks.length },
-    { id: 4, label: 'Bugs', icon: Bug, badge: bugs.length },
-    { id: 5, label: 'Discussion', icon: MessageSquare, badge: discussions.length },
-    { id: 6, label: 'Activity Logs', icon: History, badge: activityLogs.length },
+    { id: 'tasks', label: 'TASKS', icon: CheckSquare, badge: filteredTasks.length },
+    { id: 'discussion', label: 'DISCUSSION', icon: MessageSquare, badge: discussions.length },
+    { id: 'details', label: 'DETAILS & LIBRARY', icon: FileText },
+    { id: 'activity', label: 'ACTIVITY LOG', icon: History, badge: activityLogs.length },
+    { id: 'team', label: 'TEAM & WORKLOAD', icon: Users, badge: project.members?.length || 0 },
   ];
 
   return (
@@ -884,69 +843,6 @@ export const ProjectDetailPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Sleek KPI Metrics Strip (Compact & Non-intrusive for PM & Admin) */}
-      {isManagerOrAdmin && (
-        <div className="bg-white rounded-2xl border border-slate-200/80 px-5 py-3 shadow-xs flex flex-wrap items-center justify-between gap-4 text-xs">
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-              <Clock className="w-3.5 h-3.5" />
-            </div>
-            <div>
-              <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Est. Hours</span>
-              <span className="font-extrabold text-slate-900">{kpiData.estHours} hrs</span>
-            </div>
-          </div>
-
-          <div className="h-6 w-px bg-slate-200 hidden sm:block" />
-
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-            </div>
-            <div>
-              <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Actual Hours</span>
-              <span className="font-extrabold text-slate-900">{kpiData.actHours} hrs</span>
-            </div>
-          </div>
-
-          <div className="h-6 w-px bg-slate-200 hidden sm:block" />
-
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-              <Calendar className="w-3.5 h-3.5" />
-            </div>
-            <div>
-              <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Start Date</span>
-              <span className="font-bold text-slate-800">{kpiData.startDate}</span>
-            </div>
-          </div>
-
-          <div className="h-6 w-px bg-slate-200 hidden sm:block" />
-
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-              <Flag className="w-3.5 h-3.5" />
-            </div>
-            <div>
-              <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Deadline</span>
-              <span className="font-bold text-slate-800">{kpiData.estimatedEndDate}</span>
-            </div>
-          </div>
-
-          <div className="h-6 w-px bg-slate-200 hidden sm:block" />
-
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
-              <CheckSquare className="w-3.5 h-3.5" />
-            </div>
-            <div>
-              <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Delivered</span>
-              <span className="font-bold text-slate-800">{kpiData.actualEndDate}</span>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Tabs Navigation */}
       <div className="border-b border-slate-200">
         <nav className="flex space-x-2 sm:space-x-4 overflow-x-auto pb-1" aria-label="Tabs">
@@ -956,20 +852,18 @@ export const ProjectDetailPage: React.FC = () => {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 py-3 px-4 text-xs font-bold rounded-2xl transition border-b-2 whitespace-nowrap ${
-                  isActive
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`flex items-center gap-2 py-3 px-4 text-xs font-bold rounded-2xl transition border-b-2 whitespace-nowrap cursor-pointer ${isActive
                     ? 'border-blue-600 text-blue-600 bg-blue-50/50 shadow-xs'
                     : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'
-                }`}
+                  }`}
               >
                 <Icon className="w-4 h-4" />
                 <span>{tab.label}</span>
                 {tab.badge !== undefined && (
                   <span
-                    className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
-                      isActive ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-600'
-                    }`}
+                    className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${isActive ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-600'
+                      }`}
                   >
                     {tab.badge}
                   </span>
@@ -982,9 +876,62 @@ export const ProjectDetailPage: React.FC = () => {
 
       {/* TAB CONTENTS */}
       <div className="mt-4">
-        {/* TAB 0: Project Details */}
-        {activeTab === 0 && (
+        {/* TAB: Project Details */}
+        {activeTab === 'details' && (
           <div className="space-y-6">
+            {/* Hours & Timeline Metric Cards in Project Details */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+              <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                  <Clock className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Est. Hours</span>
+                  <span className="text-base font-extrabold text-slate-900">{kpiData.estHours} hrs</span>
+                </div>
+              </div>
+
+              <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Actual Hours</span>
+                  <span className="text-base font-extrabold text-slate-900">{kpiData.actHours} hrs</span>
+                </div>
+              </div>
+
+              <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                  <Calendar className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Start Date</span>
+                  <span className="text-xs font-bold text-slate-800">{kpiData.startDate}</span>
+                </div>
+              </div>
+
+              <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                  <Flag className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Deadline</span>
+                  <span className="text-xs font-bold text-slate-800">{kpiData.estimatedEndDate}</span>
+                </div>
+              </div>
+
+              <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+                  <CheckSquare className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Delivered</span>
+                  <span className="text-xs font-bold text-slate-800">{kpiData.actualEndDate || 'Pending'}</span>
+                </div>
+              </div>
+            </div>
+
             {detailsSaveSuccess && (
               <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center gap-2 text-xs text-emerald-800 font-semibold shadow-xs">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" />
@@ -1041,11 +988,10 @@ export const ProjectDetailPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setDetailsSubTab('overview')}
-                className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition ${
-                  detailsSubTab === 'overview'
+                className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition ${detailsSubTab === 'overview'
                     ? 'bg-blue-600 text-white shadow-xs'
                     : 'text-slate-600 hover:bg-slate-100'
-                }`}
+                  }`}
               >
                 <FileText className="w-3.5 h-3.5" />
                 <span>Project Overview</span>
@@ -1053,11 +999,10 @@ export const ProjectDetailPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setDetailsSubTab('tech')}
-                className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition ${
-                  detailsSubTab === 'tech'
+                className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition ${detailsSubTab === 'tech'
                     ? 'bg-blue-600 text-white shadow-xs'
                     : 'text-slate-600 hover:bg-slate-100'
-                }`}
+                  }`}
               >
                 <Code className="w-3.5 h-3.5" />
                 <span>Tech Stack</span>
@@ -1066,11 +1011,10 @@ export const ProjectDetailPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setDetailsSubTab('deployment')}
-                  className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition ${
-                    detailsSubTab === 'deployment'
+                  className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition ${detailsSubTab === 'deployment'
                       ? 'bg-blue-600 text-white shadow-xs'
                       : 'text-slate-600 hover:bg-slate-100'
-                  }`}
+                    }`}
                 >
                   <Server className="w-3.5 h-3.5" />
                   <span>Deployment Details</span>
@@ -1081,509 +1025,509 @@ export const ProjectDetailPage: React.FC = () => {
             {/* Sub-Tab 1: Overview & Client Information */}
             {detailsSubTab === 'overview' && (
               <div className={`grid gap-6 ${isManagerOrAdmin ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
-              {/* Project Core Meta */}
-              <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-4">
-                <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
-                  <div className="w-7 h-7 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                    <FileText className="w-4 h-4" />
-                  </div>
-                  <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                    Project Overview
-                  </h4>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 text-xs">
-                  <div>
-                    <span className="text-slate-400 block text-[11px]">Project Name</span>
-                    <span className="font-bold text-slate-800">{project.project_name}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block text-[11px]">Project No.</span>
-                    <span className="font-mono font-bold text-blue-600">{project.project_no}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block text-[11px]">Type</span>
-                    <span className="font-semibold text-slate-800 capitalize">{project.project_type}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block text-[11px]">Category</span>
-                    <span className="font-semibold text-slate-800 capitalize">
-                      {project.category.replace('_', ' ')}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block text-[11px]">Project Manager</span>
-                    <span className="font-bold text-slate-800">{project.project_manager_name}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block text-[11px]">Current Status</span>
-                    <span className={`inline-block px-2 py-0.5 rounded-md font-bold text-[10px] ${statusStyle.bg}`}>
-                      {statusStyle.label}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Client & Additional Details (Section 3.3: Hidden for Employees) */}
-              {isManagerOrAdmin && (
+                {/* Project Core Meta */}
                 <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-4">
                   <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
-                    <div className="w-7 h-7 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                      <User className="w-4 h-4" />
+                    <div className="w-7 h-7 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                      <FileText className="w-4 h-4" />
                     </div>
                     <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                      Client Details
+                      Project Overview
                     </h4>
                   </div>
 
-                  {isEditingDetails ? (
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                          Client Name
-                        </label>
-                        <input
-                          type="text"
-                          value={editClientName}
-                          onChange={(e) => setEditClientName(e.target.value)}
-                          placeholder="e.g. Acme Corporation"
-                          className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                            Lead Received Date
-                          </label>
-                          <input
-                            type="date"
-                            value={editLeadReceivedDate}
-                            onChange={(e) => setEditLeadReceivedDate(e.target.value)}
-                            className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                            Project Approved Date
-                          </label>
-                          <input
-                            type="date"
-                            value={editProjectApprovedDate}
-                            onChange={(e) => setEditProjectApprovedDate(e.target.value)}
-                            className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none"
-                          />
-                        </div>
-                      </div>
+                  <div className="grid grid-cols-2 gap-4 text-xs">
+                    <div>
+                      <span className="text-slate-400 block text-[11px]">Project Name</span>
+                      <span className="font-bold text-slate-800">{project.project_name}</span>
                     </div>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-4 text-xs">
-                      <div>
-                        <span className="text-slate-400 block text-[11px]">Client Name</span>
-                        <span className="font-bold text-slate-800">
-                          {project.client_name || 'Not specified'}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 block text-[11px]">Lead Received</span>
-                        <span className="font-semibold text-slate-800">
-                          {project.lead_received_date
-                            ? new Date(project.lead_received_date).toLocaleDateString('en-GB')
-                            : 'Not specified'}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 block text-[11px]">Project Approved</span>
-                        <span className="font-semibold text-slate-800">
-                          {project.project_approved_date
-                            ? new Date(project.project_approved_date).toLocaleDateString('en-GB')
-                            : 'Not specified'}
-                        </span>
-                      </div>
+                    <div>
+                      <span className="text-slate-400 block text-[11px]">Project No.</span>
+                      <span className="font-mono font-bold text-blue-600">{project.project_no}</span>
                     </div>
-                  )}
+                    <div>
+                      <span className="text-slate-400 block text-[11px]">Type</span>
+                      <span className="font-semibold text-slate-800 capitalize">{project.project_type}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-[11px]">Category</span>
+                      <span className="font-semibold text-slate-800 capitalize">
+                        {project.category.replace('_', ' ')}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-[11px]">Project Manager</span>
+                      <span className="font-bold text-slate-800">{project.project_manager_name}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-[11px]">Current Status</span>
+                      <span className={`inline-block px-2 py-0.5 rounded-md font-bold text-[10px] ${statusStyle.bg}`}>
+                        {statusStyle.label}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              )}
-            </div>
+
+                {/* Client & Additional Details (Section 3.3: Hidden for Employees) */}
+                {isManagerOrAdmin && (
+                  <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-4">
+                    <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
+                      <div className="w-7 h-7 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                        <User className="w-4 h-4" />
+                      </div>
+                      <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                        Client Details
+                      </h4>
+                    </div>
+
+                    {isEditingDetails ? (
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                            Client Name
+                          </label>
+                          <input
+                            type="text"
+                            value={editClientName}
+                            onChange={(e) => setEditClientName(e.target.value)}
+                            placeholder="e.g. Acme Corporation"
+                            className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                              Lead Received Date
+                            </label>
+                            <input
+                              type="date"
+                              value={editLeadReceivedDate}
+                              onChange={(e) => setEditLeadReceivedDate(e.target.value)}
+                              className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                              Project Approved Date
+                            </label>
+                            <input
+                              type="date"
+                              value={editProjectApprovedDate}
+                              onChange={(e) => setEditProjectApprovedDate(e.target.value)}
+                              className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-4 text-xs">
+                        <div>
+                          <span className="text-slate-400 block text-[11px]">Client Name</span>
+                          <span className="font-bold text-slate-800">
+                            {project.client_name || 'Not specified'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block text-[11px]">Lead Received</span>
+                          <span className="font-semibold text-slate-800">
+                            {project.lead_received_date
+                              ? new Date(project.lead_received_date).toLocaleDateString('en-GB')
+                              : 'Not specified'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block text-[11px]">Project Approved</span>
+                          <span className="font-semibold text-slate-800">
+                            {project.project_approved_date
+                              ? new Date(project.project_approved_date).toLocaleDateString('en-GB')
+                              : 'Not specified'}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
 
             {/* Sub-Tab 2: Tech-Stack Details (Section 2.4 BFD) */}
             {detailsSubTab === 'tech' && (
               <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-4">
                 <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
-                <div className="w-7 h-7 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
-                  <Code className="w-4 h-4" />
+                  <div className="w-7 h-7 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                    <Code className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                      Technology Stack Details (Section 2.4)
+                    </h4>
+                    <p className="text-[11px] text-slate-400">
+                      Visible to all project members to understand the application architecture
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                    Technology Stack Details (Section 2.4)
-                  </h4>
-                  <p className="text-[11px] text-slate-400">
-                    Visible to all project members to understand the application architecture
-                  </p>
-                </div>
-              </div>
 
-              {isEditingDetails ? (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Front-End Technologies
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={editTechFrontend}
-                      onChange={(e) => setEditTechFrontend(e.target.value)}
-                      placeholder="e.g. Next.js 14, Tailwind CSS, TypeScript"
-                      className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none"
-                    />
+                {isEditingDetails ? (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Front-End Technologies
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={editTechFrontend}
+                        onChange={(e) => setEditTechFrontend(e.target.value)}
+                        placeholder="e.g. Next.js 14, Tailwind CSS, TypeScript"
+                        className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Back-End Technologies
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={editTechBackend}
+                        onChange={(e) => setEditTechBackend(e.target.value)}
+                        placeholder="e.g. NestJS, Prisma ORM, PostgreSQL"
+                        className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Cloud Platform / Infra
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={editTechCloud}
+                        onChange={(e) => setEditTechCloud(e.target.value)}
+                        placeholder="e.g. AWS S3, Vercel, Supabase"
+                        className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Back-End Technologies
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={editTechBackend}
-                      onChange={(e) => setEditTechBackend(e.target.value)}
-                      placeholder="e.g. NestJS, Prisma ORM, PostgreSQL"
-                      className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none"
-                    />
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="p-4 bg-slate-50/70 rounded-2xl border border-slate-100">
+                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                        Front-End
+                      </span>
+                      <p className="text-xs font-semibold text-slate-800 whitespace-pre-wrap">
+                        {project.tech_frontend || 'Not specified'}
+                      </p>
+                    </div>
+                    <div className="p-4 bg-slate-50/70 rounded-2xl border border-slate-100">
+                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                        Back-End
+                      </span>
+                      <p className="text-xs font-semibold text-slate-800 whitespace-pre-wrap">
+                        {project.tech_backend || 'Not specified'}
+                      </p>
+                    </div>
+                    <div className="p-4 bg-slate-50/70 rounded-2xl border border-slate-100">
+                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                        Cloud Platform
+                      </span>
+                      <p className="text-xs font-semibold text-slate-800 whitespace-pre-wrap">
+                        {project.tech_cloud || 'Not specified'}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Cloud Platform / Infra
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={editTechCloud}
-                      onChange={(e) => setEditTechCloud(e.target.value)}
-                      placeholder="e.g. AWS S3, Vercel, Supabase"
-                      className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none"
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="p-4 bg-slate-50/70 rounded-2xl border border-slate-100">
-                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                      Front-End
-                    </span>
-                    <p className="text-xs font-semibold text-slate-800 whitespace-pre-wrap">
-                      {project.tech_frontend || 'Not specified'}
-                    </p>
-                  </div>
-                  <div className="p-4 bg-slate-50/70 rounded-2xl border border-slate-100">
-                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                      Back-End
-                    </span>
-                    <p className="text-xs font-semibold text-slate-800 whitespace-pre-wrap">
-                      {project.tech_backend || 'Not specified'}
-                    </p>
-                  </div>
-                  <div className="p-4 bg-slate-50/70 rounded-2xl border border-slate-100">
-                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                      Cloud Platform
-                    </span>
-                    <p className="text-xs font-semibold text-slate-800 whitespace-pre-wrap">
-                      {project.tech_cloud || 'Not specified'}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
             )}
 
             {/* Sub-Tab 3: Deployment & Production Credentials (Section 2.5 BFD - Hidden for Employees per Section 3.3) */}
             {detailsSubTab === 'deployment' && isManagerOrAdmin && (
               <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-4">
-              <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
-                <div className="w-7 h-7 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center">
-                  <Server className="w-4 h-4" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                    Deployment Details & Credentials (Section 2.5)
-                  </h4>
-                  <p className="text-[11px] text-slate-400">
-                    Production environments, domain links, and secure administrative login pairs
-                  </p>
-                </div>
-              </div>
-
-              {isEditingDetails ? (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                        Vercel Account
-                      </label>
-                      <input
-                        type="text"
-                        value={editVercelAccount}
-                        onChange={(e) => setEditVercelAccount(e.target.value)}
-                        placeholder="e.g. vernoxy-team"
-                        className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                        Vercel Link
-                      </label>
-                      <input
-                        type="url"
-                        value={editVercelLink}
-                        onChange={(e) => setEditVercelLink(e.target.value)}
-                        placeholder="https://vercel.com/..."
-                        className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                        Domain Link
-                      </label>
-                      <input
-                        type="url"
-                        value={editDomainLink}
-                        onChange={(e) => setEditDomainLink(e.target.value)}
-                        placeholder="https://example.com"
-                        className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                        Storage Account
-                      </label>
-                      <input
-                        type="text"
-                        value={editStorageAccount}
-                        onChange={(e) => setEditStorageAccount(e.target.value)}
-                        placeholder="e.g. s3-bucket-main"
-                        className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl"
-                      />
-                    </div>
+                <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
+                  <div className="w-7 h-7 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center">
+                    <Server className="w-4 h-4" />
                   </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                        Deployment Date
-                      </label>
-                      <input
-                        type="date"
-                        value={editDeploymentDate}
-                        onChange={(e) => setEditDeploymentDate(e.target.value)}
-                        className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                        Go Live Date
-                      </label>
-                      <input
-                        type="date"
-                        value={editGoLiveDate}
-                        onChange={(e) => setEditGoLiveDate(e.target.value)}
-                        className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                        Deployment Done By
-                      </label>
-                      <select
-                        value={editDeploymentDoneBy}
-                        onChange={(e) => setEditDeploymentDoneBy(e.target.value)}
-                        className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl"
-                      >
-                        <option value="">Select Employee</option>
-                        {employees.map((emp) => (
-                          <option key={emp.emp_id} value={emp.emp_id}>
-                            {emp.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                        Admin Login Link
-                      </label>
-                      <input
-                        type="url"
-                        value={editAdminLoginLink}
-                        onChange={(e) => setEditAdminLoginLink(e.target.value)}
-                        placeholder="https://example.com/admin"
-                        className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Credentials Editor */}
-                  <div className="pt-2">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold text-slate-700">Admin Credentials Pairs</span>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setEditCredentials([
-                            ...editCredentials,
-                            { admin_label: 'Admin', admin_id: '', admin_password: '' },
-                          ])
-                        }
-                        className="text-xs text-blue-600 font-semibold hover:underline flex items-center gap-1"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        Add Credential Pair
-                      </button>
-                    </div>
-                    <div className="space-y-2">
-                      {editCredentials.map((c, idx) => (
-                        <div key={idx} className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            placeholder="Label (e.g. SuperAdmin)"
-                            value={c.admin_label}
-                            onChange={(e) => {
-                              const copy = [...editCredentials];
-                              copy[idx].admin_label = e.target.value;
-                              setEditCredentials(copy);
-                            }}
-                            className="w-1/4 px-3 py-1.5 text-xs border border-slate-200 rounded-xl"
-                          />
-                          <input
-                            type="text"
-                            placeholder="Admin ID / Email"
-                            value={c.admin_id}
-                            onChange={(e) => {
-                              const copy = [...editCredentials];
-                              copy[idx].admin_id = e.target.value;
-                              setEditCredentials(copy);
-                            }}
-                            className="w-1/3 px-3 py-1.5 text-xs border border-slate-200 rounded-xl"
-                          />
-                          <input
-                            type="text"
-                            placeholder="Password"
-                            value={c.admin_password}
-                            onChange={(e) => {
-                              const copy = [...editCredentials];
-                              copy[idx].admin_password = e.target.value;
-                              setEditCredentials(copy);
-                            }}
-                            className="flex-1 px-3 py-1.5 text-xs border border-slate-200 rounded-xl font-mono"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditCredentials(editCredentials.filter((_, i) => i !== idx));
-                            }}
-                            className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-                    <div>
-                      <span className="text-slate-400 block text-[11px]">Vercel Account</span>
-                      <span className="font-semibold text-slate-800">
-                        {project.deployment?.vercel_account || 'Not specified'}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block text-[11px]">Vercel Link</span>
-                      {project.deployment?.vercel_link ? (
-                        <a
-                          href={project.deployment.vercel_link}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-blue-600 font-semibold hover:underline inline-flex items-center gap-1"
-                        >
-                          Visit Preview <ExternalLink className="w-3 h-3" />
-                        </a>
-                      ) : (
-                        <span className="text-slate-400">Not specified</span>
-                      )}
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block text-[11px]">Domain Link</span>
-                      {project.deployment?.domain_link ? (
-                        <a
-                          href={project.deployment.domain_link}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-blue-600 font-semibold hover:underline inline-flex items-center gap-1"
-                        >
-                          Visit Production <ExternalLink className="w-3 h-3" />
-                        </a>
-                      ) : (
-                        <span className="text-slate-400">Not specified</span>
-                      )}
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block text-[11px]">Storage Account</span>
-                      <span className="font-semibold text-slate-800">
-                        {project.deployment?.storage_account || 'Not specified'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Credentials Cards */}
                   <div>
-                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
-                      Configured Administrative Logins
-                    </span>
-                    {project.credentials && project.credentials.length > 0 ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                        {project.credentials.map((cred, idx) => (
-                          <div
-                            key={idx}
-                            className="p-3 bg-slate-50 border border-slate-200/80 rounded-2xl flex flex-col justify-between"
-                          >
-                            <div className="flex items-center justify-between mb-1.5">
-                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-200">
-                                {cred.admin_label || 'Admin'}
-                              </span>
-                              <KeyRound className="w-3.5 h-3.5 text-slate-400" />
-                            </div>
-                            <div className="space-y-1 text-xs">
-                              <div className="text-slate-700 font-mono font-medium truncate">
-                                ID: {cred.admin_id}
-                              </div>
-                              <div className="flex items-center justify-between text-slate-700 font-mono text-[11px]">
-                                <span>PWD: ••••••••</span>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    navigator.clipboard.writeText(cred.admin_password_encrypted || '');
-                                    alert('Password copied to clipboard!');
-                                  }}
-                                  className="text-[10px] text-blue-600 hover:underline flex items-center gap-1"
-                                >
-                                  <Copy className="w-3 h-3" /> Copy
-                                </button>
-                              </div>
-                            </div>
+                    <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                      Deployment Details & Credentials (Section 2.5)
+                    </h4>
+                    <p className="text-[11px] text-slate-400">
+                      Production environments, domain links, and secure administrative login pairs
+                    </p>
+                  </div>
+                </div>
+
+                {isEditingDetails ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                          Vercel Account
+                        </label>
+                        <input
+                          type="text"
+                          value={editVercelAccount}
+                          onChange={(e) => setEditVercelAccount(e.target.value)}
+                          placeholder="e.g. vernoxy-team"
+                          className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                          Vercel Link
+                        </label>
+                        <input
+                          type="url"
+                          value={editVercelLink}
+                          onChange={(e) => setEditVercelLink(e.target.value)}
+                          placeholder="https://vercel.com/..."
+                          className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                          Domain Link
+                        </label>
+                        <input
+                          type="url"
+                          value={editDomainLink}
+                          onChange={(e) => setEditDomainLink(e.target.value)}
+                          placeholder="https://example.com"
+                          className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                          Storage Account
+                        </label>
+                        <input
+                          type="text"
+                          value={editStorageAccount}
+                          onChange={(e) => setEditStorageAccount(e.target.value)}
+                          placeholder="e.g. s3-bucket-main"
+                          className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                          Deployment Date
+                        </label>
+                        <input
+                          type="date"
+                          value={editDeploymentDate}
+                          onChange={(e) => setEditDeploymentDate(e.target.value)}
+                          className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                          Go Live Date
+                        </label>
+                        <input
+                          type="date"
+                          value={editGoLiveDate}
+                          onChange={(e) => setEditGoLiveDate(e.target.value)}
+                          className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                          Deployment Done By
+                        </label>
+                        <select
+                          value={editDeploymentDoneBy}
+                          onChange={(e) => setEditDeploymentDoneBy(e.target.value)}
+                          className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl"
+                        >
+                          <option value="">Select Employee</option>
+                          {employees.map((emp) => (
+                            <option key={emp.emp_id} value={emp.emp_id}>
+                              {emp.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                          Admin Login Link
+                        </label>
+                        <input
+                          type="url"
+                          value={editAdminLoginLink}
+                          onChange={(e) => setEditAdminLoginLink(e.target.value)}
+                          placeholder="https://example.com/admin"
+                          className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Credentials Editor */}
+                    <div className="pt-2">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold text-slate-700">Admin Credentials Pairs</span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setEditCredentials([
+                              ...editCredentials,
+                              { admin_label: 'Admin', admin_id: '', admin_password: '' },
+                            ])
+                          }
+                          className="text-xs text-blue-600 font-semibold hover:underline flex items-center gap-1"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          Add Credential Pair
+                        </button>
+                      </div>
+                      <div className="space-y-2">
+                        {editCredentials.map((c, idx) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              placeholder="Label (e.g. SuperAdmin)"
+                              value={c.admin_label}
+                              onChange={(e) => {
+                                const copy = [...editCredentials];
+                                copy[idx].admin_label = e.target.value;
+                                setEditCredentials(copy);
+                              }}
+                              className="w-1/4 px-3 py-1.5 text-xs border border-slate-200 rounded-xl"
+                            />
+                            <input
+                              type="text"
+                              placeholder="Admin ID / Email"
+                              value={c.admin_id}
+                              onChange={(e) => {
+                                const copy = [...editCredentials];
+                                copy[idx].admin_id = e.target.value;
+                                setEditCredentials(copy);
+                              }}
+                              className="w-1/3 px-3 py-1.5 text-xs border border-slate-200 rounded-xl"
+                            />
+                            <input
+                              type="text"
+                              placeholder="Password"
+                              value={c.admin_password}
+                              onChange={(e) => {
+                                const copy = [...editCredentials];
+                                copy[idx].admin_password = e.target.value;
+                                setEditCredentials(copy);
+                              }}
+                              className="flex-1 px-3 py-1.5 text-xs border border-slate-200 rounded-xl font-mono"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditCredentials(editCredentials.filter((_, i) => i !== idx));
+                              }}
+                              className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
                           </div>
                         ))}
                       </div>
-                    ) : (
-                      <p className="text-xs text-slate-400 italic">No credentials configured yet.</p>
-                    )}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
+                ) : (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                      <div>
+                        <span className="text-slate-400 block text-[11px]">Vercel Account</span>
+                        <span className="font-semibold text-slate-800">
+                          {project.deployment?.vercel_account || 'Not specified'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[11px]">Vercel Link</span>
+                        {project.deployment?.vercel_link ? (
+                          <a
+                            href={project.deployment.vercel_link}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-blue-600 font-semibold hover:underline inline-flex items-center gap-1"
+                          >
+                            Visit Preview <ExternalLink className="w-3 h-3" />
+                          </a>
+                        ) : (
+                          <span className="text-slate-400">Not specified</span>
+                        )}
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[11px]">Domain Link</span>
+                        {project.deployment?.domain_link ? (
+                          <a
+                            href={project.deployment.domain_link}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-blue-600 font-semibold hover:underline inline-flex items-center gap-1"
+                          >
+                            Visit Production <ExternalLink className="w-3 h-3" />
+                          </a>
+                        ) : (
+                          <span className="text-slate-400">Not specified</span>
+                        )}
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[11px]">Storage Account</span>
+                        <span className="font-semibold text-slate-800">
+                          {project.deployment?.storage_account || 'Not specified'}
+                        </span>
+                      </div>
+                    </div>
 
-        {/* TAB 1: Team & Workload */}
-        {activeTab === 1 && (
+                    {/* Credentials Cards */}
+                    <div>
+                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
+                        Configured Administrative Logins
+                      </span>
+                      {project.credentials && project.credentials.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                          {project.credentials.map((cred, idx) => (
+                            <div
+                              key={idx}
+                              className="p-3 bg-slate-50 border border-slate-200/80 rounded-2xl flex flex-col justify-between"
+                            >
+                              <div className="flex items-center justify-between mb-1.5">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-200">
+                                  {cred.admin_label || 'Admin'}
+                                </span>
+                                <KeyRound className="w-3.5 h-3.5 text-slate-400" />
+                              </div>
+                              <div className="space-y-1 text-xs">
+                                <div className="text-slate-700 font-mono font-medium truncate">
+                                  ID: {cred.admin_id}
+                                </div>
+                                <div className="flex items-center justify-between text-slate-700 font-mono text-[11px]">
+                                  <span>PWD: ••••••••</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(cred.admin_password_encrypted || '');
+                                      alert('Password copied to clipboard!');
+                                    }}
+                                    className="text-[10px] text-blue-600 hover:underline flex items-center gap-1"
+                                  >
+                                    <Copy className="w-3 h-3" /> Copy
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-slate-400 italic">No credentials configured yet.</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB: Team & Workload */}
+        {activeTab === 'team' && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
@@ -1846,406 +1790,575 @@ export const ProjectDetailPage: React.FC = () => {
           </div>
         )}
 
-        {/* TAB 2: Sprint Tab */}
-        {activeTab === 2 && (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-bold text-slate-900">Project Sprints</h3>
-                <p className="text-xs text-slate-500">
-                  Fixed cycles for planning, implementing, and delivering features
-                </p>
-              </div>
-              {isManagerOrAdmin && (
-                <button
-                  onClick={() => setIsSprintModalOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-sm transition"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  Create Sprint
-                </button>
-              )}
-            </div>
-
-            {sprints.length === 0 ? (
-              <div className="py-16 text-center bg-white rounded-3xl border border-dashed border-slate-200">
-                <Layers className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-                <h4 className="text-sm font-bold text-slate-800 mb-1">No Sprints Defined</h4>
-                <p className="text-xs text-slate-400 mb-4 max-w-sm mx-auto">
-                  Organize work into 1-4 week sprints to track progress against project milestones.
-                </p>
-                {isManagerOrAdmin && (
-                  <button
-                    onClick={() => setIsSprintModalOpen(true)}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-sm"
-                  >
-                    Create First Sprint
-                  </button>
-                )}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {sprints.map((sprint) => {
-                  const sprintTasks = tasks.filter((t) => t.sprint_id === sprint.sprint_id);
-                  const completed = sprintTasks.filter(
-                    (t) => t.stage === 'completed' || t.status === 'completed'
-                  ).length;
-                  const progress =
-                    sprintTasks.length > 0 ? Math.round((completed / sprintTasks.length) * 100) : 0;
-
-                  return (
-                    <div
-                      key={sprint.sprint_id}
-                      className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs hover:shadow-md transition flex flex-col justify-between space-y-4"
-                    >
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <span
-                            className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-                              sprint.status === 'completed'
-                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                : sprint.status === 'in_progress'
-                                ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                                : 'bg-slate-100 text-slate-700 border border-slate-200'
-                            }`}
-                          >
-                            {sprint.status.replace('_', ' ')}
-                          </span>
-                          <span className="text-[11px] font-mono text-slate-400">
-                            #{sprint.sprint_id}
-                          </span>
-                        </div>
-                        <h4 className="text-sm font-extrabold text-slate-900 mb-1">
-                          {sprint.sprint_name}
-                        </h4>
-                        <p className="text-xs text-slate-500 line-clamp-2">
-                          {sprint.sprint_goal || 'No goal specified for this sprint.'}
-                        </p>
-                      </div>
-
-                      <div className="space-y-2 pt-2 border-t border-slate-100">
-                        <div className="flex items-center justify-between text-[11px] text-slate-500">
-                          <span>
-                            {new Date(sprint.start_date).toLocaleDateString('en-GB')} –{' '}
-                            {new Date(sprint.end_date).toLocaleDateString('en-GB')}
-                          </span>
-                          <span className="font-bold text-slate-700">
-                            {completed}/{sprintTasks.length} tasks
-                          </span>
-                        </div>
-                        <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                          <div
-                            className="bg-blue-600 h-full rounded-full transition-all duration-300"
-                            style={{ width: `${progress}%` }}
-                          />
-                        </div>
-                        <div className="pt-2 flex items-center justify-between">
-                          <button
-                            onClick={() => {
-                              setSelectedSprintFilter(String(sprint.sprint_id));
-                              setActiveTab(3); // Switch to tasks tab
-                            }}
-                            className="text-xs font-semibold text-blue-600 hover:underline"
-                          >
-                            View Sprint Tasks →
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* TAB 3: Tasks Tab (Pure Kanban Board & Sprint/Assignee Filtering) */}
-        {activeTab === 3 && (
+        {/* TAB: Unified Tasks, Sprints, and Bugs */}
+        {activeTab === 'tasks' && (
           <div className="space-y-4">
-            {/* Action Bar & Sub-Filters */}
-            <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                  <span className="font-semibold text-slate-400">Sprint:</span>
-                  <select
-                    value={selectedSprintFilter}
-                    onChange={(e) => setSelectedSprintFilter(e.target.value)}
-                    className="px-3 py-1.5 text-xs border border-slate-200 rounded-xl bg-slate-50/50 text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  >
-                    <option value="all">All Sprints</option>
-                    {sprints.map((s) => (
-                      <option key={s.sprint_id} value={s.sprint_id}>
-                        {s.sprint_name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {isManagerOrAdmin && (
-                  <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                    <span className="font-semibold text-slate-400">Assignee:</span>
-                    <select
-                      value={selectedEmpFilter}
-                      onChange={(e) => setSelectedEmpFilter(e.target.value)}
-                      className="px-3 py-1.5 text-xs border border-slate-200 rounded-xl bg-slate-50/50 text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    >
-                      <option value="all">All Assignees</option>
-                      {project.members?.map((m) => (
-                        <option key={m.employee_id} value={m.employee_id}>
-                          {m.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {(selectedSprintFilter !== 'all' || selectedEmpFilter !== 'all') && (
-                  <button
-                    onClick={() => {
-                      setSelectedSprintFilter('all');
-                      setSelectedEmpFilter('all');
-                    }}
-                    className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition"
-                    title="Reset Board Filters"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-
-              <div className="flex items-center gap-2">
+            {/* Sub-view switcher & Quick Actions Bar */}
+            <div className="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+              {/* Segmented Switcher for Tasks, Sprints, Bugs */}
+              <div className="flex items-center gap-1 bg-slate-100/80 p-1 rounded-xl">
                 <button
-                  onClick={() => setIsBugModalOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-semibold transition"
+                  type="button"
+                  onClick={() => setTasksSubTab('board')}
+                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${tasksSubTab === 'board'
+                      ? 'bg-white text-blue-600 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                >
+                  <CheckSquare className="w-3.5 h-3.5" />
+                  <span>Tasks</span>
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${tasksSubTab === 'board' ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-600'
+                    }`}>
+                    {filteredTasks.length}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setTasksSubTab('sprints')}
+                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${tasksSubTab === 'sprints'
+                      ? 'bg-white text-blue-600 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>Sprints</span>
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${tasksSubTab === 'sprints' ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-600'
+                    }`}>
+                    {sprints.length}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setTasksSubTab('bugs')}
+                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${tasksSubTab === 'bugs'
+                      ? 'bg-white text-rose-600 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                    }`}
                 >
                   <Bug className="w-3.5 h-3.5" />
-                  Report Bug
+                  <span>Bugs</span>
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${tasksSubTab === 'bugs' ? 'bg-rose-100 text-rose-700' : 'bg-slate-200 text-slate-600'
+                    }`}>
+                    {bugs.length}
+                  </span>
+                </button>
+              </div>
+
+              {/* Quick Actions */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsBugModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-semibold transition cursor-pointer"
+                >
+                  <Bug className="w-3.5 h-3.5" />
+                  <span>Report Bug</span>
                 </button>
                 {isManagerOrAdmin && (
                   <>
                     <button
+                      type="button"
                       onClick={() => setIsSprintModalOpen(true)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition cursor-pointer"
                     >
                       <Layers className="w-3.5 h-3.5" />
-                      Add Sprint
+                      <span>Add Sprint</span>
                     </button>
                     <button
+                      type="button"
                       onClick={() => setIsTaskModalOpen(true)}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-sm transition"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-xs transition cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                      Create Task
+                      <span>Create Task</span>
                     </button>
                   </>
                 )}
               </div>
             </div>
 
-            {/* Drag & Drop Kanban Board */}
-            <div className="overflow-x-auto pb-4">
-              <TaskBoard
-                board={taskBoardDto}
-                isAdmin={isAdmin}
-                onCardClick={(taskId) => setSelectedDrawerTaskId(taskId)}
-                onMoveStage={handleMoveStage}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* TAB 4: Bugs Tab (Dedicated Bug Tracker & Lifecycle Management) */}
-        {activeTab === 4 && (
-          <div className="space-y-5">
-            {/* Bug Metrics Ribbon */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5">
-              <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total Bugs</div>
-                <div className="text-xl font-black text-slate-900">{bugStats.total}</div>
-              </div>
-              <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-                <div className="text-[10px] font-bold text-rose-600 uppercase tracking-wider mb-1">Open / New</div>
-                <div className="text-xl font-black text-rose-600">{bugStats.open}</div>
-              </div>
-              <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-                <div className="text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-1">In Dev</div>
-                <div className="text-xl font-black text-amber-600">{bugStats.dev}</div>
-              </div>
-              <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-                <div className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-1">In QA</div>
-                <div className="text-xl font-black text-indigo-600">{bugStats.qa}</div>
-              </div>
-              <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-                <div className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider mb-1">Resolved</div>
-                <div className="text-xl font-black text-emerald-600">{bugStats.done}</div>
-              </div>
-            </div>
-
-            {/* Bugs Filter & Action Bar */}
-            <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
-              <div className="flex flex-wrap items-center gap-2.5 flex-1">
-                {/* Search */}
-                <div className="relative min-w-[200px] flex-1 max-w-sm">
-                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
-                  <input
-                    type="text"
-                    value={bugSearch}
-                    onChange={(e) => setBugSearch(e.target.value)}
-                    placeholder="Search bug title, code, assignee..."
-                    className="w-full pl-8 pr-3 py-1.5 text-xs border border-slate-200 rounded-xl bg-slate-50/50 focus:outline-none focus:ring-1 focus:ring-rose-500"
-                  />
-                  {bugSearch && (
+            {/* SUB-VIEW 2: Sprints */}
+            {tasksSubTab === 'sprints' && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">Project Sprints</h3>
+                    <p className="text-xs text-slate-500">
+                      Fixed cycles for planning, implementing, and delivering features
+                    </p>
+                  </div>
+                  {isManagerOrAdmin && (
                     <button
-                      onClick={() => setBugSearch('')}
-                      className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600"
+                      onClick={() => setIsSprintModalOpen(true)}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-sm transition"
                     >
-                      <X className="w-3.5 h-3.5" />
+                      <Plus className="w-3.5 h-3.5" />
+                      Create Sprint
                     </button>
                   )}
                 </div>
 
-                {/* Status Filter */}
-                <select
-                  value={bugStatusFilter}
-                  onChange={(e) => setBugStatusFilter(e.target.value)}
-                  className="px-3 py-1.5 text-xs border border-slate-200 rounded-xl bg-slate-50/50 text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-rose-500"
-                >
-                  <option value="all">All Statuses</option>
-                  <option value="new">New</option>
-                  <option value="open">Open</option>
-                  <option value="ready_for_dev">Ready for Dev</option>
-                  <option value="dev_in_progress">Dev in Progress</option>
-                  <option value="ready_for_qa">Ready for QA</option>
-                  <option value="qa_in_progress">QA in Progress</option>
-                  <option value="done">Done / Resolved</option>
-                </select>
+                {sprints.length === 0 ? (
+                  <div className="py-16 text-center bg-white rounded-3xl border border-dashed border-slate-200">
+                    <Layers className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                    <h4 className="text-sm font-bold text-slate-800 mb-1">No Sprints Defined</h4>
+                    <p className="text-xs text-slate-400 mb-4 max-w-sm mx-auto">
+                      Organize work into 1-4 week sprints to track progress against project milestones.
+                    </p>
+                    {isManagerOrAdmin && (
+                      <button
+                        onClick={() => setIsSprintModalOpen(true)}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-sm"
+                      >
+                        Create First Sprint
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    {sprints.map((sprint) => {
+                      const sprintTasks = tasks.filter((t) => t.sprint_id === sprint.sprint_id);
+                      const completed = sprintTasks.filter(
+                        (t) => t.stage === 'completed' || t.status === 'completed'
+                      ).length;
+                      const progress =
+                        sprintTasks.length > 0 ? Math.round((completed / sprintTasks.length) * 100) : 0;
 
-                {/* Priority Filter */}
-                <select
-                  value={bugPriorityFilter}
-                  onChange={(e) => setBugPriorityFilter(e.target.value)}
-                  className="px-3 py-1.5 text-xs border border-slate-200 rounded-xl bg-slate-50/50 text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-rose-500"
-                >
-                  <option value="all">All Priorities</option>
-                  <option value="high">High</option>
-                  <option value="medium">Medium</option>
-                  <option value="low">Low</option>
-                </select>
+                      return (
+                        <div
+                          key={sprint.sprint_id}
+                          className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs hover:shadow-md transition flex flex-col justify-between space-y-4"
+                        >
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <span
+                                className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${sprint.status === 'completed'
+                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                    : sprint.status === 'in_progress'
+                                      ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                                      : 'bg-slate-100 text-slate-700 border border-slate-200'
+                                  }`}
+                              >
+                                {sprint.status.replace('_', ' ')}
+                              </span>
+                              <span className="text-[11px] font-mono text-slate-400">
+                                #{sprint.sprint_id}
+                              </span>
+                            </div>
+                            <h4 className="text-sm font-extrabold text-slate-900 mb-1">
+                              {sprint.sprint_name}
+                            </h4>
+                            <p className="text-xs text-slate-500 line-clamp-2">
+                              {sprint.sprint_goal || 'No goal specified for this sprint.'}
+                            </p>
+                          </div>
 
-                {(bugSearch || bugStatusFilter !== 'all' || bugPriorityFilter !== 'all') && (
-                  <button
-                    onClick={() => {
-                      setBugSearch('');
-                      setBugStatusFilter('all');
-                      setBugPriorityFilter('all');
-                    }}
-                    className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition"
-                    title="Reset Bug Filters"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                  </button>
+                          <div className="space-y-2 pt-2 border-t border-slate-100">
+                            <div className="flex items-center justify-between text-[11px] text-slate-500">
+                              <span>
+                                {new Date(sprint.start_date).toLocaleDateString('en-GB')} –{' '}
+                                {new Date(sprint.end_date).toLocaleDateString('en-GB')}
+                              </span>
+                              <span className="font-bold text-slate-700">
+                                {completed}/{sprintTasks.length} tasks
+                              </span>
+                            </div>
+                            <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                              <div
+                                className="bg-blue-600 h-full rounded-full transition-all duration-300"
+                                style={{ width: `${progress}%` }}
+                              />
+                            </div>
+                            <div className="pt-2 flex items-center justify-between">
+                              <button
+                                onClick={() => {
+                                  setSelectedSprintFilter(String(sprint.sprint_id));
+                                  setTasksSubTab('board');
+                                }}
+                                className="text-xs font-semibold text-blue-600 hover:underline cursor-pointer"
+                              >
+                                View Sprint Tasks →
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
+            )}
 
-              <button
-                onClick={() => setIsBugModalOpen(true)}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold shadow-sm transition shrink-0"
-              >
-                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                Report Bug
-              </button>
-            </div>
+            {/* SUB-VIEW 1: Tasks (Individual Logs & Task Details - Image 2 & 3) */}
+            {tasksSubTab === 'board' && (
+              <div className="space-y-4">
+                {/* If a task is selected, show embedded Task Details view (Image 2) */}
+                {selectedDrawerTaskId !== null && drawerTaskDetail ? (
+                  <div className="space-y-3">
+                    <TaskDrawer
+                      task={drawerTaskDetail}
+                      isOpen={true}
+                      isAdmin={isAdmin}
+                      embedded={true}
+                      onClose={() => setSelectedDrawerTaskId(null)}
+                      onMoveStage={handleMoveStage}
+                      onTrackWorkSession={async (taskId, action, note) => {
+                        const url = isAdmin
+                          ? `/api/v1/admin/tasks/${taskId}/work-session`
+                          : `/api/v1/my-tasks/${taskId}/work-session`;
+                        await customFetch(url, {
+                          method: 'POST',
+                          body: JSON.stringify({ action, note }),
+                          headers: { 'Content-Type': 'application/json' },
+                        });
+                        const freshTasks = await fetchSprintTasks(projectId);
+                        setTasks(freshTasks);
+                        const res = await customFetch<any>(url.replace('/work-session', ''));
+                        setDrawerTaskDetail(res?.data || res);
+                      }}
+                      onAddSubTask={() => setIsTaskModalOpen(true)}
+                      onSendMessage={async (_taskId, message) => {
+                        try {
+                          await createProjectDiscussion(
+                            projectId,
+                            `[${drawerTaskDetail.task_code}] ${message}`
+                          );
+                          const freshDiscussions = await fetchProjectDiscussions(projectId);
+                          setDiscussions(freshDiscussions);
+                        } catch (err) {
+                          console.error(err);
+                        }
+                      }}
+                    />
+                  </div>
+                ) : (
+                  /* Otherwise, show INDIVIDUAL LOGS list view (Image 3) */
+                  <div className="space-y-4">
+                    {/* Header: INDIVIDUAL LOGS & Action Bar */}
+                    <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">
+                          INDIVIDUAL LOGS
+                        </h3>
+                        <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
+                          {filteredTasks.length}
+                        </span>
+                      </div>
 
-            {/* Bugs Table */}
-            <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
-              {filteredBugs.length === 0 ? (
-                <div className="py-16 text-center text-slate-400 space-y-2">
-                  <Bug className="w-10 h-10 text-slate-300 mx-auto" />
-                  <p className="text-xs font-medium">No bugs matching the current filters.</p>
-                  <p className="text-[11px] text-slate-400">Try adjusting your search or report a new defect.</p>
+                      <div className="flex flex-wrap items-center gap-2.5">
+                        <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                          <span className="font-semibold text-slate-400">Sprint:</span>
+                          <select
+                            value={selectedSprintFilter}
+                            onChange={(e) => setSelectedSprintFilter(e.target.value)}
+                            className="px-3 py-1.5 text-xs border border-slate-200 rounded-xl bg-slate-50/50 text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          >
+                            <option value="all">All Sprints</option>
+                            {sprints.map((s) => (
+                              <option key={s.sprint_id} value={s.sprint_id}>
+                                {s.sprint_name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {isManagerOrAdmin && (
+                          <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                            <span className="font-semibold text-slate-400">Assignee:</span>
+                            <select
+                              value={selectedEmpFilter}
+                              onChange={(e) => setSelectedEmpFilter(e.target.value)}
+                              className="px-3 py-1.5 text-xs border border-slate-200 rounded-xl bg-slate-50/50 text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            >
+                              <option value="all">All Assignees</option>
+                              {project.members?.map((m) => (
+                                <option key={m.employee_id} value={m.employee_id}>
+                                  {m.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+
+                        {(selectedSprintFilter !== 'all' || selectedEmpFilter !== 'all') && (
+                          <button
+                            onClick={() => {
+                              setSelectedSprintFilter('all');
+                              setSelectedEmpFilter('all');
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition"
+                            title="Reset Filters"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+
+                        {isManagerOrAdmin && (
+                          <button
+                            onClick={() => setIsTaskModalOpen(true)}
+                            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold shadow-xs transition cursor-pointer ml-auto sm:ml-0"
+                          >
+                            <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                            <span>+ Create Stage Task</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Task List (Image 3) */}
+                    <div className="space-y-3">
+                      {filteredTasks.length === 0 ? (
+                        <div className="py-16 text-center bg-white rounded-3xl border border-dashed border-slate-200">
+                          <CheckSquare className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                          <h4 className="text-sm font-bold text-slate-800 mb-1">No Tasks Found</h4>
+                          <p className="text-xs text-slate-400 mb-4 max-w-sm mx-auto">
+                            Create tasks to track individual assignments, stages, and work sessions.
+                          </p>
+                          {isManagerOrAdmin && (
+                            <button
+                              onClick={() => setIsTaskModalOpen(true)}
+                              className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold shadow-xs"
+                            >
+                              + Create Stage Task
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        filteredTasks.map((t) => {
+                          const stConf = (t.stage && STAGE_CONFIG[t.stage as TaskStage])
+                            ? STAGE_CONFIG[t.stage as TaskStage]
+                            : { label: t.stage || 'Assigned', badge: 'bg-slate-100 text-slate-700 border-slate-200' };
+                          const assigneesText = t.assignees?.map((a) => a.name).join(', ') || 'Unassigned';
+                          return (
+                            <div
+                              key={t.task_id}
+                              onClick={() => setSelectedDrawerTaskId(t.task_id)}
+                              className="bg-white hover:bg-slate-50/90 border border-slate-200/90 hover:border-blue-400 rounded-2xl p-4 transition-all duration-150 cursor-pointer flex items-center justify-between shadow-2xs hover:shadow-xs group"
+                            >
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                                    {t.task_code}
+                                  </span>
+                                  <h4 className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition">
+                                    {t.title}
+                                  </h4>
+                                </div>
+                                <p className="text-xs text-slate-500 mt-1">
+                                  Assigned to: <span className="font-medium text-slate-700">{assigneesText}</span>
+                                </p>
+                              </div>
+
+                              <div className="flex items-center gap-3">
+                                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${stConf.badge}`}>
+                                  <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                                  {stConf.label}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* SUB-VIEW 3: Bugs */}
+            {tasksSubTab === 'bugs' && (
+              <div className="space-y-5">
+                {/* Bug Metrics Ribbon */}
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5">
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total Bugs</div>
+                    <div className="text-xl font-black text-slate-900">{bugStats.total}</div>
+                  </div>
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+                    <div className="text-[10px] font-bold text-rose-600 uppercase tracking-wider mb-1">Open / New</div>
+                    <div className="text-xl font-black text-rose-600">{bugStats.open}</div>
+                  </div>
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+                    <div className="text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-1">In Dev</div>
+                    <div className="text-xl font-black text-amber-600">{bugStats.dev}</div>
+                  </div>
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+                    <div className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-1">In QA</div>
+                    <div className="text-xl font-black text-indigo-600">{bugStats.qa}</div>
+                  </div>
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+                    <div className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider mb-1">Resolved</div>
+                    <div className="text-xl font-black text-emerald-600">{bugStats.done}</div>
+                  </div>
                 </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead>
-                      <tr className="border-b border-slate-100 bg-slate-50/50 text-slate-500 font-semibold text-[11px] uppercase tracking-wider">
-                        <th className="py-3 px-4">Bug Code</th>
-                        <th className="py-3 px-4">Title</th>
-                        <th className="py-3 px-3">Type</th>
-                        <th className="py-3 px-3">Priority</th>
-                        <th className="py-3 px-4">Assigned To</th>
-                        <th className="py-3 px-3">Status</th>
-                        <th className="py-3 px-4 text-right">Created</th>
-                        <th className="py-3 px-4 text-center">Lifecycle</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 text-slate-700">
-                      {filteredBugs.map((bug) => (
-                        <tr
-                          key={bug.bug_id}
-                          onClick={() => setSelectedBugId(bug.bug_id)}
-                          className="hover:bg-slate-50/80 cursor-pointer transition group"
+
+                {/* Bugs Filter & Action Bar */}
+                <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-2.5 flex-1">
+                    {/* Search */}
+                    <div className="relative min-w-[200px] flex-1 max-w-sm">
+                      <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                      <input
+                        type="text"
+                        value={bugSearch}
+                        onChange={(e) => setBugSearch(e.target.value)}
+                        placeholder="Search bug title, code, assignee..."
+                        className="w-full pl-8 pr-3 py-1.5 text-xs border border-slate-200 rounded-xl bg-slate-50/50 focus:outline-none focus:ring-1 focus:ring-rose-500"
+                      />
+                      {bugSearch && (
+                        <button
+                          onClick={() => setBugSearch('')}
+                          className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600"
                         >
-                          <td className="py-3 px-4 font-mono font-bold text-rose-600 group-hover:underline">
-                            {bug.bug_code}
-                          </td>
-                          <td className="py-3 px-4 font-bold text-slate-900 max-w-xs truncate">
-                            {bug.title}
-                          </td>
-                          <td className="py-3 px-3 capitalize font-medium text-slate-600">
-                            {bug.bug_type}
-                          </td>
-                          <td className="py-3 px-3">
-                            <span
-                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                bug.priority === 'high'
-                                  ? 'bg-rose-100 text-rose-700 border border-rose-200'
-                                  : bug.priority === 'medium'
-                                  ? 'bg-amber-100 text-amber-700 border border-amber-200'
-                                  : 'bg-slate-100 text-slate-700 border border-slate-200'
-                              }`}
-                            >
-                              {bug.priority}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 font-medium text-slate-700">
-                            {bug.assigned_to_name || `Emp #${bug.assigned_to}`}
-                          </td>
-                          <td className="py-3 px-3">
-                            <span
-                              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold capitalize ${
-                                bug.status === 'done'
-                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                  : bug.status.includes('qa')
-                                  ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-                                  : bug.status.includes('dev')
-                                  ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                                  : 'bg-rose-50 text-rose-700 border border-rose-200'
-                              }`}
-                            >
-                              {bug.status.replace(/_/g, ' ')}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 text-right text-slate-400 text-[11px]">
-                            {new Date(bug.created_at).toLocaleDateString('en-GB')}
-                          </td>
-                          <td className="py-3 px-4 text-center">
-                            <span className="text-[11px] font-semibold text-blue-600 group-hover:underline">
-                              View Details →
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Status Filter */}
+                    <select
+                      value={bugStatusFilter}
+                      onChange={(e) => setBugStatusFilter(e.target.value)}
+                      className="px-3 py-1.5 text-xs border border-slate-200 rounded-xl bg-slate-50/50 text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-rose-500"
+                    >
+                      <option value="all">All Statuses</option>
+                      <option value="new">New</option>
+                      <option value="open">Open</option>
+                      <option value="ready_for_dev">Ready for Dev</option>
+                      <option value="dev_in_progress">Dev in Progress</option>
+                      <option value="ready_for_qa">Ready for QA</option>
+                      <option value="qa_in_progress">QA in Progress</option>
+                      <option value="done">Done / Resolved</option>
+                    </select>
+
+                    {/* Priority Filter */}
+                    <select
+                      value={bugPriorityFilter}
+                      onChange={(e) => setBugPriorityFilter(e.target.value)}
+                      className="px-3 py-1.5 text-xs border border-slate-200 rounded-xl bg-slate-50/50 text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-rose-500"
+                    >
+                      <option value="all">All Priorities</option>
+                      <option value="high">High</option>
+                      <option value="medium">Medium</option>
+                      <option value="low">Low</option>
+                    </select>
+
+                    {(bugSearch || bugStatusFilter !== 'all' || bugPriorityFilter !== 'all') && (
+                      <button
+                        onClick={() => {
+                          setBugSearch('');
+                          setBugStatusFilter('all');
+                          setBugPriorityFilter('all');
+                        }}
+                        className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition"
+                        title="Reset Bug Filters"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={() => setIsBugModalOpen(true)}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold shadow-sm transition shrink-0"
+                  >
+                    <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                    Report Bug
+                  </button>
                 </div>
-              )}
-            </div>
+
+                {/* Bugs Table */}
+                <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
+                  {filteredBugs.length === 0 ? (
+                    <div className="py-16 text-center text-slate-400 space-y-2">
+                      <Bug className="w-10 h-10 text-slate-300 mx-auto" />
+                      <p className="text-xs font-medium">No bugs matching the current filters.</p>
+                      <p className="text-[11px] text-slate-400">Try adjusting your search or report a new defect.</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr className="border-b border-slate-100 bg-slate-50/50 text-slate-500 font-semibold text-[11px] uppercase tracking-wider">
+                            <th className="py-3 px-4">Bug Code</th>
+                            <th className="py-3 px-4">Title</th>
+                            <th className="py-3 px-3">Type</th>
+                            <th className="py-3 px-3">Priority</th>
+                            <th className="py-3 px-4">Assigned To</th>
+                            <th className="py-3 px-3">Status</th>
+                            <th className="py-3 px-4 text-right">Created</th>
+                            <th className="py-3 px-4 text-center">Lifecycle</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 text-slate-700">
+                          {filteredBugs.map((bug) => (
+                            <tr
+                              key={bug.bug_id}
+                              onClick={() => setSelectedBugId(bug.bug_id)}
+                              className="hover:bg-slate-50/80 cursor-pointer transition group"
+                            >
+                              <td className="py-3 px-4 font-mono font-bold text-rose-600 group-hover:underline">
+                                {bug.bug_code}
+                              </td>
+                              <td className="py-3 px-4 font-bold text-slate-900 max-w-xs truncate">
+                                {bug.title}
+                              </td>
+                              <td className="py-3 px-3 capitalize font-medium text-slate-600">
+                                {bug.bug_type}
+                              </td>
+                              <td className="py-3 px-3">
+                                <span
+                                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${bug.priority === 'high'
+                                      ? 'bg-rose-100 text-rose-700 border border-rose-200'
+                                      : bug.priority === 'medium'
+                                        ? 'bg-amber-100 text-amber-700 border border-amber-200'
+                                        : 'bg-slate-100 text-slate-700 border border-slate-200'
+                                    }`}
+                                >
+                                  {bug.priority}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4 font-medium text-slate-700">
+                                {bug.assigned_to_name || `Emp #${bug.assigned_to}`}
+                              </td>
+                              <td className="py-3 px-3">
+                                <span
+                                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold capitalize ${bug.status === 'done'
+                                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                      : bug.status.includes('qa')
+                                        ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                                        : bug.status.includes('dev')
+                                          ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                                          : 'bg-rose-50 text-rose-700 border border-rose-200'
+                                    }`}
+                                >
+                                  {bug.status.replace(/_/g, ' ')}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4 text-right text-slate-400 text-[11px]">
+                                {new Date(bug.created_at).toLocaleDateString('en-GB')}
+                              </td>
+                              <td className="py-3 px-4 text-center">
+                                <span className="text-[11px] font-semibold text-blue-600 group-hover:underline">
+                                  View Details →
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
-        {/* TAB 5: Discussion Tab */}
-        {activeTab === 5 && (
+        {/* TAB: Discussion Tab */}
+        {activeTab === 'discussion' && (
           <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs flex flex-col h-[650px] overflow-hidden">
             {/* Header */}
             <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
@@ -2277,24 +2390,21 @@ export const ProjectDetailPage: React.FC = () => {
                   return (
                     <div
                       key={msg.message_id}
-                      className={`flex items-start gap-3 ${
-                        isCurrentUser ? 'flex-row-reverse' : ''
-                      }`}
+                      className={`flex items-start gap-3 ${isCurrentUser ? 'flex-row-reverse' : ''
+                        }`}
                     >
                       <div className="w-8 h-8 rounded-full bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-xs shrink-0">
                         {msg.sender_name ? msg.sender_name.substring(0, 2).toUpperCase() : 'U'}
                       </div>
                       <div
-                        className={`max-w-md p-3.5 rounded-2xl text-xs space-y-1 ${
-                          isCurrentUser
+                        className={`max-w-md p-3.5 rounded-2xl text-xs space-y-1 ${isCurrentUser
                             ? 'bg-blue-600 text-white rounded-tr-none'
                             : 'bg-slate-100 text-slate-800 rounded-tl-none'
-                        }`}
+                          }`}
                       >
                         <div
-                          className={`flex items-center justify-between gap-3 text-[10px] ${
-                            isCurrentUser ? 'text-blue-100' : 'text-slate-400'
-                          }`}
+                          className={`flex items-center justify-between gap-3 text-[10px] ${isCurrentUser ? 'text-blue-100' : 'text-slate-400'
+                            }`}
                         >
                           <span className="font-bold">{msg.sender_name}</span>
                           <span>{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
@@ -2329,8 +2439,8 @@ export const ProjectDetailPage: React.FC = () => {
           </div>
         )}
 
-        {/* TAB 6: Activity Logs Tab */}
-        {activeTab === 6 && (
+        {/* TAB: Activity Logs Tab */}
+        {activeTab === 'activity' && (
           <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 space-y-6">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
@@ -2384,10 +2494,10 @@ export const ProjectDetailPage: React.FC = () => {
         )}
       </div>
 
-      {/* Task Drawer */}
+      {/* Task Drawer (For non-tasks tab navigation) */}
       <TaskDrawer
         task={drawerTaskDetail}
-        isOpen={selectedDrawerTaskId !== null}
+        isOpen={selectedDrawerTaskId !== null && activeTab !== 'tasks'}
         isAdmin={isAdmin}
         onClose={() => setSelectedDrawerTaskId(null)}
         onMoveStage={handleMoveStage}

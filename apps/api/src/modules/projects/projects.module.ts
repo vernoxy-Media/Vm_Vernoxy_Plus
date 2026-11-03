@@ -20,9 +20,10 @@ import { UpdateProjectUseCase } from './application/use-cases/update-project.use
 import { ProjectsController } from './presentation/controllers/projects.controller';
 
 import { EventsService } from '../websockets/events.service';
+import { NotificationsModule } from '../notifications/public-api';
 
 @Module({
-  imports: [PrismaModule, AuthModule],
+  imports: [PrismaModule, AuthModule, NotificationsModule],
   controllers: [ProjectsController],
   providers: [
     {

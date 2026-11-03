@@ -7,6 +7,7 @@ import {
   XCircle,
   Calendar,
   AlertCircle,
+  AlertTriangle,
   Mail,
 } from 'lucide-react';
 import {
@@ -20,6 +21,8 @@ import {
   useEmployeeOptionsQuery,
 } from '@/features/organization/hooks/use-organization';
 import { useLookupsQuery } from '@/features/organization/hooks/use-master-data';
+import { useAttendanceSettingsQuery } from '@/features/attendance/hooks/use-attendance-settings';
+import { checkJoiningDateConflict } from '@/features/attendance/utils/joining-date-check';
 
 interface CandidateDecisionModalProps {
   isOpen: boolean;
@@ -42,9 +45,11 @@ export const CandidateDecisionModal: React.FC<CandidateDecisionModalProps> = ({
   const { data: departments = [] } = useDepartmentOptionsQuery();
   const { data: employees = [] } = useEmployeeOptionsQuery();
   const { data: rejectionReasons = [] } = useLookupsQuery('rejection_reason');
+  const { data: attendanceSettings } = useAttendanceSettingsQuery();
 
   const markDecisionMutation = useMarkCandidateDecisionMutation();
 
+  const todayStr = new Date().toISOString().split('T')[0];
   const [decision, setDecision] = useState<'selected' | 'on_hold' | 'rejected'>(initialDecision);
 
   // Selected State
@@ -75,6 +80,10 @@ export const CandidateDecisionModal: React.FC<CandidateDecisionModalProps> = ({
   const [employmentType, setEmploymentType] = useState<string>(
     candidate.employment_type || (candidate as any).employmentType || 'Full-time',
   );
+
+  const joiningCheck = React.useMemo(() => {
+    return checkJoiningDateConflict(expectedJoiningDate, attendanceSettings);
+  }, [expectedJoiningDate, attendanceSettings]);
 
   // On Hold State
   const [onHoldReviewDate, setOnHoldReviewDate] = useState<string>(() => {
@@ -156,7 +165,11 @@ export const CandidateDecisionModal: React.FC<CandidateDecisionModalProps> = ({
     if (decision === 'selected') {
       if (!finalRoleId) errs.finalRoleId = 'Designation is required';
       if (!finalDepId) errs.finalDepId = 'Department is required';
-      if (!expectedJoiningDate) errs.expectedJoiningDate = 'Expected joining date is required';
+      if (!expectedJoiningDate) {
+        errs.expectedJoiningDate = 'Expected joining date is required';
+      } else if (expectedJoiningDate < todayStr) {
+        errs.expectedJoiningDate = 'Expected joining date should be today or a future date';
+      }
       if (offeredCtc && (isNaN(Number(offeredCtc)) || Number(offeredCtc) <= 0)) {
         errs.offeredCtc = 'Please enter a valid positive number for offered CTC';
       }
@@ -385,12 +398,28 @@ export const CandidateDecisionModal: React.FC<CandidateDecisionModalProps> = ({
                   </label>
                   <input
                     type="date"
+                    min={todayStr}
                     value={expectedJoiningDate}
                     onChange={(e) => setExpectedJoiningDate(e.target.value)}
                     className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white"
                   />
                   {errors.expectedJoiningDate && (
                     <p className="text-xs text-rose-500 mt-1">{errors.expectedJoiningDate}</p>
+                  )}
+                  {joiningCheck && joiningCheck.severity === 'warning' && (
+                    <div className="mt-1.5 p-2.5 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-2 text-xs text-amber-800 animate-in fade-in">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                      <div>
+                        <span className="font-semibold">Notice: </span>
+                        <span>{joiningCheck.message}</span>
+                      </div>
+                    </div>
+                  )}
+                  {joiningCheck && joiningCheck.severity === 'ok' && expectedJoiningDate && (
+                    <p className="text-[11px] text-emerald-600 font-medium mt-1.5 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>{joiningCheck.message}</span>
+                    </p>
                   )}
                 </div>
 

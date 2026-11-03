@@ -41,6 +41,7 @@ import {
   useEmployeeOptionsQuery,
 } from '@/features/organization/hooks/use-organization';
 import { useAuth } from '@/features/auth/context/AuthContext';
+import { SearchableSelect } from '@/shared/ui/SearchableSelect';
 
 export const ComplaintsManagementPage: React.FC = (): React.ReactElement => {
   const { user } = useAuth();
@@ -446,56 +447,46 @@ export const ComplaintsManagementPage: React.FC = (): React.ReactElement => {
 
       {/* Filter Toolbar (BFD Page 16 Marker 4) */}
       <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center gap-3 text-xs">
-        <select
-          value={selectedTypeId || ''}
-          onChange={(e) => setSelectedTypeId(e.target.value ? Number(e.target.value) : undefined)}
-          className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500"
-        >
-          <option value="">All Types</option>
-          {types.map((t) => (
-            <option key={t.type_id} value={t.type_id}>
-              {t.name}
-            </option>
-          ))}
-        </select>
+        <SearchableSelect
+          placeholder="All Types"
+          value={selectedTypeId ?? null}
+          onChange={(v) => setSelectedTypeId(v ? Number(v) : undefined)}
+          options={types.map((t) => ({ value: t.type_id, label: t.name }))}
+          clearable
+          className="min-w-[140px]"
+        />
 
-        <select
-          value={selectedDeptId || ''}
-          onChange={(e) => setSelectedDeptId(e.target.value ? Number(e.target.value) : undefined)}
-          className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500"
-        >
-          <option value="">All Departments</option>
-          {deptOptions.map((d: any) => (
-            <option key={d.dep_id || d.id} value={d.dep_id || d.id}>
-              {d.name}
-            </option>
-          ))}
-        </select>
+        <SearchableSelect
+          placeholder="All Departments"
+          value={selectedDeptId ?? null}
+          onChange={(v) => setSelectedDeptId(v ? Number(v) : undefined)}
+          options={deptOptions.map((d: any) => ({ value: d.dep_id || d.id, label: d.name }))}
+          clearable
+          className="min-w-[160px]"
+        />
 
-        <select
-          value={selectedPriority}
-          onChange={(e) => setSelectedPriority(e.target.value)}
-          className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500"
-        >
-          <option value="">All Priorities</option>
-          <option value="Low">Low</option>
-          <option value="Medium">Medium</option>
-          <option value="High">High</option>
-          <option value="Urgent">Urgent</option>
-        </select>
+        <SearchableSelect
+          placeholder="All Priorities"
+          value={selectedPriority || null}
+          onChange={(v) => setSelectedPriority(v ? String(v) : '')}
+          options={[
+            { value: 'Low', label: 'Low' },
+            { value: 'Medium', label: 'Medium' },
+            { value: 'High', label: 'High' },
+            { value: 'Urgent', label: 'Urgent' },
+          ]}
+          clearable
+          className="min-w-[130px]"
+        />
 
-        <select
-          value={selectedHandlerId || ''}
-          onChange={(e) => setSelectedHandlerId(e.target.value ? Number(e.target.value) : undefined)}
-          className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500"
-        >
-          <option value="">All Handlers</option>
-          {empOptions.map((emp: any) => (
-            <option key={emp.emp_id || emp.id} value={emp.emp_id || emp.id}>
-              {emp.name}
-            </option>
-          ))}
-        </select>
+        <SearchableSelect
+          placeholder="All Handlers"
+          value={selectedHandlerId ?? null}
+          onChange={(v) => setSelectedHandlerId(v ? Number(v) : undefined)}
+          options={empOptions.map((emp: any) => ({ value: emp.emp_id || emp.id, label: emp.name }))}
+          clearable
+          className="min-w-[150px]"
+        />
 
         <input
           type="date"
@@ -694,19 +685,12 @@ export const ComplaintsManagementPage: React.FC = (): React.ReactElement => {
             <form onSubmit={handleAcceptSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">Handler *</label>
-                <select
-                  required
-                  value={assignHandlerId}
-                  onChange={(e) => setAssignHandlerId(Number(e.target.value))}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:bg-white"
-                >
-                  <option value="">Select Active Employee</option>
-                  {empOptions.map((emp: any) => (
-                    <option key={emp.emp_id || emp.id} value={emp.emp_id || emp.id}>
-                      {emp.name}
-                    </option>
-                  ))}
-                </select>
+                <SearchableSelect
+                  placeholder="Select Active Employee"
+                  value={assignHandlerId || null}
+                  onChange={(v) => setAssignHandlerId(v ? Number(v) : '')}
+                  options={empOptions.map((emp: any) => ({ value: emp.emp_id || emp.id, label: emp.name }))}
+                />
                 <p className="text-[10px] text-slate-400 mt-0.5">The complainant cannot be chosen as handler.</p>
               </div>
 
@@ -1293,19 +1277,12 @@ export const ComplaintsManagementPage: React.FC = (): React.ReactElement => {
             <form onSubmit={handleReassignSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">New Handler *</label>
-                <select
-                  required
-                  value={newHandlerId}
-                  onChange={(e) => setNewHandlerId(Number(e.target.value))}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg"
-                >
-                  <option value="">Select Handler</option>
-                  {empOptions.map((emp: any) => (
-                    <option key={emp.emp_id || emp.id} value={emp.emp_id || emp.id}>
-                      {emp.name}
-                    </option>
-                  ))}
-                </select>
+                <SearchableSelect
+                  placeholder="Select Handler"
+                  value={newHandlerId || null}
+                  onChange={(v) => setNewHandlerId(v ? Number(v) : '')}
+                  options={empOptions.map((emp: any) => ({ value: emp.emp_id || emp.id, label: emp.name }))}
+                />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">Reason *</label>

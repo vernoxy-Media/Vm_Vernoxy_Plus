@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ChevronLeft,
@@ -22,6 +23,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useLookupsQuery } from '@/features/organization/hooks/use-master-data';
+import { useDepartmentOptionsQuery } from '@/features/organization/hooks/use-organization';
+import { useLeaveCalendarQuery } from '@/features/leave/hooks/use-leave';
 import {
   useMyTasksControllerGetTaskDetail,
   useMyTasksControllerMoveStage,
@@ -64,7 +67,7 @@ export const CalendarPage: React.FC = () => {
 
   // View Mode: Month | Week | Day | List (HRMS Attendance Spec)
   const [viewMode, setViewMode] = useState<'month' | 'week' | 'day' | 'list'>('month');
-  const [kpiMode, setKpiMode] = useState<'attendance' | 'tasks'>('attendance');
+  const [kpiMode, setKpiMode] = useState<'attendance' | 'tasks' | 'leaves'>('attendance');
 
   // Current viewing date (determines month, week, or day)
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
@@ -103,6 +106,7 @@ export const CalendarPage: React.FC = () => {
     taskTypeId: 'all',
     priority: 'all',
     selectedEmployeeIds: [],
+    departmentId: 'all',
   });
 
   // Calculate start & end range depending on viewMode
@@ -245,6 +249,25 @@ export const CalendarPage: React.FC = () => {
     queryFn: () => fetchCalendarEvents(queryStart, queryEnd, filters.selectedEmployeeIds),
   });
 
+  // Department options for Leave filter
+  const { data: rawDepts = [] } = useDepartmentOptionsQuery();
+  const departmentOptions = useMemo(() => {
+    return rawDepts.map((d: any) => ({ id: d.dep_id || d.id, name: d.name }));
+  }, [rawDepts]);
+
+  // Approved Leaves for calendar
+  const { data: rawLeaves = [], isLoading: isLeavesLoading } = useLeaveCalendarQuery(
+    monthStr,
+    filters.departmentId !== 'all' ? filters.departmentId : undefined,
+  );
+
+  const leaves = useMemo(() => {
+    if (!filters.selectedEmployeeIds || filters.selectedEmployeeIds.length === 0) {
+      return rawLeaves;
+    }
+    return rawLeaves.filter((l) => filters.selectedEmployeeIds.includes(l.emp_id));
+  }, [rawLeaves, filters.selectedEmployeeIds]);
+
   // Formatted holidays for Daily/Weekly grid
   const formattedHolidays = useMemo(() => {
     return holidays.map((h) => ({ date: h.holiday_date, name: h.name }));
@@ -324,6 +347,7 @@ export const CalendarPage: React.FC = () => {
       taskTypeId: 'all',
       priority: 'all',
       selectedEmployeeIds: [],
+      departmentId: 'all',
     });
   };
 
@@ -518,6 +542,7 @@ export const CalendarPage: React.FC = () => {
     filters.stage !== 'all',
     filters.priority !== 'all',
     filters.taskTypeId !== 'all',
+    filters.departmentId != null && filters.departmentId !== 'all',
     isAdmin && filters.selectedEmployeeIds.length > 0 && filters.selectedEmployeeIds.length < employees.length,
   ].filter(Boolean).length;
 
@@ -623,7 +648,8 @@ export const CalendarPage: React.FC = () => {
 
       {/* Attendance | Operations switch and the summary cards */}
       <div className="space-y-3">
-        <div role="tablist" aria-label="Calendar data" className="grid grid-cols-2 gap-1 rounded-2xl bg-slate-100 p-1 sm:inline-grid sm:w-auto">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+        <div role="tablist" aria-label="Calendar data" className="grid grid-cols-3 gap-1 rounded-2xl bg-slate-100 p-1 sm:inline-grid sm:w-auto">
           <button
             role="tab"
             aria-selected={kpiMode === 'attendance'}
@@ -646,16 +672,44 @@ export const CalendarPage: React.FC = () => {
             <ListChecks className="h-4 w-4" />
             Operations &amp; Tasks
           </button>
+          <button
+            role="tab"
+            aria-selected={kpiMode === 'leaves'}
+            onClick={() => setKpiMode('leaves')}
+            className={`flex h-9 cursor-pointer items-center justify-center gap-2 rounded-xl px-4 text-[13px] font-semibold transition-all ${
+              kpiMode === 'leaves' ? 'bg-gradient-to-r from-indigo-500 to-violet-500 text-white shadow-md shadow-indigo-500/25' : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Users className="h-4 w-4" />
+            Leaves
+          </button>
+        </div>
+        <Link
+          to="/leave?tab=calendar"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 transition-colors hover:text-blue-600"
+          title="Open the full Leave Management hub"
+        >
+          Leave Hub
+          <ExternalLink className="h-3.5 w-3.5" />
+        </Link>
         </div>
 
         {kpiMode === 'attendance' ? (
           <AttendanceMonthSummaryTiles records={attendanceDashboard?.records || []} />
+        ) : kpiMode === 'leaves' ? (
+          <CalendarKpiCards
+            leaves={leaves}
+            kpiMode="leaves"
+            isLoading={isLeavesLoading}
+            contextLabel={titleRange}
+            selectedDate={selectedDate}
+          />
         ) : (
           <CalendarKpiCards summary={activeSummary} isLoading={isKpiLoading} contextLabel={kpiContextLabel} />
         )}
       </div>
 
-      {kpiMode === 'tasks' && (
+      {(kpiMode === 'tasks' || kpiMode === 'leaves') && (
         <CalendarFilterBar
           filters={filters}
           onChange={setFilters}
@@ -663,6 +717,7 @@ export const CalendarPage: React.FC = () => {
           isAdmin={isAdmin}
           employees={employees}
           taskTypes={taskTypeOptions}
+          departments={departmentOptions}
           isOpen={isFiltersOpen}
           onToggle={() => setIsFiltersOpen(false)}
         />
@@ -678,6 +733,7 @@ export const CalendarPage: React.FC = () => {
             tasks={tasks}
             holidays={holidays}
             events={events}
+            leaves={leaves}
             attendanceRecords={attendanceRecordsMap}
             currentUserId={user?.emp_id}
             onSelectEvent={(ev) => setSelectedEvent(ev)}
@@ -700,6 +756,52 @@ export const CalendarPage: React.FC = () => {
                 setIsSidebarOpen(true);
               }}
             />
+          ) : kpiMode === 'leaves' ? (
+            <div className="space-y-2">
+              {leaves.length === 0 ? (
+                <p className="py-12 text-center text-xs text-slate-400 font-medium">
+                  No approved employee leaves found in this period.
+                </p>
+              ) : (
+                leaves.map((leave) => (
+                  <div
+                    key={leave.request_id}
+                    onClick={() => {
+                      const [y, m, d] = leave.from_date.split('-').map(Number);
+                      setSelectedDate(new Date(y, m - 1, d));
+                      setIsSidebarOpen(true);
+                    }}
+                    className="flex items-center justify-between gap-3 px-3.5 py-3 rounded-xl border border-slate-200 hover:bg-slate-50 transition cursor-pointer"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-slate-800 truncate">
+                        {leave.employee_name}
+                        <span className="text-[11px] font-normal text-slate-500 ml-2">
+                          ({leave.department_name || 'General'})
+                        </span>
+                      </p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        {leave.leave_type_name} · {leave.from_date} to {leave.to_date} ({leave.leave_days} day(s))
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span
+                        className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${
+                          leave.is_paid
+                            ? 'bg-blue-50 text-blue-800 border border-blue-200'
+                            : 'bg-rose-50 text-rose-800 border border-rose-200'
+                        }`}
+                      >
+                        {leave.is_paid ? 'Paid' : 'Unpaid (LOP)'}
+                      </span>
+                      <span className="text-[10px] font-mono text-slate-400">
+                        #{leave.request_no}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           ) : (
             <div className="space-y-2">
               {tasks.length === 0 ? (
@@ -748,6 +850,7 @@ export const CalendarPage: React.FC = () => {
                 currentDate={currentDate}
                 events={kpiMode === 'tasks' ? mergedEvents : []}
                 holidays={kpiMode === 'attendance' ? formattedHolidays : []}
+                leaves={leaves}
                 attendanceRecords={kpiMode === 'attendance' ? attendanceRecordsMap : {}}
                 onSelectEvent={(ev) => setSelectedEvent(ev)}
                 onSlotClick={handleSlotClick}
@@ -762,6 +865,7 @@ export const CalendarPage: React.FC = () => {
                 currentDate={currentDate}
                 events={kpiMode === 'tasks' ? mergedEvents : []}
                 holidays={kpiMode === 'attendance' ? formattedHolidays : []}
+                leaves={leaves}
                 attendanceRecords={kpiMode === 'attendance' ? attendanceRecordsMap : {}}
                 onSelectEvent={(ev) => setSelectedEvent(ev)}
                 onSlotClick={handleSlotClick}
@@ -916,6 +1020,7 @@ export const CalendarPage: React.FC = () => {
         holiday={selectedDayHoliday}
         tasks={tasks}
         events={events}
+        leaves={leaves}
         displayMode={kpiMode}
         currentUserId={user?.emp_id}
         isAdmin={isAdmin}

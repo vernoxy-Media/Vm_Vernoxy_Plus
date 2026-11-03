@@ -5,6 +5,7 @@ import { DepartmentController } from './presentation/controllers/department.cont
 import { RoleController } from './presentation/controllers/role.controller';
 import { EmployeeController } from './presentation/controllers/employee.controller';
 import { OrganizationAdminGuard } from './presentation/guards/organization-admin.guard';
+import { OrganizationAdminOrSelfGuard } from './presentation/guards/organization-admin-or-self.guard';
 import {
   ORGANIZATION_PUBLIC_API_TOKEN,
   OrganizationPublicApiService,
@@ -77,6 +78,8 @@ import { GetDeactivateWarningUseCase } from './application/use-cases/get-deactiv
 import { GetEmployeeHistoryUseCase } from './application/use-cases/get-employee-history.use-case';
 import { EmployeeDocumentController } from './presentation/controllers/employee-document.controller';
 import { EmployeeDocumentService } from './application/services/employee-document.service';
+import { AUTH_TOKENS } from '../auth/application/ports/tokens';
+import { MailPort } from '../auth/application/ports/auth.ports';
 
 @Module({
   imports: [AuthModule, StorageModule],
@@ -205,6 +208,7 @@ import { EmployeeDocumentService } from './application/services/employee-documen
         ROLE_REPOSITORY_TOKEN,
         CREDENTIAL_PROVISIONER_PORT_TOKEN,
         UNIT_OF_WORK_TOKEN,
+        AUTH_TOKENS.MailPort,
       ],
       useFactory: (
         eRepo: EmployeeRepositoryPort,
@@ -212,7 +216,8 @@ import { EmployeeDocumentService } from './application/services/employee-documen
         rRepo: RoleRepositoryPort,
         cp: CredentialProvisionerPort,
         uow: UnitOfWorkPort,
-      ) => new CreateEmployeeUseCase(eRepo, dRepo, rRepo, cp, uow),
+        mailPort: MailPort,
+      ) => new CreateEmployeeUseCase(eRepo, dRepo, rRepo, cp, uow, mailPort),
     },
     {
       provide: UpdateEmployeeUseCase,
@@ -279,7 +284,8 @@ import { EmployeeDocumentService } from './application/services/employee-documen
       provide: ORGANIZATION_PUBLIC_API_TOKEN,
       useClass: OrganizationPublicApiService,
     },
-
+    OrganizationAdminGuard,
+    OrganizationAdminOrSelfGuard,
   ],
   exports: [
     DEPARTMENT_REPOSITORY_TOKEN,
@@ -287,6 +293,7 @@ import { EmployeeDocumentService } from './application/services/employee-documen
     EMPLOYEE_REPOSITORY_TOKEN,
     ORGANIZATION_PUBLIC_API_TOKEN,
     OrganizationAdminGuard,
+    OrganizationAdminOrSelfGuard,
     ACCESS_POLICY_PORT_TOKEN,
   ],
 })

@@ -39,6 +39,7 @@ import type {
   ApplyLeaveDto,
   ApproveOtDto,
   ApproveRegularizationDto,
+  ArchiveKbArticleDto,
   AssignAuthorisedApproverDto,
   AssignLicenseDto,
   AssignableEmployeeDto,
@@ -104,6 +105,7 @@ import type {
   CreateComplaintDto,
   CreateComplaintTypeDto,
   CreateCorrectionDto,
+  CreateCustomDocumentDto,
   CreateCustomerTypeDto,
   CreateDepartmentDto,
   CreateDiscussionDto,
@@ -112,9 +114,13 @@ import type {
   CreateExpenseClaimDto,
   CreateExpenseTypeDto,
   CreateIndustryDto,
+  CreateKbArticleDto,
+  CreateKbCategoryDto,
   CreateLeavePolicyDto,
   CreateLeaveTypeDto,
   CreateLookupDto,
+  CreatePerfCycleDto,
+  CreatePerfFormDto,
   CreateProjectDto,
   CreateProjectTaskDto,
   CreateReasonDto,
@@ -139,6 +145,7 @@ import type {
   DepartmentListResponseDto,
   DepartmentOptionDto,
   DepartmentResponseDto,
+  DirectPublishKbArticleDto,
   DirectReimbursementDto,
   DiscontinueLicenseDto,
   DocumentTemplateItemDto,
@@ -170,6 +177,8 @@ import type {
   IndustryControllerListParams,
   IndustryDetailResponseDto,
   IndustryOptionDto,
+  KbFeedbackDto,
+  KbSettingsControllerListCategoriesParams,
   LeaveControllerGetAdminRequestsParams,
   LeaveControllerGetAllBalancesParams,
   LeaveControllerGetLedgerParams,
@@ -208,6 +217,13 @@ import type {
   PayrollControllerListRunsParams,
   PayrollReimbursementDto,
   PendingReviewCountDto,
+  PerformanceFormsControllerListFormsParams,
+  PerformanceReviewsControllerGetAdminReviewsSummaryParams,
+  PerformanceReviewsControllerGetMyReviewsParams,
+  PerformanceReviewsControllerGetProjectMembersParams,
+  PerformanceReviewsControllerGetTeamReviews0Params,
+  PerformanceReviewsControllerGetTeamReviews1Params,
+  PerformanceReviewsControllerListProjectRatingsParams,
   PersonControllerLookupParams,
   PersonLookupMatchDto,
   ProjectsControllerGetProjectTasksParams,
@@ -222,6 +238,7 @@ import type {
   RenewLicenseDto,
   ReopenComplaintDto,
   ReopenExpenseClaimDto,
+  ReopenReviewDto,
   ReorderAttachmentsDto,
   RequestCancellationDto,
   RescheduleBodyDto,
@@ -230,6 +247,7 @@ import type {
   RespondRsvpDto,
   ReverseConversionBodyDto,
   ReviewExpenseClaimDto,
+  ReviewKbArticleDto,
   ReviewLeaveRequestDto,
   RevokeLicenseDto,
   RoleControllerGetOptionsParams,
@@ -259,6 +277,10 @@ import type {
   SendBackDto,
   SetRightsBodyDto,
   StartBreakDto,
+  SubmitBulkProjectRatingsDto,
+  SubmitKbArticleDto,
+  SubmitProjectRatingDto,
+  SubmitReviewRatingsDto,
   TaskBoardResultDto,
   TaskDetailDto,
   TaskSummaryDto,
@@ -287,11 +309,15 @@ import type {
   UpdateExpenseTypeDto,
   UpdateGeneralSettingsDto,
   UpdateIndustryDto,
+  UpdateKbArticleDraftDto,
+  UpdateKbCategoryDto,
   UpdateLeavePolicyDto,
   UpdateLeaveTypeDto,
   UpdateLicenseSettingsDto,
   UpdateLookupDto,
   UpdatePayrollSettingsDto,
+  UpdatePerfCycleDto,
+  UpdatePerfFormDto,
   UpdateProjectDto,
   UpdateProjectStatusDto,
   UpdateReasonDto,
@@ -4413,6 +4439,176 @@ export function useEmployeeDocumentControllerListDocuments<TData = Awaited<Retur
 
 
 /**
+ * @summary Add a custom/other document requirement for an employee
+ */
+export type employeeDocumentControllerAddCustomDocumentResponse201 = {
+  data: EmployeeDocumentItemDto
+  status: 201
+}
+    
+export type employeeDocumentControllerAddCustomDocumentResponseSuccess = (employeeDocumentControllerAddCustomDocumentResponse201) & {
+  headers: Headers;
+};
+;
+
+export type employeeDocumentControllerAddCustomDocumentResponse = (employeeDocumentControllerAddCustomDocumentResponseSuccess)
+
+export const getEmployeeDocumentControllerAddCustomDocumentUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/employees/${id}/documents/custom`
+}
+
+export const employeeDocumentControllerAddCustomDocument = async (id: number,
+    createCustomDocumentDto: CreateCustomDocumentDto, options?: RequestInit): Promise<employeeDocumentControllerAddCustomDocumentResponse> => {
+  
+  return customFetch<employeeDocumentControllerAddCustomDocumentResponse>(getEmployeeDocumentControllerAddCustomDocumentUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createCustomDocumentDto,)
+  }
+);}
+
+
+
+
+export const getEmployeeDocumentControllerAddCustomDocumentMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof employeeDocumentControllerAddCustomDocument>>, TError,{id: number;data: CreateCustomDocumentDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof employeeDocumentControllerAddCustomDocument>>, TError,{id: number;data: CreateCustomDocumentDto}, TContext> => {
+
+const mutationKey = ['employeeDocumentControllerAddCustomDocument'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof employeeDocumentControllerAddCustomDocument>>, {id: number;data: CreateCustomDocumentDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  employeeDocumentControllerAddCustomDocument(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type EmployeeDocumentControllerAddCustomDocumentMutationResult = NonNullable<Awaited<ReturnType<typeof employeeDocumentControllerAddCustomDocument>>>
+    export type EmployeeDocumentControllerAddCustomDocumentMutationBody = CreateCustomDocumentDto
+    export type EmployeeDocumentControllerAddCustomDocumentMutationError = unknown
+
+    /**
+ * @summary Add a custom/other document requirement for an employee
+ */
+export const useEmployeeDocumentControllerAddCustomDocument = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof employeeDocumentControllerAddCustomDocument>>, TError,{id: number;data: CreateCustomDocumentDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof employeeDocumentControllerAddCustomDocument>>,
+        TError,
+        {id: number;data: CreateCustomDocumentDto},
+        TContext
+      > => {
+
+      const mutationOptions = getEmployeeDocumentControllerAddCustomDocumentMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Delete a custom document requirement for an employee
+ */
+export type employeeDocumentControllerDeleteCustomDocumentResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type employeeDocumentControllerDeleteCustomDocumentResponseSuccess = (employeeDocumentControllerDeleteCustomDocumentResponse200) & {
+  headers: Headers;
+};
+;
+
+export type employeeDocumentControllerDeleteCustomDocumentResponse = (employeeDocumentControllerDeleteCustomDocumentResponseSuccess)
+
+export const getEmployeeDocumentControllerDeleteCustomDocumentUrl = (id: number,
+    documentType: string,) => {
+
+
+  
+
+  return `/api/v1/employees/${id}/documents/${documentType}/custom`
+}
+
+export const employeeDocumentControllerDeleteCustomDocument = async (id: number,
+    documentType: string, options?: RequestInit): Promise<employeeDocumentControllerDeleteCustomDocumentResponse> => {
+  
+  return customFetch<employeeDocumentControllerDeleteCustomDocumentResponse>(getEmployeeDocumentControllerDeleteCustomDocumentUrl(id,documentType),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+);}
+
+
+
+
+export const getEmployeeDocumentControllerDeleteCustomDocumentMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof employeeDocumentControllerDeleteCustomDocument>>, TError,{id: number;documentType: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof employeeDocumentControllerDeleteCustomDocument>>, TError,{id: number;documentType: string}, TContext> => {
+
+const mutationKey = ['employeeDocumentControllerDeleteCustomDocument'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof employeeDocumentControllerDeleteCustomDocument>>, {id: number;documentType: string}> = (props) => {
+          const {id,documentType} = props ?? {};
+
+          return  employeeDocumentControllerDeleteCustomDocument(id,documentType,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type EmployeeDocumentControllerDeleteCustomDocumentMutationResult = NonNullable<Awaited<ReturnType<typeof employeeDocumentControllerDeleteCustomDocument>>>
+    
+    export type EmployeeDocumentControllerDeleteCustomDocumentMutationError = unknown
+
+    /**
+ * @summary Delete a custom document requirement for an employee
+ */
+export const useEmployeeDocumentControllerDeleteCustomDocument = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof employeeDocumentControllerDeleteCustomDocument>>, TError,{id: number;documentType: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof employeeDocumentControllerDeleteCustomDocument>>,
+        TError,
+        {id: number;documentType: string},
+        TContext
+      > => {
+
+      const mutationOptions = getEmployeeDocumentControllerDeleteCustomDocumentMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
  * @summary Toggle tick status for a document
  */
 export type employeeDocumentControllerToggleDocumentResponse200 = {
@@ -4959,6 +5155,91 @@ export const useEmployeeDocumentControllerFinalizeDraft = <TError = unknown,
       > => {
 
       const mutationOptions = getEmployeeDocumentControllerFinalizeDraftMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Mark document as declined with reason
+ */
+export type employeeDocumentControllerDeclineDocumentResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type employeeDocumentControllerDeclineDocumentResponseSuccess = (employeeDocumentControllerDeclineDocumentResponse201) & {
+  headers: Headers;
+};
+;
+
+export type employeeDocumentControllerDeclineDocumentResponse = (employeeDocumentControllerDeclineDocumentResponseSuccess)
+
+export const getEmployeeDocumentControllerDeclineDocumentUrl = (id: number,
+    documentType: string,) => {
+
+
+  
+
+  return `/api/v1/employees/${id}/documents/${documentType}/decline`
+}
+
+export const employeeDocumentControllerDeclineDocument = async (id: number,
+    documentType: string, options?: RequestInit): Promise<employeeDocumentControllerDeclineDocumentResponse> => {
+  
+  return customFetch<employeeDocumentControllerDeclineDocumentResponse>(getEmployeeDocumentControllerDeclineDocumentUrl(id,documentType),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getEmployeeDocumentControllerDeclineDocumentMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof employeeDocumentControllerDeclineDocument>>, TError,{id: number;documentType: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof employeeDocumentControllerDeclineDocument>>, TError,{id: number;documentType: string}, TContext> => {
+
+const mutationKey = ['employeeDocumentControllerDeclineDocument'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof employeeDocumentControllerDeclineDocument>>, {id: number;documentType: string}> = (props) => {
+          const {id,documentType} = props ?? {};
+
+          return  employeeDocumentControllerDeclineDocument(id,documentType,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type EmployeeDocumentControllerDeclineDocumentMutationResult = NonNullable<Awaited<ReturnType<typeof employeeDocumentControllerDeclineDocument>>>
+    
+    export type EmployeeDocumentControllerDeclineDocumentMutationError = unknown
+
+    /**
+ * @summary Mark document as declined with reason
+ */
+export const useEmployeeDocumentControllerDeclineDocument = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof employeeDocumentControllerDeclineDocument>>, TError,{id: number;documentType: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof employeeDocumentControllerDeclineDocument>>,
+        TError,
+        {id: number;documentType: string},
+        TContext
+      > => {
+
+      const mutationOptions = getEmployeeDocumentControllerDeclineDocumentMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }
@@ -8609,19 +8890,19 @@ export function usePersonControllerLookup<TData = Awaited<ReturnType<typeof pers
 /**
  * @summary Punch in for today
  */
-export type attendanceControllerPunchInResponse200 = {
+export type attendanceControllerPunchIn0Response200 = {
   data: TodayAttendanceBlockDto
   status: 200
 }
     
-export type attendanceControllerPunchInResponseSuccess = (attendanceControllerPunchInResponse200) & {
+export type attendanceControllerPunchIn0ResponseSuccess = (attendanceControllerPunchIn0Response200) & {
   headers: Headers;
 };
 ;
 
-export type attendanceControllerPunchInResponse = (attendanceControllerPunchInResponseSuccess)
+export type attendanceControllerPunchIn0Response = (attendanceControllerPunchIn0ResponseSuccess)
 
-export const getAttendanceControllerPunchInUrl = () => {
+export const getAttendanceControllerPunchIn0Url = () => {
 
 
   
@@ -8629,9 +8910,9 @@ export const getAttendanceControllerPunchInUrl = () => {
   return `/api/v1/attendance/check-in`
 }
 
-export const attendanceControllerPunchIn = async ( options?: RequestInit): Promise<attendanceControllerPunchInResponse> => {
+export const attendanceControllerPunchIn0 = async ( options?: RequestInit): Promise<attendanceControllerPunchIn0Response> => {
   
-  return customFetch<attendanceControllerPunchInResponse>(getAttendanceControllerPunchInUrl(),
+  return customFetch<attendanceControllerPunchIn0Response>(getAttendanceControllerPunchIn0Url(),
   {      
     ...options,
     method: 'POST'
@@ -8643,11 +8924,11 @@ export const attendanceControllerPunchIn = async ( options?: RequestInit): Promi
 
 
 
-export const getAttendanceControllerPunchInMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerPunchIn>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerPunchIn>>, TError,void, TContext> => {
+export const getAttendanceControllerPunchIn0MutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerPunchIn0>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerPunchIn0>>, TError,void, TContext> => {
 
-const mutationKey = ['attendanceControllerPunchIn'];
+const mutationKey = ['attendanceControllerPunchIn0'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -8657,10 +8938,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof attendanceControllerPunchIn>>, void> = () => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof attendanceControllerPunchIn0>>, void> = () => {
           
 
-          return  attendanceControllerPunchIn(requestOptions)
+          return  attendanceControllerPunchIn0(requestOptions)
         }
 
         
@@ -8668,23 +8949,106 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type AttendanceControllerPunchInMutationResult = NonNullable<Awaited<ReturnType<typeof attendanceControllerPunchIn>>>
+    export type AttendanceControllerPunchIn0MutationResult = NonNullable<Awaited<ReturnType<typeof attendanceControllerPunchIn0>>>
     
-    export type AttendanceControllerPunchInMutationError = unknown
+    export type AttendanceControllerPunchIn0MutationError = unknown
 
     /**
  * @summary Punch in for today
  */
-export const useAttendanceControllerPunchIn = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerPunchIn>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+export const useAttendanceControllerPunchIn0 = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerPunchIn0>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof attendanceControllerPunchIn>>,
+        Awaited<ReturnType<typeof attendanceControllerPunchIn0>>,
         TError,
         void,
         TContext
       > => {
 
-      const mutationOptions = getAttendanceControllerPunchInMutationOptions(options);
+      const mutationOptions = getAttendanceControllerPunchIn0MutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Punch in for today
+ */
+export type attendanceControllerPunchIn1Response200 = {
+  data: TodayAttendanceBlockDto
+  status: 200
+}
+    
+export type attendanceControllerPunchIn1ResponseSuccess = (attendanceControllerPunchIn1Response200) & {
+  headers: Headers;
+};
+;
+
+export type attendanceControllerPunchIn1Response = (attendanceControllerPunchIn1ResponseSuccess)
+
+export const getAttendanceControllerPunchIn1Url = () => {
+
+
+  
+
+  return `/api/v1/attendance/me/punch-in`
+}
+
+export const attendanceControllerPunchIn1 = async ( options?: RequestInit): Promise<attendanceControllerPunchIn1Response> => {
+  
+  return customFetch<attendanceControllerPunchIn1Response>(getAttendanceControllerPunchIn1Url(),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getAttendanceControllerPunchIn1MutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerPunchIn1>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerPunchIn1>>, TError,void, TContext> => {
+
+const mutationKey = ['attendanceControllerPunchIn1'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof attendanceControllerPunchIn1>>, void> = () => {
+          
+
+          return  attendanceControllerPunchIn1(requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AttendanceControllerPunchIn1MutationResult = NonNullable<Awaited<ReturnType<typeof attendanceControllerPunchIn1>>>
+    
+    export type AttendanceControllerPunchIn1MutationError = unknown
+
+    /**
+ * @summary Punch in for today
+ */
+export const useAttendanceControllerPunchIn1 = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerPunchIn1>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof attendanceControllerPunchIn1>>,
+        TError,
+        void,
+        TContext
+      > => {
+
+      const mutationOptions = getAttendanceControllerPunchIn1MutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }
@@ -8692,19 +9056,19 @@ export const useAttendanceControllerPunchIn = <TError = unknown,
 /**
  * @summary Punch out for today
  */
-export type attendanceControllerPunchOutResponse200 = {
+export type attendanceControllerPunchOut0Response200 = {
   data: TodayAttendanceBlockDto
   status: 200
 }
     
-export type attendanceControllerPunchOutResponseSuccess = (attendanceControllerPunchOutResponse200) & {
+export type attendanceControllerPunchOut0ResponseSuccess = (attendanceControllerPunchOut0Response200) & {
   headers: Headers;
 };
 ;
 
-export type attendanceControllerPunchOutResponse = (attendanceControllerPunchOutResponseSuccess)
+export type attendanceControllerPunchOut0Response = (attendanceControllerPunchOut0ResponseSuccess)
 
-export const getAttendanceControllerPunchOutUrl = () => {
+export const getAttendanceControllerPunchOut0Url = () => {
 
 
   
@@ -8712,9 +9076,9 @@ export const getAttendanceControllerPunchOutUrl = () => {
   return `/api/v1/attendance/check-out`
 }
 
-export const attendanceControllerPunchOut = async ( options?: RequestInit): Promise<attendanceControllerPunchOutResponse> => {
+export const attendanceControllerPunchOut0 = async ( options?: RequestInit): Promise<attendanceControllerPunchOut0Response> => {
   
-  return customFetch<attendanceControllerPunchOutResponse>(getAttendanceControllerPunchOutUrl(),
+  return customFetch<attendanceControllerPunchOut0Response>(getAttendanceControllerPunchOut0Url(),
   {      
     ...options,
     method: 'POST'
@@ -8726,11 +9090,11 @@ export const attendanceControllerPunchOut = async ( options?: RequestInit): Prom
 
 
 
-export const getAttendanceControllerPunchOutMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerPunchOut>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerPunchOut>>, TError,void, TContext> => {
+export const getAttendanceControllerPunchOut0MutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerPunchOut0>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerPunchOut0>>, TError,void, TContext> => {
 
-const mutationKey = ['attendanceControllerPunchOut'];
+const mutationKey = ['attendanceControllerPunchOut0'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -8740,10 +9104,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof attendanceControllerPunchOut>>, void> = () => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof attendanceControllerPunchOut0>>, void> = () => {
           
 
-          return  attendanceControllerPunchOut(requestOptions)
+          return  attendanceControllerPunchOut0(requestOptions)
         }
 
         
@@ -8751,23 +9115,106 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type AttendanceControllerPunchOutMutationResult = NonNullable<Awaited<ReturnType<typeof attendanceControllerPunchOut>>>
+    export type AttendanceControllerPunchOut0MutationResult = NonNullable<Awaited<ReturnType<typeof attendanceControllerPunchOut0>>>
     
-    export type AttendanceControllerPunchOutMutationError = unknown
+    export type AttendanceControllerPunchOut0MutationError = unknown
 
     /**
  * @summary Punch out for today
  */
-export const useAttendanceControllerPunchOut = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerPunchOut>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+export const useAttendanceControllerPunchOut0 = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerPunchOut0>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof attendanceControllerPunchOut>>,
+        Awaited<ReturnType<typeof attendanceControllerPunchOut0>>,
         TError,
         void,
         TContext
       > => {
 
-      const mutationOptions = getAttendanceControllerPunchOutMutationOptions(options);
+      const mutationOptions = getAttendanceControllerPunchOut0MutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Punch out for today
+ */
+export type attendanceControllerPunchOut1Response200 = {
+  data: TodayAttendanceBlockDto
+  status: 200
+}
+    
+export type attendanceControllerPunchOut1ResponseSuccess = (attendanceControllerPunchOut1Response200) & {
+  headers: Headers;
+};
+;
+
+export type attendanceControllerPunchOut1Response = (attendanceControllerPunchOut1ResponseSuccess)
+
+export const getAttendanceControllerPunchOut1Url = () => {
+
+
+  
+
+  return `/api/v1/attendance/me/punch-out`
+}
+
+export const attendanceControllerPunchOut1 = async ( options?: RequestInit): Promise<attendanceControllerPunchOut1Response> => {
+  
+  return customFetch<attendanceControllerPunchOut1Response>(getAttendanceControllerPunchOut1Url(),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getAttendanceControllerPunchOut1MutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerPunchOut1>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerPunchOut1>>, TError,void, TContext> => {
+
+const mutationKey = ['attendanceControllerPunchOut1'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof attendanceControllerPunchOut1>>, void> = () => {
+          
+
+          return  attendanceControllerPunchOut1(requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AttendanceControllerPunchOut1MutationResult = NonNullable<Awaited<ReturnType<typeof attendanceControllerPunchOut1>>>
+    
+    export type AttendanceControllerPunchOut1MutationError = unknown
+
+    /**
+ * @summary Punch out for today
+ */
+export const useAttendanceControllerPunchOut1 = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof attendanceControllerPunchOut1>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof attendanceControllerPunchOut1>>,
+        TError,
+        void,
+        TContext
+      > => {
+
+      const mutationOptions = getAttendanceControllerPunchOut1MutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }
@@ -17305,6 +17752,119 @@ export const useProjectsControllerAddProjectBugComment = <TError = unknown,
     }
     
 /**
+ * @summary Publicly view or download candidate resume
+ */
+export type candidateResumeControllerDownloadResumeResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type candidateResumeControllerDownloadResumeResponseSuccess = (candidateResumeControllerDownloadResumeResponse200) & {
+  headers: Headers;
+};
+;
+
+export type candidateResumeControllerDownloadResumeResponse = (candidateResumeControllerDownloadResumeResponseSuccess)
+
+export const getCandidateResumeControllerDownloadResumeUrl = (filename: string,) => {
+
+
+  
+
+  return `/api/v1/candidates/resumes/${filename}`
+}
+
+export const candidateResumeControllerDownloadResume = async (filename: string, options?: RequestInit): Promise<candidateResumeControllerDownloadResumeResponse> => {
+  
+  return customFetch<candidateResumeControllerDownloadResumeResponse>(getCandidateResumeControllerDownloadResumeUrl(filename),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getCandidateResumeControllerDownloadResumeQueryKey = (filename?: string,) => {
+    return [
+    `/api/v1/candidates/resumes/${filename}`
+    ] as const;
+    }
+
+    
+export const getCandidateResumeControllerDownloadResumeQueryOptions = <TData = Awaited<ReturnType<typeof candidateResumeControllerDownloadResume>>, TError = unknown>(filename: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof candidateResumeControllerDownloadResume>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getCandidateResumeControllerDownloadResumeQueryKey(filename);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof candidateResumeControllerDownloadResume>>> = ({ signal }) => candidateResumeControllerDownloadResume(filename, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(filename), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof candidateResumeControllerDownloadResume>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type CandidateResumeControllerDownloadResumeQueryResult = NonNullable<Awaited<ReturnType<typeof candidateResumeControllerDownloadResume>>>
+export type CandidateResumeControllerDownloadResumeQueryError = unknown
+
+
+export function useCandidateResumeControllerDownloadResume<TData = Awaited<ReturnType<typeof candidateResumeControllerDownloadResume>>, TError = unknown>(
+ filename: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof candidateResumeControllerDownloadResume>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof candidateResumeControllerDownloadResume>>,
+          TError,
+          Awaited<ReturnType<typeof candidateResumeControllerDownloadResume>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useCandidateResumeControllerDownloadResume<TData = Awaited<ReturnType<typeof candidateResumeControllerDownloadResume>>, TError = unknown>(
+ filename: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof candidateResumeControllerDownloadResume>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof candidateResumeControllerDownloadResume>>,
+          TError,
+          Awaited<ReturnType<typeof candidateResumeControllerDownloadResume>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useCandidateResumeControllerDownloadResume<TData = Awaited<ReturnType<typeof candidateResumeControllerDownloadResume>>, TError = unknown>(
+ filename: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof candidateResumeControllerDownloadResume>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Publicly view or download candidate resume
+ */
+
+export function useCandidateResumeControllerDownloadResume<TData = Awaited<ReturnType<typeof candidateResumeControllerDownloadResume>>, TError = unknown>(
+ filename: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof candidateResumeControllerDownloadResume>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getCandidateResumeControllerDownloadResumeQueryOptions(filename,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
  * @summary Get preview next candidate code (e.g. CAN-0001)
  */
 export type candidateControllerGetNextCodeResponse200 = {
@@ -17701,119 +18261,6 @@ export const useCandidateControllerUploadResume = <TError = unknown,
     }
     
 /**
- * @summary Download or view candidate resume
- */
-export type candidateControllerDownloadResumeResponse200 = {
-  data: void
-  status: 200
-}
-    
-export type candidateControllerDownloadResumeResponseSuccess = (candidateControllerDownloadResumeResponse200) & {
-  headers: Headers;
-};
-;
-
-export type candidateControllerDownloadResumeResponse = (candidateControllerDownloadResumeResponseSuccess)
-
-export const getCandidateControllerDownloadResumeUrl = (filename: string,) => {
-
-
-  
-
-  return `/api/v1/candidates/resumes/${filename}`
-}
-
-export const candidateControllerDownloadResume = async (filename: string, options?: RequestInit): Promise<candidateControllerDownloadResumeResponse> => {
-  
-  return customFetch<candidateControllerDownloadResumeResponse>(getCandidateControllerDownloadResumeUrl(filename),
-  {      
-    ...options,
-    method: 'GET'
-    
-    
-  }
-);}
-
-
-
-
-
-export const getCandidateControllerDownloadResumeQueryKey = (filename?: string,) => {
-    return [
-    `/api/v1/candidates/resumes/${filename}`
-    ] as const;
-    }
-
-    
-export const getCandidateControllerDownloadResumeQueryOptions = <TData = Awaited<ReturnType<typeof candidateControllerDownloadResume>>, TError = unknown>(filename: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof candidateControllerDownloadResume>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getCandidateControllerDownloadResumeQueryKey(filename);
-
-  
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof candidateControllerDownloadResume>>> = ({ signal }) => candidateControllerDownloadResume(filename, { signal, ...requestOptions });
-
-      
-
-      
-
-   return  { queryKey, queryFn, enabled: !!(filename), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof candidateControllerDownloadResume>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type CandidateControllerDownloadResumeQueryResult = NonNullable<Awaited<ReturnType<typeof candidateControllerDownloadResume>>>
-export type CandidateControllerDownloadResumeQueryError = unknown
-
-
-export function useCandidateControllerDownloadResume<TData = Awaited<ReturnType<typeof candidateControllerDownloadResume>>, TError = unknown>(
- filename: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof candidateControllerDownloadResume>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof candidateControllerDownloadResume>>,
-          TError,
-          Awaited<ReturnType<typeof candidateControllerDownloadResume>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useCandidateControllerDownloadResume<TData = Awaited<ReturnType<typeof candidateControllerDownloadResume>>, TError = unknown>(
- filename: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof candidateControllerDownloadResume>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof candidateControllerDownloadResume>>,
-          TError,
-          Awaited<ReturnType<typeof candidateControllerDownloadResume>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useCandidateControllerDownloadResume<TData = Awaited<ReturnType<typeof candidateControllerDownloadResume>>, TError = unknown>(
- filename: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof candidateControllerDownloadResume>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Download or view candidate resume
- */
-
-export function useCandidateControllerDownloadResume<TData = Awaited<ReturnType<typeof candidateControllerDownloadResume>>, TError = unknown>(
- filename: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof candidateControllerDownloadResume>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient 
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getCandidateControllerDownloadResumeQueryOptions(filename,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  query.queryKey = queryOptions.queryKey ;
-
-  return query;
-}
-
-
-
-
-
-/**
  * @summary List candidates with KPI stats and filters
  */
 export type candidateControllerListCandidatesResponse200 = {
@@ -18130,6 +18577,89 @@ export function useCandidateControllerGetCandidate<TData = Awaited<ReturnType<ty
 
 
 
+/**
+ * @summary Update candidate details
+ */
+export type candidateControllerUpdateCandidateResponse200 = {
+  data: CandidateItemDto
+  status: 200
+}
+    
+export type candidateControllerUpdateCandidateResponseSuccess = (candidateControllerUpdateCandidateResponse200) & {
+  headers: Headers;
+};
+;
+
+export type candidateControllerUpdateCandidateResponse = (candidateControllerUpdateCandidateResponseSuccess)
+
+export const getCandidateControllerUpdateCandidateUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/candidates/${id}`
+}
+
+export const candidateControllerUpdateCandidate = async (id: number, options?: RequestInit): Promise<candidateControllerUpdateCandidateResponse> => {
+  
+  return customFetch<candidateControllerUpdateCandidateResponse>(getCandidateControllerUpdateCandidateUrl(id),
+  {      
+    ...options,
+    method: 'PUT'
+    
+    
+  }
+);}
+
+
+
+
+export const getCandidateControllerUpdateCandidateMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof candidateControllerUpdateCandidate>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof candidateControllerUpdateCandidate>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['candidateControllerUpdateCandidate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof candidateControllerUpdateCandidate>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  candidateControllerUpdateCandidate(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CandidateControllerUpdateCandidateMutationResult = NonNullable<Awaited<ReturnType<typeof candidateControllerUpdateCandidate>>>
+    
+    export type CandidateControllerUpdateCandidateMutationError = unknown
+
+    /**
+ * @summary Update candidate details
+ */
+export const useCandidateControllerUpdateCandidate = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof candidateControllerUpdateCandidate>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof candidateControllerUpdateCandidate>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+
+      const mutationOptions = getCandidateControllerUpdateCandidateMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
 /**
  * @summary Update candidate pipeline stage directly
  */
@@ -39455,6 +39985,4909 @@ export const useSalesImportExportControllerSetRights = <TError = unknown,
       > => {
 
       const mutationOptions = getSalesImportExportControllerSetRightsMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary List knowledge base categories
+ */
+export type kbSettingsControllerListCategoriesResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type kbSettingsControllerListCategoriesResponseSuccess = (kbSettingsControllerListCategoriesResponse200) & {
+  headers: Headers;
+};
+;
+
+export type kbSettingsControllerListCategoriesResponse = (kbSettingsControllerListCategoriesResponseSuccess)
+
+export const getKbSettingsControllerListCategoriesUrl = (params?: KbSettingsControllerListCategoriesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/kb/settings/categories?${stringifiedParams}` : `/api/v1/kb/settings/categories`
+}
+
+export const kbSettingsControllerListCategories = async (params?: KbSettingsControllerListCategoriesParams, options?: RequestInit): Promise<kbSettingsControllerListCategoriesResponse> => {
+  
+  return customFetch<kbSettingsControllerListCategoriesResponse>(getKbSettingsControllerListCategoriesUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getKbSettingsControllerListCategoriesQueryKey = (params?: KbSettingsControllerListCategoriesParams,) => {
+    return [
+    `/api/v1/kb/settings/categories`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getKbSettingsControllerListCategoriesQueryOptions = <TData = Awaited<ReturnType<typeof kbSettingsControllerListCategories>>, TError = unknown>(params?: KbSettingsControllerListCategoriesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof kbSettingsControllerListCategories>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getKbSettingsControllerListCategoriesQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof kbSettingsControllerListCategories>>> = ({ signal }) => kbSettingsControllerListCategories(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof kbSettingsControllerListCategories>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type KbSettingsControllerListCategoriesQueryResult = NonNullable<Awaited<ReturnType<typeof kbSettingsControllerListCategories>>>
+export type KbSettingsControllerListCategoriesQueryError = unknown
+
+
+export function useKbSettingsControllerListCategories<TData = Awaited<ReturnType<typeof kbSettingsControllerListCategories>>, TError = unknown>(
+ params: undefined |  KbSettingsControllerListCategoriesParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof kbSettingsControllerListCategories>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof kbSettingsControllerListCategories>>,
+          TError,
+          Awaited<ReturnType<typeof kbSettingsControllerListCategories>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useKbSettingsControllerListCategories<TData = Awaited<ReturnType<typeof kbSettingsControllerListCategories>>, TError = unknown>(
+ params?: KbSettingsControllerListCategoriesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof kbSettingsControllerListCategories>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof kbSettingsControllerListCategories>>,
+          TError,
+          Awaited<ReturnType<typeof kbSettingsControllerListCategories>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useKbSettingsControllerListCategories<TData = Awaited<ReturnType<typeof kbSettingsControllerListCategories>>, TError = unknown>(
+ params?: KbSettingsControllerListCategoriesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof kbSettingsControllerListCategories>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List knowledge base categories
+ */
+
+export function useKbSettingsControllerListCategories<TData = Awaited<ReturnType<typeof kbSettingsControllerListCategories>>, TError = unknown>(
+ params?: KbSettingsControllerListCategoriesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof kbSettingsControllerListCategories>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getKbSettingsControllerListCategoriesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Create a new knowledge base category
+ */
+export type kbSettingsControllerCreateCategoryResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type kbSettingsControllerCreateCategoryResponseSuccess = (kbSettingsControllerCreateCategoryResponse201) & {
+  headers: Headers;
+};
+;
+
+export type kbSettingsControllerCreateCategoryResponse = (kbSettingsControllerCreateCategoryResponseSuccess)
+
+export const getKbSettingsControllerCreateCategoryUrl = () => {
+
+
+  
+
+  return `/api/v1/kb/settings/categories`
+}
+
+export const kbSettingsControllerCreateCategory = async (createKbCategoryDto: CreateKbCategoryDto, options?: RequestInit): Promise<kbSettingsControllerCreateCategoryResponse> => {
+  
+  return customFetch<kbSettingsControllerCreateCategoryResponse>(getKbSettingsControllerCreateCategoryUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createKbCategoryDto,)
+  }
+);}
+
+
+
+
+export const getKbSettingsControllerCreateCategoryMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof kbSettingsControllerCreateCategory>>, TError,{data: CreateKbCategoryDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof kbSettingsControllerCreateCategory>>, TError,{data: CreateKbCategoryDto}, TContext> => {
+
+const mutationKey = ['kbSettingsControllerCreateCategory'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof kbSettingsControllerCreateCategory>>, {data: CreateKbCategoryDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  kbSettingsControllerCreateCategory(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type KbSettingsControllerCreateCategoryMutationResult = NonNullable<Awaited<ReturnType<typeof kbSettingsControllerCreateCategory>>>
+    export type KbSettingsControllerCreateCategoryMutationBody = CreateKbCategoryDto
+    export type KbSettingsControllerCreateCategoryMutationError = unknown
+
+    /**
+ * @summary Create a new knowledge base category
+ */
+export const useKbSettingsControllerCreateCategory = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof kbSettingsControllerCreateCategory>>, TError,{data: CreateKbCategoryDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof kbSettingsControllerCreateCategory>>,
+        TError,
+        {data: CreateKbCategoryDto},
+        TContext
+      > => {
+
+      const mutationOptions = getKbSettingsControllerCreateCategoryMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Get a knowledge base category by ID
+ */
+export type kbSettingsControllerGetCategoryByIdResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type kbSettingsControllerGetCategoryByIdResponseSuccess = (kbSettingsControllerGetCategoryByIdResponse200) & {
+  headers: Headers;
+};
+;
+
+export type kbSettingsControllerGetCategoryByIdResponse = (kbSettingsControllerGetCategoryByIdResponseSuccess)
+
+export const getKbSettingsControllerGetCategoryByIdUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/kb/settings/categories/${id}`
+}
+
+export const kbSettingsControllerGetCategoryById = async (id: number, options?: RequestInit): Promise<kbSettingsControllerGetCategoryByIdResponse> => {
+  
+  return customFetch<kbSettingsControllerGetCategoryByIdResponse>(getKbSettingsControllerGetCategoryByIdUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getKbSettingsControllerGetCategoryByIdQueryKey = (id?: number,) => {
+    return [
+    `/api/v1/kb/settings/categories/${id}`
+    ] as const;
+    }
+
+    
+export const getKbSettingsControllerGetCategoryByIdQueryOptions = <TData = Awaited<ReturnType<typeof kbSettingsControllerGetCategoryById>>, TError = unknown>(id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof kbSettingsControllerGetCategoryById>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getKbSettingsControllerGetCategoryByIdQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof kbSettingsControllerGetCategoryById>>> = ({ signal }) => kbSettingsControllerGetCategoryById(id, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof kbSettingsControllerGetCategoryById>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type KbSettingsControllerGetCategoryByIdQueryResult = NonNullable<Awaited<ReturnType<typeof kbSettingsControllerGetCategoryById>>>
+export type KbSettingsControllerGetCategoryByIdQueryError = unknown
+
+
+export function useKbSettingsControllerGetCategoryById<TData = Awaited<ReturnType<typeof kbSettingsControllerGetCategoryById>>, TError = unknown>(
+ id: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof kbSettingsControllerGetCategoryById>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof kbSettingsControllerGetCategoryById>>,
+          TError,
+          Awaited<ReturnType<typeof kbSettingsControllerGetCategoryById>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useKbSettingsControllerGetCategoryById<TData = Awaited<ReturnType<typeof kbSettingsControllerGetCategoryById>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof kbSettingsControllerGetCategoryById>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof kbSettingsControllerGetCategoryById>>,
+          TError,
+          Awaited<ReturnType<typeof kbSettingsControllerGetCategoryById>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useKbSettingsControllerGetCategoryById<TData = Awaited<ReturnType<typeof kbSettingsControllerGetCategoryById>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof kbSettingsControllerGetCategoryById>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get a knowledge base category by ID
+ */
+
+export function useKbSettingsControllerGetCategoryById<TData = Awaited<ReturnType<typeof kbSettingsControllerGetCategoryById>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof kbSettingsControllerGetCategoryById>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getKbSettingsControllerGetCategoryByIdQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Update an existing knowledge base category
+ */
+export type kbSettingsControllerUpdateCategoryResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type kbSettingsControllerUpdateCategoryResponseSuccess = (kbSettingsControllerUpdateCategoryResponse200) & {
+  headers: Headers;
+};
+;
+
+export type kbSettingsControllerUpdateCategoryResponse = (kbSettingsControllerUpdateCategoryResponseSuccess)
+
+export const getKbSettingsControllerUpdateCategoryUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/kb/settings/categories/${id}`
+}
+
+export const kbSettingsControllerUpdateCategory = async (id: number,
+    updateKbCategoryDto: UpdateKbCategoryDto, options?: RequestInit): Promise<kbSettingsControllerUpdateCategoryResponse> => {
+  
+  return customFetch<kbSettingsControllerUpdateCategoryResponse>(getKbSettingsControllerUpdateCategoryUrl(id),
+  {      
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateKbCategoryDto,)
+  }
+);}
+
+
+
+
+export const getKbSettingsControllerUpdateCategoryMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof kbSettingsControllerUpdateCategory>>, TError,{id: number;data: UpdateKbCategoryDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof kbSettingsControllerUpdateCategory>>, TError,{id: number;data: UpdateKbCategoryDto}, TContext> => {
+
+const mutationKey = ['kbSettingsControllerUpdateCategory'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof kbSettingsControllerUpdateCategory>>, {id: number;data: UpdateKbCategoryDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  kbSettingsControllerUpdateCategory(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type KbSettingsControllerUpdateCategoryMutationResult = NonNullable<Awaited<ReturnType<typeof kbSettingsControllerUpdateCategory>>>
+    export type KbSettingsControllerUpdateCategoryMutationBody = UpdateKbCategoryDto
+    export type KbSettingsControllerUpdateCategoryMutationError = unknown
+
+    /**
+ * @summary Update an existing knowledge base category
+ */
+export const useKbSettingsControllerUpdateCategory = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof kbSettingsControllerUpdateCategory>>, TError,{id: number;data: UpdateKbCategoryDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof kbSettingsControllerUpdateCategory>>,
+        TError,
+        {id: number;data: UpdateKbCategoryDto},
+        TContext
+      > => {
+
+      const mutationOptions = getKbSettingsControllerUpdateCategoryMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Delete a knowledge base category (empty only)
+ */
+export type kbSettingsControllerDeleteCategoryResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type kbSettingsControllerDeleteCategoryResponseSuccess = (kbSettingsControllerDeleteCategoryResponse200) & {
+  headers: Headers;
+};
+;
+
+export type kbSettingsControllerDeleteCategoryResponse = (kbSettingsControllerDeleteCategoryResponseSuccess)
+
+export const getKbSettingsControllerDeleteCategoryUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/kb/settings/categories/${id}`
+}
+
+export const kbSettingsControllerDeleteCategory = async (id: number, options?: RequestInit): Promise<kbSettingsControllerDeleteCategoryResponse> => {
+  
+  return customFetch<kbSettingsControllerDeleteCategoryResponse>(getKbSettingsControllerDeleteCategoryUrl(id),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+);}
+
+
+
+
+export const getKbSettingsControllerDeleteCategoryMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof kbSettingsControllerDeleteCategory>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof kbSettingsControllerDeleteCategory>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['kbSettingsControllerDeleteCategory'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof kbSettingsControllerDeleteCategory>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  kbSettingsControllerDeleteCategory(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type KbSettingsControllerDeleteCategoryMutationResult = NonNullable<Awaited<ReturnType<typeof kbSettingsControllerDeleteCategory>>>
+    
+    export type KbSettingsControllerDeleteCategoryMutationError = unknown
+
+    /**
+ * @summary Delete a knowledge base category (empty only)
+ */
+export const useKbSettingsControllerDeleteCategory = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof kbSettingsControllerDeleteCategory>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof kbSettingsControllerDeleteCategory>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+
+      const mutationOptions = getKbSettingsControllerDeleteCategoryMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+export type kbArticlesControllerGetAccessContextResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type kbArticlesControllerGetAccessContextResponseSuccess = (kbArticlesControllerGetAccessContextResponse200) & {
+  headers: Headers;
+};
+;
+
+export type kbArticlesControllerGetAccessContextResponse = (kbArticlesControllerGetAccessContextResponseSuccess)
+
+export const getKbArticlesControllerGetAccessContextUrl = () => {
+
+
+  
+
+  return `/api/v1/kb/access`
+}
+
+export const kbArticlesControllerGetAccessContext = async ( options?: RequestInit): Promise<kbArticlesControllerGetAccessContextResponse> => {
+  
+  return customFetch<kbArticlesControllerGetAccessContextResponse>(getKbArticlesControllerGetAccessContextUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getKbArticlesControllerGetAccessContextQueryKey = () => {
+    return [
+    `/api/v1/kb/access`
+    ] as const;
+    }
+
+    
+export const getKbArticlesControllerGetAccessContextQueryOptions = <TData = Awaited<ReturnType<typeof kbArticlesControllerGetAccessContext>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof kbArticlesControllerGetAccessContext>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getKbArticlesControllerGetAccessContextQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof kbArticlesControllerGetAccessContext>>> = ({ signal }) => kbArticlesControllerGetAccessContext({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof kbArticlesControllerGetAccessContext>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type KbArticlesControllerGetAccessContextQueryResult = NonNullable<Awaited<ReturnType<typeof kbArticlesControllerGetAccessContext>>>
+export type KbArticlesControllerGetAccessContextQueryError = unknown
+
+
+export function useKbArticlesControllerGetAccessContext<TData = Awaited<ReturnType<typeof kbArticlesControllerGetAccessContext>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof kbArticlesControllerGetAccessContext>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof kbArticlesControllerGetAccessContext>>,
+          TError,
+          Awaited<ReturnType<typeof kbArticlesControllerGetAccessContext>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useKbArticlesControllerGetAccessContext<TData = Awaited<ReturnType<typeof kbArticlesControllerGetAccessContext>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof kbArticlesControllerGetAccessContext>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof kbArticlesControllerGetAccessContext>>,
+          TError,
+          Awaited<ReturnType<typeof kbArticlesControllerGetAccessContext>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useKbArticlesControllerGetAccessContext<TData = Awaited<ReturnType<typeof kbArticlesControllerGetAccessContext>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof kbArticlesControllerGetAccessContext>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useKbArticlesControllerGetAccessContext<TData = Awaited<ReturnType<typeof kbArticlesControllerGetAccessContext>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof kbArticlesControllerGetAccessContext>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getKbArticlesControllerGetAccessContextQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+export type kbArticlesControllerGetKpisResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type kbArticlesControllerGetKpisResponseSuccess = (kbArticlesControllerGetKpisResponse200) & {
+  headers: Headers;
+};
+;
+
+export type kbArticlesControllerGetKpisResponse = (kbArticlesControllerGetKpisResponseSuccess)
+
+export const getKbArticlesControllerGetKpisUrl = () => {
+
+
+  
+
+  return `/api/v1/kb/kpis`
+}
+
+export const kbArticlesControllerGetKpis = async ( options?: RequestInit): Promise<kbArticlesControllerGetKpisResponse> => {
+  
+  return customFetch<kbArticlesControllerGetKpisResponse>(getKbArticlesControllerGetKpisUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getKbArticlesControllerGetKpisQueryKey = () => {
+    return [
+    `/api/v1/kb/kpis`
+    ] as const;
+    }
+
+    
+export const getKbArticlesControllerGetKpisQueryOptions = <TData = Awaited<ReturnType<typeof kbArticlesControllerGetKpis>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof kbArticlesControllerGetKpis>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getKbArticlesControllerGetKpisQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof kbArticlesControllerGetKpis>>> = ({ signal }) => kbArticlesControllerGetKpis({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof kbArticlesControllerGetKpis>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type KbArticlesControllerGetKpisQueryResult = NonNullable<Awaited<ReturnType<typeof kbArticlesControllerGetKpis>>>
+export type KbArticlesControllerGetKpisQueryError = unknown
+
+
+export function useKbArticlesControllerGetKpis<TData = Awaited<ReturnType<typeof kbArticlesControllerGetKpis>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof kbArticlesControllerGetKpis>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof kbArticlesControllerGetKpis>>,
+          TError,
+          Awaited<ReturnType<typeof kbArticlesControllerGetKpis>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useKbArticlesControllerGetKpis<TData = Awaited<ReturnType<typeof kbArticlesControllerGetKpis>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof kbArticlesControllerGetKpis>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof kbArticlesControllerGetKpis>>,
+          TError,
+          Awaited<ReturnType<typeof kbArticlesControllerGetKpis>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useKbArticlesControllerGetKpis<TData = Awaited<ReturnType<typeof kbArticlesControllerGetKpis>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof kbArticlesControllerGetKpis>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useKbArticlesControllerGetKpis<TData = Awaited<ReturnType<typeof kbArticlesControllerGetKpis>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof kbArticlesControllerGetKpis>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getKbArticlesControllerGetKpisQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+export type kbArticlesControllerGetApprovalsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type kbArticlesControllerGetApprovalsResponseSuccess = (kbArticlesControllerGetApprovalsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type kbArticlesControllerGetApprovalsResponse = (kbArticlesControllerGetApprovalsResponseSuccess)
+
+export const getKbArticlesControllerGetApprovalsUrl = () => {
+
+
+  
+
+  return `/api/v1/kb/approvals`
+}
+
+export const kbArticlesControllerGetApprovals = async ( options?: RequestInit): Promise<kbArticlesControllerGetApprovalsResponse> => {
+  
+  return customFetch<kbArticlesControllerGetApprovalsResponse>(getKbArticlesControllerGetApprovalsUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getKbArticlesControllerGetApprovalsQueryKey = () => {
+    return [
+    `/api/v1/kb/approvals`
+    ] as const;
+    }
+
+    
+export const getKbArticlesControllerGetApprovalsQueryOptions = <TData = Awaited<ReturnType<typeof kbArticlesControllerGetApprovals>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof kbArticlesControllerGetApprovals>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getKbArticlesControllerGetApprovalsQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof kbArticlesControllerGetApprovals>>> = ({ signal }) => kbArticlesControllerGetApprovals({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof kbArticlesControllerGetApprovals>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type KbArticlesControllerGetApprovalsQueryResult = NonNullable<Awaited<ReturnType<typeof kbArticlesControllerGetApprovals>>>
+export type KbArticlesControllerGetApprovalsQueryError = unknown
+
+
+export function useKbArticlesControllerGetApprovals<TData = Awaited<ReturnType<typeof kbArticlesControllerGetApprovals>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof kbArticlesControllerGetApprovals>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof kbArticlesControllerGetApprovals>>,
+          TError,
+          Awaited<ReturnType<typeof kbArticlesControllerGetApprovals>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useKbArticlesControllerGetApprovals<TData = Awaited<ReturnType<typeof kbArticlesControllerGetApprovals>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof kbArticlesControllerGetApprovals>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof kbArticlesControllerGetApprovals>>,
+          TError,
+          Awaited<ReturnType<typeof kbArticlesControllerGetApprovals>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useKbArticlesControllerGetApprovals<TData = Awaited<ReturnType<typeof kbArticlesControllerGetApprovals>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof kbArticlesControllerGetApprovals>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useKbArticlesControllerGetApprovals<TData = Awaited<ReturnType<typeof kbArticlesControllerGetApprovals>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof kbArticlesControllerGetApprovals>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getKbArticlesControllerGetApprovalsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+export type kbArticlesControllerListArticlesResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type kbArticlesControllerListArticlesResponseSuccess = (kbArticlesControllerListArticlesResponse200) & {
+  headers: Headers;
+};
+;
+
+export type kbArticlesControllerListArticlesResponse = (kbArticlesControllerListArticlesResponseSuccess)
+
+export const getKbArticlesControllerListArticlesUrl = () => {
+
+
+  
+
+  return `/api/v1/kb/articles`
+}
+
+export const kbArticlesControllerListArticles = async ( options?: RequestInit): Promise<kbArticlesControllerListArticlesResponse> => {
+  
+  return customFetch<kbArticlesControllerListArticlesResponse>(getKbArticlesControllerListArticlesUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getKbArticlesControllerListArticlesQueryKey = () => {
+    return [
+    `/api/v1/kb/articles`
+    ] as const;
+    }
+
+    
+export const getKbArticlesControllerListArticlesQueryOptions = <TData = Awaited<ReturnType<typeof kbArticlesControllerListArticles>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof kbArticlesControllerListArticles>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getKbArticlesControllerListArticlesQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof kbArticlesControllerListArticles>>> = ({ signal }) => kbArticlesControllerListArticles({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof kbArticlesControllerListArticles>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type KbArticlesControllerListArticlesQueryResult = NonNullable<Awaited<ReturnType<typeof kbArticlesControllerListArticles>>>
+export type KbArticlesControllerListArticlesQueryError = unknown
+
+
+export function useKbArticlesControllerListArticles<TData = Awaited<ReturnType<typeof kbArticlesControllerListArticles>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof kbArticlesControllerListArticles>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof kbArticlesControllerListArticles>>,
+          TError,
+          Awaited<ReturnType<typeof kbArticlesControllerListArticles>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useKbArticlesControllerListArticles<TData = Awaited<ReturnType<typeof kbArticlesControllerListArticles>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof kbArticlesControllerListArticles>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof kbArticlesControllerListArticles>>,
+          TError,
+          Awaited<ReturnType<typeof kbArticlesControllerListArticles>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useKbArticlesControllerListArticles<TData = Awaited<ReturnType<typeof kbArticlesControllerListArticles>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof kbArticlesControllerListArticles>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useKbArticlesControllerListArticles<TData = Awaited<ReturnType<typeof kbArticlesControllerListArticles>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof kbArticlesControllerListArticles>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getKbArticlesControllerListArticlesQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+export type kbArticlesControllerCreateArticleResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type kbArticlesControllerCreateArticleResponseSuccess = (kbArticlesControllerCreateArticleResponse201) & {
+  headers: Headers;
+};
+;
+
+export type kbArticlesControllerCreateArticleResponse = (kbArticlesControllerCreateArticleResponseSuccess)
+
+export const getKbArticlesControllerCreateArticleUrl = () => {
+
+
+  
+
+  return `/api/v1/kb/articles`
+}
+
+export const kbArticlesControllerCreateArticle = async (createKbArticleDto: CreateKbArticleDto, options?: RequestInit): Promise<kbArticlesControllerCreateArticleResponse> => {
+  
+  return customFetch<kbArticlesControllerCreateArticleResponse>(getKbArticlesControllerCreateArticleUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createKbArticleDto,)
+  }
+);}
+
+
+
+
+export const getKbArticlesControllerCreateArticleMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof kbArticlesControllerCreateArticle>>, TError,{data: CreateKbArticleDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof kbArticlesControllerCreateArticle>>, TError,{data: CreateKbArticleDto}, TContext> => {
+
+const mutationKey = ['kbArticlesControllerCreateArticle'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof kbArticlesControllerCreateArticle>>, {data: CreateKbArticleDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  kbArticlesControllerCreateArticle(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type KbArticlesControllerCreateArticleMutationResult = NonNullable<Awaited<ReturnType<typeof kbArticlesControllerCreateArticle>>>
+    export type KbArticlesControllerCreateArticleMutationBody = CreateKbArticleDto
+    export type KbArticlesControllerCreateArticleMutationError = unknown
+
+    export const useKbArticlesControllerCreateArticle = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof kbArticlesControllerCreateArticle>>, TError,{data: CreateKbArticleDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof kbArticlesControllerCreateArticle>>,
+        TError,
+        {data: CreateKbArticleDto},
+        TContext
+      > => {
+
+      const mutationOptions = getKbArticlesControllerCreateArticleMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+export type kbArticlesControllerGetArticleResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type kbArticlesControllerGetArticleResponseSuccess = (kbArticlesControllerGetArticleResponse200) & {
+  headers: Headers;
+};
+;
+
+export type kbArticlesControllerGetArticleResponse = (kbArticlesControllerGetArticleResponseSuccess)
+
+export const getKbArticlesControllerGetArticleUrl = (identifier: string,) => {
+
+
+  
+
+  return `/api/v1/kb/articles/${identifier}`
+}
+
+export const kbArticlesControllerGetArticle = async (identifier: string, options?: RequestInit): Promise<kbArticlesControllerGetArticleResponse> => {
+  
+  return customFetch<kbArticlesControllerGetArticleResponse>(getKbArticlesControllerGetArticleUrl(identifier),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getKbArticlesControllerGetArticleQueryKey = (identifier?: string,) => {
+    return [
+    `/api/v1/kb/articles/${identifier}`
+    ] as const;
+    }
+
+    
+export const getKbArticlesControllerGetArticleQueryOptions = <TData = Awaited<ReturnType<typeof kbArticlesControllerGetArticle>>, TError = unknown>(identifier: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof kbArticlesControllerGetArticle>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getKbArticlesControllerGetArticleQueryKey(identifier);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof kbArticlesControllerGetArticle>>> = ({ signal }) => kbArticlesControllerGetArticle(identifier, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(identifier), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof kbArticlesControllerGetArticle>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type KbArticlesControllerGetArticleQueryResult = NonNullable<Awaited<ReturnType<typeof kbArticlesControllerGetArticle>>>
+export type KbArticlesControllerGetArticleQueryError = unknown
+
+
+export function useKbArticlesControllerGetArticle<TData = Awaited<ReturnType<typeof kbArticlesControllerGetArticle>>, TError = unknown>(
+ identifier: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof kbArticlesControllerGetArticle>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof kbArticlesControllerGetArticle>>,
+          TError,
+          Awaited<ReturnType<typeof kbArticlesControllerGetArticle>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useKbArticlesControllerGetArticle<TData = Awaited<ReturnType<typeof kbArticlesControllerGetArticle>>, TError = unknown>(
+ identifier: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof kbArticlesControllerGetArticle>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof kbArticlesControllerGetArticle>>,
+          TError,
+          Awaited<ReturnType<typeof kbArticlesControllerGetArticle>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useKbArticlesControllerGetArticle<TData = Awaited<ReturnType<typeof kbArticlesControllerGetArticle>>, TError = unknown>(
+ identifier: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof kbArticlesControllerGetArticle>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useKbArticlesControllerGetArticle<TData = Awaited<ReturnType<typeof kbArticlesControllerGetArticle>>, TError = unknown>(
+ identifier: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof kbArticlesControllerGetArticle>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getKbArticlesControllerGetArticleQueryOptions(identifier,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+export type kbArticlesControllerUpdateDraftResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type kbArticlesControllerUpdateDraftResponseSuccess = (kbArticlesControllerUpdateDraftResponse200) & {
+  headers: Headers;
+};
+;
+
+export type kbArticlesControllerUpdateDraftResponse = (kbArticlesControllerUpdateDraftResponseSuccess)
+
+export const getKbArticlesControllerUpdateDraftUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/kb/articles/${id}/draft`
+}
+
+export const kbArticlesControllerUpdateDraft = async (id: number,
+    updateKbArticleDraftDto: UpdateKbArticleDraftDto, options?: RequestInit): Promise<kbArticlesControllerUpdateDraftResponse> => {
+  
+  return customFetch<kbArticlesControllerUpdateDraftResponse>(getKbArticlesControllerUpdateDraftUrl(id),
+  {      
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateKbArticleDraftDto,)
+  }
+);}
+
+
+
+
+export const getKbArticlesControllerUpdateDraftMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof kbArticlesControllerUpdateDraft>>, TError,{id: number;data: UpdateKbArticleDraftDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof kbArticlesControllerUpdateDraft>>, TError,{id: number;data: UpdateKbArticleDraftDto}, TContext> => {
+
+const mutationKey = ['kbArticlesControllerUpdateDraft'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof kbArticlesControllerUpdateDraft>>, {id: number;data: UpdateKbArticleDraftDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  kbArticlesControllerUpdateDraft(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type KbArticlesControllerUpdateDraftMutationResult = NonNullable<Awaited<ReturnType<typeof kbArticlesControllerUpdateDraft>>>
+    export type KbArticlesControllerUpdateDraftMutationBody = UpdateKbArticleDraftDto
+    export type KbArticlesControllerUpdateDraftMutationError = unknown
+
+    export const useKbArticlesControllerUpdateDraft = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof kbArticlesControllerUpdateDraft>>, TError,{id: number;data: UpdateKbArticleDraftDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof kbArticlesControllerUpdateDraft>>,
+        TError,
+        {id: number;data: UpdateKbArticleDraftDto},
+        TContext
+      > => {
+
+      const mutationOptions = getKbArticlesControllerUpdateDraftMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+export type kbArticlesControllerSubmitForApprovalResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type kbArticlesControllerSubmitForApprovalResponseSuccess = (kbArticlesControllerSubmitForApprovalResponse201) & {
+  headers: Headers;
+};
+;
+
+export type kbArticlesControllerSubmitForApprovalResponse = (kbArticlesControllerSubmitForApprovalResponseSuccess)
+
+export const getKbArticlesControllerSubmitForApprovalUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/kb/articles/${id}/submit`
+}
+
+export const kbArticlesControllerSubmitForApproval = async (id: number,
+    submitKbArticleDto: SubmitKbArticleDto, options?: RequestInit): Promise<kbArticlesControllerSubmitForApprovalResponse> => {
+  
+  return customFetch<kbArticlesControllerSubmitForApprovalResponse>(getKbArticlesControllerSubmitForApprovalUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      submitKbArticleDto,)
+  }
+);}
+
+
+
+
+export const getKbArticlesControllerSubmitForApprovalMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof kbArticlesControllerSubmitForApproval>>, TError,{id: number;data: SubmitKbArticleDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof kbArticlesControllerSubmitForApproval>>, TError,{id: number;data: SubmitKbArticleDto}, TContext> => {
+
+const mutationKey = ['kbArticlesControllerSubmitForApproval'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof kbArticlesControllerSubmitForApproval>>, {id: number;data: SubmitKbArticleDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  kbArticlesControllerSubmitForApproval(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type KbArticlesControllerSubmitForApprovalMutationResult = NonNullable<Awaited<ReturnType<typeof kbArticlesControllerSubmitForApproval>>>
+    export type KbArticlesControllerSubmitForApprovalMutationBody = SubmitKbArticleDto
+    export type KbArticlesControllerSubmitForApprovalMutationError = unknown
+
+    export const useKbArticlesControllerSubmitForApproval = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof kbArticlesControllerSubmitForApproval>>, TError,{id: number;data: SubmitKbArticleDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof kbArticlesControllerSubmitForApproval>>,
+        TError,
+        {id: number;data: SubmitKbArticleDto},
+        TContext
+      > => {
+
+      const mutationOptions = getKbArticlesControllerSubmitForApprovalMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+export type kbArticlesControllerWithdrawSubmissionResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type kbArticlesControllerWithdrawSubmissionResponseSuccess = (kbArticlesControllerWithdrawSubmissionResponse201) & {
+  headers: Headers;
+};
+;
+
+export type kbArticlesControllerWithdrawSubmissionResponse = (kbArticlesControllerWithdrawSubmissionResponseSuccess)
+
+export const getKbArticlesControllerWithdrawSubmissionUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/kb/articles/${id}/withdraw`
+}
+
+export const kbArticlesControllerWithdrawSubmission = async (id: number, options?: RequestInit): Promise<kbArticlesControllerWithdrawSubmissionResponse> => {
+  
+  return customFetch<kbArticlesControllerWithdrawSubmissionResponse>(getKbArticlesControllerWithdrawSubmissionUrl(id),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getKbArticlesControllerWithdrawSubmissionMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof kbArticlesControllerWithdrawSubmission>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof kbArticlesControllerWithdrawSubmission>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['kbArticlesControllerWithdrawSubmission'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof kbArticlesControllerWithdrawSubmission>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  kbArticlesControllerWithdrawSubmission(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type KbArticlesControllerWithdrawSubmissionMutationResult = NonNullable<Awaited<ReturnType<typeof kbArticlesControllerWithdrawSubmission>>>
+    
+    export type KbArticlesControllerWithdrawSubmissionMutationError = unknown
+
+    export const useKbArticlesControllerWithdrawSubmission = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof kbArticlesControllerWithdrawSubmission>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof kbArticlesControllerWithdrawSubmission>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+
+      const mutationOptions = getKbArticlesControllerWithdrawSubmissionMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+export type kbArticlesControllerReviewVersionResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type kbArticlesControllerReviewVersionResponseSuccess = (kbArticlesControllerReviewVersionResponse201) & {
+  headers: Headers;
+};
+;
+
+export type kbArticlesControllerReviewVersionResponse = (kbArticlesControllerReviewVersionResponseSuccess)
+
+export const getKbArticlesControllerReviewVersionUrl = (id: number,
+    versionId: number,) => {
+
+
+  
+
+  return `/api/v1/kb/articles/${id}/versions/${versionId}/review`
+}
+
+export const kbArticlesControllerReviewVersion = async (id: number,
+    versionId: number,
+    reviewKbArticleDto: ReviewKbArticleDto, options?: RequestInit): Promise<kbArticlesControllerReviewVersionResponse> => {
+  
+  return customFetch<kbArticlesControllerReviewVersionResponse>(getKbArticlesControllerReviewVersionUrl(id,versionId),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      reviewKbArticleDto,)
+  }
+);}
+
+
+
+
+export const getKbArticlesControllerReviewVersionMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof kbArticlesControllerReviewVersion>>, TError,{id: number;versionId: number;data: ReviewKbArticleDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof kbArticlesControllerReviewVersion>>, TError,{id: number;versionId: number;data: ReviewKbArticleDto}, TContext> => {
+
+const mutationKey = ['kbArticlesControllerReviewVersion'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof kbArticlesControllerReviewVersion>>, {id: number;versionId: number;data: ReviewKbArticleDto}> = (props) => {
+          const {id,versionId,data} = props ?? {};
+
+          return  kbArticlesControllerReviewVersion(id,versionId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type KbArticlesControllerReviewVersionMutationResult = NonNullable<Awaited<ReturnType<typeof kbArticlesControllerReviewVersion>>>
+    export type KbArticlesControllerReviewVersionMutationBody = ReviewKbArticleDto
+    export type KbArticlesControllerReviewVersionMutationError = unknown
+
+    export const useKbArticlesControllerReviewVersion = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof kbArticlesControllerReviewVersion>>, TError,{id: number;versionId: number;data: ReviewKbArticleDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof kbArticlesControllerReviewVersion>>,
+        TError,
+        {id: number;versionId: number;data: ReviewKbArticleDto},
+        TContext
+      > => {
+
+      const mutationOptions = getKbArticlesControllerReviewVersionMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+export type kbArticlesControllerDirectPublishResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type kbArticlesControllerDirectPublishResponseSuccess = (kbArticlesControllerDirectPublishResponse201) & {
+  headers: Headers;
+};
+;
+
+export type kbArticlesControllerDirectPublishResponse = (kbArticlesControllerDirectPublishResponseSuccess)
+
+export const getKbArticlesControllerDirectPublishUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/kb/articles/${id}/publish-direct`
+}
+
+export const kbArticlesControllerDirectPublish = async (id: number,
+    directPublishKbArticleDto: DirectPublishKbArticleDto, options?: RequestInit): Promise<kbArticlesControllerDirectPublishResponse> => {
+  
+  return customFetch<kbArticlesControllerDirectPublishResponse>(getKbArticlesControllerDirectPublishUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      directPublishKbArticleDto,)
+  }
+);}
+
+
+
+
+export const getKbArticlesControllerDirectPublishMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof kbArticlesControllerDirectPublish>>, TError,{id: number;data: DirectPublishKbArticleDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof kbArticlesControllerDirectPublish>>, TError,{id: number;data: DirectPublishKbArticleDto}, TContext> => {
+
+const mutationKey = ['kbArticlesControllerDirectPublish'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof kbArticlesControllerDirectPublish>>, {id: number;data: DirectPublishKbArticleDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  kbArticlesControllerDirectPublish(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type KbArticlesControllerDirectPublishMutationResult = NonNullable<Awaited<ReturnType<typeof kbArticlesControllerDirectPublish>>>
+    export type KbArticlesControllerDirectPublishMutationBody = DirectPublishKbArticleDto
+    export type KbArticlesControllerDirectPublishMutationError = unknown
+
+    export const useKbArticlesControllerDirectPublish = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof kbArticlesControllerDirectPublish>>, TError,{id: number;data: DirectPublishKbArticleDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof kbArticlesControllerDirectPublish>>,
+        TError,
+        {id: number;data: DirectPublishKbArticleDto},
+        TContext
+      > => {
+
+      const mutationOptions = getKbArticlesControllerDirectPublishMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+export type kbArticlesControllerAcknowledgeArticleResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type kbArticlesControllerAcknowledgeArticleResponseSuccess = (kbArticlesControllerAcknowledgeArticleResponse201) & {
+  headers: Headers;
+};
+;
+
+export type kbArticlesControllerAcknowledgeArticleResponse = (kbArticlesControllerAcknowledgeArticleResponseSuccess)
+
+export const getKbArticlesControllerAcknowledgeArticleUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/kb/articles/${id}/acknowledge`
+}
+
+export const kbArticlesControllerAcknowledgeArticle = async (id: number, options?: RequestInit): Promise<kbArticlesControllerAcknowledgeArticleResponse> => {
+  
+  return customFetch<kbArticlesControllerAcknowledgeArticleResponse>(getKbArticlesControllerAcknowledgeArticleUrl(id),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getKbArticlesControllerAcknowledgeArticleMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof kbArticlesControllerAcknowledgeArticle>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof kbArticlesControllerAcknowledgeArticle>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['kbArticlesControllerAcknowledgeArticle'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof kbArticlesControllerAcknowledgeArticle>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  kbArticlesControllerAcknowledgeArticle(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type KbArticlesControllerAcknowledgeArticleMutationResult = NonNullable<Awaited<ReturnType<typeof kbArticlesControllerAcknowledgeArticle>>>
+    
+    export type KbArticlesControllerAcknowledgeArticleMutationError = unknown
+
+    export const useKbArticlesControllerAcknowledgeArticle = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof kbArticlesControllerAcknowledgeArticle>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof kbArticlesControllerAcknowledgeArticle>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+
+      const mutationOptions = getKbArticlesControllerAcknowledgeArticleMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+export type kbArticlesControllerSubmitFeedbackResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type kbArticlesControllerSubmitFeedbackResponseSuccess = (kbArticlesControllerSubmitFeedbackResponse201) & {
+  headers: Headers;
+};
+;
+
+export type kbArticlesControllerSubmitFeedbackResponse = (kbArticlesControllerSubmitFeedbackResponseSuccess)
+
+export const getKbArticlesControllerSubmitFeedbackUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/kb/articles/${id}/feedback`
+}
+
+export const kbArticlesControllerSubmitFeedback = async (id: number,
+    kbFeedbackDto: KbFeedbackDto, options?: RequestInit): Promise<kbArticlesControllerSubmitFeedbackResponse> => {
+  
+  return customFetch<kbArticlesControllerSubmitFeedbackResponse>(getKbArticlesControllerSubmitFeedbackUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      kbFeedbackDto,)
+  }
+);}
+
+
+
+
+export const getKbArticlesControllerSubmitFeedbackMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof kbArticlesControllerSubmitFeedback>>, TError,{id: number;data: KbFeedbackDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof kbArticlesControllerSubmitFeedback>>, TError,{id: number;data: KbFeedbackDto}, TContext> => {
+
+const mutationKey = ['kbArticlesControllerSubmitFeedback'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof kbArticlesControllerSubmitFeedback>>, {id: number;data: KbFeedbackDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  kbArticlesControllerSubmitFeedback(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type KbArticlesControllerSubmitFeedbackMutationResult = NonNullable<Awaited<ReturnType<typeof kbArticlesControllerSubmitFeedback>>>
+    export type KbArticlesControllerSubmitFeedbackMutationBody = KbFeedbackDto
+    export type KbArticlesControllerSubmitFeedbackMutationError = unknown
+
+    export const useKbArticlesControllerSubmitFeedback = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof kbArticlesControllerSubmitFeedback>>, TError,{id: number;data: KbFeedbackDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof kbArticlesControllerSubmitFeedback>>,
+        TError,
+        {id: number;data: KbFeedbackDto},
+        TContext
+      > => {
+
+      const mutationOptions = getKbArticlesControllerSubmitFeedbackMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+export type kbArticlesControllerArchiveArticleResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type kbArticlesControllerArchiveArticleResponseSuccess = (kbArticlesControllerArchiveArticleResponse201) & {
+  headers: Headers;
+};
+;
+
+export type kbArticlesControllerArchiveArticleResponse = (kbArticlesControllerArchiveArticleResponseSuccess)
+
+export const getKbArticlesControllerArchiveArticleUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/kb/articles/${id}/archive`
+}
+
+export const kbArticlesControllerArchiveArticle = async (id: number,
+    archiveKbArticleDto: ArchiveKbArticleDto, options?: RequestInit): Promise<kbArticlesControllerArchiveArticleResponse> => {
+  
+  return customFetch<kbArticlesControllerArchiveArticleResponse>(getKbArticlesControllerArchiveArticleUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      archiveKbArticleDto,)
+  }
+);}
+
+
+
+
+export const getKbArticlesControllerArchiveArticleMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof kbArticlesControllerArchiveArticle>>, TError,{id: number;data: ArchiveKbArticleDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof kbArticlesControllerArchiveArticle>>, TError,{id: number;data: ArchiveKbArticleDto}, TContext> => {
+
+const mutationKey = ['kbArticlesControllerArchiveArticle'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof kbArticlesControllerArchiveArticle>>, {id: number;data: ArchiveKbArticleDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  kbArticlesControllerArchiveArticle(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type KbArticlesControllerArchiveArticleMutationResult = NonNullable<Awaited<ReturnType<typeof kbArticlesControllerArchiveArticle>>>
+    export type KbArticlesControllerArchiveArticleMutationBody = ArchiveKbArticleDto
+    export type KbArticlesControllerArchiveArticleMutationError = unknown
+
+    export const useKbArticlesControllerArchiveArticle = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof kbArticlesControllerArchiveArticle>>, TError,{id: number;data: ArchiveKbArticleDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof kbArticlesControllerArchiveArticle>>,
+        TError,
+        {id: number;data: ArchiveKbArticleDto},
+        TContext
+      > => {
+
+      const mutationOptions = getKbArticlesControllerArchiveArticleMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+export type kbArticlesControllerRestoreArticleResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type kbArticlesControllerRestoreArticleResponseSuccess = (kbArticlesControllerRestoreArticleResponse201) & {
+  headers: Headers;
+};
+;
+
+export type kbArticlesControllerRestoreArticleResponse = (kbArticlesControllerRestoreArticleResponseSuccess)
+
+export const getKbArticlesControllerRestoreArticleUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/kb/articles/${id}/restore`
+}
+
+export const kbArticlesControllerRestoreArticle = async (id: number, options?: RequestInit): Promise<kbArticlesControllerRestoreArticleResponse> => {
+  
+  return customFetch<kbArticlesControllerRestoreArticleResponse>(getKbArticlesControllerRestoreArticleUrl(id),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getKbArticlesControllerRestoreArticleMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof kbArticlesControllerRestoreArticle>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof kbArticlesControllerRestoreArticle>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['kbArticlesControllerRestoreArticle'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof kbArticlesControllerRestoreArticle>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  kbArticlesControllerRestoreArticle(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type KbArticlesControllerRestoreArticleMutationResult = NonNullable<Awaited<ReturnType<typeof kbArticlesControllerRestoreArticle>>>
+    
+    export type KbArticlesControllerRestoreArticleMutationError = unknown
+
+    export const useKbArticlesControllerRestoreArticle = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof kbArticlesControllerRestoreArticle>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof kbArticlesControllerRestoreArticle>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+
+      const mutationOptions = getKbArticlesControllerRestoreArticleMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+export type kbArticlesControllerGetVersionsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type kbArticlesControllerGetVersionsResponseSuccess = (kbArticlesControllerGetVersionsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type kbArticlesControllerGetVersionsResponse = (kbArticlesControllerGetVersionsResponseSuccess)
+
+export const getKbArticlesControllerGetVersionsUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/kb/articles/${id}/versions`
+}
+
+export const kbArticlesControllerGetVersions = async (id: number, options?: RequestInit): Promise<kbArticlesControllerGetVersionsResponse> => {
+  
+  return customFetch<kbArticlesControllerGetVersionsResponse>(getKbArticlesControllerGetVersionsUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getKbArticlesControllerGetVersionsQueryKey = (id?: number,) => {
+    return [
+    `/api/v1/kb/articles/${id}/versions`
+    ] as const;
+    }
+
+    
+export const getKbArticlesControllerGetVersionsQueryOptions = <TData = Awaited<ReturnType<typeof kbArticlesControllerGetVersions>>, TError = unknown>(id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof kbArticlesControllerGetVersions>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getKbArticlesControllerGetVersionsQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof kbArticlesControllerGetVersions>>> = ({ signal }) => kbArticlesControllerGetVersions(id, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof kbArticlesControllerGetVersions>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type KbArticlesControllerGetVersionsQueryResult = NonNullable<Awaited<ReturnType<typeof kbArticlesControllerGetVersions>>>
+export type KbArticlesControllerGetVersionsQueryError = unknown
+
+
+export function useKbArticlesControllerGetVersions<TData = Awaited<ReturnType<typeof kbArticlesControllerGetVersions>>, TError = unknown>(
+ id: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof kbArticlesControllerGetVersions>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof kbArticlesControllerGetVersions>>,
+          TError,
+          Awaited<ReturnType<typeof kbArticlesControllerGetVersions>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useKbArticlesControllerGetVersions<TData = Awaited<ReturnType<typeof kbArticlesControllerGetVersions>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof kbArticlesControllerGetVersions>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof kbArticlesControllerGetVersions>>,
+          TError,
+          Awaited<ReturnType<typeof kbArticlesControllerGetVersions>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useKbArticlesControllerGetVersions<TData = Awaited<ReturnType<typeof kbArticlesControllerGetVersions>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof kbArticlesControllerGetVersions>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useKbArticlesControllerGetVersions<TData = Awaited<ReturnType<typeof kbArticlesControllerGetVersions>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof kbArticlesControllerGetVersions>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getKbArticlesControllerGetVersionsQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+export type kbArticlesControllerRecordViewResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type kbArticlesControllerRecordViewResponseSuccess = (kbArticlesControllerRecordViewResponse201) & {
+  headers: Headers;
+};
+;
+
+export type kbArticlesControllerRecordViewResponse = (kbArticlesControllerRecordViewResponseSuccess)
+
+export const getKbArticlesControllerRecordViewUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/kb/articles/${id}/view`
+}
+
+export const kbArticlesControllerRecordView = async (id: number, options?: RequestInit): Promise<kbArticlesControllerRecordViewResponse> => {
+  
+  return customFetch<kbArticlesControllerRecordViewResponse>(getKbArticlesControllerRecordViewUrl(id),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getKbArticlesControllerRecordViewMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof kbArticlesControllerRecordView>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof kbArticlesControllerRecordView>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['kbArticlesControllerRecordView'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof kbArticlesControllerRecordView>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  kbArticlesControllerRecordView(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type KbArticlesControllerRecordViewMutationResult = NonNullable<Awaited<ReturnType<typeof kbArticlesControllerRecordView>>>
+    
+    export type KbArticlesControllerRecordViewMutationError = unknown
+
+    export const useKbArticlesControllerRecordView = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof kbArticlesControllerRecordView>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof kbArticlesControllerRecordView>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+
+      const mutationOptions = getKbArticlesControllerRecordViewMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary List all evaluation cycles
+ */
+export type performanceCyclesControllerListCyclesResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type performanceCyclesControllerListCyclesResponseSuccess = (performanceCyclesControllerListCyclesResponse200) & {
+  headers: Headers;
+};
+;
+
+export type performanceCyclesControllerListCyclesResponse = (performanceCyclesControllerListCyclesResponseSuccess)
+
+export const getPerformanceCyclesControllerListCyclesUrl = () => {
+
+
+  
+
+  return `/api/v1/performance/cycles`
+}
+
+export const performanceCyclesControllerListCycles = async ( options?: RequestInit): Promise<performanceCyclesControllerListCyclesResponse> => {
+  
+  return customFetch<performanceCyclesControllerListCyclesResponse>(getPerformanceCyclesControllerListCyclesUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getPerformanceCyclesControllerListCyclesQueryKey = () => {
+    return [
+    `/api/v1/performance/cycles`
+    ] as const;
+    }
+
+    
+export const getPerformanceCyclesControllerListCyclesQueryOptions = <TData = Awaited<ReturnType<typeof performanceCyclesControllerListCycles>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceCyclesControllerListCycles>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPerformanceCyclesControllerListCyclesQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof performanceCyclesControllerListCycles>>> = ({ signal }) => performanceCyclesControllerListCycles({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof performanceCyclesControllerListCycles>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type PerformanceCyclesControllerListCyclesQueryResult = NonNullable<Awaited<ReturnType<typeof performanceCyclesControllerListCycles>>>
+export type PerformanceCyclesControllerListCyclesQueryError = unknown
+
+
+export function usePerformanceCyclesControllerListCycles<TData = Awaited<ReturnType<typeof performanceCyclesControllerListCycles>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceCyclesControllerListCycles>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof performanceCyclesControllerListCycles>>,
+          TError,
+          Awaited<ReturnType<typeof performanceCyclesControllerListCycles>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePerformanceCyclesControllerListCycles<TData = Awaited<ReturnType<typeof performanceCyclesControllerListCycles>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceCyclesControllerListCycles>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof performanceCyclesControllerListCycles>>,
+          TError,
+          Awaited<ReturnType<typeof performanceCyclesControllerListCycles>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePerformanceCyclesControllerListCycles<TData = Awaited<ReturnType<typeof performanceCyclesControllerListCycles>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceCyclesControllerListCycles>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List all evaluation cycles
+ */
+
+export function usePerformanceCyclesControllerListCycles<TData = Awaited<ReturnType<typeof performanceCyclesControllerListCycles>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceCyclesControllerListCycles>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getPerformanceCyclesControllerListCyclesQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Create new evaluation cycle (Admin only)
+ */
+export type performanceCyclesControllerCreateCycleResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type performanceCyclesControllerCreateCycleResponseSuccess = (performanceCyclesControllerCreateCycleResponse201) & {
+  headers: Headers;
+};
+;
+
+export type performanceCyclesControllerCreateCycleResponse = (performanceCyclesControllerCreateCycleResponseSuccess)
+
+export const getPerformanceCyclesControllerCreateCycleUrl = () => {
+
+
+  
+
+  return `/api/v1/performance/cycles`
+}
+
+export const performanceCyclesControllerCreateCycle = async (createPerfCycleDto: CreatePerfCycleDto, options?: RequestInit): Promise<performanceCyclesControllerCreateCycleResponse> => {
+  
+  return customFetch<performanceCyclesControllerCreateCycleResponse>(getPerformanceCyclesControllerCreateCycleUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createPerfCycleDto,)
+  }
+);}
+
+
+
+
+export const getPerformanceCyclesControllerCreateCycleMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof performanceCyclesControllerCreateCycle>>, TError,{data: CreatePerfCycleDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof performanceCyclesControllerCreateCycle>>, TError,{data: CreatePerfCycleDto}, TContext> => {
+
+const mutationKey = ['performanceCyclesControllerCreateCycle'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof performanceCyclesControllerCreateCycle>>, {data: CreatePerfCycleDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  performanceCyclesControllerCreateCycle(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PerformanceCyclesControllerCreateCycleMutationResult = NonNullable<Awaited<ReturnType<typeof performanceCyclesControllerCreateCycle>>>
+    export type PerformanceCyclesControllerCreateCycleMutationBody = CreatePerfCycleDto
+    export type PerformanceCyclesControllerCreateCycleMutationError = unknown
+
+    /**
+ * @summary Create new evaluation cycle (Admin only)
+ */
+export const usePerformanceCyclesControllerCreateCycle = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof performanceCyclesControllerCreateCycle>>, TError,{data: CreatePerfCycleDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof performanceCyclesControllerCreateCycle>>,
+        TError,
+        {data: CreatePerfCycleDto},
+        TContext
+      > => {
+
+      const mutationOptions = getPerformanceCyclesControllerCreateCycleMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Get single cycle details
+ */
+export type performanceCyclesControllerGetCycleByIdResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type performanceCyclesControllerGetCycleByIdResponseSuccess = (performanceCyclesControllerGetCycleByIdResponse200) & {
+  headers: Headers;
+};
+;
+
+export type performanceCyclesControllerGetCycleByIdResponse = (performanceCyclesControllerGetCycleByIdResponseSuccess)
+
+export const getPerformanceCyclesControllerGetCycleByIdUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/performance/cycles/${id}`
+}
+
+export const performanceCyclesControllerGetCycleById = async (id: number, options?: RequestInit): Promise<performanceCyclesControllerGetCycleByIdResponse> => {
+  
+  return customFetch<performanceCyclesControllerGetCycleByIdResponse>(getPerformanceCyclesControllerGetCycleByIdUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getPerformanceCyclesControllerGetCycleByIdQueryKey = (id?: number,) => {
+    return [
+    `/api/v1/performance/cycles/${id}`
+    ] as const;
+    }
+
+    
+export const getPerformanceCyclesControllerGetCycleByIdQueryOptions = <TData = Awaited<ReturnType<typeof performanceCyclesControllerGetCycleById>>, TError = unknown>(id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceCyclesControllerGetCycleById>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPerformanceCyclesControllerGetCycleByIdQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof performanceCyclesControllerGetCycleById>>> = ({ signal }) => performanceCyclesControllerGetCycleById(id, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof performanceCyclesControllerGetCycleById>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type PerformanceCyclesControllerGetCycleByIdQueryResult = NonNullable<Awaited<ReturnType<typeof performanceCyclesControllerGetCycleById>>>
+export type PerformanceCyclesControllerGetCycleByIdQueryError = unknown
+
+
+export function usePerformanceCyclesControllerGetCycleById<TData = Awaited<ReturnType<typeof performanceCyclesControllerGetCycleById>>, TError = unknown>(
+ id: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceCyclesControllerGetCycleById>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof performanceCyclesControllerGetCycleById>>,
+          TError,
+          Awaited<ReturnType<typeof performanceCyclesControllerGetCycleById>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePerformanceCyclesControllerGetCycleById<TData = Awaited<ReturnType<typeof performanceCyclesControllerGetCycleById>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceCyclesControllerGetCycleById>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof performanceCyclesControllerGetCycleById>>,
+          TError,
+          Awaited<ReturnType<typeof performanceCyclesControllerGetCycleById>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePerformanceCyclesControllerGetCycleById<TData = Awaited<ReturnType<typeof performanceCyclesControllerGetCycleById>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceCyclesControllerGetCycleById>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get single cycle details
+ */
+
+export function usePerformanceCyclesControllerGetCycleById<TData = Awaited<ReturnType<typeof performanceCyclesControllerGetCycleById>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceCyclesControllerGetCycleById>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getPerformanceCyclesControllerGetCycleByIdQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Update evaluation cycle
+ */
+export type performanceCyclesControllerUpdateCycleResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type performanceCyclesControllerUpdateCycleResponseSuccess = (performanceCyclesControllerUpdateCycleResponse200) & {
+  headers: Headers;
+};
+;
+
+export type performanceCyclesControllerUpdateCycleResponse = (performanceCyclesControllerUpdateCycleResponseSuccess)
+
+export const getPerformanceCyclesControllerUpdateCycleUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/performance/cycles/${id}`
+}
+
+export const performanceCyclesControllerUpdateCycle = async (id: number,
+    updatePerfCycleDto: UpdatePerfCycleDto, options?: RequestInit): Promise<performanceCyclesControllerUpdateCycleResponse> => {
+  
+  return customFetch<performanceCyclesControllerUpdateCycleResponse>(getPerformanceCyclesControllerUpdateCycleUrl(id),
+  {      
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updatePerfCycleDto,)
+  }
+);}
+
+
+
+
+export const getPerformanceCyclesControllerUpdateCycleMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof performanceCyclesControllerUpdateCycle>>, TError,{id: number;data: UpdatePerfCycleDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof performanceCyclesControllerUpdateCycle>>, TError,{id: number;data: UpdatePerfCycleDto}, TContext> => {
+
+const mutationKey = ['performanceCyclesControllerUpdateCycle'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof performanceCyclesControllerUpdateCycle>>, {id: number;data: UpdatePerfCycleDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  performanceCyclesControllerUpdateCycle(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PerformanceCyclesControllerUpdateCycleMutationResult = NonNullable<Awaited<ReturnType<typeof performanceCyclesControllerUpdateCycle>>>
+    export type PerformanceCyclesControllerUpdateCycleMutationBody = UpdatePerfCycleDto
+    export type PerformanceCyclesControllerUpdateCycleMutationError = unknown
+
+    /**
+ * @summary Update evaluation cycle
+ */
+export const usePerformanceCyclesControllerUpdateCycle = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof performanceCyclesControllerUpdateCycle>>, TError,{id: number;data: UpdatePerfCycleDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof performanceCyclesControllerUpdateCycle>>,
+        TError,
+        {id: number;data: UpdatePerfCycleDto},
+        TContext
+      > => {
+
+      const mutationOptions = getPerformanceCyclesControllerUpdateCycleMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Delete cycle (if no submitted reviews)
+ */
+export type performanceCyclesControllerDeleteCycleResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type performanceCyclesControllerDeleteCycleResponseSuccess = (performanceCyclesControllerDeleteCycleResponse200) & {
+  headers: Headers;
+};
+;
+
+export type performanceCyclesControllerDeleteCycleResponse = (performanceCyclesControllerDeleteCycleResponseSuccess)
+
+export const getPerformanceCyclesControllerDeleteCycleUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/performance/cycles/${id}`
+}
+
+export const performanceCyclesControllerDeleteCycle = async (id: number, options?: RequestInit): Promise<performanceCyclesControllerDeleteCycleResponse> => {
+  
+  return customFetch<performanceCyclesControllerDeleteCycleResponse>(getPerformanceCyclesControllerDeleteCycleUrl(id),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+);}
+
+
+
+
+export const getPerformanceCyclesControllerDeleteCycleMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof performanceCyclesControllerDeleteCycle>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof performanceCyclesControllerDeleteCycle>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['performanceCyclesControllerDeleteCycle'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof performanceCyclesControllerDeleteCycle>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  performanceCyclesControllerDeleteCycle(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PerformanceCyclesControllerDeleteCycleMutationResult = NonNullable<Awaited<ReturnType<typeof performanceCyclesControllerDeleteCycle>>>
+    
+    export type PerformanceCyclesControllerDeleteCycleMutationError = unknown
+
+    /**
+ * @summary Delete cycle (if no submitted reviews)
+ */
+export const usePerformanceCyclesControllerDeleteCycle = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof performanceCyclesControllerDeleteCycle>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof performanceCyclesControllerDeleteCycle>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+
+      const mutationOptions = getPerformanceCyclesControllerDeleteCycleMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary List review forms
+ */
+export type performanceFormsControllerListFormsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type performanceFormsControllerListFormsResponseSuccess = (performanceFormsControllerListFormsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type performanceFormsControllerListFormsResponse = (performanceFormsControllerListFormsResponseSuccess)
+
+export const getPerformanceFormsControllerListFormsUrl = (params: PerformanceFormsControllerListFormsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/performance/forms?${stringifiedParams}` : `/api/v1/performance/forms`
+}
+
+export const performanceFormsControllerListForms = async (params: PerformanceFormsControllerListFormsParams, options?: RequestInit): Promise<performanceFormsControllerListFormsResponse> => {
+  
+  return customFetch<performanceFormsControllerListFormsResponse>(getPerformanceFormsControllerListFormsUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getPerformanceFormsControllerListFormsQueryKey = (params?: PerformanceFormsControllerListFormsParams,) => {
+    return [
+    `/api/v1/performance/forms`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getPerformanceFormsControllerListFormsQueryOptions = <TData = Awaited<ReturnType<typeof performanceFormsControllerListForms>>, TError = unknown>(params: PerformanceFormsControllerListFormsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceFormsControllerListForms>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPerformanceFormsControllerListFormsQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof performanceFormsControllerListForms>>> = ({ signal }) => performanceFormsControllerListForms(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof performanceFormsControllerListForms>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type PerformanceFormsControllerListFormsQueryResult = NonNullable<Awaited<ReturnType<typeof performanceFormsControllerListForms>>>
+export type PerformanceFormsControllerListFormsQueryError = unknown
+
+
+export function usePerformanceFormsControllerListForms<TData = Awaited<ReturnType<typeof performanceFormsControllerListForms>>, TError = unknown>(
+ params: PerformanceFormsControllerListFormsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceFormsControllerListForms>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof performanceFormsControllerListForms>>,
+          TError,
+          Awaited<ReturnType<typeof performanceFormsControllerListForms>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePerformanceFormsControllerListForms<TData = Awaited<ReturnType<typeof performanceFormsControllerListForms>>, TError = unknown>(
+ params: PerformanceFormsControllerListFormsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceFormsControllerListForms>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof performanceFormsControllerListForms>>,
+          TError,
+          Awaited<ReturnType<typeof performanceFormsControllerListForms>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePerformanceFormsControllerListForms<TData = Awaited<ReturnType<typeof performanceFormsControllerListForms>>, TError = unknown>(
+ params: PerformanceFormsControllerListFormsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceFormsControllerListForms>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List review forms
+ */
+
+export function usePerformanceFormsControllerListForms<TData = Awaited<ReturnType<typeof performanceFormsControllerListForms>>, TError = unknown>(
+ params: PerformanceFormsControllerListFormsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceFormsControllerListForms>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getPerformanceFormsControllerListFormsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Create new review form with 5 fixed questions
+ */
+export type performanceFormsControllerCreateFormResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type performanceFormsControllerCreateFormResponseSuccess = (performanceFormsControllerCreateFormResponse201) & {
+  headers: Headers;
+};
+;
+
+export type performanceFormsControllerCreateFormResponse = (performanceFormsControllerCreateFormResponseSuccess)
+
+export const getPerformanceFormsControllerCreateFormUrl = () => {
+
+
+  
+
+  return `/api/v1/performance/forms`
+}
+
+export const performanceFormsControllerCreateForm = async (createPerfFormDto: CreatePerfFormDto, options?: RequestInit): Promise<performanceFormsControllerCreateFormResponse> => {
+  
+  return customFetch<performanceFormsControllerCreateFormResponse>(getPerformanceFormsControllerCreateFormUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createPerfFormDto,)
+  }
+);}
+
+
+
+
+export const getPerformanceFormsControllerCreateFormMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof performanceFormsControllerCreateForm>>, TError,{data: CreatePerfFormDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof performanceFormsControllerCreateForm>>, TError,{data: CreatePerfFormDto}, TContext> => {
+
+const mutationKey = ['performanceFormsControllerCreateForm'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof performanceFormsControllerCreateForm>>, {data: CreatePerfFormDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  performanceFormsControllerCreateForm(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PerformanceFormsControllerCreateFormMutationResult = NonNullable<Awaited<ReturnType<typeof performanceFormsControllerCreateForm>>>
+    export type PerformanceFormsControllerCreateFormMutationBody = CreatePerfFormDto
+    export type PerformanceFormsControllerCreateFormMutationError = unknown
+
+    /**
+ * @summary Create new review form with 5 fixed questions
+ */
+export const usePerformanceFormsControllerCreateForm = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof performanceFormsControllerCreateForm>>, TError,{data: CreatePerfFormDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof performanceFormsControllerCreateForm>>,
+        TError,
+        {data: CreatePerfFormDto},
+        TContext
+      > => {
+
+      const mutationOptions = getPerformanceFormsControllerCreateFormMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Get review form details
+ */
+export type performanceFormsControllerGetFormByIdResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type performanceFormsControllerGetFormByIdResponseSuccess = (performanceFormsControllerGetFormByIdResponse200) & {
+  headers: Headers;
+};
+;
+
+export type performanceFormsControllerGetFormByIdResponse = (performanceFormsControllerGetFormByIdResponseSuccess)
+
+export const getPerformanceFormsControllerGetFormByIdUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/performance/forms/${id}`
+}
+
+export const performanceFormsControllerGetFormById = async (id: number, options?: RequestInit): Promise<performanceFormsControllerGetFormByIdResponse> => {
+  
+  return customFetch<performanceFormsControllerGetFormByIdResponse>(getPerformanceFormsControllerGetFormByIdUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getPerformanceFormsControllerGetFormByIdQueryKey = (id?: number,) => {
+    return [
+    `/api/v1/performance/forms/${id}`
+    ] as const;
+    }
+
+    
+export const getPerformanceFormsControllerGetFormByIdQueryOptions = <TData = Awaited<ReturnType<typeof performanceFormsControllerGetFormById>>, TError = unknown>(id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceFormsControllerGetFormById>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPerformanceFormsControllerGetFormByIdQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof performanceFormsControllerGetFormById>>> = ({ signal }) => performanceFormsControllerGetFormById(id, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof performanceFormsControllerGetFormById>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type PerformanceFormsControllerGetFormByIdQueryResult = NonNullable<Awaited<ReturnType<typeof performanceFormsControllerGetFormById>>>
+export type PerformanceFormsControllerGetFormByIdQueryError = unknown
+
+
+export function usePerformanceFormsControllerGetFormById<TData = Awaited<ReturnType<typeof performanceFormsControllerGetFormById>>, TError = unknown>(
+ id: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceFormsControllerGetFormById>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof performanceFormsControllerGetFormById>>,
+          TError,
+          Awaited<ReturnType<typeof performanceFormsControllerGetFormById>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePerformanceFormsControllerGetFormById<TData = Awaited<ReturnType<typeof performanceFormsControllerGetFormById>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceFormsControllerGetFormById>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof performanceFormsControllerGetFormById>>,
+          TError,
+          Awaited<ReturnType<typeof performanceFormsControllerGetFormById>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePerformanceFormsControllerGetFormById<TData = Awaited<ReturnType<typeof performanceFormsControllerGetFormById>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceFormsControllerGetFormById>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get review form details
+ */
+
+export function usePerformanceFormsControllerGetFormById<TData = Awaited<ReturnType<typeof performanceFormsControllerGetFormById>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceFormsControllerGetFormById>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getPerformanceFormsControllerGetFormByIdQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Update review form (before review window starts)
+ */
+export type performanceFormsControllerUpdateFormResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type performanceFormsControllerUpdateFormResponseSuccess = (performanceFormsControllerUpdateFormResponse200) & {
+  headers: Headers;
+};
+;
+
+export type performanceFormsControllerUpdateFormResponse = (performanceFormsControllerUpdateFormResponseSuccess)
+
+export const getPerformanceFormsControllerUpdateFormUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/performance/forms/${id}`
+}
+
+export const performanceFormsControllerUpdateForm = async (id: number,
+    updatePerfFormDto: UpdatePerfFormDto, options?: RequestInit): Promise<performanceFormsControllerUpdateFormResponse> => {
+  
+  return customFetch<performanceFormsControllerUpdateFormResponse>(getPerformanceFormsControllerUpdateFormUrl(id),
+  {      
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updatePerfFormDto,)
+  }
+);}
+
+
+
+
+export const getPerformanceFormsControllerUpdateFormMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof performanceFormsControllerUpdateForm>>, TError,{id: number;data: UpdatePerfFormDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof performanceFormsControllerUpdateForm>>, TError,{id: number;data: UpdatePerfFormDto}, TContext> => {
+
+const mutationKey = ['performanceFormsControllerUpdateForm'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof performanceFormsControllerUpdateForm>>, {id: number;data: UpdatePerfFormDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  performanceFormsControllerUpdateForm(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PerformanceFormsControllerUpdateFormMutationResult = NonNullable<Awaited<ReturnType<typeof performanceFormsControllerUpdateForm>>>
+    export type PerformanceFormsControllerUpdateFormMutationBody = UpdatePerfFormDto
+    export type PerformanceFormsControllerUpdateFormMutationError = unknown
+
+    /**
+ * @summary Update review form (before review window starts)
+ */
+export const usePerformanceFormsControllerUpdateForm = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof performanceFormsControllerUpdateForm>>, TError,{id: number;data: UpdatePerfFormDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof performanceFormsControllerUpdateForm>>,
+        TError,
+        {id: number;data: UpdatePerfFormDto},
+        TContext
+      > => {
+
+      const mutationOptions = getPerformanceFormsControllerUpdateFormMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Delete review form
+ */
+export type performanceFormsControllerDeleteFormResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type performanceFormsControllerDeleteFormResponseSuccess = (performanceFormsControllerDeleteFormResponse200) & {
+  headers: Headers;
+};
+;
+
+export type performanceFormsControllerDeleteFormResponse = (performanceFormsControllerDeleteFormResponseSuccess)
+
+export const getPerformanceFormsControllerDeleteFormUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/performance/forms/${id}`
+}
+
+export const performanceFormsControllerDeleteForm = async (id: number, options?: RequestInit): Promise<performanceFormsControllerDeleteFormResponse> => {
+  
+  return customFetch<performanceFormsControllerDeleteFormResponse>(getPerformanceFormsControllerDeleteFormUrl(id),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+);}
+
+
+
+
+export const getPerformanceFormsControllerDeleteFormMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof performanceFormsControllerDeleteForm>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof performanceFormsControllerDeleteForm>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['performanceFormsControllerDeleteForm'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof performanceFormsControllerDeleteForm>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  performanceFormsControllerDeleteForm(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PerformanceFormsControllerDeleteFormMutationResult = NonNullable<Awaited<ReturnType<typeof performanceFormsControllerDeleteForm>>>
+    
+    export type PerformanceFormsControllerDeleteFormMutationError = unknown
+
+    /**
+ * @summary Delete review form
+ */
+export const usePerformanceFormsControllerDeleteForm = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof performanceFormsControllerDeleteForm>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof performanceFormsControllerDeleteForm>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+
+      const mutationOptions = getPerformanceFormsControllerDeleteFormMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Get current employee self-review for active or specified cycle
+ */
+export type performanceReviewsControllerGetMyReviewsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type performanceReviewsControllerGetMyReviewsResponseSuccess = (performanceReviewsControllerGetMyReviewsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type performanceReviewsControllerGetMyReviewsResponse = (performanceReviewsControllerGetMyReviewsResponseSuccess)
+
+export const getPerformanceReviewsControllerGetMyReviewsUrl = (params: PerformanceReviewsControllerGetMyReviewsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/performance/reviews/my?${stringifiedParams}` : `/api/v1/performance/reviews/my`
+}
+
+export const performanceReviewsControllerGetMyReviews = async (params: PerformanceReviewsControllerGetMyReviewsParams, options?: RequestInit): Promise<performanceReviewsControllerGetMyReviewsResponse> => {
+  
+  return customFetch<performanceReviewsControllerGetMyReviewsResponse>(getPerformanceReviewsControllerGetMyReviewsUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getPerformanceReviewsControllerGetMyReviewsQueryKey = (params?: PerformanceReviewsControllerGetMyReviewsParams,) => {
+    return [
+    `/api/v1/performance/reviews/my`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getPerformanceReviewsControllerGetMyReviewsQueryOptions = <TData = Awaited<ReturnType<typeof performanceReviewsControllerGetMyReviews>>, TError = unknown>(params: PerformanceReviewsControllerGetMyReviewsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetMyReviews>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPerformanceReviewsControllerGetMyReviewsQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof performanceReviewsControllerGetMyReviews>>> = ({ signal }) => performanceReviewsControllerGetMyReviews(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetMyReviews>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type PerformanceReviewsControllerGetMyReviewsQueryResult = NonNullable<Awaited<ReturnType<typeof performanceReviewsControllerGetMyReviews>>>
+export type PerformanceReviewsControllerGetMyReviewsQueryError = unknown
+
+
+export function usePerformanceReviewsControllerGetMyReviews<TData = Awaited<ReturnType<typeof performanceReviewsControllerGetMyReviews>>, TError = unknown>(
+ params: PerformanceReviewsControllerGetMyReviewsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetMyReviews>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof performanceReviewsControllerGetMyReviews>>,
+          TError,
+          Awaited<ReturnType<typeof performanceReviewsControllerGetMyReviews>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePerformanceReviewsControllerGetMyReviews<TData = Awaited<ReturnType<typeof performanceReviewsControllerGetMyReviews>>, TError = unknown>(
+ params: PerformanceReviewsControllerGetMyReviewsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetMyReviews>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof performanceReviewsControllerGetMyReviews>>,
+          TError,
+          Awaited<ReturnType<typeof performanceReviewsControllerGetMyReviews>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePerformanceReviewsControllerGetMyReviews<TData = Awaited<ReturnType<typeof performanceReviewsControllerGetMyReviews>>, TError = unknown>(
+ params: PerformanceReviewsControllerGetMyReviewsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetMyReviews>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get current employee self-review for active or specified cycle
+ */
+
+export function usePerformanceReviewsControllerGetMyReviews<TData = Awaited<ReturnType<typeof performanceReviewsControllerGetMyReviews>>, TError = unknown>(
+ params: PerformanceReviewsControllerGetMyReviewsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetMyReviews>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getPerformanceReviewsControllerGetMyReviewsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Get all self-reviews across cycles
+ */
+export type performanceReviewsControllerGetMyReviewsListResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type performanceReviewsControllerGetMyReviewsListResponseSuccess = (performanceReviewsControllerGetMyReviewsListResponse200) & {
+  headers: Headers;
+};
+;
+
+export type performanceReviewsControllerGetMyReviewsListResponse = (performanceReviewsControllerGetMyReviewsListResponseSuccess)
+
+export const getPerformanceReviewsControllerGetMyReviewsListUrl = () => {
+
+
+  
+
+  return `/api/v1/performance/reviews/my-list`
+}
+
+export const performanceReviewsControllerGetMyReviewsList = async ( options?: RequestInit): Promise<performanceReviewsControllerGetMyReviewsListResponse> => {
+  
+  return customFetch<performanceReviewsControllerGetMyReviewsListResponse>(getPerformanceReviewsControllerGetMyReviewsListUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getPerformanceReviewsControllerGetMyReviewsListQueryKey = () => {
+    return [
+    `/api/v1/performance/reviews/my-list`
+    ] as const;
+    }
+
+    
+export const getPerformanceReviewsControllerGetMyReviewsListQueryOptions = <TData = Awaited<ReturnType<typeof performanceReviewsControllerGetMyReviewsList>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetMyReviewsList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPerformanceReviewsControllerGetMyReviewsListQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof performanceReviewsControllerGetMyReviewsList>>> = ({ signal }) => performanceReviewsControllerGetMyReviewsList({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetMyReviewsList>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type PerformanceReviewsControllerGetMyReviewsListQueryResult = NonNullable<Awaited<ReturnType<typeof performanceReviewsControllerGetMyReviewsList>>>
+export type PerformanceReviewsControllerGetMyReviewsListQueryError = unknown
+
+
+export function usePerformanceReviewsControllerGetMyReviewsList<TData = Awaited<ReturnType<typeof performanceReviewsControllerGetMyReviewsList>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetMyReviewsList>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof performanceReviewsControllerGetMyReviewsList>>,
+          TError,
+          Awaited<ReturnType<typeof performanceReviewsControllerGetMyReviewsList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePerformanceReviewsControllerGetMyReviewsList<TData = Awaited<ReturnType<typeof performanceReviewsControllerGetMyReviewsList>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetMyReviewsList>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof performanceReviewsControllerGetMyReviewsList>>,
+          TError,
+          Awaited<ReturnType<typeof performanceReviewsControllerGetMyReviewsList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePerformanceReviewsControllerGetMyReviewsList<TData = Awaited<ReturnType<typeof performanceReviewsControllerGetMyReviewsList>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetMyReviewsList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get all self-reviews across cycles
+ */
+
+export function usePerformanceReviewsControllerGetMyReviewsList<TData = Awaited<ReturnType<typeof performanceReviewsControllerGetMyReviewsList>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetMyReviewsList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getPerformanceReviewsControllerGetMyReviewsListQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Get team members reviews for Reporting Manager / Admin
+ */
+export type performanceReviewsControllerGetTeamReviews0Response200 = {
+  data: void
+  status: 200
+}
+    
+export type performanceReviewsControllerGetTeamReviews0ResponseSuccess = (performanceReviewsControllerGetTeamReviews0Response200) & {
+  headers: Headers;
+};
+;
+
+export type performanceReviewsControllerGetTeamReviews0Response = (performanceReviewsControllerGetTeamReviews0ResponseSuccess)
+
+export const getPerformanceReviewsControllerGetTeamReviews0Url = (params: PerformanceReviewsControllerGetTeamReviews0Params,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/performance/reviews?${stringifiedParams}` : `/api/v1/performance/reviews`
+}
+
+export const performanceReviewsControllerGetTeamReviews0 = async (params: PerformanceReviewsControllerGetTeamReviews0Params, options?: RequestInit): Promise<performanceReviewsControllerGetTeamReviews0Response> => {
+  
+  return customFetch<performanceReviewsControllerGetTeamReviews0Response>(getPerformanceReviewsControllerGetTeamReviews0Url(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getPerformanceReviewsControllerGetTeamReviews0QueryKey = (params?: PerformanceReviewsControllerGetTeamReviews0Params,) => {
+    return [
+    `/api/v1/performance/reviews`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getPerformanceReviewsControllerGetTeamReviews0QueryOptions = <TData = Awaited<ReturnType<typeof performanceReviewsControllerGetTeamReviews0>>, TError = unknown>(params: PerformanceReviewsControllerGetTeamReviews0Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetTeamReviews0>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPerformanceReviewsControllerGetTeamReviews0QueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof performanceReviewsControllerGetTeamReviews0>>> = ({ signal }) => performanceReviewsControllerGetTeamReviews0(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetTeamReviews0>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type PerformanceReviewsControllerGetTeamReviews0QueryResult = NonNullable<Awaited<ReturnType<typeof performanceReviewsControllerGetTeamReviews0>>>
+export type PerformanceReviewsControllerGetTeamReviews0QueryError = unknown
+
+
+export function usePerformanceReviewsControllerGetTeamReviews0<TData = Awaited<ReturnType<typeof performanceReviewsControllerGetTeamReviews0>>, TError = unknown>(
+ params: PerformanceReviewsControllerGetTeamReviews0Params, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetTeamReviews0>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof performanceReviewsControllerGetTeamReviews0>>,
+          TError,
+          Awaited<ReturnType<typeof performanceReviewsControllerGetTeamReviews0>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePerformanceReviewsControllerGetTeamReviews0<TData = Awaited<ReturnType<typeof performanceReviewsControllerGetTeamReviews0>>, TError = unknown>(
+ params: PerformanceReviewsControllerGetTeamReviews0Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetTeamReviews0>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof performanceReviewsControllerGetTeamReviews0>>,
+          TError,
+          Awaited<ReturnType<typeof performanceReviewsControllerGetTeamReviews0>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePerformanceReviewsControllerGetTeamReviews0<TData = Awaited<ReturnType<typeof performanceReviewsControllerGetTeamReviews0>>, TError = unknown>(
+ params: PerformanceReviewsControllerGetTeamReviews0Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetTeamReviews0>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get team members reviews for Reporting Manager / Admin
+ */
+
+export function usePerformanceReviewsControllerGetTeamReviews0<TData = Awaited<ReturnType<typeof performanceReviewsControllerGetTeamReviews0>>, TError = unknown>(
+ params: PerformanceReviewsControllerGetTeamReviews0Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetTeamReviews0>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getPerformanceReviewsControllerGetTeamReviews0QueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Get team members reviews for Reporting Manager / Admin
+ */
+export type performanceReviewsControllerGetTeamReviews1Response200 = {
+  data: void
+  status: 200
+}
+    
+export type performanceReviewsControllerGetTeamReviews1ResponseSuccess = (performanceReviewsControllerGetTeamReviews1Response200) & {
+  headers: Headers;
+};
+;
+
+export type performanceReviewsControllerGetTeamReviews1Response = (performanceReviewsControllerGetTeamReviews1ResponseSuccess)
+
+export const getPerformanceReviewsControllerGetTeamReviews1Url = (params: PerformanceReviewsControllerGetTeamReviews1Params,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/performance/reviews/team?${stringifiedParams}` : `/api/v1/performance/reviews/team`
+}
+
+export const performanceReviewsControllerGetTeamReviews1 = async (params: PerformanceReviewsControllerGetTeamReviews1Params, options?: RequestInit): Promise<performanceReviewsControllerGetTeamReviews1Response> => {
+  
+  return customFetch<performanceReviewsControllerGetTeamReviews1Response>(getPerformanceReviewsControllerGetTeamReviews1Url(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getPerformanceReviewsControllerGetTeamReviews1QueryKey = (params?: PerformanceReviewsControllerGetTeamReviews1Params,) => {
+    return [
+    `/api/v1/performance/reviews/team`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getPerformanceReviewsControllerGetTeamReviews1QueryOptions = <TData = Awaited<ReturnType<typeof performanceReviewsControllerGetTeamReviews1>>, TError = unknown>(params: PerformanceReviewsControllerGetTeamReviews1Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetTeamReviews1>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPerformanceReviewsControllerGetTeamReviews1QueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof performanceReviewsControllerGetTeamReviews1>>> = ({ signal }) => performanceReviewsControllerGetTeamReviews1(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetTeamReviews1>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type PerformanceReviewsControllerGetTeamReviews1QueryResult = NonNullable<Awaited<ReturnType<typeof performanceReviewsControllerGetTeamReviews1>>>
+export type PerformanceReviewsControllerGetTeamReviews1QueryError = unknown
+
+
+export function usePerformanceReviewsControllerGetTeamReviews1<TData = Awaited<ReturnType<typeof performanceReviewsControllerGetTeamReviews1>>, TError = unknown>(
+ params: PerformanceReviewsControllerGetTeamReviews1Params, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetTeamReviews1>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof performanceReviewsControllerGetTeamReviews1>>,
+          TError,
+          Awaited<ReturnType<typeof performanceReviewsControllerGetTeamReviews1>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePerformanceReviewsControllerGetTeamReviews1<TData = Awaited<ReturnType<typeof performanceReviewsControllerGetTeamReviews1>>, TError = unknown>(
+ params: PerformanceReviewsControllerGetTeamReviews1Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetTeamReviews1>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof performanceReviewsControllerGetTeamReviews1>>,
+          TError,
+          Awaited<ReturnType<typeof performanceReviewsControllerGetTeamReviews1>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePerformanceReviewsControllerGetTeamReviews1<TData = Awaited<ReturnType<typeof performanceReviewsControllerGetTeamReviews1>>, TError = unknown>(
+ params: PerformanceReviewsControllerGetTeamReviews1Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetTeamReviews1>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get team members reviews for Reporting Manager / Admin
+ */
+
+export function usePerformanceReviewsControllerGetTeamReviews1<TData = Awaited<ReturnType<typeof performanceReviewsControllerGetTeamReviews1>>, TError = unknown>(
+ params: PerformanceReviewsControllerGetTeamReviews1Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetTeamReviews1>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getPerformanceReviewsControllerGetTeamReviews1QueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Get Rating Summary for Admin (Screen 7)
+ */
+export type performanceReviewsControllerGetAdminReviewsSummaryResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type performanceReviewsControllerGetAdminReviewsSummaryResponseSuccess = (performanceReviewsControllerGetAdminReviewsSummaryResponse200) & {
+  headers: Headers;
+};
+;
+
+export type performanceReviewsControllerGetAdminReviewsSummaryResponse = (performanceReviewsControllerGetAdminReviewsSummaryResponseSuccess)
+
+export const getPerformanceReviewsControllerGetAdminReviewsSummaryUrl = (params: PerformanceReviewsControllerGetAdminReviewsSummaryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/performance/reviews/summary?${stringifiedParams}` : `/api/v1/performance/reviews/summary`
+}
+
+export const performanceReviewsControllerGetAdminReviewsSummary = async (params: PerformanceReviewsControllerGetAdminReviewsSummaryParams, options?: RequestInit): Promise<performanceReviewsControllerGetAdminReviewsSummaryResponse> => {
+  
+  return customFetch<performanceReviewsControllerGetAdminReviewsSummaryResponse>(getPerformanceReviewsControllerGetAdminReviewsSummaryUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getPerformanceReviewsControllerGetAdminReviewsSummaryQueryKey = (params?: PerformanceReviewsControllerGetAdminReviewsSummaryParams,) => {
+    return [
+    `/api/v1/performance/reviews/summary`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getPerformanceReviewsControllerGetAdminReviewsSummaryQueryOptions = <TData = Awaited<ReturnType<typeof performanceReviewsControllerGetAdminReviewsSummary>>, TError = unknown>(params: PerformanceReviewsControllerGetAdminReviewsSummaryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetAdminReviewsSummary>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPerformanceReviewsControllerGetAdminReviewsSummaryQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof performanceReviewsControllerGetAdminReviewsSummary>>> = ({ signal }) => performanceReviewsControllerGetAdminReviewsSummary(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetAdminReviewsSummary>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type PerformanceReviewsControllerGetAdminReviewsSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof performanceReviewsControllerGetAdminReviewsSummary>>>
+export type PerformanceReviewsControllerGetAdminReviewsSummaryQueryError = unknown
+
+
+export function usePerformanceReviewsControllerGetAdminReviewsSummary<TData = Awaited<ReturnType<typeof performanceReviewsControllerGetAdminReviewsSummary>>, TError = unknown>(
+ params: PerformanceReviewsControllerGetAdminReviewsSummaryParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetAdminReviewsSummary>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof performanceReviewsControllerGetAdminReviewsSummary>>,
+          TError,
+          Awaited<ReturnType<typeof performanceReviewsControllerGetAdminReviewsSummary>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePerformanceReviewsControllerGetAdminReviewsSummary<TData = Awaited<ReturnType<typeof performanceReviewsControllerGetAdminReviewsSummary>>, TError = unknown>(
+ params: PerformanceReviewsControllerGetAdminReviewsSummaryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetAdminReviewsSummary>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof performanceReviewsControllerGetAdminReviewsSummary>>,
+          TError,
+          Awaited<ReturnType<typeof performanceReviewsControllerGetAdminReviewsSummary>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePerformanceReviewsControllerGetAdminReviewsSummary<TData = Awaited<ReturnType<typeof performanceReviewsControllerGetAdminReviewsSummary>>, TError = unknown>(
+ params: PerformanceReviewsControllerGetAdminReviewsSummaryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetAdminReviewsSummary>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get Rating Summary for Admin (Screen 7)
+ */
+
+export function usePerformanceReviewsControllerGetAdminReviewsSummary<TData = Awaited<ReturnType<typeof performanceReviewsControllerGetAdminReviewsSummary>>, TError = unknown>(
+ params: PerformanceReviewsControllerGetAdminReviewsSummaryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetAdminReviewsSummary>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getPerformanceReviewsControllerGetAdminReviewsSummaryQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Get or initialize review record for employee in cycle
+ */
+export type performanceReviewsControllerGetOrCreateReviewResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type performanceReviewsControllerGetOrCreateReviewResponseSuccess = (performanceReviewsControllerGetOrCreateReviewResponse200) & {
+  headers: Headers;
+};
+;
+
+export type performanceReviewsControllerGetOrCreateReviewResponse = (performanceReviewsControllerGetOrCreateReviewResponseSuccess)
+
+export const getPerformanceReviewsControllerGetOrCreateReviewUrl = (cycleId: number,
+    empId: number,) => {
+
+
+  
+
+  return `/api/v1/performance/reviews/init/${cycleId}/${empId}`
+}
+
+export const performanceReviewsControllerGetOrCreateReview = async (cycleId: number,
+    empId: number, options?: RequestInit): Promise<performanceReviewsControllerGetOrCreateReviewResponse> => {
+  
+  return customFetch<performanceReviewsControllerGetOrCreateReviewResponse>(getPerformanceReviewsControllerGetOrCreateReviewUrl(cycleId,empId),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getPerformanceReviewsControllerGetOrCreateReviewQueryKey = (cycleId?: number,
+    empId?: number,) => {
+    return [
+    `/api/v1/performance/reviews/init/${cycleId}/${empId}`
+    ] as const;
+    }
+
+    
+export const getPerformanceReviewsControllerGetOrCreateReviewQueryOptions = <TData = Awaited<ReturnType<typeof performanceReviewsControllerGetOrCreateReview>>, TError = unknown>(cycleId: number,
+    empId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetOrCreateReview>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPerformanceReviewsControllerGetOrCreateReviewQueryKey(cycleId,empId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof performanceReviewsControllerGetOrCreateReview>>> = ({ signal }) => performanceReviewsControllerGetOrCreateReview(cycleId,empId, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(cycleId && empId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetOrCreateReview>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type PerformanceReviewsControllerGetOrCreateReviewQueryResult = NonNullable<Awaited<ReturnType<typeof performanceReviewsControllerGetOrCreateReview>>>
+export type PerformanceReviewsControllerGetOrCreateReviewQueryError = unknown
+
+
+export function usePerformanceReviewsControllerGetOrCreateReview<TData = Awaited<ReturnType<typeof performanceReviewsControllerGetOrCreateReview>>, TError = unknown>(
+ cycleId: number,
+    empId: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetOrCreateReview>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof performanceReviewsControllerGetOrCreateReview>>,
+          TError,
+          Awaited<ReturnType<typeof performanceReviewsControllerGetOrCreateReview>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePerformanceReviewsControllerGetOrCreateReview<TData = Awaited<ReturnType<typeof performanceReviewsControllerGetOrCreateReview>>, TError = unknown>(
+ cycleId: number,
+    empId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetOrCreateReview>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof performanceReviewsControllerGetOrCreateReview>>,
+          TError,
+          Awaited<ReturnType<typeof performanceReviewsControllerGetOrCreateReview>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePerformanceReviewsControllerGetOrCreateReview<TData = Awaited<ReturnType<typeof performanceReviewsControllerGetOrCreateReview>>, TError = unknown>(
+ cycleId: number,
+    empId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetOrCreateReview>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get or initialize review record for employee in cycle
+ */
+
+export function usePerformanceReviewsControllerGetOrCreateReview<TData = Awaited<ReturnType<typeof performanceReviewsControllerGetOrCreateReview>>, TError = unknown>(
+ cycleId: number,
+    empId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetOrCreateReview>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getPerformanceReviewsControllerGetOrCreateReviewQueryOptions(cycleId,empId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Get single review detail
+ */
+export type performanceReviewsControllerGetReviewByIdResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type performanceReviewsControllerGetReviewByIdResponseSuccess = (performanceReviewsControllerGetReviewByIdResponse200) & {
+  headers: Headers;
+};
+;
+
+export type performanceReviewsControllerGetReviewByIdResponse = (performanceReviewsControllerGetReviewByIdResponseSuccess)
+
+export const getPerformanceReviewsControllerGetReviewByIdUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/performance/reviews/${id}`
+}
+
+export const performanceReviewsControllerGetReviewById = async (id: number, options?: RequestInit): Promise<performanceReviewsControllerGetReviewByIdResponse> => {
+  
+  return customFetch<performanceReviewsControllerGetReviewByIdResponse>(getPerformanceReviewsControllerGetReviewByIdUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getPerformanceReviewsControllerGetReviewByIdQueryKey = (id?: number,) => {
+    return [
+    `/api/v1/performance/reviews/${id}`
+    ] as const;
+    }
+
+    
+export const getPerformanceReviewsControllerGetReviewByIdQueryOptions = <TData = Awaited<ReturnType<typeof performanceReviewsControllerGetReviewById>>, TError = unknown>(id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetReviewById>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPerformanceReviewsControllerGetReviewByIdQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof performanceReviewsControllerGetReviewById>>> = ({ signal }) => performanceReviewsControllerGetReviewById(id, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetReviewById>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type PerformanceReviewsControllerGetReviewByIdQueryResult = NonNullable<Awaited<ReturnType<typeof performanceReviewsControllerGetReviewById>>>
+export type PerformanceReviewsControllerGetReviewByIdQueryError = unknown
+
+
+export function usePerformanceReviewsControllerGetReviewById<TData = Awaited<ReturnType<typeof performanceReviewsControllerGetReviewById>>, TError = unknown>(
+ id: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetReviewById>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof performanceReviewsControllerGetReviewById>>,
+          TError,
+          Awaited<ReturnType<typeof performanceReviewsControllerGetReviewById>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePerformanceReviewsControllerGetReviewById<TData = Awaited<ReturnType<typeof performanceReviewsControllerGetReviewById>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetReviewById>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof performanceReviewsControllerGetReviewById>>,
+          TError,
+          Awaited<ReturnType<typeof performanceReviewsControllerGetReviewById>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePerformanceReviewsControllerGetReviewById<TData = Awaited<ReturnType<typeof performanceReviewsControllerGetReviewById>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetReviewById>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get single review detail
+ */
+
+export function usePerformanceReviewsControllerGetReviewById<TData = Awaited<ReturnType<typeof performanceReviewsControllerGetReviewById>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetReviewById>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getPerformanceReviewsControllerGetReviewByIdQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Submit Self Review ratings and comment
+ */
+export type performanceReviewsControllerSubmitSelfReview0Response201 = {
+  data: void
+  status: 201
+}
+    
+export type performanceReviewsControllerSubmitSelfReview0ResponseSuccess = (performanceReviewsControllerSubmitSelfReview0Response201) & {
+  headers: Headers;
+};
+;
+
+export type performanceReviewsControllerSubmitSelfReview0Response = (performanceReviewsControllerSubmitSelfReview0ResponseSuccess)
+
+export const getPerformanceReviewsControllerSubmitSelfReview0Url = (id: number,) => {
+
+
+  
+
+  return `/api/v1/performance/reviews/${id}/self`
+}
+
+export const performanceReviewsControllerSubmitSelfReview0 = async (id: number,
+    submitReviewRatingsDto: SubmitReviewRatingsDto, options?: RequestInit): Promise<performanceReviewsControllerSubmitSelfReview0Response> => {
+  
+  return customFetch<performanceReviewsControllerSubmitSelfReview0Response>(getPerformanceReviewsControllerSubmitSelfReview0Url(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      submitReviewRatingsDto,)
+  }
+);}
+
+
+
+
+export const getPerformanceReviewsControllerSubmitSelfReview0MutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof performanceReviewsControllerSubmitSelfReview0>>, TError,{id: number;data: SubmitReviewRatingsDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof performanceReviewsControllerSubmitSelfReview0>>, TError,{id: number;data: SubmitReviewRatingsDto}, TContext> => {
+
+const mutationKey = ['performanceReviewsControllerSubmitSelfReview0'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof performanceReviewsControllerSubmitSelfReview0>>, {id: number;data: SubmitReviewRatingsDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  performanceReviewsControllerSubmitSelfReview0(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PerformanceReviewsControllerSubmitSelfReview0MutationResult = NonNullable<Awaited<ReturnType<typeof performanceReviewsControllerSubmitSelfReview0>>>
+    export type PerformanceReviewsControllerSubmitSelfReview0MutationBody = SubmitReviewRatingsDto
+    export type PerformanceReviewsControllerSubmitSelfReview0MutationError = unknown
+
+    /**
+ * @summary Submit Self Review ratings and comment
+ */
+export const usePerformanceReviewsControllerSubmitSelfReview0 = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof performanceReviewsControllerSubmitSelfReview0>>, TError,{id: number;data: SubmitReviewRatingsDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof performanceReviewsControllerSubmitSelfReview0>>,
+        TError,
+        {id: number;data: SubmitReviewRatingsDto},
+        TContext
+      > => {
+
+      const mutationOptions = getPerformanceReviewsControllerSubmitSelfReview0MutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Submit Self Review ratings and comment
+ */
+export type performanceReviewsControllerSubmitSelfReview1Response201 = {
+  data: void
+  status: 201
+}
+    
+export type performanceReviewsControllerSubmitSelfReview1ResponseSuccess = (performanceReviewsControllerSubmitSelfReview1Response201) & {
+  headers: Headers;
+};
+;
+
+export type performanceReviewsControllerSubmitSelfReview1Response = (performanceReviewsControllerSubmitSelfReview1ResponseSuccess)
+
+export const getPerformanceReviewsControllerSubmitSelfReview1Url = (id: number,) => {
+
+
+  
+
+  return `/api/v1/performance/reviews/${id}/self-review`
+}
+
+export const performanceReviewsControllerSubmitSelfReview1 = async (id: number,
+    submitReviewRatingsDto: SubmitReviewRatingsDto, options?: RequestInit): Promise<performanceReviewsControllerSubmitSelfReview1Response> => {
+  
+  return customFetch<performanceReviewsControllerSubmitSelfReview1Response>(getPerformanceReviewsControllerSubmitSelfReview1Url(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      submitReviewRatingsDto,)
+  }
+);}
+
+
+
+
+export const getPerformanceReviewsControllerSubmitSelfReview1MutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof performanceReviewsControllerSubmitSelfReview1>>, TError,{id: number;data: SubmitReviewRatingsDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof performanceReviewsControllerSubmitSelfReview1>>, TError,{id: number;data: SubmitReviewRatingsDto}, TContext> => {
+
+const mutationKey = ['performanceReviewsControllerSubmitSelfReview1'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof performanceReviewsControllerSubmitSelfReview1>>, {id: number;data: SubmitReviewRatingsDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  performanceReviewsControllerSubmitSelfReview1(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PerformanceReviewsControllerSubmitSelfReview1MutationResult = NonNullable<Awaited<ReturnType<typeof performanceReviewsControllerSubmitSelfReview1>>>
+    export type PerformanceReviewsControllerSubmitSelfReview1MutationBody = SubmitReviewRatingsDto
+    export type PerformanceReviewsControllerSubmitSelfReview1MutationError = unknown
+
+    /**
+ * @summary Submit Self Review ratings and comment
+ */
+export const usePerformanceReviewsControllerSubmitSelfReview1 = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof performanceReviewsControllerSubmitSelfReview1>>, TError,{id: number;data: SubmitReviewRatingsDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof performanceReviewsControllerSubmitSelfReview1>>,
+        TError,
+        {id: number;data: SubmitReviewRatingsDto},
+        TContext
+      > => {
+
+      const mutationOptions = getPerformanceReviewsControllerSubmitSelfReview1MutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Submit Reporting Manager review ratings
+ */
+export type performanceReviewsControllerSubmitManagerReview0Response201 = {
+  data: void
+  status: 201
+}
+    
+export type performanceReviewsControllerSubmitManagerReview0ResponseSuccess = (performanceReviewsControllerSubmitManagerReview0Response201) & {
+  headers: Headers;
+};
+;
+
+export type performanceReviewsControllerSubmitManagerReview0Response = (performanceReviewsControllerSubmitManagerReview0ResponseSuccess)
+
+export const getPerformanceReviewsControllerSubmitManagerReview0Url = (id: number,) => {
+
+
+  
+
+  return `/api/v1/performance/reviews/${id}/manager`
+}
+
+export const performanceReviewsControllerSubmitManagerReview0 = async (id: number,
+    submitReviewRatingsDto: SubmitReviewRatingsDto, options?: RequestInit): Promise<performanceReviewsControllerSubmitManagerReview0Response> => {
+  
+  return customFetch<performanceReviewsControllerSubmitManagerReview0Response>(getPerformanceReviewsControllerSubmitManagerReview0Url(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      submitReviewRatingsDto,)
+  }
+);}
+
+
+
+
+export const getPerformanceReviewsControllerSubmitManagerReview0MutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof performanceReviewsControllerSubmitManagerReview0>>, TError,{id: number;data: SubmitReviewRatingsDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof performanceReviewsControllerSubmitManagerReview0>>, TError,{id: number;data: SubmitReviewRatingsDto}, TContext> => {
+
+const mutationKey = ['performanceReviewsControllerSubmitManagerReview0'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof performanceReviewsControllerSubmitManagerReview0>>, {id: number;data: SubmitReviewRatingsDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  performanceReviewsControllerSubmitManagerReview0(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PerformanceReviewsControllerSubmitManagerReview0MutationResult = NonNullable<Awaited<ReturnType<typeof performanceReviewsControllerSubmitManagerReview0>>>
+    export type PerformanceReviewsControllerSubmitManagerReview0MutationBody = SubmitReviewRatingsDto
+    export type PerformanceReviewsControllerSubmitManagerReview0MutationError = unknown
+
+    /**
+ * @summary Submit Reporting Manager review ratings
+ */
+export const usePerformanceReviewsControllerSubmitManagerReview0 = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof performanceReviewsControllerSubmitManagerReview0>>, TError,{id: number;data: SubmitReviewRatingsDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof performanceReviewsControllerSubmitManagerReview0>>,
+        TError,
+        {id: number;data: SubmitReviewRatingsDto},
+        TContext
+      > => {
+
+      const mutationOptions = getPerformanceReviewsControllerSubmitManagerReview0MutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Submit Reporting Manager review ratings
+ */
+export type performanceReviewsControllerSubmitManagerReview1Response201 = {
+  data: void
+  status: 201
+}
+    
+export type performanceReviewsControllerSubmitManagerReview1ResponseSuccess = (performanceReviewsControllerSubmitManagerReview1Response201) & {
+  headers: Headers;
+};
+;
+
+export type performanceReviewsControllerSubmitManagerReview1Response = (performanceReviewsControllerSubmitManagerReview1ResponseSuccess)
+
+export const getPerformanceReviewsControllerSubmitManagerReview1Url = (id: number,) => {
+
+
+  
+
+  return `/api/v1/performance/reviews/${id}/manager-review`
+}
+
+export const performanceReviewsControllerSubmitManagerReview1 = async (id: number,
+    submitReviewRatingsDto: SubmitReviewRatingsDto, options?: RequestInit): Promise<performanceReviewsControllerSubmitManagerReview1Response> => {
+  
+  return customFetch<performanceReviewsControllerSubmitManagerReview1Response>(getPerformanceReviewsControllerSubmitManagerReview1Url(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      submitReviewRatingsDto,)
+  }
+);}
+
+
+
+
+export const getPerformanceReviewsControllerSubmitManagerReview1MutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof performanceReviewsControllerSubmitManagerReview1>>, TError,{id: number;data: SubmitReviewRatingsDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof performanceReviewsControllerSubmitManagerReview1>>, TError,{id: number;data: SubmitReviewRatingsDto}, TContext> => {
+
+const mutationKey = ['performanceReviewsControllerSubmitManagerReview1'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof performanceReviewsControllerSubmitManagerReview1>>, {id: number;data: SubmitReviewRatingsDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  performanceReviewsControllerSubmitManagerReview1(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PerformanceReviewsControllerSubmitManagerReview1MutationResult = NonNullable<Awaited<ReturnType<typeof performanceReviewsControllerSubmitManagerReview1>>>
+    export type PerformanceReviewsControllerSubmitManagerReview1MutationBody = SubmitReviewRatingsDto
+    export type PerformanceReviewsControllerSubmitManagerReview1MutationError = unknown
+
+    /**
+ * @summary Submit Reporting Manager review ratings
+ */
+export const usePerformanceReviewsControllerSubmitManagerReview1 = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof performanceReviewsControllerSubmitManagerReview1>>, TError,{id: number;data: SubmitReviewRatingsDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof performanceReviewsControllerSubmitManagerReview1>>,
+        TError,
+        {id: number;data: SubmitReviewRatingsDto},
+        TContext
+      > => {
+
+      const mutationOptions = getPerformanceReviewsControllerSubmitManagerReview1MutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Submit Admin review ratings
+ */
+export type performanceReviewsControllerSubmitAdminReview0Response201 = {
+  data: void
+  status: 201
+}
+    
+export type performanceReviewsControllerSubmitAdminReview0ResponseSuccess = (performanceReviewsControllerSubmitAdminReview0Response201) & {
+  headers: Headers;
+};
+;
+
+export type performanceReviewsControllerSubmitAdminReview0Response = (performanceReviewsControllerSubmitAdminReview0ResponseSuccess)
+
+export const getPerformanceReviewsControllerSubmitAdminReview0Url = (id: number,) => {
+
+
+  
+
+  return `/api/v1/performance/reviews/${id}/admin`
+}
+
+export const performanceReviewsControllerSubmitAdminReview0 = async (id: number,
+    submitReviewRatingsDto: SubmitReviewRatingsDto, options?: RequestInit): Promise<performanceReviewsControllerSubmitAdminReview0Response> => {
+  
+  return customFetch<performanceReviewsControllerSubmitAdminReview0Response>(getPerformanceReviewsControllerSubmitAdminReview0Url(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      submitReviewRatingsDto,)
+  }
+);}
+
+
+
+
+export const getPerformanceReviewsControllerSubmitAdminReview0MutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof performanceReviewsControllerSubmitAdminReview0>>, TError,{id: number;data: SubmitReviewRatingsDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof performanceReviewsControllerSubmitAdminReview0>>, TError,{id: number;data: SubmitReviewRatingsDto}, TContext> => {
+
+const mutationKey = ['performanceReviewsControllerSubmitAdminReview0'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof performanceReviewsControllerSubmitAdminReview0>>, {id: number;data: SubmitReviewRatingsDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  performanceReviewsControllerSubmitAdminReview0(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PerformanceReviewsControllerSubmitAdminReview0MutationResult = NonNullable<Awaited<ReturnType<typeof performanceReviewsControllerSubmitAdminReview0>>>
+    export type PerformanceReviewsControllerSubmitAdminReview0MutationBody = SubmitReviewRatingsDto
+    export type PerformanceReviewsControllerSubmitAdminReview0MutationError = unknown
+
+    /**
+ * @summary Submit Admin review ratings
+ */
+export const usePerformanceReviewsControllerSubmitAdminReview0 = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof performanceReviewsControllerSubmitAdminReview0>>, TError,{id: number;data: SubmitReviewRatingsDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof performanceReviewsControllerSubmitAdminReview0>>,
+        TError,
+        {id: number;data: SubmitReviewRatingsDto},
+        TContext
+      > => {
+
+      const mutationOptions = getPerformanceReviewsControllerSubmitAdminReview0MutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Submit Admin review ratings
+ */
+export type performanceReviewsControllerSubmitAdminReview1Response201 = {
+  data: void
+  status: 201
+}
+    
+export type performanceReviewsControllerSubmitAdminReview1ResponseSuccess = (performanceReviewsControllerSubmitAdminReview1Response201) & {
+  headers: Headers;
+};
+;
+
+export type performanceReviewsControllerSubmitAdminReview1Response = (performanceReviewsControllerSubmitAdminReview1ResponseSuccess)
+
+export const getPerformanceReviewsControllerSubmitAdminReview1Url = (id: number,) => {
+
+
+  
+
+  return `/api/v1/performance/reviews/${id}/admin-rating`
+}
+
+export const performanceReviewsControllerSubmitAdminReview1 = async (id: number,
+    submitReviewRatingsDto: SubmitReviewRatingsDto, options?: RequestInit): Promise<performanceReviewsControllerSubmitAdminReview1Response> => {
+  
+  return customFetch<performanceReviewsControllerSubmitAdminReview1Response>(getPerformanceReviewsControllerSubmitAdminReview1Url(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      submitReviewRatingsDto,)
+  }
+);}
+
+
+
+
+export const getPerformanceReviewsControllerSubmitAdminReview1MutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof performanceReviewsControllerSubmitAdminReview1>>, TError,{id: number;data: SubmitReviewRatingsDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof performanceReviewsControllerSubmitAdminReview1>>, TError,{id: number;data: SubmitReviewRatingsDto}, TContext> => {
+
+const mutationKey = ['performanceReviewsControllerSubmitAdminReview1'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof performanceReviewsControllerSubmitAdminReview1>>, {id: number;data: SubmitReviewRatingsDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  performanceReviewsControllerSubmitAdminReview1(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PerformanceReviewsControllerSubmitAdminReview1MutationResult = NonNullable<Awaited<ReturnType<typeof performanceReviewsControllerSubmitAdminReview1>>>
+    export type PerformanceReviewsControllerSubmitAdminReview1MutationBody = SubmitReviewRatingsDto
+    export type PerformanceReviewsControllerSubmitAdminReview1MutationError = unknown
+
+    /**
+ * @summary Submit Admin review ratings
+ */
+export const usePerformanceReviewsControllerSubmitAdminReview1 = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof performanceReviewsControllerSubmitAdminReview1>>, TError,{id: number;data: SubmitReviewRatingsDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof performanceReviewsControllerSubmitAdminReview1>>,
+        TError,
+        {id: number;data: SubmitReviewRatingsDto},
+        TContext
+      > => {
+
+      const mutationOptions = getPerformanceReviewsControllerSubmitAdminReview1MutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Admin unlocks/reopens review for employee
+ */
+export type performanceReviewsControllerReopenReviewResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type performanceReviewsControllerReopenReviewResponseSuccess = (performanceReviewsControllerReopenReviewResponse201) & {
+  headers: Headers;
+};
+;
+
+export type performanceReviewsControllerReopenReviewResponse = (performanceReviewsControllerReopenReviewResponseSuccess)
+
+export const getPerformanceReviewsControllerReopenReviewUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/performance/reviews/${id}/reopen`
+}
+
+export const performanceReviewsControllerReopenReview = async (id: number,
+    reopenReviewDto: ReopenReviewDto, options?: RequestInit): Promise<performanceReviewsControllerReopenReviewResponse> => {
+  
+  return customFetch<performanceReviewsControllerReopenReviewResponse>(getPerformanceReviewsControllerReopenReviewUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      reopenReviewDto,)
+  }
+);}
+
+
+
+
+export const getPerformanceReviewsControllerReopenReviewMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof performanceReviewsControllerReopenReview>>, TError,{id: number;data: ReopenReviewDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof performanceReviewsControllerReopenReview>>, TError,{id: number;data: ReopenReviewDto}, TContext> => {
+
+const mutationKey = ['performanceReviewsControllerReopenReview'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof performanceReviewsControllerReopenReview>>, {id: number;data: ReopenReviewDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  performanceReviewsControllerReopenReview(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PerformanceReviewsControllerReopenReviewMutationResult = NonNullable<Awaited<ReturnType<typeof performanceReviewsControllerReopenReview>>>
+    export type PerformanceReviewsControllerReopenReviewMutationBody = ReopenReviewDto
+    export type PerformanceReviewsControllerReopenReviewMutationError = unknown
+
+    /**
+ * @summary Admin unlocks/reopens review for employee
+ */
+export const usePerformanceReviewsControllerReopenReview = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof performanceReviewsControllerReopenReview>>, TError,{id: number;data: ReopenReviewDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof performanceReviewsControllerReopenReview>>,
+        TError,
+        {id: number;data: ReopenReviewDto},
+        TContext
+      > => {
+
+      const mutationOptions = getPerformanceReviewsControllerReopenReviewMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary List project member ratings (Screen 8)
+ */
+export type performanceReviewsControllerListProjectRatingsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type performanceReviewsControllerListProjectRatingsResponseSuccess = (performanceReviewsControllerListProjectRatingsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type performanceReviewsControllerListProjectRatingsResponse = (performanceReviewsControllerListProjectRatingsResponseSuccess)
+
+export const getPerformanceReviewsControllerListProjectRatingsUrl = (params: PerformanceReviewsControllerListProjectRatingsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/performance/project-ratings?${stringifiedParams}` : `/api/v1/performance/project-ratings`
+}
+
+export const performanceReviewsControllerListProjectRatings = async (params: PerformanceReviewsControllerListProjectRatingsParams, options?: RequestInit): Promise<performanceReviewsControllerListProjectRatingsResponse> => {
+  
+  return customFetch<performanceReviewsControllerListProjectRatingsResponse>(getPerformanceReviewsControllerListProjectRatingsUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getPerformanceReviewsControllerListProjectRatingsQueryKey = (params?: PerformanceReviewsControllerListProjectRatingsParams,) => {
+    return [
+    `/api/v1/performance/project-ratings`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getPerformanceReviewsControllerListProjectRatingsQueryOptions = <TData = Awaited<ReturnType<typeof performanceReviewsControllerListProjectRatings>>, TError = unknown>(params: PerformanceReviewsControllerListProjectRatingsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerListProjectRatings>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPerformanceReviewsControllerListProjectRatingsQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof performanceReviewsControllerListProjectRatings>>> = ({ signal }) => performanceReviewsControllerListProjectRatings(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerListProjectRatings>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type PerformanceReviewsControllerListProjectRatingsQueryResult = NonNullable<Awaited<ReturnType<typeof performanceReviewsControllerListProjectRatings>>>
+export type PerformanceReviewsControllerListProjectRatingsQueryError = unknown
+
+
+export function usePerformanceReviewsControllerListProjectRatings<TData = Awaited<ReturnType<typeof performanceReviewsControllerListProjectRatings>>, TError = unknown>(
+ params: PerformanceReviewsControllerListProjectRatingsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerListProjectRatings>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof performanceReviewsControllerListProjectRatings>>,
+          TError,
+          Awaited<ReturnType<typeof performanceReviewsControllerListProjectRatings>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePerformanceReviewsControllerListProjectRatings<TData = Awaited<ReturnType<typeof performanceReviewsControllerListProjectRatings>>, TError = unknown>(
+ params: PerformanceReviewsControllerListProjectRatingsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerListProjectRatings>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof performanceReviewsControllerListProjectRatings>>,
+          TError,
+          Awaited<ReturnType<typeof performanceReviewsControllerListProjectRatings>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePerformanceReviewsControllerListProjectRatings<TData = Awaited<ReturnType<typeof performanceReviewsControllerListProjectRatings>>, TError = unknown>(
+ params: PerformanceReviewsControllerListProjectRatingsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerListProjectRatings>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List project member ratings (Screen 8)
+ */
+
+export function usePerformanceReviewsControllerListProjectRatings<TData = Awaited<ReturnType<typeof performanceReviewsControllerListProjectRatings>>, TError = unknown>(
+ params: PerformanceReviewsControllerListProjectRatingsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerListProjectRatings>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getPerformanceReviewsControllerListProjectRatingsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Project Manager submits member rating (1-5 stars)
+ */
+export type performanceReviewsControllerSubmitProjectRatingResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type performanceReviewsControllerSubmitProjectRatingResponseSuccess = (performanceReviewsControllerSubmitProjectRatingResponse201) & {
+  headers: Headers;
+};
+;
+
+export type performanceReviewsControllerSubmitProjectRatingResponse = (performanceReviewsControllerSubmitProjectRatingResponseSuccess)
+
+export const getPerformanceReviewsControllerSubmitProjectRatingUrl = () => {
+
+
+  
+
+  return `/api/v1/performance/project-ratings`
+}
+
+export const performanceReviewsControllerSubmitProjectRating = async (submitProjectRatingDto: SubmitProjectRatingDto, options?: RequestInit): Promise<performanceReviewsControllerSubmitProjectRatingResponse> => {
+  
+  return customFetch<performanceReviewsControllerSubmitProjectRatingResponse>(getPerformanceReviewsControllerSubmitProjectRatingUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      submitProjectRatingDto,)
+  }
+);}
+
+
+
+
+export const getPerformanceReviewsControllerSubmitProjectRatingMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof performanceReviewsControllerSubmitProjectRating>>, TError,{data: SubmitProjectRatingDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof performanceReviewsControllerSubmitProjectRating>>, TError,{data: SubmitProjectRatingDto}, TContext> => {
+
+const mutationKey = ['performanceReviewsControllerSubmitProjectRating'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof performanceReviewsControllerSubmitProjectRating>>, {data: SubmitProjectRatingDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  performanceReviewsControllerSubmitProjectRating(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PerformanceReviewsControllerSubmitProjectRatingMutationResult = NonNullable<Awaited<ReturnType<typeof performanceReviewsControllerSubmitProjectRating>>>
+    export type PerformanceReviewsControllerSubmitProjectRatingMutationBody = SubmitProjectRatingDto
+    export type PerformanceReviewsControllerSubmitProjectRatingMutationError = unknown
+
+    /**
+ * @summary Project Manager submits member rating (1-5 stars)
+ */
+export const usePerformanceReviewsControllerSubmitProjectRating = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof performanceReviewsControllerSubmitProjectRating>>, TError,{data: SubmitProjectRatingDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof performanceReviewsControllerSubmitProjectRating>>,
+        TError,
+        {data: SubmitProjectRatingDto},
+        TContext
+      > => {
+
+      const mutationOptions = getPerformanceReviewsControllerSubmitProjectRatingMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Get projects for Project Rating (Screen 8)
+ */
+export type performanceReviewsControllerGetMyProjectsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type performanceReviewsControllerGetMyProjectsResponseSuccess = (performanceReviewsControllerGetMyProjectsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type performanceReviewsControllerGetMyProjectsResponse = (performanceReviewsControllerGetMyProjectsResponseSuccess)
+
+export const getPerformanceReviewsControllerGetMyProjectsUrl = () => {
+
+
+  
+
+  return `/api/v1/performance/projects`
+}
+
+export const performanceReviewsControllerGetMyProjects = async ( options?: RequestInit): Promise<performanceReviewsControllerGetMyProjectsResponse> => {
+  
+  return customFetch<performanceReviewsControllerGetMyProjectsResponse>(getPerformanceReviewsControllerGetMyProjectsUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getPerformanceReviewsControllerGetMyProjectsQueryKey = () => {
+    return [
+    `/api/v1/performance/projects`
+    ] as const;
+    }
+
+    
+export const getPerformanceReviewsControllerGetMyProjectsQueryOptions = <TData = Awaited<ReturnType<typeof performanceReviewsControllerGetMyProjects>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetMyProjects>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPerformanceReviewsControllerGetMyProjectsQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof performanceReviewsControllerGetMyProjects>>> = ({ signal }) => performanceReviewsControllerGetMyProjects({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetMyProjects>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type PerformanceReviewsControllerGetMyProjectsQueryResult = NonNullable<Awaited<ReturnType<typeof performanceReviewsControllerGetMyProjects>>>
+export type PerformanceReviewsControllerGetMyProjectsQueryError = unknown
+
+
+export function usePerformanceReviewsControllerGetMyProjects<TData = Awaited<ReturnType<typeof performanceReviewsControllerGetMyProjects>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetMyProjects>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof performanceReviewsControllerGetMyProjects>>,
+          TError,
+          Awaited<ReturnType<typeof performanceReviewsControllerGetMyProjects>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePerformanceReviewsControllerGetMyProjects<TData = Awaited<ReturnType<typeof performanceReviewsControllerGetMyProjects>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetMyProjects>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof performanceReviewsControllerGetMyProjects>>,
+          TError,
+          Awaited<ReturnType<typeof performanceReviewsControllerGetMyProjects>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePerformanceReviewsControllerGetMyProjects<TData = Awaited<ReturnType<typeof performanceReviewsControllerGetMyProjects>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetMyProjects>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get projects for Project Rating (Screen 8)
+ */
+
+export function usePerformanceReviewsControllerGetMyProjects<TData = Awaited<ReturnType<typeof performanceReviewsControllerGetMyProjects>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetMyProjects>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getPerformanceReviewsControllerGetMyProjectsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Get project members for Project Rating (Screen 8)
+ */
+export type performanceReviewsControllerGetProjectMembersResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type performanceReviewsControllerGetProjectMembersResponseSuccess = (performanceReviewsControllerGetProjectMembersResponse200) & {
+  headers: Headers;
+};
+;
+
+export type performanceReviewsControllerGetProjectMembersResponse = (performanceReviewsControllerGetProjectMembersResponseSuccess)
+
+export const getPerformanceReviewsControllerGetProjectMembersUrl = (projectId: number,
+    params: PerformanceReviewsControllerGetProjectMembersParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/performance/projects/${projectId}/members?${stringifiedParams}` : `/api/v1/performance/projects/${projectId}/members`
+}
+
+export const performanceReviewsControllerGetProjectMembers = async (projectId: number,
+    params: PerformanceReviewsControllerGetProjectMembersParams, options?: RequestInit): Promise<performanceReviewsControllerGetProjectMembersResponse> => {
+  
+  return customFetch<performanceReviewsControllerGetProjectMembersResponse>(getPerformanceReviewsControllerGetProjectMembersUrl(projectId,params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getPerformanceReviewsControllerGetProjectMembersQueryKey = (projectId?: number,
+    params?: PerformanceReviewsControllerGetProjectMembersParams,) => {
+    return [
+    `/api/v1/performance/projects/${projectId}/members`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getPerformanceReviewsControllerGetProjectMembersQueryOptions = <TData = Awaited<ReturnType<typeof performanceReviewsControllerGetProjectMembers>>, TError = unknown>(projectId: number,
+    params: PerformanceReviewsControllerGetProjectMembersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetProjectMembers>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPerformanceReviewsControllerGetProjectMembersQueryKey(projectId,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof performanceReviewsControllerGetProjectMembers>>> = ({ signal }) => performanceReviewsControllerGetProjectMembers(projectId,params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(projectId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetProjectMembers>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type PerformanceReviewsControllerGetProjectMembersQueryResult = NonNullable<Awaited<ReturnType<typeof performanceReviewsControllerGetProjectMembers>>>
+export type PerformanceReviewsControllerGetProjectMembersQueryError = unknown
+
+
+export function usePerformanceReviewsControllerGetProjectMembers<TData = Awaited<ReturnType<typeof performanceReviewsControllerGetProjectMembers>>, TError = unknown>(
+ projectId: number,
+    params: PerformanceReviewsControllerGetProjectMembersParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetProjectMembers>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof performanceReviewsControllerGetProjectMembers>>,
+          TError,
+          Awaited<ReturnType<typeof performanceReviewsControllerGetProjectMembers>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePerformanceReviewsControllerGetProjectMembers<TData = Awaited<ReturnType<typeof performanceReviewsControllerGetProjectMembers>>, TError = unknown>(
+ projectId: number,
+    params: PerformanceReviewsControllerGetProjectMembersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetProjectMembers>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof performanceReviewsControllerGetProjectMembers>>,
+          TError,
+          Awaited<ReturnType<typeof performanceReviewsControllerGetProjectMembers>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePerformanceReviewsControllerGetProjectMembers<TData = Awaited<ReturnType<typeof performanceReviewsControllerGetProjectMembers>>, TError = unknown>(
+ projectId: number,
+    params: PerformanceReviewsControllerGetProjectMembersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetProjectMembers>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get project members for Project Rating (Screen 8)
+ */
+
+export function usePerformanceReviewsControllerGetProjectMembers<TData = Awaited<ReturnType<typeof performanceReviewsControllerGetProjectMembers>>, TError = unknown>(
+ projectId: number,
+    params: PerformanceReviewsControllerGetProjectMembersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof performanceReviewsControllerGetProjectMembers>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getPerformanceReviewsControllerGetProjectMembersQueryOptions(projectId,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Submit bulk project member ratings (Screen 8)
+ */
+export type performanceReviewsControllerSubmitBulkProjectRatingsResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type performanceReviewsControllerSubmitBulkProjectRatingsResponseSuccess = (performanceReviewsControllerSubmitBulkProjectRatingsResponse201) & {
+  headers: Headers;
+};
+;
+
+export type performanceReviewsControllerSubmitBulkProjectRatingsResponse = (performanceReviewsControllerSubmitBulkProjectRatingsResponseSuccess)
+
+export const getPerformanceReviewsControllerSubmitBulkProjectRatingsUrl = () => {
+
+
+  
+
+  return `/api/v1/performance/projects/ratings`
+}
+
+export const performanceReviewsControllerSubmitBulkProjectRatings = async (submitBulkProjectRatingsDto: SubmitBulkProjectRatingsDto, options?: RequestInit): Promise<performanceReviewsControllerSubmitBulkProjectRatingsResponse> => {
+  
+  return customFetch<performanceReviewsControllerSubmitBulkProjectRatingsResponse>(getPerformanceReviewsControllerSubmitBulkProjectRatingsUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      submitBulkProjectRatingsDto,)
+  }
+);}
+
+
+
+
+export const getPerformanceReviewsControllerSubmitBulkProjectRatingsMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof performanceReviewsControllerSubmitBulkProjectRatings>>, TError,{data: SubmitBulkProjectRatingsDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof performanceReviewsControllerSubmitBulkProjectRatings>>, TError,{data: SubmitBulkProjectRatingsDto}, TContext> => {
+
+const mutationKey = ['performanceReviewsControllerSubmitBulkProjectRatings'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof performanceReviewsControllerSubmitBulkProjectRatings>>, {data: SubmitBulkProjectRatingsDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  performanceReviewsControllerSubmitBulkProjectRatings(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PerformanceReviewsControllerSubmitBulkProjectRatingsMutationResult = NonNullable<Awaited<ReturnType<typeof performanceReviewsControllerSubmitBulkProjectRatings>>>
+    export type PerformanceReviewsControllerSubmitBulkProjectRatingsMutationBody = SubmitBulkProjectRatingsDto
+    export type PerformanceReviewsControllerSubmitBulkProjectRatingsMutationError = unknown
+
+    /**
+ * @summary Submit bulk project member ratings (Screen 8)
+ */
+export const usePerformanceReviewsControllerSubmitBulkProjectRatings = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof performanceReviewsControllerSubmitBulkProjectRatings>>, TError,{data: SubmitBulkProjectRatingsDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof performanceReviewsControllerSubmitBulkProjectRatings>>,
+        TError,
+        {data: SubmitBulkProjectRatingsDto},
+        TContext
+      > => {
+
+      const mutationOptions = getPerformanceReviewsControllerSubmitBulkProjectRatingsMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }

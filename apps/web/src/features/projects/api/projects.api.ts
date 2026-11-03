@@ -163,11 +163,12 @@ export async function fetchProjectDiscussions(projectId: number): Promise<Projec
 export async function createProjectDiscussion(
   projectId: number,
   message: string,
-  attachments?: string[]
+  attachments?: string[],
+  tagged_employee_ids?: number[]
 ): Promise<ProjectDiscussionItem> {
   return customFetch<ProjectDiscussionItem>(`${BASE_URL}/${projectId}/discussions`, {
     method: 'POST',
-    body: JSON.stringify({ message, attachments }),
+    body: JSON.stringify({ message, attachments, tagged_employee_ids }),
     headers: { 'Content-Type': 'application/json' },
   });
 }

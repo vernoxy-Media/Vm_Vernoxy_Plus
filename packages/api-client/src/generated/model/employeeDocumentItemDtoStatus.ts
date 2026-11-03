@@ -17,4 +17,8 @@ export const EmployeeDocumentItemDtoStatus = {
   locked: 'locked',
   draft: 'draft',
   final: 'final',
+  issued: 'issued',
+  accepted: 'accepted',
+  signed: 'signed',
+  declined: 'declined',
 } as const;

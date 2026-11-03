@@ -1,15 +1,29 @@
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, Settings } from 'lucide-react';
+import { Settings, ClipboardCheck, RefreshCw, Download, Clock, FileText, CheckCircle2, X } from 'lucide-react';
+import { getAccessToken } from '@vernoxy-pulse/api-client';
 import { useAuth } from '@/features/auth/context/AuthContext';
-import { useAttendanceDashboard, usePunchActions, useDayDetail } from '../hooks/use-attendance';
-import { AttendanceCalendarPicker } from '../components/AttendanceCalendarPicker';
+import { useAttendanceDashboard, usePunchActions } from '../hooks/use-attendance';
 import { AttendanceSkeleton } from '../components/AttendanceSkeleton';
 import { AttendanceDashboardCards } from '../components/AttendanceDashboardCards';
 import { AddRegularizationModal } from '../components/AddRegularizationModal';
 import { MyRegularizationsPanel } from '../components/MyRegularizationsPanel';
 import { ApprovalsPanel } from '../components/ApprovalsPanel';
-import type { TodayAttendanceData, AttendanceStatistics, SpecialStatus } from '../types/attendance.types';
+
+const MONTH_OPTIONS = [
+  { value: '01', label: 'January' },
+  { value: '02', label: 'February' },
+  { value: '03', label: 'March' },
+  { value: '04', label: 'April' },
+  { value: '05', label: 'May' },
+  { value: '06', label: 'June' },
+  { value: '07', label: 'July' },
+  { value: '08', label: 'August' },
+  { value: '09', label: 'September' },
+  { value: '10', label: 'October' },
+  { value: '11', label: 'November' },
+  { value: '12', label: 'December' },
+];
 
 export const AttendancePage: React.FC = () => {
   const { user } = useAuth();
@@ -29,11 +43,17 @@ export const AttendancePage: React.FC = () => {
   const [actionError, setActionError] = useState<string | null>(null);
   const [attendanceTab, setAttendanceTab] = useState<'timesheet' | 'regularization' | 'approvals'>('timesheet');
   const [correctionModalDate, setCorrectionModalDate] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [exportMonth, setExportMonth] = useState<string>(todayDateStr.slice(5, 7));
+  const [exportYear, setExportYear] = useState<string>(todayDateStr.slice(0, 4));
 
-  const { data, isLoading, error } = useAttendanceDashboard(selectedMonth);
+  const yearOptions = useMemo(() => {
+    const curYear = new Date().getFullYear();
+    return [curYear + 1, curYear, curYear - 1, curYear - 2].map(String);
+  }, []);
 
-  const isSelectedToday = selectedDate === todayDateStr;
-  const { data: dayDetail } = useDayDetail(!isSelectedToday ? selectedDate : null);
+  const { data, isLoading, error, refetch } = useAttendanceDashboard(selectedMonth);
 
   const {
     punchInMutation,
@@ -76,6 +96,52 @@ export const AttendancePage: React.FC = () => {
     runAction(() => startBreakMutation.mutateAsync({ breakType, reason }), 'Failed to start break');
   const handleResumeBreak = () => runAction(() => resumeBreakMutation.mutateAsync(), 'Failed to resume break');
 
+  const handleExportCsv = async (targetMonthStr?: string) => {
+    const targetPeriod = targetMonthStr || `${exportYear}-${exportMonth}`;
+    try {
+      setIsExporting(true);
+      const token = getAccessToken();
+      const headers: Record<string, string> = {
+        'X-Requested-With': 'pulse-web',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      const response = await fetch(
+        `/api/v1/attendance/report/csv?month=${targetPeriod}`,
+        {
+          method: 'GET',
+          headers,
+          credentials: 'include',
+        }
+      );
+      if (!response.ok) {
+        let errText = 'Failed to export attendance report';
+        try {
+          const errJson = await response.json();
+          errText = errJson.message || errJson.detail || errText;
+        } catch {
+          // ignore
+        }
+        throw new Error(errText);
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `attendance-report-${targetPeriod}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      setIsExportModalOpen(false);
+    } catch (err: any) {
+      alert(err?.detail || err?.message || 'Failed to export attendance report');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   if (isLoading && !data) return <AttendanceSkeleton />;
 
   if (error && !data) {
@@ -90,159 +156,9 @@ export const AttendancePage: React.FC = () => {
   }
 
   const { today, statistics, month_summary, records } = data!;
-  const selectedRecord = records.find((r) => r.date === selectedDate);
 
-  // Compute daily timesheet & activity model for selected date
-  let displayToday: TodayAttendanceData = today;
-  let statusLabel = 'Live Shift';
 
-  if (!isSelectedToday) {
-    statusLabel = selectedRecord?.status_label || (selectedRecord?.punch_in ? 'PRESENT' : 'ABSENT');
-    displayToday = {
-      date: selectedDate,
-      company_timezone: today.company_timezone || 'Asia/Kolkata',
-      state: selectedRecord?.punch_in
-        ? (selectedRecord.punch_out ? 'done' : 'working')
-        : 'not_started',
-      special_status: (selectedRecord?.status === 'holiday'
-        ? 'holiday'
-        : selectedRecord?.status === 'weekly_off'
-        ? 'weekly_off'
-        : selectedRecord?.leave_type
-        ? 'on_leave'
-        : null) as SpecialStatus,
-      special_status_reason: selectedRecord?.holiday_name || selectedRecord?.leave_type || null,
-      punched_in_at: dayDetail?.punched_in_at || (selectedRecord?.punch_in ? `${selectedDate}T${selectedRecord.punch_in}` : null),
-      punched_out_at: dayDetail?.punched_out_at || (selectedRecord?.punch_out ? `${selectedDate}T${selectedRecord.punch_out}` : null),
-      worked_seconds: selectedRecord?.production_seconds ?? 0,
-      break_seconds: selectedRecord?.break_seconds ?? 0,
-      target_seconds: (selectedRecord?.status === 'weekly_off' || selectedRecord?.status === 'holiday') ? 0 : 28800,
-      active_break_start: null,
-      server_now: today.server_now,
-      timeline: dayDetail?.timeline && dayDetail.timeline.length > 0
-        ? dayDetail.timeline
-        : (selectedRecord?.punch_in ? [
-            {
-              id: 'punch-in-rec',
-              type: 'punch_in' as const,
-              timestamp: selectedRecord.punch_in,
-              display_time: selectedRecord.punch_in,
-              label: `Punched in at ${selectedRecord.punch_in}`,
-            },
-            ...(selectedRecord.punch_out ? [{
-              id: 'punch-out-rec',
-              type: 'punch_out' as const,
-              timestamp: selectedRecord.punch_out,
-              display_time: selectedRecord.punch_out,
-              label: `Punched out at ${selectedRecord.punch_out}`,
-            }] : []),
-          ] : []),
-    };
-  }
 
-  // Work statistics calculations according to the chosen date
-  // 1. Day Metric
-  const dayWorkedHours = isSelectedToday
-    ? statistics.today.worked_hours
-    : selectedRecord
-    ? Math.round(((selectedRecord.production_seconds || 0) / 3600) * 10) / 10
-    : 0;
-  const dayTargetHours = (selectedRecord?.status === 'weekly_off' || selectedRecord?.status === 'holiday')
-    ? 0
-    : isSelectedToday
-    ? statistics.today.target_hours
-    : 8.0;
-
-  const dayDateObj = new Date(`${selectedDate}T00:00:00Z`);
-  const dayFormatted = dayDateObj.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    timeZone: 'UTC',
-  });
-  const dayLabel = isSelectedToday ? 'Today' : `Selected Day (${dayFormatted})`;
-
-  // 2. Week Metric (Week containing selectedDate: Monday - Sunday)
-  const refDate = new Date(`${selectedDate}T00:00:00Z`);
-  const dayOfWeek = refDate.getUTCDay(); // 0 is Sun, 1 is Mon
-  const diffToMon = (dayOfWeek < 1 ? 7 : 0) + dayOfWeek - 1;
-  const weekStartObj = new Date(refDate);
-  weekStartObj.setUTCDate(refDate.getUTCDate() - diffToMon);
-  const weekEndObj = new Date(weekStartObj);
-  weekEndObj.setUTCDate(weekStartObj.getUTCDate() + 6);
-
-  const weekStartStr = weekStartObj.toISOString().slice(0, 10);
-  const weekEndStr = weekEndObj.toISOString().slice(0, 10);
-
-  const todayObj = new Date(`${todayDateStr}T00:00:00Z`);
-  const todayDow = todayObj.getUTCDay();
-  const todayDiffToMon = (todayDow < 1 ? 7 : 0) + todayDow - 1;
-  const currentWeekStart = new Date(todayObj);
-  currentWeekStart.setUTCDate(todayObj.getUTCDate() - todayDiffToMon);
-  const isCurrentWeek = weekStartStr === currentWeekStart.toISOString().slice(0, 10);
-
-  const weekRecords = records.filter((r) => r.date >= weekStartStr && r.date <= weekEndStr);
-  const weekWorkingDays = weekRecords.filter(
-    (r) => r.status !== 'weekly_off' && r.status !== 'holiday' && !r.holiday_name
-  );
-  const weekWorkedSec = weekRecords.reduce((acc, r) => acc + (r.production_seconds || 0), 0);
-  const weekTargetSec = weekWorkingDays.length > 0 ? weekWorkingDays.length * 8 * 3600 : (40 * 3600);
-
-  const weekWorkedHours = Math.round((weekWorkedSec / 3600) * 10) / 10;
-  const weekTargetHours = Math.round((weekTargetSec / 3600) * 10) / 10;
-
-  const weekStartFormatted = weekStartObj.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    timeZone: 'UTC',
-  });
-  const weekEndFormatted = weekEndObj.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    timeZone: 'UTC',
-  });
-  const weekLabel = isCurrentWeek ? 'This Week' : `Week (${weekStartFormatted} - ${weekEndFormatted})`;
-
-  // 3. Month Metric (Month containing selectedDate, removing holidays & weekly off)
-  const isCurrentMonth = selectedMonth === currentMonthStr;
-  const [yNum, mNum] = selectedMonth.split('-').map(Number);
-  const monthName = new Date(Date.UTC(yNum, mNum - 1, 1)).toLocaleDateString('en-US', {
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC',
-  });
-  const monthLabel = isCurrentMonth ? 'This Month' : monthName;
-  const monthWorkedSec = records.reduce((acc, r) => acc + (r.production_seconds || 0), 0);
-  const monthWorkedHours = Math.round((monthWorkedSec / 3600) * 10) / 10;
-
-  const monthWorkingDays = records.filter(
-    (r) => r.status !== 'weekly_off' && r.status !== 'holiday' && !r.holiday_name
-  );
-  const monthTargetHours = monthWorkingDays.length > 0
-    ? monthWorkingDays.length * 8
-    : statistics.this_month.target_hours;
-
-  const remainingHours = Math.max(0, Math.round((monthTargetHours - monthWorkedHours) * 10) / 10);
-  const overtimeHours = Math.max(0, Math.round((monthWorkedHours - monthTargetHours) * 10) / 10);
-
-  const computedStatistics: AttendanceStatistics = {
-    today: {
-      worked_hours: dayWorkedHours,
-      target_hours: dayTargetHours,
-    },
-    this_week: {
-      worked_hours: weekWorkedHours,
-      target_hours: weekTargetHours,
-    },
-    this_month: {
-      worked_hours: monthWorkedHours,
-      target_hours: monthTargetHours,
-    },
-    remaining: {
-      worked_hours: remainingHours,
-      target_hours: monthTargetHours,
-    },
-    overtime_hours: overtimeHours,
-  };
 
   const correctionRow = correctionModalDate
     ? records.find((r) => r.date === correctionModalDate)
@@ -254,88 +170,118 @@ export const AttendancePage: React.FC = () => {
         {announcement}
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-1">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 border border-blue-100/70 flex items-center justify-center shrink-0 shadow-2xs">
-            <Calendar className="w-4 h-4 stroke-[2.2]" />
+      {/* Top Header matching reference image */}
+      <div className="flex items-center justify-between pb-1">
+        <div className="flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-2xl bg-indigo-50/80 border border-indigo-100 text-[#5B4CF8] flex items-center justify-center shrink-0 shadow-2xs">
+            <ClipboardCheck className="w-5 h-5 stroke-[1.75]" />
           </div>
           <div>
-            <h1 className="text-[26px] md:text-[28px] font-extrabold tracking-tight text-slate-900 leading-tight">Attendance</h1>
+            <h1 className="text-3xl sm:text-[34px] font-bold tracking-tight text-[#1E293B] leading-tight">
+              Attendance
+            </h1>
+            <p className="text-xs sm:text-sm text-[#64748B] mt-0.5 font-medium">
+              Manage your presence logs
+            </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2.5 shrink-0">
-          {/* Date, Month, Year Calendar Picker */}
-          <AttendanceCalendarPicker
-            selectedDate={selectedDate}
-            onSelectDate={handleSelectDate}
-            records={records}
-            maxDate={todayDateStr}
-          />
+          <button
+            type="button"
+            onClick={() => setIsExportModalOpen(true)}
+            disabled={isExporting}
+            className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 bg-white border border-[#E2E8F0] hover:border-slate-300 hover:bg-slate-50 text-[#1E293B] rounded-[14px] text-xs font-semibold shadow-2xs btn-hover-lift transition cursor-pointer disabled:opacity-50"
+            title="Export Monthly Attendance Report (CSV)"
+          >
+            <Download className="w-3.5 h-3.5 text-slate-500 stroke-[1.75]" />
+            <span>{isExporting ? 'Exporting...' : 'Export'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white border border-[#E2E8F0] hover:border-slate-300 hover:bg-slate-50 text-[#1E293B] rounded-[14px] text-xs font-semibold shadow-2xs btn-hover-lift transition cursor-pointer"
+          >
+            <RefreshCw className="w-3.5 h-3.5 text-slate-500 stroke-[1.75]" />
+            <span>Refresh</span>
+          </button>
 
           {canManageAttendance && (
             <Link
               to="/admin/attendance-settings"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white border border-slate-300 hover:border-slate-400 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold shadow-2xs transition cursor-pointer"
+              className="inline-flex items-center justify-center w-10 h-10 bg-white border border-[#E2E8F0] hover:border-slate-300 hover:bg-slate-50 text-slate-700 rounded-[14px] text-xs font-semibold shadow-2xs btn-hover-lift transition cursor-pointer"
+              title="Attendance Settings"
             >
-              <Settings className="w-3.5 h-3.5 text-slate-500" />
-              <span>Attendance Settings</span>
+              <Settings className="w-4 h-4 text-slate-600 stroke-[1.75]" />
             </Link>
           )}
         </div>
       </div>
 
-      {/* Attendance Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
-        <button
-          type="button"
-          onClick={() => setAttendanceTab('timesheet')}
-          className={`rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
-            attendanceTab === 'timesheet'
-              ? 'bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900 shadow-2xs'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800'
-          }`}
+      {/* Top Module Tabs: Timesheet & Dashboard, My Regularizations, Approvals */}
+      <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
+        <div
+          className="inline-flex items-center gap-1.5 p-1 bg-slate-100/80 border border-slate-200/80 rounded-2xl shadow-2xs"
+          role="tablist"
+          aria-label="Attendance Sections"
         >
-          Timesheet & Attendance
-        </button>
-        <Link
-          to="/calendar"
-          id="attendance-view-calendar-tab-link"
-          className="inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition"
-        >
-          <Calendar className="w-3.5 h-3.5 text-teal-600" />
-          <span>Calendar</span>
-        </Link>
-        <button
-          type="button"
-          onClick={() => setAttendanceTab('regularization')}
-          className={`rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
-            attendanceTab === 'regularization'
-              ? 'bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900 shadow-2xs'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800'
-          }`}
-        >
-          My Regularizations
-        </button>
-        {canManageAttendance && (
           <button
             type="button"
-            onClick={() => setAttendanceTab('approvals')}
-            className={`rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
-              attendanceTab === 'approvals'
-                ? 'bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900 shadow-2xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800'
+            id="attendance-tab-timesheet"
+            role="tab"
+            aria-selected={attendanceTab === 'timesheet'}
+            onClick={() => setAttendanceTab('timesheet')}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              attendanceTab === 'timesheet'
+                ? 'bg-white text-indigo-600 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
             }`}
           >
-            Approvals
+            <Clock className="w-3.5 h-3.5" />
+            <span>Timesheet &amp; Dashboard</span>
           </button>
-        )}
+
+          <button
+            type="button"
+            id="attendance-tab-regularizations"
+            role="tab"
+            aria-selected={attendanceTab === 'regularization'}
+            onClick={() => setAttendanceTab('regularization')}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              attendanceTab === 'regularization'
+                ? 'bg-white text-indigo-600 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+            }`}
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span>My Regularizations</span>
+          </button>
+
+          {canManageAttendance && (
+            <button
+              type="button"
+              id="attendance-tab-approvals"
+              role="tab"
+              aria-selected={attendanceTab === 'approvals'}
+              onClick={() => setAttendanceTab('approvals')}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                attendanceTab === 'approvals'
+                  ? 'bg-white text-indigo-600 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+              }`}
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>Approvals</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {attendanceTab === 'timesheet' && (
         <AttendanceDashboardCards
-          today={displayToday}
-          statistics={computedStatistics}
+          today={today}
+          statistics={statistics}
           monthSummary={month_summary}
           records={records}
           isPending={isPending}
@@ -348,16 +294,16 @@ export const AttendancePage: React.FC = () => {
           onDismissToast={() => setInfoToast(null)}
           onSuccessCorrection={(msg) => setInfoToast(msg)}
           selectedDate={selectedDate}
-          isSelectedToday={isSelectedToday}
+          isSelectedToday={true}
           onRequestCorrection={(date) => setCorrectionModalDate(date)}
           onReturnToToday={() => handleSelectDate(todayDateStr)}
           onSelectDate={handleSelectDate}
           selectedMonth={selectedMonth}
           onSelectMonth={(m) => setSelectedMonth(m)}
-          dayLabel={dayLabel}
-          weekLabel={weekLabel}
-          monthLabel={monthLabel}
-          statusLabel={statusLabel}
+          dayLabel="Today"
+          weekLabel="This Week"
+          monthLabel="This Month"
+          statusLabel="Live Shift"
           onOpenMyRequests={() => setAttendanceTab('regularization')}
         />
       )}
@@ -368,6 +314,94 @@ export const AttendancePage: React.FC = () => {
 
       {attendanceTab === 'approvals' && canManageAttendance && (
         <ApprovalsPanel />
+      )}
+
+      {/* Export Monthly Attendance Modal */}
+      {isExportModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 text-[#5B4CF8] flex items-center justify-center">
+                  <Download className="w-4 h-4 stroke-[2]" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-800">Export Attendance Report</h3>
+                  <p className="text-xs text-slate-500">Download monthly register in CSV format</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsExportModalOpen(false)}
+                className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 flex items-center justify-center cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  Select Month
+                </label>
+                <select
+                  value={exportMonth}
+                  onChange={(e) => setExportMonth(e.target.value)}
+                  className="w-full h-10 px-3 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white"
+                >
+                  {MONTH_OPTIONS.map((m) => (
+                    <option key={m.value} value={m.value}>
+                      {m.label} ({m.value})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  Select Year
+                </label>
+                <select
+                  value={exportYear}
+                  onChange={(e) => setExportYear(e.target.value)}
+                  className="w-full h-10 px-3 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white"
+                >
+                  {yearOptions.map((y) => (
+                    <option key={y} value={y}>
+                      {y}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-[11px] text-slate-500 leading-relaxed">
+                Will export all employee punch records, shift status, and effective hours for{' '}
+                <strong className="text-slate-700">
+                  {MONTH_OPTIONS.find((m) => m.value === exportMonth)?.label} {exportYear}
+                </strong>.
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 px-6 py-3.5 bg-slate-50/80 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setIsExportModalOpen(false)}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-white cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleExportCsv()}
+                disabled={isExporting}
+                className="px-4 py-2 rounded-xl bg-[#5B4CF8] hover:bg-indigo-600 text-white text-xs font-semibold shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>{isExporting ? 'Exporting...' : 'Download CSV'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Regularization Modal when triggered from Timesheet card or records table */}

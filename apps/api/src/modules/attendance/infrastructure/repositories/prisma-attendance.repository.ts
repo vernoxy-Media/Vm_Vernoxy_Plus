@@ -152,7 +152,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
     checkOutAt: Date,
     breakMinutes: number,
     productionMinutes: number,
-    dayStatus: 'present' | 'half_day' | 'short' | 'incomplete',
+    dayStatus: 'present' | 'half_day' | 'short' | 'incomplete' | 'absent',
   ): Promise<AttendanceDayEntity> {
     return this.prisma.$transaction(async (tx) => {
       // 1. End any open break at the same instant
@@ -696,7 +696,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
       checkOutAt: Date;
       breakMinutes: number;
       productionMinutes: number;
-      dayStatus: 'present' | 'half_day' | 'short';
+      dayStatus: 'present' | 'half_day' | 'short' | 'absent';
     },
   ): Promise<AttendanceDayEntity> {
     return this.prisma.$transaction(async (tx) => {
@@ -790,7 +790,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
     checkOutAt: Date,
     breakMinutes: number,
     productionMinutes: number,
-    dayStatus: 'present' | 'half_day' | 'short',
+    dayStatus: 'present' | 'half_day' | 'short' | 'absent',
     adminId: number,
     note?: string | null,
   ): Promise<AttendanceDayEntity> {
@@ -882,6 +882,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
       holidays?: Array<{ date: string; name: string }>;
       fullDayMinutes?: number;
       halfDayMinutes?: number;
+      graceMinutes?: number;
     },
   ): Promise<{
     days: Array<{
@@ -953,6 +954,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
     const holidaysList = options?.holidays || [];
     const fullDayMins = options?.fullDayMinutes ?? 480;
     const halfDayMins = options?.halfDayMinutes ?? 240;
+    const graceMins = options?.graceMinutes ?? 0;
 
     const days = rawRows.map((r) => {
       const dateStr = r.date;
@@ -985,14 +987,9 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
         dayStatus = 'leave';
         prodMinutes = 0;
         brkMinutes = 0;
-      } else if (r.day_status === 'absent') {
-        state = 'absent';
-        dayStatus = 'absent';
-        prodMinutes = 0;
-        brkMinutes = 0;
       } else if (r.check_in_at) {
         if (r.check_out_at) {
-          state = determineDayStatus(new Date(r.check_out_at), prodMinutes, fullDayMins, halfDayMins);
+          state = determineDayStatus(new Date(r.check_out_at), prodMinutes, fullDayMins, halfDayMins, graceMins);
           dayStatus = state;
         } else {
           // Open day (e.g. today)
@@ -1018,10 +1015,16 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
               prodMinutes,
               fullDayMins,
               halfDayMins,
+              graceMins,
             );
             dayStatus = state;
           }
         }
+      } else if (r.day_status === 'absent') {
+        state = 'absent';
+        dayStatus = 'absent';
+        prodMinutes = 0;
+        brkMinutes = 0;
       } else {
         if (isHoliday) {
           state = 'holiday';

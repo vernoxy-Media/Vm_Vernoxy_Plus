@@ -1,21 +1,42 @@
 import * as z from 'zod';
 
+function isAtLeast18(dateStr?: string | null): boolean {
+  if (!dateStr) return true;
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return false;
+  const today = new Date();
+  let age = today.getFullYear() - d.getFullYear();
+  const m = today.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < d.getDate())) {
+    age--;
+  }
+  return age >= 18;
+}
+
+const phoneRegex = /^[0-9]{10}$/;
+
 export const employeeCreateSchema = z
   .object({
-    name: z.string().trim().min(1, 'Full name is required'),
+    name: z.string().trim().min(1, 'Please fill this field.'),
     email: z
       .string()
       .trim()
-      .min(1, 'Office email is required')
-      .email('Please enter a valid office email address'),
+      .min(1, 'Please fill this field.')
+      .email('Please enter a valid email.'),
     personal_email: z
       .string()
       .trim()
-      .email('Please enter a valid personal email address')
+      .email('Please enter a valid email.')
       .optional()
       .or(z.literal('')),
     office_email: z.string().trim().optional(),
-    mob: z.string().optional(),
+    mob: z
+      .string()
+      .optional()
+      .refine(
+        (val) => !val || phoneRegex.test(val.replace(/^\+91\s*/, '').trim()),
+        { message: 'The phone number must be 10 digits.' },
+      ),
     gender_id: z.preprocess(
       (val) => (val === '' || val === null || val === undefined ? undefined : Number(val)),
       z.number().optional().nullable(),
@@ -23,7 +44,12 @@ export const employeeCreateSchema = z
     emergency_contact_name: z.string().optional(),
     emergency_contact_number: z.string().optional(),
     emergency_contact_relation: z.string().optional(),
-    birth_date: z.string().optional(),
+    birth_date: z
+      .string()
+      .optional()
+      .refine((val) => !val || isAtLeast18(val), {
+        message: 'Employees must be 18 or older.',
+      }),
     blood_group: z.string().optional(),
     address: z.string().optional(),
     dep_id: z.preprocess(
@@ -39,13 +65,19 @@ export const employeeCreateSchema = z
       (val) => (val === '' || val === null || val === undefined ? undefined : Number(val)),
       z.number().optional().nullable(),
     ),
+    leave_policy_id: z.preprocess(
+      (val) => (val === '' || val === null || val === undefined ? undefined : Number(val)),
+      z.number().optional().nullable(),
+    ),
     employment_type_id: z.preprocess(
       (val) => (val === '' || val === null || val === undefined ? undefined : Number(val)),
       z.number().optional().nullable(),
     ),
-    joining_date: z.string().min(1, 'Joining date is required'),
-    salary: z.coerce.number().min(0, 'Salary cannot be negative').default(0),
-    pf: z.coerce.number().min(0, 'PF cannot be negative').default(0),
+    joining_date: z.string().min(1, 'Please fill this field.'),
+    probation_period: z.string().optional().nullable(),
+    notice_period: z.string().optional().nullable(),
+    salary: z.coerce.number().min(0, 'Please enter 0 or more.').default(0),
+    pf: z.coerce.number().min(0, 'Please enter 0 or more.').default(0),
     // Overtime (OT)
     ot_eligible: z.boolean().default(false),
     ot_rate_type: z.enum(['FIXED', 'MULTIPLIER']).optional().nullable(),
@@ -80,20 +112,26 @@ export const employeeCreateSchema = z
   });
 
 export const employeeEditSchema = z.object({
-  name: z.string().trim().min(1, 'Full name is required'),
+  name: z.string().trim().min(1, 'Please fill this field.'),
   email: z
     .string()
     .trim()
-    .email('Please enter a valid office email address')
+    .email('Please enter a valid email.')
     .optional(),
   personal_email: z
     .string()
     .trim()
-    .email('Please enter a valid personal email address')
+    .email('Please enter a valid email.')
     .optional()
     .or(z.literal('')),
   office_email: z.string().trim().optional(),
-  mob: z.string().optional(),
+  mob: z
+    .string()
+    .optional()
+    .refine(
+      (val) => !val || phoneRegex.test(val.replace(/^\+91\s*/, '').trim()),
+      { message: 'The phone number must be 10 digits.' },
+    ),
   gender_id: z.preprocess(
     (val) => (val === '' || val === null || val === undefined ? undefined : Number(val)),
     z.number().optional().nullable(),
@@ -101,7 +139,12 @@ export const employeeEditSchema = z.object({
   emergency_contact_name: z.string().optional(),
   emergency_contact_number: z.string().optional(),
   emergency_contact_relation: z.string().optional(),
-  birth_date: z.string().optional(),
+  birth_date: z
+    .string()
+    .optional()
+    .refine((val) => !val || isAtLeast18(val), {
+      message: 'Employees must be 18 or older.',
+    }),
   blood_group: z.string().optional(),
   address: z.string().optional(),
   dep_id: z.preprocess(
@@ -117,13 +160,19 @@ export const employeeEditSchema = z.object({
     (val) => (val === '' || val === null || val === undefined ? undefined : Number(val)),
     z.number().optional().nullable(),
   ),
+  leave_policy_id: z.preprocess(
+    (val) => (val === '' || val === null || val === undefined ? undefined : Number(val)),
+    z.number().optional().nullable(),
+  ),
   employment_type_id: z.preprocess(
     (val) => (val === '' || val === null || val === undefined ? undefined : Number(val)),
     z.number().optional().nullable(),
   ),
-  joining_date: z.string().min(1, 'Joining date is required'),
-  salary: z.coerce.number().min(0, 'Salary cannot be negative').default(0),
-  pf: z.coerce.number().min(0, 'PF cannot be negative').default(0),
+  joining_date: z.string().min(1, 'Please fill this field.'),
+  probation_period: z.string().optional().nullable(),
+  notice_period: z.string().optional().nullable(),
+  salary: z.coerce.number().min(0, 'Please enter 0 or more.').default(0),
+  pf: z.coerce.number().min(0, 'Please enter 0 or more.').default(0),
   // Overtime (OT)
   ot_eligible: z.boolean().default(false),
   ot_rate_type: z.enum(['FIXED', 'MULTIPLIER']).optional().nullable(),

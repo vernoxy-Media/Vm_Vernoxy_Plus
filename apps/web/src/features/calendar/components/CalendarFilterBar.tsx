@@ -9,6 +9,7 @@ export interface CalendarFilters {
   taskTypeId: number | 'all';
   priority: string;
   selectedEmployeeIds: number[];
+  departmentId?: number | 'all';
 }
 
 interface CalendarFilterBarProps {
@@ -18,6 +19,7 @@ interface CalendarFilterBarProps {
   isAdmin: boolean;
   employees: AssignableEmployee[];
   taskTypes?: Array<{ id: number; label: string }>;
+  departments?: Array<{ id: number; name: string }>;
   isOpen: boolean;
   onToggle: () => void;
 }
@@ -29,6 +31,7 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
   isAdmin,
   employees,
   taskTypes = [],
+  departments = [],
   isOpen,
   onToggle,
 }) => {
@@ -76,6 +79,7 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
     filters.projectId !== 'all' ||
     filters.taskTypeId !== 'all' ||
     filters.priority !== 'all' ||
+    (filters.departmentId != null && filters.departmentId !== 'all') ||
     (isAdmin && filters.selectedEmployeeIds.length > 0 && filters.selectedEmployeeIds.length < employees.length);
 
   const activeCount = [
@@ -83,6 +87,7 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
     filters.stage !== 'all',
     filters.priority !== 'all',
     filters.taskTypeId !== 'all',
+    filters.departmentId != null && filters.departmentId !== 'all',
     isAdmin && filters.selectedEmployeeIds.length > 0 && filters.selectedEmployeeIds.length < employees.length,
   ].filter(Boolean).length;
 
@@ -196,6 +201,27 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
             {taskTypes.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.label}
+              </option>
+            ))}
+          </select>
+        )}
+
+        {/* Department Filter if provided */}
+        {departments.length > 0 && (
+          <select
+            value={filters.departmentId ?? 'all'}
+            onChange={(e) =>
+              onChange({
+                ...filters,
+                departmentId: e.target.value === 'all' ? 'all' : parseInt(e.target.value, 10),
+              })
+            }
+            className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 font-medium text-slate-700 focus:outline-hidden focus:ring-1 focus:ring-blue-500 cursor-pointer"
+          >
+            <option value="all">Department: All</option>
+            {departments.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.name}
               </option>
             ))}
           </select>

@@ -4,11 +4,11 @@ import { customFetch } from '@vernoxy-pulse/api-client';
 export interface EmployeeDocumentItem {
   doc_id: number;
   emp_id: number;
-  category: 'given_to_employee' | 'taken_from_employee' | 'agreement';
+  category: 'given_to_employee' | 'taken_from_employee' | 'agreement' | 'other' | string;
   document_type: string;
   title: string;
   is_ticked: boolean;
-  status: 'uploaded' | 'file_pending' | 'not_ticked' | 'locked' | 'draft' | 'final';
+  status: 'uploaded' | 'file_pending' | 'not_ticked' | 'locked' | 'draft' | 'final' | 'issued' | 'accepted' | 'signed' | 'declined';
   is_required_for_activation?: boolean;
   file_url?: string | null;
   file_name?: string | null;
@@ -119,7 +119,11 @@ export function useGenerateDocumentDraftMutation() {
       empId,
       templateId,
       documentType,
+      candidateName,
+      designation,
+      department,
       proposedJoiningDate,
+      offerValidTillDate,
       customSalary,
       customPf,
       notes,
@@ -127,7 +131,11 @@ export function useGenerateDocumentDraftMutation() {
       empId: number;
       templateId?: number;
       documentType: string;
+      candidateName?: string;
+      designation?: string;
+      department?: string;
       proposedJoiningDate?: string;
+      offerValidTillDate?: string;
       customSalary?: number;
       customPf?: number;
       notes?: string;
@@ -139,7 +147,11 @@ export function useGenerateDocumentDraftMutation() {
           body: JSON.stringify({
             template_id: templateId,
             document_type: documentType,
+            candidate_name: candidateName,
+            designation,
+            department,
             proposed_joining_date: proposedJoiningDate,
+            offer_valid_till_date: offerValidTillDate,
             custom_salary: customSalary,
             custom_pf: customPf,
             notes,
@@ -180,12 +192,37 @@ export function useFinalizeDocumentDraftMutation() {
   });
 }
 
+export function useDeclineEmployeeDocumentMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      empId,
+      documentType,
+      reason,
+    }: {
+      empId: number;
+      documentType: string;
+      reason?: string;
+    }) =>
+      customFetch<EmployeeDocumentItem>(`/api/v1/employees/${empId}/documents/${documentType}/decline`, {
+        method: 'POST',
+        body: JSON.stringify({ reason }),
+      }),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['employee-documents', variables.empId] });
+      queryClient.invalidateQueries({ queryKey: ['candidates'] });
+    },
+  });
+}
+
 export interface EmployeeActivationStatus {
   can_activate: boolean;
   is_already_active: boolean;
   missing_documents: string[];
   total_required: number;
   completed_required: number;
+  is_details_completed?: boolean;
+  missing_details?: string[];
 }
 
 export interface ActivateEmployeeResult {
@@ -231,6 +268,35 @@ export function useResendEmployeeLoginMutation() {
     onSuccess: (_, empId) => {
       queryClient.invalidateQueries({ queryKey: ['employee', empId] });
       queryClient.invalidateQueries({ queryKey: ['employee-documents', empId] });
+    },
+  });
+}
+
+export function useAddCustomDocumentMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ empId, title, isRequired }: { empId: number; title: string; isRequired?: boolean }) =>
+      customFetch<EmployeeDocumentItem>(`/api/v1/employees/${empId}/documents/custom`, {
+        method: 'POST',
+        body: JSON.stringify({ title, is_required_for_activation: isRequired }),
+      }),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['employee-documents', variables.empId] });
+      queryClient.invalidateQueries({ queryKey: ['employee-activation-status', variables.empId] });
+    },
+  });
+}
+
+export function useDeleteCustomDocumentMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ empId, documentType }: { empId: number; documentType: string }) =>
+      customFetch<{ success: boolean }>(`/api/v1/employees/${empId}/documents/${documentType}/custom`, {
+        method: 'DELETE',
+      }),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['employee-documents', variables.empId] });
+      queryClient.invalidateQueries({ queryKey: ['employee-activation-status', variables.empId] });
     },
   });
 }

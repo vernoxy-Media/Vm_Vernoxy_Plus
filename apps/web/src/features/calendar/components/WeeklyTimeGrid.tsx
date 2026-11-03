@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Video, Check, Send } from 'lucide-react';
 import type { CalendarEvent } from '../types';
+import type { LeaveCalendarItem } from '@/features/leave/hooks/use-leave';
 import { formatLocalDate, classifyCalendarDay, AttendanceDayRecordInfo } from '../date-utils';
 
 interface WeeklyTimeGridProps {
   currentDate: Date;
   events: CalendarEvent[];
+  leaves?: LeaveCalendarItem[];
   attendanceRecords?: Record<string, AttendanceDayRecordInfo>;
   holidays?: Array<{ date: string; name: string }>;
   workingDays?: number[];
@@ -21,6 +23,7 @@ const ROW_HEIGHT = 64; // px per hour
 export const WeeklyTimeGrid: React.FC<WeeklyTimeGridProps> = ({
   currentDate,
   events,
+  leaves = [],
   attendanceRecords = {},
   holidays = [],
   workingDays = [1, 2, 3, 4, 5],
@@ -80,6 +83,11 @@ export const WeeklyTimeGrid: React.FC<WeeklyTimeGridProps> = ({
           const dateStr = formatLocalDate(day);
           const record = attendanceRecords[dateStr];
           const classification = classifyCalendarDay(day, record, holidays, workingDays);
+          const dayLeaves = leaves.filter((l) => {
+            const fromStr = l.from_date.slice(0, 10);
+            const toStr = l.to_date.slice(0, 10);
+            return dateStr >= fromStr && dateStr <= toStr;
+          });
           const dayName = day.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
           const dayNumber = day.getDate();
 
@@ -103,7 +111,7 @@ export const WeeklyTimeGrid: React.FC<WeeklyTimeGridProps> = ({
                 </span>
               </div>
               {/* Status pill badge */}
-              <div className="mt-1 flex justify-center">
+              <div className="mt-1 flex flex-col items-center gap-0.5 justify-center">
                 {classification.type === 'holiday' && (
                   <span
                     className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 max-w-[85px] truncate shadow-2xs"
@@ -143,6 +151,14 @@ export const WeeklyTimeGrid: React.FC<WeeklyTimeGridProps> = ({
                 {classification.type === 'weekoff' && (
                   <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-400">
                     Week Off
+                  </span>
+                )}
+                {dayLeaves.length > 0 && (
+                  <span
+                    className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 max-w-[85px] truncate shadow-2xs"
+                    title={`${dayLeaves.length} on leave: ${dayLeaves.map(l => l.employee_name).join(', ')}`}
+                  >
+                    {dayLeaves.length} on leave
                   </span>
                 )}
               </div>

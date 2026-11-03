@@ -27,6 +27,9 @@ import { LeavePage } from '@/features/leave/pages/LeavePage';
 import { ExpensesPage } from '@/features/expense/pages/ExpensesPage';
 import { ComplaintsPage } from '@/features/complaint/pages/ComplaintsPage';
 import { SoftwareLicensesPage } from '@/features/license/pages/SoftwareLicensesPage';
+import { KnowledgeBasePage } from '@/features/knowledge-base/pages/KnowledgeBasePage';
+import { ArticleDetailPage } from '@/features/knowledge-base/pages/ArticleDetailPage';
+import { ArticleEditorPage } from '@/features/knowledge-base/pages/ArticleEditorPage';
 import { CompanyRoute } from '@/features/companies/components/CompanyRoute';
 import { CompaniesListPage } from '@/features/companies/pages/CompaniesListPage';
 import { CompanyFormPage } from '@/features/companies/pages/CompanyFormPage';
@@ -34,9 +37,10 @@ import { CompanyDetailPage } from '@/features/companies/pages/CompanyDetailPage'
 import { CompanyImportPage } from '@/features/companies/pages/CompanyImportPage';
 import { AttendancePage } from '@/features/attendance/pages/AttendancePage';
 import { CalendarPage } from '@/features/calendar/pages/CalendarPage';
+import { PerformancePage } from '@/features/performance/pages/PerformancePage';
 import { ProjectsPage } from '@/features/projects/pages/ProjectsPage';
-import { ProjectDetailPage } from '@/features/projects/pages/ProjectDetailPage';
 import { MyTasksPage } from '@/features/tasks/pages/MyTasksPage';
+import { DepartmentsPage } from '@/features/organization/pages/DepartmentsPage';
 import { AppLayout } from '@/shared/layouts/AppLayout';
 
 // Sales CRM Feature imports
@@ -68,506 +72,618 @@ export const App: React.FC = () => {
       <AuthProvider>
         <SocketProvider>
           <BrowserRouter>
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/login/verify" element={<VerifyOtpPage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/login/verify" element={<VerifyOtpPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-            {/* Authenticated Routes */}
-            <Route
-              path="/change-password"
-              element={
-                <ProtectedRoute>
-                  <ChangePasswordPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <HomePage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/attendance"
-              element={
-                <ProtectedRoute>
-                  <AppLayout fluid>
-                    <AttendancePage />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/leave"
-              element={
-                <ProtectedRoute>
-                  <AppLayout fluid>
-                    <LeavePage />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            {/* Expense Management Module (Unified Hub) */}
-            <Route
-              path="/expense"
-              element={
-                <ProtectedRoute>
-                  <AppLayout fluid>
-                    <ExpensesPage />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/expenses"
-              element={<Navigate to="/expense" replace />}
-            />
-            {/* Complaint Management Module (Unified Hub) */}
-            <Route
-              path="/complaints"
-              element={
-                <ProtectedRoute>
-                  <AppLayout fluid>
-                    <ComplaintsPage />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/complaint"
-              element={<Navigate to="/complaints" replace />}
-            />
+              {/* Authenticated Routes */}
+              <Route
+                path="/change-password"
+                element={
+                  <ProtectedRoute>
+                    <ChangePasswordPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <HomePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/attendance"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout fluid>
+                      <AttendancePage />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/leave"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout fluid>
+                      <LeavePage />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              {/* Expense Management Module (Unified Hub) */}
+              <Route
+                path="/expense"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout fluid>
+                      <ExpensesPage />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/expenses"
+                element={<Navigate to="/expense" replace />}
+              />
+              {/* Complaint Management Module (Unified Hub) */}
+              <Route
+                path="/complaints"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout fluid>
+                      <ComplaintsPage />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/complaint"
+                element={<Navigate to="/complaints" replace />}
+              />
 
-            {/* Software License Management Module (Unified Hub) */}
-            <Route
-              path="/licenses"
-              element={
-                <ProtectedRoute>
-                  <AppLayout fluid>
-                    <SoftwareLicensesPage />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/licenses/:id"
-              element={
-                <ProtectedRoute>
-                  <AppLayout fluid>
-                    <SoftwareLicensesPage />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/my-software"
-              element={<Navigate to="/licenses?tab=my" replace />}
-            />
-            <Route
-              path="/admin/licenses"
-              element={<Navigate to="/licenses" replace />}
-            />
-            <Route
-              path="/attendance/calendar"
-              element={<Navigate to="/calendar" replace />}
-            />
-            <Route
-              path="/calendar"
-              element={
-                <ProtectedRoute>
-                  <AppLayout fluid>
-                    <CalendarPage />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/projects"
-              element={
-                <ProtectedRoute>
-                  <AppLayout fluid>
-                    <ProjectsPage />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/projects/:id"
-              element={
-                <ProtectedRoute>
-                  <AppLayout fluid>
-                    <ProjectDetailPage />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/my-tasks"
-              element={
-                <ProtectedRoute>
-                  <AppLayout fluid>
-                    <MyTasksPage />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/tasks"
-              element={<Navigate to="/my-tasks?tab=management" replace />}
-            />
+              {/* Software License Management Module (Unified Hub) */}
+              <Route
+                path="/licenses"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout fluid>
+                      <SoftwareLicensesPage />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/licenses/:id"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout fluid>
+                      <SoftwareLicensesPage />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/my-software"
+                element={<Navigate to="/licenses?tab=my" replace />}
+              />
+              <Route
+                path="/admin/licenses"
+                element={<Navigate to="/licenses" replace />}
+              />
 
-            {/* Settings & Master Data */}
-            <Route
-              path="/admin/settings"
-              element={<Navigate to="/admin/settings/departments" replace />}
-            />
-            <Route
-              path="/admin/settings/:sectionId"
-              element={
-                <AdminRoute>
-                  <SettingsPage />
-                </AdminRoute>
-              }
-            />
+              {/* Knowledge Base Module (Unified Hub) */}
+              <Route
+                path="/knowledge-base"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout fluid>
+                      <KnowledgeBasePage />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/knowledge-base/new"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout fluid>
+                      <ArticleEditorPage />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/knowledge-base/articles/:identifier"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout fluid>
+                      <ArticleDetailPage />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/knowledge-base/articles/:identifier/edit"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout fluid>
+                      <ArticleEditorPage />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/attendance/calendar"
+                element={<Navigate to="/calendar" replace />}
+              />
+              <Route
+                path="/calendar"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout fluid>
+                      <CalendarPage />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/performance"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout fluid>
+                      <PerformancePage />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/projects"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout fluid>
+                      <ProjectsPage />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/projects/:id"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout fluid>
+                      <ProjectsPage />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/my-tasks"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout fluid>
+                      <MyTasksPage />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/tasks"
+                element={<Navigate to="/my-tasks?tab=management" replace />}
+              />
 
-            {/* Dedicated Attendance Settings Route */}
-            <Route
-              path="/admin/attendance-settings"
-              element={
-                <AdminRoute>
-                  <AttendanceSettingsPage />
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="/admin/settings/attendance"
-              element={<Navigate to="/admin/attendance-settings" replace />}
-            />
-            <Route
-              path="/admin/settings/licenses"
-              element={<Navigate to="/admin/settings/license-settings" replace />}
-            />
+              {/* Department Module (Top-Level Sidebar) */}
+              <Route
+                path="/departments"
+                element={
+                  <AdminRoute>
+                    <AppLayout fluid>
+                      <DepartmentsPage />
+                    </AppLayout>
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/departments"
+                element={<Navigate to="/departments" replace />}
+              />
+              <Route
+                path="/admin/settings/departments"
+                element={<Navigate to="/departments" replace />}
+              />
+              <Route
+                path="/support"
+                element={<Navigate to="/recruitment" replace />}
+              />
+              <Route
+                path="/tasks"
+                element={<Navigate to="/my-tasks" replace />}
+              />
+              <Route
+                path="/payroll"
+                element={<Navigate to="/admin/payroll" replace />}
+              />
 
-            {/* Backward-compatibility redirects for old URLs */}
-            <Route
-              path="/admin/departments"
-              element={<Navigate to="/admin/settings/departments" replace />}
-            />
-            <Route
-              path="/admin/roles"
-              element={<Navigate to="/admin/settings/roles" replace />}
-            />
-            <Route
-              path="/admin/employees"
-              element={
-                <AdminRoute>
-                  <EmployeesPage />
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="/admin/employees/new"
-              element={
-                <AdminRoute>
-                  <EmployeeFormPage />
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="/admin/employees/:id"
-              element={
-                <AdminRoute>
-                  <EmployeeDetailPage />
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="/admin/employees/:id/edit"
-              element={
-                <AdminRoute>
-                  <EmployeeFormPage />
-                </AdminRoute>
-              }
-            />
+              {/* Settings & Master Data */}
+              <Route
+                path="/admin/settings"
+                element={<Navigate to="/admin/settings/roles" replace />}
+              />
+              <Route
+                path="/admin/settings/knowledge-base"
+                element={<Navigate to="/admin/settings/knowledge-base-categories" replace />}
+              />
+              <Route
+                path="/admin/settings/:sectionId"
+                element={
+                  <AdminRoute>
+                    <SettingsPage />
+                  </AdminRoute>
+                }
+              />
 
-            {/* Recruitment Module */}
-            <Route
-              path="/admin/recruitment"
-              element={
-                <AdminRoute>
-                  <CandidatesPage />
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="/admin/recruitment/new"
-              element={
-                <AdminRoute>
-                  <CandidateFormPage />
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="/admin/recruitment/:id"
-              element={
-                <AdminRoute>
-                  <CandidateDetailPage />
-                </AdminRoute>
-              }
-            />
+              {/* Dedicated Attendance Settings Route */}
+              <Route
+                path="/admin/attendance-settings"
+                element={
+                  <AdminRoute>
+                    <AttendanceSettingsPage />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/settings/attendance"
+                element={<Navigate to="/admin/attendance-settings" replace />}
+              />
+              <Route
+                path="/admin/settings/licenses"
+                element={<Navigate to="/admin/settings/license-settings" replace />}
+              />
+              <Route
+                path="/admin/settings/performance"
+                element={<Navigate to="/admin/settings/performance-cycles" replace />}
+              />
 
-            {/* Payroll Module */}
-            <Route
-              path="/admin/payroll"
-              element={
-                <AdminRoute>
-                  <AppLayout fluid>
-                    <PayrollRunsPage />
-                  </AppLayout>
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="/admin/payroll/:year/:month"
-              element={
-                <AdminRoute>
-                  <AppLayout fluid>
-                    <PayrollRegisterPage />
-                  </AppLayout>
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="/admin/payroll/:year/:month/employee/:empId"
-              element={
-                <AdminRoute>
-                  <AppLayout fluid>
-                    <EmployeeSalarySheetPage />
-                  </AppLayout>
-                </AdminRoute>
-              }
-            />
+              {/* Backward-compatibility redirects for old URLs */}
+              <Route
+                path="/admin/roles"
+                element={<Navigate to="/admin/settings/roles" replace />}
+              />
+              <Route
+                path="/admin/employees"
+                element={
+                  <AdminRoute>
+                    <EmployeesPage />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/employees/new"
+                element={
+                  <AdminRoute>
+                    <EmployeeFormPage />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/employees/:id"
+                element={
+                  <AdminRoute>
+                    <EmployeeDetailPage />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/employees/:id/edit"
+                element={
+                  <AdminRoute>
+                    <EmployeeFormPage />
+                  </AdminRoute>
+                }
+              />
 
-            {/* Leave Management Module (Redirects to Unified Hub) */}
-            <Route
-              path="/admin/leave"
-              element={<Navigate to="/leave?tab=requests" replace />}
-            />
-            <Route
-              path="/admin/leave/requests"
-              element={<Navigate to="/leave?tab=requests" replace />}
-            />
+              {/* Recruitment Module */}
+              <Route
+                path="/recruitment"
+                element={
+                  <AdminRoute>
+                    <CandidatesPage />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/recruitment/new"
+                element={
+                  <AdminRoute>
+                    <CandidateFormPage />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/recruitment/:id"
+                element={
+                  <AdminRoute>
+                    <CandidateDetailPage />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/recruitment"
+                element={
+                  <AdminRoute>
+                    <CandidatesPage />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/recruitment/new"
+                element={
+                  <AdminRoute>
+                    <CandidateFormPage />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/recruitment/:id"
+                element={
+                  <AdminRoute>
+                    <CandidateDetailPage />
+                  </AdminRoute>
+                }
+              />
 
-            {/* Expense Management Module (Redirects to Unified Hub) */}
-            <Route
-              path="/admin/expense"
-              element={<Navigate to="/expense?tab=claims" replace />}
-            />
-            <Route
-              path="/admin/expense/reports"
-              element={<Navigate to="/expense?tab=reports" replace />}
-            />
-            <Route
-              path="/admin/expenses"
-              element={<Navigate to="/expense?tab=claims" replace />}
-            />
-            <Route
-              path="/admin/expenses/reports"
-              element={<Navigate to="/expense?tab=reports" replace />}
-            />
+              {/* Payroll Module */}
+              <Route
+                path="/admin/payroll"
+                element={
+                  <AdminRoute>
+                    <AppLayout fluid>
+                      <PayrollRunsPage />
+                    </AppLayout>
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/payroll/:year/:month"
+                element={
+                  <AdminRoute>
+                    <AppLayout fluid>
+                      <PayrollRegisterPage />
+                    </AppLayout>
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/payroll/:year/:month/employee/:empId"
+                element={
+                  <AdminRoute>
+                    <AppLayout fluid>
+                      <EmployeeSalarySheetPage />
+                    </AppLayout>
+                  </AdminRoute>
+                }
+              />
 
-            {/* Complaint Management Module Redirects to Unified Hub */}
-            <Route
-              path="/admin/complaints"
-              element={<Navigate to="/complaints?tab=manage" replace />}
-            />
-            <Route
-              path="/admin/complaint"
-              element={<Navigate to="/complaints?tab=manage" replace />}
-            />
-            <Route
-              path="/admin/complaints/reports"
-              element={<Navigate to="/complaints?tab=reports" replace />}
-            />
+              {/* Leave Management Module (Redirects to Unified Hub) */}
+              <Route
+                path="/admin/leave"
+                element={<Navigate to="/leave?tab=requests" replace />}
+              />
+              <Route
+                path="/admin/leave/requests"
+                element={<Navigate to="/leave?tab=requests" replace />}
+              />
 
-            {/* Legacy Companies Module */}
-            <Route
-              path="/companies"
-              element={
-                <CompanyRoute>
-                  <AppLayout fluid>
-                    <CompaniesListPage />
-                  </AppLayout>
-                </CompanyRoute>
-              }
-            />
-            <Route
-              path="/companies/new"
-              element={
-                <CompanyRoute>
-                  <AppLayout>
-                    <CompanyFormPage />
-                  </AppLayout>
-                </CompanyRoute>
-              }
-            />
-            <Route
-              path="/companies/import"
-              element={
-                <CompanyRoute>
-                  <AppLayout>
-                    <CompanyImportPage />
-                  </AppLayout>
-                </CompanyRoute>
-              }
-            />
-            <Route
-              path="/companies/:id"
-              element={
-                <CompanyRoute>
-                  <AppLayout fluid>
-                    <CompanyDetailPage />
-                  </AppLayout>
-                </CompanyRoute>
-              }
-            />
-            <Route
-              path="/companies/:id/edit"
-              element={
-                <CompanyRoute>
-                  <AppLayout>
-                    <CompanyFormPage />
-                  </AppLayout>
-                </CompanyRoute>
-              }
-            />
+              {/* Expense Management Module (Redirects to Unified Hub) */}
+              <Route
+                path="/admin/expense"
+                element={<Navigate to="/expense?tab=claims" replace />}
+              />
+              <Route
+                path="/admin/expense/reports"
+                element={<Navigate to="/expense?tab=reports" replace />}
+              />
+              <Route
+                path="/admin/expenses"
+                element={<Navigate to="/expense?tab=claims" replace />}
+              />
+              <Route
+                path="/admin/expenses/reports"
+                element={<Navigate to="/expense?tab=reports" replace />}
+              />
 
-            {/* Sales CRM Module Routes */}
-            <Route
-              path="/sales"
-              element={<Navigate to="/sales/companies" replace />}
-            />
-            <Route
-              path="/sales/companies"
-              element={
-                <SalesRoute>
-                  <AppLayout fluid>
-                    <SalesCompaniesListPage />
-                  </AppLayout>
-                </SalesRoute>
-              }
-            />
-            <Route
-              path="/sales/companies/new"
-              element={
-                <SalesRoute>
-                  <AppLayout fluid>
-                    <SalesCompanyFormPage />
-                  </AppLayout>
-                </SalesRoute>
-              }
-            />
-            <Route
-              path="/sales/companies/:id"
-              element={
-                <SalesRoute>
-                  <AppLayout fluid>
-                    <SalesCompanyDetailPage />
-                  </AppLayout>
-                </SalesRoute>
-              }
-            />
-            <Route
-              path="/sales/companies/:id/edit"
-              element={
-                <SalesRoute>
-                  <AppLayout fluid>
-                    <SalesCompanyFormPage />
-                  </AppLayout>
-                </SalesRoute>
-              }
-            />
-            <Route
-              path="/sales/leads"
-              element={
-                <SalesRoute>
-                  <AppLayout fluid>
-                    <LeadsListPage />
-                  </AppLayout>
-                </SalesRoute>
-              }
-            />
-            <Route
-              path="/sales/leads/:id"
-              element={
-                <SalesRoute>
-                  <AppLayout fluid>
-                    <LeadDetailPage />
-                  </AppLayout>
-                </SalesRoute>
-              }
-            />
-            <Route
-              path="/sales/follow-ups"
-              element={
-                <SalesRoute>
-                  <AppLayout fluid>
-                    <FollowUpsPage />
-                  </AppLayout>
-                </SalesRoute>
-              }
-            />
-            <Route
-              path="/sales/import"
-              element={
-                <SalesRoute>
-                  <AppLayout fluid>
-                    <SalesImportPage />
-                  </AppLayout>
-                </SalesRoute>
-              }
-            />
-            <Route
-              path="/sales/history"
-              element={
-                <SalesRoute>
-                  <AppLayout fluid>
-                    <SalesHistoryPage />
-                  </AppLayout>
-                </SalesRoute>
-              }
-            />
-            <Route
-              path="/sales/rights"
-              element={
-                <SalesRoute requireAdmin>
-                  <AppLayout fluid>
-                    <SalesRightsPage />
-                  </AppLayout>
-                </SalesRoute>
-              }
-            />
-            <Route
-              path="/sales/clients/:id"
-              element={
-                <SalesRoute>
-                  <AppLayout fluid>
-                    <ClientDetailPage />
-                  </AppLayout>
-                </SalesRoute>
-              }
-            />
+              {/* Complaint Management Module Redirects to Unified Hub */}
+              <Route
+                path="/admin/complaints"
+                element={<Navigate to="/complaints?tab=manage" replace />}
+              />
+              <Route
+                path="/admin/complaint"
+                element={<Navigate to="/complaints?tab=manage" replace />}
+              />
+              <Route
+                path="/admin/complaints/reports"
+                element={<Navigate to="/complaints?tab=reports" replace />}
+              />
 
-            {/* 404 Route */}
-            <Route path="/404" element={<NotFoundPage />} />
-            <Route path="*" element={<Navigate to="/404" replace />} />
-          </Routes>
-        </BrowserRouter>
+              {/* Companies Module */}
+              <Route
+                path="/companies"
+                element={
+                  <CompanyRoute>
+                    <AppLayout fluid>
+                      <CompaniesListPage />
+                    </AppLayout>
+                  </CompanyRoute>
+                }
+              />
+              <Route
+                path="/companies/new"
+                element={
+                  <CompanyRoute>
+                    <AppLayout>
+                      <CompanyFormPage />
+                    </AppLayout>
+                  </CompanyRoute>
+                }
+              />
+              <Route
+                path="/companies/import"
+                element={
+                  <CompanyRoute>
+                    <AppLayout>
+                      <CompanyImportPage />
+                    </AppLayout>
+                  </CompanyRoute>
+                }
+              />
+              <Route
+                path="/companies/:id"
+                element={
+                  <CompanyRoute>
+                    <AppLayout fluid>
+                      <CompanyDetailPage />
+                    </AppLayout>
+                  </CompanyRoute>
+                }
+              />
+              <Route
+                path="/companies/:id/edit"
+                element={
+                  <CompanyRoute>
+                    <AppLayout>
+                      <CompanyFormPage />
+                    </AppLayout>
+                  </CompanyRoute>
+                }
+              />
+
+              {/* Sales CRM Module Routes */}
+              <Route
+                path="/sales"
+                element={<Navigate to="/sales/companies" replace />}
+              />
+              <Route
+                path="/sales/companies"
+                element={
+                  <SalesRoute>
+                    <AppLayout fluid>
+                      <SalesCompaniesListPage />
+                    </AppLayout>
+                  </SalesRoute>
+                }
+              />
+              <Route
+                path="/sales/companies/new"
+                element={
+                  <SalesRoute>
+                    <AppLayout fluid>
+                      <SalesCompanyFormPage />
+                    </AppLayout>
+                  </SalesRoute>
+                }
+              />
+              <Route
+                path="/sales/companies/:id"
+                element={
+                  <SalesRoute>
+                    <AppLayout fluid>
+                      <SalesCompanyDetailPage />
+                    </AppLayout>
+                  </SalesRoute>
+                }
+              />
+              <Route
+                path="/sales/companies/:id/edit"
+                element={
+                  <SalesRoute>
+                    <AppLayout fluid>
+                      <SalesCompanyFormPage />
+                    </AppLayout>
+                  </SalesRoute>
+                }
+              />
+              <Route
+                path="/sales/leads"
+                element={
+                  <SalesRoute>
+                    <AppLayout fluid>
+                      <LeadsListPage />
+                    </AppLayout>
+                  </SalesRoute>
+                }
+              />
+              <Route
+                path="/sales/leads/:id"
+                element={
+                  <SalesRoute>
+                    <AppLayout fluid>
+                      <LeadDetailPage />
+                    </AppLayout>
+                  </SalesRoute>
+                }
+              />
+              <Route
+                path="/sales/follow-ups"
+                element={
+                  <SalesRoute>
+                    <AppLayout fluid>
+                      <FollowUpsPage />
+                    </AppLayout>
+                  </SalesRoute>
+                }
+              />
+              <Route
+                path="/sales/import"
+                element={
+                  <SalesRoute>
+                    <AppLayout fluid>
+                      <SalesImportPage />
+                    </AppLayout>
+                  </SalesRoute>
+                }
+              />
+              <Route
+                path="/sales/history"
+                element={
+                  <SalesRoute>
+                    <AppLayout fluid>
+                      <SalesHistoryPage />
+                    </AppLayout>
+                  </SalesRoute>
+                }
+              />
+              <Route
+                path="/sales/rights"
+                element={
+                  <SalesRoute requireAdmin>
+                    <AppLayout fluid>
+                      <SalesRightsPage />
+                    </AppLayout>
+                  </SalesRoute>
+                }
+              />
+              <Route
+                path="/sales/clients/:id"
+                element={
+                  <SalesRoute>
+                    <AppLayout fluid>
+                      <ClientDetailPage />
+                    </AppLayout>
+                  </SalesRoute>
+                }
+              />
+
+              {/* 404 Route */}
+              <Route path="/404" element={<NotFoundPage />} />
+              <Route path="*" element={<Navigate to="/404" replace />} />
+            </Routes>
+          </BrowserRouter>
         </SocketProvider>
       </AuthProvider>
     </QueryClientProvider>

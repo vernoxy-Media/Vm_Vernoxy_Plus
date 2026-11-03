@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
   Briefcase,
@@ -21,6 +21,7 @@ import {
   User,
   Award,
   Lock,
+  Edit,
 } from 'lucide-react';
 import { AdminLayout } from '@/shared/layouts/AdminLayout';
 import {
@@ -29,20 +30,77 @@ import {
 } from '../hooks/use-recruitment';
 import { CandidateDecisionModal } from '../components/CandidateDecisionModal';
 import { ConvertCandidateToEmployeeModal } from '../components/ConvertCandidateToEmployeeModal';
+import { AddCandidateModal } from '../components/AddCandidateModal';
+import { useEmployeeDetailQuery } from '@/features/organization/hooks/use-organization';
+import { EmployeeDocumentsTab } from '@/features/employees/components/EmployeeDocumentsTab';
+import { OnboardingChecklistTab } from '@/features/employees/components/OnboardingChecklistTab';
+import { ActivateEmployeeAccountModal } from '@/features/employees/components/ActivateEmployeeAccountModal';
+import { AccountActivatedModal } from '@/features/employees/components/AccountActivatedModal';
+import { EditProfileModal } from '@/features/employees/components/EditProfileModal';
+import {
+  useEmployeeActivationStatusQuery,
+  useActivateEmployeeMutation,
+  ActivateEmployeeResult,
+} from '@/features/employees/hooks/use-employee-documents';
 
 export const CandidateDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const candidateId = id ? parseInt(id, 10) : undefined;
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'decision' | 'resume'>('overview');
+  const [searchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState<'overview' | 'decision' | 'resume' | 'onboarding' | 'documents'>('overview');
   const [isDecisionModalOpen, setIsDecisionModalOpen] = useState(false);
   const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
+  const [isEditCandidateModalOpen, setIsEditCandidateModalOpen] = useState(false);
+  const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
   const [decisionInitialStage, setDecisionInitialStage] = useState<'selected' | 'on_hold' | 'rejected'>('selected');
   const [isStageMenuOpen, setIsStageMenuOpen] = useState(false);
 
   const { data: candidate, isLoading, error, refetch } = useCandidateDetailQuery(candidateId);
   const updateStageMutation = useUpdateCandidateStageMutation();
+
+  const convertedEmpId = candidate?.converted_to_emp_id ? Number(candidate.converted_to_emp_id) : undefined;
+  const { data: employeeData, refetch: refetchEmployee } = useEmployeeDetailQuery(convertedEmpId);
+  const { data: activationStatus } = useEmployeeActivationStatusQuery(convertedEmpId);
+  const activateMutation = useActivateEmployeeMutation();
+  const [isActivateAccountModalOpen, setIsActivateAccountModalOpen] = useState(false);
+  const [isActivatedResultModalOpen, setIsActivatedResultModalOpen] = useState(false);
+  const [activatedResult, setActivatedResult] = useState<ActivateEmployeeResult | null>(null);
+
+  useEffect(() => {
+    if (tabParam === 'documents') {
+      setActiveTab('documents');
+    } else if (tabParam === 'onboarding') {
+      setActiveTab('onboarding');
+    } else if (tabParam === 'overview') {
+      setActiveTab('overview');
+    } else if (tabParam === 'decision') {
+      setActiveTab('decision');
+    } else if (tabParam === 'resume') {
+      setActiveTab('resume');
+    }
+  }, [tabParam]);
+
+  const handleOpenActivateModal = () => {
+    if (!convertedEmpId || !activationStatus?.can_activate) return;
+    setIsActivateAccountModalOpen(true);
+  };
+
+  const handleConfirmActivateAccount = async () => {
+    if (!convertedEmpId) return;
+    try {
+      const res = await activateMutation.mutateAsync(convertedEmpId);
+      setIsActivateAccountModalOpen(false);
+      setActivatedResult(res);
+      setIsActivatedResultModalOpen(true);
+      refetch();
+      refetchEmployee();
+    } catch (err: any) {
+      alert(err.detail || err.message || 'Failed to activate account.');
+    }
+  };
 
   const getInitials = (name: string) =>
     name
@@ -68,7 +126,7 @@ export const CandidateDetailPage: React.FC = () => {
       case 'rejected':
         return { label: 'Rejected', bg: 'bg-rose-50 text-rose-700 border-rose-200/80', dot: 'bg-rose-500' };
       case 'onboarding':
-        return { label: 'Onboarding', bg: 'bg-teal-50 text-teal-700 border-teal-200/80', dot: 'bg-teal-500' };
+        return { label: 'Onboarding', bg: 'bg-purple-50 text-purple-700 border-purple-200/80', dot: 'bg-purple-500' };
       default:
         return { label: stageCode || 'Unknown', bg: 'bg-slate-50 text-slate-700 border-slate-200', dot: 'bg-slate-400' };
     }
@@ -139,6 +197,7 @@ export const CandidateDetailPage: React.FC = () => {
   const badge = getStageBadge(candidate.stage);
   const isSelected = candidate.stage === 'selected';
   const isConverted = Boolean(candidate.converted_to_emp_id);
+  const isAlreadyActive = employeeData?.status === 'Active' || candidate.stage === 'joined';
 
   return (
     <AdminLayout title={`${candidate.name} - Candidate Profile`} fluid>
@@ -155,38 +214,21 @@ export const CandidateDetailPage: React.FC = () => {
           </button>
         </div>
 
-        {/* Converted to Employee Banner (BFD Screen 7 Rules) */}
-        {isConverted && (
-          <div className="p-4 rounded-3xl bg-emerald-50/90 border border-emerald-200 text-emerald-900 flex items-center justify-between flex-wrap gap-4 shadow-2xs">
-            <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-bold shadow-xs shrink-0">
-                <UserCheck className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Converted to Employee</div>
-                <div className="text-sm font-semibold text-slate-800">
-                  This candidate was converted to <span className="font-mono font-bold text-emerald-800">{candidate.converted_to_emp_code || `EMP-${candidate.converted_to_emp_id}`}</span>. This candidate record is now read-only.
-                </div>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => navigate(`/admin/employees/${candidate.converted_to_emp_id}?tab=documents`)}
-              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer"
-            >
-              <span>View Employee & Documents</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        )}
-
         {/* Hero Profile Card */}
-        <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xs p-6 md:p-8">
+        <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-6 md:p-8">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div className="flex items-start sm:items-center gap-5">
-              <div className="w-18 h-18 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center font-bold text-2xl shadow-xs shrink-0 ring-4 ring-slate-100">
-                {getInitials(candidate.name)}
-              </div>
+              {employeeData?.profile_picture_url ? (
+                <img
+                  src={employeeData.profile_picture_url}
+                  alt={candidate.name}
+                  className="w-16 h-16 sm:w-20 sm:h-20 min-w-[64px] min-h-[64px] rounded-2xl object-cover shadow-sm shrink-0 ring-4 ring-slate-100"
+                />
+              ) : (
+                <div className="w-16 h-16 sm:w-20 sm:h-20 min-w-[64px] min-h-[64px] rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center font-bold text-2xl shadow-sm shrink-0 ring-4 ring-slate-100">
+                  {getInitials(candidate.name)}
+                </div>
+              )}
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-3">
                   <h1 className="text-2xl font-bold tracking-tight text-slate-900">{candidate.name}</h1>
@@ -296,6 +338,16 @@ export const CandidateDetailPage: React.FC = () => {
 
             {/* Quick Actions in Header */}
             <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
+              <button
+                type="button"
+                onClick={() => setIsEditCandidateModalOpen(true)}
+                className="px-3.5 py-2 text-xs font-semibold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                title="Edit Candidate Information"
+              >
+                <Edit className="w-3.5 h-3.5 text-slate-500" />
+                <span>Edit Candidate</span>
+              </button>
+
               {candidate.resume_url && (
                 <a
                   href={candidate.resume_url}
@@ -324,15 +376,55 @@ export const CandidateDetailPage: React.FC = () => {
               )}
 
               {isConverted ? (
-                <button
-                  type="button"
-                  onClick={() => navigate(`/admin/employees/${candidate.converted_to_emp_id}?tab=documents`)}
-                  className="px-4 py-2 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition flex items-center gap-1.5 cursor-pointer"
-                >
-                  <UserCheck className="w-4 h-4" />
-                  <span>View {candidate.converted_to_emp_code || 'Employee'} & Documents</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </button>
+                isAlreadyActive ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Account Active</span>
+                  </span>
+                ) : (
+                  <div className="relative group">
+                    <button
+                      type="button"
+                      disabled={!activationStatus?.can_activate || activateMutation.isPending}
+                      onClick={handleOpenActivateModal}
+                      className={`px-4 py-2 text-xs font-semibold rounded-xl transition flex items-center gap-1.5 shadow-xs ${
+                        activationStatus?.can_activate
+                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer ring-2 ring-emerald-500/20'
+                          : 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+                      }`}
+                    >
+                      {activateMutation.isPending ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : activationStatus?.can_activate ? (
+                        <Sparkles className="w-3.5 h-3.5 text-emerald-100" />
+                      ) : (
+                        <Lock className="w-3.5 h-3.5 text-slate-400" />
+                      )}
+                      <span>Activate Account</span>
+                    </button>
+
+                    {!activationStatus?.can_activate && (
+                      <div className="absolute right-0 top-11 w-72 p-3 bg-slate-900 text-white text-2xs rounded-xl shadow-xl z-30 hidden group-hover:block pointer-events-none animate-in fade-in duration-150">
+                        {activationStatus?.missing_documents && activationStatus.missing_documents.length > 0 ? (
+                          <>
+                            <p className="font-bold text-amber-300 mb-1">Upload required documents to activate:</p>
+                            <ul className="list-disc pl-3.5 space-y-0.5 text-slate-300">
+                              {activationStatus.missing_documents.map((m, idx) => (
+                                <li key={idx}>{m}</li>
+                              ))}
+                            </ul>
+                          </>
+                        ) : !activationStatus?.is_details_completed ? (
+                          <p className="font-bold text-amber-300">
+                            Please fill employee details (PF, OT, Bank, Emergency Contact) before activating account.
+                          </p>
+                        ) : (
+                          <p className="text-slate-300">Account will be activated once onboarding steps are complete.</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
               ) : isSelected ? (
                 <button
                   type="button"
@@ -340,7 +432,7 @@ export const CandidateDetailPage: React.FC = () => {
                   className="px-4 py-2 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition flex items-center gap-1.5 cursor-pointer"
                 >
                   <UserCheck className="w-4 h-4" />
-                  <span>Convert to Employee</span>
+                  <span>Start Onboarding</span>
                 </button>
               ) : null}
             </div>
@@ -388,6 +480,57 @@ export const CandidateDetailPage: React.FC = () => {
               <span className="px-1.5 py-0.2 rounded-md bg-slate-100 text-[10px] text-slate-600">1</span>
             )}
           </button>
+          {(isConverted || candidate.stage === 'onboarding') && (
+            <>
+              {/* Onboarding Checklist Tab matching BFD Image 1 & 4 */}
+              <button
+                type="button"
+                onClick={() => setActiveTab('onboarding')}
+                className={`py-3 px-5 text-sm font-semibold border-b-2 transition flex items-center gap-2 ${
+                  activeTab === 'onboarding'
+                    ? 'border-purple-600 text-purple-700'
+                    : 'border-transparent text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <Sparkles className="w-4 h-4 text-purple-600" />
+                <span>Onboarding</span>
+                <span className="w-5 h-5 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center">
+                  {activationStatus?.can_activate
+                    ? '✓'
+                    : Math.max(
+                        1,
+                        (activationStatus?.missing_documents?.length || 0) +
+                          (activationStatus?.is_details_completed ? 0 : 1),
+                      )}
+                </span>
+              </button>
+
+              {/* Documents Tab */}
+              <button
+                type="button"
+                onClick={() => setActiveTab('documents')}
+                className={`py-3 px-5 text-sm font-semibold border-b-2 transition flex items-center gap-2 ${
+                  activeTab === 'documents'
+                    ? 'border-blue-600 text-blue-700'
+                    : 'border-transparent text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <FileText className="w-4 h-4 text-slate-500" />
+                <span>Documents</span>
+                {activationStatus && (
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-2xs font-bold ${
+                      activationStatus.completed_required >= activationStatus.total_required
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : 'bg-slate-100 text-slate-700'
+                    }`}
+                  >
+                    {activationStatus.completed_required}/{activationStatus.total_required}
+                  </span>
+                )}
+              </button>
+            </>
+          )}
         </div>
 
         {/* Tab Content */}
@@ -509,7 +652,7 @@ export const CandidateDetailPage: React.FC = () => {
                     </span>
                   </div>
 
-                  {candidate.source_portal && (
+                  {candidate.source === 'job_portal' && candidate.source_portal && (
                     <div>
                       <span className="text-slate-400 block mb-0.5">Job Portal</span>
                       <span className="font-semibold text-slate-800 uppercase">
@@ -518,7 +661,7 @@ export const CandidateDetailPage: React.FC = () => {
                     </div>
                   )}
 
-                  {candidate.referred_by_name && (
+                  {candidate.source === 'employee_referral' && candidate.referred_by_name && (
                     <div>
                       <span className="text-slate-400 block mb-0.5">Referred By</span>
                       <span className="font-semibold text-blue-600">
@@ -527,7 +670,7 @@ export const CandidateDetailPage: React.FC = () => {
                     </div>
                   )}
 
-                  {candidate.consultancy_name && (
+                  {candidate.source === 'consultancy' && candidate.consultancy_name && (
                     <div>
                       <span className="text-slate-400 block mb-0.5">Consultancy</span>
                       <span className="font-semibold text-slate-800">
@@ -536,7 +679,7 @@ export const CandidateDetailPage: React.FC = () => {
                     </div>
                   )}
 
-                  {candidate.college_name && (
+                  {candidate.source === 'campus' && candidate.college_name && (
                     <div>
                       <span className="text-slate-400 block mb-0.5">College / Campus</span>
                       <span className="font-semibold text-slate-800">
@@ -545,7 +688,7 @@ export const CandidateDetailPage: React.FC = () => {
                     </div>
                   )}
 
-                  {candidate.source_details && (
+                  {candidate.source === 'other' && candidate.source_details && (
                     <div className="sm:col-span-2">
                       <span className="text-slate-400 block mb-0.5">Details</span>
                       <span className="font-semibold text-slate-800">
@@ -649,20 +792,22 @@ export const CandidateDetailPage: React.FC = () => {
                   <p className="text-xs text-slate-500">Record and status of the decision made by the administrator</p>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setDecisionInitialStage(
-                    candidate.stage === 'selected' || candidate.stage === 'on_hold' || candidate.stage === 'rejected'
-                      ? (candidate.stage as any)
-                      : 'selected',
-                  );
-                  setIsDecisionModalOpen(true);
-                }}
-                className="px-3.5 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl transition"
-              >
-                Update Decision
-              </button>
+              {!isConverted && !isAlreadyActive && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDecisionInitialStage(
+                      candidate.stage === 'selected' || candidate.stage === 'on_hold' || candidate.stage === 'rejected'
+                        ? (candidate.stage as any)
+                        : 'selected',
+                    );
+                    setIsDecisionModalOpen(true);
+                  }}
+                  className="px-3.5 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl transition cursor-pointer"
+                >
+                  Update Decision
+                </button>
+              )}
             </div>
 
             {candidate.stage === 'selected' || isConverted ? (
@@ -676,7 +821,7 @@ export const CandidateDetailPage: React.FC = () => {
                       </h4>
                       <p className="text-xs text-emerald-700">
                         {isConverted
-                          ? `Active in Onboarding stage as ${candidate.converted_to_emp_code || `EMP-${candidate.converted_to_emp_id}`}`
+                          ? `Onboarding in progress (${candidate.converted_to_emp_code || `CAN-${candidate.candidate_id}`}). Account will activate once all documents are submitted.`
                           : 'Official offer details recorded. Ready for onboarding conversion.'}
                       </p>
                     </div>
@@ -684,12 +829,11 @@ export const CandidateDetailPage: React.FC = () => {
                   {isConverted ? (
                     <button
                       type="button"
-                      onClick={() => navigate(`/admin/employees/${candidate.converted_to_emp_id}?tab=documents`)}
-                      className="px-4 py-2 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+                      onClick={() => setActiveTab('documents')}
+                      className="px-4 py-2 text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer"
                     >
-                      <UserCheck className="w-4 h-4" />
-                      <span>View {candidate.converted_to_emp_code || 'Employee'} & Documents</span>
-                      <ExternalLink className="w-3.5 h-3.5" />
+                      <FileText className="w-4 h-4" />
+                      <span>View Onboarding Documents</span>
                     </button>
                   ) : (
                     <button
@@ -887,6 +1031,105 @@ export const CandidateDetailPage: React.FC = () => {
             )}
           </div>
         )}
+
+        {/* Tab 4: Onboarding Checklist matching BFD Section 8 */}
+        {activeTab === 'onboarding' && (
+          <div className="space-y-6">
+            {convertedEmpId && employeeData ? (
+              <OnboardingChecklistTab
+                employee={employeeData as any}
+                activationStatus={activationStatus}
+                onOpenEditProfile={() => setIsEditProfileModalOpen(true)}
+                onOpenActivateModal={handleOpenActivateModal}
+                onSwitchToDocuments={() => setActiveTab('documents')}
+              />
+            ) : isConverted ? (
+              <div className="py-20 text-center bg-white rounded-3xl border border-slate-200">
+                <Loader2 className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-2" />
+                <p className="text-sm font-medium text-slate-500">Loading onboarding checklist...</p>
+              </div>
+            ) : (
+              <div className="py-16 text-center bg-white rounded-3xl border border-slate-200 p-8 max-w-lg mx-auto">
+                <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center mx-auto mb-3">
+                  <Sparkles className="w-6 h-6" />
+                </div>
+                <h3 className="text-base font-bold text-slate-800">Onboarding Not Started</h3>
+                <p className="text-xs text-slate-500 mt-1 mb-5">
+                  Move this candidate to Selected and click Start Onboarding to begin the onboarding checklist.
+                </p>
+                {isSelected ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsConvertModalOpen(true)}
+                    className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition cursor-pointer"
+                  >
+                    Start Onboarding
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDecisionInitialStage('selected');
+                      setIsDecisionModalOpen(true);
+                    }}
+                    className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition cursor-pointer"
+                  >
+                    Select Candidate
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tab 5: Documents Management */}
+        {activeTab === 'documents' && (
+          <div className="space-y-6">
+            {convertedEmpId && employeeData ? (
+              <EmployeeDocumentsTab
+                employee={employeeData as any}
+                onOpenActivateModal={handleOpenActivateModal}
+                onOpenEditProfile={() => setIsEditProfileModalOpen(true)}
+                activationStatus={activationStatus}
+              />
+            ) : isConverted ? (
+              <div className="py-20 text-center bg-white rounded-3xl border border-slate-200">
+                <Loader2 className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-2" />
+                <p className="text-sm font-medium text-slate-500">Loading documents...</p>
+              </div>
+            ) : (
+              <div className="py-16 text-center bg-white rounded-3xl border border-slate-200 p-8 max-w-lg mx-auto">
+                <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center mx-auto mb-3">
+                  <FileText className="w-6 h-6" />
+                </div>
+                <h3 className="text-base font-bold text-slate-800">Onboarding Not Started</h3>
+                <p className="text-xs text-slate-500 mt-1 mb-5">
+                  Move this candidate to Selected and click Start Onboarding to collect documents and generate letters.
+                </p>
+                {isSelected ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsConvertModalOpen(true)}
+                    className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition cursor-pointer"
+                  >
+                    Start Onboarding
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDecisionInitialStage('selected');
+                      setIsDecisionModalOpen(true);
+                    }}
+                    className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition cursor-pointer"
+                  >
+                    Select Candidate
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Decision Modal */}
@@ -903,7 +1146,58 @@ export const CandidateDetailPage: React.FC = () => {
         isOpen={isConvertModalOpen}
         onClose={() => setIsConvertModalOpen(false)}
         candidate={candidate}
-        onConverted={() => refetch()}
+        onConverted={() => {
+          setIsConvertModalOpen(false);
+          refetch();
+          setActiveTab('documents');
+        }}
+      />
+
+      {/* Activate Employee Account Modal (BFD Screen 11 / Image 4) */}
+      {employeeData && (
+        <ActivateEmployeeAccountModal
+          isOpen={isActivateAccountModalOpen}
+          onClose={() => setIsActivateAccountModalOpen(false)}
+          employee={employeeData as any}
+          onConfirm={handleConfirmActivateAccount}
+          isSubmitting={activateMutation.isPending}
+        />
+      )}
+
+      {/* Account Activated / Login Credentials Modal */}
+      <AccountActivatedModal
+        isOpen={isActivatedResultModalOpen}
+        onClose={() => {
+          setIsActivatedResultModalOpen(false);
+          refetch();
+          refetchEmployee();
+        }}
+        result={activatedResult}
+        employeeName={candidate.name}
+        title="Employee Account Activated!"
+        description={`${candidate.name} has been activated. Login credentials are ready.`}
+      />
+
+      {/* Complete Employee Details Modal (BFD Part 5: Personal, Job, Salary/PF/OT, Emergency) */}
+      {employeeData && (
+        <EditProfileModal
+          isOpen={isEditProfileModalOpen}
+          onClose={() => setIsEditProfileModalOpen(false)}
+          employee={employeeData}
+          onSuccess={() => {
+            setIsEditProfileModalOpen(false);
+            refetchEmployee();
+            refetch();
+          }}
+        />
+      )}
+
+      {/* Edit Candidate Modal */}
+      <AddCandidateModal
+        isOpen={isEditCandidateModalOpen}
+        onClose={() => setIsEditCandidateModalOpen(false)}
+        candidateToEdit={candidate}
+        onSuccess={() => refetch()}
       />
     </AdminLayout>
   );

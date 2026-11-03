@@ -1,25 +1,33 @@
 import React from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { MyLeavePage } from './MyLeavePage';
 import { LeaveRequestsPage } from './LeaveRequestsPage';
+import { LeaveReportsPage } from './LeaveReportsPage';
 
 export const LeavePage: React.FC = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const isAdmin = !!user?.access?.can_manage_organization;
   const [searchParams, setSearchParams] = useSearchParams();
   const currentTab = searchParams.get('tab');
 
-  const activeTab: 'my-leave' | 'requests' =
-    isAdmin && (currentTab === 'requests' || currentTab === 'management')
+  const activeTab: 'my-leave' | 'requests' | 'reports' =
+    currentTab === 'reports' && isAdmin
+      ? 'reports'
+      : (currentTab === 'requests' || currentTab === 'management') && isAdmin
       ? 'requests'
       : 'my-leave';
 
-  const handleTabChange = (tab: 'my-leave' | 'requests') => {
-    if (tab === 'requests') {
-      setSearchParams({ tab: 'requests' });
-    } else {
+  const handleTabChange = (tab: 'my-leave' | 'requests' | 'calendar' | 'reports') => {
+    if (tab === 'calendar') {
+      navigate('/calendar');
+      return;
+    }
+    if (tab === 'my-leave') {
       setSearchParams({});
+    } else {
+      setSearchParams({ tab });
     }
   };
 
@@ -31,7 +39,11 @@ export const LeavePage: React.FC = () => {
           <span className="hover:text-slate-600 transition-colors">Leave</span>
           <span className="text-slate-300">&gt;</span>
           <span className="font-semibold text-slate-700">
-            {activeTab === 'requests' ? 'Leave Requests' : 'My Leave'}
+            {activeTab === 'requests'
+              ? 'Leave Requests'
+              : activeTab === 'reports'
+              ? 'Leave Reports'
+              : 'My Leave'}
           </span>
         </div>
 
@@ -59,7 +71,27 @@ export const LeavePage: React.FC = () => {
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Leave Requests
+              Requests
+            </button>
+            <button
+              type="button"
+              id="tab-leave-calendar"
+              onClick={() => handleTabChange('calendar')}
+              className="px-3.5 py-1 rounded-full transition-all cursor-pointer text-slate-600 hover:text-slate-900"
+            >
+              Calendar
+            </button>
+            <button
+              type="button"
+              id="tab-leave-reports"
+              onClick={() => handleTabChange('reports')}
+              className={`px-3.5 py-1 rounded-full transition-all cursor-pointer ${
+                activeTab === 'reports'
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Reports
             </button>
           </div>
         )}
@@ -68,6 +100,8 @@ export const LeavePage: React.FC = () => {
       {/* Tab Content */}
       {activeTab === 'requests' && isAdmin ? (
         <LeaveRequestsPage hideBreadcrumb />
+      ) : activeTab === 'reports' && isAdmin ? (
+        <LeaveReportsPage />
       ) : (
         <MyLeavePage hideBreadcrumb />
       )}

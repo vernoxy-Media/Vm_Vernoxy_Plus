@@ -42,10 +42,11 @@ export function useDepartmentsQuery(params?: {
   });
 }
 
-export function useDepartmentOptionsQuery() {
+export function useDepartmentOptionsQuery(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['department-options'],
     queryFn: () => customFetch<DepartmentOptionDto[]>('/api/v1/departments/options'),
+    enabled: options?.enabled ?? true,
   });
 }
 
@@ -204,7 +205,7 @@ export function useEmployeesQuery(params?: {
   q?: string;
   dep_id?: number;
   role_id?: number;
-  status?: 'Active' | 'Inactive';
+  status?: 'Active' | 'Inactive' | 'Onboarding';
   limit?: number;
   cursor?: string;
 }) {

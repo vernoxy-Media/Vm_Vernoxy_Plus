@@ -109,9 +109,8 @@ export const ConvertCandidateToEmployeeModal: React.FC<ConvertCandidateToEmploye
 
       if (onConverted && newEmpId) {
         onConverted(newEmpId);
-      } else if (newEmpId) {
-        // Open Employee Details on the Documents / Onboarding tab as required by BFD Marker 5
-        navigate(`/admin/employees/${newEmpId}?tab=documents`);
+      } else {
+        navigate(`/admin/recruitment/candidates/${candidate.candidate_id}?tab=documents`);
       }
     } catch (err: any) {
       setError(err?.message || 'Failed to convert candidate to employee. Please try again.');

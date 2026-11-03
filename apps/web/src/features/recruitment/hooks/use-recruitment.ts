@@ -157,7 +157,7 @@ export function useNextCandidateCodeQuery() {
 
 export function useCheckDuplicateCandidateMutation() {
   return useMutation({
-    mutationFn: (data: { phone: string; email: string }) =>
+    mutationFn: (data: { phone?: string; email?: string }) =>
       customFetch<DuplicateMatch[]>('/api/v1/candidates/check-duplicate', {
         method: 'POST',
         body: JSON.stringify(data),
@@ -213,6 +213,22 @@ export interface MarkDecisionPayload {
   rejection_reason?: string;
   rejection_notes?: string;
   send_regret_email?: boolean;
+}
+
+export function useUpdateCandidateMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ candidateId, data }: { candidateId: number; data: Partial<CreateCandidatePayload> }) =>
+      customFetch<CandidateItem>(`/api/v1/candidates/${candidateId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['candidates'] });
+      queryClient.invalidateQueries({ queryKey: ['candidate', variables.candidateId] });
+      queryClient.invalidateQueries({ queryKey: ['candidate-stats'] });
+    },
+  });
 }
 
 export function useUpdateCandidateStageMutation() {

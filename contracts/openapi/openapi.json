@@ -975,7 +975,8 @@
               "type": "string",
               "enum": [
                 "Active",
-                "Inactive"
+                "Inactive",
+                "Onboarding"
               ]
             }
           },
@@ -1565,6 +1566,89 @@
         ]
       }
     },
+    "/api/v1/employees/{id}/documents/custom": {
+      "post": {
+        "operationId": "EmployeeDocumentController_addCustomDocument",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCustomDocumentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeDocumentItemDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a custom/other document requirement for an employee",
+        "tags": [
+          "Organization Documents"
+        ]
+      }
+    },
+    "/api/v1/employees/{id}/documents/{documentType}/custom": {
+      "delete": {
+        "operationId": "EmployeeDocumentController_deleteCustomDocument",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "documentType",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a custom document requirement for an employee",
+        "tags": [
+          "Organization Documents"
+        ]
+      }
+    },
     "/api/v1/employees/{id}/documents/{documentType}/toggle": {
       "put": {
         "operationId": "EmployeeDocumentController_toggleDocument",
@@ -1824,6 +1908,43 @@
           }
         ],
         "summary": "Finalize and issue document draft",
+        "tags": [
+          "Organization Documents"
+        ]
+      }
+    },
+    "/api/v1/employees/{id}/documents/{documentType}/decline": {
+      "post": {
+        "operationId": "EmployeeDocumentController_declineDocument",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "documentType",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark document as declined with reason",
         "tags": [
           "Organization Documents"
         ]
@@ -3385,7 +3506,34 @@
     },
     "/api/v1/attendance/check-in": {
       "post": {
-        "operationId": "AttendanceController_punchIn",
+        "operationId": "AttendanceController_punchIn[0]",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TodayAttendanceBlockDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Punch in for today",
+        "tags": [
+          "Attendance"
+        ]
+      }
+    },
+    "/api/v1/attendance/me/punch-in": {
+      "post": {
+        "operationId": "AttendanceController_punchIn[1]",
         "parameters": [],
         "responses": {
           "200": {
@@ -3412,7 +3560,34 @@
     },
     "/api/v1/attendance/check-out": {
       "post": {
-        "operationId": "AttendanceController_punchOut",
+        "operationId": "AttendanceController_punchOut[0]",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TodayAttendanceBlockDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Punch out for today",
+        "tags": [
+          "Attendance"
+        ]
+      }
+    },
+    "/api/v1/attendance/me/punch-out": {
+      "post": {
+        "operationId": "AttendanceController_punchOut[1]",
         "parameters": [],
         "responses": {
           "200": {
@@ -6639,6 +6814,30 @@
         ]
       }
     },
+    "/api/v1/candidates/resumes/{filename}": {
+      "get": {
+        "operationId": "CandidateResumeController_downloadResume",
+        "parameters": [
+          {
+            "name": "filename",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Publicly view or download candidate resume",
+        "tags": [
+          "Recruitment Resumes"
+        ]
+      }
+    },
     "/api/v1/candidates/next-code": {
       "get": {
         "operationId": "CandidateController_getNextCode",
@@ -6760,35 +6959,6 @@
           }
         ],
         "summary": "Upload single candidate resume (PDF, DOC, DOCX up to 5 MB)",
-        "tags": [
-          "Recruitment Candidates"
-        ]
-      }
-    },
-    "/api/v1/candidates/resumes/{filename}": {
-      "get": {
-        "operationId": "CandidateController_downloadResume",
-        "parameters": [
-          {
-            "name": "filename",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Download or view candidate resume",
         "tags": [
           "Recruitment Candidates"
         ]
@@ -6937,6 +7107,40 @@
           }
         ],
         "summary": "Get candidate details by ID",
+        "tags": [
+          "Recruitment Candidates"
+        ]
+      },
+      "put": {
+        "operationId": "CandidateController_updateCandidate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CandidateItemDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update candidate details",
         "tags": [
           "Recruitment Candidates"
         ]
@@ -15760,6 +15964,1516 @@
           "Sales - Import / Export"
         ]
       }
+    },
+    "/api/v1/kb/settings/categories": {
+      "get": {
+        "operationId": "KbSettingsController_listCategories",
+        "parameters": [
+          {
+            "name": "space",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "INTERNAL",
+                "CLIENT"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeInactive",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List knowledge base categories",
+        "tags": [
+          "Knowledge Base - Settings & Categories"
+        ]
+      },
+      "post": {
+        "operationId": "KbSettingsController_createCategory",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateKbCategoryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a new knowledge base category",
+        "tags": [
+          "Knowledge Base - Settings & Categories"
+        ]
+      }
+    },
+    "/api/v1/kb/settings/categories/{id}": {
+      "get": {
+        "operationId": "KbSettingsController_getCategoryById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a knowledge base category by ID",
+        "tags": [
+          "Knowledge Base - Settings & Categories"
+        ]
+      },
+      "patch": {
+        "operationId": "KbSettingsController_updateCategory",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateKbCategoryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update an existing knowledge base category",
+        "tags": [
+          "Knowledge Base - Settings & Categories"
+        ]
+      },
+      "delete": {
+        "operationId": "KbSettingsController_deleteCategory",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a knowledge base category (empty only)",
+        "tags": [
+          "Knowledge Base - Settings & Categories"
+        ]
+      }
+    },
+    "/api/v1/kb/access": {
+      "get": {
+        "operationId": "KbArticlesController_getAccessContext",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "KbArticles"
+        ]
+      }
+    },
+    "/api/v1/kb/kpis": {
+      "get": {
+        "operationId": "KbArticlesController_getKpis",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "KbArticles"
+        ]
+      }
+    },
+    "/api/v1/kb/approvals": {
+      "get": {
+        "operationId": "KbArticlesController_getApprovals",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "KbArticles"
+        ]
+      }
+    },
+    "/api/v1/kb/articles": {
+      "get": {
+        "operationId": "KbArticlesController_listArticles",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "KbArticles"
+        ]
+      },
+      "post": {
+        "operationId": "KbArticlesController_createArticle",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateKbArticleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "KbArticles"
+        ]
+      }
+    },
+    "/api/v1/kb/articles/{identifier}": {
+      "get": {
+        "operationId": "KbArticlesController_getArticle",
+        "parameters": [
+          {
+            "name": "identifier",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "KbArticles"
+        ]
+      }
+    },
+    "/api/v1/kb/articles/{id}/draft": {
+      "put": {
+        "operationId": "KbArticlesController_updateDraft",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateKbArticleDraftDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "KbArticles"
+        ]
+      }
+    },
+    "/api/v1/kb/articles/{id}/submit": {
+      "post": {
+        "operationId": "KbArticlesController_submitForApproval",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitKbArticleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "KbArticles"
+        ]
+      }
+    },
+    "/api/v1/kb/articles/{id}/withdraw": {
+      "post": {
+        "operationId": "KbArticlesController_withdrawSubmission",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "KbArticles"
+        ]
+      }
+    },
+    "/api/v1/kb/articles/{id}/versions/{versionId}/review": {
+      "post": {
+        "operationId": "KbArticlesController_reviewVersion",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "versionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewKbArticleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "KbArticles"
+        ]
+      }
+    },
+    "/api/v1/kb/articles/{id}/publish-direct": {
+      "post": {
+        "operationId": "KbArticlesController_directPublish",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DirectPublishKbArticleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "KbArticles"
+        ]
+      }
+    },
+    "/api/v1/kb/articles/{id}/acknowledge": {
+      "post": {
+        "operationId": "KbArticlesController_acknowledgeArticle",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "KbArticles"
+        ]
+      }
+    },
+    "/api/v1/kb/articles/{id}/feedback": {
+      "post": {
+        "operationId": "KbArticlesController_submitFeedback",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KbFeedbackDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "KbArticles"
+        ]
+      }
+    },
+    "/api/v1/kb/articles/{id}/archive": {
+      "post": {
+        "operationId": "KbArticlesController_archiveArticle",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArchiveKbArticleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "KbArticles"
+        ]
+      }
+    },
+    "/api/v1/kb/articles/{id}/restore": {
+      "post": {
+        "operationId": "KbArticlesController_restoreArticle",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "KbArticles"
+        ]
+      }
+    },
+    "/api/v1/kb/articles/{id}/versions": {
+      "get": {
+        "operationId": "KbArticlesController_getVersions",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "KbArticles"
+        ]
+      }
+    },
+    "/api/v1/kb/articles/{id}/view": {
+      "post": {
+        "operationId": "KbArticlesController_recordView",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "KbArticles"
+        ]
+      }
+    },
+    "/api/v1/performance/cycles": {
+      "get": {
+        "operationId": "PerformanceCyclesController_listCycles",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List all evaluation cycles",
+        "tags": [
+          "Performance - Cycle Master"
+        ]
+      },
+      "post": {
+        "operationId": "PerformanceCyclesController_createCycle",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePerfCycleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create new evaluation cycle (Admin only)",
+        "tags": [
+          "Performance - Cycle Master"
+        ]
+      }
+    },
+    "/api/v1/performance/cycles/{id}": {
+      "get": {
+        "operationId": "PerformanceCyclesController_getCycleById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get single cycle details",
+        "tags": [
+          "Performance - Cycle Master"
+        ]
+      },
+      "put": {
+        "operationId": "PerformanceCyclesController_updateCycle",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePerfCycleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update evaluation cycle",
+        "tags": [
+          "Performance - Cycle Master"
+        ]
+      },
+      "delete": {
+        "operationId": "PerformanceCyclesController_deleteCycle",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete cycle (if no submitted reviews)",
+        "tags": [
+          "Performance - Cycle Master"
+        ]
+      }
+    },
+    "/api/v1/performance/forms": {
+      "get": {
+        "operationId": "PerformanceFormsController_listForms",
+        "parameters": [
+          {
+            "name": "cycle_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List review forms",
+        "tags": [
+          "Performance - Question Master"
+        ]
+      },
+      "post": {
+        "operationId": "PerformanceFormsController_createForm",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePerfFormDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create new review form with 5 fixed questions",
+        "tags": [
+          "Performance - Question Master"
+        ]
+      }
+    },
+    "/api/v1/performance/forms/{id}": {
+      "get": {
+        "operationId": "PerformanceFormsController_getFormById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get review form details",
+        "tags": [
+          "Performance - Question Master"
+        ]
+      },
+      "put": {
+        "operationId": "PerformanceFormsController_updateForm",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePerfFormDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update review form (before review window starts)",
+        "tags": [
+          "Performance - Question Master"
+        ]
+      },
+      "delete": {
+        "operationId": "PerformanceFormsController_deleteForm",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete review form",
+        "tags": [
+          "Performance - Question Master"
+        ]
+      }
+    },
+    "/api/v1/performance/reviews/my": {
+      "get": {
+        "operationId": "PerformanceReviewsController_getMyReviews",
+        "parameters": [
+          {
+            "name": "cycle_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get current employee self-review for active or specified cycle",
+        "tags": [
+          "Performance - Reviews & Ratings"
+        ]
+      }
+    },
+    "/api/v1/performance/reviews/my-list": {
+      "get": {
+        "operationId": "PerformanceReviewsController_getMyReviewsList",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all self-reviews across cycles",
+        "tags": [
+          "Performance - Reviews & Ratings"
+        ]
+      }
+    },
+    "/api/v1/performance/reviews": {
+      "get": {
+        "operationId": "PerformanceReviewsController_getTeamReviews[0]",
+        "parameters": [
+          {
+            "name": "cycle_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get team members reviews for Reporting Manager / Admin",
+        "tags": [
+          "Performance - Reviews & Ratings"
+        ]
+      }
+    },
+    "/api/v1/performance/reviews/team": {
+      "get": {
+        "operationId": "PerformanceReviewsController_getTeamReviews[1]",
+        "parameters": [
+          {
+            "name": "cycle_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get team members reviews for Reporting Manager / Admin",
+        "tags": [
+          "Performance - Reviews & Ratings"
+        ]
+      }
+    },
+    "/api/v1/performance/reviews/summary": {
+      "get": {
+        "operationId": "PerformanceReviewsController_getAdminReviewsSummary",
+        "parameters": [
+          {
+            "name": "cycle_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "department_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get Rating Summary for Admin (Screen 7)",
+        "tags": [
+          "Performance - Reviews & Ratings"
+        ]
+      }
+    },
+    "/api/v1/performance/reviews/init/{cycleId}/{empId}": {
+      "get": {
+        "operationId": "PerformanceReviewsController_getOrCreateReview",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "empId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get or initialize review record for employee in cycle",
+        "tags": [
+          "Performance - Reviews & Ratings"
+        ]
+      }
+    },
+    "/api/v1/performance/reviews/{id}": {
+      "get": {
+        "operationId": "PerformanceReviewsController_getReviewById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get single review detail",
+        "tags": [
+          "Performance - Reviews & Ratings"
+        ]
+      }
+    },
+    "/api/v1/performance/reviews/{id}/self": {
+      "post": {
+        "operationId": "PerformanceReviewsController_submitSelfReview[0]",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitReviewRatingsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Submit Self Review ratings and comment",
+        "tags": [
+          "Performance - Reviews & Ratings"
+        ]
+      }
+    },
+    "/api/v1/performance/reviews/{id}/self-review": {
+      "post": {
+        "operationId": "PerformanceReviewsController_submitSelfReview[1]",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitReviewRatingsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Submit Self Review ratings and comment",
+        "tags": [
+          "Performance - Reviews & Ratings"
+        ]
+      }
+    },
+    "/api/v1/performance/reviews/{id}/manager": {
+      "post": {
+        "operationId": "PerformanceReviewsController_submitManagerReview[0]",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitReviewRatingsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Submit Reporting Manager review ratings",
+        "tags": [
+          "Performance - Reviews & Ratings"
+        ]
+      }
+    },
+    "/api/v1/performance/reviews/{id}/manager-review": {
+      "post": {
+        "operationId": "PerformanceReviewsController_submitManagerReview[1]",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitReviewRatingsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Submit Reporting Manager review ratings",
+        "tags": [
+          "Performance - Reviews & Ratings"
+        ]
+      }
+    },
+    "/api/v1/performance/reviews/{id}/admin": {
+      "post": {
+        "operationId": "PerformanceReviewsController_submitAdminReview[0]",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitReviewRatingsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Submit Admin review ratings",
+        "tags": [
+          "Performance - Reviews & Ratings"
+        ]
+      }
+    },
+    "/api/v1/performance/reviews/{id}/admin-rating": {
+      "post": {
+        "operationId": "PerformanceReviewsController_submitAdminReview[1]",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitReviewRatingsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Submit Admin review ratings",
+        "tags": [
+          "Performance - Reviews & Ratings"
+        ]
+      }
+    },
+    "/api/v1/performance/reviews/{id}/reopen": {
+      "post": {
+        "operationId": "PerformanceReviewsController_reopenReview",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReopenReviewDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Admin unlocks/reopens review for employee",
+        "tags": [
+          "Performance - Reviews & Ratings"
+        ]
+      }
+    },
+    "/api/v1/performance/project-ratings": {
+      "get": {
+        "operationId": "PerformanceReviewsController_listProjectRatings",
+        "parameters": [
+          {
+            "name": "cycle_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "project_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List project member ratings (Screen 8)",
+        "tags": [
+          "Performance - Reviews & Ratings"
+        ]
+      },
+      "post": {
+        "operationId": "PerformanceReviewsController_submitProjectRating",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitProjectRatingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Project Manager submits member rating (1-5 stars)",
+        "tags": [
+          "Performance - Reviews & Ratings"
+        ]
+      }
+    },
+    "/api/v1/performance/projects": {
+      "get": {
+        "operationId": "PerformanceReviewsController_getMyProjects",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get projects for Project Rating (Screen 8)",
+        "tags": [
+          "Performance - Reviews & Ratings"
+        ]
+      }
+    },
+    "/api/v1/performance/projects/{projectId}/members": {
+      "get": {
+        "operationId": "PerformanceReviewsController_getProjectMembers",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "cycle_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get project members for Project Rating (Screen 8)",
+        "tags": [
+          "Performance - Reviews & Ratings"
+        ]
+      }
+    },
+    "/api/v1/performance/projects/ratings": {
+      "post": {
+        "operationId": "PerformanceReviewsController_submitBulkProjectRatings",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitBulkProjectRatingsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Submit bulk project member ratings (Screen 8)",
+        "tags": [
+          "Performance - Reviews & Ratings"
+        ]
+      }
     }
   },
   "info": {
@@ -16820,6 +18534,16 @@
           "ifsc_code": {
             "type": "string",
             "example": "HDFC0001234"
+          },
+          "probation_period": {
+            "type": "string",
+            "example": "3 Months",
+            "nullable": true
+          },
+          "notice_period": {
+            "type": "string",
+            "example": "30 Days",
+            "nullable": true
           }
         },
         "required": [
@@ -16891,6 +18615,19 @@
           "email": {
             "type": "string",
             "example": "alice@vernoxy.com"
+          },
+          "employee_code": {
+            "type": "string",
+            "example": "EMP-0001"
+          },
+          "role_name": {
+            "type": "string",
+            "example": "Software Engineer",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "example": "Active"
           }
         },
         "required": [
@@ -17237,6 +18974,21 @@
           "ifsc_code": {
             "type": "string",
             "example": "HDFC0001234"
+          },
+          "probation_period": {
+            "type": "string",
+            "example": "3 Months",
+            "nullable": true
+          },
+          "notice_period": {
+            "type": "string",
+            "example": "30 Days",
+            "nullable": true
+          },
+          "leave_policy_id": {
+            "type": "number",
+            "example": 1,
+            "nullable": true
           }
         },
         "required": [
@@ -17308,7 +19060,8 @@
             "example": "Active",
             "enum": [
               "Active",
-              "Inactive"
+              "Inactive",
+              "Onboarding"
             ]
           },
           "gender_id": {
@@ -17450,6 +19203,21 @@
           "ifsc_code": {
             "type": "string",
             "example": "HDFC0001234"
+          },
+          "probation_period": {
+            "type": "string",
+            "example": "3 Months",
+            "nullable": true
+          },
+          "notice_period": {
+            "type": "string",
+            "example": "30 Days",
+            "nullable": true
+          },
+          "leave_policy_id": {
+            "type": "number",
+            "example": 1,
+            "nullable": true
           }
         }
       },
@@ -17473,6 +19241,15 @@
           },
           "completed_required": {
             "type": "number"
+          },
+          "is_details_completed": {
+            "type": "boolean"
+          },
+          "missing_details": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "required": [
@@ -17548,7 +19325,11 @@
               "not_ticked",
               "locked",
               "draft",
-              "final"
+              "final",
+              "issued",
+              "accepted",
+              "signed",
+              "declined"
             ]
           },
           "is_required_for_activation": {
@@ -17591,6 +19372,22 @@
           "is_ticked",
           "status",
           "created_at"
+        ]
+      },
+      "CreateCustomDocumentDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "Electricity Bill"
+          },
+          "is_required_for_activation": {
+            "type": "boolean",
+            "example": false
+          }
+        },
+        "required": [
+          "title"
         ]
       },
       "ToggleDocumentDto": {
@@ -17647,7 +19444,19 @@
           "document_type": {
             "type": "string"
           },
+          "candidate_name": {
+            "type": "string"
+          },
+          "designation": {
+            "type": "string"
+          },
+          "department": {
+            "type": "string"
+          },
           "proposed_joining_date": {
+            "type": "string"
+          },
+          "offer_valid_till_date": {
             "type": "string"
           },
           "custom_salary": {
@@ -21341,6 +23150,10 @@
           "client_name": {
             "type": "string"
           },
+          "description": {
+            "type": "string",
+            "description": "Detailed project description"
+          },
           "lead_received_date": {
             "type": "string"
           },
@@ -21432,6 +23245,10 @@
           },
           "client_name": {
             "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "description": "Detailed project description"
           },
           "lead_received_date": {
             "type": "string"
@@ -21601,6 +23418,13 @@
             "items": {
               "type": "string"
             }
+          },
+          "tagged_employee_ids": {
+            "description": "Employee IDs tagged with @ in the message",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
           }
         },
         "required": [
@@ -21740,11 +23564,7 @@
             "type": "string",
             "description": "Email address to verify"
           }
-        },
-        "required": [
-          "phone",
-          "email"
-        ]
+        }
       },
       "DuplicateMatchDto": {
         "type": "object",
@@ -25043,6 +26863,268 @@
             "type": "boolean"
           }
         }
+      },
+      "CreateKbCategoryDto": {
+        "type": "object",
+        "properties": {
+          "space": {
+            "type": "string",
+            "enum": [
+              "INTERNAL",
+              "CLIENT"
+            ],
+            "example": "INTERNAL"
+          },
+          "name": {
+            "type": "string",
+            "example": "HR Policies"
+          },
+          "description": {
+            "type": "string",
+            "example": "Code of conduct, attendance, and workplace policies"
+          },
+          "icon": {
+            "type": "string",
+            "example": "Users"
+          },
+          "default_owner_id": {
+            "type": "number",
+            "example": 1
+          },
+          "default_approver_id": {
+            "type": "number",
+            "example": 1
+          },
+          "default_review_cycle_months": {
+            "type": "number",
+            "enum": [
+              3,
+              6,
+              12,
+              24
+            ],
+            "example": 12
+          },
+          "default_ack_required": {
+            "type": "boolean",
+            "example": true
+          },
+          "default_audience_scope": {
+            "type": "string",
+            "enum": [
+              "ALL",
+              "CUSTOM"
+            ],
+            "default": "ALL"
+          },
+          "default_audience_departments": {
+            "example": [
+              1,
+              2
+            ],
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "default_audience_roles": {
+            "example": [
+              1
+            ],
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "default_audience_employees": {
+            "example": [],
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "default_audience_companies": {
+            "example": [],
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "default_audience_projects": {
+            "example": [],
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "display_order": {
+            "type": "number",
+            "example": 1
+          },
+          "is_active": {
+            "type": "boolean",
+            "example": true
+          }
+        },
+        "required": [
+          "space",
+          "name"
+        ]
+      },
+      "UpdateKbCategoryDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "HR Policies"
+          },
+          "description": {
+            "type": "string",
+            "example": "Updated description"
+          },
+          "icon": {
+            "type": "string",
+            "example": "Users"
+          },
+          "default_owner_id": {
+            "type": "object",
+            "example": 1
+          },
+          "default_approver_id": {
+            "type": "object",
+            "example": 1
+          },
+          "default_review_cycle_months": {
+            "type": "number",
+            "enum": [
+              3,
+              6,
+              12,
+              24
+            ],
+            "example": 12
+          },
+          "default_ack_required": {
+            "type": "boolean",
+            "example": true
+          },
+          "default_audience_scope": {
+            "type": "string",
+            "enum": [
+              "ALL",
+              "CUSTOM"
+            ],
+            "default": "ALL"
+          },
+          "default_audience_departments": {
+            "example": [
+              1,
+              2
+            ],
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "default_audience_roles": {
+            "example": [
+              1
+            ],
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "default_audience_employees": {
+            "example": [],
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "default_audience_companies": {
+            "example": [],
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "default_audience_projects": {
+            "example": [],
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "display_order": {
+            "type": "number",
+            "example": 1
+          },
+          "is_active": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
+      "CreateKbArticleDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateKbArticleDraftDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "SubmitKbArticleDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "ReviewKbArticleDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "DirectPublishKbArticleDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "KbFeedbackDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "ArchiveKbArticleDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreatePerfCycleDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdatePerfCycleDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreatePerfFormDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdatePerfFormDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "SubmitReviewRatingsDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "ReopenReviewDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "SubmitProjectRatingDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "SubmitBulkProjectRatingsDto": {
+        "type": "object",
+        "properties": {}
       }
     }
   }

@@ -140,6 +140,7 @@ export interface AttendanceHoliday {
 export interface WorkingHoursConfig {
   full_day_hours: number;
   half_day_hours: number;
+  grace_minutes?: number;
   start_time?: string;
   end_time?: string;
 }
@@ -182,6 +183,7 @@ export interface AttendanceSettingsResponse {
   statuses: AttendanceStatus[];
   default_shift: AttendanceShift | null;
   employee_shifts: Record<string, number>;
+  working_hours_grace_minutes?: number;
 }
 
 export interface AttendanceApprovalHistoryItem {

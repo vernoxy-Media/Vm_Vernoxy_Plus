@@ -1,8 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   attendanceControllerGetDashboard,
-  attendanceControllerPunchIn,
-  attendanceControllerPunchOut,
+  // /check-in is operation 0 (the API also lists /me/punch-in as operation 1)
+  attendanceControllerPunchIn0 as attendanceControllerPunchIn,
+  attendanceControllerPunchOut0 as attendanceControllerPunchOut,
   attendanceControllerStartBreak,
   attendanceControllerEndBreak,
   attendanceControllerGetDayDetail,

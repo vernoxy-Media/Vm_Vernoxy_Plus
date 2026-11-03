@@ -23,6 +23,8 @@ import {
   History,
   ShieldCheck,
   Handshake,
+  BookOpen,
+  Network,
   type LucideIcon,
 } from 'lucide-react';
 import { useSalesRights } from '@/features/sales/hooks/useSalesRights';
@@ -79,6 +81,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggleC
         entry('Projects', '/projects', FolderKanban, starts('/projects')),
         entry('My Tasks', '/my-tasks', CheckSquare, starts('/my-tasks', '/admin/tasks')),
         entry('Calendar', '/calendar', Calendar, starts('/calendar')),
+        entry('Knowledge Base', '/knowledge-base', BookOpen, starts('/knowledge-base')),
       ],
     },
     ...(canAccessSales
@@ -114,10 +117,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggleC
               ...(user.access?.can_manage_organization
                 ? [
                     entry('Employees', '/admin/employees', Users, starts('/admin/employees')),
-                    entry('Recruitment', '/admin/recruitment', UserPlus, starts('/admin/recruitment')),
+                    entry('Departments', '/departments', Network, starts('/departments', '/admin/departments')),
+                    entry('Recruitment', '/recruitment', UserPlus, starts('/recruitment', '/admin/recruitment')),
                     entry('Payroll', '/admin/payroll', Banknote, starts('/admin/payroll')),
                     entry('Attendance Settings', '/admin/attendance-settings', CalendarClock, starts('/admin/attendance-settings')),
-                    entry('Settings', '/admin/settings/departments', Settings, starts('/admin/settings')),
+                    entry('Settings', '/admin/settings/roles', Settings, starts('/admin/settings')),
                   ]
                 : []),
             ],

@@ -72,7 +72,7 @@ export class CreateCandidateUseCase {
       collegeName: dto.college_name?.trim() || null,
       sourceDetails: dto.source_details?.trim() || null,
       notes: dto.notes?.trim() || null,
-      stage: dto.stage?.trim().toLowerCase() || 'new',
+      stage: dto.stage?.trim().toLowerCase() || 'open',
       createdBy: adminId || null,
     });
 

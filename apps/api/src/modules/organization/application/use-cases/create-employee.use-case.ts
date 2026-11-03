@@ -1,8 +1,10 @@
+import { Logger } from '@nestjs/common';
 import { EmployeeRepositoryPort } from '../ports/employee.repository.port';
 import { DepartmentRepositoryPort } from '../ports/department.repository.port';
 import { RoleRepositoryPort } from '../ports/role.repository.port';
 import { CredentialProvisionerPort } from '../ports/credential-provisioner.port';
 import { UnitOfWorkPort } from '../ports/unit-of-work.port';
+import { MailPort } from '../../../auth/application/ports/auth.ports';
 import { Employee } from '../../domain/entities/employee.entity';
 import { OrganizationNormalizationService } from '../../domain/services/organization-normalization.service';
 import { OrganizationPolicyService } from '../../domain/services/organization-policy.service';
@@ -34,6 +36,8 @@ export interface CreateEmployeeCommand {
   emergency_contact_relation?: string | null;
   employment_type_id?: number | null;
   salary?: number;
+  probation_period?: string | null;
+  notice_period?: string | null;
   pf?: number;
   ot_eligible?: boolean;
   ot_rate_type?: 'FIXED' | 'MULTIPLIER' | null;
@@ -49,16 +53,20 @@ export interface CreateEmployeeCommand {
   bank_name?: string | null;
   account_number?: string | null;
   ifsc_code?: string | null;
+  leave_policy_id?: number | null;
   acting_admin_id: number;
 }
 
 export class CreateEmployeeUseCase {
+  private readonly logger = new Logger(CreateEmployeeUseCase.name);
+
   constructor(
     private readonly employeeRepo: EmployeeRepositoryPort,
     private readonly departmentRepo: DepartmentRepositoryPort,
     private readonly roleRepo: RoleRepositoryPort,
     private readonly credentialProvisioner: CredentialProvisionerPort,
     private readonly unitOfWork: UnitOfWorkPort,
+    private readonly mailPort?: MailPort,
   ) {}
 
   async execute(command: CreateEmployeeCommand): Promise<Employee> {
@@ -90,6 +98,15 @@ export class CreateEmployeeUseCase {
       parsedBirthDate = new Date(command.birth_date);
       if (isNaN(parsedBirthDate.getTime())) {
         throw new ValidationDomainError('Invalid birth date format', 'birth_date');
+      }
+      const today = new Date();
+      let age = today.getFullYear() - parsedBirthDate.getFullYear();
+      const m = today.getMonth() - parsedBirthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < parsedBirthDate.getDate())) {
+        age--;
+      }
+      if (age < 18) {
+        throw new ValidationDomainError('Employees must be 18 or older.', 'birth_date');
       }
     }
 
@@ -146,7 +163,8 @@ export class CreateEmployeeUseCase {
 
     const existingEmail = await this.employeeRepo.findByEmail(normalizedEmail);
     if (existingEmail) {
-      throw new ConflictDomainError('EMAIL_EXISTS', 'An employee with this email already exists', 'email');
+      const code = existingEmail.employee_code || `EMP-${String(existingEmail.emp_id).padStart(4, '0')}`;
+      throw new ConflictDomainError('EMAIL_EXISTS', `This email already belongs to ${code}.`, 'email');
     }
 
     if (command.mob && command.mob.trim()) {
@@ -162,7 +180,7 @@ export class CreateEmployeeUseCase {
 
     const allDepIds = Array.from(new Set([command.dep_id, ...(command.department_ids || [])]));
 
-    return this.unitOfWork.run(async (tx) => {
+    const createdEmployee = await this.unitOfWork.run(async (tx) => {
       const created = await this.employeeRepo.create(
         {
           name: trimmedName,
@@ -199,6 +217,7 @@ export class CreateEmployeeUseCase {
           bank_name: command.bank_name?.trim() || null,
           account_number: command.account_number?.trim() || null,
           ifsc_code: command.ifsc_code?.trim() || null,
+          leave_policy_id: command.leave_policy_id ?? null,
           created_by: command.acting_admin_id,
         },
         tx,
@@ -232,6 +251,23 @@ export class CreateEmployeeUseCase {
 
       return created;
     });
+
+    if (this.mailPort) {
+      try {
+        const targetOfficeEmail = (command.office_email || command.email).trim().toLowerCase();
+        await this.mailPort.sendWelcomeCredentials({
+          officeEmail: targetOfficeEmail,
+          personalEmail: command.personal_email?.trim().toLowerCase() || undefined,
+          employeeName: command.name,
+          temporaryPassword: command.password,
+          loginUrl: process.env.WEB_ORIGIN || 'http://localhost:5173',
+        });
+      } catch (mailErr: any) {
+        this.logger.warn(`Failed to dispatch welcome email: ${mailErr.message}`);
+      }
+    }
+
+    return createdEmployee;
   }
 }
 

@@ -77,6 +77,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const handleLoginSuccess = async (data: VerifyLoginResponseDto) => {
     setAccessToken(data.access_token);
     await fetchProfile();
+    try {
+      // Auto punch-in on login
+      await customFetch('/api/v1/attendance/check-in', { method: 'POST' });
+    } catch {
+      // Gracefully ignore 409 (already punched in) or network delays so login always succeeds
+    }
+    queryClient.invalidateQueries({ queryKey: ['attendance_dashboard'] });
+    queryClient.invalidateQueries({ queryKey: ['attendance_day_detail'] });
   };
 
   const logout = async () => {

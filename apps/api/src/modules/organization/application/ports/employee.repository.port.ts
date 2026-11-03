@@ -13,8 +13,20 @@ export interface EmployeeRepositoryPort {
   findMany(
     filter: EmployeeListFilter,
     tx?: unknown,
-  ): Promise<{ items: Employee[]; next_cursor: string | null; stats?: { total: number; active: number; inactive: number } }>;
-  findActiveOptions(q?: string, tx?: unknown): Promise<Array<{ emp_id: number; name: string; email: string }>>;
+  ): Promise<{ items: Employee[]; next_cursor: string | null; stats?: { total: number; active: number; inactive: number; onboarding?: number } }>;
+  findActiveOptions(
+    q?: string,
+    tx?: unknown,
+  ): Promise<
+    Array<{
+      emp_id: number;
+      name: string;
+      email: string;
+      employee_code?: string;
+      role_name?: string | null;
+      status?: string;
+    }>
+  >;
   findById(id: number, tx?: unknown): Promise<Employee | null>;
   findByEmail(email: string, tx?: unknown): Promise<Employee | null>;
   findByMobile(mobile: string, tx?: unknown): Promise<Employee | null>;
@@ -39,6 +51,8 @@ export interface EmployeeRepositoryPort {
       emergency_contact_relation?: string | null;
       employment_type_id?: number | null;
       salary?: number;
+      probation_period?: string | null;
+      notice_period?: string | null;
       pf?: number;
       ot_eligible?: boolean;
       ot_rate_type?: 'FIXED' | 'MULTIPLIER' | null;
@@ -54,6 +68,7 @@ export interface EmployeeRepositoryPort {
       bank_name?: string | null;
       account_number?: string | null;
       ifsc_code?: string | null;
+      leave_policy_id?: number | null;
       created_by: number;
     },
     tx?: unknown,
@@ -70,7 +85,7 @@ export interface EmployeeRepositoryPort {
       reporting_manager?: number | null;
       joining_date?: Date;
       exit_date?: Date | null;
-      status?: 'Active' | 'Inactive';
+      status?: 'Active' | 'Inactive' | 'Onboarding';
       profile_picture?: string | null;
       gender_id?: number | null;
       personal_email?: string | null;
@@ -83,6 +98,8 @@ export interface EmployeeRepositoryPort {
       emergency_contact_relation?: string | null;
       employment_type_id?: number | null;
       salary?: number;
+      probation_period?: string | null;
+      notice_period?: string | null;
       pf?: number;
       ot_eligible?: boolean;
       ot_rate_type?: 'FIXED' | 'MULTIPLIER' | null;
@@ -98,6 +115,7 @@ export interface EmployeeRepositoryPort {
       bank_name?: string | null;
       account_number?: string | null;
       ifsc_code?: string | null;
+      leave_policy_id?: number | null;
       termination_date?: Date | null;
       deactivation_reason?: string | null;
       deactivation_notes?: string | null;

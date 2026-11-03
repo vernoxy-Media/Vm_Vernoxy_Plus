@@ -10,4 +10,8 @@ export interface EmployeeOptionDto {
   emp_id: number;
   name: string;
   email: string;
+  employee_code?: string;
+  /** @nullable */
+  role_name?: string | null;
+  status?: string;
 }

@@ -11,7 +11,7 @@ export interface AttendanceRepository {
     checkOutAt: Date,
     breakMinutes: number,
     productionMinutes: number,
-    dayStatus: 'present' | 'half_day' | 'short' | 'incomplete',
+    dayStatus: 'present' | 'half_day' | 'short' | 'incomplete' | 'absent',
   ): Promise<AttendanceDayEntity>;
   findOpenBreak(attendanceId: number): Promise<AttendanceBreakEntity | null>;
   findBreaksByAttendanceId(attendanceId: number): Promise<AttendanceBreakEntity[]>;
@@ -77,7 +77,7 @@ export interface AttendanceRepository {
       checkOutAt: Date;
       breakMinutes: number;
       productionMinutes: number;
-      dayStatus: 'present' | 'half_day' | 'short';
+      dayStatus: 'present' | 'half_day' | 'short' | 'absent';
     },
   ): Promise<AttendanceDayEntity>;
   rejectCorrection(
@@ -92,7 +92,7 @@ export interface AttendanceRepository {
     checkOutAt: Date,
     breakMinutes: number,
     productionMinutes: number,
-    dayStatus: 'present' | 'half_day' | 'short',
+    dayStatus: 'present' | 'half_day' | 'short' | 'absent',
     adminId: number,
     note?: string | null,
   ): Promise<AttendanceDayEntity>;
@@ -108,6 +108,7 @@ export interface AttendanceRepository {
       holidays?: Array<{ date: string; name: string }>;
       fullDayMinutes?: number;
       halfDayMinutes?: number;
+      graceMinutes?: number;
     },
   ): Promise<{
     days: Array<{

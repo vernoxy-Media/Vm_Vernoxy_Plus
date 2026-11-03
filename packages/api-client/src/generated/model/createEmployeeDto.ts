@@ -82,4 +82,10 @@ export interface CreateEmployeeDto {
   bank_name?: string;
   account_number?: string;
   ifsc_code?: string;
+  /** @nullable */
+  probation_period?: string | null;
+  /** @nullable */
+  notice_period?: string | null;
+  /** @nullable */
+  leave_policy_id?: number | null;
 }

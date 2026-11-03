@@ -24,6 +24,12 @@ export class MarkCandidateDecisionUseCase {
       throw new NotFoundException(`Candidate with ID ${candidateId} not found.`);
     }
 
+    if (candidate.convertedToEmpId || candidate.stage === 'joined') {
+      throw new BadRequestException(
+        `Candidate has already been converted to employee ${candidate.convertedToEmpCode || `EMP-${candidate.convertedToEmpId}`}. Hiring decision cannot be changed.`,
+      );
+    }
+
     // Specific validation according to rules
     if (dto.decision === 'rejected') {
       if (!dto.rejection_reason) {
@@ -42,6 +48,13 @@ export class MarkCandidateDecisionUseCase {
     } else if (dto.decision === 'selected') {
       if (!dto.expected_joining_date) {
         throw new BadRequestException('Expected joining date is required for selection.');
+      }
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const joiningDate = new Date(dto.expected_joining_date);
+      joiningDate.setHours(0, 0, 0, 0);
+      if (joiningDate < today) {
+        throw new BadRequestException('Expected joining date should be today or a future date, not a past date.');
       }
     }
 

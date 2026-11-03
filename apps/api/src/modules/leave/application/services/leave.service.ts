@@ -19,6 +19,8 @@ import {
   DecideCancellationDto,
   AdminCancelLeaveDto,
   AdjustBalanceDto,
+  BulkAdjustBalanceDto,
+  AssignEmployeePolicyDto,
 } from '../../presentation/dto/leave.dto';
 
 @Injectable()
@@ -695,6 +697,40 @@ export class LeaveService {
           `Please attach a medical certificate / document for ${leaveType.name} of more than ${rule.attachment_after_days} days.`,
         );
       }
+    }
+
+    // Attendance Checks (BFD Page 17)
+    // 1. Check if employee already checked in on a requested full day
+    if (dto.duration === 'FULL_DAY') {
+      const [checkedIn] = await this.prisma.$queryRaw<any[]>`
+        SELECT to_char(work_date, 'DD Mon') as formatted_date
+        FROM attendance_days
+        WHERE emp_id = ${empId}
+          AND work_date >= ${dto.from_date}::date
+          AND work_date <= ${dto.to_date}::date
+          AND check_in_at IS NOT NULL
+        LIMIT 1;
+      `;
+      if (checkedIn) {
+        throw new BadRequestException(
+          `You checked in on ${checkedIn.formatted_date}. Apply for a half day instead.`,
+        );
+      }
+    }
+
+    // 2. Check if attendance month is locked
+    const [lockedRun] = await this.prisma.$queryRaw<any[]>`
+      SELECT to_char(start_date, 'Month YYYY') as month_name
+      FROM payroll_runs
+      WHERE attendance_locked = true
+        AND start_date <= ${dto.to_date}::date
+        AND end_date >= ${dto.from_date}::date
+      LIMIT 1;
+    `;
+    if (lockedRun) {
+      throw new BadRequestException(
+        `Attendance for ${lockedRun.month_name.trim()} is locked. Please contact the Admin.`,
+      );
     }
 
     // Overlap Check (Page 17)

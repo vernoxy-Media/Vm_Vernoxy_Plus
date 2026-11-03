@@ -105,6 +105,7 @@ export class GetDashboardUseCase {
         holidays: settings.holidays,
         fullDayMinutes: empHours.fullDayMinutes,
         halfDayMinutes: empHours.halfDayMinutes,
+        graceMinutes: empHours.graceMinutes,
       },
     );
 

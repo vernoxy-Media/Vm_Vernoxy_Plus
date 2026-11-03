@@ -12,4 +12,6 @@ export interface EmployeeActivationStatusDto {
   missing_documents: string[];
   total_required: number;
   completed_required: number;
+  is_details_completed?: boolean;
+  missing_details?: string[];
 }

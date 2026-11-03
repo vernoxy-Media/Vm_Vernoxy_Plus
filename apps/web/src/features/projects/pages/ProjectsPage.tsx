@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   FolderKanban,
   CheckCircle2,
@@ -13,7 +13,6 @@ import {
   createProject,
   fetchAssignableEmployees,
   fetchProjects,
-  updateProject,
   updateProjectStatus,
 } from '../api/projects.api';
 import type {
@@ -27,10 +26,11 @@ import { ProjectTableView } from '../components/ProjectTableView';
 import { ProjectKanbanView } from '../components/ProjectKanbanView';
 import { ProjectFilterBar, ViewMode } from '../components/ProjectFilterBar';
 import { CreateProjectModal } from '../components/CreateProjectModal';
-import { ProjectDetailsModal } from '../components/ProjectDetailsModal';
+import { ProjectDetailsDrawer } from '../components/ProjectDetailsDrawer';
 
 export const ProjectsPage: React.FC = () => {
   const navigate = useNavigate();
+  const { id } = useParams<{ id?: string }>();
   const { user } = useAuth();
   const [projects, setProjects] = useState<ProjectItem[]>([]);
   const [employees, setEmployees] = useState<AssignableEmployee[]>([]);
@@ -45,9 +45,16 @@ export const ProjectsPage: React.FC = () => {
   const [startDateFilter, setStartDateFilter] = useState('');
   const [endDateFilter, setEndDateFilter] = useState('');
 
-  // Modals
+  // Modals & Right Side Drawer
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<ProjectItem | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(id ? Number(id) : null);
+
+  useEffect(() => {
+    if (id) {
+      setSelectedProjectId(Number(id));
+    }
+  }, [id]);
 
   const canCreate = Boolean(
     user?.access?.can_manage_organization ||
@@ -139,20 +146,6 @@ export const ProjectsPage: React.FC = () => {
     setProjects((prev) => [newProject, ...prev.filter((p) => p.project_id !== newProject.project_id)]);
     loadData().catch(console.error);
     return newProject;
-  };
-
-  const handleUpdateProjectDetails = async (
-    projectId: number,
-    payload: Partial<CreateProjectPayload>
-  ): Promise<ProjectItem> => {
-    const updated = await updateProject(projectId, payload);
-    setProjects((prev) =>
-      prev.map((p) => (p.project_id === projectId ? updated : p))
-    );
-    if (selectedProject?.project_id === projectId) {
-      setSelectedProject(updated);
-    }
-    return updated;
   };
 
   const handleUpdateStatus = async (
@@ -333,7 +326,7 @@ export const ProjectsPage: React.FC = () => {
             <ProjectCard
               key={project.project_id}
               project={project}
-              onClick={(p) => navigate(`/projects/${p.project_id}`)}
+              onClick={(p) => setSelectedProjectId(p.project_id)}
               onStatusChange={(p, s) => handleUpdateStatus(p.project_id, s)}
             />
           ))}
@@ -341,35 +334,36 @@ export const ProjectsPage: React.FC = () => {
       ) : viewMode === 'list' ? (
         <ProjectTableView
           projects={filteredProjects}
-          onSelectProject={(p) => navigate(`/projects/${p.project_id}`)}
+          onSelectProject={(p) => setSelectedProjectId(p.project_id)}
         />
       ) : (
         <ProjectKanbanView
           projects={filteredProjects}
-          onSelectProject={(p) => navigate(`/projects/${p.project_id}`)}
+          onSelectProject={(p) => setSelectedProjectId(p.project_id)}
           onStatusChange={handleUpdateStatus}
           activeStatus={statusFilter}
         />
       )}
 
-      {/* 3-Step Create Project Wizard Modal */}
+      {/* Create Project Modal */}
       <CreateProjectModal
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
         onSubmit={handleCreateProject}
-        onUpdateDetails={handleUpdateProjectDetails}
         employees={employees}
       />
 
-      {/* Project Details Modal */}
-      <ProjectDetailsModal
-        project={selectedProject}
-        isOpen={Boolean(selectedProject)}
-        onClose={() => setSelectedProject(null)}
-        onStatusUpdate={handleUpdateStatus}
-        onUpdateProject={handleUpdateProjectDetails}
-        employees={employees}
-        canManageStatus={canCreate}
+      {/* Right Side Project View Drawer (Matching image & attendance regularization) */}
+      <ProjectDetailsDrawer
+        projectId={selectedProjectId}
+        isOpen={selectedProjectId !== null}
+        onClose={() => {
+          setSelectedProjectId(null);
+          if (window.location.pathname.startsWith('/projects/')) {
+            navigate('/projects');
+          }
+        }}
+        onProjectUpdated={loadData}
       />
     </div>
   );

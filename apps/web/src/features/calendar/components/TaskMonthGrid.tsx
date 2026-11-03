@@ -1,6 +1,7 @@
 import React from 'react';
-import { Check, Send, Video } from 'lucide-react';
+import { Check, Send, Video, Users } from 'lucide-react';
 import type { CalendarMonthTaskItem, CalendarHolidayItem, CalendarEvent } from '../types';
+import type { LeaveCalendarItem } from '@/features/leave/hooks/use-leave';
 import type { DayRecord } from '../../attendance/types/attendance.types';
 import { CalendarStatusLegend } from './CalendarStatusLegend';
 
@@ -11,11 +12,12 @@ interface TaskMonthGridProps {
   tasks: CalendarMonthTaskItem[];
   holidays: CalendarHolidayItem[];
   events: CalendarEvent[]; // for meetings, notes & reminders
+  leaves?: LeaveCalendarItem[];
   attendanceRecords?: Record<string, DayRecord>;
   currentUserId?: number;
   onSelectEvent?: (event: CalendarEvent) => void;
   onSelectTask?: (taskId: number) => void;
-  displayMode?: 'attendance' | 'tasks';
+  displayMode?: 'attendance' | 'tasks' | 'leaves';
 }
 
 export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
@@ -25,6 +27,7 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
   tasks,
   holidays,
   events,
+  leaves = [],
   attendanceRecords = {},
   currentUserId,
   onSelectEvent,
@@ -94,6 +97,12 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
           const dayHoliday = holidays.find((h) => h.holiday_date === dateStr);
           const showAttendance = displayMode === 'attendance';
           const showOperations = displayMode === 'tasks';
+          const showLeaves = displayMode === 'leaves';
+          const dayLeaves = leaves.filter((l) => {
+            const fromStr = l.from_date.slice(0, 10);
+            const toStr = l.to_date.slice(0, 10);
+            return dateStr >= fromStr && dateStr <= toStr;
+          });
 
           // Meetings scheduled or attended on this day
           const dayMeetings = events.filter(
@@ -212,6 +221,21 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
                       {dayHoliday.name}
                     </span>
                   )}
+
+                  {/* Team Leaves Count Badge in Header */}
+                  {isCurrentMonth && dayLeaves.length > 0 && (
+                    <span
+                      title={`${dayLeaves.length} on leave: ${dayLeaves.map((l) => l.employee_name).join(', ')}`}
+                      className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold flex items-center gap-0.5 shadow-2xs ${
+                        showLeaves
+                          ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                          : 'bg-amber-50 text-amber-800 border border-amber-200'
+                      }`}
+                    >
+                      <Users className="w-2.5 h-2.5" />
+                      {dayLeaves.length}
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-1">
@@ -236,6 +260,25 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
 
               {/* Meetings and tasks as chips (tablets and up) */}
               <div className="mt-1.5 hidden flex-1 space-y-1 overflow-hidden sm:block">
+                {/* Team leaves on this day */}
+                {showLeaves &&
+                  dayLeaves.slice(0, 3).map((l, lIdx) => (
+                    <div
+                      key={`leave-${l.request_id}-${lIdx}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelectDate(date);
+                      }}
+                      title={`${l.employee_name} (${l.department_name || 'General'}) - ${l.leave_type_name} (${l.duration.replace('_', ' ')})`}
+                      className={`flex cursor-pointer items-center justify-between gap-1 truncate rounded-md border-l-[3px] px-1.5 py-0.5 text-[10px] font-semibold transition-colors ${
+                        l.is_paid ? 'border-blue-500 bg-blue-50 text-blue-900 hover:bg-blue-100' : 'border-rose-500 bg-rose-50 text-rose-900 hover:bg-rose-100'
+                      }`}
+                    >
+                      <span className="truncate">{l.employee_name}</span>
+                      <span className="ml-1 shrink-0 text-[9px] font-semibold opacity-80">{l.leave_type_name.split(' ')[0]}</span>
+                    </div>
+                  ))}
+                {showLeaves && dayLeaves.length > 3 && <span className="block px-1 text-[9px] font-bold text-slate-500">+{dayLeaves.length - 3} more</span>}
                 {showOperations &&
                   dayMeetings.slice(0, 2).map((meeting) => {
                     const mTime = new Date(meeting.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });

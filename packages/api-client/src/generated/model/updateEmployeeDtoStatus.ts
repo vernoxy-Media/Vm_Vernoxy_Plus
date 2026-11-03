@@ -13,4 +13,5 @@ export type UpdateEmployeeDtoStatus = typeof UpdateEmployeeDtoStatus[keyof typeo
 export const UpdateEmployeeDtoStatus = {
   Active: 'Active',
   Inactive: 'Inactive',
+  Onboarding: 'Onboarding',
 } as const;

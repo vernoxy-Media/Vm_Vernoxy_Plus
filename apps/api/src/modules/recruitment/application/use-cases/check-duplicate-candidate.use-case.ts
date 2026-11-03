@@ -12,7 +12,8 @@ export class CheckDuplicateCandidateUseCase {
     private readonly candidateRepo: ICandidateRepository,
   ) {}
 
-  async execute(phone: string, email: string): Promise<CandidateDuplicateMatch[]> {
-    return this.candidateRepo.checkDuplicates(phone, email);
+  async execute(phone?: string, email?: string): Promise<CandidateDuplicateMatch[]> {
+    if (!phone && !email) return [];
+    return this.candidateRepo.checkDuplicates(phone || '', email || '');
   }
 }

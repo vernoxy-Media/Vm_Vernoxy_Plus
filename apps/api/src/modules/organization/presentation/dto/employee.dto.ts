@@ -248,6 +248,21 @@ export class CreateEmployeeDto {
   @IsOptional()
   @IsString()
   ifsc_code?: string | null;
+
+  @ApiPropertyOptional({ type: String, example: '3 Months', nullable: true })
+  @IsOptional()
+  @IsString()
+  probation_period?: string | null;
+
+  @ApiPropertyOptional({ type: String, example: '30 Days', nullable: true })
+  @IsOptional()
+  @IsString()
+  notice_period?: string | null;
+
+  @ApiPropertyOptional({ type: Number, example: 1, nullable: true })
+  @IsOptional()
+  @IsInt()
+  leave_policy_id?: number | null;
 }
 
 export class UpdateEmployeeDto {
@@ -299,10 +314,10 @@ export class UpdateEmployeeDto {
   @IsString()
   exit_date?: string | null;
 
-  @ApiPropertyOptional({ type: String, example: 'Active', enum: ['Active', 'Inactive'] })
+  @ApiPropertyOptional({ type: String, example: 'Active', enum: ['Active', 'Inactive', 'Onboarding'] })
   @IsOptional()
-  @IsIn(['Active', 'Inactive'])
-  status?: 'Active' | 'Inactive';
+  @IsIn(['Active', 'Inactive', 'Onboarding'])
+  status?: 'Active' | 'Inactive' | 'Onboarding';
 
   @ApiPropertyOptional({ type: Number, example: 1, description: 'Gender lookup ID', nullable: true })
   @IsOptional()
@@ -457,6 +472,21 @@ export class UpdateEmployeeDto {
   @IsOptional()
   @IsString()
   ifsc_code?: string | null;
+
+  @ApiPropertyOptional({ type: String, example: '3 Months', nullable: true })
+  @IsOptional()
+  @IsString()
+  probation_period?: string | null;
+
+  @ApiPropertyOptional({ type: String, example: '30 Days', nullable: true })
+  @IsOptional()
+  @IsString()
+  notice_period?: string | null;
+
+  @ApiPropertyOptional({ type: Number, example: 1, nullable: true })
+  @IsOptional()
+  @IsInt()
+  leave_policy_id?: number | null;
 }
 
 export class DeactivateEmployeeDto {
@@ -516,10 +546,10 @@ export class EmployeeQueryDto {
   @IsInt()
   role_id?: number;
 
-  @ApiPropertyOptional({ type: String, description: 'Filter by status', enum: ['Active', 'Inactive'] })
+  @ApiPropertyOptional({ type: String, description: 'Filter by status', enum: ['Active', 'Inactive', 'Onboarding'] })
   @IsOptional()
-  @IsIn(['Active', 'Inactive'])
-  status?: 'Active' | 'Inactive';
+  @IsIn(['Active', 'Inactive', 'Onboarding'])
+  status?: 'Active' | 'Inactive' | 'Onboarding';
 
   @ApiPropertyOptional({ type: Number, description: 'Limit results', default: 50 })
   @IsOptional()
@@ -542,6 +572,18 @@ export class EmployeeOptionDto {
 
   @ApiProperty({ type: String, example: 'alice@vernoxy.com' })
   email!: string;
+
+  @ApiPropertyOptional({ type: String, example: 'EMP-0001' })
+  @IsOptional()
+  employee_code?: string;
+
+  @ApiPropertyOptional({ type: String, example: 'Software Engineer', nullable: true })
+  @IsOptional()
+  role_name?: string | null;
+
+  @ApiPropertyOptional({ type: String, example: 'Active' })
+  @IsOptional()
+  status?: string;
 }
 
 export class EmployeeRelationDepartmentDto {
@@ -747,6 +789,12 @@ export class EmployeeResponseDto {
 
   @ApiPropertyOptional({ type: String, example: 'HDFC0001234' })
   ifsc_code?: string | null;
+
+  @ApiPropertyOptional({ type: String, example: '3 Months', nullable: true })
+  probation_period?: string | null;
+
+  @ApiPropertyOptional({ type: String, example: '30 Days', nullable: true })
+  notice_period?: string | null;
 }
 
 export class EmployeeHistoryItemDto {

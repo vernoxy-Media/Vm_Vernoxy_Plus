@@ -13,4 +13,5 @@ export type EmployeeControllerListStatus = typeof EmployeeControllerListStatus[k
 export const EmployeeControllerListStatus = {
   Active: 'Active',
   Inactive: 'Inactive',
+  Onboarding: 'Onboarding',
 } as const;

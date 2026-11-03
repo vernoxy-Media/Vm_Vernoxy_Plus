@@ -30,13 +30,12 @@ import {
   Receipt,
   AlertCircle,
   Laptop,
+  BookOpen,
+  Award,
   LucideIcon,
 } from 'lucide-react';
 import type { MeResponseDto } from '@vernoxy-pulse/api-client';
 
-const SettingsDepartmentsSection = React.lazy(() =>
-  import('./sections/SettingsDepartmentsSection').then((m) => ({ default: m.SettingsDepartmentsSection }))
-);
 const SettingsRolesSection = React.lazy(() =>
   import('./sections/SettingsRolesSection').then((m) => ({ default: m.SettingsRolesSection }))
 );
@@ -94,6 +93,12 @@ const SettingsComplaintSettingsSection = React.lazy(() =>
 const SettingsLicenseSection = React.lazy(() =>
   import('./sections/SettingsLicenseSection').then((m) => ({ default: m.SettingsLicenseSection }))
 );
+const SettingsKnowledgeBaseSection = React.lazy(() =>
+  import('./sections/SettingsKnowledgeBaseSection').then((m) => ({ default: m.SettingsKnowledgeBaseSection }))
+);
+const SettingsPerformanceSection = React.lazy(() =>
+  import('./sections/SettingsPerformanceSection').then((m) => ({ default: m.SettingsPerformanceSection }))
+);
 const SettingsEmploymentTypesSection = React.lazy(() =>
   import('./sections/SettingsEmploymentTypesSection').then((m) => ({ default: m.SettingsEmploymentTypesSection }))
 );
@@ -115,6 +120,9 @@ const SettingsJobPortalsSection = React.lazy(() =>
 const SettingsNoticePeriodsSection = React.lazy(() =>
   import('./sections/SettingsNoticePeriodsSection').then((m) => ({ default: m.SettingsNoticePeriodsSection }))
 );
+const SettingsProbationPeriodsSection = React.lazy(() =>
+  import('./sections/SettingsProbationPeriodsSection').then((m) => ({ default: m.SettingsProbationPeriodsSection }))
+);
 const SettingsCandidateStagesSection = React.lazy(() =>
   import('./sections/SettingsCandidateStagesSection').then((m) => ({ default: m.SettingsCandidateStagesSection }))
 );
@@ -134,16 +142,7 @@ export interface SettingsSectionConfig {
 
 export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
   // ── Organization ──────────────────────────────────
-  {
-    id: 'departments',
-    label: 'Departments',
-    path: '/admin/settings/departments',
-    icon: Building2,
-    component: SettingsDepartmentsSection,
-    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
-    group: 'Organization',
-  },
-  {
+    {
     id: 'roles',
     label: 'Roles',
     path: '/admin/settings/roles',
@@ -360,6 +359,36 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
     group: 'HR',
   },
+  // ── Knowledge Base ─────────────────────────────────
+  {
+    id: 'knowledge-base-categories',
+    label: 'Categories',
+    path: '/admin/settings/knowledge-base-categories',
+    icon: BookOpen,
+    component: SettingsKnowledgeBaseSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Knowledge Base',
+  },
+
+  // ── Performance Management ─────────────────────────
+  {
+    id: 'performance-cycles',
+    label: 'Performance Cycles',
+    path: '/admin/settings/performance-cycles',
+    icon: Award,
+    component: SettingsPerformanceSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Performance',
+  },
+  {
+    id: 'performance-forms',
+    label: 'Performance Forms',
+    path: '/admin/settings/performance-forms',
+    icon: ClipboardCheck,
+    component: SettingsPerformanceSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Performance',
+  },
 
   // ── Recruitment ───────────────────────────────────
   {
@@ -386,6 +415,15 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     path: '/admin/settings/notice-periods',
     icon: CalendarClock,
     component: SettingsNoticePeriodsSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Recruitment',
+  },
+  {
+    id: 'probation-periods',
+    label: 'Probation Periods',
+    path: '/admin/settings/probation-periods',
+    icon: ShieldCheck,
+    component: SettingsProbationPeriodsSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
     group: 'Recruitment',
   },
@@ -443,4 +481,6 @@ export const SETTINGS_MAIN_GROUPS: SettingsMainGroup[] = [
   { id: 'Projects', name: 'Projects', icon: Shapes },
   { id: 'HR', name: 'HR', icon: Clock },
   { id: 'Recruitment', name: 'Recruitment', icon: UserPlus },
+  { id: 'Knowledge Base', name: 'Knowledge Base', icon: BookOpen },
+  { id: 'Performance', name: 'Performance', icon: Award },
 ];

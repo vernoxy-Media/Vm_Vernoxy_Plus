@@ -8,7 +8,7 @@
 
 export interface CheckDuplicateCandidateDto {
   /** Phone number to verify */
-  phone: string;
+  phone?: string;
   /** Email address to verify */
-  email: string;
+  email?: string;
 }

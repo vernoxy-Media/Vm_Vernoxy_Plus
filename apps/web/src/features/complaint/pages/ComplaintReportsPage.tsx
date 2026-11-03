@@ -10,6 +10,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { useComplaintReportsQuery } from '../hooks/use-complaints';
+import { SearchableSelect } from '@/shared/ui/SearchableSelect';
 import { useComplaintTypesQuery, ComplaintTypeItem } from '../hooks/use-complaint-settings';
 import {
   useDepartmentOptionsQuery,
@@ -214,94 +215,81 @@ export const ComplaintReportsPage: React.FC = (): React.ReactElement => {
 
           <div>
             <label className="block text-[11px] font-semibold text-slate-500 mb-1">Date Basis</label>
-            <select
+            <SearchableSelect
               value={dateBasis}
-              onChange={(e) => setDateBasis(e.target.value as 'SUBMITTED' | 'RESOLVED' | 'CLOSED')}
-              className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500"
-            >
-              <option value="SUBMITTED">Complaint Date</option>
-              <option value="RESOLVED">Resolution Date</option>
-              <option value="CLOSED">Closure Date</option>
-            </select>
+              onChange={(v) => v && setDateBasis(v as 'SUBMITTED' | 'RESOLVED' | 'CLOSED')}
+              options={[
+                { value: 'SUBMITTED', label: 'Complaint Date' },
+                { value: 'RESOLVED', label: 'Resolution Date' },
+                { value: 'CLOSED', label: 'Closure Date' },
+              ]}
+            />
           </div>
 
           <div>
             <label className="block text-[11px] font-semibold text-slate-500 mb-1">Complaint Type</label>
-            <select
-              value={typeId || ''}
-              onChange={(e) => setTypeId(e.target.value ? Number(e.target.value) : undefined)}
-              className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500"
-            >
-              <option value="">All Types</option>
-              {types.map((t: ComplaintTypeItem) => (
-                <option key={t.type_id} value={t.type_id}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
+            <SearchableSelect
+              placeholder="All Types"
+              value={typeId ?? null}
+              onChange={(v) => setTypeId(v ? Number(v) : undefined)}
+              options={types.map((t: ComplaintTypeItem) => ({ value: t.type_id, label: t.name }))}
+              clearable
+            />
           </div>
 
           <div>
             <label className="block text-[11px] font-semibold text-slate-500 mb-1">Department</label>
-            <select
-              value={deptId || ''}
-              onChange={(e) => setDeptId(e.target.value ? Number(e.target.value) : undefined)}
-              className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500"
-            >
-              <option value="">All Departments</option>
-              {deptOptions.map((d: any) => (
-                <option key={d.dep_id || d.id} value={d.dep_id || d.id}>
-                  {d.name}
-                </option>
-              ))}
-            </select>
+            <SearchableSelect
+              placeholder="All Departments"
+              value={deptId ?? null}
+              onChange={(v) => setDeptId(v ? Number(v) : undefined)}
+              options={deptOptions.map((d: any) => ({ value: d.dep_id || d.id, label: d.name }))}
+              clearable
+            />
           </div>
 
           <div>
             <label className="block text-[11px] font-semibold text-slate-500 mb-1">Handler</label>
-            <select
-              value={handlerId || ''}
-              onChange={(e) => setHandlerId(e.target.value ? Number(e.target.value) : undefined)}
-              className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500"
-            >
-              <option value="">All Handlers</option>
-              {empOptions.map((emp: any) => (
-                <option key={emp.emp_id || emp.id} value={emp.emp_id || emp.id}>
-                  {emp.name}
-                </option>
-              ))}
-            </select>
+            <SearchableSelect
+              placeholder="All Handlers"
+              value={handlerId ?? null}
+              onChange={(v) => setHandlerId(v ? Number(v) : undefined)}
+              options={empOptions.map((emp: any) => ({ value: emp.emp_id || emp.id, label: emp.name }))}
+              clearable
+            />
           </div>
 
           <div>
             <label className="block text-[11px] font-semibold text-slate-500 mb-1">Priority</label>
-            <select
-              value={priority}
-              onChange={(e) => setPriority(e.target.value)}
-              className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500"
-            >
-              <option value="">All Priorities</option>
-              <option value="Low">Low</option>
-              <option value="Medium">Medium</option>
-              <option value="High">High</option>
-              <option value="Urgent">Urgent</option>
-            </select>
+            <SearchableSelect
+              placeholder="All Priorities"
+              value={priority || null}
+              onChange={(v) => setPriority(v ? String(v) : '')}
+              options={[
+                { value: 'Low', label: 'Low' },
+                { value: 'Medium', label: 'Medium' },
+                { value: 'High', label: 'High' },
+                { value: 'Urgent', label: 'Urgent' },
+              ]}
+              clearable
+            />
           </div>
 
           <div>
             <label className="block text-[11px] font-semibold text-slate-500 mb-1">Status</label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500"
-            >
-              <option value="">All Statuses</option>
-              <option value="New">New</option>
-              <option value="Open">Open</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Resolved">Resolved</option>
-              <option value="Closed">Closed</option>
-            </select>
+            <SearchableSelect
+              placeholder="All Statuses"
+              value={status || null}
+              onChange={(v) => setStatus(v ? String(v) : '')}
+              options={[
+                { value: 'New', label: 'New' },
+                { value: 'Open', label: 'Open' },
+                { value: 'In Progress', label: 'In Progress' },
+                { value: 'Resolved', label: 'Resolved' },
+                { value: 'Closed', label: 'Closed' },
+              ]}
+              clearable
+            />
           </div>
         </div>
       </div>

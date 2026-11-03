@@ -27,6 +27,7 @@ import {
   useDepartmentOptionsQuery,
 } from '@/features/organization/hooks/use-organization';
 import { useUploadAttachment } from '@/shared/hooks/use-attachments';
+import { SearchableSelect } from '@/shared/ui/SearchableSelect';
 
 export const MyComplaintsPage: React.FC = (): React.ReactElement => {
   const currentYear = new Date().getFullYear();
@@ -312,49 +313,43 @@ export const MyComplaintsPage: React.FC = (): React.ReactElement => {
       <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center gap-3 text-xs">
         <div className="flex items-center gap-1.5">
           <span className="text-slate-500 font-medium">Year:</span>
-          <select
+          <SearchableSelect
             value={selectedYear}
-            onChange={(e) => setSelectedYear(Number(e.target.value))}
-            className="px-2 py-1 bg-slate-50 border border-slate-200 rounded-md focus:ring-1 focus:ring-indigo-500"
-          >
-            {[currentYear, currentYear - 1, currentYear - 2].map((y) => (
-              <option key={y} value={y}>
-                {y}
-              </option>
-            ))}
-          </select>
+            onChange={(v) => setSelectedYear(Number(v))}
+            options={[currentYear, currentYear - 1, currentYear - 2].map((y) => ({ value: y, label: String(y) }))}
+            className="min-w-[90px]"
+          />
         </div>
 
         <div className="flex items-center gap-1.5">
           <span className="text-slate-500 font-medium">Status:</span>
-          <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="px-2 py-1 bg-slate-50 border border-slate-200 rounded-md focus:ring-1 focus:ring-indigo-500"
-          >
-            <option value="All">All Statuses</option>
-            <option value="New">New</option>
-            <option value="Open">Open</option>
-            <option value="In Progress">In Progress</option>
-            <option value="Resolved">Resolved</option>
-            <option value="Closed">Closed</option>
-          </select>
+          <SearchableSelect
+            placeholder="All Statuses"
+            value={selectedStatus === 'All' ? null : selectedStatus}
+            onChange={(v) => setSelectedStatus(v ? String(v) : 'All')}
+            options={[
+              { value: 'All', label: 'All Statuses' },
+              { value: 'New', label: 'New' },
+              { value: 'Open', label: 'Open' },
+              { value: 'In Progress', label: 'In Progress' },
+              { value: 'Resolved', label: 'Resolved' },
+              { value: 'Closed', label: 'Closed' },
+            ]}
+            clearable
+            className="min-w-[130px]"
+          />
         </div>
 
         <div className="flex items-center gap-1.5">
           <span className="text-slate-500 font-medium">Complaint Type:</span>
-          <select
-            value={selectedTypeId || ''}
-            onChange={(e) => setSelectedTypeId(e.target.value ? Number(e.target.value) : undefined)}
-            className="px-2 py-1 bg-slate-50 border border-slate-200 rounded-md focus:ring-1 focus:ring-indigo-500"
-          >
-            <option value="">All Types</option>
-            {types.map((t) => (
-              <option key={t.type_id} value={t.type_id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
+          <SearchableSelect
+            placeholder="All Types"
+            value={selectedTypeId ?? null}
+            onChange={(v) => setSelectedTypeId(v ? Number(v) : undefined)}
+            options={types.map((t) => ({ value: t.type_id, label: t.name }))}
+            clearable
+            className="min-w-[140px]"
+          />
         </div>
       </div>
 
@@ -534,19 +529,12 @@ export const MyComplaintsPage: React.FC = (): React.ReactElement => {
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Complaint Type *
                   </label>
-                  <select
-                    required
-                    value={typeId}
-                    onChange={(e) => handleTypeChange(Number(e.target.value))}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:bg-white"
-                  >
-                    <option value="">Select Type</option>
-                    {types.map((t) => (
-                      <option key={t.type_id} value={t.type_id}>
-                        {t.name}
-                      </option>
-                    ))}
-                  </select>
+                  <SearchableSelect
+                    placeholder="Select Type"
+                    value={typeId || null}
+                    onChange={(v) => v && handleTypeChange(Number(v))}
+                    options={types.map((t) => ({ value: t.type_id, label: t.name }))}
+                  />
                   {selectedTypeObj && (
                     <p className="text-[10px] text-indigo-600 mt-1">{selectedTypeObj.description}</p>
                   )}
@@ -572,37 +560,25 @@ export const MyComplaintsPage: React.FC = (): React.ReactElement => {
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Related Department *
                   </label>
-                  <select
-                    required
-                    value={relatedDeptId}
-                    onChange={(e) => setRelatedDeptId(Number(e.target.value))}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:bg-white"
-                  >
-                    <option value="">Select Department</option>
-                    {deptOptions.map((d: any) => (
-                      <option key={d.dep_id || d.id} value={d.dep_id || d.id}>
-                        {d.name}
-                      </option>
-                    ))}
-                  </select>
+                  <SearchableSelect
+                    placeholder="Select Department"
+                    value={relatedDeptId || null}
+                    onChange={(v) => setRelatedDeptId(v ? Number(v) : '')}
+                    options={deptOptions.map((d: any) => ({ value: d.dep_id || d.id, label: d.name }))}
+                  />
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Related Project (Optional)
                   </label>
-                  <select
-                    value={relatedProjectId}
-                    onChange={(e) => setRelatedProjectId(e.target.value ? Number(e.target.value) : '')}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:bg-white"
-                  >
-                    <option value="">None / Not Project-Related</option>
-                    {projects.map((p: any) => (
-                      <option key={p.project_id || p.id} value={p.project_id || p.id}>
-                        {p.project_name || p.name}
-                      </option>
-                    ))}
-                  </select>
+                  <SearchableSelect
+                    placeholder="None / Not Project-Related"
+                    value={relatedProjectId || null}
+                    onChange={(v) => setRelatedProjectId(v ? Number(v) : '')}
+                    options={projects.map((p: any) => ({ value: p.project_id || p.id, label: p.project_name || p.name }))}
+                    clearable
+                  />
                 </div>
               </div>
 

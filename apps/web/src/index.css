@@ -28,11 +28,11 @@
 @layer base {
   :root {
     /* ── Color tokens ───────────────────────────────── */
-    --background: 215 28% 97%;
-    --foreground: 222 47% 11%;
+    --background: 220 33% 98%; /* #F6F8FB */
+    --foreground: 222 47% 11%; /* #0F172A */
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
-    --primary: 221.2 83.2% 53.3%;
+    --primary: 245 93% 63%; /* #5B4CF8 */
     --primary-foreground: 210 40% 98%;
     --secondary: 210 40% 96%;
     --secondary-foreground: 222 47% 11%;
@@ -42,31 +42,89 @@
     --accent-foreground: 222 47% 11%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 221.2 83.2% 53.3%;
+    --border: 214 24% 87%; /* #D4DCE6 */
+    --input: 214 24% 87%;
+    --ring: 245 93% 63%;
     --radius: 0.875rem;
 
     /* ── Sidebar widths ─────────────────────────────── */
-    --sidebar-expanded: 16rem;   /* 256px */
-    --sidebar-collapsed: 4.5rem; /* 72px  */
+    --sidebar-expanded: 16.5rem;
+    --sidebar-collapsed: 5rem;
   }
 
-  /* Enforce 16px root for rem-based sizing */
   html {
-    font-size: 100%;             /* 16px default; respects OS preference */
+    font-size: 100%;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
+    background-color: #F5F7FC;
   }
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: 1rem;               /* 16px body text */
+  font-family: 'Geist', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 0.9375rem; /* 15px */
   line-height: 1.5;
-  color: hsl(var(--foreground));
+  color: #1E293B;
+  background-color: #F5F7FC;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Four Corner Subtle Glows (reduced by 60%, opacity under 5%, center pure #F6F8FB) ──── */
+.dashboard-canvas-bg {
+  background-color: #F6F8FB;
+  background-image: 
+    radial-gradient(ellipse 35% 30% at 0% 0%, rgba(196, 181, 253, 0.035), transparent 70%),
+    radial-gradient(ellipse 35% 30% at 100% 0%, rgba(191, 219, 254, 0.03), transparent 70%),
+    radial-gradient(ellipse 35% 30% at 0% 100%, rgba(191, 219, 254, 0.025), transparent 70%),
+    radial-gradient(ellipse 35% 30% at 100% 100%, rgba(196, 181, 253, 0.03), transparent 70%);
+  background-attachment: fixed;
+}
+
+/* ── 2% Monochrome Noise Texture ──── */
+.noise-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.02;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+/* ── Floating layered card shadow with crisp definition ──── */
+.shadow-floating-card {
+  box-shadow: 
+    0 1px 3px rgba(15, 23, 42, 0.05),
+    0 10px 28px -4px rgba(15, 23, 42, 0.08);
+}
+
+.shadow-floating-sidebar {
+  box-shadow: 
+    0 1px 4px rgba(15, 23, 42, 0.05),
+    0 16px 48px rgba(15, 23, 42, 0.10);
+}
+
+/* ── Micro-interactions: 150-200ms smooth lift ──── */
+.card-hover-lift {
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+.card-hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 4px 10px rgba(15, 23, 42, 0.06),
+    0 20px 40px rgba(15, 23, 42, 0.11);
+}
+
+.btn-hover-lift {
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+.btn-hover-lift:hover {
+  transform: translateY(-2px);
+}
+.btn-hover-lift:active {
+  transform: translateY(0);
 }
 
 *:focus-visible {
@@ -74,15 +132,46 @@ body {
   outline-offset: 2px;
 }
 
-/* ── Scrollbar polish (keeps app feeling tight) ──── */
+/* ── Scrollbar polish ──── */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
 }
+
 ::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: hsl(var(--border));
+  background: #F1F5F9;
   border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #CBD5E1 #F1F5F9;
+}
+.custom-scrollbar::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #F8FAFC;
+  border-radius: 999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
 }

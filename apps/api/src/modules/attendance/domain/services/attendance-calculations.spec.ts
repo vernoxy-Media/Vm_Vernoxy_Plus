@@ -73,9 +73,9 @@ describe('AttendanceCalculations', () => {
       expect(status).toBe('half_day');
     });
 
-    it('returns short when productionMinutes < halfDayMinutes', () => {
+    it('returns absent when productionMinutes < halfDayMinutes per BFD Section 2', () => {
       const status = determineDayStatus(new Date(), 200, 480, 240);
-      expect(status).toBe('short');
+      expect(status).toBe('absent');
     });
   });
 

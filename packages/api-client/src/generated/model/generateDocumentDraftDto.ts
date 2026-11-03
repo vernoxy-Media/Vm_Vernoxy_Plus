@@ -9,7 +9,11 @@
 export interface GenerateDocumentDraftDto {
   template_id?: number;
   document_type: string;
+  candidate_name?: string;
+  designation?: string;
+  department?: string;
   proposed_joining_date?: string;
+  offer_valid_till_date?: string;
   custom_salary?: number;
   custom_pf?: number;
   notes?: string;

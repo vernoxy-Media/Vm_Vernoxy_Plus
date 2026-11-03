@@ -15,7 +15,11 @@ import {
 import { useLookupsQuery } from '@/features/organization/hooks/use-master-data';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { AdminLayout } from '@/shared/layouts/AdminLayout';
+import { EmployeesPage } from './EmployeesPage';
+import { AddEmployeeModal } from '../components/AddEmployeeModal';
+import { useLeavePoliciesQuery } from '@/features/leave/hooks/use-leave';
 import { PhotoPicker } from '../components/PhotoPicker';
+import { CountryPhoneInput, ReportingManagerSelect } from '@/shared/ui';
 import {
   useAttendanceSettingsQuery,
   useAssignEmployeeShiftMutation,
@@ -25,9 +29,7 @@ import {
   AlertCircle,
   Copy,
   CheckCircle,
-  RefreshCw,
-  Eye,
-  EyeOff,
+  Lock,
   Loader2,
   ChevronRight,
   ChevronDown,
@@ -116,16 +118,33 @@ const FIELD_TO_ID_MAP: Record<string, string> = {
 
 export const EmployeeFormPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const isEdit = Boolean(id);
-  const employeeId = id ? parseInt(id, 10) : undefined;
+  const navigate = useNavigate();
+
+  if (!id) {
+    return (
+      <>
+        <EmployeesPage />
+        <AddEmployeeModal
+          isOpen={true}
+          onClose={() => navigate('/admin/employees')}
+          onSuccess={() => navigate('/admin/employees')}
+        />
+      </>
+    );
+  }
+
+  return <EmployeeEditInner id={id} />;
+};
+
+const EmployeeEditInner: React.FC<{ id: string }> = ({ id }) => {
+  const isEdit = true;
+  const employeeId = parseInt(id, 10);
   const navigate = useNavigate();
   const { user: currentUser, refreshProfile } = useAuth();
   const isSelf = currentUser?.emp_id === employeeId;
 
-  // Password visibility
-  const [showPassword, setShowPassword] = useState(false);
+  // Handover state
   const [copiedHandover, setCopiedHandover] = useState(false);
-  const [copiedPassword, setCopiedPassword] = useState(false);
 
   // Photo state
   const [selectedPhotoFile, setSelectedPhotoFile] = useState<File | null>(null);
@@ -148,6 +167,7 @@ export const EmployeeFormPage: React.FC = () => {
 
   // TanStack queries
   const { data: deptOptions } = useDepartmentOptionsQuery();
+  const { data: leavePolicies = [] } = useLeavePoliciesQuery();
   const { data: managerOptions } = useEmployeeOptionsQuery();
   const { data: existingEmployee, isLoading: isEmployeeLoading } =
     useEmployeeDetailQuery(employeeId);
@@ -167,6 +187,7 @@ export const EmployeeFormPage: React.FC = () => {
   const [selectedShiftId, setSelectedShiftId] = useState<string>('default');
 
   const todayStr = new Date().toISOString().split('T')[0];
+  const initialPassword = React.useMemo(() => generateSecurePassword(16), []);
 
   const form = useForm<EmployeeFormValues>({
     mode: 'onSubmit',
@@ -209,11 +230,13 @@ export const EmployeeFormPage: React.FC = () => {
       ifsc_code: '',
       exit_date: '',
       status: 'Active',
-      password: '',
-      confirm_password: '',
+      password: initialPassword,
+      confirm_password: initialPassword,
       must_change_password: false,
     },
   });
+
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
 
   const {
     register,
@@ -222,11 +245,10 @@ export const EmployeeFormPage: React.FC = () => {
     setValue,
     setError,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
   } = form;
 
   const watchedDepartmentIds = watch('department_ids') || [];
-  const watchedPassword = watch('password');
   const watchedName = watch('name');
   const watchedOtEligible = watch('ot_eligible');
   const watchedOtRateType = watch('ot_rate_type');
@@ -264,6 +286,7 @@ export const EmployeeFormPage: React.FC = () => {
         department_ids: assignedDepIds,
         role_id: existingEmployee.role_id,
         reporting_manager: existingEmployee.reporting_manager ?? null,
+        leave_policy_id: (existingEmployee as any).leave_policy_id ?? ('' as any),
         employment_type_id: existingEmployee.employment_type_id ?? ('' as any),
         joining_date: existingEmployee.joining_date
           ? new Date(existingEmployee.joining_date).toISOString().split('T')[0]
@@ -314,23 +337,9 @@ export const EmployeeFormPage: React.FC = () => {
     setValue('dep_id', nextIds.length > 0 ? nextIds[0] : ('' as any), { shouldValidate: true });
   };
 
-  const handleGeneratePassword = () => {
-    const pwd = generateSecurePassword(16);
-    setValue('password', pwd, { shouldValidate: true, shouldDirty: true });
-    setValue('confirm_password', pwd, { shouldValidate: true, shouldDirty: true });
-  };
-
-  const handleCopyPassword = () => {
-    if (watchedPassword) {
-      navigator.clipboard.writeText(watchedPassword);
-      setCopiedPassword(true);
-      setTimeout(() => setCopiedPassword(false), 2000);
-    }
-  };
-
   const handleCopyHandoverCredentials = () => {
     if (createdResult) {
-      const text = `Vernoxy Pulse Login Credentials:\nEmail: ${createdResult.email}\nPassword: ${createdResult.password}`;
+      const text = `Vernoxy Pulse Login Credentials:\nName: ${createdResult.name}\nEmail: ${createdResult.email}\nNote: One-time temporary credentials have been sent directly to your email inbox.`;
       navigator.clipboard.writeText(text);
       setCopiedHandover(true);
       setTimeout(() => setCopiedHandover(false), 2000);
@@ -516,6 +525,7 @@ export const EmployeeFormPage: React.FC = () => {
             birth_date: values.birth_date || null,
             blood_group: values.blood_group || undefined,
             address: values.address?.trim() || undefined,
+            leave_policy_id: values.leave_policy_id ? Number(values.leave_policy_id) : undefined,
             employment_type_id: values.employment_type_id ? Number(values.employment_type_id) : null,
             joining_date: values.joining_date,
             salary: Number(values.salary || 0),
@@ -731,18 +741,17 @@ export const EmployeeFormPage: React.FC = () => {
 
                 {/* Mobile Phone */}
                 <div className="space-y-1.5">
-                  <label htmlFor="employee-mob-input" className="block text-sm font-semibold text-slate-700">
-                    Phone Number
-                  </label>
-                  <input
-                    type="text"
-                    id="employee-mob-input"
-                    autoComplete="tel"
-                    placeholder="+919876543210"
-                    {...register('mob')}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all font-mono"
+                  <div className="flex items-center justify-between">
+                    <label htmlFor="employee-mob-input" className="block text-sm font-semibold text-slate-700">
+                      Phone Number
+                    </label>
+                    <span className="text-[11px] text-slate-400">10 digits</span>
+                  </div>
+                  <CountryPhoneInput
+                    value={watch('mob') || ''}
+                    onChange={(val) => setValue('mob', val, { shouldValidate: true })}
+                    error={errors.mob?.message}
                   />
-                  {errors.mob && <p className="text-xs text-red-600 font-medium">{errors.mob.message}</p>}
                 </div>
 
                 {/* Office Email */}
@@ -1032,23 +1041,19 @@ export const EmployeeFormPage: React.FC = () => {
                   <label htmlFor="employee-manager-select" className="block text-sm font-semibold text-slate-700">
                     Reporting Manager
                   </label>
-                  <div className="relative">
-                    <select
-                      id="employee-manager-select"
-                      {...register('reporting_manager')}
-                      className="w-full appearance-none px-3.5 py-2.5 pr-10 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all font-medium"
-                    >
-                      <option value="">None (Top-level Executive)</option>
-                      {managerOptions
-                        ?.filter((m) => !isEdit || m.emp_id !== employeeId)
-                        ?.map((m) => (
-                          <option key={m.emp_id} value={m.emp_id}>
-                            {m.name} ({m.email})
-                          </option>
-                        ))}
-                    </select>
-                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
+                  <ReportingManagerSelect
+                    options={(managerOptions || []).filter((m: any) => !isEdit || m.emp_id !== employeeId)}
+                    value={watch('reporting_manager')}
+                    onChange={(val) =>
+                      setValue('reporting_manager', val ? Number(val) : ('' as any), {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                      })
+                    }
+                    placeholder="None (Top-level Executive)"
+                    searchPlaceholder="Search by name or Emp ID..."
+                    error={errors.reporting_manager?.message}
+                  />
                 </div>
 
                 {/* Employment Type */}
@@ -1071,6 +1076,29 @@ export const EmployeeFormPage: React.FC = () => {
                     </select>
                     <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   </div>
+                </div>
+
+                {/* Leave Policy (BFD Section 3 & 4) */}
+                <div className="space-y-1.5">
+                  <label htmlFor="employee-leave-policy-select" className="block text-sm font-semibold text-slate-700">
+                    Leave Policy
+                  </label>
+                  <div className="relative">
+                    <select
+                      id="employee-leave-policy-select"
+                      {...register('leave_policy_id')}
+                      className="w-full appearance-none px-3.5 py-2.5 pr-10 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all font-medium"
+                    >
+                      <option value="">Standard Leave Policy (Default)</option>
+                      {leavePolicies.map((lp) => (
+                        <option key={lp.policy_id} value={lp.policy_id}>
+                          {lp.name}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                  <p className="text-2xs text-slate-400">Leave entitlement and pro-rata rules are configured per policy.</p>
                 </div>
 
                 {/* Joining Date */}
@@ -1500,74 +1528,43 @@ export const EmployeeFormPage: React.FC = () => {
                   <div className="h-px bg-slate-200 flex-1" />
                 </div>
 
-                <div className="space-y-5 max-w-xl">
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <label htmlFor="employee-password-input" className="block text-sm font-semibold text-slate-700">
-                        Initial Account Password <span className="text-red-500">*</span>
-                      </label>
+                {/* System Temporary Password (BFD Part 7 Marker 5: "The system makes a one-time temporary password. Nobody types it, and the Admin never sees it.") */}
+                <input type="hidden" {...register('password')} />
+                <input type="hidden" {...register('confirm_password')} />
 
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          id="employee-generate-password-btn"
-                          onClick={handleGeneratePassword}
-                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-semibold transition-colors"
-                        >
-                          <RefreshCw className="w-3.5 h-3.5" />
-                          Generate 16-char
-                        </button>
-
-                        {watchedPassword && (
-                          <button
-                            type="button"
-                            id="employee-copy-password-btn"
-                            onClick={handleCopyPassword}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-medium transition-colors"
-                          >
-                            <Copy className="w-3.5 h-3.5" />
-                            {copiedPassword ? 'Copied' : 'Copy'}
-                          </button>
-                        )}
-                      </div>
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-50 to-blue-50/30 border border-blue-100/80 shadow-xs max-w-xl space-y-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+                      <Lock className="w-4 h-4" />
                     </div>
-
-                    <div className="relative">
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        id="employee-password-input"
-                        autoComplete="new-password"
-                        placeholder="Enter password (min 6 characters)"
-                        {...register('password')}
-                        className="w-full px-3.5 py-2.5 pr-12 rounded-xl border border-slate-200 text-sm font-mono placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1"
-                        aria-label={showPassword ? 'Hide password' : 'Show password'}
-                      >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-800 tracking-tight flex items-center gap-1.5">
+                        System Temporary Password
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                          Automated & Secure
+                        </span>
+                      </h4>
+                      <p className="text-[11px] text-slate-500">
+                        Cryptographically generated for one-time employee activation
+                      </p>
                     </div>
-                    {errors.password && <p className="text-xs text-red-600 font-medium">{errors.password.message}</p>}
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label htmlFor="employee-confirm-password-input" className="block text-sm font-semibold text-slate-700">
-                      Confirm Password <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      id="employee-confirm-password-input"
-                      autoComplete="new-password"
-                      placeholder="Re-enter password"
-                      {...register('confirm_password')}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-mono placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
-                    />
-                    {errors.confirm_password && (
-                      <p className="text-xs text-red-600 font-medium">{errors.confirm_password.message}</p>
-                    )}
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-200/80">
+                    <div className="font-mono text-xs text-slate-400 tracking-widest pl-1 select-none">
+                      ••••••••••••••••
+                    </div>
+                    <span className="text-[10px] font-medium text-slate-500 flex items-center gap-1">
+                      <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+                      Zero-Knowledge Protection
+                    </span>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-blue-50/60 border border-blue-100 text-[11px] text-blue-900 leading-relaxed flex items-start gap-1.5">
+                    <span className="font-bold text-blue-700 shrink-0">•</span>
+                    <span>
+                      <strong>BFD Compliance (Page 23, Marker 5):</strong> The system creates a one-time temporary password. Nobody types it, and the Admin never sees it. Credentials will be securely emailed directly to the employee.
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1575,13 +1572,20 @@ export const EmployeeFormPage: React.FC = () => {
 
             {/* Footer Buttons */}
             <div className="border-t border-slate-200/90 pt-6 mt-8 flex items-center justify-between gap-3 sticky bottom-0 bg-white/95 backdrop-blur-xs py-3">
-              <Link
-                to={isEdit && employeeId ? `/admin/employees/${employeeId}` : '/admin/employees'}
+              <button
+                type="button"
                 id="employee-form-cancel-button"
-                className="px-5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors text-center"
+                onClick={() => {
+                  if (isDirty) {
+                    setShowLeaveModal(true);
+                  } else {
+                    navigate(isEdit && employeeId ? `/admin/employees/${employeeId}` : '/admin/employees');
+                  }
+                }}
+                className="px-5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors text-center cursor-pointer"
               >
                 Cancel
-              </Link>
+              </button>
 
               <button
                 type="submit"
@@ -1613,7 +1617,7 @@ export const EmployeeFormPage: React.FC = () => {
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600 mb-4 shadow-xs">
                 <CheckCircle className="w-7 h-7" />
               </div>
-              <h2 className="text-xl font-bold text-slate-900">Employee Created Successfully!</h2>
+              <h2 className="text-xl font-bold text-slate-900">Employee added</h2>
               <p className="text-xs text-slate-500 mt-1">
                 Please securely share these initial credentials with the employee.
               </p>
@@ -1654,8 +1658,9 @@ export const EmployeeFormPage: React.FC = () => {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-slate-500 font-sans">Initial Password</span>
-                  <span className="font-bold text-blue-600 select-all font-mono">
-                    {createdResult.password}
+                  <span className="text-xs font-sans text-slate-500 flex items-center gap-1">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                    Sent directly to employee inbox (Never shown to Admin)
                   </span>
                 </div>
               </div>
@@ -1668,7 +1673,7 @@ export const EmployeeFormPage: React.FC = () => {
                   className="w-full sm:flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-blue-600 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 transition-colors"
                 >
                   <Copy className="w-4 h-4" />
-                  {copiedHandover ? 'Copied to Clipboard!' : 'Copy Credentials'}
+                  {copiedHandover ? 'Copied to Clipboard!' : 'Copy Login Details'}
                 </button>
                 <button
                   type="button"
@@ -1679,6 +1684,41 @@ export const EmployeeFormPage: React.FC = () => {
                   View Profile
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Leave this page confirmation modal (BFD Page 14) */}
+      {showLeaveModal && (
+        <div
+          id="leave-page-modal"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in"
+        >
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200 p-6 space-y-4">
+            <h3 className="text-lg font-bold text-slate-900">Leave this page?</h3>
+            <p className="text-sm text-slate-500">
+              You have unsaved changes that will be lost if you leave without saving.
+            </p>
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                id="leave-page-stay-btn"
+                onClick={() => setShowLeaveModal(false)}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+              >
+                Stay
+              </button>
+              <button
+                type="button"
+                id="leave-page-confirm-btn"
+                onClick={() => {
+                  setShowLeaveModal(false);
+                  navigate(isEdit && employeeId ? `/admin/employees/${employeeId}` : '/admin/employees');
+                }}
+                className="px-4 py-2 rounded-xl bg-rose-600 text-xs font-semibold text-white hover:bg-rose-700 transition cursor-pointer"
+              >
+                Leave
+              </button>
             </div>
           </div>
         </div>

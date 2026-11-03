@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { EmployeeResponseDto } from '@vernoxy-pulse/api-client';
 import {
   useEmployeesQuery,
@@ -9,6 +9,8 @@ import {
 } from '@/features/organization/hooks/use-organization';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { AdminLayout } from '@/shared/layouts/AdminLayout';
+import { AddEmployeeModal } from '../components/AddEmployeeModal';
+import { SearchableSelect } from '@/shared/ui';
 import {
   Users,
   User,
@@ -22,6 +24,9 @@ import {
   X,
   Loader2,
   Trash2,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
 
 const AVATAR_COLORS = [
@@ -84,9 +89,30 @@ export const EmployeesPage: React.FC = () => {
   const [selectedDepId, setSelectedDepId] = useState<number | undefined>(undefined);
   const [selectedRoleId, setSelectedRoleId] = useState<number | undefined>(undefined);
   const [statusFilter, setStatusFilter] = useState<'Active' | 'Inactive' | 'All'>('Active');
+  const [sortField, setSortField] = useState<'name' | 'joining_date' | 'emp_id'>('emp_id');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [currentPage, setCurrentPage] = useState(1);
+  const [isAddEmployeeModalOpen, setIsAddEmployeeModalOpen] = useState(false);
   const pageSize = 10;
   const [imageErrors, setImageErrors] = useState<Record<number, boolean>>({});
+  const tableContainerRef = React.useRef<HTMLDivElement>(null);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    if (tableContainerRef.current) {
+      tableContainerRef.current.scrollTop = 0;
+    }
+  };
+
+  const handleToggleSort = (field: 'name' | 'joining_date') => {
+    if (sortField === field) {
+      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+    setCurrentPage(1);
+  };
 
   const [deletingEmp, setDeletingEmp] = useState<EmployeeResponseDto | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -97,8 +123,30 @@ export const EmployeesPage: React.FC = () => {
   // Role dropdown options (loads all roles if no department selected)
   const { data: roleOptions } = useRoleOptionsQuery(selectedDepId);
 
+  const deptFilterOptions = useMemo(
+    () => [
+      { value: '', label: 'All Departments' },
+      ...(deptOptions || []).map((d) => ({
+        value: String(d.dep_id),
+        label: d.name,
+      })),
+    ],
+    [deptOptions],
+  );
+
+  const roleFilterOptions = useMemo(
+    () => [
+      { value: '', label: 'All Designations' },
+      ...(roleOptions || []).map((r: any) => ({
+        value: String(r.role_id),
+        label: r.role_name || r.name,
+      })),
+    ],
+    [roleOptions],
+  );
+
   // Employees Query
-  const { data, isLoading, error } = useEmployeesQuery({
+  const { data, isLoading, error, refetch } = useEmployeesQuery({
     q: search || undefined,
     dep_id: selectedDepId,
     role_id: selectedRoleId,
@@ -131,24 +179,72 @@ export const EmployeesPage: React.FC = () => {
     search || selectedDepId || selectedRoleId || statusFilter !== 'Active',
   );
 
-  const allItems = data?.items || [];
+  const allItems = useMemo(
+    () => (data?.items || []).filter((emp) => emp.status !== 'Onboarding'),
+    [data?.items],
+  );
+
+  // Sorting calculation (BFD Page 6)
+  const sortedItems = useMemo(() => {
+    const items = [...allItems];
+    if (sortField === 'name') {
+      items.sort((a, b) => {
+        const res = (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' });
+        return sortDirection === 'asc' ? res : -res;
+      });
+    } else if (sortField === 'joining_date') {
+      items.sort((a, b) => {
+        const da = new Date(a.joining_date).getTime();
+        const db = new Date(b.joining_date).getTime();
+        return sortDirection === 'asc' ? da - db : db - da;
+      });
+    } else {
+      // Default: newest Emp ID last (asc by emp_id)
+      items.sort((a, b) => a.emp_id - b.emp_id);
+    }
+    return items;
+  }, [allItems, sortField, sortDirection]);
 
   // Pagination calculation
-  const totalItems = allItems.length;
+  const totalItems = sortedItems.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const validCurrentPage = Math.min(currentPage, totalPages);
   const startIndex = (validCurrentPage - 1) * pageSize;
   const endIndex = Math.min(startIndex + pageSize, totalItems);
   const currentItems = useMemo(
-    () => allItems.slice(startIndex, endIndex),
-    [allItems, startIndex, endIndex],
+    () => sortedItems.slice(startIndex, endIndex),
+    [sortedItems, startIndex, endIndex],
   );
 
+  React.useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [totalPages, currentPage]);
+
+  const getPaginationRange = () => {
+    if (totalPages <= 5) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    const pages: (number | string)[] = [];
+    if (validCurrentPage <= 3) {
+      pages.push(1, 2, 3, 4, '...', totalPages);
+    } else if (validCurrentPage >= totalPages - 2) {
+      pages.push(1, '...', totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+    } else {
+      pages.push(1, '...', validCurrentPage - 1, validCurrentPage, validCurrentPage + 1, '...', totalPages);
+    }
+    return pages;
+  };
+
   // Metric stats
-  const totalEmployeesCount = data?.stats?.total ?? (statusFilter === 'All' ? totalItems : 24);
-  const activeEmployeesCount = data?.stats?.active ?? (statusFilter === 'Active' ? totalItems : 21);
+  const totalEmployeesCount =
+    data?.stats?.total ??
+    (statusFilter === 'All' ? totalItems : (data?.stats?.active ?? 0) + (data?.stats?.inactive ?? 0));
+  const activeEmployeesCount =
+    data?.stats?.active ?? (statusFilter === 'Active' ? totalItems : 0);
   const inactiveEmployeesCount =
-    data?.stats?.inactive ?? (statusFilter === 'Inactive' ? totalItems : 3);
+    data?.stats?.inactive ?? (statusFilter === 'Inactive' ? totalItems : 0);
 
   const isInactiveView = statusFilter === 'Inactive';
 
@@ -163,14 +259,15 @@ export const EmployeesPage: React.FC = () => {
               Manage everyone who works in the company
             </p>
           </div>
-          <Link
-            to="/admin/employees/new"
+          <button
+            type="button"
             id="add-employee-button"
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 text-sm font-semibold text-white shadow-xs hover:bg-blue-700 transition-colors self-start sm:self-auto"
+            onClick={() => setIsAddEmployeeModalOpen(true)}
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 text-sm font-semibold text-white shadow-xs hover:bg-blue-700 transition-colors self-start sm:self-auto cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Add Employee</span>
-          </Link>
+          </button>
         </div>
 
         {/* Global Error Banner */}
@@ -196,10 +293,10 @@ export const EmployeesPage: React.FC = () => {
               setStatusFilter('All');
               setCurrentPage(1);
             }}
-            className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center gap-4 cursor-pointer transition-all hover:border-slate-300 ${
+            className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center gap-4 cursor-pointer transition-all hover:border-slate-400 ${
               statusFilter === 'All'
-                ? 'border-blue-400 ring-2 ring-blue-500/20 bg-blue-50/10'
-                : 'border-slate-200/80'
+                ? 'border-blue-500 bg-blue-50/10'
+                : 'border-slate-300'
             }`}
             title="Click to show all employees"
           >
@@ -221,10 +318,10 @@ export const EmployeesPage: React.FC = () => {
               setStatusFilter('Active');
               setCurrentPage(1);
             }}
-            className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center gap-4 cursor-pointer transition-all hover:border-slate-300 ${
+            className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center gap-4 cursor-pointer transition-all hover:border-slate-400 ${
               statusFilter === 'Active'
-                ? 'border-emerald-400 ring-2 ring-emerald-500/20 bg-emerald-50/10'
-                : 'border-slate-200/80'
+                ? 'border-emerald-500 bg-emerald-50/10'
+                : 'border-slate-300'
             }`}
             title="Click to show active employees"
           >
@@ -246,10 +343,10 @@ export const EmployeesPage: React.FC = () => {
               setStatusFilter('Inactive');
               setCurrentPage(1);
             }}
-            className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center gap-4 cursor-pointer transition-all hover:border-slate-300 ${
+            className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center gap-4 cursor-pointer transition-all hover:border-slate-400 ${
               statusFilter === 'Inactive'
-                ? 'border-rose-400 ring-2 ring-rose-500/20 bg-rose-50/10'
-                : 'border-slate-200/80'
+                ? 'border-rose-500 bg-rose-50/10'
+                : 'border-slate-300'
             }`}
             title="Click to show inactive employees"
           >
@@ -266,7 +363,7 @@ export const EmployeesPage: React.FC = () => {
         </div>
 
         {/* Marker 3 & 4: Filters Row */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 p-3 sm:p-4 shadow-2xs">
+        <div className="bg-white rounded-2xl border border-slate-300 p-3 sm:p-4 shadow-2xs">
           <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3">
             {/* Search Input */}
             <div className="relative flex-1 min-w-[240px]">
@@ -280,7 +377,7 @@ export const EmployeesPage: React.FC = () => {
                   setCurrentPage(1);
                 }}
                 placeholder="Search name, Emp ID, email or phone"
-                className="w-full pl-10 pr-9 py-2 rounded-xl text-sm border border-slate-200 bg-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                className="w-full pl-10 pr-9 py-2 rounded-xl text-sm border border-slate-300 bg-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
               />
               {search && (
                 <button
@@ -289,7 +386,7 @@ export const EmployeesPage: React.FC = () => {
                     setSearch('');
                     setCurrentPage(1);
                   }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -297,52 +394,38 @@ export const EmployeesPage: React.FC = () => {
             </div>
 
             {/* Department Filter */}
-            <div className="relative min-w-[150px]">
-              <select
-                id="employees-department-select"
-                value={selectedDepId ?? ''}
-                onChange={(e) => {
-                  const val = e.target.value ? Number(e.target.value) : undefined;
-                  setSelectedDepId(val);
+            <div className="min-w-[175px]">
+              <SearchableSelect
+                options={deptFilterOptions}
+                value={selectedDepId ? String(selectedDepId) : ''}
+                onChange={(val) => {
+                  const num = val ? Number(val) : undefined;
+                  setSelectedDepId(num);
                   setSelectedRoleId(undefined);
                   setCurrentPage(1);
                 }}
-                className="w-full appearance-none pl-3.5 pr-8 py-2 rounded-xl text-sm border border-slate-200 bg-white text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer"
-              >
-                <option value="">Department</option>
-                {deptOptions?.map((d) => (
-                  <option key={d.dep_id} value={d.dep_id}>
-                    {d.name}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                placeholder="Department"
+                searchPlaceholder="Search department..."
+              />
             </div>
 
             {/* Designation Filter */}
-            <div className="relative min-w-[150px]">
-              <select
-                id="employees-designation-select"
-                value={selectedRoleId ?? ''}
-                onChange={(e) => {
-                  const val = e.target.value ? Number(e.target.value) : undefined;
-                  setSelectedRoleId(val);
+            <div className="min-w-[175px]">
+              <SearchableSelect
+                options={roleFilterOptions}
+                value={selectedRoleId ? String(selectedRoleId) : ''}
+                onChange={(val) => {
+                  const num = val ? Number(val) : undefined;
+                  setSelectedRoleId(num);
                   setCurrentPage(1);
                 }}
-                className="w-full appearance-none pl-3.5 pr-8 py-2 rounded-xl text-sm border border-slate-200 bg-white text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer"
-              >
-                <option value="">Designation</option>
-                {roleOptions?.map((r) => (
-                  <option key={r.role_id} value={r.role_id}>
-                    {r.role_name}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                placeholder="Designation"
+                searchPlaceholder="Search designation..."
+              />
             </div>
 
             {/* Status Filter Dropdown */}
-            <div className="relative min-w-[120px]">
+            <div className="relative min-w-[130px]">
               <select
                 id="employees-status-select"
                 value={statusFilter}
@@ -355,7 +438,7 @@ export const EmployeesPage: React.FC = () => {
                     ? 'border border-emerald-300 bg-emerald-50/40 text-emerald-700'
                     : statusFilter === 'Inactive'
                     ? 'border border-rose-300 bg-rose-50/40 text-rose-700'
-                    : 'border border-slate-200 bg-white text-slate-700 font-medium'
+                    : 'border border-slate-300 bg-white text-slate-700 font-medium'
                 }`}
               >
                 <option value="Active">Active</option>
@@ -390,7 +473,7 @@ export const EmployeesPage: React.FC = () => {
         </div>
 
         {/* Marker 5, 6, 7: Employee Table Card */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+        <div className="bg-white rounded-2xl border border-slate-300 shadow-xs overflow-hidden flex flex-col">
           {isLoading ? (
             <div className="py-24 flex flex-col items-center justify-center gap-3">
               <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
@@ -407,62 +490,96 @@ export const EmployeesPage: React.FC = () => {
           ) : allItems.length === 0 ? (
             <div className="py-20 text-center px-4">
               <Users className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-              <h3 className="text-base font-semibold text-slate-800">No employees found</h3>
+              <h3 className="text-base font-semibold text-slate-800">No employees match your search</h3>
               <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
                 {hasActiveFilters
-                  ? 'No employees match the current filters. Try resetting search parameters.'
+                  ? 'No employees match the current filters. Try clearing search parameters.'
                   : 'Get started by clicking Add Employee to create your first team member.'}
               </p>
               {hasActiveFilters && (
                 <button
                   type="button"
+                  id="empty-clear-filters-link"
                   onClick={handleClearFilters}
-                  className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline"
+                  className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline cursor-pointer"
                 >
-                  Reset filters
+                  Clear filters
                 </button>
               )}
             </div>
           ) : (
             <>
-              {/* Desktop & Tablet Table (sm and up) */}
-              <div className="hidden sm:block overflow-x-auto">
+              {/* Desktop & Tablet Table (sm and up) with smooth scrollbar */}
+              <div
+                ref={tableContainerRef}
+                className="hidden sm:block max-h-[530px] overflow-y-auto overflow-x-auto custom-scrollbar"
+              >
                 <table className="w-full text-left border-collapse" id="employees-table">
-                  <thead>
-                    <tr className="border-b border-slate-200/80 bg-white">
-                      <th className="py-3 px-5 text-[11px] font-bold text-slate-500 tracking-wider uppercase w-[24%] min-w-[200px]">
-                        Employee
+                  <thead className="sticky top-0 z-10 bg-white border-b border-slate-200 shadow-2xs">
+                    <tr>
+                      <th
+                        onClick={() => handleToggleSort('name')}
+                        className="py-3 px-5 text-xs font-bold text-slate-700 tracking-wider uppercase w-[24%] min-w-[200px] cursor-pointer hover:text-slate-900 transition-colors select-none group"
+                        title="Sort by Name"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span>Employee</span>
+                          {sortField === 'name' ? (
+                            sortDirection === 'asc' ? (
+                              <ArrowUp className="w-3.5 h-3.5 text-blue-600" />
+                            ) : (
+                              <ArrowDown className="w-3.5 h-3.5 text-blue-600" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 transition-colors" />
+                          )}
+                        </div>
                       </th>
-                      <th className="py-3 px-5 text-[11px] font-bold text-slate-500 tracking-wider uppercase w-[16%] min-w-[130px]">
+                      <th className="py-3 px-5 text-xs font-bold text-slate-700 tracking-wider uppercase w-[16%] min-w-[130px]">
                         Departments
                       </th>
-                      <th className="py-3 px-5 text-[11px] font-bold text-slate-500 tracking-wider uppercase w-[16%] min-w-[130px]">
+                      <th className="py-3 px-5 text-xs font-bold text-slate-700 tracking-wider uppercase w-[16%] min-w-[130px]">
                         Designation
                       </th>
                       {isInactiveView ? (
                         <>
-                          <th className="py-3 px-5 text-[11px] font-bold text-slate-500 tracking-wider uppercase w-[16%] min-w-[140px]">
+                          <th className="py-3 px-5 text-xs font-bold text-slate-700 tracking-wider uppercase w-[16%] min-w-[140px]">
                             Terminated
                           </th>
-                          <th className="py-3 px-5 text-[11px] font-bold text-slate-500 tracking-wider uppercase w-[12%] min-w-[110px]">
+                          <th className="py-3 px-5 text-xs font-bold text-slate-700 tracking-wider uppercase w-[12%] min-w-[110px]">
                             Reason
                           </th>
                         </>
                       ) : (
                         <>
-                          <th className="py-3 px-5 text-[11px] font-bold text-slate-500 tracking-wider uppercase w-[16%] min-w-[140px]">
+                          <th className="py-3 px-5 text-xs font-bold text-slate-700 tracking-wider uppercase w-[16%] min-w-[140px]">
                             Reporting Manager
                           </th>
-                          <th className="py-3 px-5 text-[11px] font-bold text-slate-500 tracking-wider uppercase w-[12%] min-w-[110px]">
-                            Joining Date
+                          <th
+                            onClick={() => handleToggleSort('joining_date')}
+                            className="py-3 px-5 text-xs font-bold text-slate-700 tracking-wider uppercase w-[12%] min-w-[110px] cursor-pointer hover:text-slate-900 transition-colors select-none group"
+                            title="Sort by Joining Date"
+                          >
+                            <div className="flex items-center gap-1.5">
+                              <span>Joining Date</span>
+                              {sortField === 'joining_date' ? (
+                                sortDirection === 'asc' ? (
+                                  <ArrowUp className="w-3.5 h-3.5 text-blue-600" />
+                                ) : (
+                                  <ArrowDown className="w-3.5 h-3.5 text-blue-600" />
+                                )
+                              ) : (
+                                <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 transition-colors" />
+                              )}
+                            </div>
                           </th>
                         </>
                       )}
-                      <th className="py-3 px-5 text-[11px] font-bold text-slate-500 tracking-wider uppercase w-[8%] min-w-[85px]">
+                      <th className="py-3 px-5 text-xs font-bold text-slate-700 tracking-wider uppercase w-[10%] min-w-[85px]">
                         Status
                       </th>
                       {!isInactiveView && (
-                        <th className="py-3 px-5 text-[11px] font-bold text-slate-500 tracking-wider uppercase w-[8%] min-w-[95px]">
+                        <th className="py-3 px-5 text-xs font-bold text-slate-700 tracking-wider uppercase w-[10%] min-w-[95px]">
                           Documents
                         </th>
                       )}
@@ -616,8 +733,8 @@ export const EmployeesPage: React.FC = () => {
                 </table>
               </div>
 
-              {/* Mobile View (< 640px) */}
-              <div className="sm:hidden divide-y divide-slate-100">
+              {/* Mobile View (< 640px) with custom scrollbar */}
+              <div className="sm:hidden max-h-[530px] overflow-y-auto divide-y divide-slate-100 custom-scrollbar">
                 {currentItems.map((emp) => {
                   const empCode =
                     emp.employee_code || `EMP-${String(emp.emp_id).padStart(4, '0')}`;
@@ -664,6 +781,11 @@ export const EmployeesPage: React.FC = () => {
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                             Active
                           </span>
+                        ) : emp.status === 'Onboarding' ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-50 text-purple-700">
+                            <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+                            Onboarding
+                          </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700">
                             <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
@@ -707,7 +829,7 @@ export const EmployeesPage: React.FC = () => {
               </div>
 
               {/* Marker 8: Pagination Footer */}
-              <div className="px-5 py-3.5 border-t border-slate-200/80 bg-white flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+              <div className="px-5 py-3.5 border-t border-slate-200 bg-white flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 shrink-0">
                 <div>
                   Showing{' '}
                   <span className="font-semibold text-slate-700">
@@ -727,22 +849,33 @@ export const EmployeesPage: React.FC = () => {
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
+                    id="prev-page-btn"
                     disabled={validCurrentPage <= 1}
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                    onClick={() => handlePageChange(Math.max(1, validCurrentPage - 1))}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
                     title="Previous Page"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
 
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((pg) => {
+                  {getPaginationRange().map((pg, idx) => {
+                    if (typeof pg === 'string') {
+                      return (
+                        <span
+                          key={`ellipsis-${idx}`}
+                          className="w-8 h-8 flex items-center justify-center text-slate-400 font-medium text-xs select-none"
+                        >
+                          …
+                        </span>
+                      );
+                    }
                     const isActive = pg === validCurrentPage;
                     return (
                       <button
                         key={pg}
                         type="button"
-                        onClick={() => setCurrentPage(pg)}
-                        className={`w-8 h-8 rounded-lg font-semibold text-xs flex items-center justify-center transition-all ${
+                        onClick={() => handlePageChange(pg)}
+                        className={`w-8 h-8 rounded-lg font-semibold text-xs flex items-center justify-center transition-all cursor-pointer ${
                           isActive
                             ? 'bg-blue-600 text-white shadow-2xs'
                             : 'border border-slate-200 text-slate-700 hover:bg-slate-50'
@@ -755,9 +888,10 @@ export const EmployeesPage: React.FC = () => {
 
                   <button
                     type="button"
+                    id="next-page-btn"
                     disabled={validCurrentPage >= totalPages}
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                    onClick={() => handlePageChange(Math.min(totalPages, validCurrentPage + 1))}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
                     title="Next Page"
                   >
                     <ChevronRight className="w-4 h-4" />
@@ -814,6 +948,13 @@ export const EmployeesPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Add Employee Modal */}
+      <AddEmployeeModal
+        isOpen={isAddEmployeeModalOpen}
+        onClose={() => setIsAddEmployeeModalOpen(false)}
+        onSuccess={() => refetch()}
+      />
     </AdminLayout>
   );
 };

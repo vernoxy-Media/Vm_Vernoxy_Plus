@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Patch,
+  Put,
   Param,
   Body,
   Query,
@@ -38,6 +39,7 @@ import { UpdateCandidateStageUseCase } from '../../application/use-cases/update-
 import { MarkCandidateDecisionUseCase } from '../../application/use-cases/mark-candidate-decision.use-case';
 import { GetNextEmployeeCodeUseCase } from '../../application/use-cases/get-next-employee-code.use-case';
 import { ConvertCandidateToEmployeeUseCase } from '../../application/use-cases/convert-candidate-to-employee.use-case';
+import { UpdateCandidateUseCase } from '../../application/use-cases/update-candidate.use-case';
 import {
   CreateCandidateDto,
   CheckDuplicateCandidateDto,
@@ -175,6 +177,7 @@ export class CandidateController {
     private readonly markCandidateDecisionUseCase: MarkCandidateDecisionUseCase,
     private readonly getNextEmployeeCodeUseCase: GetNextEmployeeCodeUseCase,
     private readonly convertCandidateToEmployeeUseCase: ConvertCandidateToEmployeeUseCase,
+    private readonly updateCandidateUseCase: UpdateCandidateUseCase,
   ) {}
 
   @Get('next-code')
@@ -256,24 +259,6 @@ export class CandidateController {
     };
   }
 
-  @Get('resumes/:filename')
-  @ApiOperation({ summary: 'Download or view candidate resume' })
-  async downloadResume(
-    @Param('filename') filename: string,
-    @Res() res: Response,
-  ): Promise<void> {
-    const cleanFilename = path.basename(filename);
-    const storageDir = this.getStorageDir();
-    const filePath = path.resolve(storageDir, cleanFilename);
-
-    if (!fs.existsSync(filePath)) {
-      res.status(HttpStatus.NOT_FOUND).json({ message: 'Resume file not found' });
-      return;
-    }
-
-    res.sendFile(filePath);
-  }
-
   private getStorageDir(): string {
     const candidates = [
       path.resolve(process.cwd(), 'storage', 'candidate-resumes'),
@@ -331,6 +316,19 @@ export class CandidateController {
     return toCandidateItemDto(candidate);
   }
 
+  @Put(':id')
+  @ApiOperation({ summary: 'Update candidate details' })
+  @ApiResponse({ status: 200, type: CandidateItemDto })
+  async updateCandidate(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: any,
+    @Req() req: any,
+  ): Promise<CandidateItemDto> {
+    const adminId = req.user?.emp_id || 1;
+    const res = await this.updateCandidateUseCase.execute(id, dto, adminId);
+    return toCandidateItemDto(res);
+  }
+
   @Patch(':id/stage')
   @ApiOperation({ summary: 'Update candidate pipeline stage directly' })
   @ApiResponse({ status: 200, type: CandidateItemDto })
@@ -371,6 +369,51 @@ export class CandidateController {
       employee: res.employee,
       candidate: toCandidateItemDto(res.candidate),
     };
+  }
+}
+
+@ApiTags('Recruitment Resumes')
+@Controller('candidates/resumes')
+export class CandidateResumeController {
+  @Get(':filename')
+  @ApiOperation({ summary: 'Publicly view or download candidate resume' })
+  async downloadResume(
+    @Param('filename') filename: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    const cleanFilename = path.basename(filename);
+    const candidates = [
+      path.resolve(process.cwd(), 'storage', 'candidate-resumes'),
+      path.resolve(process.cwd(), '..', '..', 'storage', 'candidate-resumes'),
+      path.resolve(__dirname, '../../../../../../..', 'storage', 'candidate-resumes'),
+    ];
+    let filePath: string | null = null;
+    for (const c of candidates) {
+      const p = path.resolve(c, cleanFilename);
+      if (fs.existsSync(p)) {
+        filePath = p;
+        break;
+      }
+    }
+
+    if (!filePath || !fs.existsSync(filePath)) {
+      res.status(HttpStatus.NOT_FOUND).json({ message: 'Resume file not found' });
+      return;
+    }
+
+    const ext = path.extname(cleanFilename).toLowerCase();
+    const mimeTypes: Record<string, string> = {
+      '.pdf': 'application/pdf',
+      '.doc': 'application/msword',
+      '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      '.png': 'image/png',
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+    };
+    const contentType = mimeTypes[ext] || 'application/octet-stream';
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Disposition', `inline; filename="${cleanFilename}"`);
+    res.sendFile(filePath);
   }
 }
 

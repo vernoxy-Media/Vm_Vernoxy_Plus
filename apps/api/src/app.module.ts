@@ -25,6 +25,8 @@ import { AttachmentsModule } from './modules/attachments/attachments.module';
 import { ComplaintModule } from './modules/complaint/complaint.module';
 import { LicenseModule } from './modules/license/license.module';
 import { SalesModule } from './modules/sales/public-api';
+import { KnowledgeBaseModule } from './modules/knowledge-base/knowledge-base.module';
+import { PerformanceModule } from './modules/performance/performance.module';
 
 @Module({
 
@@ -56,6 +58,8 @@ import { SalesModule } from './modules/sales/public-api';
     ComplaintModule,
     LicenseModule,
     SalesModule,
+    KnowledgeBaseModule,
+    PerformanceModule,
   ],
   controllers: [HealthController],
   providers: [
