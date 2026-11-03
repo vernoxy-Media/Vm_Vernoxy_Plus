@@ -6,6 +6,9 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { UpdateEmployeeDtoStatus } from './updateEmployeeDtoStatus';
+import type { UpdateEmployeeDtoOtRateType } from './updateEmployeeDtoOtRateType';
+import type { UpdateEmployeeDtoOtPaidAs } from './updateEmployeeDtoOtPaidAs';
+import type { UpdateEmployeeDtoPaymentMode } from './updateEmployeeDtoPaymentMode';
 
 export interface UpdateEmployeeDto {
   /** Employee full name */
@@ -60,24 +63,24 @@ export interface UpdateEmployeeDto {
   employment_type_id?: number | null;
   salary?: number;
   pf?: number;
-  ot_eligible?: boolean;
-  ot_rate_type?: 'FIXED' | 'MULTIPLIER' | null;
-  ot_rate?: number | null;
-  ot_multiplier?: number | null;
-  minimum_ot_per_day?: number;
-  ot_paid_as?: 'SALARY' | 'COMP_OFF';
-  pf_applicable?: boolean;
-  uan?: string | null;
-  employee_pf_pct?: number;
-  employer_pf_pct?: number;
-  payment_mode?: 'BANK_TRANSFER' | 'CHEQUE' | 'CASH' | null;
-  bank_name?: string | null;
-  account_number?: string | null;
-  ifsc_code?: string | null;
   /** @nullable */
   termination_date?: string | null;
   /** @nullable */
   deactivation_reason?: string | null;
   /** @nullable */
   deactivation_notes?: string | null;
+  ot_eligible?: boolean;
+  ot_rate_type?: UpdateEmployeeDtoOtRateType;
+  ot_rate?: number;
+  ot_multiplier?: number;
+  minimum_ot_per_day?: number;
+  ot_paid_as?: UpdateEmployeeDtoOtPaidAs;
+  pf_applicable?: boolean;
+  uan?: string;
+  employee_pf_pct?: number;
+  employer_pf_pct?: number;
+  payment_mode?: UpdateEmployeeDtoPaymentMode;
+  bank_name?: string;
+  account_number?: string;
+  ifsc_code?: string;
 }

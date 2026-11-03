@@ -11,6 +11,10 @@ import type { EmployeeResponseDtoRole } from './employeeResponseDtoRole';
 import type { EmployeeResponseDtoManager } from './employeeResponseDtoManager';
 import type { EmployeeResponseDtoGender } from './employeeResponseDtoGender';
 import type { EmployeeResponseDtoEmploymentType } from './employeeResponseDtoEmploymentType';
+import type { EmployeePayPolicyDto } from './employeePayPolicyDto';
+import type { EmployeeResponseDtoOtRateType } from './employeeResponseDtoOtRateType';
+import type { EmployeeResponseDtoOtPaidAs } from './employeeResponseDtoOtPaidAs';
+import type { EmployeeResponseDtoPaymentMode } from './employeeResponseDtoPaymentMode';
 
 export interface EmployeeResponseDto {
   emp_id: number;
@@ -60,21 +64,6 @@ export interface EmployeeResponseDto {
   employment_type?: EmployeeResponseDtoEmploymentType;
   salary?: number;
   pf?: number;
-  ot_eligible?: boolean;
-  ot_rate_type?: 'FIXED' | 'MULTIPLIER' | null;
-  ot_rate?: number | null;
-  ot_multiplier?: number | null;
-  minimum_ot_per_day?: number;
-  ot_paid_as?: 'SALARY' | 'COMP_OFF';
-  pf_applicable?: boolean;
-  uan?: string | null;
-  employee_pf_pct?: number;
-  employer_pf_pct?: number;
-  payment_mode?: 'BANK_TRANSFER' | 'CHEQUE' | 'CASH' | null;
-  bank_name?: string | null;
-  account_number?: string | null;
-  ifsc_code?: string | null;
-  pay_policy?: any;
   /** @nullable */
   termination_date?: string | null;
   /** @nullable */
@@ -94,4 +83,19 @@ export interface EmployeeResponseDto {
   updated_by?: number | null;
   employee_code?: string;
   pending_documents_count?: number;
+  pay_policy?: EmployeePayPolicyDto;
+  ot_eligible?: boolean;
+  ot_rate_type?: EmployeeResponseDtoOtRateType;
+  ot_rate?: number;
+  ot_multiplier?: number;
+  minimum_ot_per_day?: number;
+  ot_paid_as?: EmployeeResponseDtoOtPaidAs;
+  pf_applicable?: boolean;
+  uan?: string;
+  employee_pf_pct?: number;
+  employer_pf_pct?: number;
+  payment_mode?: EmployeeResponseDtoPaymentMode;
+  bank_name?: string;
+  account_number?: string;
+  ifsc_code?: string;
 }

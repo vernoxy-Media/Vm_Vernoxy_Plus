@@ -72,21 +72,19 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
   const selectedStr = toLocalYMD(selectedDate);
 
   return (
-    <div className="flex flex-col flex-1 bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden select-none">
-      {/* Weekday Headers */}
-      <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50/70">
-        {['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map((day) => (
-          <div
-            key={day}
-            className="py-2.5 text-center text-[11px] font-bold text-slate-500 border-r border-slate-200 last:border-r-0"
-          >
-            {day}
+    <div className="flex flex-1 select-none flex-col overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm sm:rounded-3xl">
+      {/* Weekday headers */}
+      <div className="grid grid-cols-7 gap-1 border-b border-slate-100 bg-gradient-to-r from-slate-50 via-white to-slate-50 px-1.5 py-2 sm:gap-1.5 sm:px-3 sm:py-3">
+        {['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map((day, i) => (
+          <div key={day} className={`text-center text-[10px] font-bold tracking-wider sm:text-[11px] ${i >= 5 ? 'text-rose-400' : 'text-slate-500'}`}>
+            <span className="sm:hidden">{day[0]}</span>
+            <span className="hidden sm:inline">{day}</span>
           </div>
         ))}
       </div>
 
-      {/* 6x7 Grid */}
-      <div className="grid grid-cols-7 grid-rows-6 flex-1 divide-x divide-y divide-slate-100 min-h-[580px]">
+      {/* Days */}
+      <div className="grid flex-1 auto-rows-fr grid-cols-7 gap-1 p-1.5 sm:gap-1.5 sm:p-3">
         {cells.map(({ date, isCurrentMonth }, idx) => {
           const dateStr = toLocalYMD(date);
           const isToday = dateStr === todayStr;
@@ -144,151 +142,124 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
             (attendanceRecord?.punch_in && !attendanceRecord?.punch_out)
           );
 
-          let attendanceBadge: React.ReactNode = null;
+          // Same rules as before; only the way each status is drawn changed.
+          interface Badge { code: string; label: string; chip: string; tint: string; title: string }
+          let badge: Badge | null = null;
           if (showAttendance && isCurrentMonth && isPastOrToday) {
             if (isToday && attendanceRecord?.punch_in && !attendanceRecord?.punch_out) {
-              attendanceBadge = (
-                <span className="px-1.5 py-0.5 rounded text-[8px] font-bold border border-teal-500 text-teal-700 bg-teal-50 shadow-2xs">
-                  Checked in
-                </span>
-              );
+              badge = { code: 'IN', label: 'Checked in', chip: 'bg-teal-500', tint: 'bg-teal-50/70', title: 'Checked in' };
             } else if (dayHoliday || attendanceRecord?.status === 'holiday') {
-              attendanceBadge = (
-                <span className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black text-white bg-purple-600 shadow-2xs" title={dayHoliday?.name || 'Holiday'}>
-                  H
-                </span>
-              );
+              badge = { code: 'H', label: 'Holiday', chip: 'bg-purple-500', tint: 'bg-purple-50/80', title: dayHoliday?.name || 'Holiday' };
             } else if (attendanceRecord?.status === 'weekly_off' || (isWeekend && !attendanceRecord?.punch_in)) {
-              attendanceBadge = (
-                <span className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold text-white bg-slate-400 shadow-2xs" title="Weekly Off">
-                  WO
-                </span>
-              );
+              badge = { code: 'WO', label: 'Weekly off', chip: 'bg-slate-400', tint: 'bg-slate-50', title: 'Weekly Off' };
             } else if (attendanceRecord?.status === 'leave' || attendanceRecord?.leave_type) {
-              attendanceBadge = (
-                <span className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black text-white bg-blue-500 shadow-2xs" title={`On Leave: ${attendanceRecord.leave_type || ''}`}>
-                  L
-                </span>
-              );
+              badge = { code: 'L', label: 'On leave', chip: 'bg-sky-500', tint: 'bg-sky-50/70', title: `On Leave: ${attendanceRecord?.leave_type || ''}` };
             } else if (isMissingPunch) {
-              attendanceBadge = (
-                <span className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-black text-white bg-orange-600 shadow-2xs" title="Missing Punch">
-                  MP
-                </span>
-              );
+              badge = { code: 'MP', label: 'Missing punch', chip: 'bg-orange-500', tint: 'bg-orange-50/70', title: 'Missing Punch' };
             } else if (attendanceRecord?.status === 'half_day') {
-              attendanceBadge = (
-                <span className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-black text-white bg-amber-500 shadow-2xs" title="Half Day">
-                  HD
-                </span>
-              );
+              badge = { code: 'HD', label: 'Half day', chip: 'bg-amber-500', tint: 'bg-amber-50/70', title: 'Half Day' };
             } else if (attendanceRecord?.status === 'absent' || (!attendanceRecord?.punch_in && !isWeekend && isPastOrToday && !isToday)) {
-              attendanceBadge = (
-                <span className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black text-white bg-rose-600 shadow-2xs" title="Absent">
-                  A
-                </span>
-              );
+              badge = { code: 'A', label: 'Absent', chip: 'bg-rose-500', tint: 'bg-rose-50/70', title: 'Absent' };
             } else if (attendanceRecord?.status === 'present' || attendanceRecord?.punch_in) {
-              attendanceBadge = (
-                <div className="flex items-center gap-0.5" title={isLate ? 'Present (Late Mark)' : 'Present'}>
-                  <span className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black text-white bg-emerald-600 shadow-2xs">
-                    P
-                  </span>
-                  {isLate && (
-                    <span className="text-[9px] font-black text-orange-600 tracking-tight">
-                      LM
-                    </span>
-                  )}
-                </div>
-              );
+              badge = { code: 'P', label: 'Present', chip: 'bg-emerald-500', tint: 'bg-emerald-50/60', title: isLate ? 'Present (Late Mark)' : 'Present' };
             }
           }
 
           const totalItems = dayMeetings.length + dayTasks.length;
 
+          const showLate = badge?.code === 'P' && isLate;
+
           return (
             <div
               key={idx}
+              role="button"
+              tabIndex={0}
               onClick={() => onSelectDate(date)}
-              className={`p-1.5 sm:p-2 flex flex-col justify-between hover:bg-slate-50/80 cursor-pointer transition-all ${
-                !isCurrentMonth ? 'bg-slate-50/40 text-slate-300' : 'bg-white text-slate-800'
-              } ${isSelected ? 'ring-2 ring-blue-500 ring-inset bg-blue-50/20' : ''}`}
+              onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelectDate(date)}
+              aria-label={date.toDateString()}
+              className={`group relative flex min-h-[64px] cursor-pointer flex-col rounded-lg border p-1 transition-all duration-150 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 sm:min-h-[104px] sm:rounded-xl sm:p-2 ${
+                !isCurrentMonth
+                  ? 'border-transparent bg-slate-50/40 text-slate-300'
+                  : isSelected
+                    ? 'border-blue-400 bg-blue-50/60 shadow-md ring-2 ring-blue-500/25'
+                    : `${badge?.tint ?? (isWeekend ? 'bg-slate-50/70' : 'bg-white')} border-slate-200/70 hover:-translate-y-px hover:border-slate-300 hover:shadow-md`
+              }`}
             >
-              {/* Day Number and Badges */}
-              <div className="flex items-start justify-between gap-1">
-                <div className="flex items-center gap-1">
+              {/* Day number, holiday name and attendance status */}
+              <div className="flex flex-col items-start gap-0.5 sm:flex-row sm:items-start sm:justify-between sm:gap-1">
+                <div className="flex min-w-0 items-center gap-1.5">
                   <span
-                    className={`text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full transition-all ${
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all sm:h-7 sm:w-7 sm:text-[13px] ${
                       isToday
-                        ? 'bg-blue-600 text-white shadow-xs'
+                        ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md shadow-blue-500/40'
                         : isSelected
-                        ? 'bg-blue-100 text-blue-800 font-black'
-                        : isCurrentMonth
-                        ? 'text-slate-800'
-                        : 'text-slate-400'
+                          ? 'bg-blue-100 font-extrabold text-blue-800'
+                          : isCurrentMonth
+                            ? isWeekend
+                              ? 'text-slate-500'
+                              : 'text-slate-800'
+                            : 'text-slate-300'
                     }`}
                   >
                     {date.getDate()}
                   </span>
 
-                  {/* Holiday Purple Badge */}
                   {showAttendance && isCurrentMonth && dayHoliday && (
                     <span
                       title={`${dayHoliday.name} (${dayHoliday.type})`}
-                      className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-purple-100 text-purple-800 border border-purple-200 truncate max-w-[80px]"
+                      className="hidden max-w-[88px] truncate rounded-full border border-purple-200 bg-purple-100 px-2 py-0.5 text-[10px] font-semibold text-purple-800 xl:inline"
                     >
                       {dayHoliday.name}
                     </span>
                   )}
                 </div>
 
-                {/* Right side: Attendance Status Badge & Notes/Reminders */}
                 <div className="flex items-center gap-1">
-                  {attendanceBadge}
-                  {showOperations && dayNotes.length > 0 && (
-                    <span title={`${dayNotes.length} Note(s)`} className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                  )}
-                  {showOperations && dayReminders.length > 0 && (
+                  {badge && (
                     <span
-                      title={`${dayReminders.length} Reminder(s)`}
-                      className="w-1.5 h-1.5 rounded-full bg-blue-500"
-                    />
+                      title={badge.title}
+                      className={`inline-flex h-[18px] min-w-[18px] items-center justify-center gap-1 rounded-full px-1 text-[9px] font-bold text-white shadow-sm sm:h-5 sm:px-2 sm:text-[10px] ${badge.chip}`}
+                    >
+                      {badge.code}
+                      <span className="hidden font-semibold 2xl:inline">{badge.label}</span>
+                    </span>
                   )}
+                  {showLate && (
+                    <span title="Late mark" className="hidden rounded-full bg-orange-100 px-1.5 py-0.5 text-[9px] font-bold text-orange-700 sm:inline">
+                      LM
+                    </span>
+                  )}
+                  {showOperations && dayNotes.length > 0 && <span title={`${dayNotes.length} Note(s)`} className="hidden h-2 w-2 rounded-full bg-amber-400 sm:block" />}
+                  {showOperations && dayReminders.length > 0 && <span title={`${dayReminders.length} Reminder(s)`} className="hidden h-2 w-2 rounded-full bg-blue-500 sm:block" />}
                 </div>
               </div>
 
-              {/* Items List (Meetings + Tasks) */}
-              <div className="mt-1 space-y-1 overflow-y-hidden flex-1">
-                {/* Meetings (Blue) */}
-                {showOperations && dayMeetings.slice(0, 2).map((meeting) => {
-                  const mTime = new Date(meeting.start_time).toLocaleTimeString('en-US', {
-                    hour: 'numeric',
-                    minute: '2-digit',
-                    hour12: true,
-                  });
-                  return (
-                    <div
-                      key={`m-${meeting.event_id}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSelectEvent?.(meeting);
-                      }}
-                      title={`Meeting: ${meeting.title} (${mTime})`}
-                      className="px-1.5 py-0.5 rounded text-[10px] font-bold truncate flex items-center gap-1 shadow-2xs border bg-blue-50 text-blue-900 border-blue-200 hover:bg-blue-100 transition-colors cursor-pointer"
-                    >
-                      <Video className="w-2.5 h-2.5 text-blue-600 shrink-0" />
-                      <span className="truncate">
-                        <span className="text-[9px] font-semibold text-blue-700 mr-1">{mTime}</span>
-                        {meeting.title}
-                      </span>
-                    </div>
-                  );
-                })}
+              {/* Meetings and tasks as chips (tablets and up) */}
+              <div className="mt-1.5 hidden flex-1 space-y-1 overflow-hidden sm:block">
+                {showOperations &&
+                  dayMeetings.slice(0, 2).map((meeting) => {
+                    const mTime = new Date(meeting.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                    return (
+                      <div
+                        key={`m-${meeting.event_id}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSelectEvent?.(meeting);
+                        }}
+                        title={`Meeting: ${meeting.title} (${mTime})`}
+                        className="flex cursor-pointer items-center gap-1 truncate rounded-md border-l-[3px] border-blue-500 bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-900 transition-colors hover:bg-blue-100"
+                      >
+                        <Video className="h-2.5 w-2.5 shrink-0 text-blue-600" />
+                        <span className="truncate">
+                          <span className="mr-1 text-[9px] font-medium text-blue-700">{mTime}</span>
+                          {meeting.title}
+                        </span>
+                      </div>
+                    );
+                  })}
 
-                {/* Tasks (Submitted: Amber, Approved: Green) */}
-                {showOperations && dayTasks
-                  .slice(0, Math.max(1, 3 - Math.min(dayMeetings.length, 2)))
-                  .map((task) => {
+                {showOperations &&
+                  dayTasks.slice(0, Math.max(1, 3 - Math.min(dayMeetings.length, 2))).map((task) => {
                     const isSubmitted = task.stage === 'requested';
                     return (
                       <div
@@ -298,38 +269,42 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
                           onSelectTask?.(task.task_id);
                         }}
                         title={`${task.task_code}: ${task.title} (${isSubmitted ? 'Submitted' : 'Approved'})`}
-                        className={`px-1.5 py-0.5 rounded text-[10px] font-bold truncate flex items-center gap-1 shadow-2xs border transition-colors cursor-pointer ${
-                          isSubmitted
-                            ? 'bg-amber-50 text-amber-900 border-amber-200 hover:bg-amber-100'
-                            : 'bg-emerald-50 text-emerald-900 border-emerald-200 hover:bg-emerald-100'
+                        className={`flex cursor-pointer items-center gap-1 truncate rounded-md border-l-[3px] px-1.5 py-0.5 text-[10px] font-semibold transition-colors ${
+                          isSubmitted ? 'border-amber-500 bg-amber-50 text-amber-900 hover:bg-amber-100' : 'border-emerald-500 bg-emerald-50 text-emerald-900 hover:bg-emerald-100'
                         }`}
                       >
-                        {isSubmitted ? (
-                          <Send className="w-2.5 h-2.5 text-amber-600 shrink-0" />
-                        ) : (
-                          <Check className="w-2.5 h-2.5 text-emerald-600 shrink-0" />
-                        )}
+                        {isSubmitted ? <Send className="h-2.5 w-2.5 shrink-0 text-amber-600" /> : <Check className="h-2.5 w-2.5 shrink-0 text-emerald-600" />}
                         <span className="truncate">
-                          <span className="font-mono text-[9px] opacity-75 mr-0.5">{task.task_code}</span>
+                          <span className="mr-0.5 font-mono text-[9px] opacity-70">{task.task_code}</span>
                           {task.title}
                         </span>
                       </div>
                     );
                   })}
 
-                {showOperations && totalItems > 3 && (
-                  <span className="text-[9px] font-bold text-slate-500 block px-1">
-                    +{totalItems - 3} more
-                  </span>
-                )}
+                {showOperations && totalItems > 3 && <span className="block px-1 text-[10px] font-bold text-slate-500">+{totalItems - 3} more</span>}
               </div>
+
+              {/* On phones the same things are small coloured dots */}
+              {showOperations && (
+                <div className="mt-auto flex flex-wrap items-center gap-0.5 pt-1 sm:hidden">
+                  {dayMeetings.slice(0, 3).map((m) => (
+                    <span key={`dm-${m.event_id}`} className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                  ))}
+                  {dayTasks.slice(0, 3).map((t) => (
+                    <span key={`dt-${t.task_id}`} className={`h-1.5 w-1.5 rounded-full ${t.stage === 'requested' ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+                  ))}
+                  {dayNotes.length > 0 && <span className="h-1.5 w-1.5 rounded-full bg-amber-300" />}
+                  {dayReminders.length > 0 && <span className="h-1.5 w-1.5 rounded-full bg-indigo-400" />}
+                </div>
+              )}
             </div>
           );
         })}
       </div>
 
       {/* Unified Attendance & Operational Legend */}
-      <div className="border-t border-slate-200 bg-slate-50/50 p-2">
+      <div className="border-t border-slate-100 bg-slate-50/60 p-2 sm:p-3">
         <CalendarStatusLegend mode={displayMode} />
       </div>
     </div>

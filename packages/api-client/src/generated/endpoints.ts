@@ -25,9 +25,22 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AcceptAndAssignDto,
+  ActivateEmployeeResponseDto,
+  AddActionDto,
+  AddAdjustmentDto,
   AddBugCommentDto,
+  AddLeaveForEmployeeDto,
+  AddManagerDto,
+  AddRemarkDto,
+  AdjustBalanceDto,
+  AdminCancelLeaveDto,
   AdminUpsertDayDto,
+  ApplyLeaveDto,
+  ApproveOtDto,
   ApproveRegularizationDto,
+  AssignAuthorisedApproverDto,
+  AssignLicenseDto,
   AssignableEmployeeDto,
   AttendanceControllerGetDashboardParams,
   AttendanceControllerGetMeParams,
@@ -35,12 +48,26 @@ import type {
   AttendanceControllerGetTeamParams,
   AttendanceControllerListRegularizationsParams,
   BulkApproveRegularizationDto,
+  CalculateLeaveDaysDto,
   CalendarControllerGetEventsParams,
   CalendarControllerGetHolidaysParams,
   CalendarControllerGetMonthTasksParams,
   CalendarControllerGetSummaryParams,
   CalendarEventResponseDto,
+  CancelBodyDto,
+  CandidateControllerListCandidatesParams,
+  CandidateControllerUploadResumeBody,
+  CandidateItemDto,
+  CandidateListResponseDto,
+  ChangeConfidentialityDto,
+  ChangeLeadByBodyDto,
   ChangePasswordDto,
+  ChangePriorityDto,
+  ChangeTargetDateDto,
+  CheckDuplicateCandidateDto,
+  CheckImportBodyDto,
+  CloseComplaintDto,
+  CloseWithoutActionDto,
   CompanyControllerCheckDuplicatesParams,
   CompanyControllerGetOptionsParams,
   CompanyControllerListParams,
@@ -55,48 +82,106 @@ import type {
   CompanyImportConfirmResponseDto,
   CompanyImportPreviewResponseDto,
   CompanyOptionDto,
+  ComplaintSettingsControllerGetComplaintTypesParams,
+  ComplaintsControllerGetAllComplaintsParams,
+  ComplaintsControllerGetMyComplaintsParams,
+  ComplaintsControllerGetReportsParams,
+  CompleteFollowUpBodyDto,
+  ConfirmResolutionDto,
+  ContactBodyDto,
+  ConversationBodyDto,
+  ConvertCandidateToEmployeeDto,
+  ConvertToClientBodyDto,
+  ConvertToEmployeeResponseDto,
+  ConvertToLeadBodyDto,
+  CopyLeavePolicyDto,
+  CreateAttachmentDto,
   CreateBugDto,
   CreateCalendarEventDto,
+  CreateCandidateDto,
+  CreateCategoryDto,
   CreateCompanyDto,
+  CreateComplaintDto,
+  CreateComplaintTypeDto,
   CreateCorrectionDto,
   CreateCustomerTypeDto,
   CreateDepartmentDto,
   CreateDiscussionDto,
   CreateEmployeeDto,
+  CreateExpenseCategoryDto,
+  CreateExpenseClaimDto,
+  CreateExpenseTypeDto,
   CreateIndustryDto,
+  CreateLeavePolicyDto,
+  CreateLeaveTypeDto,
   CreateLookupDto,
   CreateProjectDto,
   CreateProjectTaskDto,
+  CreateReasonDto,
   CreateRegularizationDto,
   CreateRoleDto,
+  CreateSalesCompanyBodyDto,
+  CreateSoftwareLicenseDto,
   CreateSprintDto,
   CreateTaskDto,
+  CreateVendorDto,
   CustomerTypeControllerListParams,
   CustomerTypeItemDto,
   CustomerTypeOptionDto,
   DashboardResponseDto,
   DataTransferJobDetailResponseDto,
+  DayAdjustmentDto,
   DayDetailDto,
   DeactivateEmployeeDto,
   DeactivateWarningResponseDto,
+  DecideCancellationDto,
   DepartmentControllerListParams,
   DepartmentListResponseDto,
   DepartmentOptionDto,
   DepartmentResponseDto,
+  DirectReimbursementDto,
+  DiscontinueLicenseDto,
+  DocumentTemplateItemDto,
+  DuplicateMatchDto,
+  EditFollowUpBodyDto,
+  EmployeeActivationStatusDto,
   EmployeeControllerGetOptionsParams,
   EmployeeControllerListParams,
   EmployeeControllerUploadPhotoBody,
+  EmployeeDocumentControllerListTemplatesParams,
+  EmployeeDocumentControllerUploadFileBody,
+  EmployeeDocumentItemDto,
   EmployeeHistoryItemDto,
   EmployeeListResponseDto,
   EmployeeOptionDto,
   EmployeeResponseDto,
-  FilesControllerGetProfilePhotoParams,
+  ExpenseClaimsControllerGetMyClaimsParams,
+  ExpenseClaimsControllerGetReimbursementQueueParams,
+  ExpenseClaimsControllerGetReportsParams,
+  ExportBodyDto,
+  FilesControllerGetProfilePhoto0Params,
+  FilesControllerGetProfilePhoto1Params,
+  FinalizeDocumentDraftDto,
   ForgotPasswordDto,
   ForgotPasswordResponseDto,
+  GenerateDocumentDraftDto,
+  HoldBodyDto,
   IndustryControllerGetOptionsParams,
   IndustryControllerListParams,
   IndustryDetailResponseDto,
   IndustryOptionDto,
+  LeaveControllerGetAdminRequestsParams,
+  LeaveControllerGetAllBalancesParams,
+  LeaveControllerGetLedgerParams,
+  LeaveControllerGetMyLeaveParams,
+  LicenseControllerGetSoftwareListParams,
+  LicenseReportsControllerGetActivityLogsParams,
+  LicenseReportsControllerGetAssignmentsParams,
+  LicenseReportsControllerGetRenewalsParams,
+  LicenseSettingsControllerGetCategoriesParams,
+  LicenseSettingsControllerGetDiscontinueReasonsParams,
+  LicenseSettingsControllerGetRevokeReasonsParams,
+  LicenseSettingsControllerGetVendorsParams,
   ListCompaniesResponseDto,
   ListCustomerTypesResponseDto,
   ListIndustriesResponseDto,
@@ -106,57 +191,119 @@ import type {
   LookupControllerGetOptionsParams,
   LookupControllerListAllParams,
   LookupOptionDto,
+  LostBodyDto,
   MarkAllReadResponseDto,
+  MarkCandidateDecisionDto,
+  MarkPaidDto,
   MarkReadResponseDto,
   MasterLookupItemDto,
   MeResponseDto,
   MonthBlockDto,
   MoveTaskStageDto,
   MyTasksControllerGetBoardParams,
+  NextEmpCodeResponseDto,
+  NoteBodyDto,
   NotificationResponseDto,
   NotificationsControllerGetNotificationsParams,
+  PayrollControllerListRunsParams,
+  PayrollReimbursementDto,
   PendingReviewCountDto,
   PersonControllerLookupParams,
   PersonLookupMatchDto,
   ProjectsControllerGetProjectTasksParams,
   ProjectsControllerGetProjectsParams,
+  QualifyBodyDto,
+  QuickLogBodyDto,
+  ReassignHandlerDto,
+  RecordResolutionDto,
   RefreshResponseDto,
   RejectCorrectionDto,
   RejectRegularizationDto,
+  RenewLicenseDto,
+  ReopenComplaintDto,
+  ReopenExpenseClaimDto,
+  ReorderAttachmentsDto,
+  RequestCancellationDto,
+  RescheduleBodyDto,
   ResendOtpDto,
   ResetPasswordDto,
   RespondRsvpDto,
+  ReverseConversionBodyDto,
+  ReviewExpenseClaimDto,
+  ReviewLeaveRequestDto,
+  RevokeLicenseDto,
   RoleControllerGetOptionsParams,
   RoleControllerListParams,
   RoleListResponseDto,
   RoleOptionDto,
   RoleResponseDto,
+  SalesActivityControllerCompanyCommunicationsParams,
+  SalesActivityControllerCompanyHistoryParams,
+  SalesActivityControllerHistoryParams,
+  SalesActivityControllerLeadConversationsParams,
+  SalesActivityControllerTimelineParams,
+  SalesCompanyControllerDuplicateCheckParams,
+  SalesCompanyControllerListParams,
+  SalesFollowUpControllerListParams,
+  SalesImportExportControllerErrorRowsParams,
+  SalesImportExportControllerExportCompaniesParams,
+  SalesImportExportControllerExportFollowUpsParams,
+  SalesImportExportControllerExportLeadsParams,
+  SalesImportExportControllerHistoryParams,
+  SalesImportExportControllerTemplateParams,
+  SalesImportExportControllerUploadBody,
+  SalesLeadControllerBoardParams,
+  SalesLeadControllerListParams,
+  ScheduleFollowUpBodyDto,
+  ScheduleOnLeadBodyDto,
+  SendBackDto,
+  SetRightsBodyDto,
   StartBreakDto,
   TaskBoardResultDto,
   TaskDetailDto,
   TaskSummaryDto,
   TasksControllerGetBoardParams,
   TodayAttendanceBlockDto,
+  ToggleDocumentDto,
   TrackWorkSessionDto,
   TransferJobIssuesResponseDto,
   TransferJobListResponseDto,
+  UnlockPayrollDto,
   UnreadCountResponseDto,
   UnscheduledTaskDto,
   UpdateBugStatusDto,
   UpdateCalendarEventDto,
+  UpdateCandidateStageDto,
+  UpdateCategoryDto,
   UpdateCompanyDto,
+  UpdateComplaintSettingsDto,
+  UpdateComplaintTypeDto,
   UpdateCustomerTypeDto,
   UpdateDepartmentDto,
   UpdateEmployeeDto,
+  UpdateExpenseCategoryDto,
+  UpdateExpenseClaimDto,
+  UpdateExpenseGeneralSettingsDto,
+  UpdateExpenseTypeDto,
+  UpdateGeneralSettingsDto,
   UpdateIndustryDto,
+  UpdateLeavePolicyDto,
+  UpdateLeaveTypeDto,
+  UpdateLicenseSettingsDto,
   UpdateLookupDto,
+  UpdatePayrollSettingsDto,
   UpdateProjectDto,
   UpdateProjectStatusDto,
+  UpdateReasonDto,
   UpdateRoleDto,
+  UpdateSalesCompanyBodyDto,
+  UpdateSoftwareLicenseDto,
   UpdateSprintDto,
   UpdateTaskDto,
+  UpdateVendorDto,
   VerifyLoginDto,
-  VerifyLoginResponseDto
+  VerifyLoginResponseDto,
+  WithdrawComplaintDto
 } from './model';
 
 import { customFetch } from '../custom-fetch';
@@ -1303,27 +1450,27 @@ export function useJwksControllerGetJwks<TData = Awaited<ReturnType<typeof jwksC
 /**
  * @summary Public signed profile photo retrieval
  */
-export type filesControllerGetProfilePhotoResponse200 = {
+export type filesControllerGetProfilePhoto0Response200 = {
   data: void
   status: 200
 }
 
-export type filesControllerGetProfilePhotoResponse403 = {
+export type filesControllerGetProfilePhoto0Response403 = {
   data: void
   status: 403
 }
     
-export type filesControllerGetProfilePhotoResponseSuccess = (filesControllerGetProfilePhotoResponse200) & {
+export type filesControllerGetProfilePhoto0ResponseSuccess = (filesControllerGetProfilePhoto0Response200) & {
   headers: Headers;
 };
-export type filesControllerGetProfilePhotoResponseError = (filesControllerGetProfilePhotoResponse403) & {
+export type filesControllerGetProfilePhoto0ResponseError = (filesControllerGetProfilePhoto0Response403) & {
   headers: Headers;
 };
 
-export type filesControllerGetProfilePhotoResponse = (filesControllerGetProfilePhotoResponseSuccess | filesControllerGetProfilePhotoResponseError)
+export type filesControllerGetProfilePhoto0Response = (filesControllerGetProfilePhoto0ResponseSuccess | filesControllerGetProfilePhoto0ResponseError)
 
-export const getFilesControllerGetProfilePhotoUrl = (key: string,
-    params: FilesControllerGetProfilePhotoParams,) => {
+export const getFilesControllerGetProfilePhoto0Url = (key: string,
+    params: FilesControllerGetProfilePhoto0Params,) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
@@ -1338,10 +1485,10 @@ export const getFilesControllerGetProfilePhotoUrl = (key: string,
   return stringifiedParams.length > 0 ? `/api/v1/files/profile-photos/${key}?${stringifiedParams}` : `/api/v1/files/profile-photos/${key}`
 }
 
-export const filesControllerGetProfilePhoto = async (key: string,
-    params: FilesControllerGetProfilePhotoParams, options?: RequestInit): Promise<filesControllerGetProfilePhotoResponse> => {
+export const filesControllerGetProfilePhoto0 = async (key: string,
+    params: FilesControllerGetProfilePhoto0Params, options?: RequestInit): Promise<filesControllerGetProfilePhoto0Response> => {
   
-  return customFetch<filesControllerGetProfilePhotoResponse>(getFilesControllerGetProfilePhotoUrl(key,params),
+  return customFetch<filesControllerGetProfilePhoto0Response>(getFilesControllerGetProfilePhoto0Url(key,params),
   {      
     ...options,
     method: 'GET'
@@ -1354,75 +1501,210 @@ export const filesControllerGetProfilePhoto = async (key: string,
 
 
 
-export const getFilesControllerGetProfilePhotoQueryKey = (key?: string,
-    params?: FilesControllerGetProfilePhotoParams,) => {
+export const getFilesControllerGetProfilePhoto0QueryKey = (key?: string,
+    params?: FilesControllerGetProfilePhoto0Params,) => {
     return [
     `/api/v1/files/profile-photos/${key}`, ...(params ? [params]: [])
     ] as const;
     }
 
     
-export const getFilesControllerGetProfilePhotoQueryOptions = <TData = Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>, TError = void>(key: string,
-    params: FilesControllerGetProfilePhotoParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export const getFilesControllerGetProfilePhoto0QueryOptions = <TData = Awaited<ReturnType<typeof filesControllerGetProfilePhoto0>>, TError = void>(key: string,
+    params: FilesControllerGetProfilePhoto0Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof filesControllerGetProfilePhoto0>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getFilesControllerGetProfilePhotoQueryKey(key,params);
+  const queryKey =  queryOptions?.queryKey ?? getFilesControllerGetProfilePhoto0QueryKey(key,params);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>> = ({ signal }) => filesControllerGetProfilePhoto(key,params, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof filesControllerGetProfilePhoto0>>> = ({ signal }) => filesControllerGetProfilePhoto0(key,params, { signal, ...requestOptions });
 
       
 
       
 
-   return  { queryKey, queryFn, enabled: !!(key), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, enabled: !!(key), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof filesControllerGetProfilePhoto0>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type FilesControllerGetProfilePhotoQueryResult = NonNullable<Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>>
-export type FilesControllerGetProfilePhotoQueryError = void
+export type FilesControllerGetProfilePhoto0QueryResult = NonNullable<Awaited<ReturnType<typeof filesControllerGetProfilePhoto0>>>
+export type FilesControllerGetProfilePhoto0QueryError = void
 
 
-export function useFilesControllerGetProfilePhoto<TData = Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>, TError = void>(
+export function useFilesControllerGetProfilePhoto0<TData = Awaited<ReturnType<typeof filesControllerGetProfilePhoto0>>, TError = void>(
  key: string,
-    params: FilesControllerGetProfilePhotoParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>, TError, TData>> & Pick<
+    params: FilesControllerGetProfilePhoto0Params, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof filesControllerGetProfilePhoto0>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>,
+          Awaited<ReturnType<typeof filesControllerGetProfilePhoto0>>,
           TError,
-          Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>
+          Awaited<ReturnType<typeof filesControllerGetProfilePhoto0>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useFilesControllerGetProfilePhoto<TData = Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>, TError = void>(
+export function useFilesControllerGetProfilePhoto0<TData = Awaited<ReturnType<typeof filesControllerGetProfilePhoto0>>, TError = void>(
  key: string,
-    params: FilesControllerGetProfilePhotoParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>, TError, TData>> & Pick<
+    params: FilesControllerGetProfilePhoto0Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof filesControllerGetProfilePhoto0>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>,
+          Awaited<ReturnType<typeof filesControllerGetProfilePhoto0>>,
           TError,
-          Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>
+          Awaited<ReturnType<typeof filesControllerGetProfilePhoto0>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useFilesControllerGetProfilePhoto<TData = Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>, TError = void>(
+export function useFilesControllerGetProfilePhoto0<TData = Awaited<ReturnType<typeof filesControllerGetProfilePhoto0>>, TError = void>(
  key: string,
-    params: FilesControllerGetProfilePhotoParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+    params: FilesControllerGetProfilePhoto0Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof filesControllerGetProfilePhoto0>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
  * @summary Public signed profile photo retrieval
  */
 
-export function useFilesControllerGetProfilePhoto<TData = Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>, TError = void>(
+export function useFilesControllerGetProfilePhoto0<TData = Awaited<ReturnType<typeof filesControllerGetProfilePhoto0>>, TError = void>(
  key: string,
-    params: FilesControllerGetProfilePhotoParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof filesControllerGetProfilePhoto>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+    params: FilesControllerGetProfilePhoto0Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof filesControllerGetProfilePhoto0>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getFilesControllerGetProfilePhotoQueryOptions(key,params,options)
+  const queryOptions = getFilesControllerGetProfilePhoto0QueryOptions(key,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Public signed profile photo retrieval
+ */
+export type filesControllerGetProfilePhoto1Response200 = {
+  data: void
+  status: 200
+}
+
+export type filesControllerGetProfilePhoto1Response403 = {
+  data: void
+  status: 403
+}
+    
+export type filesControllerGetProfilePhoto1ResponseSuccess = (filesControllerGetProfilePhoto1Response200) & {
+  headers: Headers;
+};
+export type filesControllerGetProfilePhoto1ResponseError = (filesControllerGetProfilePhoto1Response403) & {
+  headers: Headers;
+};
+
+export type filesControllerGetProfilePhoto1Response = (filesControllerGetProfilePhoto1ResponseSuccess | filesControllerGetProfilePhoto1ResponseError)
+
+export const getFilesControllerGetProfilePhoto1Url = (key: string,
+    params: FilesControllerGetProfilePhoto1Params,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/api/v1/files/profile-photos/${key}?${stringifiedParams}` : `/api/v1/api/v1/files/profile-photos/${key}`
+}
+
+export const filesControllerGetProfilePhoto1 = async (key: string,
+    params: FilesControllerGetProfilePhoto1Params, options?: RequestInit): Promise<filesControllerGetProfilePhoto1Response> => {
+  
+  return customFetch<filesControllerGetProfilePhoto1Response>(getFilesControllerGetProfilePhoto1Url(key,params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getFilesControllerGetProfilePhoto1QueryKey = (key?: string,
+    params?: FilesControllerGetProfilePhoto1Params,) => {
+    return [
+    `/api/v1/api/v1/files/profile-photos/${key}`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getFilesControllerGetProfilePhoto1QueryOptions = <TData = Awaited<ReturnType<typeof filesControllerGetProfilePhoto1>>, TError = void>(key: string,
+    params: FilesControllerGetProfilePhoto1Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof filesControllerGetProfilePhoto1>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getFilesControllerGetProfilePhoto1QueryKey(key,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof filesControllerGetProfilePhoto1>>> = ({ signal }) => filesControllerGetProfilePhoto1(key,params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(key), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof filesControllerGetProfilePhoto1>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type FilesControllerGetProfilePhoto1QueryResult = NonNullable<Awaited<ReturnType<typeof filesControllerGetProfilePhoto1>>>
+export type FilesControllerGetProfilePhoto1QueryError = void
+
+
+export function useFilesControllerGetProfilePhoto1<TData = Awaited<ReturnType<typeof filesControllerGetProfilePhoto1>>, TError = void>(
+ key: string,
+    params: FilesControllerGetProfilePhoto1Params, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof filesControllerGetProfilePhoto1>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof filesControllerGetProfilePhoto1>>,
+          TError,
+          Awaited<ReturnType<typeof filesControllerGetProfilePhoto1>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useFilesControllerGetProfilePhoto1<TData = Awaited<ReturnType<typeof filesControllerGetProfilePhoto1>>, TError = void>(
+ key: string,
+    params: FilesControllerGetProfilePhoto1Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof filesControllerGetProfilePhoto1>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof filesControllerGetProfilePhoto1>>,
+          TError,
+          Awaited<ReturnType<typeof filesControllerGetProfilePhoto1>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useFilesControllerGetProfilePhoto1<TData = Awaited<ReturnType<typeof filesControllerGetProfilePhoto1>>, TError = void>(
+ key: string,
+    params: FilesControllerGetProfilePhoto1Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof filesControllerGetProfilePhoto1>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Public signed profile photo retrieval
+ */
+
+export function useFilesControllerGetProfilePhoto1<TData = Awaited<ReturnType<typeof filesControllerGetProfilePhoto1>>, TError = void>(
+ key: string,
+    params: FilesControllerGetProfilePhoto1Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof filesControllerGetProfilePhoto1>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getFilesControllerGetProfilePhoto1QueryOptions(key,params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -2238,7 +2520,7 @@ export const useRoleControllerCreate = <TError = unknown,
     }
     
 /**
- * @summary Get active roles for a department
+ * @summary Get active roles for department(s)
  */
 export type roleControllerGetOptionsResponse200 = {
   data: RoleOptionDto[]
@@ -2252,7 +2534,7 @@ export type roleControllerGetOptionsResponseSuccess = (roleControllerGetOptionsR
 
 export type roleControllerGetOptionsResponse = (roleControllerGetOptionsResponseSuccess)
 
-export const getRoleControllerGetOptionsUrl = (params: RoleControllerGetOptionsParams,) => {
+export const getRoleControllerGetOptionsUrl = (params?: RoleControllerGetOptionsParams,) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
@@ -2267,7 +2549,7 @@ export const getRoleControllerGetOptionsUrl = (params: RoleControllerGetOptionsP
   return stringifiedParams.length > 0 ? `/api/v1/roles/options?${stringifiedParams}` : `/api/v1/roles/options`
 }
 
-export const roleControllerGetOptions = async (params: RoleControllerGetOptionsParams, options?: RequestInit): Promise<roleControllerGetOptionsResponse> => {
+export const roleControllerGetOptions = async (params?: RoleControllerGetOptionsParams, options?: RequestInit): Promise<roleControllerGetOptionsResponse> => {
   
   return customFetch<roleControllerGetOptionsResponse>(getRoleControllerGetOptionsUrl(params),
   {      
@@ -2289,7 +2571,7 @@ export const getRoleControllerGetOptionsQueryKey = (params?: RoleControllerGetOp
     }
 
     
-export const getRoleControllerGetOptionsQueryOptions = <TData = Awaited<ReturnType<typeof roleControllerGetOptions>>, TError = unknown>(params: RoleControllerGetOptionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof roleControllerGetOptions>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export const getRoleControllerGetOptionsQueryOptions = <TData = Awaited<ReturnType<typeof roleControllerGetOptions>>, TError = unknown>(params?: RoleControllerGetOptionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof roleControllerGetOptions>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -2312,7 +2594,7 @@ export type RoleControllerGetOptionsQueryError = unknown
 
 
 export function useRoleControllerGetOptions<TData = Awaited<ReturnType<typeof roleControllerGetOptions>>, TError = unknown>(
- params: RoleControllerGetOptionsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof roleControllerGetOptions>>, TError, TData>> & Pick<
+ params: undefined |  RoleControllerGetOptionsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof roleControllerGetOptions>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof roleControllerGetOptions>>,
           TError,
@@ -2322,7 +2604,7 @@ export function useRoleControllerGetOptions<TData = Awaited<ReturnType<typeof ro
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useRoleControllerGetOptions<TData = Awaited<ReturnType<typeof roleControllerGetOptions>>, TError = unknown>(
- params: RoleControllerGetOptionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof roleControllerGetOptions>>, TError, TData>> & Pick<
+ params?: RoleControllerGetOptionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof roleControllerGetOptions>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof roleControllerGetOptions>>,
           TError,
@@ -2332,15 +2614,15 @@ export function useRoleControllerGetOptions<TData = Awaited<ReturnType<typeof ro
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useRoleControllerGetOptions<TData = Awaited<ReturnType<typeof roleControllerGetOptions>>, TError = unknown>(
- params: RoleControllerGetOptionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof roleControllerGetOptions>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ params?: RoleControllerGetOptionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof roleControllerGetOptions>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
- * @summary Get active roles for a department
+ * @summary Get active roles for department(s)
  */
 
 export function useRoleControllerGetOptions<TData = Awaited<ReturnType<typeof roleControllerGetOptions>>, TError = unknown>(
- params: RoleControllerGetOptionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof roleControllerGetOptions>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ params?: RoleControllerGetOptionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof roleControllerGetOptions>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
@@ -3738,6 +4020,1070 @@ export const useEmployeeControllerRemovePhoto = <TError = unknown,
       return useMutation(mutationOptions, queryClient);
     }
     
+/**
+ * @summary Check if employee has uploaded all mandatory documents to activate account
+ */
+export type employeeDocumentControllerGetActivationStatusResponse200 = {
+  data: EmployeeActivationStatusDto
+  status: 200
+}
+    
+export type employeeDocumentControllerGetActivationStatusResponseSuccess = (employeeDocumentControllerGetActivationStatusResponse200) & {
+  headers: Headers;
+};
+;
+
+export type employeeDocumentControllerGetActivationStatusResponse = (employeeDocumentControllerGetActivationStatusResponseSuccess)
+
+export const getEmployeeDocumentControllerGetActivationStatusUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/employees/${id}/activation-status`
+}
+
+export const employeeDocumentControllerGetActivationStatus = async (id: number, options?: RequestInit): Promise<employeeDocumentControllerGetActivationStatusResponse> => {
+  
+  return customFetch<employeeDocumentControllerGetActivationStatusResponse>(getEmployeeDocumentControllerGetActivationStatusUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getEmployeeDocumentControllerGetActivationStatusQueryKey = (id?: number,) => {
+    return [
+    `/api/v1/employees/${id}/activation-status`
+    ] as const;
+    }
+
+    
+export const getEmployeeDocumentControllerGetActivationStatusQueryOptions = <TData = Awaited<ReturnType<typeof employeeDocumentControllerGetActivationStatus>>, TError = unknown>(id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof employeeDocumentControllerGetActivationStatus>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getEmployeeDocumentControllerGetActivationStatusQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof employeeDocumentControllerGetActivationStatus>>> = ({ signal }) => employeeDocumentControllerGetActivationStatus(id, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof employeeDocumentControllerGetActivationStatus>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type EmployeeDocumentControllerGetActivationStatusQueryResult = NonNullable<Awaited<ReturnType<typeof employeeDocumentControllerGetActivationStatus>>>
+export type EmployeeDocumentControllerGetActivationStatusQueryError = unknown
+
+
+export function useEmployeeDocumentControllerGetActivationStatus<TData = Awaited<ReturnType<typeof employeeDocumentControllerGetActivationStatus>>, TError = unknown>(
+ id: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof employeeDocumentControllerGetActivationStatus>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof employeeDocumentControllerGetActivationStatus>>,
+          TError,
+          Awaited<ReturnType<typeof employeeDocumentControllerGetActivationStatus>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useEmployeeDocumentControllerGetActivationStatus<TData = Awaited<ReturnType<typeof employeeDocumentControllerGetActivationStatus>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof employeeDocumentControllerGetActivationStatus>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof employeeDocumentControllerGetActivationStatus>>,
+          TError,
+          Awaited<ReturnType<typeof employeeDocumentControllerGetActivationStatus>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useEmployeeDocumentControllerGetActivationStatus<TData = Awaited<ReturnType<typeof employeeDocumentControllerGetActivationStatus>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof employeeDocumentControllerGetActivationStatus>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Check if employee has uploaded all mandatory documents to activate account
+ */
+
+export function useEmployeeDocumentControllerGetActivationStatus<TData = Awaited<ReturnType<typeof employeeDocumentControllerGetActivationStatus>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof employeeDocumentControllerGetActivationStatus>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getEmployeeDocumentControllerGetActivationStatusQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Activate employee account and generate temporary login credentials
+ */
+export type employeeDocumentControllerActivateEmployeeResponse200 = {
+  data: ActivateEmployeeResponseDto
+  status: 200
+}
+    
+export type employeeDocumentControllerActivateEmployeeResponseSuccess = (employeeDocumentControllerActivateEmployeeResponse200) & {
+  headers: Headers;
+};
+;
+
+export type employeeDocumentControllerActivateEmployeeResponse = (employeeDocumentControllerActivateEmployeeResponseSuccess)
+
+export const getEmployeeDocumentControllerActivateEmployeeUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/employees/${id}/activate`
+}
+
+export const employeeDocumentControllerActivateEmployee = async (id: number, options?: RequestInit): Promise<employeeDocumentControllerActivateEmployeeResponse> => {
+  
+  return customFetch<employeeDocumentControllerActivateEmployeeResponse>(getEmployeeDocumentControllerActivateEmployeeUrl(id),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getEmployeeDocumentControllerActivateEmployeeMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof employeeDocumentControllerActivateEmployee>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof employeeDocumentControllerActivateEmployee>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['employeeDocumentControllerActivateEmployee'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof employeeDocumentControllerActivateEmployee>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  employeeDocumentControllerActivateEmployee(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type EmployeeDocumentControllerActivateEmployeeMutationResult = NonNullable<Awaited<ReturnType<typeof employeeDocumentControllerActivateEmployee>>>
+    
+    export type EmployeeDocumentControllerActivateEmployeeMutationError = unknown
+
+    /**
+ * @summary Activate employee account and generate temporary login credentials
+ */
+export const useEmployeeDocumentControllerActivateEmployee = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof employeeDocumentControllerActivateEmployee>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof employeeDocumentControllerActivateEmployee>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+
+      const mutationOptions = getEmployeeDocumentControllerActivateEmployeeMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Resend login credentials (generates a new temporary password, Part 7)
+ */
+export type employeeDocumentControllerResendLoginResponse200 = {
+  data: ActivateEmployeeResponseDto
+  status: 200
+}
+    
+export type employeeDocumentControllerResendLoginResponseSuccess = (employeeDocumentControllerResendLoginResponse200) & {
+  headers: Headers;
+};
+;
+
+export type employeeDocumentControllerResendLoginResponse = (employeeDocumentControllerResendLoginResponseSuccess)
+
+export const getEmployeeDocumentControllerResendLoginUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/employees/${id}/resend-login`
+}
+
+export const employeeDocumentControllerResendLogin = async (id: number, options?: RequestInit): Promise<employeeDocumentControllerResendLoginResponse> => {
+  
+  return customFetch<employeeDocumentControllerResendLoginResponse>(getEmployeeDocumentControllerResendLoginUrl(id),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getEmployeeDocumentControllerResendLoginMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof employeeDocumentControllerResendLogin>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof employeeDocumentControllerResendLogin>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['employeeDocumentControllerResendLogin'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof employeeDocumentControllerResendLogin>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  employeeDocumentControllerResendLogin(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type EmployeeDocumentControllerResendLoginMutationResult = NonNullable<Awaited<ReturnType<typeof employeeDocumentControllerResendLogin>>>
+    
+    export type EmployeeDocumentControllerResendLoginMutationError = unknown
+
+    /**
+ * @summary Resend login credentials (generates a new temporary password, Part 7)
+ */
+export const useEmployeeDocumentControllerResendLogin = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof employeeDocumentControllerResendLogin>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof employeeDocumentControllerResendLogin>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+
+      const mutationOptions = getEmployeeDocumentControllerResendLoginMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary List all employee documents grouped with statuses
+ */
+export type employeeDocumentControllerListDocumentsResponse200 = {
+  data: EmployeeDocumentItemDto[]
+  status: 200
+}
+    
+export type employeeDocumentControllerListDocumentsResponseSuccess = (employeeDocumentControllerListDocumentsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type employeeDocumentControllerListDocumentsResponse = (employeeDocumentControllerListDocumentsResponseSuccess)
+
+export const getEmployeeDocumentControllerListDocumentsUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/employees/${id}/documents`
+}
+
+export const employeeDocumentControllerListDocuments = async (id: number, options?: RequestInit): Promise<employeeDocumentControllerListDocumentsResponse> => {
+  
+  return customFetch<employeeDocumentControllerListDocumentsResponse>(getEmployeeDocumentControllerListDocumentsUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getEmployeeDocumentControllerListDocumentsQueryKey = (id?: number,) => {
+    return [
+    `/api/v1/employees/${id}/documents`
+    ] as const;
+    }
+
+    
+export const getEmployeeDocumentControllerListDocumentsQueryOptions = <TData = Awaited<ReturnType<typeof employeeDocumentControllerListDocuments>>, TError = unknown>(id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof employeeDocumentControllerListDocuments>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getEmployeeDocumentControllerListDocumentsQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof employeeDocumentControllerListDocuments>>> = ({ signal }) => employeeDocumentControllerListDocuments(id, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof employeeDocumentControllerListDocuments>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type EmployeeDocumentControllerListDocumentsQueryResult = NonNullable<Awaited<ReturnType<typeof employeeDocumentControllerListDocuments>>>
+export type EmployeeDocumentControllerListDocumentsQueryError = unknown
+
+
+export function useEmployeeDocumentControllerListDocuments<TData = Awaited<ReturnType<typeof employeeDocumentControllerListDocuments>>, TError = unknown>(
+ id: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof employeeDocumentControllerListDocuments>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof employeeDocumentControllerListDocuments>>,
+          TError,
+          Awaited<ReturnType<typeof employeeDocumentControllerListDocuments>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useEmployeeDocumentControllerListDocuments<TData = Awaited<ReturnType<typeof employeeDocumentControllerListDocuments>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof employeeDocumentControllerListDocuments>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof employeeDocumentControllerListDocuments>>,
+          TError,
+          Awaited<ReturnType<typeof employeeDocumentControllerListDocuments>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useEmployeeDocumentControllerListDocuments<TData = Awaited<ReturnType<typeof employeeDocumentControllerListDocuments>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof employeeDocumentControllerListDocuments>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List all employee documents grouped with statuses
+ */
+
+export function useEmployeeDocumentControllerListDocuments<TData = Awaited<ReturnType<typeof employeeDocumentControllerListDocuments>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof employeeDocumentControllerListDocuments>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getEmployeeDocumentControllerListDocumentsQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Toggle tick status for a document
+ */
+export type employeeDocumentControllerToggleDocumentResponse200 = {
+  data: EmployeeDocumentItemDto
+  status: 200
+}
+    
+export type employeeDocumentControllerToggleDocumentResponseSuccess = (employeeDocumentControllerToggleDocumentResponse200) & {
+  headers: Headers;
+};
+;
+
+export type employeeDocumentControllerToggleDocumentResponse = (employeeDocumentControllerToggleDocumentResponseSuccess)
+
+export const getEmployeeDocumentControllerToggleDocumentUrl = (id: number,
+    documentType: string,) => {
+
+
+  
+
+  return `/api/v1/employees/${id}/documents/${documentType}/toggle`
+}
+
+export const employeeDocumentControllerToggleDocument = async (id: number,
+    documentType: string,
+    toggleDocumentDto: ToggleDocumentDto, options?: RequestInit): Promise<employeeDocumentControllerToggleDocumentResponse> => {
+  
+  return customFetch<employeeDocumentControllerToggleDocumentResponse>(getEmployeeDocumentControllerToggleDocumentUrl(id,documentType),
+  {      
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      toggleDocumentDto,)
+  }
+);}
+
+
+
+
+export const getEmployeeDocumentControllerToggleDocumentMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof employeeDocumentControllerToggleDocument>>, TError,{id: number;documentType: string;data: ToggleDocumentDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof employeeDocumentControllerToggleDocument>>, TError,{id: number;documentType: string;data: ToggleDocumentDto}, TContext> => {
+
+const mutationKey = ['employeeDocumentControllerToggleDocument'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof employeeDocumentControllerToggleDocument>>, {id: number;documentType: string;data: ToggleDocumentDto}> = (props) => {
+          const {id,documentType,data} = props ?? {};
+
+          return  employeeDocumentControllerToggleDocument(id,documentType,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type EmployeeDocumentControllerToggleDocumentMutationResult = NonNullable<Awaited<ReturnType<typeof employeeDocumentControllerToggleDocument>>>
+    export type EmployeeDocumentControllerToggleDocumentMutationBody = ToggleDocumentDto
+    export type EmployeeDocumentControllerToggleDocumentMutationError = unknown
+
+    /**
+ * @summary Toggle tick status for a document
+ */
+export const useEmployeeDocumentControllerToggleDocument = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof employeeDocumentControllerToggleDocument>>, TError,{id: number;documentType: string;data: ToggleDocumentDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof employeeDocumentControllerToggleDocument>>,
+        TError,
+        {id: number;documentType: string;data: ToggleDocumentDto},
+        TContext
+      > => {
+
+      const mutationOptions = getEmployeeDocumentControllerToggleDocumentMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Upload document file scan
+ */
+export type employeeDocumentControllerUploadFileResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type employeeDocumentControllerUploadFileResponseSuccess = (employeeDocumentControllerUploadFileResponse201) & {
+  headers: Headers;
+};
+;
+
+export type employeeDocumentControllerUploadFileResponse = (employeeDocumentControllerUploadFileResponseSuccess)
+
+export const getEmployeeDocumentControllerUploadFileUrl = (id: number,
+    documentType: string,) => {
+
+
+  
+
+  return `/api/v1/employees/${id}/documents/${documentType}/upload`
+}
+
+export const employeeDocumentControllerUploadFile = async (id: number,
+    documentType: string,
+    employeeDocumentControllerUploadFileBody: EmployeeDocumentControllerUploadFileBody, options?: RequestInit): Promise<employeeDocumentControllerUploadFileResponse> => {
+    const formData = new FormData();
+formData.append(`file`, employeeDocumentControllerUploadFileBody.file)
+
+  return customFetch<employeeDocumentControllerUploadFileResponse>(getEmployeeDocumentControllerUploadFileUrl(id,documentType),
+  {      
+    ...options,
+    method: 'POST'
+    ,
+    body: 
+      formData,
+  }
+);}
+
+
+
+
+export const getEmployeeDocumentControllerUploadFileMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof employeeDocumentControllerUploadFile>>, TError,{id: number;documentType: string;data: EmployeeDocumentControllerUploadFileBody}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof employeeDocumentControllerUploadFile>>, TError,{id: number;documentType: string;data: EmployeeDocumentControllerUploadFileBody}, TContext> => {
+
+const mutationKey = ['employeeDocumentControllerUploadFile'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof employeeDocumentControllerUploadFile>>, {id: number;documentType: string;data: EmployeeDocumentControllerUploadFileBody}> = (props) => {
+          const {id,documentType,data} = props ?? {};
+
+          return  employeeDocumentControllerUploadFile(id,documentType,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type EmployeeDocumentControllerUploadFileMutationResult = NonNullable<Awaited<ReturnType<typeof employeeDocumentControllerUploadFile>>>
+    export type EmployeeDocumentControllerUploadFileMutationBody = EmployeeDocumentControllerUploadFileBody
+    export type EmployeeDocumentControllerUploadFileMutationError = unknown
+
+    /**
+ * @summary Upload document file scan
+ */
+export const useEmployeeDocumentControllerUploadFile = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof employeeDocumentControllerUploadFile>>, TError,{id: number;documentType: string;data: EmployeeDocumentControllerUploadFileBody}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof employeeDocumentControllerUploadFile>>,
+        TError,
+        {id: number;documentType: string;data: EmployeeDocumentControllerUploadFileBody},
+        TContext
+      > => {
+
+      const mutationOptions = getEmployeeDocumentControllerUploadFileMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Remove uploaded document file
+ */
+export type employeeDocumentControllerRemoveFileResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type employeeDocumentControllerRemoveFileResponseSuccess = (employeeDocumentControllerRemoveFileResponse200) & {
+  headers: Headers;
+};
+;
+
+export type employeeDocumentControllerRemoveFileResponse = (employeeDocumentControllerRemoveFileResponseSuccess)
+
+export const getEmployeeDocumentControllerRemoveFileUrl = (id: number,
+    documentType: string,) => {
+
+
+  
+
+  return `/api/v1/employees/${id}/documents/${documentType}/file`
+}
+
+export const employeeDocumentControllerRemoveFile = async (id: number,
+    documentType: string, options?: RequestInit): Promise<employeeDocumentControllerRemoveFileResponse> => {
+  
+  return customFetch<employeeDocumentControllerRemoveFileResponse>(getEmployeeDocumentControllerRemoveFileUrl(id,documentType),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+);}
+
+
+
+
+export const getEmployeeDocumentControllerRemoveFileMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof employeeDocumentControllerRemoveFile>>, TError,{id: number;documentType: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof employeeDocumentControllerRemoveFile>>, TError,{id: number;documentType: string}, TContext> => {
+
+const mutationKey = ['employeeDocumentControllerRemoveFile'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof employeeDocumentControllerRemoveFile>>, {id: number;documentType: string}> = (props) => {
+          const {id,documentType} = props ?? {};
+
+          return  employeeDocumentControllerRemoveFile(id,documentType,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type EmployeeDocumentControllerRemoveFileMutationResult = NonNullable<Awaited<ReturnType<typeof employeeDocumentControllerRemoveFile>>>
+    
+    export type EmployeeDocumentControllerRemoveFileMutationError = unknown
+
+    /**
+ * @summary Remove uploaded document file
+ */
+export const useEmployeeDocumentControllerRemoveFile = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof employeeDocumentControllerRemoveFile>>, TError,{id: number;documentType: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof employeeDocumentControllerRemoveFile>>,
+        TError,
+        {id: number;documentType: string},
+        TContext
+      > => {
+
+      const mutationOptions = getEmployeeDocumentControllerRemoveFileMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary List active letter templates
+ */
+export type employeeDocumentControllerListTemplatesResponse200 = {
+  data: DocumentTemplateItemDto[]
+  status: 200
+}
+    
+export type employeeDocumentControllerListTemplatesResponseSuccess = (employeeDocumentControllerListTemplatesResponse200) & {
+  headers: Headers;
+};
+;
+
+export type employeeDocumentControllerListTemplatesResponse = (employeeDocumentControllerListTemplatesResponseSuccess)
+
+export const getEmployeeDocumentControllerListTemplatesUrl = (params: EmployeeDocumentControllerListTemplatesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/document-templates?${stringifiedParams}` : `/api/v1/document-templates`
+}
+
+export const employeeDocumentControllerListTemplates = async (params: EmployeeDocumentControllerListTemplatesParams, options?: RequestInit): Promise<employeeDocumentControllerListTemplatesResponse> => {
+  
+  return customFetch<employeeDocumentControllerListTemplatesResponse>(getEmployeeDocumentControllerListTemplatesUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getEmployeeDocumentControllerListTemplatesQueryKey = (params?: EmployeeDocumentControllerListTemplatesParams,) => {
+    return [
+    `/api/v1/document-templates`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getEmployeeDocumentControllerListTemplatesQueryOptions = <TData = Awaited<ReturnType<typeof employeeDocumentControllerListTemplates>>, TError = unknown>(params: EmployeeDocumentControllerListTemplatesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof employeeDocumentControllerListTemplates>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getEmployeeDocumentControllerListTemplatesQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof employeeDocumentControllerListTemplates>>> = ({ signal }) => employeeDocumentControllerListTemplates(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof employeeDocumentControllerListTemplates>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type EmployeeDocumentControllerListTemplatesQueryResult = NonNullable<Awaited<ReturnType<typeof employeeDocumentControllerListTemplates>>>
+export type EmployeeDocumentControllerListTemplatesQueryError = unknown
+
+
+export function useEmployeeDocumentControllerListTemplates<TData = Awaited<ReturnType<typeof employeeDocumentControllerListTemplates>>, TError = unknown>(
+ params: EmployeeDocumentControllerListTemplatesParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof employeeDocumentControllerListTemplates>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof employeeDocumentControllerListTemplates>>,
+          TError,
+          Awaited<ReturnType<typeof employeeDocumentControllerListTemplates>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useEmployeeDocumentControllerListTemplates<TData = Awaited<ReturnType<typeof employeeDocumentControllerListTemplates>>, TError = unknown>(
+ params: EmployeeDocumentControllerListTemplatesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof employeeDocumentControllerListTemplates>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof employeeDocumentControllerListTemplates>>,
+          TError,
+          Awaited<ReturnType<typeof employeeDocumentControllerListTemplates>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useEmployeeDocumentControllerListTemplates<TData = Awaited<ReturnType<typeof employeeDocumentControllerListTemplates>>, TError = unknown>(
+ params: EmployeeDocumentControllerListTemplatesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof employeeDocumentControllerListTemplates>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List active letter templates
+ */
+
+export function useEmployeeDocumentControllerListTemplates<TData = Awaited<ReturnType<typeof employeeDocumentControllerListTemplates>>, TError = unknown>(
+ params: EmployeeDocumentControllerListTemplatesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof employeeDocumentControllerListTemplates>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getEmployeeDocumentControllerListTemplatesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Auto-fill template and generate document draft
+ */
+export type employeeDocumentControllerGenerateDraftResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type employeeDocumentControllerGenerateDraftResponseSuccess = (employeeDocumentControllerGenerateDraftResponse201) & {
+  headers: Headers;
+};
+;
+
+export type employeeDocumentControllerGenerateDraftResponse = (employeeDocumentControllerGenerateDraftResponseSuccess)
+
+export const getEmployeeDocumentControllerGenerateDraftUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/employees/${id}/documents/generate-draft`
+}
+
+export const employeeDocumentControllerGenerateDraft = async (id: number,
+    generateDocumentDraftDto: GenerateDocumentDraftDto, options?: RequestInit): Promise<employeeDocumentControllerGenerateDraftResponse> => {
+  
+  return customFetch<employeeDocumentControllerGenerateDraftResponse>(getEmployeeDocumentControllerGenerateDraftUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      generateDocumentDraftDto,)
+  }
+);}
+
+
+
+
+export const getEmployeeDocumentControllerGenerateDraftMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof employeeDocumentControllerGenerateDraft>>, TError,{id: number;data: GenerateDocumentDraftDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof employeeDocumentControllerGenerateDraft>>, TError,{id: number;data: GenerateDocumentDraftDto}, TContext> => {
+
+const mutationKey = ['employeeDocumentControllerGenerateDraft'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof employeeDocumentControllerGenerateDraft>>, {id: number;data: GenerateDocumentDraftDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  employeeDocumentControllerGenerateDraft(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type EmployeeDocumentControllerGenerateDraftMutationResult = NonNullable<Awaited<ReturnType<typeof employeeDocumentControllerGenerateDraft>>>
+    export type EmployeeDocumentControllerGenerateDraftMutationBody = GenerateDocumentDraftDto
+    export type EmployeeDocumentControllerGenerateDraftMutationError = unknown
+
+    /**
+ * @summary Auto-fill template and generate document draft
+ */
+export const useEmployeeDocumentControllerGenerateDraft = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof employeeDocumentControllerGenerateDraft>>, TError,{id: number;data: GenerateDocumentDraftDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof employeeDocumentControllerGenerateDraft>>,
+        TError,
+        {id: number;data: GenerateDocumentDraftDto},
+        TContext
+      > => {
+
+      const mutationOptions = getEmployeeDocumentControllerGenerateDraftMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Finalize and issue document draft
+ */
+export type employeeDocumentControllerFinalizeDraftResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type employeeDocumentControllerFinalizeDraftResponseSuccess = (employeeDocumentControllerFinalizeDraftResponse201) & {
+  headers: Headers;
+};
+;
+
+export type employeeDocumentControllerFinalizeDraftResponse = (employeeDocumentControllerFinalizeDraftResponseSuccess)
+
+export const getEmployeeDocumentControllerFinalizeDraftUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/employees/${id}/documents/finalize`
+}
+
+export const employeeDocumentControllerFinalizeDraft = async (id: number,
+    finalizeDocumentDraftDto: FinalizeDocumentDraftDto, options?: RequestInit): Promise<employeeDocumentControllerFinalizeDraftResponse> => {
+  
+  return customFetch<employeeDocumentControllerFinalizeDraftResponse>(getEmployeeDocumentControllerFinalizeDraftUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      finalizeDocumentDraftDto,)
+  }
+);}
+
+
+
+
+export const getEmployeeDocumentControllerFinalizeDraftMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof employeeDocumentControllerFinalizeDraft>>, TError,{id: number;data: FinalizeDocumentDraftDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof employeeDocumentControllerFinalizeDraft>>, TError,{id: number;data: FinalizeDocumentDraftDto}, TContext> => {
+
+const mutationKey = ['employeeDocumentControllerFinalizeDraft'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof employeeDocumentControllerFinalizeDraft>>, {id: number;data: FinalizeDocumentDraftDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  employeeDocumentControllerFinalizeDraft(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type EmployeeDocumentControllerFinalizeDraftMutationResult = NonNullable<Awaited<ReturnType<typeof employeeDocumentControllerFinalizeDraft>>>
+    export type EmployeeDocumentControllerFinalizeDraftMutationBody = FinalizeDocumentDraftDto
+    export type EmployeeDocumentControllerFinalizeDraftMutationError = unknown
+
+    /**
+ * @summary Finalize and issue document draft
+ */
+export const useEmployeeDocumentControllerFinalizeDraft = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof employeeDocumentControllerFinalizeDraft>>, TError,{id: number;data: FinalizeDocumentDraftDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof employeeDocumentControllerFinalizeDraft>>,
+        TError,
+        {id: number;data: FinalizeDocumentDraftDto},
+        TContext
+      > => {
+
+      const mutationOptions = getEmployeeDocumentControllerFinalizeDraftMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Download or view issued employee document file
+ */
+export type employeeDocumentControllerDownloadDocumentResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type employeeDocumentControllerDownloadDocumentResponseSuccess = (employeeDocumentControllerDownloadDocumentResponse200) & {
+  headers: Headers;
+};
+;
+
+export type employeeDocumentControllerDownloadDocumentResponse = (employeeDocumentControllerDownloadDocumentResponseSuccess)
+
+export const getEmployeeDocumentControllerDownloadDocumentUrl = (id: number,
+    documentType: string,) => {
+
+
+  
+
+  return `/api/v1/employees/${id}/documents/${documentType}/download`
+}
+
+export const employeeDocumentControllerDownloadDocument = async (id: number,
+    documentType: string, options?: RequestInit): Promise<employeeDocumentControllerDownloadDocumentResponse> => {
+  
+  return customFetch<employeeDocumentControllerDownloadDocumentResponse>(getEmployeeDocumentControllerDownloadDocumentUrl(id,documentType),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getEmployeeDocumentControllerDownloadDocumentQueryKey = (id?: number,
+    documentType?: string,) => {
+    return [
+    `/api/v1/employees/${id}/documents/${documentType}/download`
+    ] as const;
+    }
+
+    
+export const getEmployeeDocumentControllerDownloadDocumentQueryOptions = <TData = Awaited<ReturnType<typeof employeeDocumentControllerDownloadDocument>>, TError = unknown>(id: number,
+    documentType: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof employeeDocumentControllerDownloadDocument>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getEmployeeDocumentControllerDownloadDocumentQueryKey(id,documentType);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof employeeDocumentControllerDownloadDocument>>> = ({ signal }) => employeeDocumentControllerDownloadDocument(id,documentType, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id && documentType), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof employeeDocumentControllerDownloadDocument>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type EmployeeDocumentControllerDownloadDocumentQueryResult = NonNullable<Awaited<ReturnType<typeof employeeDocumentControllerDownloadDocument>>>
+export type EmployeeDocumentControllerDownloadDocumentQueryError = unknown
+
+
+export function useEmployeeDocumentControllerDownloadDocument<TData = Awaited<ReturnType<typeof employeeDocumentControllerDownloadDocument>>, TError = unknown>(
+ id: number,
+    documentType: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof employeeDocumentControllerDownloadDocument>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof employeeDocumentControllerDownloadDocument>>,
+          TError,
+          Awaited<ReturnType<typeof employeeDocumentControllerDownloadDocument>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useEmployeeDocumentControllerDownloadDocument<TData = Awaited<ReturnType<typeof employeeDocumentControllerDownloadDocument>>, TError = unknown>(
+ id: number,
+    documentType: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof employeeDocumentControllerDownloadDocument>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof employeeDocumentControllerDownloadDocument>>,
+          TError,
+          Awaited<ReturnType<typeof employeeDocumentControllerDownloadDocument>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useEmployeeDocumentControllerDownloadDocument<TData = Awaited<ReturnType<typeof employeeDocumentControllerDownloadDocument>>, TError = unknown>(
+ id: number,
+    documentType: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof employeeDocumentControllerDownloadDocument>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Download or view issued employee document file
+ */
+
+export function useEmployeeDocumentControllerDownloadDocument<TData = Awaited<ReturnType<typeof employeeDocumentControllerDownloadDocument>>, TError = unknown>(
+ id: number,
+    documentType: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof employeeDocumentControllerDownloadDocument>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getEmployeeDocumentControllerDownloadDocumentQueryOptions(id,documentType,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
 /**
  * @summary List industries with filters and keyset pagination
  */
@@ -15954,6 +17300,22161 @@ export const useProjectsControllerAddProjectBugComment = <TError = unknown,
       > => {
 
       const mutationOptions = getProjectsControllerAddProjectBugCommentMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Get preview next candidate code (e.g. CAN-0001)
+ */
+export type candidateControllerGetNextCodeResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type candidateControllerGetNextCodeResponseSuccess = (candidateControllerGetNextCodeResponse200) & {
+  headers: Headers;
+};
+;
+
+export type candidateControllerGetNextCodeResponse = (candidateControllerGetNextCodeResponseSuccess)
+
+export const getCandidateControllerGetNextCodeUrl = () => {
+
+
+  
+
+  return `/api/v1/candidates/next-code`
+}
+
+export const candidateControllerGetNextCode = async ( options?: RequestInit): Promise<candidateControllerGetNextCodeResponse> => {
+  
+  return customFetch<candidateControllerGetNextCodeResponse>(getCandidateControllerGetNextCodeUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getCandidateControllerGetNextCodeQueryKey = () => {
+    return [
+    `/api/v1/candidates/next-code`
+    ] as const;
+    }
+
+    
+export const getCandidateControllerGetNextCodeQueryOptions = <TData = Awaited<ReturnType<typeof candidateControllerGetNextCode>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof candidateControllerGetNextCode>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getCandidateControllerGetNextCodeQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof candidateControllerGetNextCode>>> = ({ signal }) => candidateControllerGetNextCode({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof candidateControllerGetNextCode>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type CandidateControllerGetNextCodeQueryResult = NonNullable<Awaited<ReturnType<typeof candidateControllerGetNextCode>>>
+export type CandidateControllerGetNextCodeQueryError = unknown
+
+
+export function useCandidateControllerGetNextCode<TData = Awaited<ReturnType<typeof candidateControllerGetNextCode>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof candidateControllerGetNextCode>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof candidateControllerGetNextCode>>,
+          TError,
+          Awaited<ReturnType<typeof candidateControllerGetNextCode>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useCandidateControllerGetNextCode<TData = Awaited<ReturnType<typeof candidateControllerGetNextCode>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof candidateControllerGetNextCode>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof candidateControllerGetNextCode>>,
+          TError,
+          Awaited<ReturnType<typeof candidateControllerGetNextCode>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useCandidateControllerGetNextCode<TData = Awaited<ReturnType<typeof candidateControllerGetNextCode>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof candidateControllerGetNextCode>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get preview next candidate code (e.g. CAN-0001)
+ */
+
+export function useCandidateControllerGetNextCode<TData = Awaited<ReturnType<typeof candidateControllerGetNextCode>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof candidateControllerGetNextCode>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getCandidateControllerGetNextCodeQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Get preview next employee code (e.g. EMP-0015)
+ */
+export type candidateControllerGetNextEmpCodeResponse200 = {
+  data: NextEmpCodeResponseDto
+  status: 200
+}
+    
+export type candidateControllerGetNextEmpCodeResponseSuccess = (candidateControllerGetNextEmpCodeResponse200) & {
+  headers: Headers;
+};
+;
+
+export type candidateControllerGetNextEmpCodeResponse = (candidateControllerGetNextEmpCodeResponseSuccess)
+
+export const getCandidateControllerGetNextEmpCodeUrl = () => {
+
+
+  
+
+  return `/api/v1/candidates/next-emp-code`
+}
+
+export const candidateControllerGetNextEmpCode = async ( options?: RequestInit): Promise<candidateControllerGetNextEmpCodeResponse> => {
+  
+  return customFetch<candidateControllerGetNextEmpCodeResponse>(getCandidateControllerGetNextEmpCodeUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getCandidateControllerGetNextEmpCodeQueryKey = () => {
+    return [
+    `/api/v1/candidates/next-emp-code`
+    ] as const;
+    }
+
+    
+export const getCandidateControllerGetNextEmpCodeQueryOptions = <TData = Awaited<ReturnType<typeof candidateControllerGetNextEmpCode>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof candidateControllerGetNextEmpCode>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getCandidateControllerGetNextEmpCodeQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof candidateControllerGetNextEmpCode>>> = ({ signal }) => candidateControllerGetNextEmpCode({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof candidateControllerGetNextEmpCode>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type CandidateControllerGetNextEmpCodeQueryResult = NonNullable<Awaited<ReturnType<typeof candidateControllerGetNextEmpCode>>>
+export type CandidateControllerGetNextEmpCodeQueryError = unknown
+
+
+export function useCandidateControllerGetNextEmpCode<TData = Awaited<ReturnType<typeof candidateControllerGetNextEmpCode>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof candidateControllerGetNextEmpCode>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof candidateControllerGetNextEmpCode>>,
+          TError,
+          Awaited<ReturnType<typeof candidateControllerGetNextEmpCode>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useCandidateControllerGetNextEmpCode<TData = Awaited<ReturnType<typeof candidateControllerGetNextEmpCode>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof candidateControllerGetNextEmpCode>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof candidateControllerGetNextEmpCode>>,
+          TError,
+          Awaited<ReturnType<typeof candidateControllerGetNextEmpCode>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useCandidateControllerGetNextEmpCode<TData = Awaited<ReturnType<typeof candidateControllerGetNextEmpCode>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof candidateControllerGetNextEmpCode>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get preview next employee code (e.g. EMP-0015)
+ */
+
+export function useCandidateControllerGetNextEmpCode<TData = Awaited<ReturnType<typeof candidateControllerGetNextEmpCode>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof candidateControllerGetNextEmpCode>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getCandidateControllerGetNextEmpCodeQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Check if phone or email matches existing candidate or employee
+ */
+export type candidateControllerCheckDuplicateResponse200 = {
+  data: DuplicateMatchDto[]
+  status: 200
+}
+    
+export type candidateControllerCheckDuplicateResponseSuccess = (candidateControllerCheckDuplicateResponse200) & {
+  headers: Headers;
+};
+;
+
+export type candidateControllerCheckDuplicateResponse = (candidateControllerCheckDuplicateResponseSuccess)
+
+export const getCandidateControllerCheckDuplicateUrl = () => {
+
+
+  
+
+  return `/api/v1/candidates/check-duplicate`
+}
+
+export const candidateControllerCheckDuplicate = async (checkDuplicateCandidateDto: CheckDuplicateCandidateDto, options?: RequestInit): Promise<candidateControllerCheckDuplicateResponse> => {
+  
+  return customFetch<candidateControllerCheckDuplicateResponse>(getCandidateControllerCheckDuplicateUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      checkDuplicateCandidateDto,)
+  }
+);}
+
+
+
+
+export const getCandidateControllerCheckDuplicateMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof candidateControllerCheckDuplicate>>, TError,{data: CheckDuplicateCandidateDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof candidateControllerCheckDuplicate>>, TError,{data: CheckDuplicateCandidateDto}, TContext> => {
+
+const mutationKey = ['candidateControllerCheckDuplicate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof candidateControllerCheckDuplicate>>, {data: CheckDuplicateCandidateDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  candidateControllerCheckDuplicate(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CandidateControllerCheckDuplicateMutationResult = NonNullable<Awaited<ReturnType<typeof candidateControllerCheckDuplicate>>>
+    export type CandidateControllerCheckDuplicateMutationBody = CheckDuplicateCandidateDto
+    export type CandidateControllerCheckDuplicateMutationError = unknown
+
+    /**
+ * @summary Check if phone or email matches existing candidate or employee
+ */
+export const useCandidateControllerCheckDuplicate = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof candidateControllerCheckDuplicate>>, TError,{data: CheckDuplicateCandidateDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof candidateControllerCheckDuplicate>>,
+        TError,
+        {data: CheckDuplicateCandidateDto},
+        TContext
+      > => {
+
+      const mutationOptions = getCandidateControllerCheckDuplicateMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Upload single candidate resume (PDF, DOC, DOCX up to 5 MB)
+ */
+export type candidateControllerUploadResumeResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type candidateControllerUploadResumeResponseSuccess = (candidateControllerUploadResumeResponse201) & {
+  headers: Headers;
+};
+;
+
+export type candidateControllerUploadResumeResponse = (candidateControllerUploadResumeResponseSuccess)
+
+export const getCandidateControllerUploadResumeUrl = () => {
+
+
+  
+
+  return `/api/v1/candidates/upload-resume`
+}
+
+export const candidateControllerUploadResume = async (candidateControllerUploadResumeBody: CandidateControllerUploadResumeBody, options?: RequestInit): Promise<candidateControllerUploadResumeResponse> => {
+    const formData = new FormData();
+formData.append(`file`, candidateControllerUploadResumeBody.file)
+
+  return customFetch<candidateControllerUploadResumeResponse>(getCandidateControllerUploadResumeUrl(),
+  {      
+    ...options,
+    method: 'POST'
+    ,
+    body: 
+      formData,
+  }
+);}
+
+
+
+
+export const getCandidateControllerUploadResumeMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof candidateControllerUploadResume>>, TError,{data: CandidateControllerUploadResumeBody}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof candidateControllerUploadResume>>, TError,{data: CandidateControllerUploadResumeBody}, TContext> => {
+
+const mutationKey = ['candidateControllerUploadResume'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof candidateControllerUploadResume>>, {data: CandidateControllerUploadResumeBody}> = (props) => {
+          const {data} = props ?? {};
+
+          return  candidateControllerUploadResume(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CandidateControllerUploadResumeMutationResult = NonNullable<Awaited<ReturnType<typeof candidateControllerUploadResume>>>
+    export type CandidateControllerUploadResumeMutationBody = CandidateControllerUploadResumeBody
+    export type CandidateControllerUploadResumeMutationError = unknown
+
+    /**
+ * @summary Upload single candidate resume (PDF, DOC, DOCX up to 5 MB)
+ */
+export const useCandidateControllerUploadResume = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof candidateControllerUploadResume>>, TError,{data: CandidateControllerUploadResumeBody}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof candidateControllerUploadResume>>,
+        TError,
+        {data: CandidateControllerUploadResumeBody},
+        TContext
+      > => {
+
+      const mutationOptions = getCandidateControllerUploadResumeMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Download or view candidate resume
+ */
+export type candidateControllerDownloadResumeResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type candidateControllerDownloadResumeResponseSuccess = (candidateControllerDownloadResumeResponse200) & {
+  headers: Headers;
+};
+;
+
+export type candidateControllerDownloadResumeResponse = (candidateControllerDownloadResumeResponseSuccess)
+
+export const getCandidateControllerDownloadResumeUrl = (filename: string,) => {
+
+
+  
+
+  return `/api/v1/candidates/resumes/${filename}`
+}
+
+export const candidateControllerDownloadResume = async (filename: string, options?: RequestInit): Promise<candidateControllerDownloadResumeResponse> => {
+  
+  return customFetch<candidateControllerDownloadResumeResponse>(getCandidateControllerDownloadResumeUrl(filename),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getCandidateControllerDownloadResumeQueryKey = (filename?: string,) => {
+    return [
+    `/api/v1/candidates/resumes/${filename}`
+    ] as const;
+    }
+
+    
+export const getCandidateControllerDownloadResumeQueryOptions = <TData = Awaited<ReturnType<typeof candidateControllerDownloadResume>>, TError = unknown>(filename: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof candidateControllerDownloadResume>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getCandidateControllerDownloadResumeQueryKey(filename);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof candidateControllerDownloadResume>>> = ({ signal }) => candidateControllerDownloadResume(filename, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(filename), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof candidateControllerDownloadResume>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type CandidateControllerDownloadResumeQueryResult = NonNullable<Awaited<ReturnType<typeof candidateControllerDownloadResume>>>
+export type CandidateControllerDownloadResumeQueryError = unknown
+
+
+export function useCandidateControllerDownloadResume<TData = Awaited<ReturnType<typeof candidateControllerDownloadResume>>, TError = unknown>(
+ filename: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof candidateControllerDownloadResume>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof candidateControllerDownloadResume>>,
+          TError,
+          Awaited<ReturnType<typeof candidateControllerDownloadResume>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useCandidateControllerDownloadResume<TData = Awaited<ReturnType<typeof candidateControllerDownloadResume>>, TError = unknown>(
+ filename: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof candidateControllerDownloadResume>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof candidateControllerDownloadResume>>,
+          TError,
+          Awaited<ReturnType<typeof candidateControllerDownloadResume>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useCandidateControllerDownloadResume<TData = Awaited<ReturnType<typeof candidateControllerDownloadResume>>, TError = unknown>(
+ filename: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof candidateControllerDownloadResume>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Download or view candidate resume
+ */
+
+export function useCandidateControllerDownloadResume<TData = Awaited<ReturnType<typeof candidateControllerDownloadResume>>, TError = unknown>(
+ filename: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof candidateControllerDownloadResume>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getCandidateControllerDownloadResumeQueryOptions(filename,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary List candidates with KPI stats and filters
+ */
+export type candidateControllerListCandidatesResponse200 = {
+  data: CandidateListResponseDto
+  status: 200
+}
+    
+export type candidateControllerListCandidatesResponseSuccess = (candidateControllerListCandidatesResponse200) & {
+  headers: Headers;
+};
+;
+
+export type candidateControllerListCandidatesResponse = (candidateControllerListCandidatesResponseSuccess)
+
+export const getCandidateControllerListCandidatesUrl = (params: CandidateControllerListCandidatesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/candidates?${stringifiedParams}` : `/api/v1/candidates`
+}
+
+export const candidateControllerListCandidates = async (params: CandidateControllerListCandidatesParams, options?: RequestInit): Promise<candidateControllerListCandidatesResponse> => {
+  
+  return customFetch<candidateControllerListCandidatesResponse>(getCandidateControllerListCandidatesUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getCandidateControllerListCandidatesQueryKey = (params?: CandidateControllerListCandidatesParams,) => {
+    return [
+    `/api/v1/candidates`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getCandidateControllerListCandidatesQueryOptions = <TData = Awaited<ReturnType<typeof candidateControllerListCandidates>>, TError = unknown>(params: CandidateControllerListCandidatesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof candidateControllerListCandidates>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getCandidateControllerListCandidatesQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof candidateControllerListCandidates>>> = ({ signal }) => candidateControllerListCandidates(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof candidateControllerListCandidates>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type CandidateControllerListCandidatesQueryResult = NonNullable<Awaited<ReturnType<typeof candidateControllerListCandidates>>>
+export type CandidateControllerListCandidatesQueryError = unknown
+
+
+export function useCandidateControllerListCandidates<TData = Awaited<ReturnType<typeof candidateControllerListCandidates>>, TError = unknown>(
+ params: CandidateControllerListCandidatesParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof candidateControllerListCandidates>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof candidateControllerListCandidates>>,
+          TError,
+          Awaited<ReturnType<typeof candidateControllerListCandidates>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useCandidateControllerListCandidates<TData = Awaited<ReturnType<typeof candidateControllerListCandidates>>, TError = unknown>(
+ params: CandidateControllerListCandidatesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof candidateControllerListCandidates>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof candidateControllerListCandidates>>,
+          TError,
+          Awaited<ReturnType<typeof candidateControllerListCandidates>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useCandidateControllerListCandidates<TData = Awaited<ReturnType<typeof candidateControllerListCandidates>>, TError = unknown>(
+ params: CandidateControllerListCandidatesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof candidateControllerListCandidates>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List candidates with KPI stats and filters
+ */
+
+export function useCandidateControllerListCandidates<TData = Awaited<ReturnType<typeof candidateControllerListCandidates>>, TError = unknown>(
+ params: CandidateControllerListCandidatesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof candidateControllerListCandidates>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getCandidateControllerListCandidatesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Add a new candidate
+ */
+export type candidateControllerCreateCandidateResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type candidateControllerCreateCandidateResponseSuccess = (candidateControllerCreateCandidateResponse201) & {
+  headers: Headers;
+};
+;
+
+export type candidateControllerCreateCandidateResponse = (candidateControllerCreateCandidateResponseSuccess)
+
+export const getCandidateControllerCreateCandidateUrl = () => {
+
+
+  
+
+  return `/api/v1/candidates`
+}
+
+export const candidateControllerCreateCandidate = async (createCandidateDto: CreateCandidateDto, options?: RequestInit): Promise<candidateControllerCreateCandidateResponse> => {
+  
+  return customFetch<candidateControllerCreateCandidateResponse>(getCandidateControllerCreateCandidateUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createCandidateDto,)
+  }
+);}
+
+
+
+
+export const getCandidateControllerCreateCandidateMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof candidateControllerCreateCandidate>>, TError,{data: CreateCandidateDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof candidateControllerCreateCandidate>>, TError,{data: CreateCandidateDto}, TContext> => {
+
+const mutationKey = ['candidateControllerCreateCandidate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof candidateControllerCreateCandidate>>, {data: CreateCandidateDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  candidateControllerCreateCandidate(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CandidateControllerCreateCandidateMutationResult = NonNullable<Awaited<ReturnType<typeof candidateControllerCreateCandidate>>>
+    export type CandidateControllerCreateCandidateMutationBody = CreateCandidateDto
+    export type CandidateControllerCreateCandidateMutationError = unknown
+
+    /**
+ * @summary Add a new candidate
+ */
+export const useCandidateControllerCreateCandidate = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof candidateControllerCreateCandidate>>, TError,{data: CreateCandidateDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof candidateControllerCreateCandidate>>,
+        TError,
+        {data: CreateCandidateDto},
+        TContext
+      > => {
+
+      const mutationOptions = getCandidateControllerCreateCandidateMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Get candidate details by ID
+ */
+export type candidateControllerGetCandidateResponse200 = {
+  data: CandidateItemDto
+  status: 200
+}
+    
+export type candidateControllerGetCandidateResponseSuccess = (candidateControllerGetCandidateResponse200) & {
+  headers: Headers;
+};
+;
+
+export type candidateControllerGetCandidateResponse = (candidateControllerGetCandidateResponseSuccess)
+
+export const getCandidateControllerGetCandidateUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/candidates/${id}`
+}
+
+export const candidateControllerGetCandidate = async (id: number, options?: RequestInit): Promise<candidateControllerGetCandidateResponse> => {
+  
+  return customFetch<candidateControllerGetCandidateResponse>(getCandidateControllerGetCandidateUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getCandidateControllerGetCandidateQueryKey = (id?: number,) => {
+    return [
+    `/api/v1/candidates/${id}`
+    ] as const;
+    }
+
+    
+export const getCandidateControllerGetCandidateQueryOptions = <TData = Awaited<ReturnType<typeof candidateControllerGetCandidate>>, TError = unknown>(id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof candidateControllerGetCandidate>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getCandidateControllerGetCandidateQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof candidateControllerGetCandidate>>> = ({ signal }) => candidateControllerGetCandidate(id, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof candidateControllerGetCandidate>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type CandidateControllerGetCandidateQueryResult = NonNullable<Awaited<ReturnType<typeof candidateControllerGetCandidate>>>
+export type CandidateControllerGetCandidateQueryError = unknown
+
+
+export function useCandidateControllerGetCandidate<TData = Awaited<ReturnType<typeof candidateControllerGetCandidate>>, TError = unknown>(
+ id: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof candidateControllerGetCandidate>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof candidateControllerGetCandidate>>,
+          TError,
+          Awaited<ReturnType<typeof candidateControllerGetCandidate>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useCandidateControllerGetCandidate<TData = Awaited<ReturnType<typeof candidateControllerGetCandidate>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof candidateControllerGetCandidate>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof candidateControllerGetCandidate>>,
+          TError,
+          Awaited<ReturnType<typeof candidateControllerGetCandidate>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useCandidateControllerGetCandidate<TData = Awaited<ReturnType<typeof candidateControllerGetCandidate>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof candidateControllerGetCandidate>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get candidate details by ID
+ */
+
+export function useCandidateControllerGetCandidate<TData = Awaited<ReturnType<typeof candidateControllerGetCandidate>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof candidateControllerGetCandidate>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getCandidateControllerGetCandidateQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Update candidate pipeline stage directly
+ */
+export type candidateControllerUpdateStageResponse200 = {
+  data: CandidateItemDto
+  status: 200
+}
+    
+export type candidateControllerUpdateStageResponseSuccess = (candidateControllerUpdateStageResponse200) & {
+  headers: Headers;
+};
+;
+
+export type candidateControllerUpdateStageResponse = (candidateControllerUpdateStageResponseSuccess)
+
+export const getCandidateControllerUpdateStageUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/candidates/${id}/stage`
+}
+
+export const candidateControllerUpdateStage = async (id: number,
+    updateCandidateStageDto: UpdateCandidateStageDto, options?: RequestInit): Promise<candidateControllerUpdateStageResponse> => {
+  
+  return customFetch<candidateControllerUpdateStageResponse>(getCandidateControllerUpdateStageUrl(id),
+  {      
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateCandidateStageDto,)
+  }
+);}
+
+
+
+
+export const getCandidateControllerUpdateStageMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof candidateControllerUpdateStage>>, TError,{id: number;data: UpdateCandidateStageDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof candidateControllerUpdateStage>>, TError,{id: number;data: UpdateCandidateStageDto}, TContext> => {
+
+const mutationKey = ['candidateControllerUpdateStage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof candidateControllerUpdateStage>>, {id: number;data: UpdateCandidateStageDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  candidateControllerUpdateStage(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CandidateControllerUpdateStageMutationResult = NonNullable<Awaited<ReturnType<typeof candidateControllerUpdateStage>>>
+    export type CandidateControllerUpdateStageMutationBody = UpdateCandidateStageDto
+    export type CandidateControllerUpdateStageMutationError = unknown
+
+    /**
+ * @summary Update candidate pipeline stage directly
+ */
+export const useCandidateControllerUpdateStage = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof candidateControllerUpdateStage>>, TError,{id: number;data: UpdateCandidateStageDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof candidateControllerUpdateStage>>,
+        TError,
+        {id: number;data: UpdateCandidateStageDto},
+        TContext
+      > => {
+
+      const mutationOptions = getCandidateControllerUpdateStageMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Mark hiring decision (Selected, On Hold, Rejected)
+ */
+export type candidateControllerMarkDecisionResponse200 = {
+  data: CandidateItemDto
+  status: 200
+}
+    
+export type candidateControllerMarkDecisionResponseSuccess = (candidateControllerMarkDecisionResponse200) & {
+  headers: Headers;
+};
+;
+
+export type candidateControllerMarkDecisionResponse = (candidateControllerMarkDecisionResponseSuccess)
+
+export const getCandidateControllerMarkDecisionUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/candidates/${id}/decision`
+}
+
+export const candidateControllerMarkDecision = async (id: number,
+    markCandidateDecisionDto: MarkCandidateDecisionDto, options?: RequestInit): Promise<candidateControllerMarkDecisionResponse> => {
+  
+  return customFetch<candidateControllerMarkDecisionResponse>(getCandidateControllerMarkDecisionUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      markCandidateDecisionDto,)
+  }
+);}
+
+
+
+
+export const getCandidateControllerMarkDecisionMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof candidateControllerMarkDecision>>, TError,{id: number;data: MarkCandidateDecisionDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof candidateControllerMarkDecision>>, TError,{id: number;data: MarkCandidateDecisionDto}, TContext> => {
+
+const mutationKey = ['candidateControllerMarkDecision'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof candidateControllerMarkDecision>>, {id: number;data: MarkCandidateDecisionDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  candidateControllerMarkDecision(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CandidateControllerMarkDecisionMutationResult = NonNullable<Awaited<ReturnType<typeof candidateControllerMarkDecision>>>
+    export type CandidateControllerMarkDecisionMutationBody = MarkCandidateDecisionDto
+    export type CandidateControllerMarkDecisionMutationError = unknown
+
+    /**
+ * @summary Mark hiring decision (Selected, On Hold, Rejected)
+ */
+export const useCandidateControllerMarkDecision = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof candidateControllerMarkDecision>>, TError,{id: number;data: MarkCandidateDecisionDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof candidateControllerMarkDecision>>,
+        TError,
+        {id: number;data: MarkCandidateDecisionDto},
+        TContext
+      > => {
+
+      const mutationOptions = getCandidateControllerMarkDecisionMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Convert candidate to employee in onboarding stage
+ */
+export type candidateControllerConvertToEmployeeResponse201 = {
+  data: ConvertToEmployeeResponseDto
+  status: 201
+}
+    
+export type candidateControllerConvertToEmployeeResponseSuccess = (candidateControllerConvertToEmployeeResponse201) & {
+  headers: Headers;
+};
+;
+
+export type candidateControllerConvertToEmployeeResponse = (candidateControllerConvertToEmployeeResponseSuccess)
+
+export const getCandidateControllerConvertToEmployeeUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/candidates/${id}/convert-to-employee`
+}
+
+export const candidateControllerConvertToEmployee = async (id: number,
+    convertCandidateToEmployeeDto: ConvertCandidateToEmployeeDto, options?: RequestInit): Promise<candidateControllerConvertToEmployeeResponse> => {
+  
+  return customFetch<candidateControllerConvertToEmployeeResponse>(getCandidateControllerConvertToEmployeeUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      convertCandidateToEmployeeDto,)
+  }
+);}
+
+
+
+
+export const getCandidateControllerConvertToEmployeeMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof candidateControllerConvertToEmployee>>, TError,{id: number;data: ConvertCandidateToEmployeeDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof candidateControllerConvertToEmployee>>, TError,{id: number;data: ConvertCandidateToEmployeeDto}, TContext> => {
+
+const mutationKey = ['candidateControllerConvertToEmployee'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof candidateControllerConvertToEmployee>>, {id: number;data: ConvertCandidateToEmployeeDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  candidateControllerConvertToEmployee(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CandidateControllerConvertToEmployeeMutationResult = NonNullable<Awaited<ReturnType<typeof candidateControllerConvertToEmployee>>>
+    export type CandidateControllerConvertToEmployeeMutationBody = ConvertCandidateToEmployeeDto
+    export type CandidateControllerConvertToEmployeeMutationError = unknown
+
+    /**
+ * @summary Convert candidate to employee in onboarding stage
+ */
+export const useCandidateControllerConvertToEmployee = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof candidateControllerConvertToEmployee>>, TError,{id: number;data: ConvertCandidateToEmployeeDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof candidateControllerConvertToEmployee>>,
+        TError,
+        {id: number;data: ConvertCandidateToEmployeeDto},
+        TContext
+      > => {
+
+      const mutationOptions = getCandidateControllerConvertToEmployeeMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Get global payroll settings
+ */
+export type payrollControllerGetSettingsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type payrollControllerGetSettingsResponseSuccess = (payrollControllerGetSettingsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type payrollControllerGetSettingsResponse = (payrollControllerGetSettingsResponseSuccess)
+
+export const getPayrollControllerGetSettingsUrl = () => {
+
+
+  
+
+  return `/api/v1/payroll/settings`
+}
+
+export const payrollControllerGetSettings = async ( options?: RequestInit): Promise<payrollControllerGetSettingsResponse> => {
+  
+  return customFetch<payrollControllerGetSettingsResponse>(getPayrollControllerGetSettingsUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getPayrollControllerGetSettingsQueryKey = () => {
+    return [
+    `/api/v1/payroll/settings`
+    ] as const;
+    }
+
+    
+export const getPayrollControllerGetSettingsQueryOptions = <TData = Awaited<ReturnType<typeof payrollControllerGetSettings>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof payrollControllerGetSettings>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPayrollControllerGetSettingsQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof payrollControllerGetSettings>>> = ({ signal }) => payrollControllerGetSettings({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof payrollControllerGetSettings>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type PayrollControllerGetSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof payrollControllerGetSettings>>>
+export type PayrollControllerGetSettingsQueryError = unknown
+
+
+export function usePayrollControllerGetSettings<TData = Awaited<ReturnType<typeof payrollControllerGetSettings>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof payrollControllerGetSettings>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof payrollControllerGetSettings>>,
+          TError,
+          Awaited<ReturnType<typeof payrollControllerGetSettings>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePayrollControllerGetSettings<TData = Awaited<ReturnType<typeof payrollControllerGetSettings>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof payrollControllerGetSettings>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof payrollControllerGetSettings>>,
+          TError,
+          Awaited<ReturnType<typeof payrollControllerGetSettings>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePayrollControllerGetSettings<TData = Awaited<ReturnType<typeof payrollControllerGetSettings>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof payrollControllerGetSettings>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get global payroll settings
+ */
+
+export function usePayrollControllerGetSettings<TData = Awaited<ReturnType<typeof payrollControllerGetSettings>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof payrollControllerGetSettings>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getPayrollControllerGetSettingsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Update global payroll settings (Admin only)
+ */
+export type payrollControllerUpdateSettingsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type payrollControllerUpdateSettingsResponseSuccess = (payrollControllerUpdateSettingsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type payrollControllerUpdateSettingsResponse = (payrollControllerUpdateSettingsResponseSuccess)
+
+export const getPayrollControllerUpdateSettingsUrl = () => {
+
+
+  
+
+  return `/api/v1/payroll/settings`
+}
+
+export const payrollControllerUpdateSettings = async (updatePayrollSettingsDto: UpdatePayrollSettingsDto, options?: RequestInit): Promise<payrollControllerUpdateSettingsResponse> => {
+  
+  return customFetch<payrollControllerUpdateSettingsResponse>(getPayrollControllerUpdateSettingsUrl(),
+  {      
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updatePayrollSettingsDto,)
+  }
+);}
+
+
+
+
+export const getPayrollControllerUpdateSettingsMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof payrollControllerUpdateSettings>>, TError,{data: UpdatePayrollSettingsDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof payrollControllerUpdateSettings>>, TError,{data: UpdatePayrollSettingsDto}, TContext> => {
+
+const mutationKey = ['payrollControllerUpdateSettings'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof payrollControllerUpdateSettings>>, {data: UpdatePayrollSettingsDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  payrollControllerUpdateSettings(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PayrollControllerUpdateSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof payrollControllerUpdateSettings>>>
+    export type PayrollControllerUpdateSettingsMutationBody = UpdatePayrollSettingsDto
+    export type PayrollControllerUpdateSettingsMutationError = unknown
+
+    /**
+ * @summary Update global payroll settings (Admin only)
+ */
+export const usePayrollControllerUpdateSettings = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof payrollControllerUpdateSettings>>, TError,{data: UpdatePayrollSettingsDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof payrollControllerUpdateSettings>>,
+        TError,
+        {data: UpdatePayrollSettingsDto},
+        TContext
+      > => {
+
+      const mutationOptions = getPayrollControllerUpdateSettingsMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary List payroll runs for given year and status
+ */
+export type payrollControllerListRunsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type payrollControllerListRunsResponseSuccess = (payrollControllerListRunsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type payrollControllerListRunsResponse = (payrollControllerListRunsResponseSuccess)
+
+export const getPayrollControllerListRunsUrl = (params?: PayrollControllerListRunsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/payroll/runs?${stringifiedParams}` : `/api/v1/payroll/runs`
+}
+
+export const payrollControllerListRuns = async (params?: PayrollControllerListRunsParams, options?: RequestInit): Promise<payrollControllerListRunsResponse> => {
+  
+  return customFetch<payrollControllerListRunsResponse>(getPayrollControllerListRunsUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getPayrollControllerListRunsQueryKey = (params?: PayrollControllerListRunsParams,) => {
+    return [
+    `/api/v1/payroll/runs`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getPayrollControllerListRunsQueryOptions = <TData = Awaited<ReturnType<typeof payrollControllerListRuns>>, TError = unknown>(params?: PayrollControllerListRunsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof payrollControllerListRuns>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPayrollControllerListRunsQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof payrollControllerListRuns>>> = ({ signal }) => payrollControllerListRuns(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof payrollControllerListRuns>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type PayrollControllerListRunsQueryResult = NonNullable<Awaited<ReturnType<typeof payrollControllerListRuns>>>
+export type PayrollControllerListRunsQueryError = unknown
+
+
+export function usePayrollControllerListRuns<TData = Awaited<ReturnType<typeof payrollControllerListRuns>>, TError = unknown>(
+ params: undefined |  PayrollControllerListRunsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof payrollControllerListRuns>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof payrollControllerListRuns>>,
+          TError,
+          Awaited<ReturnType<typeof payrollControllerListRuns>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePayrollControllerListRuns<TData = Awaited<ReturnType<typeof payrollControllerListRuns>>, TError = unknown>(
+ params?: PayrollControllerListRunsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof payrollControllerListRuns>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof payrollControllerListRuns>>,
+          TError,
+          Awaited<ReturnType<typeof payrollControllerListRuns>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePayrollControllerListRuns<TData = Awaited<ReturnType<typeof payrollControllerListRuns>>, TError = unknown>(
+ params?: PayrollControllerListRunsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof payrollControllerListRuns>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List payroll runs for given year and status
+ */
+
+export function usePayrollControllerListRuns<TData = Awaited<ReturnType<typeof payrollControllerListRuns>>, TError = unknown>(
+ params?: PayrollControllerListRunsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof payrollControllerListRuns>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getPayrollControllerListRunsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Pre-calculation checks and employee list before starting a run
+ */
+export type payrollControllerGetEligibilityResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type payrollControllerGetEligibilityResponseSuccess = (payrollControllerGetEligibilityResponse200) & {
+  headers: Headers;
+};
+;
+
+export type payrollControllerGetEligibilityResponse = (payrollControllerGetEligibilityResponseSuccess)
+
+export const getPayrollControllerGetEligibilityUrl = (year: number,
+    month: number,) => {
+
+
+  
+
+  return `/api/v1/payroll/${year}/${month}/eligibility`
+}
+
+export const payrollControllerGetEligibility = async (year: number,
+    month: number, options?: RequestInit): Promise<payrollControllerGetEligibilityResponse> => {
+  
+  return customFetch<payrollControllerGetEligibilityResponse>(getPayrollControllerGetEligibilityUrl(year,month),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getPayrollControllerGetEligibilityQueryKey = (year?: number,
+    month?: number,) => {
+    return [
+    `/api/v1/payroll/${year}/${month}/eligibility`
+    ] as const;
+    }
+
+    
+export const getPayrollControllerGetEligibilityQueryOptions = <TData = Awaited<ReturnType<typeof payrollControllerGetEligibility>>, TError = unknown>(year: number,
+    month: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof payrollControllerGetEligibility>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPayrollControllerGetEligibilityQueryKey(year,month);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof payrollControllerGetEligibility>>> = ({ signal }) => payrollControllerGetEligibility(year,month, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(year && month), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof payrollControllerGetEligibility>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type PayrollControllerGetEligibilityQueryResult = NonNullable<Awaited<ReturnType<typeof payrollControllerGetEligibility>>>
+export type PayrollControllerGetEligibilityQueryError = unknown
+
+
+export function usePayrollControllerGetEligibility<TData = Awaited<ReturnType<typeof payrollControllerGetEligibility>>, TError = unknown>(
+ year: number,
+    month: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof payrollControllerGetEligibility>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof payrollControllerGetEligibility>>,
+          TError,
+          Awaited<ReturnType<typeof payrollControllerGetEligibility>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePayrollControllerGetEligibility<TData = Awaited<ReturnType<typeof payrollControllerGetEligibility>>, TError = unknown>(
+ year: number,
+    month: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof payrollControllerGetEligibility>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof payrollControllerGetEligibility>>,
+          TError,
+          Awaited<ReturnType<typeof payrollControllerGetEligibility>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePayrollControllerGetEligibility<TData = Awaited<ReturnType<typeof payrollControllerGetEligibility>>, TError = unknown>(
+ year: number,
+    month: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof payrollControllerGetEligibility>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Pre-calculation checks and employee list before starting a run
+ */
+
+export function usePayrollControllerGetEligibility<TData = Awaited<ReturnType<typeof payrollControllerGetEligibility>>, TError = unknown>(
+ year: number,
+    month: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof payrollControllerGetEligibility>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getPayrollControllerGetEligibilityQueryOptions(year,month,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Start or recalculate draft payroll run for month
+ */
+export type payrollControllerStartOrCalculateResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type payrollControllerStartOrCalculateResponseSuccess = (payrollControllerStartOrCalculateResponse201) & {
+  headers: Headers;
+};
+;
+
+export type payrollControllerStartOrCalculateResponse = (payrollControllerStartOrCalculateResponseSuccess)
+
+export const getPayrollControllerStartOrCalculateUrl = (year: number,
+    month: number,) => {
+
+
+  
+
+  return `/api/v1/payroll/${year}/${month}/start`
+}
+
+export const payrollControllerStartOrCalculate = async (year: number,
+    month: number, options?: RequestInit): Promise<payrollControllerStartOrCalculateResponse> => {
+  
+  return customFetch<payrollControllerStartOrCalculateResponse>(getPayrollControllerStartOrCalculateUrl(year,month),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getPayrollControllerStartOrCalculateMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof payrollControllerStartOrCalculate>>, TError,{year: number;month: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof payrollControllerStartOrCalculate>>, TError,{year: number;month: number}, TContext> => {
+
+const mutationKey = ['payrollControllerStartOrCalculate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof payrollControllerStartOrCalculate>>, {year: number;month: number}> = (props) => {
+          const {year,month} = props ?? {};
+
+          return  payrollControllerStartOrCalculate(year,month,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PayrollControllerStartOrCalculateMutationResult = NonNullable<Awaited<ReturnType<typeof payrollControllerStartOrCalculate>>>
+    
+    export type PayrollControllerStartOrCalculateMutationError = unknown
+
+    /**
+ * @summary Start or recalculate draft payroll run for month
+ */
+export const usePayrollControllerStartOrCalculate = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof payrollControllerStartOrCalculate>>, TError,{year: number;month: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof payrollControllerStartOrCalculate>>,
+        TError,
+        {year: number;month: number},
+        TContext
+      > => {
+
+      const mutationOptions = getPayrollControllerStartOrCalculateMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Get full payroll register for month
+ */
+export type payrollControllerGetRegisterResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type payrollControllerGetRegisterResponseSuccess = (payrollControllerGetRegisterResponse200) & {
+  headers: Headers;
+};
+;
+
+export type payrollControllerGetRegisterResponse = (payrollControllerGetRegisterResponseSuccess)
+
+export const getPayrollControllerGetRegisterUrl = (year: number,
+    month: number,) => {
+
+
+  
+
+  return `/api/v1/payroll/${year}/${month}`
+}
+
+export const payrollControllerGetRegister = async (year: number,
+    month: number, options?: RequestInit): Promise<payrollControllerGetRegisterResponse> => {
+  
+  return customFetch<payrollControllerGetRegisterResponse>(getPayrollControllerGetRegisterUrl(year,month),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getPayrollControllerGetRegisterQueryKey = (year?: number,
+    month?: number,) => {
+    return [
+    `/api/v1/payroll/${year}/${month}`
+    ] as const;
+    }
+
+    
+export const getPayrollControllerGetRegisterQueryOptions = <TData = Awaited<ReturnType<typeof payrollControllerGetRegister>>, TError = unknown>(year: number,
+    month: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof payrollControllerGetRegister>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPayrollControllerGetRegisterQueryKey(year,month);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof payrollControllerGetRegister>>> = ({ signal }) => payrollControllerGetRegister(year,month, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(year && month), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof payrollControllerGetRegister>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type PayrollControllerGetRegisterQueryResult = NonNullable<Awaited<ReturnType<typeof payrollControllerGetRegister>>>
+export type PayrollControllerGetRegisterQueryError = unknown
+
+
+export function usePayrollControllerGetRegister<TData = Awaited<ReturnType<typeof payrollControllerGetRegister>>, TError = unknown>(
+ year: number,
+    month: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof payrollControllerGetRegister>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof payrollControllerGetRegister>>,
+          TError,
+          Awaited<ReturnType<typeof payrollControllerGetRegister>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePayrollControllerGetRegister<TData = Awaited<ReturnType<typeof payrollControllerGetRegister>>, TError = unknown>(
+ year: number,
+    month: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof payrollControllerGetRegister>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof payrollControllerGetRegister>>,
+          TError,
+          Awaited<ReturnType<typeof payrollControllerGetRegister>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePayrollControllerGetRegister<TData = Awaited<ReturnType<typeof payrollControllerGetRegister>>, TError = unknown>(
+ year: number,
+    month: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof payrollControllerGetRegister>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get full payroll register for month
+ */
+
+export function usePayrollControllerGetRegister<TData = Awaited<ReturnType<typeof payrollControllerGetRegister>>, TError = unknown>(
+ year: number,
+    month: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof payrollControllerGetRegister>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getPayrollControllerGetRegisterQueryOptions(year,month,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Get detailed salary sheet for single employee
+ */
+export type payrollControllerGetEmployeeSalarySheetResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type payrollControllerGetEmployeeSalarySheetResponseSuccess = (payrollControllerGetEmployeeSalarySheetResponse200) & {
+  headers: Headers;
+};
+;
+
+export type payrollControllerGetEmployeeSalarySheetResponse = (payrollControllerGetEmployeeSalarySheetResponseSuccess)
+
+export const getPayrollControllerGetEmployeeSalarySheetUrl = (year: number,
+    month: number,
+    empId: number,) => {
+
+
+  
+
+  return `/api/v1/payroll/${year}/${month}/employee/${empId}`
+}
+
+export const payrollControllerGetEmployeeSalarySheet = async (year: number,
+    month: number,
+    empId: number, options?: RequestInit): Promise<payrollControllerGetEmployeeSalarySheetResponse> => {
+  
+  return customFetch<payrollControllerGetEmployeeSalarySheetResponse>(getPayrollControllerGetEmployeeSalarySheetUrl(year,month,empId),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getPayrollControllerGetEmployeeSalarySheetQueryKey = (year?: number,
+    month?: number,
+    empId?: number,) => {
+    return [
+    `/api/v1/payroll/${year}/${month}/employee/${empId}`
+    ] as const;
+    }
+
+    
+export const getPayrollControllerGetEmployeeSalarySheetQueryOptions = <TData = Awaited<ReturnType<typeof payrollControllerGetEmployeeSalarySheet>>, TError = unknown>(year: number,
+    month: number,
+    empId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof payrollControllerGetEmployeeSalarySheet>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPayrollControllerGetEmployeeSalarySheetQueryKey(year,month,empId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof payrollControllerGetEmployeeSalarySheet>>> = ({ signal }) => payrollControllerGetEmployeeSalarySheet(year,month,empId, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(year && month && empId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof payrollControllerGetEmployeeSalarySheet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type PayrollControllerGetEmployeeSalarySheetQueryResult = NonNullable<Awaited<ReturnType<typeof payrollControllerGetEmployeeSalarySheet>>>
+export type PayrollControllerGetEmployeeSalarySheetQueryError = unknown
+
+
+export function usePayrollControllerGetEmployeeSalarySheet<TData = Awaited<ReturnType<typeof payrollControllerGetEmployeeSalarySheet>>, TError = unknown>(
+ year: number,
+    month: number,
+    empId: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof payrollControllerGetEmployeeSalarySheet>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof payrollControllerGetEmployeeSalarySheet>>,
+          TError,
+          Awaited<ReturnType<typeof payrollControllerGetEmployeeSalarySheet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePayrollControllerGetEmployeeSalarySheet<TData = Awaited<ReturnType<typeof payrollControllerGetEmployeeSalarySheet>>, TError = unknown>(
+ year: number,
+    month: number,
+    empId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof payrollControllerGetEmployeeSalarySheet>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof payrollControllerGetEmployeeSalarySheet>>,
+          TError,
+          Awaited<ReturnType<typeof payrollControllerGetEmployeeSalarySheet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePayrollControllerGetEmployeeSalarySheet<TData = Awaited<ReturnType<typeof payrollControllerGetEmployeeSalarySheet>>, TError = unknown>(
+ year: number,
+    month: number,
+    empId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof payrollControllerGetEmployeeSalarySheet>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get detailed salary sheet for single employee
+ */
+
+export function usePayrollControllerGetEmployeeSalarySheet<TData = Awaited<ReturnType<typeof payrollControllerGetEmployeeSalarySheet>>, TError = unknown>(
+ year: number,
+    month: number,
+    empId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof payrollControllerGetEmployeeSalarySheet>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getPayrollControllerGetEmployeeSalarySheetQueryOptions(year,month,empId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Save day adjustment for employee
+ */
+export type payrollControllerSaveDayAdjustmentResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type payrollControllerSaveDayAdjustmentResponseSuccess = (payrollControllerSaveDayAdjustmentResponse201) & {
+  headers: Headers;
+};
+;
+
+export type payrollControllerSaveDayAdjustmentResponse = (payrollControllerSaveDayAdjustmentResponseSuccess)
+
+export const getPayrollControllerSaveDayAdjustmentUrl = (payrollEmployeeId: number,
+    dayId: number,) => {
+
+
+  
+
+  return `/api/v1/payroll/employees/${payrollEmployeeId}/days/${dayId}/adjust`
+}
+
+export const payrollControllerSaveDayAdjustment = async (payrollEmployeeId: number,
+    dayId: number,
+    dayAdjustmentDto: DayAdjustmentDto, options?: RequestInit): Promise<payrollControllerSaveDayAdjustmentResponse> => {
+  
+  return customFetch<payrollControllerSaveDayAdjustmentResponse>(getPayrollControllerSaveDayAdjustmentUrl(payrollEmployeeId,dayId),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      dayAdjustmentDto,)
+  }
+);}
+
+
+
+
+export const getPayrollControllerSaveDayAdjustmentMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof payrollControllerSaveDayAdjustment>>, TError,{payrollEmployeeId: number;dayId: number;data: DayAdjustmentDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof payrollControllerSaveDayAdjustment>>, TError,{payrollEmployeeId: number;dayId: number;data: DayAdjustmentDto}, TContext> => {
+
+const mutationKey = ['payrollControllerSaveDayAdjustment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof payrollControllerSaveDayAdjustment>>, {payrollEmployeeId: number;dayId: number;data: DayAdjustmentDto}> = (props) => {
+          const {payrollEmployeeId,dayId,data} = props ?? {};
+
+          return  payrollControllerSaveDayAdjustment(payrollEmployeeId,dayId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PayrollControllerSaveDayAdjustmentMutationResult = NonNullable<Awaited<ReturnType<typeof payrollControllerSaveDayAdjustment>>>
+    export type PayrollControllerSaveDayAdjustmentMutationBody = DayAdjustmentDto
+    export type PayrollControllerSaveDayAdjustmentMutationError = unknown
+
+    /**
+ * @summary Save day adjustment for employee
+ */
+export const usePayrollControllerSaveDayAdjustment = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof payrollControllerSaveDayAdjustment>>, TError,{payrollEmployeeId: number;dayId: number;data: DayAdjustmentDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof payrollControllerSaveDayAdjustment>>,
+        TError,
+        {payrollEmployeeId: number;dayId: number;data: DayAdjustmentDto},
+        TContext
+      > => {
+
+      const mutationOptions = getPayrollControllerSaveDayAdjustmentMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Add addition or deduction for employee
+ */
+export type payrollControllerAddAdjustmentResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type payrollControllerAddAdjustmentResponseSuccess = (payrollControllerAddAdjustmentResponse201) & {
+  headers: Headers;
+};
+;
+
+export type payrollControllerAddAdjustmentResponse = (payrollControllerAddAdjustmentResponseSuccess)
+
+export const getPayrollControllerAddAdjustmentUrl = (payrollEmployeeId: number,) => {
+
+
+  
+
+  return `/api/v1/payroll/employees/${payrollEmployeeId}/adjustments`
+}
+
+export const payrollControllerAddAdjustment = async (payrollEmployeeId: number,
+    addAdjustmentDto: AddAdjustmentDto, options?: RequestInit): Promise<payrollControllerAddAdjustmentResponse> => {
+  
+  return customFetch<payrollControllerAddAdjustmentResponse>(getPayrollControllerAddAdjustmentUrl(payrollEmployeeId),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      addAdjustmentDto,)
+  }
+);}
+
+
+
+
+export const getPayrollControllerAddAdjustmentMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof payrollControllerAddAdjustment>>, TError,{payrollEmployeeId: number;data: AddAdjustmentDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof payrollControllerAddAdjustment>>, TError,{payrollEmployeeId: number;data: AddAdjustmentDto}, TContext> => {
+
+const mutationKey = ['payrollControllerAddAdjustment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof payrollControllerAddAdjustment>>, {payrollEmployeeId: number;data: AddAdjustmentDto}> = (props) => {
+          const {payrollEmployeeId,data} = props ?? {};
+
+          return  payrollControllerAddAdjustment(payrollEmployeeId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PayrollControllerAddAdjustmentMutationResult = NonNullable<Awaited<ReturnType<typeof payrollControllerAddAdjustment>>>
+    export type PayrollControllerAddAdjustmentMutationBody = AddAdjustmentDto
+    export type PayrollControllerAddAdjustmentMutationError = unknown
+
+    /**
+ * @summary Add addition or deduction for employee
+ */
+export const usePayrollControllerAddAdjustment = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof payrollControllerAddAdjustment>>, TError,{payrollEmployeeId: number;data: AddAdjustmentDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof payrollControllerAddAdjustment>>,
+        TError,
+        {payrollEmployeeId: number;data: AddAdjustmentDto},
+        TContext
+      > => {
+
+      const mutationOptions = getPayrollControllerAddAdjustmentMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Approve, reduce, or reject overtime entry
+ */
+export type payrollControllerApproveOtResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type payrollControllerApproveOtResponseSuccess = (payrollControllerApproveOtResponse201) & {
+  headers: Headers;
+};
+;
+
+export type payrollControllerApproveOtResponse = (payrollControllerApproveOtResponseSuccess)
+
+export const getPayrollControllerApproveOtUrl = (otEntryId: number,) => {
+
+
+  
+
+  return `/api/v1/payroll/ot-entries/${otEntryId}/approve`
+}
+
+export const payrollControllerApproveOt = async (otEntryId: number,
+    approveOtDto: ApproveOtDto, options?: RequestInit): Promise<payrollControllerApproveOtResponse> => {
+  
+  return customFetch<payrollControllerApproveOtResponse>(getPayrollControllerApproveOtUrl(otEntryId),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      approveOtDto,)
+  }
+);}
+
+
+
+
+export const getPayrollControllerApproveOtMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof payrollControllerApproveOt>>, TError,{otEntryId: number;data: ApproveOtDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof payrollControllerApproveOt>>, TError,{otEntryId: number;data: ApproveOtDto}, TContext> => {
+
+const mutationKey = ['payrollControllerApproveOt'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof payrollControllerApproveOt>>, {otEntryId: number;data: ApproveOtDto}> = (props) => {
+          const {otEntryId,data} = props ?? {};
+
+          return  payrollControllerApproveOt(otEntryId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PayrollControllerApproveOtMutationResult = NonNullable<Awaited<ReturnType<typeof payrollControllerApproveOt>>>
+    export type PayrollControllerApproveOtMutationBody = ApproveOtDto
+    export type PayrollControllerApproveOtMutationError = unknown
+
+    /**
+ * @summary Approve, reduce, or reject overtime entry
+ */
+export const usePayrollControllerApproveOt = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof payrollControllerApproveOt>>, TError,{otEntryId: number;data: ApproveOtDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof payrollControllerApproveOt>>,
+        TError,
+        {otEntryId: number;data: ApproveOtDto},
+        TContext
+      > => {
+
+      const mutationOptions = getPayrollControllerApproveOtMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Lock payroll run
+ */
+export type payrollControllerLockPayrollResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type payrollControllerLockPayrollResponseSuccess = (payrollControllerLockPayrollResponse201) & {
+  headers: Headers;
+};
+;
+
+export type payrollControllerLockPayrollResponse = (payrollControllerLockPayrollResponseSuccess)
+
+export const getPayrollControllerLockPayrollUrl = (year: number,
+    month: number,) => {
+
+
+  
+
+  return `/api/v1/payroll/${year}/${month}/lock`
+}
+
+export const payrollControllerLockPayroll = async (year: number,
+    month: number, options?: RequestInit): Promise<payrollControllerLockPayrollResponse> => {
+  
+  return customFetch<payrollControllerLockPayrollResponse>(getPayrollControllerLockPayrollUrl(year,month),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getPayrollControllerLockPayrollMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof payrollControllerLockPayroll>>, TError,{year: number;month: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof payrollControllerLockPayroll>>, TError,{year: number;month: number}, TContext> => {
+
+const mutationKey = ['payrollControllerLockPayroll'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof payrollControllerLockPayroll>>, {year: number;month: number}> = (props) => {
+          const {year,month} = props ?? {};
+
+          return  payrollControllerLockPayroll(year,month,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PayrollControllerLockPayrollMutationResult = NonNullable<Awaited<ReturnType<typeof payrollControllerLockPayroll>>>
+    
+    export type PayrollControllerLockPayrollMutationError = unknown
+
+    /**
+ * @summary Lock payroll run
+ */
+export const usePayrollControllerLockPayroll = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof payrollControllerLockPayroll>>, TError,{year: number;month: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof payrollControllerLockPayroll>>,
+        TError,
+        {year: number;month: number},
+        TContext
+      > => {
+
+      const mutationOptions = getPayrollControllerLockPayrollMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Unlock payroll run (Admin only)
+ */
+export type payrollControllerUnlockPayrollResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type payrollControllerUnlockPayrollResponseSuccess = (payrollControllerUnlockPayrollResponse201) & {
+  headers: Headers;
+};
+;
+
+export type payrollControllerUnlockPayrollResponse = (payrollControllerUnlockPayrollResponseSuccess)
+
+export const getPayrollControllerUnlockPayrollUrl = (year: number,
+    month: number,) => {
+
+
+  
+
+  return `/api/v1/payroll/${year}/${month}/unlock`
+}
+
+export const payrollControllerUnlockPayroll = async (year: number,
+    month: number,
+    unlockPayrollDto: UnlockPayrollDto, options?: RequestInit): Promise<payrollControllerUnlockPayrollResponse> => {
+  
+  return customFetch<payrollControllerUnlockPayrollResponse>(getPayrollControllerUnlockPayrollUrl(year,month),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      unlockPayrollDto,)
+  }
+);}
+
+
+
+
+export const getPayrollControllerUnlockPayrollMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof payrollControllerUnlockPayroll>>, TError,{year: number;month: number;data: UnlockPayrollDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof payrollControllerUnlockPayroll>>, TError,{year: number;month: number;data: UnlockPayrollDto}, TContext> => {
+
+const mutationKey = ['payrollControllerUnlockPayroll'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof payrollControllerUnlockPayroll>>, {year: number;month: number;data: UnlockPayrollDto}> = (props) => {
+          const {year,month,data} = props ?? {};
+
+          return  payrollControllerUnlockPayroll(year,month,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PayrollControllerUnlockPayrollMutationResult = NonNullable<Awaited<ReturnType<typeof payrollControllerUnlockPayroll>>>
+    export type PayrollControllerUnlockPayrollMutationBody = UnlockPayrollDto
+    export type PayrollControllerUnlockPayrollMutationError = unknown
+
+    /**
+ * @summary Unlock payroll run (Admin only)
+ */
+export const usePayrollControllerUnlockPayroll = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof payrollControllerUnlockPayroll>>, TError,{year: number;month: number;data: UnlockPayrollDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof payrollControllerUnlockPayroll>>,
+        TError,
+        {year: number;month: number;data: UnlockPayrollDto},
+        TContext
+      > => {
+
+      const mutationOptions = getPayrollControllerUnlockPayrollMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Mark payroll run as Paid
+ */
+export type payrollControllerMarkAsPaidResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type payrollControllerMarkAsPaidResponseSuccess = (payrollControllerMarkAsPaidResponse201) & {
+  headers: Headers;
+};
+;
+
+export type payrollControllerMarkAsPaidResponse = (payrollControllerMarkAsPaidResponseSuccess)
+
+export const getPayrollControllerMarkAsPaidUrl = (year: number,
+    month: number,) => {
+
+
+  
+
+  return `/api/v1/payroll/${year}/${month}/pay`
+}
+
+export const payrollControllerMarkAsPaid = async (year: number,
+    month: number,
+    markPaidDto: MarkPaidDto, options?: RequestInit): Promise<payrollControllerMarkAsPaidResponse> => {
+  
+  return customFetch<payrollControllerMarkAsPaidResponse>(getPayrollControllerMarkAsPaidUrl(year,month),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      markPaidDto,)
+  }
+);}
+
+
+
+
+export const getPayrollControllerMarkAsPaidMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof payrollControllerMarkAsPaid>>, TError,{year: number;month: number;data: MarkPaidDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof payrollControllerMarkAsPaid>>, TError,{year: number;month: number;data: MarkPaidDto}, TContext> => {
+
+const mutationKey = ['payrollControllerMarkAsPaid'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof payrollControllerMarkAsPaid>>, {year: number;month: number;data: MarkPaidDto}> = (props) => {
+          const {year,month,data} = props ?? {};
+
+          return  payrollControllerMarkAsPaid(year,month,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PayrollControllerMarkAsPaidMutationResult = NonNullable<Awaited<ReturnType<typeof payrollControllerMarkAsPaid>>>
+    export type PayrollControllerMarkAsPaidMutationBody = MarkPaidDto
+    export type PayrollControllerMarkAsPaidMutationError = unknown
+
+    /**
+ * @summary Mark payroll run as Paid
+ */
+export const usePayrollControllerMarkAsPaid = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof payrollControllerMarkAsPaid>>, TError,{year: number;month: number;data: MarkPaidDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof payrollControllerMarkAsPaid>>,
+        TError,
+        {year: number;month: number;data: MarkPaidDto},
+        TContext
+      > => {
+
+      const mutationOptions = getPayrollControllerMarkAsPaidMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Generate salary slips for locked/paid payroll run
+ */
+export type payrollControllerGenerateSlipsResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type payrollControllerGenerateSlipsResponseSuccess = (payrollControllerGenerateSlipsResponse201) & {
+  headers: Headers;
+};
+;
+
+export type payrollControllerGenerateSlipsResponse = (payrollControllerGenerateSlipsResponseSuccess)
+
+export const getPayrollControllerGenerateSlipsUrl = (year: number,
+    month: number,) => {
+
+
+  
+
+  return `/api/v1/payroll/${year}/${month}/slips/generate`
+}
+
+export const payrollControllerGenerateSlips = async (year: number,
+    month: number, options?: RequestInit): Promise<payrollControllerGenerateSlipsResponse> => {
+  
+  return customFetch<payrollControllerGenerateSlipsResponse>(getPayrollControllerGenerateSlipsUrl(year,month),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getPayrollControllerGenerateSlipsMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof payrollControllerGenerateSlips>>, TError,{year: number;month: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof payrollControllerGenerateSlips>>, TError,{year: number;month: number}, TContext> => {
+
+const mutationKey = ['payrollControllerGenerateSlips'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof payrollControllerGenerateSlips>>, {year: number;month: number}> = (props) => {
+          const {year,month} = props ?? {};
+
+          return  payrollControllerGenerateSlips(year,month,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PayrollControllerGenerateSlipsMutationResult = NonNullable<Awaited<ReturnType<typeof payrollControllerGenerateSlips>>>
+    
+    export type PayrollControllerGenerateSlipsMutationError = unknown
+
+    /**
+ * @summary Generate salary slips for locked/paid payroll run
+ */
+export const usePayrollControllerGenerateSlips = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof payrollControllerGenerateSlips>>, TError,{year: number;month: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof payrollControllerGenerateSlips>>,
+        TError,
+        {year: number;month: number},
+        TContext
+      > => {
+
+      const mutationOptions = getPayrollControllerGenerateSlipsMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Release salary slips to employee portal
+ */
+export type payrollControllerReleaseSlipsResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type payrollControllerReleaseSlipsResponseSuccess = (payrollControllerReleaseSlipsResponse201) & {
+  headers: Headers;
+};
+;
+
+export type payrollControllerReleaseSlipsResponse = (payrollControllerReleaseSlipsResponseSuccess)
+
+export const getPayrollControllerReleaseSlipsUrl = (year: number,
+    month: number,) => {
+
+
+  
+
+  return `/api/v1/payroll/${year}/${month}/slips/release`
+}
+
+export const payrollControllerReleaseSlips = async (year: number,
+    month: number, options?: RequestInit): Promise<payrollControllerReleaseSlipsResponse> => {
+  
+  return customFetch<payrollControllerReleaseSlipsResponse>(getPayrollControllerReleaseSlipsUrl(year,month),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getPayrollControllerReleaseSlipsMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof payrollControllerReleaseSlips>>, TError,{year: number;month: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof payrollControllerReleaseSlips>>, TError,{year: number;month: number}, TContext> => {
+
+const mutationKey = ['payrollControllerReleaseSlips'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof payrollControllerReleaseSlips>>, {year: number;month: number}> = (props) => {
+          const {year,month} = props ?? {};
+
+          return  payrollControllerReleaseSlips(year,month,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PayrollControllerReleaseSlipsMutationResult = NonNullable<Awaited<ReturnType<typeof payrollControllerReleaseSlips>>>
+    
+    export type PayrollControllerReleaseSlipsMutationError = unknown
+
+    /**
+ * @summary Release salary slips to employee portal
+ */
+export const usePayrollControllerReleaseSlips = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof payrollControllerReleaseSlips>>, TError,{year: number;month: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof payrollControllerReleaseSlips>>,
+        TError,
+        {year: number;month: number},
+        TContext
+      > => {
+
+      const mutationOptions = getPayrollControllerReleaseSlipsMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Get formatted salary slip for printable view and download
+ */
+export type payrollControllerGetEmployeeSalarySlipResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type payrollControllerGetEmployeeSalarySlipResponseSuccess = (payrollControllerGetEmployeeSalarySlipResponse200) & {
+  headers: Headers;
+};
+;
+
+export type payrollControllerGetEmployeeSalarySlipResponse = (payrollControllerGetEmployeeSalarySlipResponseSuccess)
+
+export const getPayrollControllerGetEmployeeSalarySlipUrl = (year: number,
+    month: number,
+    empId: number,) => {
+
+
+  
+
+  return `/api/v1/payroll/${year}/${month}/employee/${empId}/slip`
+}
+
+export const payrollControllerGetEmployeeSalarySlip = async (year: number,
+    month: number,
+    empId: number, options?: RequestInit): Promise<payrollControllerGetEmployeeSalarySlipResponse> => {
+  
+  return customFetch<payrollControllerGetEmployeeSalarySlipResponse>(getPayrollControllerGetEmployeeSalarySlipUrl(year,month,empId),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getPayrollControllerGetEmployeeSalarySlipQueryKey = (year?: number,
+    month?: number,
+    empId?: number,) => {
+    return [
+    `/api/v1/payroll/${year}/${month}/employee/${empId}/slip`
+    ] as const;
+    }
+
+    
+export const getPayrollControllerGetEmployeeSalarySlipQueryOptions = <TData = Awaited<ReturnType<typeof payrollControllerGetEmployeeSalarySlip>>, TError = unknown>(year: number,
+    month: number,
+    empId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof payrollControllerGetEmployeeSalarySlip>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPayrollControllerGetEmployeeSalarySlipQueryKey(year,month,empId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof payrollControllerGetEmployeeSalarySlip>>> = ({ signal }) => payrollControllerGetEmployeeSalarySlip(year,month,empId, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(year && month && empId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof payrollControllerGetEmployeeSalarySlip>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type PayrollControllerGetEmployeeSalarySlipQueryResult = NonNullable<Awaited<ReturnType<typeof payrollControllerGetEmployeeSalarySlip>>>
+export type PayrollControllerGetEmployeeSalarySlipQueryError = unknown
+
+
+export function usePayrollControllerGetEmployeeSalarySlip<TData = Awaited<ReturnType<typeof payrollControllerGetEmployeeSalarySlip>>, TError = unknown>(
+ year: number,
+    month: number,
+    empId: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof payrollControllerGetEmployeeSalarySlip>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof payrollControllerGetEmployeeSalarySlip>>,
+          TError,
+          Awaited<ReturnType<typeof payrollControllerGetEmployeeSalarySlip>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePayrollControllerGetEmployeeSalarySlip<TData = Awaited<ReturnType<typeof payrollControllerGetEmployeeSalarySlip>>, TError = unknown>(
+ year: number,
+    month: number,
+    empId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof payrollControllerGetEmployeeSalarySlip>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof payrollControllerGetEmployeeSalarySlip>>,
+          TError,
+          Awaited<ReturnType<typeof payrollControllerGetEmployeeSalarySlip>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePayrollControllerGetEmployeeSalarySlip<TData = Awaited<ReturnType<typeof payrollControllerGetEmployeeSalarySlip>>, TError = unknown>(
+ year: number,
+    month: number,
+    empId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof payrollControllerGetEmployeeSalarySlip>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get formatted salary slip for printable view and download
+ */
+
+export function usePayrollControllerGetEmployeeSalarySlip<TData = Awaited<ReturnType<typeof payrollControllerGetEmployeeSalarySlip>>, TError = unknown>(
+ year: number,
+    month: number,
+    empId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof payrollControllerGetEmployeeSalarySlip>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getPayrollControllerGetEmployeeSalarySlipQueryOptions(year,month,empId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Get all leave types
+ */
+export type leaveControllerGetLeaveTypesResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type leaveControllerGetLeaveTypesResponseSuccess = (leaveControllerGetLeaveTypesResponse200) & {
+  headers: Headers;
+};
+;
+
+export type leaveControllerGetLeaveTypesResponse = (leaveControllerGetLeaveTypesResponseSuccess)
+
+export const getLeaveControllerGetLeaveTypesUrl = () => {
+
+
+  
+
+  return `/api/v1/leave/settings/types`
+}
+
+export const leaveControllerGetLeaveTypes = async ( options?: RequestInit): Promise<leaveControllerGetLeaveTypesResponse> => {
+  
+  return customFetch<leaveControllerGetLeaveTypesResponse>(getLeaveControllerGetLeaveTypesUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getLeaveControllerGetLeaveTypesQueryKey = () => {
+    return [
+    `/api/v1/leave/settings/types`
+    ] as const;
+    }
+
+    
+export const getLeaveControllerGetLeaveTypesQueryOptions = <TData = Awaited<ReturnType<typeof leaveControllerGetLeaveTypes>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetLeaveTypes>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getLeaveControllerGetLeaveTypesQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof leaveControllerGetLeaveTypes>>> = ({ signal }) => leaveControllerGetLeaveTypes({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetLeaveTypes>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type LeaveControllerGetLeaveTypesQueryResult = NonNullable<Awaited<ReturnType<typeof leaveControllerGetLeaveTypes>>>
+export type LeaveControllerGetLeaveTypesQueryError = unknown
+
+
+export function useLeaveControllerGetLeaveTypes<TData = Awaited<ReturnType<typeof leaveControllerGetLeaveTypes>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetLeaveTypes>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof leaveControllerGetLeaveTypes>>,
+          TError,
+          Awaited<ReturnType<typeof leaveControllerGetLeaveTypes>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLeaveControllerGetLeaveTypes<TData = Awaited<ReturnType<typeof leaveControllerGetLeaveTypes>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetLeaveTypes>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof leaveControllerGetLeaveTypes>>,
+          TError,
+          Awaited<ReturnType<typeof leaveControllerGetLeaveTypes>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLeaveControllerGetLeaveTypes<TData = Awaited<ReturnType<typeof leaveControllerGetLeaveTypes>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetLeaveTypes>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get all leave types
+ */
+
+export function useLeaveControllerGetLeaveTypes<TData = Awaited<ReturnType<typeof leaveControllerGetLeaveTypes>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetLeaveTypes>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getLeaveControllerGetLeaveTypesQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Create new leave type
+ */
+export type leaveControllerCreateLeaveTypeResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type leaveControllerCreateLeaveTypeResponseSuccess = (leaveControllerCreateLeaveTypeResponse201) & {
+  headers: Headers;
+};
+;
+
+export type leaveControllerCreateLeaveTypeResponse = (leaveControllerCreateLeaveTypeResponseSuccess)
+
+export const getLeaveControllerCreateLeaveTypeUrl = () => {
+
+
+  
+
+  return `/api/v1/leave/settings/types`
+}
+
+export const leaveControllerCreateLeaveType = async (createLeaveTypeDto: CreateLeaveTypeDto, options?: RequestInit): Promise<leaveControllerCreateLeaveTypeResponse> => {
+  
+  return customFetch<leaveControllerCreateLeaveTypeResponse>(getLeaveControllerCreateLeaveTypeUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createLeaveTypeDto,)
+  }
+);}
+
+
+
+
+export const getLeaveControllerCreateLeaveTypeMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveControllerCreateLeaveType>>, TError,{data: CreateLeaveTypeDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof leaveControllerCreateLeaveType>>, TError,{data: CreateLeaveTypeDto}, TContext> => {
+
+const mutationKey = ['leaveControllerCreateLeaveType'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof leaveControllerCreateLeaveType>>, {data: CreateLeaveTypeDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  leaveControllerCreateLeaveType(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LeaveControllerCreateLeaveTypeMutationResult = NonNullable<Awaited<ReturnType<typeof leaveControllerCreateLeaveType>>>
+    export type LeaveControllerCreateLeaveTypeMutationBody = CreateLeaveTypeDto
+    export type LeaveControllerCreateLeaveTypeMutationError = unknown
+
+    /**
+ * @summary Create new leave type
+ */
+export const useLeaveControllerCreateLeaveType = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveControllerCreateLeaveType>>, TError,{data: CreateLeaveTypeDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof leaveControllerCreateLeaveType>>,
+        TError,
+        {data: CreateLeaveTypeDto},
+        TContext
+      > => {
+
+      const mutationOptions = getLeaveControllerCreateLeaveTypeMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Get leave type by ID
+ */
+export type leaveControllerGetLeaveTypeResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type leaveControllerGetLeaveTypeResponseSuccess = (leaveControllerGetLeaveTypeResponse200) & {
+  headers: Headers;
+};
+;
+
+export type leaveControllerGetLeaveTypeResponse = (leaveControllerGetLeaveTypeResponseSuccess)
+
+export const getLeaveControllerGetLeaveTypeUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/leave/settings/types/${id}`
+}
+
+export const leaveControllerGetLeaveType = async (id: number, options?: RequestInit): Promise<leaveControllerGetLeaveTypeResponse> => {
+  
+  return customFetch<leaveControllerGetLeaveTypeResponse>(getLeaveControllerGetLeaveTypeUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getLeaveControllerGetLeaveTypeQueryKey = (id?: number,) => {
+    return [
+    `/api/v1/leave/settings/types/${id}`
+    ] as const;
+    }
+
+    
+export const getLeaveControllerGetLeaveTypeQueryOptions = <TData = Awaited<ReturnType<typeof leaveControllerGetLeaveType>>, TError = unknown>(id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetLeaveType>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getLeaveControllerGetLeaveTypeQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof leaveControllerGetLeaveType>>> = ({ signal }) => leaveControllerGetLeaveType(id, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetLeaveType>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type LeaveControllerGetLeaveTypeQueryResult = NonNullable<Awaited<ReturnType<typeof leaveControllerGetLeaveType>>>
+export type LeaveControllerGetLeaveTypeQueryError = unknown
+
+
+export function useLeaveControllerGetLeaveType<TData = Awaited<ReturnType<typeof leaveControllerGetLeaveType>>, TError = unknown>(
+ id: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetLeaveType>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof leaveControllerGetLeaveType>>,
+          TError,
+          Awaited<ReturnType<typeof leaveControllerGetLeaveType>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLeaveControllerGetLeaveType<TData = Awaited<ReturnType<typeof leaveControllerGetLeaveType>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetLeaveType>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof leaveControllerGetLeaveType>>,
+          TError,
+          Awaited<ReturnType<typeof leaveControllerGetLeaveType>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLeaveControllerGetLeaveType<TData = Awaited<ReturnType<typeof leaveControllerGetLeaveType>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetLeaveType>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get leave type by ID
+ */
+
+export function useLeaveControllerGetLeaveType<TData = Awaited<ReturnType<typeof leaveControllerGetLeaveType>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetLeaveType>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getLeaveControllerGetLeaveTypeQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Update leave type
+ */
+export type leaveControllerUpdateLeaveTypeResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type leaveControllerUpdateLeaveTypeResponseSuccess = (leaveControllerUpdateLeaveTypeResponse200) & {
+  headers: Headers;
+};
+;
+
+export type leaveControllerUpdateLeaveTypeResponse = (leaveControllerUpdateLeaveTypeResponseSuccess)
+
+export const getLeaveControllerUpdateLeaveTypeUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/leave/settings/types/${id}`
+}
+
+export const leaveControllerUpdateLeaveType = async (id: number,
+    updateLeaveTypeDto: UpdateLeaveTypeDto, options?: RequestInit): Promise<leaveControllerUpdateLeaveTypeResponse> => {
+  
+  return customFetch<leaveControllerUpdateLeaveTypeResponse>(getLeaveControllerUpdateLeaveTypeUrl(id),
+  {      
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateLeaveTypeDto,)
+  }
+);}
+
+
+
+
+export const getLeaveControllerUpdateLeaveTypeMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveControllerUpdateLeaveType>>, TError,{id: number;data: UpdateLeaveTypeDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof leaveControllerUpdateLeaveType>>, TError,{id: number;data: UpdateLeaveTypeDto}, TContext> => {
+
+const mutationKey = ['leaveControllerUpdateLeaveType'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof leaveControllerUpdateLeaveType>>, {id: number;data: UpdateLeaveTypeDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  leaveControllerUpdateLeaveType(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LeaveControllerUpdateLeaveTypeMutationResult = NonNullable<Awaited<ReturnType<typeof leaveControllerUpdateLeaveType>>>
+    export type LeaveControllerUpdateLeaveTypeMutationBody = UpdateLeaveTypeDto
+    export type LeaveControllerUpdateLeaveTypeMutationError = unknown
+
+    /**
+ * @summary Update leave type
+ */
+export const useLeaveControllerUpdateLeaveType = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveControllerUpdateLeaveType>>, TError,{id: number;data: UpdateLeaveTypeDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof leaveControllerUpdateLeaveType>>,
+        TError,
+        {id: number;data: UpdateLeaveTypeDto},
+        TContext
+      > => {
+
+      const mutationOptions = getLeaveControllerUpdateLeaveTypeMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Delete unused leave type
+ */
+export type leaveControllerDeleteLeaveTypeResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type leaveControllerDeleteLeaveTypeResponseSuccess = (leaveControllerDeleteLeaveTypeResponse200) & {
+  headers: Headers;
+};
+;
+
+export type leaveControllerDeleteLeaveTypeResponse = (leaveControllerDeleteLeaveTypeResponseSuccess)
+
+export const getLeaveControllerDeleteLeaveTypeUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/leave/settings/types/${id}`
+}
+
+export const leaveControllerDeleteLeaveType = async (id: number, options?: RequestInit): Promise<leaveControllerDeleteLeaveTypeResponse> => {
+  
+  return customFetch<leaveControllerDeleteLeaveTypeResponse>(getLeaveControllerDeleteLeaveTypeUrl(id),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+);}
+
+
+
+
+export const getLeaveControllerDeleteLeaveTypeMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveControllerDeleteLeaveType>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof leaveControllerDeleteLeaveType>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['leaveControllerDeleteLeaveType'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof leaveControllerDeleteLeaveType>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  leaveControllerDeleteLeaveType(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LeaveControllerDeleteLeaveTypeMutationResult = NonNullable<Awaited<ReturnType<typeof leaveControllerDeleteLeaveType>>>
+    
+    export type LeaveControllerDeleteLeaveTypeMutationError = unknown
+
+    /**
+ * @summary Delete unused leave type
+ */
+export const useLeaveControllerDeleteLeaveType = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveControllerDeleteLeaveType>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof leaveControllerDeleteLeaveType>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+
+      const mutationOptions = getLeaveControllerDeleteLeaveTypeMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Toggle leave type active/inactive status
+ */
+export type leaveControllerToggleLeaveTypeStatusResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type leaveControllerToggleLeaveTypeStatusResponseSuccess = (leaveControllerToggleLeaveTypeStatusResponse200) & {
+  headers: Headers;
+};
+;
+
+export type leaveControllerToggleLeaveTypeStatusResponse = (leaveControllerToggleLeaveTypeStatusResponseSuccess)
+
+export const getLeaveControllerToggleLeaveTypeStatusUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/leave/settings/types/${id}/toggle`
+}
+
+export const leaveControllerToggleLeaveTypeStatus = async (id: number, options?: RequestInit): Promise<leaveControllerToggleLeaveTypeStatusResponse> => {
+  
+  return customFetch<leaveControllerToggleLeaveTypeStatusResponse>(getLeaveControllerToggleLeaveTypeStatusUrl(id),
+  {      
+    ...options,
+    method: 'PATCH'
+    
+    
+  }
+);}
+
+
+
+
+export const getLeaveControllerToggleLeaveTypeStatusMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveControllerToggleLeaveTypeStatus>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof leaveControllerToggleLeaveTypeStatus>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['leaveControllerToggleLeaveTypeStatus'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof leaveControllerToggleLeaveTypeStatus>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  leaveControllerToggleLeaveTypeStatus(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LeaveControllerToggleLeaveTypeStatusMutationResult = NonNullable<Awaited<ReturnType<typeof leaveControllerToggleLeaveTypeStatus>>>
+    
+    export type LeaveControllerToggleLeaveTypeStatusMutationError = unknown
+
+    /**
+ * @summary Toggle leave type active/inactive status
+ */
+export const useLeaveControllerToggleLeaveTypeStatus = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveControllerToggleLeaveTypeStatus>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof leaveControllerToggleLeaveTypeStatus>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+
+      const mutationOptions = getLeaveControllerToggleLeaveTypeStatusMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Get all leave policies with rules
+ */
+export type leaveControllerGetLeavePoliciesResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type leaveControllerGetLeavePoliciesResponseSuccess = (leaveControllerGetLeavePoliciesResponse200) & {
+  headers: Headers;
+};
+;
+
+export type leaveControllerGetLeavePoliciesResponse = (leaveControllerGetLeavePoliciesResponseSuccess)
+
+export const getLeaveControllerGetLeavePoliciesUrl = () => {
+
+
+  
+
+  return `/api/v1/leave/settings/policies`
+}
+
+export const leaveControllerGetLeavePolicies = async ( options?: RequestInit): Promise<leaveControllerGetLeavePoliciesResponse> => {
+  
+  return customFetch<leaveControllerGetLeavePoliciesResponse>(getLeaveControllerGetLeavePoliciesUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getLeaveControllerGetLeavePoliciesQueryKey = () => {
+    return [
+    `/api/v1/leave/settings/policies`
+    ] as const;
+    }
+
+    
+export const getLeaveControllerGetLeavePoliciesQueryOptions = <TData = Awaited<ReturnType<typeof leaveControllerGetLeavePolicies>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetLeavePolicies>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getLeaveControllerGetLeavePoliciesQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof leaveControllerGetLeavePolicies>>> = ({ signal }) => leaveControllerGetLeavePolicies({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetLeavePolicies>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type LeaveControllerGetLeavePoliciesQueryResult = NonNullable<Awaited<ReturnType<typeof leaveControllerGetLeavePolicies>>>
+export type LeaveControllerGetLeavePoliciesQueryError = unknown
+
+
+export function useLeaveControllerGetLeavePolicies<TData = Awaited<ReturnType<typeof leaveControllerGetLeavePolicies>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetLeavePolicies>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof leaveControllerGetLeavePolicies>>,
+          TError,
+          Awaited<ReturnType<typeof leaveControllerGetLeavePolicies>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLeaveControllerGetLeavePolicies<TData = Awaited<ReturnType<typeof leaveControllerGetLeavePolicies>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetLeavePolicies>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof leaveControllerGetLeavePolicies>>,
+          TError,
+          Awaited<ReturnType<typeof leaveControllerGetLeavePolicies>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLeaveControllerGetLeavePolicies<TData = Awaited<ReturnType<typeof leaveControllerGetLeavePolicies>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetLeavePolicies>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get all leave policies with rules
+ */
+
+export function useLeaveControllerGetLeavePolicies<TData = Awaited<ReturnType<typeof leaveControllerGetLeavePolicies>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetLeavePolicies>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getLeaveControllerGetLeavePoliciesQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Create new leave policy with rules
+ */
+export type leaveControllerCreateLeavePolicyResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type leaveControllerCreateLeavePolicyResponseSuccess = (leaveControllerCreateLeavePolicyResponse201) & {
+  headers: Headers;
+};
+;
+
+export type leaveControllerCreateLeavePolicyResponse = (leaveControllerCreateLeavePolicyResponseSuccess)
+
+export const getLeaveControllerCreateLeavePolicyUrl = () => {
+
+
+  
+
+  return `/api/v1/leave/settings/policies`
+}
+
+export const leaveControllerCreateLeavePolicy = async (createLeavePolicyDto: CreateLeavePolicyDto, options?: RequestInit): Promise<leaveControllerCreateLeavePolicyResponse> => {
+  
+  return customFetch<leaveControllerCreateLeavePolicyResponse>(getLeaveControllerCreateLeavePolicyUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createLeavePolicyDto,)
+  }
+);}
+
+
+
+
+export const getLeaveControllerCreateLeavePolicyMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveControllerCreateLeavePolicy>>, TError,{data: CreateLeavePolicyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof leaveControllerCreateLeavePolicy>>, TError,{data: CreateLeavePolicyDto}, TContext> => {
+
+const mutationKey = ['leaveControllerCreateLeavePolicy'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof leaveControllerCreateLeavePolicy>>, {data: CreateLeavePolicyDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  leaveControllerCreateLeavePolicy(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LeaveControllerCreateLeavePolicyMutationResult = NonNullable<Awaited<ReturnType<typeof leaveControllerCreateLeavePolicy>>>
+    export type LeaveControllerCreateLeavePolicyMutationBody = CreateLeavePolicyDto
+    export type LeaveControllerCreateLeavePolicyMutationError = unknown
+
+    /**
+ * @summary Create new leave policy with rules
+ */
+export const useLeaveControllerCreateLeavePolicy = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveControllerCreateLeavePolicy>>, TError,{data: CreateLeavePolicyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof leaveControllerCreateLeavePolicy>>,
+        TError,
+        {data: CreateLeavePolicyDto},
+        TContext
+      > => {
+
+      const mutationOptions = getLeaveControllerCreateLeavePolicyMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Get leave policy by ID
+ */
+export type leaveControllerGetLeavePolicyResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type leaveControllerGetLeavePolicyResponseSuccess = (leaveControllerGetLeavePolicyResponse200) & {
+  headers: Headers;
+};
+;
+
+export type leaveControllerGetLeavePolicyResponse = (leaveControllerGetLeavePolicyResponseSuccess)
+
+export const getLeaveControllerGetLeavePolicyUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/leave/settings/policies/${id}`
+}
+
+export const leaveControllerGetLeavePolicy = async (id: number, options?: RequestInit): Promise<leaveControllerGetLeavePolicyResponse> => {
+  
+  return customFetch<leaveControllerGetLeavePolicyResponse>(getLeaveControllerGetLeavePolicyUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getLeaveControllerGetLeavePolicyQueryKey = (id?: number,) => {
+    return [
+    `/api/v1/leave/settings/policies/${id}`
+    ] as const;
+    }
+
+    
+export const getLeaveControllerGetLeavePolicyQueryOptions = <TData = Awaited<ReturnType<typeof leaveControllerGetLeavePolicy>>, TError = unknown>(id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetLeavePolicy>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getLeaveControllerGetLeavePolicyQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof leaveControllerGetLeavePolicy>>> = ({ signal }) => leaveControllerGetLeavePolicy(id, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetLeavePolicy>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type LeaveControllerGetLeavePolicyQueryResult = NonNullable<Awaited<ReturnType<typeof leaveControllerGetLeavePolicy>>>
+export type LeaveControllerGetLeavePolicyQueryError = unknown
+
+
+export function useLeaveControllerGetLeavePolicy<TData = Awaited<ReturnType<typeof leaveControllerGetLeavePolicy>>, TError = unknown>(
+ id: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetLeavePolicy>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof leaveControllerGetLeavePolicy>>,
+          TError,
+          Awaited<ReturnType<typeof leaveControllerGetLeavePolicy>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLeaveControllerGetLeavePolicy<TData = Awaited<ReturnType<typeof leaveControllerGetLeavePolicy>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetLeavePolicy>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof leaveControllerGetLeavePolicy>>,
+          TError,
+          Awaited<ReturnType<typeof leaveControllerGetLeavePolicy>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLeaveControllerGetLeavePolicy<TData = Awaited<ReturnType<typeof leaveControllerGetLeavePolicy>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetLeavePolicy>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get leave policy by ID
+ */
+
+export function useLeaveControllerGetLeavePolicy<TData = Awaited<ReturnType<typeof leaveControllerGetLeavePolicy>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetLeavePolicy>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getLeaveControllerGetLeavePolicyQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Update leave policy and rules
+ */
+export type leaveControllerUpdateLeavePolicyResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type leaveControllerUpdateLeavePolicyResponseSuccess = (leaveControllerUpdateLeavePolicyResponse200) & {
+  headers: Headers;
+};
+;
+
+export type leaveControllerUpdateLeavePolicyResponse = (leaveControllerUpdateLeavePolicyResponseSuccess)
+
+export const getLeaveControllerUpdateLeavePolicyUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/leave/settings/policies/${id}`
+}
+
+export const leaveControllerUpdateLeavePolicy = async (id: number,
+    updateLeavePolicyDto: UpdateLeavePolicyDto, options?: RequestInit): Promise<leaveControllerUpdateLeavePolicyResponse> => {
+  
+  return customFetch<leaveControllerUpdateLeavePolicyResponse>(getLeaveControllerUpdateLeavePolicyUrl(id),
+  {      
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateLeavePolicyDto,)
+  }
+);}
+
+
+
+
+export const getLeaveControllerUpdateLeavePolicyMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveControllerUpdateLeavePolicy>>, TError,{id: number;data: UpdateLeavePolicyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof leaveControllerUpdateLeavePolicy>>, TError,{id: number;data: UpdateLeavePolicyDto}, TContext> => {
+
+const mutationKey = ['leaveControllerUpdateLeavePolicy'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof leaveControllerUpdateLeavePolicy>>, {id: number;data: UpdateLeavePolicyDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  leaveControllerUpdateLeavePolicy(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LeaveControllerUpdateLeavePolicyMutationResult = NonNullable<Awaited<ReturnType<typeof leaveControllerUpdateLeavePolicy>>>
+    export type LeaveControllerUpdateLeavePolicyMutationBody = UpdateLeavePolicyDto
+    export type LeaveControllerUpdateLeavePolicyMutationError = unknown
+
+    /**
+ * @summary Update leave policy and rules
+ */
+export const useLeaveControllerUpdateLeavePolicy = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveControllerUpdateLeavePolicy>>, TError,{id: number;data: UpdateLeavePolicyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof leaveControllerUpdateLeavePolicy>>,
+        TError,
+        {id: number;data: UpdateLeavePolicyDto},
+        TContext
+      > => {
+
+      const mutationOptions = getLeaveControllerUpdateLeavePolicyMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Make a copy of an existing policy
+ */
+export type leaveControllerCopyLeavePolicyResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type leaveControllerCopyLeavePolicyResponseSuccess = (leaveControllerCopyLeavePolicyResponse201) & {
+  headers: Headers;
+};
+;
+
+export type leaveControllerCopyLeavePolicyResponse = (leaveControllerCopyLeavePolicyResponseSuccess)
+
+export const getLeaveControllerCopyLeavePolicyUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/leave/settings/policies/${id}/copy`
+}
+
+export const leaveControllerCopyLeavePolicy = async (id: number,
+    copyLeavePolicyDto: CopyLeavePolicyDto, options?: RequestInit): Promise<leaveControllerCopyLeavePolicyResponse> => {
+  
+  return customFetch<leaveControllerCopyLeavePolicyResponse>(getLeaveControllerCopyLeavePolicyUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      copyLeavePolicyDto,)
+  }
+);}
+
+
+
+
+export const getLeaveControllerCopyLeavePolicyMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveControllerCopyLeavePolicy>>, TError,{id: number;data: CopyLeavePolicyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof leaveControllerCopyLeavePolicy>>, TError,{id: number;data: CopyLeavePolicyDto}, TContext> => {
+
+const mutationKey = ['leaveControllerCopyLeavePolicy'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof leaveControllerCopyLeavePolicy>>, {id: number;data: CopyLeavePolicyDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  leaveControllerCopyLeavePolicy(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LeaveControllerCopyLeavePolicyMutationResult = NonNullable<Awaited<ReturnType<typeof leaveControllerCopyLeavePolicy>>>
+    export type LeaveControllerCopyLeavePolicyMutationBody = CopyLeavePolicyDto
+    export type LeaveControllerCopyLeavePolicyMutationError = unknown
+
+    /**
+ * @summary Make a copy of an existing policy
+ */
+export const useLeaveControllerCopyLeavePolicy = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveControllerCopyLeavePolicy>>, TError,{id: number;data: CopyLeavePolicyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof leaveControllerCopyLeavePolicy>>,
+        TError,
+        {id: number;data: CopyLeavePolicyDto},
+        TContext
+      > => {
+
+      const mutationOptions = getLeaveControllerCopyLeavePolicyMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Get general leave settings
+ */
+export type leaveControllerGetGeneralSettingsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type leaveControllerGetGeneralSettingsResponseSuccess = (leaveControllerGetGeneralSettingsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type leaveControllerGetGeneralSettingsResponse = (leaveControllerGetGeneralSettingsResponseSuccess)
+
+export const getLeaveControllerGetGeneralSettingsUrl = () => {
+
+
+  
+
+  return `/api/v1/leave/settings/general`
+}
+
+export const leaveControllerGetGeneralSettings = async ( options?: RequestInit): Promise<leaveControllerGetGeneralSettingsResponse> => {
+  
+  return customFetch<leaveControllerGetGeneralSettingsResponse>(getLeaveControllerGetGeneralSettingsUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getLeaveControllerGetGeneralSettingsQueryKey = () => {
+    return [
+    `/api/v1/leave/settings/general`
+    ] as const;
+    }
+
+    
+export const getLeaveControllerGetGeneralSettingsQueryOptions = <TData = Awaited<ReturnType<typeof leaveControllerGetGeneralSettings>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetGeneralSettings>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getLeaveControllerGetGeneralSettingsQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof leaveControllerGetGeneralSettings>>> = ({ signal }) => leaveControllerGetGeneralSettings({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetGeneralSettings>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type LeaveControllerGetGeneralSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof leaveControllerGetGeneralSettings>>>
+export type LeaveControllerGetGeneralSettingsQueryError = unknown
+
+
+export function useLeaveControllerGetGeneralSettings<TData = Awaited<ReturnType<typeof leaveControllerGetGeneralSettings>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetGeneralSettings>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof leaveControllerGetGeneralSettings>>,
+          TError,
+          Awaited<ReturnType<typeof leaveControllerGetGeneralSettings>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLeaveControllerGetGeneralSettings<TData = Awaited<ReturnType<typeof leaveControllerGetGeneralSettings>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetGeneralSettings>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof leaveControllerGetGeneralSettings>>,
+          TError,
+          Awaited<ReturnType<typeof leaveControllerGetGeneralSettings>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLeaveControllerGetGeneralSettings<TData = Awaited<ReturnType<typeof leaveControllerGetGeneralSettings>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetGeneralSettings>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get general leave settings
+ */
+
+export function useLeaveControllerGetGeneralSettings<TData = Awaited<ReturnType<typeof leaveControllerGetGeneralSettings>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetGeneralSettings>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getLeaveControllerGetGeneralSettingsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Update general leave settings
+ */
+export type leaveControllerUpdateGeneralSettingsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type leaveControllerUpdateGeneralSettingsResponseSuccess = (leaveControllerUpdateGeneralSettingsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type leaveControllerUpdateGeneralSettingsResponse = (leaveControllerUpdateGeneralSettingsResponseSuccess)
+
+export const getLeaveControllerUpdateGeneralSettingsUrl = () => {
+
+
+  
+
+  return `/api/v1/leave/settings/general`
+}
+
+export const leaveControllerUpdateGeneralSettings = async (updateGeneralSettingsDto: UpdateGeneralSettingsDto, options?: RequestInit): Promise<leaveControllerUpdateGeneralSettingsResponse> => {
+  
+  return customFetch<leaveControllerUpdateGeneralSettingsResponse>(getLeaveControllerUpdateGeneralSettingsUrl(),
+  {      
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateGeneralSettingsDto,)
+  }
+);}
+
+
+
+
+export const getLeaveControllerUpdateGeneralSettingsMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveControllerUpdateGeneralSettings>>, TError,{data: UpdateGeneralSettingsDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof leaveControllerUpdateGeneralSettings>>, TError,{data: UpdateGeneralSettingsDto}, TContext> => {
+
+const mutationKey = ['leaveControllerUpdateGeneralSettings'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof leaveControllerUpdateGeneralSettings>>, {data: UpdateGeneralSettingsDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  leaveControllerUpdateGeneralSettings(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LeaveControllerUpdateGeneralSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof leaveControllerUpdateGeneralSettings>>>
+    export type LeaveControllerUpdateGeneralSettingsMutationBody = UpdateGeneralSettingsDto
+    export type LeaveControllerUpdateGeneralSettingsMutationError = unknown
+
+    /**
+ * @summary Update general leave settings
+ */
+export const useLeaveControllerUpdateGeneralSettings = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveControllerUpdateGeneralSettings>>, TError,{data: UpdateGeneralSettingsDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof leaveControllerUpdateGeneralSettings>>,
+        TError,
+        {data: UpdateGeneralSettingsDto},
+        TContext
+      > => {
+
+      const mutationOptions = getLeaveControllerUpdateGeneralSettingsMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Get leave settings change log
+ */
+export type leaveControllerGetSettingsChangeLogResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type leaveControllerGetSettingsChangeLogResponseSuccess = (leaveControllerGetSettingsChangeLogResponse200) & {
+  headers: Headers;
+};
+;
+
+export type leaveControllerGetSettingsChangeLogResponse = (leaveControllerGetSettingsChangeLogResponseSuccess)
+
+export const getLeaveControllerGetSettingsChangeLogUrl = () => {
+
+
+  
+
+  return `/api/v1/leave/settings/change-log`
+}
+
+export const leaveControllerGetSettingsChangeLog = async ( options?: RequestInit): Promise<leaveControllerGetSettingsChangeLogResponse> => {
+  
+  return customFetch<leaveControllerGetSettingsChangeLogResponse>(getLeaveControllerGetSettingsChangeLogUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getLeaveControllerGetSettingsChangeLogQueryKey = () => {
+    return [
+    `/api/v1/leave/settings/change-log`
+    ] as const;
+    }
+
+    
+export const getLeaveControllerGetSettingsChangeLogQueryOptions = <TData = Awaited<ReturnType<typeof leaveControllerGetSettingsChangeLog>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetSettingsChangeLog>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getLeaveControllerGetSettingsChangeLogQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof leaveControllerGetSettingsChangeLog>>> = ({ signal }) => leaveControllerGetSettingsChangeLog({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetSettingsChangeLog>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type LeaveControllerGetSettingsChangeLogQueryResult = NonNullable<Awaited<ReturnType<typeof leaveControllerGetSettingsChangeLog>>>
+export type LeaveControllerGetSettingsChangeLogQueryError = unknown
+
+
+export function useLeaveControllerGetSettingsChangeLog<TData = Awaited<ReturnType<typeof leaveControllerGetSettingsChangeLog>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetSettingsChangeLog>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof leaveControllerGetSettingsChangeLog>>,
+          TError,
+          Awaited<ReturnType<typeof leaveControllerGetSettingsChangeLog>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLeaveControllerGetSettingsChangeLog<TData = Awaited<ReturnType<typeof leaveControllerGetSettingsChangeLog>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetSettingsChangeLog>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof leaveControllerGetSettingsChangeLog>>,
+          TError,
+          Awaited<ReturnType<typeof leaveControllerGetSettingsChangeLog>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLeaveControllerGetSettingsChangeLog<TData = Awaited<ReturnType<typeof leaveControllerGetSettingsChangeLog>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetSettingsChangeLog>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get leave settings change log
+ */
+
+export function useLeaveControllerGetSettingsChangeLog<TData = Awaited<ReturnType<typeof leaveControllerGetSettingsChangeLog>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetSettingsChangeLog>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getLeaveControllerGetSettingsChangeLogQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Get current employee balances, policy and recent requests
+ */
+export type leaveControllerGetMyLeaveResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type leaveControllerGetMyLeaveResponseSuccess = (leaveControllerGetMyLeaveResponse200) & {
+  headers: Headers;
+};
+;
+
+export type leaveControllerGetMyLeaveResponse = (leaveControllerGetMyLeaveResponseSuccess)
+
+export const getLeaveControllerGetMyLeaveUrl = (params: LeaveControllerGetMyLeaveParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/leave/my?${stringifiedParams}` : `/api/v1/leave/my`
+}
+
+export const leaveControllerGetMyLeave = async (params: LeaveControllerGetMyLeaveParams, options?: RequestInit): Promise<leaveControllerGetMyLeaveResponse> => {
+  
+  return customFetch<leaveControllerGetMyLeaveResponse>(getLeaveControllerGetMyLeaveUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getLeaveControllerGetMyLeaveQueryKey = (params?: LeaveControllerGetMyLeaveParams,) => {
+    return [
+    `/api/v1/leave/my`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getLeaveControllerGetMyLeaveQueryOptions = <TData = Awaited<ReturnType<typeof leaveControllerGetMyLeave>>, TError = unknown>(params: LeaveControllerGetMyLeaveParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetMyLeave>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getLeaveControllerGetMyLeaveQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof leaveControllerGetMyLeave>>> = ({ signal }) => leaveControllerGetMyLeave(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetMyLeave>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type LeaveControllerGetMyLeaveQueryResult = NonNullable<Awaited<ReturnType<typeof leaveControllerGetMyLeave>>>
+export type LeaveControllerGetMyLeaveQueryError = unknown
+
+
+export function useLeaveControllerGetMyLeave<TData = Awaited<ReturnType<typeof leaveControllerGetMyLeave>>, TError = unknown>(
+ params: LeaveControllerGetMyLeaveParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetMyLeave>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof leaveControllerGetMyLeave>>,
+          TError,
+          Awaited<ReturnType<typeof leaveControllerGetMyLeave>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLeaveControllerGetMyLeave<TData = Awaited<ReturnType<typeof leaveControllerGetMyLeave>>, TError = unknown>(
+ params: LeaveControllerGetMyLeaveParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetMyLeave>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof leaveControllerGetMyLeave>>,
+          TError,
+          Awaited<ReturnType<typeof leaveControllerGetMyLeave>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLeaveControllerGetMyLeave<TData = Awaited<ReturnType<typeof leaveControllerGetMyLeave>>, TError = unknown>(
+ params: LeaveControllerGetMyLeaveParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetMyLeave>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get current employee balances, policy and recent requests
+ */
+
+export function useLeaveControllerGetMyLeave<TData = Awaited<ReturnType<typeof leaveControllerGetMyLeave>>, TError = unknown>(
+ params: LeaveControllerGetMyLeaveParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetMyLeave>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getLeaveControllerGetMyLeaveQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Preview working days and breakdown before submitting leave
+ */
+export type leaveControllerCalculateDaysResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type leaveControllerCalculateDaysResponseSuccess = (leaveControllerCalculateDaysResponse201) & {
+  headers: Headers;
+};
+;
+
+export type leaveControllerCalculateDaysResponse = (leaveControllerCalculateDaysResponseSuccess)
+
+export const getLeaveControllerCalculateDaysUrl = () => {
+
+
+  
+
+  return `/api/v1/leave/calculate`
+}
+
+export const leaveControllerCalculateDays = async (calculateLeaveDaysDto: CalculateLeaveDaysDto, options?: RequestInit): Promise<leaveControllerCalculateDaysResponse> => {
+  
+  return customFetch<leaveControllerCalculateDaysResponse>(getLeaveControllerCalculateDaysUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      calculateLeaveDaysDto,)
+  }
+);}
+
+
+
+
+export const getLeaveControllerCalculateDaysMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveControllerCalculateDays>>, TError,{data: CalculateLeaveDaysDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof leaveControllerCalculateDays>>, TError,{data: CalculateLeaveDaysDto}, TContext> => {
+
+const mutationKey = ['leaveControllerCalculateDays'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof leaveControllerCalculateDays>>, {data: CalculateLeaveDaysDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  leaveControllerCalculateDays(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LeaveControllerCalculateDaysMutationResult = NonNullable<Awaited<ReturnType<typeof leaveControllerCalculateDays>>>
+    export type LeaveControllerCalculateDaysMutationBody = CalculateLeaveDaysDto
+    export type LeaveControllerCalculateDaysMutationError = unknown
+
+    /**
+ * @summary Preview working days and breakdown before submitting leave
+ */
+export const useLeaveControllerCalculateDays = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveControllerCalculateDays>>, TError,{data: CalculateLeaveDaysDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof leaveControllerCalculateDays>>,
+        TError,
+        {data: CalculateLeaveDaysDto},
+        TContext
+      > => {
+
+      const mutationOptions = getLeaveControllerCalculateDaysMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Submit leave request
+ */
+export type leaveControllerApplyLeaveResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type leaveControllerApplyLeaveResponseSuccess = (leaveControllerApplyLeaveResponse201) & {
+  headers: Headers;
+};
+;
+
+export type leaveControllerApplyLeaveResponse = (leaveControllerApplyLeaveResponseSuccess)
+
+export const getLeaveControllerApplyLeaveUrl = () => {
+
+
+  
+
+  return `/api/v1/leave/apply`
+}
+
+export const leaveControllerApplyLeave = async (applyLeaveDto: ApplyLeaveDto, options?: RequestInit): Promise<leaveControllerApplyLeaveResponse> => {
+  
+  return customFetch<leaveControllerApplyLeaveResponse>(getLeaveControllerApplyLeaveUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      applyLeaveDto,)
+  }
+);}
+
+
+
+
+export const getLeaveControllerApplyLeaveMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveControllerApplyLeave>>, TError,{data: ApplyLeaveDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof leaveControllerApplyLeave>>, TError,{data: ApplyLeaveDto}, TContext> => {
+
+const mutationKey = ['leaveControllerApplyLeave'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof leaveControllerApplyLeave>>, {data: ApplyLeaveDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  leaveControllerApplyLeave(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LeaveControllerApplyLeaveMutationResult = NonNullable<Awaited<ReturnType<typeof leaveControllerApplyLeave>>>
+    export type LeaveControllerApplyLeaveMutationBody = ApplyLeaveDto
+    export type LeaveControllerApplyLeaveMutationError = unknown
+
+    /**
+ * @summary Submit leave request
+ */
+export const useLeaveControllerApplyLeave = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveControllerApplyLeave>>, TError,{data: ApplyLeaveDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof leaveControllerApplyLeave>>,
+        TError,
+        {data: ApplyLeaveDto},
+        TContext
+      > => {
+
+      const mutationOptions = getLeaveControllerApplyLeaveMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Withdraw pending leave request
+ */
+export type leaveControllerWithdrawLeaveResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type leaveControllerWithdrawLeaveResponseSuccess = (leaveControllerWithdrawLeaveResponse201) & {
+  headers: Headers;
+};
+;
+
+export type leaveControllerWithdrawLeaveResponse = (leaveControllerWithdrawLeaveResponseSuccess)
+
+export const getLeaveControllerWithdrawLeaveUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/leave/requests/${id}/withdraw`
+}
+
+export const leaveControllerWithdrawLeave = async (id: number, options?: RequestInit): Promise<leaveControllerWithdrawLeaveResponse> => {
+  
+  return customFetch<leaveControllerWithdrawLeaveResponse>(getLeaveControllerWithdrawLeaveUrl(id),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getLeaveControllerWithdrawLeaveMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveControllerWithdrawLeave>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof leaveControllerWithdrawLeave>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['leaveControllerWithdrawLeave'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof leaveControllerWithdrawLeave>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  leaveControllerWithdrawLeave(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LeaveControllerWithdrawLeaveMutationResult = NonNullable<Awaited<ReturnType<typeof leaveControllerWithdrawLeave>>>
+    
+    export type LeaveControllerWithdrawLeaveMutationError = unknown
+
+    /**
+ * @summary Withdraw pending leave request
+ */
+export const useLeaveControllerWithdrawLeave = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveControllerWithdrawLeave>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof leaveControllerWithdrawLeave>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+
+      const mutationOptions = getLeaveControllerWithdrawLeaveMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Request cancellation for approved leave
+ */
+export type leaveControllerRequestCancellationResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type leaveControllerRequestCancellationResponseSuccess = (leaveControllerRequestCancellationResponse201) & {
+  headers: Headers;
+};
+;
+
+export type leaveControllerRequestCancellationResponse = (leaveControllerRequestCancellationResponseSuccess)
+
+export const getLeaveControllerRequestCancellationUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/leave/requests/${id}/request-cancel`
+}
+
+export const leaveControllerRequestCancellation = async (id: number,
+    requestCancellationDto: RequestCancellationDto, options?: RequestInit): Promise<leaveControllerRequestCancellationResponse> => {
+  
+  return customFetch<leaveControllerRequestCancellationResponse>(getLeaveControllerRequestCancellationUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      requestCancellationDto,)
+  }
+);}
+
+
+
+
+export const getLeaveControllerRequestCancellationMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveControllerRequestCancellation>>, TError,{id: number;data: RequestCancellationDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof leaveControllerRequestCancellation>>, TError,{id: number;data: RequestCancellationDto}, TContext> => {
+
+const mutationKey = ['leaveControllerRequestCancellation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof leaveControllerRequestCancellation>>, {id: number;data: RequestCancellationDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  leaveControllerRequestCancellation(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LeaveControllerRequestCancellationMutationResult = NonNullable<Awaited<ReturnType<typeof leaveControllerRequestCancellation>>>
+    export type LeaveControllerRequestCancellationMutationBody = RequestCancellationDto
+    export type LeaveControllerRequestCancellationMutationError = unknown
+
+    /**
+ * @summary Request cancellation for approved leave
+ */
+export const useLeaveControllerRequestCancellation = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveControllerRequestCancellation>>, TError,{id: number;data: RequestCancellationDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof leaveControllerRequestCancellation>>,
+        TError,
+        {id: number;data: RequestCancellationDto},
+        TContext
+      > => {
+
+      const mutationOptions = getLeaveControllerRequestCancellationMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary List leave requests with counter badges
+ */
+export type leaveControllerGetAdminRequestsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type leaveControllerGetAdminRequestsResponseSuccess = (leaveControllerGetAdminRequestsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type leaveControllerGetAdminRequestsResponse = (leaveControllerGetAdminRequestsResponseSuccess)
+
+export const getLeaveControllerGetAdminRequestsUrl = (params: LeaveControllerGetAdminRequestsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/leave/requests?${stringifiedParams}` : `/api/v1/leave/requests`
+}
+
+export const leaveControllerGetAdminRequests = async (params: LeaveControllerGetAdminRequestsParams, options?: RequestInit): Promise<leaveControllerGetAdminRequestsResponse> => {
+  
+  return customFetch<leaveControllerGetAdminRequestsResponse>(getLeaveControllerGetAdminRequestsUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getLeaveControllerGetAdminRequestsQueryKey = (params?: LeaveControllerGetAdminRequestsParams,) => {
+    return [
+    `/api/v1/leave/requests`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getLeaveControllerGetAdminRequestsQueryOptions = <TData = Awaited<ReturnType<typeof leaveControllerGetAdminRequests>>, TError = unknown>(params: LeaveControllerGetAdminRequestsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetAdminRequests>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getLeaveControllerGetAdminRequestsQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof leaveControllerGetAdminRequests>>> = ({ signal }) => leaveControllerGetAdminRequests(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetAdminRequests>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type LeaveControllerGetAdminRequestsQueryResult = NonNullable<Awaited<ReturnType<typeof leaveControllerGetAdminRequests>>>
+export type LeaveControllerGetAdminRequestsQueryError = unknown
+
+
+export function useLeaveControllerGetAdminRequests<TData = Awaited<ReturnType<typeof leaveControllerGetAdminRequests>>, TError = unknown>(
+ params: LeaveControllerGetAdminRequestsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetAdminRequests>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof leaveControllerGetAdminRequests>>,
+          TError,
+          Awaited<ReturnType<typeof leaveControllerGetAdminRequests>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLeaveControllerGetAdminRequests<TData = Awaited<ReturnType<typeof leaveControllerGetAdminRequests>>, TError = unknown>(
+ params: LeaveControllerGetAdminRequestsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetAdminRequests>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof leaveControllerGetAdminRequests>>,
+          TError,
+          Awaited<ReturnType<typeof leaveControllerGetAdminRequests>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLeaveControllerGetAdminRequests<TData = Awaited<ReturnType<typeof leaveControllerGetAdminRequests>>, TError = unknown>(
+ params: LeaveControllerGetAdminRequestsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetAdminRequests>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List leave requests with counter badges
+ */
+
+export function useLeaveControllerGetAdminRequests<TData = Awaited<ReturnType<typeof leaveControllerGetAdminRequests>>, TError = unknown>(
+ params: LeaveControllerGetAdminRequestsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetAdminRequests>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getLeaveControllerGetAdminRequestsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Get detailed leave request with policy checks and collision info
+ */
+export type leaveControllerGetRequestDetailsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type leaveControllerGetRequestDetailsResponseSuccess = (leaveControllerGetRequestDetailsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type leaveControllerGetRequestDetailsResponse = (leaveControllerGetRequestDetailsResponseSuccess)
+
+export const getLeaveControllerGetRequestDetailsUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/leave/requests/${id}`
+}
+
+export const leaveControllerGetRequestDetails = async (id: number, options?: RequestInit): Promise<leaveControllerGetRequestDetailsResponse> => {
+  
+  return customFetch<leaveControllerGetRequestDetailsResponse>(getLeaveControllerGetRequestDetailsUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getLeaveControllerGetRequestDetailsQueryKey = (id?: number,) => {
+    return [
+    `/api/v1/leave/requests/${id}`
+    ] as const;
+    }
+
+    
+export const getLeaveControllerGetRequestDetailsQueryOptions = <TData = Awaited<ReturnType<typeof leaveControllerGetRequestDetails>>, TError = unknown>(id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetRequestDetails>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getLeaveControllerGetRequestDetailsQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof leaveControllerGetRequestDetails>>> = ({ signal }) => leaveControllerGetRequestDetails(id, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetRequestDetails>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type LeaveControllerGetRequestDetailsQueryResult = NonNullable<Awaited<ReturnType<typeof leaveControllerGetRequestDetails>>>
+export type LeaveControllerGetRequestDetailsQueryError = unknown
+
+
+export function useLeaveControllerGetRequestDetails<TData = Awaited<ReturnType<typeof leaveControllerGetRequestDetails>>, TError = unknown>(
+ id: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetRequestDetails>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof leaveControllerGetRequestDetails>>,
+          TError,
+          Awaited<ReturnType<typeof leaveControllerGetRequestDetails>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLeaveControllerGetRequestDetails<TData = Awaited<ReturnType<typeof leaveControllerGetRequestDetails>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetRequestDetails>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof leaveControllerGetRequestDetails>>,
+          TError,
+          Awaited<ReturnType<typeof leaveControllerGetRequestDetails>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLeaveControllerGetRequestDetails<TData = Awaited<ReturnType<typeof leaveControllerGetRequestDetails>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetRequestDetails>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get detailed leave request with policy checks and collision info
+ */
+
+export function useLeaveControllerGetRequestDetails<TData = Awaited<ReturnType<typeof leaveControllerGetRequestDetails>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetRequestDetails>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getLeaveControllerGetRequestDetailsQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Approve pending leave request
+ */
+export type leaveControllerApproveRequestResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type leaveControllerApproveRequestResponseSuccess = (leaveControllerApproveRequestResponse201) & {
+  headers: Headers;
+};
+;
+
+export type leaveControllerApproveRequestResponse = (leaveControllerApproveRequestResponseSuccess)
+
+export const getLeaveControllerApproveRequestUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/leave/requests/${id}/approve`
+}
+
+export const leaveControllerApproveRequest = async (id: number,
+    reviewLeaveRequestDto: ReviewLeaveRequestDto, options?: RequestInit): Promise<leaveControllerApproveRequestResponse> => {
+  
+  return customFetch<leaveControllerApproveRequestResponse>(getLeaveControllerApproveRequestUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      reviewLeaveRequestDto,)
+  }
+);}
+
+
+
+
+export const getLeaveControllerApproveRequestMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveControllerApproveRequest>>, TError,{id: number;data: ReviewLeaveRequestDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof leaveControllerApproveRequest>>, TError,{id: number;data: ReviewLeaveRequestDto}, TContext> => {
+
+const mutationKey = ['leaveControllerApproveRequest'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof leaveControllerApproveRequest>>, {id: number;data: ReviewLeaveRequestDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  leaveControllerApproveRequest(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LeaveControllerApproveRequestMutationResult = NonNullable<Awaited<ReturnType<typeof leaveControllerApproveRequest>>>
+    export type LeaveControllerApproveRequestMutationBody = ReviewLeaveRequestDto
+    export type LeaveControllerApproveRequestMutationError = unknown
+
+    /**
+ * @summary Approve pending leave request
+ */
+export const useLeaveControllerApproveRequest = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveControllerApproveRequest>>, TError,{id: number;data: ReviewLeaveRequestDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof leaveControllerApproveRequest>>,
+        TError,
+        {id: number;data: ReviewLeaveRequestDto},
+        TContext
+      > => {
+
+      const mutationOptions = getLeaveControllerApproveRequestMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Reject pending leave request
+ */
+export type leaveControllerRejectRequestResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type leaveControllerRejectRequestResponseSuccess = (leaveControllerRejectRequestResponse201) & {
+  headers: Headers;
+};
+;
+
+export type leaveControllerRejectRequestResponse = (leaveControllerRejectRequestResponseSuccess)
+
+export const getLeaveControllerRejectRequestUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/leave/requests/${id}/reject`
+}
+
+export const leaveControllerRejectRequest = async (id: number,
+    reviewLeaveRequestDto: ReviewLeaveRequestDto, options?: RequestInit): Promise<leaveControllerRejectRequestResponse> => {
+  
+  return customFetch<leaveControllerRejectRequestResponse>(getLeaveControllerRejectRequestUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      reviewLeaveRequestDto,)
+  }
+);}
+
+
+
+
+export const getLeaveControllerRejectRequestMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveControllerRejectRequest>>, TError,{id: number;data: ReviewLeaveRequestDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof leaveControllerRejectRequest>>, TError,{id: number;data: ReviewLeaveRequestDto}, TContext> => {
+
+const mutationKey = ['leaveControllerRejectRequest'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof leaveControllerRejectRequest>>, {id: number;data: ReviewLeaveRequestDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  leaveControllerRejectRequest(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LeaveControllerRejectRequestMutationResult = NonNullable<Awaited<ReturnType<typeof leaveControllerRejectRequest>>>
+    export type LeaveControllerRejectRequestMutationBody = ReviewLeaveRequestDto
+    export type LeaveControllerRejectRequestMutationError = unknown
+
+    /**
+ * @summary Reject pending leave request
+ */
+export const useLeaveControllerRejectRequest = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveControllerRejectRequest>>, TError,{id: number;data: ReviewLeaveRequestDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof leaveControllerRejectRequest>>,
+        TError,
+        {id: number;data: ReviewLeaveRequestDto},
+        TContext
+      > => {
+
+      const mutationOptions = getLeaveControllerRejectRequestMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Agree to cancel or keep leave
+ */
+export type leaveControllerDecideCancellationResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type leaveControllerDecideCancellationResponseSuccess = (leaveControllerDecideCancellationResponse201) & {
+  headers: Headers;
+};
+;
+
+export type leaveControllerDecideCancellationResponse = (leaveControllerDecideCancellationResponseSuccess)
+
+export const getLeaveControllerDecideCancellationUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/leave/requests/${id}/decide-cancellation`
+}
+
+export const leaveControllerDecideCancellation = async (id: number,
+    decideCancellationDto: DecideCancellationDto, options?: RequestInit): Promise<leaveControllerDecideCancellationResponse> => {
+  
+  return customFetch<leaveControllerDecideCancellationResponse>(getLeaveControllerDecideCancellationUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      decideCancellationDto,)
+  }
+);}
+
+
+
+
+export const getLeaveControllerDecideCancellationMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveControllerDecideCancellation>>, TError,{id: number;data: DecideCancellationDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof leaveControllerDecideCancellation>>, TError,{id: number;data: DecideCancellationDto}, TContext> => {
+
+const mutationKey = ['leaveControllerDecideCancellation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof leaveControllerDecideCancellation>>, {id: number;data: DecideCancellationDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  leaveControllerDecideCancellation(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LeaveControllerDecideCancellationMutationResult = NonNullable<Awaited<ReturnType<typeof leaveControllerDecideCancellation>>>
+    export type LeaveControllerDecideCancellationMutationBody = DecideCancellationDto
+    export type LeaveControllerDecideCancellationMutationError = unknown
+
+    /**
+ * @summary Agree to cancel or keep leave
+ */
+export const useLeaveControllerDecideCancellation = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveControllerDecideCancellation>>, TError,{id: number;data: DecideCancellationDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof leaveControllerDecideCancellation>>,
+        TError,
+        {id: number;data: DecideCancellationDto},
+        TContext
+      > => {
+
+      const mutationOptions = getLeaveControllerDecideCancellationMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Admin directly cancels approved leave
+ */
+export type leaveControllerAdminCancelLeaveResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type leaveControllerAdminCancelLeaveResponseSuccess = (leaveControllerAdminCancelLeaveResponse201) & {
+  headers: Headers;
+};
+;
+
+export type leaveControllerAdminCancelLeaveResponse = (leaveControllerAdminCancelLeaveResponseSuccess)
+
+export const getLeaveControllerAdminCancelLeaveUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/leave/requests/${id}/admin-cancel`
+}
+
+export const leaveControllerAdminCancelLeave = async (id: number,
+    adminCancelLeaveDto: AdminCancelLeaveDto, options?: RequestInit): Promise<leaveControllerAdminCancelLeaveResponse> => {
+  
+  return customFetch<leaveControllerAdminCancelLeaveResponse>(getLeaveControllerAdminCancelLeaveUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      adminCancelLeaveDto,)
+  }
+);}
+
+
+
+
+export const getLeaveControllerAdminCancelLeaveMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveControllerAdminCancelLeave>>, TError,{id: number;data: AdminCancelLeaveDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof leaveControllerAdminCancelLeave>>, TError,{id: number;data: AdminCancelLeaveDto}, TContext> => {
+
+const mutationKey = ['leaveControllerAdminCancelLeave'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof leaveControllerAdminCancelLeave>>, {id: number;data: AdminCancelLeaveDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  leaveControllerAdminCancelLeave(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LeaveControllerAdminCancelLeaveMutationResult = NonNullable<Awaited<ReturnType<typeof leaveControllerAdminCancelLeave>>>
+    export type LeaveControllerAdminCancelLeaveMutationBody = AdminCancelLeaveDto
+    export type LeaveControllerAdminCancelLeaveMutationError = unknown
+
+    /**
+ * @summary Admin directly cancels approved leave
+ */
+export const useLeaveControllerAdminCancelLeave = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveControllerAdminCancelLeave>>, TError,{id: number;data: AdminCancelLeaveDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof leaveControllerAdminCancelLeave>>,
+        TError,
+        {id: number;data: AdminCancelLeaveDto},
+        TContext
+      > => {
+
+      const mutationOptions = getLeaveControllerAdminCancelLeaveMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Admin adds and approves leave for an employee directly
+ */
+export type leaveControllerAddLeaveForEmployeeResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type leaveControllerAddLeaveForEmployeeResponseSuccess = (leaveControllerAddLeaveForEmployeeResponse201) & {
+  headers: Headers;
+};
+;
+
+export type leaveControllerAddLeaveForEmployeeResponse = (leaveControllerAddLeaveForEmployeeResponseSuccess)
+
+export const getLeaveControllerAddLeaveForEmployeeUrl = () => {
+
+
+  
+
+  return `/api/v1/leave/admin/add-for-employee`
+}
+
+export const leaveControllerAddLeaveForEmployee = async (addLeaveForEmployeeDto: AddLeaveForEmployeeDto, options?: RequestInit): Promise<leaveControllerAddLeaveForEmployeeResponse> => {
+  
+  return customFetch<leaveControllerAddLeaveForEmployeeResponse>(getLeaveControllerAddLeaveForEmployeeUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      addLeaveForEmployeeDto,)
+  }
+);}
+
+
+
+
+export const getLeaveControllerAddLeaveForEmployeeMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveControllerAddLeaveForEmployee>>, TError,{data: AddLeaveForEmployeeDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof leaveControllerAddLeaveForEmployee>>, TError,{data: AddLeaveForEmployeeDto}, TContext> => {
+
+const mutationKey = ['leaveControllerAddLeaveForEmployee'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof leaveControllerAddLeaveForEmployee>>, {data: AddLeaveForEmployeeDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  leaveControllerAddLeaveForEmployee(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LeaveControllerAddLeaveForEmployeeMutationResult = NonNullable<Awaited<ReturnType<typeof leaveControllerAddLeaveForEmployee>>>
+    export type LeaveControllerAddLeaveForEmployeeMutationBody = AddLeaveForEmployeeDto
+    export type LeaveControllerAddLeaveForEmployeeMutationError = unknown
+
+    /**
+ * @summary Admin adds and approves leave for an employee directly
+ */
+export const useLeaveControllerAddLeaveForEmployee = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveControllerAddLeaveForEmployee>>, TError,{data: AddLeaveForEmployeeDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof leaveControllerAddLeaveForEmployee>>,
+        TError,
+        {data: AddLeaveForEmployeeDto},
+        TContext
+      > => {
+
+      const mutationOptions = getLeaveControllerAddLeaveForEmployeeMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Admin adjusts employee leave balance with a mandatory note
+ */
+export type leaveControllerAdjustBalanceResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type leaveControllerAdjustBalanceResponseSuccess = (leaveControllerAdjustBalanceResponse201) & {
+  headers: Headers;
+};
+;
+
+export type leaveControllerAdjustBalanceResponse = (leaveControllerAdjustBalanceResponseSuccess)
+
+export const getLeaveControllerAdjustBalanceUrl = () => {
+
+
+  
+
+  return `/api/v1/leave/admin/adjust-balance`
+}
+
+export const leaveControllerAdjustBalance = async (adjustBalanceDto: AdjustBalanceDto, options?: RequestInit): Promise<leaveControllerAdjustBalanceResponse> => {
+  
+  return customFetch<leaveControllerAdjustBalanceResponse>(getLeaveControllerAdjustBalanceUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      adjustBalanceDto,)
+  }
+);}
+
+
+
+
+export const getLeaveControllerAdjustBalanceMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveControllerAdjustBalance>>, TError,{data: AdjustBalanceDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof leaveControllerAdjustBalance>>, TError,{data: AdjustBalanceDto}, TContext> => {
+
+const mutationKey = ['leaveControllerAdjustBalance'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof leaveControllerAdjustBalance>>, {data: AdjustBalanceDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  leaveControllerAdjustBalance(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LeaveControllerAdjustBalanceMutationResult = NonNullable<Awaited<ReturnType<typeof leaveControllerAdjustBalance>>>
+    export type LeaveControllerAdjustBalanceMutationBody = AdjustBalanceDto
+    export type LeaveControllerAdjustBalanceMutationError = unknown
+
+    /**
+ * @summary Admin adjusts employee leave balance with a mandatory note
+ */
+export const useLeaveControllerAdjustBalance = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveControllerAdjustBalance>>, TError,{data: AdjustBalanceDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof leaveControllerAdjustBalance>>,
+        TError,
+        {data: AdjustBalanceDto},
+        TContext
+      > => {
+
+      const mutationOptions = getLeaveControllerAdjustBalanceMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Get leave ledger transactions
+ */
+export type leaveControllerGetLedgerResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type leaveControllerGetLedgerResponseSuccess = (leaveControllerGetLedgerResponse200) & {
+  headers: Headers;
+};
+;
+
+export type leaveControllerGetLedgerResponse = (leaveControllerGetLedgerResponseSuccess)
+
+export const getLeaveControllerGetLedgerUrl = (params: LeaveControllerGetLedgerParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/leave/ledger?${stringifiedParams}` : `/api/v1/leave/ledger`
+}
+
+export const leaveControllerGetLedger = async (params: LeaveControllerGetLedgerParams, options?: RequestInit): Promise<leaveControllerGetLedgerResponse> => {
+  
+  return customFetch<leaveControllerGetLedgerResponse>(getLeaveControllerGetLedgerUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getLeaveControllerGetLedgerQueryKey = (params?: LeaveControllerGetLedgerParams,) => {
+    return [
+    `/api/v1/leave/ledger`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getLeaveControllerGetLedgerQueryOptions = <TData = Awaited<ReturnType<typeof leaveControllerGetLedger>>, TError = unknown>(params: LeaveControllerGetLedgerParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetLedger>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getLeaveControllerGetLedgerQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof leaveControllerGetLedger>>> = ({ signal }) => leaveControllerGetLedger(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetLedger>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type LeaveControllerGetLedgerQueryResult = NonNullable<Awaited<ReturnType<typeof leaveControllerGetLedger>>>
+export type LeaveControllerGetLedgerQueryError = unknown
+
+
+export function useLeaveControllerGetLedger<TData = Awaited<ReturnType<typeof leaveControllerGetLedger>>, TError = unknown>(
+ params: LeaveControllerGetLedgerParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetLedger>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof leaveControllerGetLedger>>,
+          TError,
+          Awaited<ReturnType<typeof leaveControllerGetLedger>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLeaveControllerGetLedger<TData = Awaited<ReturnType<typeof leaveControllerGetLedger>>, TError = unknown>(
+ params: LeaveControllerGetLedgerParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetLedger>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof leaveControllerGetLedger>>,
+          TError,
+          Awaited<ReturnType<typeof leaveControllerGetLedger>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLeaveControllerGetLedger<TData = Awaited<ReturnType<typeof leaveControllerGetLedger>>, TError = unknown>(
+ params: LeaveControllerGetLedgerParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetLedger>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get leave ledger transactions
+ */
+
+export function useLeaveControllerGetLedger<TData = Awaited<ReturnType<typeof leaveControllerGetLedger>>, TError = unknown>(
+ params: LeaveControllerGetLedgerParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetLedger>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getLeaveControllerGetLedgerQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary List all employee leave balances
+ */
+export type leaveControllerGetAllBalancesResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type leaveControllerGetAllBalancesResponseSuccess = (leaveControllerGetAllBalancesResponse200) & {
+  headers: Headers;
+};
+;
+
+export type leaveControllerGetAllBalancesResponse = (leaveControllerGetAllBalancesResponseSuccess)
+
+export const getLeaveControllerGetAllBalancesUrl = (params: LeaveControllerGetAllBalancesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/leave/balances?${stringifiedParams}` : `/api/v1/leave/balances`
+}
+
+export const leaveControllerGetAllBalances = async (params: LeaveControllerGetAllBalancesParams, options?: RequestInit): Promise<leaveControllerGetAllBalancesResponse> => {
+  
+  return customFetch<leaveControllerGetAllBalancesResponse>(getLeaveControllerGetAllBalancesUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getLeaveControllerGetAllBalancesQueryKey = (params?: LeaveControllerGetAllBalancesParams,) => {
+    return [
+    `/api/v1/leave/balances`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getLeaveControllerGetAllBalancesQueryOptions = <TData = Awaited<ReturnType<typeof leaveControllerGetAllBalances>>, TError = unknown>(params: LeaveControllerGetAllBalancesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetAllBalances>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getLeaveControllerGetAllBalancesQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof leaveControllerGetAllBalances>>> = ({ signal }) => leaveControllerGetAllBalances(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetAllBalances>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type LeaveControllerGetAllBalancesQueryResult = NonNullable<Awaited<ReturnType<typeof leaveControllerGetAllBalances>>>
+export type LeaveControllerGetAllBalancesQueryError = unknown
+
+
+export function useLeaveControllerGetAllBalances<TData = Awaited<ReturnType<typeof leaveControllerGetAllBalances>>, TError = unknown>(
+ params: LeaveControllerGetAllBalancesParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetAllBalances>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof leaveControllerGetAllBalances>>,
+          TError,
+          Awaited<ReturnType<typeof leaveControllerGetAllBalances>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLeaveControllerGetAllBalances<TData = Awaited<ReturnType<typeof leaveControllerGetAllBalances>>, TError = unknown>(
+ params: LeaveControllerGetAllBalancesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetAllBalances>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof leaveControllerGetAllBalances>>,
+          TError,
+          Awaited<ReturnType<typeof leaveControllerGetAllBalances>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLeaveControllerGetAllBalances<TData = Awaited<ReturnType<typeof leaveControllerGetAllBalances>>, TError = unknown>(
+ params: LeaveControllerGetAllBalancesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetAllBalances>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List all employee leave balances
+ */
+
+export function useLeaveControllerGetAllBalances<TData = Awaited<ReturnType<typeof leaveControllerGetAllBalances>>, TError = unknown>(
+ params: LeaveControllerGetAllBalancesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof leaveControllerGetAllBalances>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getLeaveControllerGetAllBalancesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Get all active expense categories
+ */
+export type expenseSettingsControllerGetCategoriesResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type expenseSettingsControllerGetCategoriesResponseSuccess = (expenseSettingsControllerGetCategoriesResponse200) & {
+  headers: Headers;
+};
+;
+
+export type expenseSettingsControllerGetCategoriesResponse = (expenseSettingsControllerGetCategoriesResponseSuccess)
+
+export const getExpenseSettingsControllerGetCategoriesUrl = () => {
+
+
+  
+
+  return `/api/v1/expense/settings/categories`
+}
+
+export const expenseSettingsControllerGetCategories = async ( options?: RequestInit): Promise<expenseSettingsControllerGetCategoriesResponse> => {
+  
+  return customFetch<expenseSettingsControllerGetCategoriesResponse>(getExpenseSettingsControllerGetCategoriesUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getExpenseSettingsControllerGetCategoriesQueryKey = () => {
+    return [
+    `/api/v1/expense/settings/categories`
+    ] as const;
+    }
+
+    
+export const getExpenseSettingsControllerGetCategoriesQueryOptions = <TData = Awaited<ReturnType<typeof expenseSettingsControllerGetCategories>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseSettingsControllerGetCategories>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getExpenseSettingsControllerGetCategoriesQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof expenseSettingsControllerGetCategories>>> = ({ signal }) => expenseSettingsControllerGetCategories({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof expenseSettingsControllerGetCategories>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ExpenseSettingsControllerGetCategoriesQueryResult = NonNullable<Awaited<ReturnType<typeof expenseSettingsControllerGetCategories>>>
+export type ExpenseSettingsControllerGetCategoriesQueryError = unknown
+
+
+export function useExpenseSettingsControllerGetCategories<TData = Awaited<ReturnType<typeof expenseSettingsControllerGetCategories>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseSettingsControllerGetCategories>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof expenseSettingsControllerGetCategories>>,
+          TError,
+          Awaited<ReturnType<typeof expenseSettingsControllerGetCategories>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useExpenseSettingsControllerGetCategories<TData = Awaited<ReturnType<typeof expenseSettingsControllerGetCategories>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseSettingsControllerGetCategories>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof expenseSettingsControllerGetCategories>>,
+          TError,
+          Awaited<ReturnType<typeof expenseSettingsControllerGetCategories>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useExpenseSettingsControllerGetCategories<TData = Awaited<ReturnType<typeof expenseSettingsControllerGetCategories>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseSettingsControllerGetCategories>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get all active expense categories
+ */
+
+export function useExpenseSettingsControllerGetCategories<TData = Awaited<ReturnType<typeof expenseSettingsControllerGetCategories>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseSettingsControllerGetCategories>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getExpenseSettingsControllerGetCategoriesQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Create new expense category (Admin only)
+ */
+export type expenseSettingsControllerCreateCategoryResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type expenseSettingsControllerCreateCategoryResponseSuccess = (expenseSettingsControllerCreateCategoryResponse201) & {
+  headers: Headers;
+};
+;
+
+export type expenseSettingsControllerCreateCategoryResponse = (expenseSettingsControllerCreateCategoryResponseSuccess)
+
+export const getExpenseSettingsControllerCreateCategoryUrl = () => {
+
+
+  
+
+  return `/api/v1/expense/settings/categories`
+}
+
+export const expenseSettingsControllerCreateCategory = async (createExpenseCategoryDto: CreateExpenseCategoryDto, options?: RequestInit): Promise<expenseSettingsControllerCreateCategoryResponse> => {
+  
+  return customFetch<expenseSettingsControllerCreateCategoryResponse>(getExpenseSettingsControllerCreateCategoryUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createExpenseCategoryDto,)
+  }
+);}
+
+
+
+
+export const getExpenseSettingsControllerCreateCategoryMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseSettingsControllerCreateCategory>>, TError,{data: CreateExpenseCategoryDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof expenseSettingsControllerCreateCategory>>, TError,{data: CreateExpenseCategoryDto}, TContext> => {
+
+const mutationKey = ['expenseSettingsControllerCreateCategory'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof expenseSettingsControllerCreateCategory>>, {data: CreateExpenseCategoryDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  expenseSettingsControllerCreateCategory(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ExpenseSettingsControllerCreateCategoryMutationResult = NonNullable<Awaited<ReturnType<typeof expenseSettingsControllerCreateCategory>>>
+    export type ExpenseSettingsControllerCreateCategoryMutationBody = CreateExpenseCategoryDto
+    export type ExpenseSettingsControllerCreateCategoryMutationError = unknown
+
+    /**
+ * @summary Create new expense category (Admin only)
+ */
+export const useExpenseSettingsControllerCreateCategory = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseSettingsControllerCreateCategory>>, TError,{data: CreateExpenseCategoryDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof expenseSettingsControllerCreateCategory>>,
+        TError,
+        {data: CreateExpenseCategoryDto},
+        TContext
+      > => {
+
+      const mutationOptions = getExpenseSettingsControllerCreateCategoryMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Get expense category by ID
+ */
+export type expenseSettingsControllerGetCategoryByIdResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type expenseSettingsControllerGetCategoryByIdResponseSuccess = (expenseSettingsControllerGetCategoryByIdResponse200) & {
+  headers: Headers;
+};
+;
+
+export type expenseSettingsControllerGetCategoryByIdResponse = (expenseSettingsControllerGetCategoryByIdResponseSuccess)
+
+export const getExpenseSettingsControllerGetCategoryByIdUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/expense/settings/categories/${id}`
+}
+
+export const expenseSettingsControllerGetCategoryById = async (id: number, options?: RequestInit): Promise<expenseSettingsControllerGetCategoryByIdResponse> => {
+  
+  return customFetch<expenseSettingsControllerGetCategoryByIdResponse>(getExpenseSettingsControllerGetCategoryByIdUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getExpenseSettingsControllerGetCategoryByIdQueryKey = (id?: number,) => {
+    return [
+    `/api/v1/expense/settings/categories/${id}`
+    ] as const;
+    }
+
+    
+export const getExpenseSettingsControllerGetCategoryByIdQueryOptions = <TData = Awaited<ReturnType<typeof expenseSettingsControllerGetCategoryById>>, TError = unknown>(id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseSettingsControllerGetCategoryById>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getExpenseSettingsControllerGetCategoryByIdQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof expenseSettingsControllerGetCategoryById>>> = ({ signal }) => expenseSettingsControllerGetCategoryById(id, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof expenseSettingsControllerGetCategoryById>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ExpenseSettingsControllerGetCategoryByIdQueryResult = NonNullable<Awaited<ReturnType<typeof expenseSettingsControllerGetCategoryById>>>
+export type ExpenseSettingsControllerGetCategoryByIdQueryError = unknown
+
+
+export function useExpenseSettingsControllerGetCategoryById<TData = Awaited<ReturnType<typeof expenseSettingsControllerGetCategoryById>>, TError = unknown>(
+ id: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseSettingsControllerGetCategoryById>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof expenseSettingsControllerGetCategoryById>>,
+          TError,
+          Awaited<ReturnType<typeof expenseSettingsControllerGetCategoryById>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useExpenseSettingsControllerGetCategoryById<TData = Awaited<ReturnType<typeof expenseSettingsControllerGetCategoryById>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseSettingsControllerGetCategoryById>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof expenseSettingsControllerGetCategoryById>>,
+          TError,
+          Awaited<ReturnType<typeof expenseSettingsControllerGetCategoryById>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useExpenseSettingsControllerGetCategoryById<TData = Awaited<ReturnType<typeof expenseSettingsControllerGetCategoryById>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseSettingsControllerGetCategoryById>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get expense category by ID
+ */
+
+export function useExpenseSettingsControllerGetCategoryById<TData = Awaited<ReturnType<typeof expenseSettingsControllerGetCategoryById>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseSettingsControllerGetCategoryById>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getExpenseSettingsControllerGetCategoryByIdQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Update expense category (Admin only)
+ */
+export type expenseSettingsControllerUpdateCategoryResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type expenseSettingsControllerUpdateCategoryResponseSuccess = (expenseSettingsControllerUpdateCategoryResponse200) & {
+  headers: Headers;
+};
+;
+
+export type expenseSettingsControllerUpdateCategoryResponse = (expenseSettingsControllerUpdateCategoryResponseSuccess)
+
+export const getExpenseSettingsControllerUpdateCategoryUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/expense/settings/categories/${id}`
+}
+
+export const expenseSettingsControllerUpdateCategory = async (id: number,
+    updateExpenseCategoryDto: UpdateExpenseCategoryDto, options?: RequestInit): Promise<expenseSettingsControllerUpdateCategoryResponse> => {
+  
+  return customFetch<expenseSettingsControllerUpdateCategoryResponse>(getExpenseSettingsControllerUpdateCategoryUrl(id),
+  {      
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateExpenseCategoryDto,)
+  }
+);}
+
+
+
+
+export const getExpenseSettingsControllerUpdateCategoryMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseSettingsControllerUpdateCategory>>, TError,{id: number;data: UpdateExpenseCategoryDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof expenseSettingsControllerUpdateCategory>>, TError,{id: number;data: UpdateExpenseCategoryDto}, TContext> => {
+
+const mutationKey = ['expenseSettingsControllerUpdateCategory'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof expenseSettingsControllerUpdateCategory>>, {id: number;data: UpdateExpenseCategoryDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  expenseSettingsControllerUpdateCategory(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ExpenseSettingsControllerUpdateCategoryMutationResult = NonNullable<Awaited<ReturnType<typeof expenseSettingsControllerUpdateCategory>>>
+    export type ExpenseSettingsControllerUpdateCategoryMutationBody = UpdateExpenseCategoryDto
+    export type ExpenseSettingsControllerUpdateCategoryMutationError = unknown
+
+    /**
+ * @summary Update expense category (Admin only)
+ */
+export const useExpenseSettingsControllerUpdateCategory = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseSettingsControllerUpdateCategory>>, TError,{id: number;data: UpdateExpenseCategoryDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof expenseSettingsControllerUpdateCategory>>,
+        TError,
+        {id: number;data: UpdateExpenseCategoryDto},
+        TContext
+      > => {
+
+      const mutationOptions = getExpenseSettingsControllerUpdateCategoryMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Soft delete expense category (Admin only)
+ */
+export type expenseSettingsControllerDeleteCategoryResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type expenseSettingsControllerDeleteCategoryResponseSuccess = (expenseSettingsControllerDeleteCategoryResponse200) & {
+  headers: Headers;
+};
+;
+
+export type expenseSettingsControllerDeleteCategoryResponse = (expenseSettingsControllerDeleteCategoryResponseSuccess)
+
+export const getExpenseSettingsControllerDeleteCategoryUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/expense/settings/categories/${id}`
+}
+
+export const expenseSettingsControllerDeleteCategory = async (id: number, options?: RequestInit): Promise<expenseSettingsControllerDeleteCategoryResponse> => {
+  
+  return customFetch<expenseSettingsControllerDeleteCategoryResponse>(getExpenseSettingsControllerDeleteCategoryUrl(id),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+);}
+
+
+
+
+export const getExpenseSettingsControllerDeleteCategoryMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseSettingsControllerDeleteCategory>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof expenseSettingsControllerDeleteCategory>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['expenseSettingsControllerDeleteCategory'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof expenseSettingsControllerDeleteCategory>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  expenseSettingsControllerDeleteCategory(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ExpenseSettingsControllerDeleteCategoryMutationResult = NonNullable<Awaited<ReturnType<typeof expenseSettingsControllerDeleteCategory>>>
+    
+    export type ExpenseSettingsControllerDeleteCategoryMutationError = unknown
+
+    /**
+ * @summary Soft delete expense category (Admin only)
+ */
+export const useExpenseSettingsControllerDeleteCategory = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseSettingsControllerDeleteCategory>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof expenseSettingsControllerDeleteCategory>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+
+      const mutationOptions = getExpenseSettingsControllerDeleteCategoryMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Toggle category active/inactive status (Admin only)
+ */
+export type expenseSettingsControllerToggleCategoryStatusResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type expenseSettingsControllerToggleCategoryStatusResponseSuccess = (expenseSettingsControllerToggleCategoryStatusResponse200) & {
+  headers: Headers;
+};
+;
+
+export type expenseSettingsControllerToggleCategoryStatusResponse = (expenseSettingsControllerToggleCategoryStatusResponseSuccess)
+
+export const getExpenseSettingsControllerToggleCategoryStatusUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/expense/settings/categories/${id}/toggle-status`
+}
+
+export const expenseSettingsControllerToggleCategoryStatus = async (id: number, options?: RequestInit): Promise<expenseSettingsControllerToggleCategoryStatusResponse> => {
+  
+  return customFetch<expenseSettingsControllerToggleCategoryStatusResponse>(getExpenseSettingsControllerToggleCategoryStatusUrl(id),
+  {      
+    ...options,
+    method: 'PATCH'
+    
+    
+  }
+);}
+
+
+
+
+export const getExpenseSettingsControllerToggleCategoryStatusMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseSettingsControllerToggleCategoryStatus>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof expenseSettingsControllerToggleCategoryStatus>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['expenseSettingsControllerToggleCategoryStatus'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof expenseSettingsControllerToggleCategoryStatus>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  expenseSettingsControllerToggleCategoryStatus(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ExpenseSettingsControllerToggleCategoryStatusMutationResult = NonNullable<Awaited<ReturnType<typeof expenseSettingsControllerToggleCategoryStatus>>>
+    
+    export type ExpenseSettingsControllerToggleCategoryStatusMutationError = unknown
+
+    /**
+ * @summary Toggle category active/inactive status (Admin only)
+ */
+export const useExpenseSettingsControllerToggleCategoryStatus = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseSettingsControllerToggleCategoryStatus>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof expenseSettingsControllerToggleCategoryStatus>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+
+      const mutationOptions = getExpenseSettingsControllerToggleCategoryStatusMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Get expense module general configuration
+ */
+export type expenseSettingsControllerGetGeneralSettingsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type expenseSettingsControllerGetGeneralSettingsResponseSuccess = (expenseSettingsControllerGetGeneralSettingsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type expenseSettingsControllerGetGeneralSettingsResponse = (expenseSettingsControllerGetGeneralSettingsResponseSuccess)
+
+export const getExpenseSettingsControllerGetGeneralSettingsUrl = () => {
+
+
+  
+
+  return `/api/v1/expense/settings/general`
+}
+
+export const expenseSettingsControllerGetGeneralSettings = async ( options?: RequestInit): Promise<expenseSettingsControllerGetGeneralSettingsResponse> => {
+  
+  return customFetch<expenseSettingsControllerGetGeneralSettingsResponse>(getExpenseSettingsControllerGetGeneralSettingsUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getExpenseSettingsControllerGetGeneralSettingsQueryKey = () => {
+    return [
+    `/api/v1/expense/settings/general`
+    ] as const;
+    }
+
+    
+export const getExpenseSettingsControllerGetGeneralSettingsQueryOptions = <TData = Awaited<ReturnType<typeof expenseSettingsControllerGetGeneralSettings>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseSettingsControllerGetGeneralSettings>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getExpenseSettingsControllerGetGeneralSettingsQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof expenseSettingsControllerGetGeneralSettings>>> = ({ signal }) => expenseSettingsControllerGetGeneralSettings({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof expenseSettingsControllerGetGeneralSettings>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ExpenseSettingsControllerGetGeneralSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof expenseSettingsControllerGetGeneralSettings>>>
+export type ExpenseSettingsControllerGetGeneralSettingsQueryError = unknown
+
+
+export function useExpenseSettingsControllerGetGeneralSettings<TData = Awaited<ReturnType<typeof expenseSettingsControllerGetGeneralSettings>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseSettingsControllerGetGeneralSettings>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof expenseSettingsControllerGetGeneralSettings>>,
+          TError,
+          Awaited<ReturnType<typeof expenseSettingsControllerGetGeneralSettings>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useExpenseSettingsControllerGetGeneralSettings<TData = Awaited<ReturnType<typeof expenseSettingsControllerGetGeneralSettings>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseSettingsControllerGetGeneralSettings>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof expenseSettingsControllerGetGeneralSettings>>,
+          TError,
+          Awaited<ReturnType<typeof expenseSettingsControllerGetGeneralSettings>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useExpenseSettingsControllerGetGeneralSettings<TData = Awaited<ReturnType<typeof expenseSettingsControllerGetGeneralSettings>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseSettingsControllerGetGeneralSettings>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get expense module general configuration
+ */
+
+export function useExpenseSettingsControllerGetGeneralSettings<TData = Awaited<ReturnType<typeof expenseSettingsControllerGetGeneralSettings>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseSettingsControllerGetGeneralSettings>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getExpenseSettingsControllerGetGeneralSettingsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Update expense general configuration (Admin only)
+ */
+export type expenseSettingsControllerUpdateGeneralSettingsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type expenseSettingsControllerUpdateGeneralSettingsResponseSuccess = (expenseSettingsControllerUpdateGeneralSettingsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type expenseSettingsControllerUpdateGeneralSettingsResponse = (expenseSettingsControllerUpdateGeneralSettingsResponseSuccess)
+
+export const getExpenseSettingsControllerUpdateGeneralSettingsUrl = () => {
+
+
+  
+
+  return `/api/v1/expense/settings/general`
+}
+
+export const expenseSettingsControllerUpdateGeneralSettings = async (updateExpenseGeneralSettingsDto: UpdateExpenseGeneralSettingsDto, options?: RequestInit): Promise<expenseSettingsControllerUpdateGeneralSettingsResponse> => {
+  
+  return customFetch<expenseSettingsControllerUpdateGeneralSettingsResponse>(getExpenseSettingsControllerUpdateGeneralSettingsUrl(),
+  {      
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateExpenseGeneralSettingsDto,)
+  }
+);}
+
+
+
+
+export const getExpenseSettingsControllerUpdateGeneralSettingsMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseSettingsControllerUpdateGeneralSettings>>, TError,{data: UpdateExpenseGeneralSettingsDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof expenseSettingsControllerUpdateGeneralSettings>>, TError,{data: UpdateExpenseGeneralSettingsDto}, TContext> => {
+
+const mutationKey = ['expenseSettingsControllerUpdateGeneralSettings'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof expenseSettingsControllerUpdateGeneralSettings>>, {data: UpdateExpenseGeneralSettingsDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  expenseSettingsControllerUpdateGeneralSettings(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ExpenseSettingsControllerUpdateGeneralSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof expenseSettingsControllerUpdateGeneralSettings>>>
+    export type ExpenseSettingsControllerUpdateGeneralSettingsMutationBody = UpdateExpenseGeneralSettingsDto
+    export type ExpenseSettingsControllerUpdateGeneralSettingsMutationError = unknown
+
+    /**
+ * @summary Update expense general configuration (Admin only)
+ */
+export const useExpenseSettingsControllerUpdateGeneralSettings = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseSettingsControllerUpdateGeneralSettings>>, TError,{data: UpdateExpenseGeneralSettingsDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof expenseSettingsControllerUpdateGeneralSettings>>,
+        TError,
+        {data: UpdateExpenseGeneralSettingsDto},
+        TContext
+      > => {
+
+      const mutationOptions = getExpenseSettingsControllerUpdateGeneralSettingsMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Get department authorised approvers mapping
+ */
+export type expenseSettingsControllerGetAuthorisedApproversResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type expenseSettingsControllerGetAuthorisedApproversResponseSuccess = (expenseSettingsControllerGetAuthorisedApproversResponse200) & {
+  headers: Headers;
+};
+;
+
+export type expenseSettingsControllerGetAuthorisedApproversResponse = (expenseSettingsControllerGetAuthorisedApproversResponseSuccess)
+
+export const getExpenseSettingsControllerGetAuthorisedApproversUrl = () => {
+
+
+  
+
+  return `/api/v1/expense/settings/approvers`
+}
+
+export const expenseSettingsControllerGetAuthorisedApprovers = async ( options?: RequestInit): Promise<expenseSettingsControllerGetAuthorisedApproversResponse> => {
+  
+  return customFetch<expenseSettingsControllerGetAuthorisedApproversResponse>(getExpenseSettingsControllerGetAuthorisedApproversUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getExpenseSettingsControllerGetAuthorisedApproversQueryKey = () => {
+    return [
+    `/api/v1/expense/settings/approvers`
+    ] as const;
+    }
+
+    
+export const getExpenseSettingsControllerGetAuthorisedApproversQueryOptions = <TData = Awaited<ReturnType<typeof expenseSettingsControllerGetAuthorisedApprovers>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseSettingsControllerGetAuthorisedApprovers>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getExpenseSettingsControllerGetAuthorisedApproversQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof expenseSettingsControllerGetAuthorisedApprovers>>> = ({ signal }) => expenseSettingsControllerGetAuthorisedApprovers({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof expenseSettingsControllerGetAuthorisedApprovers>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ExpenseSettingsControllerGetAuthorisedApproversQueryResult = NonNullable<Awaited<ReturnType<typeof expenseSettingsControllerGetAuthorisedApprovers>>>
+export type ExpenseSettingsControllerGetAuthorisedApproversQueryError = unknown
+
+
+export function useExpenseSettingsControllerGetAuthorisedApprovers<TData = Awaited<ReturnType<typeof expenseSettingsControllerGetAuthorisedApprovers>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseSettingsControllerGetAuthorisedApprovers>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof expenseSettingsControllerGetAuthorisedApprovers>>,
+          TError,
+          Awaited<ReturnType<typeof expenseSettingsControllerGetAuthorisedApprovers>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useExpenseSettingsControllerGetAuthorisedApprovers<TData = Awaited<ReturnType<typeof expenseSettingsControllerGetAuthorisedApprovers>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseSettingsControllerGetAuthorisedApprovers>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof expenseSettingsControllerGetAuthorisedApprovers>>,
+          TError,
+          Awaited<ReturnType<typeof expenseSettingsControllerGetAuthorisedApprovers>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useExpenseSettingsControllerGetAuthorisedApprovers<TData = Awaited<ReturnType<typeof expenseSettingsControllerGetAuthorisedApprovers>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseSettingsControllerGetAuthorisedApprovers>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get department authorised approvers mapping
+ */
+
+export function useExpenseSettingsControllerGetAuthorisedApprovers<TData = Awaited<ReturnType<typeof expenseSettingsControllerGetAuthorisedApprovers>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseSettingsControllerGetAuthorisedApprovers>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getExpenseSettingsControllerGetAuthorisedApproversQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Assign or update department authorised approver (Admin only)
+ */
+export type expenseSettingsControllerAssignAuthorisedApproverResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type expenseSettingsControllerAssignAuthorisedApproverResponseSuccess = (expenseSettingsControllerAssignAuthorisedApproverResponse201) & {
+  headers: Headers;
+};
+;
+
+export type expenseSettingsControllerAssignAuthorisedApproverResponse = (expenseSettingsControllerAssignAuthorisedApproverResponseSuccess)
+
+export const getExpenseSettingsControllerAssignAuthorisedApproverUrl = () => {
+
+
+  
+
+  return `/api/v1/expense/settings/approvers`
+}
+
+export const expenseSettingsControllerAssignAuthorisedApprover = async (assignAuthorisedApproverDto: AssignAuthorisedApproverDto, options?: RequestInit): Promise<expenseSettingsControllerAssignAuthorisedApproverResponse> => {
+  
+  return customFetch<expenseSettingsControllerAssignAuthorisedApproverResponse>(getExpenseSettingsControllerAssignAuthorisedApproverUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      assignAuthorisedApproverDto,)
+  }
+);}
+
+
+
+
+export const getExpenseSettingsControllerAssignAuthorisedApproverMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseSettingsControllerAssignAuthorisedApprover>>, TError,{data: AssignAuthorisedApproverDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof expenseSettingsControllerAssignAuthorisedApprover>>, TError,{data: AssignAuthorisedApproverDto}, TContext> => {
+
+const mutationKey = ['expenseSettingsControllerAssignAuthorisedApprover'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof expenseSettingsControllerAssignAuthorisedApprover>>, {data: AssignAuthorisedApproverDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  expenseSettingsControllerAssignAuthorisedApprover(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ExpenseSettingsControllerAssignAuthorisedApproverMutationResult = NonNullable<Awaited<ReturnType<typeof expenseSettingsControllerAssignAuthorisedApprover>>>
+    export type ExpenseSettingsControllerAssignAuthorisedApproverMutationBody = AssignAuthorisedApproverDto
+    export type ExpenseSettingsControllerAssignAuthorisedApproverMutationError = unknown
+
+    /**
+ * @summary Assign or update department authorised approver (Admin only)
+ */
+export const useExpenseSettingsControllerAssignAuthorisedApprover = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseSettingsControllerAssignAuthorisedApprover>>, TError,{data: AssignAuthorisedApproverDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof expenseSettingsControllerAssignAuthorisedApprover>>,
+        TError,
+        {data: AssignAuthorisedApproverDto},
+        TContext
+      > => {
+
+      const mutationOptions = getExpenseSettingsControllerAssignAuthorisedApproverMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Remove department authorised approver (Admin only)
+ */
+export type expenseSettingsControllerRemoveAuthorisedApproverResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type expenseSettingsControllerRemoveAuthorisedApproverResponseSuccess = (expenseSettingsControllerRemoveAuthorisedApproverResponse200) & {
+  headers: Headers;
+};
+;
+
+export type expenseSettingsControllerRemoveAuthorisedApproverResponse = (expenseSettingsControllerRemoveAuthorisedApproverResponseSuccess)
+
+export const getExpenseSettingsControllerRemoveAuthorisedApproverUrl = (departmentId: number,) => {
+
+
+  
+
+  return `/api/v1/expense/settings/approvers/${departmentId}`
+}
+
+export const expenseSettingsControllerRemoveAuthorisedApprover = async (departmentId: number, options?: RequestInit): Promise<expenseSettingsControllerRemoveAuthorisedApproverResponse> => {
+  
+  return customFetch<expenseSettingsControllerRemoveAuthorisedApproverResponse>(getExpenseSettingsControllerRemoveAuthorisedApproverUrl(departmentId),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+);}
+
+
+
+
+export const getExpenseSettingsControllerRemoveAuthorisedApproverMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseSettingsControllerRemoveAuthorisedApprover>>, TError,{departmentId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof expenseSettingsControllerRemoveAuthorisedApprover>>, TError,{departmentId: number}, TContext> => {
+
+const mutationKey = ['expenseSettingsControllerRemoveAuthorisedApprover'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof expenseSettingsControllerRemoveAuthorisedApprover>>, {departmentId: number}> = (props) => {
+          const {departmentId} = props ?? {};
+
+          return  expenseSettingsControllerRemoveAuthorisedApprover(departmentId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ExpenseSettingsControllerRemoveAuthorisedApproverMutationResult = NonNullable<Awaited<ReturnType<typeof expenseSettingsControllerRemoveAuthorisedApprover>>>
+    
+    export type ExpenseSettingsControllerRemoveAuthorisedApproverMutationError = unknown
+
+    /**
+ * @summary Remove department authorised approver (Admin only)
+ */
+export const useExpenseSettingsControllerRemoveAuthorisedApprover = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseSettingsControllerRemoveAuthorisedApprover>>, TError,{departmentId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof expenseSettingsControllerRemoveAuthorisedApprover>>,
+        TError,
+        {departmentId: number},
+        TContext
+      > => {
+
+      const mutationOptions = getExpenseSettingsControllerRemoveAuthorisedApproverMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Get all active expense types
+ */
+export type expenseSettingsControllerGetExpenseTypesResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type expenseSettingsControllerGetExpenseTypesResponseSuccess = (expenseSettingsControllerGetExpenseTypesResponse200) & {
+  headers: Headers;
+};
+;
+
+export type expenseSettingsControllerGetExpenseTypesResponse = (expenseSettingsControllerGetExpenseTypesResponseSuccess)
+
+export const getExpenseSettingsControllerGetExpenseTypesUrl = () => {
+
+
+  
+
+  return `/api/v1/expense/settings/types`
+}
+
+export const expenseSettingsControllerGetExpenseTypes = async ( options?: RequestInit): Promise<expenseSettingsControllerGetExpenseTypesResponse> => {
+  
+  return customFetch<expenseSettingsControllerGetExpenseTypesResponse>(getExpenseSettingsControllerGetExpenseTypesUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getExpenseSettingsControllerGetExpenseTypesQueryKey = () => {
+    return [
+    `/api/v1/expense/settings/types`
+    ] as const;
+    }
+
+    
+export const getExpenseSettingsControllerGetExpenseTypesQueryOptions = <TData = Awaited<ReturnType<typeof expenseSettingsControllerGetExpenseTypes>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseSettingsControllerGetExpenseTypes>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getExpenseSettingsControllerGetExpenseTypesQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof expenseSettingsControllerGetExpenseTypes>>> = ({ signal }) => expenseSettingsControllerGetExpenseTypes({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof expenseSettingsControllerGetExpenseTypes>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ExpenseSettingsControllerGetExpenseTypesQueryResult = NonNullable<Awaited<ReturnType<typeof expenseSettingsControllerGetExpenseTypes>>>
+export type ExpenseSettingsControllerGetExpenseTypesQueryError = unknown
+
+
+export function useExpenseSettingsControllerGetExpenseTypes<TData = Awaited<ReturnType<typeof expenseSettingsControllerGetExpenseTypes>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseSettingsControllerGetExpenseTypes>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof expenseSettingsControllerGetExpenseTypes>>,
+          TError,
+          Awaited<ReturnType<typeof expenseSettingsControllerGetExpenseTypes>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useExpenseSettingsControllerGetExpenseTypes<TData = Awaited<ReturnType<typeof expenseSettingsControllerGetExpenseTypes>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseSettingsControllerGetExpenseTypes>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof expenseSettingsControllerGetExpenseTypes>>,
+          TError,
+          Awaited<ReturnType<typeof expenseSettingsControllerGetExpenseTypes>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useExpenseSettingsControllerGetExpenseTypes<TData = Awaited<ReturnType<typeof expenseSettingsControllerGetExpenseTypes>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseSettingsControllerGetExpenseTypes>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get all active expense types
+ */
+
+export function useExpenseSettingsControllerGetExpenseTypes<TData = Awaited<ReturnType<typeof expenseSettingsControllerGetExpenseTypes>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseSettingsControllerGetExpenseTypes>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getExpenseSettingsControllerGetExpenseTypesQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Create new expense type (Admin only)
+ */
+export type expenseSettingsControllerCreateExpenseTypeResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type expenseSettingsControllerCreateExpenseTypeResponseSuccess = (expenseSettingsControllerCreateExpenseTypeResponse201) & {
+  headers: Headers;
+};
+;
+
+export type expenseSettingsControllerCreateExpenseTypeResponse = (expenseSettingsControllerCreateExpenseTypeResponseSuccess)
+
+export const getExpenseSettingsControllerCreateExpenseTypeUrl = () => {
+
+
+  
+
+  return `/api/v1/expense/settings/types`
+}
+
+export const expenseSettingsControllerCreateExpenseType = async (createExpenseTypeDto: CreateExpenseTypeDto, options?: RequestInit): Promise<expenseSettingsControllerCreateExpenseTypeResponse> => {
+  
+  return customFetch<expenseSettingsControllerCreateExpenseTypeResponse>(getExpenseSettingsControllerCreateExpenseTypeUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createExpenseTypeDto,)
+  }
+);}
+
+
+
+
+export const getExpenseSettingsControllerCreateExpenseTypeMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseSettingsControllerCreateExpenseType>>, TError,{data: CreateExpenseTypeDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof expenseSettingsControllerCreateExpenseType>>, TError,{data: CreateExpenseTypeDto}, TContext> => {
+
+const mutationKey = ['expenseSettingsControllerCreateExpenseType'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof expenseSettingsControllerCreateExpenseType>>, {data: CreateExpenseTypeDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  expenseSettingsControllerCreateExpenseType(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ExpenseSettingsControllerCreateExpenseTypeMutationResult = NonNullable<Awaited<ReturnType<typeof expenseSettingsControllerCreateExpenseType>>>
+    export type ExpenseSettingsControllerCreateExpenseTypeMutationBody = CreateExpenseTypeDto
+    export type ExpenseSettingsControllerCreateExpenseTypeMutationError = unknown
+
+    /**
+ * @summary Create new expense type (Admin only)
+ */
+export const useExpenseSettingsControllerCreateExpenseType = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseSettingsControllerCreateExpenseType>>, TError,{data: CreateExpenseTypeDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof expenseSettingsControllerCreateExpenseType>>,
+        TError,
+        {data: CreateExpenseTypeDto},
+        TContext
+      > => {
+
+      const mutationOptions = getExpenseSettingsControllerCreateExpenseTypeMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Update expense type (Admin only)
+ */
+export type expenseSettingsControllerUpdateExpenseTypeResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type expenseSettingsControllerUpdateExpenseTypeResponseSuccess = (expenseSettingsControllerUpdateExpenseTypeResponse200) & {
+  headers: Headers;
+};
+;
+
+export type expenseSettingsControllerUpdateExpenseTypeResponse = (expenseSettingsControllerUpdateExpenseTypeResponseSuccess)
+
+export const getExpenseSettingsControllerUpdateExpenseTypeUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/expense/settings/types/${id}`
+}
+
+export const expenseSettingsControllerUpdateExpenseType = async (id: number,
+    updateExpenseTypeDto: UpdateExpenseTypeDto, options?: RequestInit): Promise<expenseSettingsControllerUpdateExpenseTypeResponse> => {
+  
+  return customFetch<expenseSettingsControllerUpdateExpenseTypeResponse>(getExpenseSettingsControllerUpdateExpenseTypeUrl(id),
+  {      
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateExpenseTypeDto,)
+  }
+);}
+
+
+
+
+export const getExpenseSettingsControllerUpdateExpenseTypeMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseSettingsControllerUpdateExpenseType>>, TError,{id: number;data: UpdateExpenseTypeDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof expenseSettingsControllerUpdateExpenseType>>, TError,{id: number;data: UpdateExpenseTypeDto}, TContext> => {
+
+const mutationKey = ['expenseSettingsControllerUpdateExpenseType'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof expenseSettingsControllerUpdateExpenseType>>, {id: number;data: UpdateExpenseTypeDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  expenseSettingsControllerUpdateExpenseType(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ExpenseSettingsControllerUpdateExpenseTypeMutationResult = NonNullable<Awaited<ReturnType<typeof expenseSettingsControllerUpdateExpenseType>>>
+    export type ExpenseSettingsControllerUpdateExpenseTypeMutationBody = UpdateExpenseTypeDto
+    export type ExpenseSettingsControllerUpdateExpenseTypeMutationError = unknown
+
+    /**
+ * @summary Update expense type (Admin only)
+ */
+export const useExpenseSettingsControllerUpdateExpenseType = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseSettingsControllerUpdateExpenseType>>, TError,{id: number;data: UpdateExpenseTypeDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof expenseSettingsControllerUpdateExpenseType>>,
+        TError,
+        {id: number;data: UpdateExpenseTypeDto},
+        TContext
+      > => {
+
+      const mutationOptions = getExpenseSettingsControllerUpdateExpenseTypeMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Soft delete expense type (Admin only)
+ */
+export type expenseSettingsControllerDeleteExpenseTypeResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type expenseSettingsControllerDeleteExpenseTypeResponseSuccess = (expenseSettingsControllerDeleteExpenseTypeResponse200) & {
+  headers: Headers;
+};
+;
+
+export type expenseSettingsControllerDeleteExpenseTypeResponse = (expenseSettingsControllerDeleteExpenseTypeResponseSuccess)
+
+export const getExpenseSettingsControllerDeleteExpenseTypeUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/expense/settings/types/${id}`
+}
+
+export const expenseSettingsControllerDeleteExpenseType = async (id: number, options?: RequestInit): Promise<expenseSettingsControllerDeleteExpenseTypeResponse> => {
+  
+  return customFetch<expenseSettingsControllerDeleteExpenseTypeResponse>(getExpenseSettingsControllerDeleteExpenseTypeUrl(id),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+);}
+
+
+
+
+export const getExpenseSettingsControllerDeleteExpenseTypeMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseSettingsControllerDeleteExpenseType>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof expenseSettingsControllerDeleteExpenseType>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['expenseSettingsControllerDeleteExpenseType'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof expenseSettingsControllerDeleteExpenseType>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  expenseSettingsControllerDeleteExpenseType(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ExpenseSettingsControllerDeleteExpenseTypeMutationResult = NonNullable<Awaited<ReturnType<typeof expenseSettingsControllerDeleteExpenseType>>>
+    
+    export type ExpenseSettingsControllerDeleteExpenseTypeMutationError = unknown
+
+    /**
+ * @summary Soft delete expense type (Admin only)
+ */
+export const useExpenseSettingsControllerDeleteExpenseType = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseSettingsControllerDeleteExpenseType>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof expenseSettingsControllerDeleteExpenseType>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+
+      const mutationOptions = getExpenseSettingsControllerDeleteExpenseTypeMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Toggle expense type active/inactive status (Admin only)
+ */
+export type expenseSettingsControllerToggleExpenseTypeStatusResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type expenseSettingsControllerToggleExpenseTypeStatusResponseSuccess = (expenseSettingsControllerToggleExpenseTypeStatusResponse200) & {
+  headers: Headers;
+};
+;
+
+export type expenseSettingsControllerToggleExpenseTypeStatusResponse = (expenseSettingsControllerToggleExpenseTypeStatusResponseSuccess)
+
+export const getExpenseSettingsControllerToggleExpenseTypeStatusUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/expense/settings/types/${id}/toggle-status`
+}
+
+export const expenseSettingsControllerToggleExpenseTypeStatus = async (id: number, options?: RequestInit): Promise<expenseSettingsControllerToggleExpenseTypeStatusResponse> => {
+  
+  return customFetch<expenseSettingsControllerToggleExpenseTypeStatusResponse>(getExpenseSettingsControllerToggleExpenseTypeStatusUrl(id),
+  {      
+    ...options,
+    method: 'PATCH'
+    
+    
+  }
+);}
+
+
+
+
+export const getExpenseSettingsControllerToggleExpenseTypeStatusMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseSettingsControllerToggleExpenseTypeStatus>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof expenseSettingsControllerToggleExpenseTypeStatus>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['expenseSettingsControllerToggleExpenseTypeStatus'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof expenseSettingsControllerToggleExpenseTypeStatus>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  expenseSettingsControllerToggleExpenseTypeStatus(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ExpenseSettingsControllerToggleExpenseTypeStatusMutationResult = NonNullable<Awaited<ReturnType<typeof expenseSettingsControllerToggleExpenseTypeStatus>>>
+    
+    export type ExpenseSettingsControllerToggleExpenseTypeStatusMutationError = unknown
+
+    /**
+ * @summary Toggle expense type active/inactive status (Admin only)
+ */
+export const useExpenseSettingsControllerToggleExpenseTypeStatus = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseSettingsControllerToggleExpenseTypeStatus>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof expenseSettingsControllerToggleExpenseTypeStatus>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+
+      const mutationOptions = getExpenseSettingsControllerToggleExpenseTypeStatusMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Get expense settings change audit trail
+ */
+export type expenseSettingsControllerGetChangeLogsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type expenseSettingsControllerGetChangeLogsResponseSuccess = (expenseSettingsControllerGetChangeLogsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type expenseSettingsControllerGetChangeLogsResponse = (expenseSettingsControllerGetChangeLogsResponseSuccess)
+
+export const getExpenseSettingsControllerGetChangeLogsUrl = () => {
+
+
+  
+
+  return `/api/v1/expense/settings/change-log`
+}
+
+export const expenseSettingsControllerGetChangeLogs = async ( options?: RequestInit): Promise<expenseSettingsControllerGetChangeLogsResponse> => {
+  
+  return customFetch<expenseSettingsControllerGetChangeLogsResponse>(getExpenseSettingsControllerGetChangeLogsUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getExpenseSettingsControllerGetChangeLogsQueryKey = () => {
+    return [
+    `/api/v1/expense/settings/change-log`
+    ] as const;
+    }
+
+    
+export const getExpenseSettingsControllerGetChangeLogsQueryOptions = <TData = Awaited<ReturnType<typeof expenseSettingsControllerGetChangeLogs>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseSettingsControllerGetChangeLogs>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getExpenseSettingsControllerGetChangeLogsQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof expenseSettingsControllerGetChangeLogs>>> = ({ signal }) => expenseSettingsControllerGetChangeLogs({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof expenseSettingsControllerGetChangeLogs>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ExpenseSettingsControllerGetChangeLogsQueryResult = NonNullable<Awaited<ReturnType<typeof expenseSettingsControllerGetChangeLogs>>>
+export type ExpenseSettingsControllerGetChangeLogsQueryError = unknown
+
+
+export function useExpenseSettingsControllerGetChangeLogs<TData = Awaited<ReturnType<typeof expenseSettingsControllerGetChangeLogs>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseSettingsControllerGetChangeLogs>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof expenseSettingsControllerGetChangeLogs>>,
+          TError,
+          Awaited<ReturnType<typeof expenseSettingsControllerGetChangeLogs>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useExpenseSettingsControllerGetChangeLogs<TData = Awaited<ReturnType<typeof expenseSettingsControllerGetChangeLogs>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseSettingsControllerGetChangeLogs>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof expenseSettingsControllerGetChangeLogs>>,
+          TError,
+          Awaited<ReturnType<typeof expenseSettingsControllerGetChangeLogs>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useExpenseSettingsControllerGetChangeLogs<TData = Awaited<ReturnType<typeof expenseSettingsControllerGetChangeLogs>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseSettingsControllerGetChangeLogs>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get expense settings change audit trail
+ */
+
+export function useExpenseSettingsControllerGetChangeLogs<TData = Awaited<ReturnType<typeof expenseSettingsControllerGetChangeLogs>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseSettingsControllerGetChangeLogs>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getExpenseSettingsControllerGetChangeLogsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Get current employee expense claims and summary stats
+ */
+export type expenseClaimsControllerGetMyClaimsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type expenseClaimsControllerGetMyClaimsResponseSuccess = (expenseClaimsControllerGetMyClaimsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type expenseClaimsControllerGetMyClaimsResponse = (expenseClaimsControllerGetMyClaimsResponseSuccess)
+
+export const getExpenseClaimsControllerGetMyClaimsUrl = (params: ExpenseClaimsControllerGetMyClaimsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/expense/claims/my?${stringifiedParams}` : `/api/v1/expense/claims/my`
+}
+
+export const expenseClaimsControllerGetMyClaims = async (params: ExpenseClaimsControllerGetMyClaimsParams, options?: RequestInit): Promise<expenseClaimsControllerGetMyClaimsResponse> => {
+  
+  return customFetch<expenseClaimsControllerGetMyClaimsResponse>(getExpenseClaimsControllerGetMyClaimsUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getExpenseClaimsControllerGetMyClaimsQueryKey = (params?: ExpenseClaimsControllerGetMyClaimsParams,) => {
+    return [
+    `/api/v1/expense/claims/my`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getExpenseClaimsControllerGetMyClaimsQueryOptions = <TData = Awaited<ReturnType<typeof expenseClaimsControllerGetMyClaims>>, TError = unknown>(params: ExpenseClaimsControllerGetMyClaimsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseClaimsControllerGetMyClaims>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getExpenseClaimsControllerGetMyClaimsQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof expenseClaimsControllerGetMyClaims>>> = ({ signal }) => expenseClaimsControllerGetMyClaims(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof expenseClaimsControllerGetMyClaims>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ExpenseClaimsControllerGetMyClaimsQueryResult = NonNullable<Awaited<ReturnType<typeof expenseClaimsControllerGetMyClaims>>>
+export type ExpenseClaimsControllerGetMyClaimsQueryError = unknown
+
+
+export function useExpenseClaimsControllerGetMyClaims<TData = Awaited<ReturnType<typeof expenseClaimsControllerGetMyClaims>>, TError = unknown>(
+ params: ExpenseClaimsControllerGetMyClaimsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseClaimsControllerGetMyClaims>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof expenseClaimsControllerGetMyClaims>>,
+          TError,
+          Awaited<ReturnType<typeof expenseClaimsControllerGetMyClaims>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useExpenseClaimsControllerGetMyClaims<TData = Awaited<ReturnType<typeof expenseClaimsControllerGetMyClaims>>, TError = unknown>(
+ params: ExpenseClaimsControllerGetMyClaimsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseClaimsControllerGetMyClaims>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof expenseClaimsControllerGetMyClaims>>,
+          TError,
+          Awaited<ReturnType<typeof expenseClaimsControllerGetMyClaims>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useExpenseClaimsControllerGetMyClaims<TData = Awaited<ReturnType<typeof expenseClaimsControllerGetMyClaims>>, TError = unknown>(
+ params: ExpenseClaimsControllerGetMyClaimsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseClaimsControllerGetMyClaims>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get current employee expense claims and summary stats
+ */
+
+export function useExpenseClaimsControllerGetMyClaims<TData = Awaited<ReturnType<typeof expenseClaimsControllerGetMyClaims>>, TError = unknown>(
+ params: ExpenseClaimsControllerGetMyClaimsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseClaimsControllerGetMyClaims>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getExpenseClaimsControllerGetMyClaimsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Create a new expense claim (Draft or Submitted)
+ */
+export type expenseClaimsControllerCreateClaimResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type expenseClaimsControllerCreateClaimResponseSuccess = (expenseClaimsControllerCreateClaimResponse201) & {
+  headers: Headers;
+};
+;
+
+export type expenseClaimsControllerCreateClaimResponse = (expenseClaimsControllerCreateClaimResponseSuccess)
+
+export const getExpenseClaimsControllerCreateClaimUrl = () => {
+
+
+  
+
+  return `/api/v1/expense/claims`
+}
+
+export const expenseClaimsControllerCreateClaim = async (createExpenseClaimDto: CreateExpenseClaimDto, options?: RequestInit): Promise<expenseClaimsControllerCreateClaimResponse> => {
+  
+  return customFetch<expenseClaimsControllerCreateClaimResponse>(getExpenseClaimsControllerCreateClaimUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createExpenseClaimDto,)
+  }
+);}
+
+
+
+
+export const getExpenseClaimsControllerCreateClaimMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseClaimsControllerCreateClaim>>, TError,{data: CreateExpenseClaimDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof expenseClaimsControllerCreateClaim>>, TError,{data: CreateExpenseClaimDto}, TContext> => {
+
+const mutationKey = ['expenseClaimsControllerCreateClaim'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof expenseClaimsControllerCreateClaim>>, {data: CreateExpenseClaimDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  expenseClaimsControllerCreateClaim(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ExpenseClaimsControllerCreateClaimMutationResult = NonNullable<Awaited<ReturnType<typeof expenseClaimsControllerCreateClaim>>>
+    export type ExpenseClaimsControllerCreateClaimMutationBody = CreateExpenseClaimDto
+    export type ExpenseClaimsControllerCreateClaimMutationError = unknown
+
+    /**
+ * @summary Create a new expense claim (Draft or Submitted)
+ */
+export const useExpenseClaimsControllerCreateClaim = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseClaimsControllerCreateClaim>>, TError,{data: CreateExpenseClaimDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof expenseClaimsControllerCreateClaim>>,
+        TError,
+        {data: CreateExpenseClaimDto},
+        TContext
+      > => {
+
+      const mutationOptions = getExpenseClaimsControllerCreateClaimMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Get detailed claim view with timeline and attachments
+ */
+export type expenseClaimsControllerGetClaimByIdResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type expenseClaimsControllerGetClaimByIdResponseSuccess = (expenseClaimsControllerGetClaimByIdResponse200) & {
+  headers: Headers;
+};
+;
+
+export type expenseClaimsControllerGetClaimByIdResponse = (expenseClaimsControllerGetClaimByIdResponseSuccess)
+
+export const getExpenseClaimsControllerGetClaimByIdUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/expense/claims/${id}`
+}
+
+export const expenseClaimsControllerGetClaimById = async (id: number, options?: RequestInit): Promise<expenseClaimsControllerGetClaimByIdResponse> => {
+  
+  return customFetch<expenseClaimsControllerGetClaimByIdResponse>(getExpenseClaimsControllerGetClaimByIdUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getExpenseClaimsControllerGetClaimByIdQueryKey = (id?: number,) => {
+    return [
+    `/api/v1/expense/claims/${id}`
+    ] as const;
+    }
+
+    
+export const getExpenseClaimsControllerGetClaimByIdQueryOptions = <TData = Awaited<ReturnType<typeof expenseClaimsControllerGetClaimById>>, TError = unknown>(id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseClaimsControllerGetClaimById>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getExpenseClaimsControllerGetClaimByIdQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof expenseClaimsControllerGetClaimById>>> = ({ signal }) => expenseClaimsControllerGetClaimById(id, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof expenseClaimsControllerGetClaimById>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ExpenseClaimsControllerGetClaimByIdQueryResult = NonNullable<Awaited<ReturnType<typeof expenseClaimsControllerGetClaimById>>>
+export type ExpenseClaimsControllerGetClaimByIdQueryError = unknown
+
+
+export function useExpenseClaimsControllerGetClaimById<TData = Awaited<ReturnType<typeof expenseClaimsControllerGetClaimById>>, TError = unknown>(
+ id: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseClaimsControllerGetClaimById>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof expenseClaimsControllerGetClaimById>>,
+          TError,
+          Awaited<ReturnType<typeof expenseClaimsControllerGetClaimById>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useExpenseClaimsControllerGetClaimById<TData = Awaited<ReturnType<typeof expenseClaimsControllerGetClaimById>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseClaimsControllerGetClaimById>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof expenseClaimsControllerGetClaimById>>,
+          TError,
+          Awaited<ReturnType<typeof expenseClaimsControllerGetClaimById>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useExpenseClaimsControllerGetClaimById<TData = Awaited<ReturnType<typeof expenseClaimsControllerGetClaimById>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseClaimsControllerGetClaimById>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get detailed claim view with timeline and attachments
+ */
+
+export function useExpenseClaimsControllerGetClaimById<TData = Awaited<ReturnType<typeof expenseClaimsControllerGetClaimById>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseClaimsControllerGetClaimById>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getExpenseClaimsControllerGetClaimByIdQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Update an existing draft expense claim
+ */
+export type expenseClaimsControllerUpdateClaimResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type expenseClaimsControllerUpdateClaimResponseSuccess = (expenseClaimsControllerUpdateClaimResponse200) & {
+  headers: Headers;
+};
+;
+
+export type expenseClaimsControllerUpdateClaimResponse = (expenseClaimsControllerUpdateClaimResponseSuccess)
+
+export const getExpenseClaimsControllerUpdateClaimUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/expense/claims/${id}`
+}
+
+export const expenseClaimsControllerUpdateClaim = async (id: number,
+    updateExpenseClaimDto: UpdateExpenseClaimDto, options?: RequestInit): Promise<expenseClaimsControllerUpdateClaimResponse> => {
+  
+  return customFetch<expenseClaimsControllerUpdateClaimResponse>(getExpenseClaimsControllerUpdateClaimUrl(id),
+  {      
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateExpenseClaimDto,)
+  }
+);}
+
+
+
+
+export const getExpenseClaimsControllerUpdateClaimMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseClaimsControllerUpdateClaim>>, TError,{id: number;data: UpdateExpenseClaimDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof expenseClaimsControllerUpdateClaim>>, TError,{id: number;data: UpdateExpenseClaimDto}, TContext> => {
+
+const mutationKey = ['expenseClaimsControllerUpdateClaim'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof expenseClaimsControllerUpdateClaim>>, {id: number;data: UpdateExpenseClaimDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  expenseClaimsControllerUpdateClaim(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ExpenseClaimsControllerUpdateClaimMutationResult = NonNullable<Awaited<ReturnType<typeof expenseClaimsControllerUpdateClaim>>>
+    export type ExpenseClaimsControllerUpdateClaimMutationBody = UpdateExpenseClaimDto
+    export type ExpenseClaimsControllerUpdateClaimMutationError = unknown
+
+    /**
+ * @summary Update an existing draft expense claim
+ */
+export const useExpenseClaimsControllerUpdateClaim = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseClaimsControllerUpdateClaim>>, TError,{id: number;data: UpdateExpenseClaimDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof expenseClaimsControllerUpdateClaim>>,
+        TError,
+        {id: number;data: UpdateExpenseClaimDto},
+        TContext
+      > => {
+
+      const mutationOptions = getExpenseClaimsControllerUpdateClaimMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Soft delete a draft claim
+ */
+export type expenseClaimsControllerDeleteClaimResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type expenseClaimsControllerDeleteClaimResponseSuccess = (expenseClaimsControllerDeleteClaimResponse200) & {
+  headers: Headers;
+};
+;
+
+export type expenseClaimsControllerDeleteClaimResponse = (expenseClaimsControllerDeleteClaimResponseSuccess)
+
+export const getExpenseClaimsControllerDeleteClaimUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/expense/claims/${id}`
+}
+
+export const expenseClaimsControllerDeleteClaim = async (id: number, options?: RequestInit): Promise<expenseClaimsControllerDeleteClaimResponse> => {
+  
+  return customFetch<expenseClaimsControllerDeleteClaimResponse>(getExpenseClaimsControllerDeleteClaimUrl(id),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+);}
+
+
+
+
+export const getExpenseClaimsControllerDeleteClaimMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseClaimsControllerDeleteClaim>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof expenseClaimsControllerDeleteClaim>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['expenseClaimsControllerDeleteClaim'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof expenseClaimsControllerDeleteClaim>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  expenseClaimsControllerDeleteClaim(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ExpenseClaimsControllerDeleteClaimMutationResult = NonNullable<Awaited<ReturnType<typeof expenseClaimsControllerDeleteClaim>>>
+    
+    export type ExpenseClaimsControllerDeleteClaimMutationError = unknown
+
+    /**
+ * @summary Soft delete a draft claim
+ */
+export const useExpenseClaimsControllerDeleteClaim = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseClaimsControllerDeleteClaim>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof expenseClaimsControllerDeleteClaim>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+
+      const mutationOptions = getExpenseClaimsControllerDeleteClaimMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Submit a draft claim for approval
+ */
+export type expenseClaimsControllerSubmitDraftResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type expenseClaimsControllerSubmitDraftResponseSuccess = (expenseClaimsControllerSubmitDraftResponse201) & {
+  headers: Headers;
+};
+;
+
+export type expenseClaimsControllerSubmitDraftResponse = (expenseClaimsControllerSubmitDraftResponseSuccess)
+
+export const getExpenseClaimsControllerSubmitDraftUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/expense/claims/${id}/submit`
+}
+
+export const expenseClaimsControllerSubmitDraft = async (id: number, options?: RequestInit): Promise<expenseClaimsControllerSubmitDraftResponse> => {
+  
+  return customFetch<expenseClaimsControllerSubmitDraftResponse>(getExpenseClaimsControllerSubmitDraftUrl(id),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getExpenseClaimsControllerSubmitDraftMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseClaimsControllerSubmitDraft>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof expenseClaimsControllerSubmitDraft>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['expenseClaimsControllerSubmitDraft'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof expenseClaimsControllerSubmitDraft>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  expenseClaimsControllerSubmitDraft(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ExpenseClaimsControllerSubmitDraftMutationResult = NonNullable<Awaited<ReturnType<typeof expenseClaimsControllerSubmitDraft>>>
+    
+    export type ExpenseClaimsControllerSubmitDraftMutationError = unknown
+
+    /**
+ * @summary Submit a draft claim for approval
+ */
+export const useExpenseClaimsControllerSubmitDraft = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseClaimsControllerSubmitDraft>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof expenseClaimsControllerSubmitDraft>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+
+      const mutationOptions = getExpenseClaimsControllerSubmitDraftMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Withdraw a submitted claim back to draft
+ */
+export type expenseClaimsControllerWithdrawClaimResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type expenseClaimsControllerWithdrawClaimResponseSuccess = (expenseClaimsControllerWithdrawClaimResponse201) & {
+  headers: Headers;
+};
+;
+
+export type expenseClaimsControllerWithdrawClaimResponse = (expenseClaimsControllerWithdrawClaimResponseSuccess)
+
+export const getExpenseClaimsControllerWithdrawClaimUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/expense/claims/${id}/withdraw`
+}
+
+export const expenseClaimsControllerWithdrawClaim = async (id: number, options?: RequestInit): Promise<expenseClaimsControllerWithdrawClaimResponse> => {
+  
+  return customFetch<expenseClaimsControllerWithdrawClaimResponse>(getExpenseClaimsControllerWithdrawClaimUrl(id),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getExpenseClaimsControllerWithdrawClaimMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseClaimsControllerWithdrawClaim>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof expenseClaimsControllerWithdrawClaim>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['expenseClaimsControllerWithdrawClaim'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof expenseClaimsControllerWithdrawClaim>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  expenseClaimsControllerWithdrawClaim(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ExpenseClaimsControllerWithdrawClaimMutationResult = NonNullable<Awaited<ReturnType<typeof expenseClaimsControllerWithdrawClaim>>>
+    
+    export type ExpenseClaimsControllerWithdrawClaimMutationError = unknown
+
+    /**
+ * @summary Withdraw a submitted claim back to draft
+ */
+export const useExpenseClaimsControllerWithdrawClaim = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseClaimsControllerWithdrawClaim>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof expenseClaimsControllerWithdrawClaim>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+
+      const mutationOptions = getExpenseClaimsControllerWithdrawClaimMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Clone a rejected claim into a fresh draft
+ */
+export type expenseClaimsControllerCopyToDraftResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type expenseClaimsControllerCopyToDraftResponseSuccess = (expenseClaimsControllerCopyToDraftResponse201) & {
+  headers: Headers;
+};
+;
+
+export type expenseClaimsControllerCopyToDraftResponse = (expenseClaimsControllerCopyToDraftResponseSuccess)
+
+export const getExpenseClaimsControllerCopyToDraftUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/expense/claims/${id}/copy-to-draft`
+}
+
+export const expenseClaimsControllerCopyToDraft = async (id: number, options?: RequestInit): Promise<expenseClaimsControllerCopyToDraftResponse> => {
+  
+  return customFetch<expenseClaimsControllerCopyToDraftResponse>(getExpenseClaimsControllerCopyToDraftUrl(id),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getExpenseClaimsControllerCopyToDraftMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseClaimsControllerCopyToDraft>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof expenseClaimsControllerCopyToDraft>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['expenseClaimsControllerCopyToDraft'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof expenseClaimsControllerCopyToDraft>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  expenseClaimsControllerCopyToDraft(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ExpenseClaimsControllerCopyToDraftMutationResult = NonNullable<Awaited<ReturnType<typeof expenseClaimsControllerCopyToDraft>>>
+    
+    export type ExpenseClaimsControllerCopyToDraftMutationError = unknown
+
+    /**
+ * @summary Clone a rejected claim into a fresh draft
+ */
+export const useExpenseClaimsControllerCopyToDraft = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseClaimsControllerCopyToDraft>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof expenseClaimsControllerCopyToDraft>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+
+      const mutationOptions = getExpenseClaimsControllerCopyToDraftMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Get pending claims awaiting review
+ */
+export type expenseClaimsControllerGetApprovalsQueueResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type expenseClaimsControllerGetApprovalsQueueResponseSuccess = (expenseClaimsControllerGetApprovalsQueueResponse200) & {
+  headers: Headers;
+};
+;
+
+export type expenseClaimsControllerGetApprovalsQueueResponse = (expenseClaimsControllerGetApprovalsQueueResponseSuccess)
+
+export const getExpenseClaimsControllerGetApprovalsQueueUrl = () => {
+
+
+  
+
+  return `/api/v1/expense/approvals/queue`
+}
+
+export const expenseClaimsControllerGetApprovalsQueue = async ( options?: RequestInit): Promise<expenseClaimsControllerGetApprovalsQueueResponse> => {
+  
+  return customFetch<expenseClaimsControllerGetApprovalsQueueResponse>(getExpenseClaimsControllerGetApprovalsQueueUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getExpenseClaimsControllerGetApprovalsQueueQueryKey = () => {
+    return [
+    `/api/v1/expense/approvals/queue`
+    ] as const;
+    }
+
+    
+export const getExpenseClaimsControllerGetApprovalsQueueQueryOptions = <TData = Awaited<ReturnType<typeof expenseClaimsControllerGetApprovalsQueue>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseClaimsControllerGetApprovalsQueue>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getExpenseClaimsControllerGetApprovalsQueueQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof expenseClaimsControllerGetApprovalsQueue>>> = ({ signal }) => expenseClaimsControllerGetApprovalsQueue({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof expenseClaimsControllerGetApprovalsQueue>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ExpenseClaimsControllerGetApprovalsQueueQueryResult = NonNullable<Awaited<ReturnType<typeof expenseClaimsControllerGetApprovalsQueue>>>
+export type ExpenseClaimsControllerGetApprovalsQueueQueryError = unknown
+
+
+export function useExpenseClaimsControllerGetApprovalsQueue<TData = Awaited<ReturnType<typeof expenseClaimsControllerGetApprovalsQueue>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseClaimsControllerGetApprovalsQueue>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof expenseClaimsControllerGetApprovalsQueue>>,
+          TError,
+          Awaited<ReturnType<typeof expenseClaimsControllerGetApprovalsQueue>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useExpenseClaimsControllerGetApprovalsQueue<TData = Awaited<ReturnType<typeof expenseClaimsControllerGetApprovalsQueue>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseClaimsControllerGetApprovalsQueue>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof expenseClaimsControllerGetApprovalsQueue>>,
+          TError,
+          Awaited<ReturnType<typeof expenseClaimsControllerGetApprovalsQueue>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useExpenseClaimsControllerGetApprovalsQueue<TData = Awaited<ReturnType<typeof expenseClaimsControllerGetApprovalsQueue>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseClaimsControllerGetApprovalsQueue>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get pending claims awaiting review
+ */
+
+export function useExpenseClaimsControllerGetApprovalsQueue<TData = Awaited<ReturnType<typeof expenseClaimsControllerGetApprovalsQueue>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseClaimsControllerGetApprovalsQueue>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getExpenseClaimsControllerGetApprovalsQueueQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Approve or reject a submitted claim
+ */
+export type expenseClaimsControllerReviewClaimResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type expenseClaimsControllerReviewClaimResponseSuccess = (expenseClaimsControllerReviewClaimResponse201) & {
+  headers: Headers;
+};
+;
+
+export type expenseClaimsControllerReviewClaimResponse = (expenseClaimsControllerReviewClaimResponseSuccess)
+
+export const getExpenseClaimsControllerReviewClaimUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/expense/approvals/${id}/review`
+}
+
+export const expenseClaimsControllerReviewClaim = async (id: number,
+    reviewExpenseClaimDto: ReviewExpenseClaimDto, options?: RequestInit): Promise<expenseClaimsControllerReviewClaimResponse> => {
+  
+  return customFetch<expenseClaimsControllerReviewClaimResponse>(getExpenseClaimsControllerReviewClaimUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      reviewExpenseClaimDto,)
+  }
+);}
+
+
+
+
+export const getExpenseClaimsControllerReviewClaimMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseClaimsControllerReviewClaim>>, TError,{id: number;data: ReviewExpenseClaimDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof expenseClaimsControllerReviewClaim>>, TError,{id: number;data: ReviewExpenseClaimDto}, TContext> => {
+
+const mutationKey = ['expenseClaimsControllerReviewClaim'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof expenseClaimsControllerReviewClaim>>, {id: number;data: ReviewExpenseClaimDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  expenseClaimsControllerReviewClaim(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ExpenseClaimsControllerReviewClaimMutationResult = NonNullable<Awaited<ReturnType<typeof expenseClaimsControllerReviewClaim>>>
+    export type ExpenseClaimsControllerReviewClaimMutationBody = ReviewExpenseClaimDto
+    export type ExpenseClaimsControllerReviewClaimMutationError = unknown
+
+    /**
+ * @summary Approve or reject a submitted claim
+ */
+export const useExpenseClaimsControllerReviewClaim = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseClaimsControllerReviewClaim>>, TError,{id: number;data: ReviewExpenseClaimDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof expenseClaimsControllerReviewClaim>>,
+        TError,
+        {id: number;data: ReviewExpenseClaimDto},
+        TContext
+      > => {
+
+      const mutationOptions = getExpenseClaimsControllerReviewClaimMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Admin reopens a decided (Approved/Rejected) claim
+ */
+export type expenseClaimsControllerReopenClaimResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type expenseClaimsControllerReopenClaimResponseSuccess = (expenseClaimsControllerReopenClaimResponse201) & {
+  headers: Headers;
+};
+;
+
+export type expenseClaimsControllerReopenClaimResponse = (expenseClaimsControllerReopenClaimResponseSuccess)
+
+export const getExpenseClaimsControllerReopenClaimUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/expense/claims/${id}/reopen`
+}
+
+export const expenseClaimsControllerReopenClaim = async (id: number,
+    reopenExpenseClaimDto: ReopenExpenseClaimDto, options?: RequestInit): Promise<expenseClaimsControllerReopenClaimResponse> => {
+  
+  return customFetch<expenseClaimsControllerReopenClaimResponse>(getExpenseClaimsControllerReopenClaimUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      reopenExpenseClaimDto,)
+  }
+);}
+
+
+
+
+export const getExpenseClaimsControllerReopenClaimMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseClaimsControllerReopenClaim>>, TError,{id: number;data: ReopenExpenseClaimDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof expenseClaimsControllerReopenClaim>>, TError,{id: number;data: ReopenExpenseClaimDto}, TContext> => {
+
+const mutationKey = ['expenseClaimsControllerReopenClaim'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof expenseClaimsControllerReopenClaim>>, {id: number;data: ReopenExpenseClaimDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  expenseClaimsControllerReopenClaim(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ExpenseClaimsControllerReopenClaimMutationResult = NonNullable<Awaited<ReturnType<typeof expenseClaimsControllerReopenClaim>>>
+    export type ExpenseClaimsControllerReopenClaimMutationBody = ReopenExpenseClaimDto
+    export type ExpenseClaimsControllerReopenClaimMutationError = unknown
+
+    /**
+ * @summary Admin reopens a decided (Approved/Rejected) claim
+ */
+export const useExpenseClaimsControllerReopenClaim = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseClaimsControllerReopenClaim>>, TError,{id: number;data: ReopenExpenseClaimDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof expenseClaimsControllerReopenClaim>>,
+        TError,
+        {id: number;data: ReopenExpenseClaimDto},
+        TContext
+      > => {
+
+      const mutationOptions = getExpenseClaimsControllerReopenClaimMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Get approved claims awaiting or completed reimbursement
+ */
+export type expenseClaimsControllerGetReimbursementQueueResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type expenseClaimsControllerGetReimbursementQueueResponseSuccess = (expenseClaimsControllerGetReimbursementQueueResponse200) & {
+  headers: Headers;
+};
+;
+
+export type expenseClaimsControllerGetReimbursementQueueResponse = (expenseClaimsControllerGetReimbursementQueueResponseSuccess)
+
+export const getExpenseClaimsControllerGetReimbursementQueueUrl = (params: ExpenseClaimsControllerGetReimbursementQueueParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/expense/reimbursements/queue?${stringifiedParams}` : `/api/v1/expense/reimbursements/queue`
+}
+
+export const expenseClaimsControllerGetReimbursementQueue = async (params: ExpenseClaimsControllerGetReimbursementQueueParams, options?: RequestInit): Promise<expenseClaimsControllerGetReimbursementQueueResponse> => {
+  
+  return customFetch<expenseClaimsControllerGetReimbursementQueueResponse>(getExpenseClaimsControllerGetReimbursementQueueUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getExpenseClaimsControllerGetReimbursementQueueQueryKey = (params?: ExpenseClaimsControllerGetReimbursementQueueParams,) => {
+    return [
+    `/api/v1/expense/reimbursements/queue`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getExpenseClaimsControllerGetReimbursementQueueQueryOptions = <TData = Awaited<ReturnType<typeof expenseClaimsControllerGetReimbursementQueue>>, TError = unknown>(params: ExpenseClaimsControllerGetReimbursementQueueParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseClaimsControllerGetReimbursementQueue>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getExpenseClaimsControllerGetReimbursementQueueQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof expenseClaimsControllerGetReimbursementQueue>>> = ({ signal }) => expenseClaimsControllerGetReimbursementQueue(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof expenseClaimsControllerGetReimbursementQueue>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ExpenseClaimsControllerGetReimbursementQueueQueryResult = NonNullable<Awaited<ReturnType<typeof expenseClaimsControllerGetReimbursementQueue>>>
+export type ExpenseClaimsControllerGetReimbursementQueueQueryError = unknown
+
+
+export function useExpenseClaimsControllerGetReimbursementQueue<TData = Awaited<ReturnType<typeof expenseClaimsControllerGetReimbursementQueue>>, TError = unknown>(
+ params: ExpenseClaimsControllerGetReimbursementQueueParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseClaimsControllerGetReimbursementQueue>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof expenseClaimsControllerGetReimbursementQueue>>,
+          TError,
+          Awaited<ReturnType<typeof expenseClaimsControllerGetReimbursementQueue>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useExpenseClaimsControllerGetReimbursementQueue<TData = Awaited<ReturnType<typeof expenseClaimsControllerGetReimbursementQueue>>, TError = unknown>(
+ params: ExpenseClaimsControllerGetReimbursementQueueParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseClaimsControllerGetReimbursementQueue>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof expenseClaimsControllerGetReimbursementQueue>>,
+          TError,
+          Awaited<ReturnType<typeof expenseClaimsControllerGetReimbursementQueue>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useExpenseClaimsControllerGetReimbursementQueue<TData = Awaited<ReturnType<typeof expenseClaimsControllerGetReimbursementQueue>>, TError = unknown>(
+ params: ExpenseClaimsControllerGetReimbursementQueueParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseClaimsControllerGetReimbursementQueue>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get approved claims awaiting or completed reimbursement
+ */
+
+export function useExpenseClaimsControllerGetReimbursementQueue<TData = Awaited<ReturnType<typeof expenseClaimsControllerGetReimbursementQueue>>, TError = unknown>(
+ params: ExpenseClaimsControllerGetReimbursementQueueParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseClaimsControllerGetReimbursementQueue>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getExpenseClaimsControllerGetReimbursementQueueQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Record direct payout (Bank Transfer, UPI, Cash, Cheque)
+ */
+export type expenseClaimsControllerProcessDirectReimbursementResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type expenseClaimsControllerProcessDirectReimbursementResponseSuccess = (expenseClaimsControllerProcessDirectReimbursementResponse201) & {
+  headers: Headers;
+};
+;
+
+export type expenseClaimsControllerProcessDirectReimbursementResponse = (expenseClaimsControllerProcessDirectReimbursementResponseSuccess)
+
+export const getExpenseClaimsControllerProcessDirectReimbursementUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/expense/reimbursements/${id}/direct`
+}
+
+export const expenseClaimsControllerProcessDirectReimbursement = async (id: number,
+    directReimbursementDto: DirectReimbursementDto, options?: RequestInit): Promise<expenseClaimsControllerProcessDirectReimbursementResponse> => {
+  
+  return customFetch<expenseClaimsControllerProcessDirectReimbursementResponse>(getExpenseClaimsControllerProcessDirectReimbursementUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      directReimbursementDto,)
+  }
+);}
+
+
+
+
+export const getExpenseClaimsControllerProcessDirectReimbursementMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseClaimsControllerProcessDirectReimbursement>>, TError,{id: number;data: DirectReimbursementDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof expenseClaimsControllerProcessDirectReimbursement>>, TError,{id: number;data: DirectReimbursementDto}, TContext> => {
+
+const mutationKey = ['expenseClaimsControllerProcessDirectReimbursement'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof expenseClaimsControllerProcessDirectReimbursement>>, {id: number;data: DirectReimbursementDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  expenseClaimsControllerProcessDirectReimbursement(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ExpenseClaimsControllerProcessDirectReimbursementMutationResult = NonNullable<Awaited<ReturnType<typeof expenseClaimsControllerProcessDirectReimbursement>>>
+    export type ExpenseClaimsControllerProcessDirectReimbursementMutationBody = DirectReimbursementDto
+    export type ExpenseClaimsControllerProcessDirectReimbursementMutationError = unknown
+
+    /**
+ * @summary Record direct payout (Bank Transfer, UPI, Cash, Cheque)
+ */
+export const useExpenseClaimsControllerProcessDirectReimbursement = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseClaimsControllerProcessDirectReimbursement>>, TError,{id: number;data: DirectReimbursementDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof expenseClaimsControllerProcessDirectReimbursement>>,
+        TError,
+        {id: number;data: DirectReimbursementDto},
+        TContext
+      > => {
+
+      const mutationOptions = getExpenseClaimsControllerProcessDirectReimbursementMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Queue claim reimbursement in payroll
+ */
+export type expenseClaimsControllerAddToPayrollResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type expenseClaimsControllerAddToPayrollResponseSuccess = (expenseClaimsControllerAddToPayrollResponse201) & {
+  headers: Headers;
+};
+;
+
+export type expenseClaimsControllerAddToPayrollResponse = (expenseClaimsControllerAddToPayrollResponseSuccess)
+
+export const getExpenseClaimsControllerAddToPayrollUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/expense/reimbursements/${id}/add-to-payroll`
+}
+
+export const expenseClaimsControllerAddToPayroll = async (id: number,
+    payrollReimbursementDto: PayrollReimbursementDto, options?: RequestInit): Promise<expenseClaimsControllerAddToPayrollResponse> => {
+  
+  return customFetch<expenseClaimsControllerAddToPayrollResponse>(getExpenseClaimsControllerAddToPayrollUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      payrollReimbursementDto,)
+  }
+);}
+
+
+
+
+export const getExpenseClaimsControllerAddToPayrollMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseClaimsControllerAddToPayroll>>, TError,{id: number;data: PayrollReimbursementDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof expenseClaimsControllerAddToPayroll>>, TError,{id: number;data: PayrollReimbursementDto}, TContext> => {
+
+const mutationKey = ['expenseClaimsControllerAddToPayroll'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof expenseClaimsControllerAddToPayroll>>, {id: number;data: PayrollReimbursementDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  expenseClaimsControllerAddToPayroll(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ExpenseClaimsControllerAddToPayrollMutationResult = NonNullable<Awaited<ReturnType<typeof expenseClaimsControllerAddToPayroll>>>
+    export type ExpenseClaimsControllerAddToPayrollMutationBody = PayrollReimbursementDto
+    export type ExpenseClaimsControllerAddToPayrollMutationError = unknown
+
+    /**
+ * @summary Queue claim reimbursement in payroll
+ */
+export const useExpenseClaimsControllerAddToPayroll = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseClaimsControllerAddToPayroll>>, TError,{id: number;data: PayrollReimbursementDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof expenseClaimsControllerAddToPayroll>>,
+        TError,
+        {id: number;data: PayrollReimbursementDto},
+        TContext
+      > => {
+
+      const mutationOptions = getExpenseClaimsControllerAddToPayrollMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Remove queued claim from payroll and revert to direct queue
+ */
+export type expenseClaimsControllerRemoveFromPayrollResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type expenseClaimsControllerRemoveFromPayrollResponseSuccess = (expenseClaimsControllerRemoveFromPayrollResponse201) & {
+  headers: Headers;
+};
+;
+
+export type expenseClaimsControllerRemoveFromPayrollResponse = (expenseClaimsControllerRemoveFromPayrollResponseSuccess)
+
+export const getExpenseClaimsControllerRemoveFromPayrollUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/expense/reimbursements/${id}/remove-from-payroll`
+}
+
+export const expenseClaimsControllerRemoveFromPayroll = async (id: number, options?: RequestInit): Promise<expenseClaimsControllerRemoveFromPayrollResponse> => {
+  
+  return customFetch<expenseClaimsControllerRemoveFromPayrollResponse>(getExpenseClaimsControllerRemoveFromPayrollUrl(id),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getExpenseClaimsControllerRemoveFromPayrollMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseClaimsControllerRemoveFromPayroll>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof expenseClaimsControllerRemoveFromPayroll>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['expenseClaimsControllerRemoveFromPayroll'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof expenseClaimsControllerRemoveFromPayroll>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  expenseClaimsControllerRemoveFromPayroll(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ExpenseClaimsControllerRemoveFromPayrollMutationResult = NonNullable<Awaited<ReturnType<typeof expenseClaimsControllerRemoveFromPayroll>>>
+    
+    export type ExpenseClaimsControllerRemoveFromPayrollMutationError = unknown
+
+    /**
+ * @summary Remove queued claim from payroll and revert to direct queue
+ */
+export const useExpenseClaimsControllerRemoveFromPayroll = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof expenseClaimsControllerRemoveFromPayroll>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof expenseClaimsControllerRemoveFromPayroll>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+
+      const mutationOptions = getExpenseClaimsControllerRemoveFromPayrollMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Get Expense Reports with metrics, 6-month trend, breakdown and claims
+ */
+export type expenseClaimsControllerGetReportsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type expenseClaimsControllerGetReportsResponseSuccess = (expenseClaimsControllerGetReportsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type expenseClaimsControllerGetReportsResponse = (expenseClaimsControllerGetReportsResponseSuccess)
+
+export const getExpenseClaimsControllerGetReportsUrl = (params?: ExpenseClaimsControllerGetReportsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/expense/reports?${stringifiedParams}` : `/api/v1/expense/reports`
+}
+
+export const expenseClaimsControllerGetReports = async (params?: ExpenseClaimsControllerGetReportsParams, options?: RequestInit): Promise<expenseClaimsControllerGetReportsResponse> => {
+  
+  return customFetch<expenseClaimsControllerGetReportsResponse>(getExpenseClaimsControllerGetReportsUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getExpenseClaimsControllerGetReportsQueryKey = (params?: ExpenseClaimsControllerGetReportsParams,) => {
+    return [
+    `/api/v1/expense/reports`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getExpenseClaimsControllerGetReportsQueryOptions = <TData = Awaited<ReturnType<typeof expenseClaimsControllerGetReports>>, TError = unknown>(params?: ExpenseClaimsControllerGetReportsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseClaimsControllerGetReports>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getExpenseClaimsControllerGetReportsQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof expenseClaimsControllerGetReports>>> = ({ signal }) => expenseClaimsControllerGetReports(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof expenseClaimsControllerGetReports>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ExpenseClaimsControllerGetReportsQueryResult = NonNullable<Awaited<ReturnType<typeof expenseClaimsControllerGetReports>>>
+export type ExpenseClaimsControllerGetReportsQueryError = unknown
+
+
+export function useExpenseClaimsControllerGetReports<TData = Awaited<ReturnType<typeof expenseClaimsControllerGetReports>>, TError = unknown>(
+ params: undefined |  ExpenseClaimsControllerGetReportsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseClaimsControllerGetReports>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof expenseClaimsControllerGetReports>>,
+          TError,
+          Awaited<ReturnType<typeof expenseClaimsControllerGetReports>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useExpenseClaimsControllerGetReports<TData = Awaited<ReturnType<typeof expenseClaimsControllerGetReports>>, TError = unknown>(
+ params?: ExpenseClaimsControllerGetReportsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseClaimsControllerGetReports>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof expenseClaimsControllerGetReports>>,
+          TError,
+          Awaited<ReturnType<typeof expenseClaimsControllerGetReports>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useExpenseClaimsControllerGetReports<TData = Awaited<ReturnType<typeof expenseClaimsControllerGetReports>>, TError = unknown>(
+ params?: ExpenseClaimsControllerGetReportsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseClaimsControllerGetReports>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get Expense Reports with metrics, 6-month trend, breakdown and claims
+ */
+
+export function useExpenseClaimsControllerGetReports<TData = Awaited<ReturnType<typeof expenseClaimsControllerGetReports>>, TError = unknown>(
+ params?: ExpenseClaimsControllerGetReportsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof expenseClaimsControllerGetReports>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getExpenseClaimsControllerGetReportsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Get all active attachments for an entity
+ */
+export type attachmentsControllerGetEntityAttachmentsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type attachmentsControllerGetEntityAttachmentsResponseSuccess = (attachmentsControllerGetEntityAttachmentsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type attachmentsControllerGetEntityAttachmentsResponse = (attachmentsControllerGetEntityAttachmentsResponseSuccess)
+
+export const getAttachmentsControllerGetEntityAttachmentsUrl = (entityType: string,
+    entityId: number,) => {
+
+
+  
+
+  return `/api/v1/attachments/${entityType}/${entityId}`
+}
+
+export const attachmentsControllerGetEntityAttachments = async (entityType: string,
+    entityId: number, options?: RequestInit): Promise<attachmentsControllerGetEntityAttachmentsResponse> => {
+  
+  return customFetch<attachmentsControllerGetEntityAttachmentsResponse>(getAttachmentsControllerGetEntityAttachmentsUrl(entityType,entityId),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getAttachmentsControllerGetEntityAttachmentsQueryKey = (entityType?: string,
+    entityId?: number,) => {
+    return [
+    `/api/v1/attachments/${entityType}/${entityId}`
+    ] as const;
+    }
+
+    
+export const getAttachmentsControllerGetEntityAttachmentsQueryOptions = <TData = Awaited<ReturnType<typeof attachmentsControllerGetEntityAttachments>>, TError = unknown>(entityType: string,
+    entityId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof attachmentsControllerGetEntityAttachments>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAttachmentsControllerGetEntityAttachmentsQueryKey(entityType,entityId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof attachmentsControllerGetEntityAttachments>>> = ({ signal }) => attachmentsControllerGetEntityAttachments(entityType,entityId, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(entityType && entityId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof attachmentsControllerGetEntityAttachments>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type AttachmentsControllerGetEntityAttachmentsQueryResult = NonNullable<Awaited<ReturnType<typeof attachmentsControllerGetEntityAttachments>>>
+export type AttachmentsControllerGetEntityAttachmentsQueryError = unknown
+
+
+export function useAttachmentsControllerGetEntityAttachments<TData = Awaited<ReturnType<typeof attachmentsControllerGetEntityAttachments>>, TError = unknown>(
+ entityType: string,
+    entityId: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof attachmentsControllerGetEntityAttachments>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof attachmentsControllerGetEntityAttachments>>,
+          TError,
+          Awaited<ReturnType<typeof attachmentsControllerGetEntityAttachments>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAttachmentsControllerGetEntityAttachments<TData = Awaited<ReturnType<typeof attachmentsControllerGetEntityAttachments>>, TError = unknown>(
+ entityType: string,
+    entityId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof attachmentsControllerGetEntityAttachments>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof attachmentsControllerGetEntityAttachments>>,
+          TError,
+          Awaited<ReturnType<typeof attachmentsControllerGetEntityAttachments>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAttachmentsControllerGetEntityAttachments<TData = Awaited<ReturnType<typeof attachmentsControllerGetEntityAttachments>>, TError = unknown>(
+ entityType: string,
+    entityId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof attachmentsControllerGetEntityAttachments>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get all active attachments for an entity
+ */
+
+export function useAttachmentsControllerGetEntityAttachments<TData = Awaited<ReturnType<typeof attachmentsControllerGetEntityAttachments>>, TError = unknown>(
+ entityType: string,
+    entityId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof attachmentsControllerGetEntityAttachments>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getAttachmentsControllerGetEntityAttachmentsQueryOptions(entityType,entityId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Get attachment metadata by ID
+ */
+export type attachmentsControllerGetAttachmentByIdResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type attachmentsControllerGetAttachmentByIdResponseSuccess = (attachmentsControllerGetAttachmentByIdResponse200) & {
+  headers: Headers;
+};
+;
+
+export type attachmentsControllerGetAttachmentByIdResponse = (attachmentsControllerGetAttachmentByIdResponseSuccess)
+
+export const getAttachmentsControllerGetAttachmentByIdUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/attachments/${id}`
+}
+
+export const attachmentsControllerGetAttachmentById = async (id: number, options?: RequestInit): Promise<attachmentsControllerGetAttachmentByIdResponse> => {
+  
+  return customFetch<attachmentsControllerGetAttachmentByIdResponse>(getAttachmentsControllerGetAttachmentByIdUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getAttachmentsControllerGetAttachmentByIdQueryKey = (id?: number,) => {
+    return [
+    `/api/v1/attachments/${id}`
+    ] as const;
+    }
+
+    
+export const getAttachmentsControllerGetAttachmentByIdQueryOptions = <TData = Awaited<ReturnType<typeof attachmentsControllerGetAttachmentById>>, TError = unknown>(id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof attachmentsControllerGetAttachmentById>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAttachmentsControllerGetAttachmentByIdQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof attachmentsControllerGetAttachmentById>>> = ({ signal }) => attachmentsControllerGetAttachmentById(id, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof attachmentsControllerGetAttachmentById>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type AttachmentsControllerGetAttachmentByIdQueryResult = NonNullable<Awaited<ReturnType<typeof attachmentsControllerGetAttachmentById>>>
+export type AttachmentsControllerGetAttachmentByIdQueryError = unknown
+
+
+export function useAttachmentsControllerGetAttachmentById<TData = Awaited<ReturnType<typeof attachmentsControllerGetAttachmentById>>, TError = unknown>(
+ id: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof attachmentsControllerGetAttachmentById>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof attachmentsControllerGetAttachmentById>>,
+          TError,
+          Awaited<ReturnType<typeof attachmentsControllerGetAttachmentById>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAttachmentsControllerGetAttachmentById<TData = Awaited<ReturnType<typeof attachmentsControllerGetAttachmentById>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof attachmentsControllerGetAttachmentById>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof attachmentsControllerGetAttachmentById>>,
+          TError,
+          Awaited<ReturnType<typeof attachmentsControllerGetAttachmentById>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAttachmentsControllerGetAttachmentById<TData = Awaited<ReturnType<typeof attachmentsControllerGetAttachmentById>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof attachmentsControllerGetAttachmentById>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get attachment metadata by ID
+ */
+
+export function useAttachmentsControllerGetAttachmentById<TData = Awaited<ReturnType<typeof attachmentsControllerGetAttachmentById>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof attachmentsControllerGetAttachmentById>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getAttachmentsControllerGetAttachmentByIdQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Soft delete attachment
+ */
+export type attachmentsControllerDeleteAttachmentResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type attachmentsControllerDeleteAttachmentResponseSuccess = (attachmentsControllerDeleteAttachmentResponse200) & {
+  headers: Headers;
+};
+;
+
+export type attachmentsControllerDeleteAttachmentResponse = (attachmentsControllerDeleteAttachmentResponseSuccess)
+
+export const getAttachmentsControllerDeleteAttachmentUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/attachments/${id}`
+}
+
+export const attachmentsControllerDeleteAttachment = async (id: number, options?: RequestInit): Promise<attachmentsControllerDeleteAttachmentResponse> => {
+  
+  return customFetch<attachmentsControllerDeleteAttachmentResponse>(getAttachmentsControllerDeleteAttachmentUrl(id),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+);}
+
+
+
+
+export const getAttachmentsControllerDeleteAttachmentMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof attachmentsControllerDeleteAttachment>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof attachmentsControllerDeleteAttachment>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['attachmentsControllerDeleteAttachment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof attachmentsControllerDeleteAttachment>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  attachmentsControllerDeleteAttachment(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AttachmentsControllerDeleteAttachmentMutationResult = NonNullable<Awaited<ReturnType<typeof attachmentsControllerDeleteAttachment>>>
+    
+    export type AttachmentsControllerDeleteAttachmentMutationError = unknown
+
+    /**
+ * @summary Soft delete attachment
+ */
+export const useAttachmentsControllerDeleteAttachment = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof attachmentsControllerDeleteAttachment>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof attachmentsControllerDeleteAttachment>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+
+      const mutationOptions = getAttachmentsControllerDeleteAttachmentMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Download or stream attachment file
+ */
+export type attachmentsControllerDownloadAttachmentResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type attachmentsControllerDownloadAttachmentResponseSuccess = (attachmentsControllerDownloadAttachmentResponse200) & {
+  headers: Headers;
+};
+;
+
+export type attachmentsControllerDownloadAttachmentResponse = (attachmentsControllerDownloadAttachmentResponseSuccess)
+
+export const getAttachmentsControllerDownloadAttachmentUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/attachments/${id}/download`
+}
+
+export const attachmentsControllerDownloadAttachment = async (id: number, options?: RequestInit): Promise<attachmentsControllerDownloadAttachmentResponse> => {
+  
+  return customFetch<attachmentsControllerDownloadAttachmentResponse>(getAttachmentsControllerDownloadAttachmentUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getAttachmentsControllerDownloadAttachmentQueryKey = (id?: number,) => {
+    return [
+    `/api/v1/attachments/${id}/download`
+    ] as const;
+    }
+
+    
+export const getAttachmentsControllerDownloadAttachmentQueryOptions = <TData = Awaited<ReturnType<typeof attachmentsControllerDownloadAttachment>>, TError = unknown>(id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof attachmentsControllerDownloadAttachment>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAttachmentsControllerDownloadAttachmentQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof attachmentsControllerDownloadAttachment>>> = ({ signal }) => attachmentsControllerDownloadAttachment(id, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof attachmentsControllerDownloadAttachment>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type AttachmentsControllerDownloadAttachmentQueryResult = NonNullable<Awaited<ReturnType<typeof attachmentsControllerDownloadAttachment>>>
+export type AttachmentsControllerDownloadAttachmentQueryError = unknown
+
+
+export function useAttachmentsControllerDownloadAttachment<TData = Awaited<ReturnType<typeof attachmentsControllerDownloadAttachment>>, TError = unknown>(
+ id: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof attachmentsControllerDownloadAttachment>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof attachmentsControllerDownloadAttachment>>,
+          TError,
+          Awaited<ReturnType<typeof attachmentsControllerDownloadAttachment>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAttachmentsControllerDownloadAttachment<TData = Awaited<ReturnType<typeof attachmentsControllerDownloadAttachment>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof attachmentsControllerDownloadAttachment>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof attachmentsControllerDownloadAttachment>>,
+          TError,
+          Awaited<ReturnType<typeof attachmentsControllerDownloadAttachment>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAttachmentsControllerDownloadAttachment<TData = Awaited<ReturnType<typeof attachmentsControllerDownloadAttachment>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof attachmentsControllerDownloadAttachment>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Download or stream attachment file
+ */
+
+export function useAttachmentsControllerDownloadAttachment<TData = Awaited<ReturnType<typeof attachmentsControllerDownloadAttachment>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof attachmentsControllerDownloadAttachment>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getAttachmentsControllerDownloadAttachmentQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Create attachment from URL/metadata
+ */
+export type attachmentsControllerCreateAttachmentResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type attachmentsControllerCreateAttachmentResponseSuccess = (attachmentsControllerCreateAttachmentResponse201) & {
+  headers: Headers;
+};
+;
+
+export type attachmentsControllerCreateAttachmentResponse = (attachmentsControllerCreateAttachmentResponseSuccess)
+
+export const getAttachmentsControllerCreateAttachmentUrl = () => {
+
+
+  
+
+  return `/api/v1/attachments`
+}
+
+export const attachmentsControllerCreateAttachment = async (createAttachmentDto: CreateAttachmentDto, options?: RequestInit): Promise<attachmentsControllerCreateAttachmentResponse> => {
+  
+  return customFetch<attachmentsControllerCreateAttachmentResponse>(getAttachmentsControllerCreateAttachmentUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createAttachmentDto,)
+  }
+);}
+
+
+
+
+export const getAttachmentsControllerCreateAttachmentMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof attachmentsControllerCreateAttachment>>, TError,{data: CreateAttachmentDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof attachmentsControllerCreateAttachment>>, TError,{data: CreateAttachmentDto}, TContext> => {
+
+const mutationKey = ['attachmentsControllerCreateAttachment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof attachmentsControllerCreateAttachment>>, {data: CreateAttachmentDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  attachmentsControllerCreateAttachment(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AttachmentsControllerCreateAttachmentMutationResult = NonNullable<Awaited<ReturnType<typeof attachmentsControllerCreateAttachment>>>
+    export type AttachmentsControllerCreateAttachmentMutationBody = CreateAttachmentDto
+    export type AttachmentsControllerCreateAttachmentMutationError = unknown
+
+    /**
+ * @summary Create attachment from URL/metadata
+ */
+export const useAttachmentsControllerCreateAttachment = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof attachmentsControllerCreateAttachment>>, TError,{data: CreateAttachmentDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof attachmentsControllerCreateAttachment>>,
+        TError,
+        {data: CreateAttachmentDto},
+        TContext
+      > => {
+
+      const mutationOptions = getAttachmentsControllerCreateAttachmentMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Upload file and attach to entity (multipart/form-data)
+ */
+export type attachmentsControllerUploadFileResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type attachmentsControllerUploadFileResponseSuccess = (attachmentsControllerUploadFileResponse201) & {
+  headers: Headers;
+};
+;
+
+export type attachmentsControllerUploadFileResponse = (attachmentsControllerUploadFileResponseSuccess)
+
+export const getAttachmentsControllerUploadFileUrl = () => {
+
+
+  
+
+  return `/api/v1/attachments/upload`
+}
+
+export const attachmentsControllerUploadFile = async ( options?: RequestInit): Promise<attachmentsControllerUploadFileResponse> => {
+  
+  return customFetch<attachmentsControllerUploadFileResponse>(getAttachmentsControllerUploadFileUrl(),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getAttachmentsControllerUploadFileMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof attachmentsControllerUploadFile>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof attachmentsControllerUploadFile>>, TError,void, TContext> => {
+
+const mutationKey = ['attachmentsControllerUploadFile'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof attachmentsControllerUploadFile>>, void> = () => {
+          
+
+          return  attachmentsControllerUploadFile(requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AttachmentsControllerUploadFileMutationResult = NonNullable<Awaited<ReturnType<typeof attachmentsControllerUploadFile>>>
+    
+    export type AttachmentsControllerUploadFileMutationError = unknown
+
+    /**
+ * @summary Upload file and attach to entity (multipart/form-data)
+ */
+export const useAttachmentsControllerUploadFile = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof attachmentsControllerUploadFile>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof attachmentsControllerUploadFile>>,
+        TError,
+        void,
+        TContext
+      > => {
+
+      const mutationOptions = getAttachmentsControllerUploadFileMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Reorder attachments for an entity
+ */
+export type attachmentsControllerReorderAttachmentsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type attachmentsControllerReorderAttachmentsResponseSuccess = (attachmentsControllerReorderAttachmentsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type attachmentsControllerReorderAttachmentsResponse = (attachmentsControllerReorderAttachmentsResponseSuccess)
+
+export const getAttachmentsControllerReorderAttachmentsUrl = (entityType: string,
+    entityId: number,) => {
+
+
+  
+
+  return `/api/v1/attachments/${entityType}/${entityId}/reorder`
+}
+
+export const attachmentsControllerReorderAttachments = async (entityType: string,
+    entityId: number,
+    reorderAttachmentsDto: ReorderAttachmentsDto, options?: RequestInit): Promise<attachmentsControllerReorderAttachmentsResponse> => {
+  
+  return customFetch<attachmentsControllerReorderAttachmentsResponse>(getAttachmentsControllerReorderAttachmentsUrl(entityType,entityId),
+  {      
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      reorderAttachmentsDto,)
+  }
+);}
+
+
+
+
+export const getAttachmentsControllerReorderAttachmentsMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof attachmentsControllerReorderAttachments>>, TError,{entityType: string;entityId: number;data: ReorderAttachmentsDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof attachmentsControllerReorderAttachments>>, TError,{entityType: string;entityId: number;data: ReorderAttachmentsDto}, TContext> => {
+
+const mutationKey = ['attachmentsControllerReorderAttachments'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof attachmentsControllerReorderAttachments>>, {entityType: string;entityId: number;data: ReorderAttachmentsDto}> = (props) => {
+          const {entityType,entityId,data} = props ?? {};
+
+          return  attachmentsControllerReorderAttachments(entityType,entityId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AttachmentsControllerReorderAttachmentsMutationResult = NonNullable<Awaited<ReturnType<typeof attachmentsControllerReorderAttachments>>>
+    export type AttachmentsControllerReorderAttachmentsMutationBody = ReorderAttachmentsDto
+    export type AttachmentsControllerReorderAttachmentsMutationError = unknown
+
+    /**
+ * @summary Reorder attachments for an entity
+ */
+export const useAttachmentsControllerReorderAttachments = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof attachmentsControllerReorderAttachments>>, TError,{entityType: string;entityId: number;data: ReorderAttachmentsDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof attachmentsControllerReorderAttachments>>,
+        TError,
+        {entityType: string;entityId: number;data: ReorderAttachmentsDto},
+        TContext
+      > => {
+
+      const mutationOptions = getAttachmentsControllerReorderAttachmentsMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Get complaint types (all or active only)
+ */
+export type complaintSettingsControllerGetComplaintTypesResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type complaintSettingsControllerGetComplaintTypesResponseSuccess = (complaintSettingsControllerGetComplaintTypesResponse200) & {
+  headers: Headers;
+};
+;
+
+export type complaintSettingsControllerGetComplaintTypesResponse = (complaintSettingsControllerGetComplaintTypesResponseSuccess)
+
+export const getComplaintSettingsControllerGetComplaintTypesUrl = (params: ComplaintSettingsControllerGetComplaintTypesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/complaints/settings/types?${stringifiedParams}` : `/api/v1/complaints/settings/types`
+}
+
+export const complaintSettingsControllerGetComplaintTypes = async (params: ComplaintSettingsControllerGetComplaintTypesParams, options?: RequestInit): Promise<complaintSettingsControllerGetComplaintTypesResponse> => {
+  
+  return customFetch<complaintSettingsControllerGetComplaintTypesResponse>(getComplaintSettingsControllerGetComplaintTypesUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getComplaintSettingsControllerGetComplaintTypesQueryKey = (params?: ComplaintSettingsControllerGetComplaintTypesParams,) => {
+    return [
+    `/api/v1/complaints/settings/types`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getComplaintSettingsControllerGetComplaintTypesQueryOptions = <TData = Awaited<ReturnType<typeof complaintSettingsControllerGetComplaintTypes>>, TError = unknown>(params: ComplaintSettingsControllerGetComplaintTypesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof complaintSettingsControllerGetComplaintTypes>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getComplaintSettingsControllerGetComplaintTypesQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof complaintSettingsControllerGetComplaintTypes>>> = ({ signal }) => complaintSettingsControllerGetComplaintTypes(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof complaintSettingsControllerGetComplaintTypes>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ComplaintSettingsControllerGetComplaintTypesQueryResult = NonNullable<Awaited<ReturnType<typeof complaintSettingsControllerGetComplaintTypes>>>
+export type ComplaintSettingsControllerGetComplaintTypesQueryError = unknown
+
+
+export function useComplaintSettingsControllerGetComplaintTypes<TData = Awaited<ReturnType<typeof complaintSettingsControllerGetComplaintTypes>>, TError = unknown>(
+ params: ComplaintSettingsControllerGetComplaintTypesParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof complaintSettingsControllerGetComplaintTypes>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof complaintSettingsControllerGetComplaintTypes>>,
+          TError,
+          Awaited<ReturnType<typeof complaintSettingsControllerGetComplaintTypes>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useComplaintSettingsControllerGetComplaintTypes<TData = Awaited<ReturnType<typeof complaintSettingsControllerGetComplaintTypes>>, TError = unknown>(
+ params: ComplaintSettingsControllerGetComplaintTypesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof complaintSettingsControllerGetComplaintTypes>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof complaintSettingsControllerGetComplaintTypes>>,
+          TError,
+          Awaited<ReturnType<typeof complaintSettingsControllerGetComplaintTypes>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useComplaintSettingsControllerGetComplaintTypes<TData = Awaited<ReturnType<typeof complaintSettingsControllerGetComplaintTypes>>, TError = unknown>(
+ params: ComplaintSettingsControllerGetComplaintTypesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof complaintSettingsControllerGetComplaintTypes>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get complaint types (all or active only)
+ */
+
+export function useComplaintSettingsControllerGetComplaintTypes<TData = Awaited<ReturnType<typeof complaintSettingsControllerGetComplaintTypes>>, TError = unknown>(
+ params: ComplaintSettingsControllerGetComplaintTypesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof complaintSettingsControllerGetComplaintTypes>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getComplaintSettingsControllerGetComplaintTypesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Create new complaint type (Admin)
+ */
+export type complaintSettingsControllerCreateComplaintTypeResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type complaintSettingsControllerCreateComplaintTypeResponseSuccess = (complaintSettingsControllerCreateComplaintTypeResponse201) & {
+  headers: Headers;
+};
+;
+
+export type complaintSettingsControllerCreateComplaintTypeResponse = (complaintSettingsControllerCreateComplaintTypeResponseSuccess)
+
+export const getComplaintSettingsControllerCreateComplaintTypeUrl = () => {
+
+
+  
+
+  return `/api/v1/complaints/settings/types`
+}
+
+export const complaintSettingsControllerCreateComplaintType = async (createComplaintTypeDto: CreateComplaintTypeDto, options?: RequestInit): Promise<complaintSettingsControllerCreateComplaintTypeResponse> => {
+  
+  return customFetch<complaintSettingsControllerCreateComplaintTypeResponse>(getComplaintSettingsControllerCreateComplaintTypeUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createComplaintTypeDto,)
+  }
+);}
+
+
+
+
+export const getComplaintSettingsControllerCreateComplaintTypeMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintSettingsControllerCreateComplaintType>>, TError,{data: CreateComplaintTypeDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof complaintSettingsControllerCreateComplaintType>>, TError,{data: CreateComplaintTypeDto}, TContext> => {
+
+const mutationKey = ['complaintSettingsControllerCreateComplaintType'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof complaintSettingsControllerCreateComplaintType>>, {data: CreateComplaintTypeDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  complaintSettingsControllerCreateComplaintType(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ComplaintSettingsControllerCreateComplaintTypeMutationResult = NonNullable<Awaited<ReturnType<typeof complaintSettingsControllerCreateComplaintType>>>
+    export type ComplaintSettingsControllerCreateComplaintTypeMutationBody = CreateComplaintTypeDto
+    export type ComplaintSettingsControllerCreateComplaintTypeMutationError = unknown
+
+    /**
+ * @summary Create new complaint type (Admin)
+ */
+export const useComplaintSettingsControllerCreateComplaintType = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintSettingsControllerCreateComplaintType>>, TError,{data: CreateComplaintTypeDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof complaintSettingsControllerCreateComplaintType>>,
+        TError,
+        {data: CreateComplaintTypeDto},
+        TContext
+      > => {
+
+      const mutationOptions = getComplaintSettingsControllerCreateComplaintTypeMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Get single complaint type details
+ */
+export type complaintSettingsControllerGetComplaintTypeByIdResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type complaintSettingsControllerGetComplaintTypeByIdResponseSuccess = (complaintSettingsControllerGetComplaintTypeByIdResponse200) & {
+  headers: Headers;
+};
+;
+
+export type complaintSettingsControllerGetComplaintTypeByIdResponse = (complaintSettingsControllerGetComplaintTypeByIdResponseSuccess)
+
+export const getComplaintSettingsControllerGetComplaintTypeByIdUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/complaints/settings/types/${id}`
+}
+
+export const complaintSettingsControllerGetComplaintTypeById = async (id: number, options?: RequestInit): Promise<complaintSettingsControllerGetComplaintTypeByIdResponse> => {
+  
+  return customFetch<complaintSettingsControllerGetComplaintTypeByIdResponse>(getComplaintSettingsControllerGetComplaintTypeByIdUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getComplaintSettingsControllerGetComplaintTypeByIdQueryKey = (id?: number,) => {
+    return [
+    `/api/v1/complaints/settings/types/${id}`
+    ] as const;
+    }
+
+    
+export const getComplaintSettingsControllerGetComplaintTypeByIdQueryOptions = <TData = Awaited<ReturnType<typeof complaintSettingsControllerGetComplaintTypeById>>, TError = unknown>(id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof complaintSettingsControllerGetComplaintTypeById>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getComplaintSettingsControllerGetComplaintTypeByIdQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof complaintSettingsControllerGetComplaintTypeById>>> = ({ signal }) => complaintSettingsControllerGetComplaintTypeById(id, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof complaintSettingsControllerGetComplaintTypeById>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ComplaintSettingsControllerGetComplaintTypeByIdQueryResult = NonNullable<Awaited<ReturnType<typeof complaintSettingsControllerGetComplaintTypeById>>>
+export type ComplaintSettingsControllerGetComplaintTypeByIdQueryError = unknown
+
+
+export function useComplaintSettingsControllerGetComplaintTypeById<TData = Awaited<ReturnType<typeof complaintSettingsControllerGetComplaintTypeById>>, TError = unknown>(
+ id: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof complaintSettingsControllerGetComplaintTypeById>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof complaintSettingsControllerGetComplaintTypeById>>,
+          TError,
+          Awaited<ReturnType<typeof complaintSettingsControllerGetComplaintTypeById>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useComplaintSettingsControllerGetComplaintTypeById<TData = Awaited<ReturnType<typeof complaintSettingsControllerGetComplaintTypeById>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof complaintSettingsControllerGetComplaintTypeById>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof complaintSettingsControllerGetComplaintTypeById>>,
+          TError,
+          Awaited<ReturnType<typeof complaintSettingsControllerGetComplaintTypeById>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useComplaintSettingsControllerGetComplaintTypeById<TData = Awaited<ReturnType<typeof complaintSettingsControllerGetComplaintTypeById>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof complaintSettingsControllerGetComplaintTypeById>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get single complaint type details
+ */
+
+export function useComplaintSettingsControllerGetComplaintTypeById<TData = Awaited<ReturnType<typeof complaintSettingsControllerGetComplaintTypeById>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof complaintSettingsControllerGetComplaintTypeById>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getComplaintSettingsControllerGetComplaintTypeByIdQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Update existing complaint type (Admin)
+ */
+export type complaintSettingsControllerUpdateComplaintTypeResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type complaintSettingsControllerUpdateComplaintTypeResponseSuccess = (complaintSettingsControllerUpdateComplaintTypeResponse200) & {
+  headers: Headers;
+};
+;
+
+export type complaintSettingsControllerUpdateComplaintTypeResponse = (complaintSettingsControllerUpdateComplaintTypeResponseSuccess)
+
+export const getComplaintSettingsControllerUpdateComplaintTypeUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/complaints/settings/types/${id}`
+}
+
+export const complaintSettingsControllerUpdateComplaintType = async (id: number,
+    updateComplaintTypeDto: UpdateComplaintTypeDto, options?: RequestInit): Promise<complaintSettingsControllerUpdateComplaintTypeResponse> => {
+  
+  return customFetch<complaintSettingsControllerUpdateComplaintTypeResponse>(getComplaintSettingsControllerUpdateComplaintTypeUrl(id),
+  {      
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateComplaintTypeDto,)
+  }
+);}
+
+
+
+
+export const getComplaintSettingsControllerUpdateComplaintTypeMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintSettingsControllerUpdateComplaintType>>, TError,{id: number;data: UpdateComplaintTypeDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof complaintSettingsControllerUpdateComplaintType>>, TError,{id: number;data: UpdateComplaintTypeDto}, TContext> => {
+
+const mutationKey = ['complaintSettingsControllerUpdateComplaintType'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof complaintSettingsControllerUpdateComplaintType>>, {id: number;data: UpdateComplaintTypeDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  complaintSettingsControllerUpdateComplaintType(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ComplaintSettingsControllerUpdateComplaintTypeMutationResult = NonNullable<Awaited<ReturnType<typeof complaintSettingsControllerUpdateComplaintType>>>
+    export type ComplaintSettingsControllerUpdateComplaintTypeMutationBody = UpdateComplaintTypeDto
+    export type ComplaintSettingsControllerUpdateComplaintTypeMutationError = unknown
+
+    /**
+ * @summary Update existing complaint type (Admin)
+ */
+export const useComplaintSettingsControllerUpdateComplaintType = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintSettingsControllerUpdateComplaintType>>, TError,{id: number;data: UpdateComplaintTypeDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof complaintSettingsControllerUpdateComplaintType>>,
+        TError,
+        {id: number;data: UpdateComplaintTypeDto},
+        TContext
+      > => {
+
+      const mutationOptions = getComplaintSettingsControllerUpdateComplaintTypeMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Soft delete an unused complaint type (Admin)
+ */
+export type complaintSettingsControllerDeleteComplaintTypeResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type complaintSettingsControllerDeleteComplaintTypeResponseSuccess = (complaintSettingsControllerDeleteComplaintTypeResponse200) & {
+  headers: Headers;
+};
+;
+
+export type complaintSettingsControllerDeleteComplaintTypeResponse = (complaintSettingsControllerDeleteComplaintTypeResponseSuccess)
+
+export const getComplaintSettingsControllerDeleteComplaintTypeUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/complaints/settings/types/${id}`
+}
+
+export const complaintSettingsControllerDeleteComplaintType = async (id: number, options?: RequestInit): Promise<complaintSettingsControllerDeleteComplaintTypeResponse> => {
+  
+  return customFetch<complaintSettingsControllerDeleteComplaintTypeResponse>(getComplaintSettingsControllerDeleteComplaintTypeUrl(id),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+);}
+
+
+
+
+export const getComplaintSettingsControllerDeleteComplaintTypeMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintSettingsControllerDeleteComplaintType>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof complaintSettingsControllerDeleteComplaintType>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['complaintSettingsControllerDeleteComplaintType'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof complaintSettingsControllerDeleteComplaintType>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  complaintSettingsControllerDeleteComplaintType(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ComplaintSettingsControllerDeleteComplaintTypeMutationResult = NonNullable<Awaited<ReturnType<typeof complaintSettingsControllerDeleteComplaintType>>>
+    
+    export type ComplaintSettingsControllerDeleteComplaintTypeMutationError = unknown
+
+    /**
+ * @summary Soft delete an unused complaint type (Admin)
+ */
+export const useComplaintSettingsControllerDeleteComplaintType = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintSettingsControllerDeleteComplaintType>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof complaintSettingsControllerDeleteComplaintType>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+
+      const mutationOptions = getComplaintSettingsControllerDeleteComplaintTypeMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Enable or disable a complaint type (Admin)
+ */
+export type complaintSettingsControllerToggleComplaintTypeStatusResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type complaintSettingsControllerToggleComplaintTypeStatusResponseSuccess = (complaintSettingsControllerToggleComplaintTypeStatusResponse200) & {
+  headers: Headers;
+};
+;
+
+export type complaintSettingsControllerToggleComplaintTypeStatusResponse = (complaintSettingsControllerToggleComplaintTypeStatusResponseSuccess)
+
+export const getComplaintSettingsControllerToggleComplaintTypeStatusUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/complaints/settings/types/${id}/toggle-status`
+}
+
+export const complaintSettingsControllerToggleComplaintTypeStatus = async (id: number, options?: RequestInit): Promise<complaintSettingsControllerToggleComplaintTypeStatusResponse> => {
+  
+  return customFetch<complaintSettingsControllerToggleComplaintTypeStatusResponse>(getComplaintSettingsControllerToggleComplaintTypeStatusUrl(id),
+  {      
+    ...options,
+    method: 'PATCH'
+    
+    
+  }
+);}
+
+
+
+
+export const getComplaintSettingsControllerToggleComplaintTypeStatusMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintSettingsControllerToggleComplaintTypeStatus>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof complaintSettingsControllerToggleComplaintTypeStatus>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['complaintSettingsControllerToggleComplaintTypeStatus'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof complaintSettingsControllerToggleComplaintTypeStatus>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  complaintSettingsControllerToggleComplaintTypeStatus(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ComplaintSettingsControllerToggleComplaintTypeStatusMutationResult = NonNullable<Awaited<ReturnType<typeof complaintSettingsControllerToggleComplaintTypeStatus>>>
+    
+    export type ComplaintSettingsControllerToggleComplaintTypeStatusMutationError = unknown
+
+    /**
+ * @summary Enable or disable a complaint type (Admin)
+ */
+export const useComplaintSettingsControllerToggleComplaintTypeStatus = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintSettingsControllerToggleComplaintTypeStatus>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof complaintSettingsControllerToggleComplaintTypeStatus>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+
+      const mutationOptions = getComplaintSettingsControllerToggleComplaintTypeStatusMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Get complaint general SLA settings and rules
+ */
+export type complaintSettingsControllerGetSettingsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type complaintSettingsControllerGetSettingsResponseSuccess = (complaintSettingsControllerGetSettingsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type complaintSettingsControllerGetSettingsResponse = (complaintSettingsControllerGetSettingsResponseSuccess)
+
+export const getComplaintSettingsControllerGetSettingsUrl = () => {
+
+
+  
+
+  return `/api/v1/complaints/settings/general`
+}
+
+export const complaintSettingsControllerGetSettings = async ( options?: RequestInit): Promise<complaintSettingsControllerGetSettingsResponse> => {
+  
+  return customFetch<complaintSettingsControllerGetSettingsResponse>(getComplaintSettingsControllerGetSettingsUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getComplaintSettingsControllerGetSettingsQueryKey = () => {
+    return [
+    `/api/v1/complaints/settings/general`
+    ] as const;
+    }
+
+    
+export const getComplaintSettingsControllerGetSettingsQueryOptions = <TData = Awaited<ReturnType<typeof complaintSettingsControllerGetSettings>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof complaintSettingsControllerGetSettings>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getComplaintSettingsControllerGetSettingsQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof complaintSettingsControllerGetSettings>>> = ({ signal }) => complaintSettingsControllerGetSettings({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof complaintSettingsControllerGetSettings>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ComplaintSettingsControllerGetSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof complaintSettingsControllerGetSettings>>>
+export type ComplaintSettingsControllerGetSettingsQueryError = unknown
+
+
+export function useComplaintSettingsControllerGetSettings<TData = Awaited<ReturnType<typeof complaintSettingsControllerGetSettings>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof complaintSettingsControllerGetSettings>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof complaintSettingsControllerGetSettings>>,
+          TError,
+          Awaited<ReturnType<typeof complaintSettingsControllerGetSettings>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useComplaintSettingsControllerGetSettings<TData = Awaited<ReturnType<typeof complaintSettingsControllerGetSettings>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof complaintSettingsControllerGetSettings>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof complaintSettingsControllerGetSettings>>,
+          TError,
+          Awaited<ReturnType<typeof complaintSettingsControllerGetSettings>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useComplaintSettingsControllerGetSettings<TData = Awaited<ReturnType<typeof complaintSettingsControllerGetSettings>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof complaintSettingsControllerGetSettings>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get complaint general SLA settings and rules
+ */
+
+export function useComplaintSettingsControllerGetSettings<TData = Awaited<ReturnType<typeof complaintSettingsControllerGetSettings>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof complaintSettingsControllerGetSettings>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getComplaintSettingsControllerGetSettingsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Update complaint general SLA settings (Admin)
+ */
+export type complaintSettingsControllerUpdateSettingsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type complaintSettingsControllerUpdateSettingsResponseSuccess = (complaintSettingsControllerUpdateSettingsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type complaintSettingsControllerUpdateSettingsResponse = (complaintSettingsControllerUpdateSettingsResponseSuccess)
+
+export const getComplaintSettingsControllerUpdateSettingsUrl = () => {
+
+
+  
+
+  return `/api/v1/complaints/settings/general`
+}
+
+export const complaintSettingsControllerUpdateSettings = async (updateComplaintSettingsDto: UpdateComplaintSettingsDto, options?: RequestInit): Promise<complaintSettingsControllerUpdateSettingsResponse> => {
+  
+  return customFetch<complaintSettingsControllerUpdateSettingsResponse>(getComplaintSettingsControllerUpdateSettingsUrl(),
+  {      
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateComplaintSettingsDto,)
+  }
+);}
+
+
+
+
+export const getComplaintSettingsControllerUpdateSettingsMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintSettingsControllerUpdateSettings>>, TError,{data: UpdateComplaintSettingsDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof complaintSettingsControllerUpdateSettings>>, TError,{data: UpdateComplaintSettingsDto}, TContext> => {
+
+const mutationKey = ['complaintSettingsControllerUpdateSettings'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof complaintSettingsControllerUpdateSettings>>, {data: UpdateComplaintSettingsDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  complaintSettingsControllerUpdateSettings(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ComplaintSettingsControllerUpdateSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof complaintSettingsControllerUpdateSettings>>>
+    export type ComplaintSettingsControllerUpdateSettingsMutationBody = UpdateComplaintSettingsDto
+    export type ComplaintSettingsControllerUpdateSettingsMutationError = unknown
+
+    /**
+ * @summary Update complaint general SLA settings (Admin)
+ */
+export const useComplaintSettingsControllerUpdateSettings = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintSettingsControllerUpdateSettings>>, TError,{data: UpdateComplaintSettingsDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof complaintSettingsControllerUpdateSettings>>,
+        TError,
+        {data: UpdateComplaintSettingsDto},
+        TContext
+      > => {
+
+      const mutationOptions = getComplaintSettingsControllerUpdateSettingsMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Get audit change log of settings modifications (Admin)
+ */
+export type complaintSettingsControllerGetChangeLogResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type complaintSettingsControllerGetChangeLogResponseSuccess = (complaintSettingsControllerGetChangeLogResponse200) & {
+  headers: Headers;
+};
+;
+
+export type complaintSettingsControllerGetChangeLogResponse = (complaintSettingsControllerGetChangeLogResponseSuccess)
+
+export const getComplaintSettingsControllerGetChangeLogUrl = () => {
+
+
+  
+
+  return `/api/v1/complaints/settings/change-log`
+}
+
+export const complaintSettingsControllerGetChangeLog = async ( options?: RequestInit): Promise<complaintSettingsControllerGetChangeLogResponse> => {
+  
+  return customFetch<complaintSettingsControllerGetChangeLogResponse>(getComplaintSettingsControllerGetChangeLogUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getComplaintSettingsControllerGetChangeLogQueryKey = () => {
+    return [
+    `/api/v1/complaints/settings/change-log`
+    ] as const;
+    }
+
+    
+export const getComplaintSettingsControllerGetChangeLogQueryOptions = <TData = Awaited<ReturnType<typeof complaintSettingsControllerGetChangeLog>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof complaintSettingsControllerGetChangeLog>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getComplaintSettingsControllerGetChangeLogQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof complaintSettingsControllerGetChangeLog>>> = ({ signal }) => complaintSettingsControllerGetChangeLog({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof complaintSettingsControllerGetChangeLog>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ComplaintSettingsControllerGetChangeLogQueryResult = NonNullable<Awaited<ReturnType<typeof complaintSettingsControllerGetChangeLog>>>
+export type ComplaintSettingsControllerGetChangeLogQueryError = unknown
+
+
+export function useComplaintSettingsControllerGetChangeLog<TData = Awaited<ReturnType<typeof complaintSettingsControllerGetChangeLog>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof complaintSettingsControllerGetChangeLog>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof complaintSettingsControllerGetChangeLog>>,
+          TError,
+          Awaited<ReturnType<typeof complaintSettingsControllerGetChangeLog>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useComplaintSettingsControllerGetChangeLog<TData = Awaited<ReturnType<typeof complaintSettingsControllerGetChangeLog>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof complaintSettingsControllerGetChangeLog>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof complaintSettingsControllerGetChangeLog>>,
+          TError,
+          Awaited<ReturnType<typeof complaintSettingsControllerGetChangeLog>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useComplaintSettingsControllerGetChangeLog<TData = Awaited<ReturnType<typeof complaintSettingsControllerGetChangeLog>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof complaintSettingsControllerGetChangeLog>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get audit change log of settings modifications (Admin)
+ */
+
+export function useComplaintSettingsControllerGetChangeLog<TData = Awaited<ReturnType<typeof complaintSettingsControllerGetChangeLog>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof complaintSettingsControllerGetChangeLog>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getComplaintSettingsControllerGetChangeLogQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Get current employee complaints and summary counters
+ */
+export type complaintsControllerGetMyComplaintsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type complaintsControllerGetMyComplaintsResponseSuccess = (complaintsControllerGetMyComplaintsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type complaintsControllerGetMyComplaintsResponse = (complaintsControllerGetMyComplaintsResponseSuccess)
+
+export const getComplaintsControllerGetMyComplaintsUrl = (params: ComplaintsControllerGetMyComplaintsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/complaints/my?${stringifiedParams}` : `/api/v1/complaints/my`
+}
+
+export const complaintsControllerGetMyComplaints = async (params: ComplaintsControllerGetMyComplaintsParams, options?: RequestInit): Promise<complaintsControllerGetMyComplaintsResponse> => {
+  
+  return customFetch<complaintsControllerGetMyComplaintsResponse>(getComplaintsControllerGetMyComplaintsUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getComplaintsControllerGetMyComplaintsQueryKey = (params?: ComplaintsControllerGetMyComplaintsParams,) => {
+    return [
+    `/api/v1/complaints/my`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getComplaintsControllerGetMyComplaintsQueryOptions = <TData = Awaited<ReturnType<typeof complaintsControllerGetMyComplaints>>, TError = unknown>(params: ComplaintsControllerGetMyComplaintsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof complaintsControllerGetMyComplaints>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getComplaintsControllerGetMyComplaintsQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof complaintsControllerGetMyComplaints>>> = ({ signal }) => complaintsControllerGetMyComplaints(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof complaintsControllerGetMyComplaints>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ComplaintsControllerGetMyComplaintsQueryResult = NonNullable<Awaited<ReturnType<typeof complaintsControllerGetMyComplaints>>>
+export type ComplaintsControllerGetMyComplaintsQueryError = unknown
+
+
+export function useComplaintsControllerGetMyComplaints<TData = Awaited<ReturnType<typeof complaintsControllerGetMyComplaints>>, TError = unknown>(
+ params: ComplaintsControllerGetMyComplaintsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof complaintsControllerGetMyComplaints>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof complaintsControllerGetMyComplaints>>,
+          TError,
+          Awaited<ReturnType<typeof complaintsControllerGetMyComplaints>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useComplaintsControllerGetMyComplaints<TData = Awaited<ReturnType<typeof complaintsControllerGetMyComplaints>>, TError = unknown>(
+ params: ComplaintsControllerGetMyComplaintsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof complaintsControllerGetMyComplaints>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof complaintsControllerGetMyComplaints>>,
+          TError,
+          Awaited<ReturnType<typeof complaintsControllerGetMyComplaints>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useComplaintsControllerGetMyComplaints<TData = Awaited<ReturnType<typeof complaintsControllerGetMyComplaints>>, TError = unknown>(
+ params: ComplaintsControllerGetMyComplaintsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof complaintsControllerGetMyComplaints>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get current employee complaints and summary counters
+ */
+
+export function useComplaintsControllerGetMyComplaints<TData = Awaited<ReturnType<typeof complaintsControllerGetMyComplaints>>, TError = unknown>(
+ params: ComplaintsControllerGetMyComplaintsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof complaintsControllerGetMyComplaints>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getComplaintsControllerGetMyComplaintsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Submit a new complaint
+ */
+export type complaintsControllerCreateComplaintResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type complaintsControllerCreateComplaintResponseSuccess = (complaintsControllerCreateComplaintResponse201) & {
+  headers: Headers;
+};
+;
+
+export type complaintsControllerCreateComplaintResponse = (complaintsControllerCreateComplaintResponseSuccess)
+
+export const getComplaintsControllerCreateComplaintUrl = () => {
+
+
+  
+
+  return `/api/v1/complaints`
+}
+
+export const complaintsControllerCreateComplaint = async (createComplaintDto: CreateComplaintDto, options?: RequestInit): Promise<complaintsControllerCreateComplaintResponse> => {
+  
+  return customFetch<complaintsControllerCreateComplaintResponse>(getComplaintsControllerCreateComplaintUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createComplaintDto,)
+  }
+);}
+
+
+
+
+export const getComplaintsControllerCreateComplaintMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerCreateComplaint>>, TError,{data: CreateComplaintDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerCreateComplaint>>, TError,{data: CreateComplaintDto}, TContext> => {
+
+const mutationKey = ['complaintsControllerCreateComplaint'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof complaintsControllerCreateComplaint>>, {data: CreateComplaintDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  complaintsControllerCreateComplaint(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ComplaintsControllerCreateComplaintMutationResult = NonNullable<Awaited<ReturnType<typeof complaintsControllerCreateComplaint>>>
+    export type ComplaintsControllerCreateComplaintMutationBody = CreateComplaintDto
+    export type ComplaintsControllerCreateComplaintMutationError = unknown
+
+    /**
+ * @summary Submit a new complaint
+ */
+export const useComplaintsControllerCreateComplaint = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerCreateComplaint>>, TError,{data: CreateComplaintDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof complaintsControllerCreateComplaint>>,
+        TError,
+        {data: CreateComplaintDto},
+        TContext
+      > => {
+
+      const mutationOptions = getComplaintsControllerCreateComplaintMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Get all complaints (Admin sees all; Handlers see assigned)
+ */
+export type complaintsControllerGetAllComplaintsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type complaintsControllerGetAllComplaintsResponseSuccess = (complaintsControllerGetAllComplaintsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type complaintsControllerGetAllComplaintsResponse = (complaintsControllerGetAllComplaintsResponseSuccess)
+
+export const getComplaintsControllerGetAllComplaintsUrl = (params: ComplaintsControllerGetAllComplaintsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/complaints?${stringifiedParams}` : `/api/v1/complaints`
+}
+
+export const complaintsControllerGetAllComplaints = async (params: ComplaintsControllerGetAllComplaintsParams, options?: RequestInit): Promise<complaintsControllerGetAllComplaintsResponse> => {
+  
+  return customFetch<complaintsControllerGetAllComplaintsResponse>(getComplaintsControllerGetAllComplaintsUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getComplaintsControllerGetAllComplaintsQueryKey = (params?: ComplaintsControllerGetAllComplaintsParams,) => {
+    return [
+    `/api/v1/complaints`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getComplaintsControllerGetAllComplaintsQueryOptions = <TData = Awaited<ReturnType<typeof complaintsControllerGetAllComplaints>>, TError = unknown>(params: ComplaintsControllerGetAllComplaintsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof complaintsControllerGetAllComplaints>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getComplaintsControllerGetAllComplaintsQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof complaintsControllerGetAllComplaints>>> = ({ signal }) => complaintsControllerGetAllComplaints(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof complaintsControllerGetAllComplaints>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ComplaintsControllerGetAllComplaintsQueryResult = NonNullable<Awaited<ReturnType<typeof complaintsControllerGetAllComplaints>>>
+export type ComplaintsControllerGetAllComplaintsQueryError = unknown
+
+
+export function useComplaintsControllerGetAllComplaints<TData = Awaited<ReturnType<typeof complaintsControllerGetAllComplaints>>, TError = unknown>(
+ params: ComplaintsControllerGetAllComplaintsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof complaintsControllerGetAllComplaints>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof complaintsControllerGetAllComplaints>>,
+          TError,
+          Awaited<ReturnType<typeof complaintsControllerGetAllComplaints>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useComplaintsControllerGetAllComplaints<TData = Awaited<ReturnType<typeof complaintsControllerGetAllComplaints>>, TError = unknown>(
+ params: ComplaintsControllerGetAllComplaintsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof complaintsControllerGetAllComplaints>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof complaintsControllerGetAllComplaints>>,
+          TError,
+          Awaited<ReturnType<typeof complaintsControllerGetAllComplaints>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useComplaintsControllerGetAllComplaints<TData = Awaited<ReturnType<typeof complaintsControllerGetAllComplaints>>, TError = unknown>(
+ params: ComplaintsControllerGetAllComplaintsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof complaintsControllerGetAllComplaints>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get all complaints (Admin sees all; Handlers see assigned)
+ */
+
+export function useComplaintsControllerGetAllComplaints<TData = Awaited<ReturnType<typeof complaintsControllerGetAllComplaints>>, TError = unknown>(
+ params: ComplaintsControllerGetAllComplaintsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof complaintsControllerGetAllComplaints>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getComplaintsControllerGetAllComplaintsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Get complaint reports and 6-month historical trends (Admin)
+ */
+export type complaintsControllerGetReportsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type complaintsControllerGetReportsResponseSuccess = (complaintsControllerGetReportsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type complaintsControllerGetReportsResponse = (complaintsControllerGetReportsResponseSuccess)
+
+export const getComplaintsControllerGetReportsUrl = (params?: ComplaintsControllerGetReportsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/complaints/reports?${stringifiedParams}` : `/api/v1/complaints/reports`
+}
+
+export const complaintsControllerGetReports = async (params?: ComplaintsControllerGetReportsParams, options?: RequestInit): Promise<complaintsControllerGetReportsResponse> => {
+  
+  return customFetch<complaintsControllerGetReportsResponse>(getComplaintsControllerGetReportsUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getComplaintsControllerGetReportsQueryKey = (params?: ComplaintsControllerGetReportsParams,) => {
+    return [
+    `/api/v1/complaints/reports`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getComplaintsControllerGetReportsQueryOptions = <TData = Awaited<ReturnType<typeof complaintsControllerGetReports>>, TError = unknown>(params?: ComplaintsControllerGetReportsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof complaintsControllerGetReports>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getComplaintsControllerGetReportsQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof complaintsControllerGetReports>>> = ({ signal }) => complaintsControllerGetReports(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof complaintsControllerGetReports>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ComplaintsControllerGetReportsQueryResult = NonNullable<Awaited<ReturnType<typeof complaintsControllerGetReports>>>
+export type ComplaintsControllerGetReportsQueryError = unknown
+
+
+export function useComplaintsControllerGetReports<TData = Awaited<ReturnType<typeof complaintsControllerGetReports>>, TError = unknown>(
+ params: undefined |  ComplaintsControllerGetReportsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof complaintsControllerGetReports>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof complaintsControllerGetReports>>,
+          TError,
+          Awaited<ReturnType<typeof complaintsControllerGetReports>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useComplaintsControllerGetReports<TData = Awaited<ReturnType<typeof complaintsControllerGetReports>>, TError = unknown>(
+ params?: ComplaintsControllerGetReportsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof complaintsControllerGetReports>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof complaintsControllerGetReports>>,
+          TError,
+          Awaited<ReturnType<typeof complaintsControllerGetReports>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useComplaintsControllerGetReports<TData = Awaited<ReturnType<typeof complaintsControllerGetReports>>, TError = unknown>(
+ params?: ComplaintsControllerGetReportsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof complaintsControllerGetReports>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get complaint reports and 6-month historical trends (Admin)
+ */
+
+export function useComplaintsControllerGetReports<TData = Awaited<ReturnType<typeof complaintsControllerGetReports>>, TError = unknown>(
+ params?: ComplaintsControllerGetReportsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof complaintsControllerGetReports>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getComplaintsControllerGetReportsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Get complaint details, actions, remarks, and history
+ */
+export type complaintsControllerGetComplaintByIdResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type complaintsControllerGetComplaintByIdResponseSuccess = (complaintsControllerGetComplaintByIdResponse200) & {
+  headers: Headers;
+};
+;
+
+export type complaintsControllerGetComplaintByIdResponse = (complaintsControllerGetComplaintByIdResponseSuccess)
+
+export const getComplaintsControllerGetComplaintByIdUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/complaints/${id}`
+}
+
+export const complaintsControllerGetComplaintById = async (id: number, options?: RequestInit): Promise<complaintsControllerGetComplaintByIdResponse> => {
+  
+  return customFetch<complaintsControllerGetComplaintByIdResponse>(getComplaintsControllerGetComplaintByIdUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getComplaintsControllerGetComplaintByIdQueryKey = (id?: number,) => {
+    return [
+    `/api/v1/complaints/${id}`
+    ] as const;
+    }
+
+    
+export const getComplaintsControllerGetComplaintByIdQueryOptions = <TData = Awaited<ReturnType<typeof complaintsControllerGetComplaintById>>, TError = unknown>(id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof complaintsControllerGetComplaintById>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getComplaintsControllerGetComplaintByIdQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof complaintsControllerGetComplaintById>>> = ({ signal }) => complaintsControllerGetComplaintById(id, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof complaintsControllerGetComplaintById>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ComplaintsControllerGetComplaintByIdQueryResult = NonNullable<Awaited<ReturnType<typeof complaintsControllerGetComplaintById>>>
+export type ComplaintsControllerGetComplaintByIdQueryError = unknown
+
+
+export function useComplaintsControllerGetComplaintById<TData = Awaited<ReturnType<typeof complaintsControllerGetComplaintById>>, TError = unknown>(
+ id: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof complaintsControllerGetComplaintById>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof complaintsControllerGetComplaintById>>,
+          TError,
+          Awaited<ReturnType<typeof complaintsControllerGetComplaintById>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useComplaintsControllerGetComplaintById<TData = Awaited<ReturnType<typeof complaintsControllerGetComplaintById>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof complaintsControllerGetComplaintById>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof complaintsControllerGetComplaintById>>,
+          TError,
+          Awaited<ReturnType<typeof complaintsControllerGetComplaintById>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useComplaintsControllerGetComplaintById<TData = Awaited<ReturnType<typeof complaintsControllerGetComplaintById>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof complaintsControllerGetComplaintById>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get complaint details, actions, remarks, and history
+ */
+
+export function useComplaintsControllerGetComplaintById<TData = Awaited<ReturnType<typeof complaintsControllerGetComplaintById>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof complaintsControllerGetComplaintById>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getComplaintsControllerGetComplaintByIdQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Accept and assign a new complaint (Admin)
+ */
+export type complaintsControllerAcceptAndAssignResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type complaintsControllerAcceptAndAssignResponseSuccess = (complaintsControllerAcceptAndAssignResponse201) & {
+  headers: Headers;
+};
+;
+
+export type complaintsControllerAcceptAndAssignResponse = (complaintsControllerAcceptAndAssignResponseSuccess)
+
+export const getComplaintsControllerAcceptAndAssignUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/complaints/${id}/accept-and-assign`
+}
+
+export const complaintsControllerAcceptAndAssign = async (id: number,
+    acceptAndAssignDto: AcceptAndAssignDto, options?: RequestInit): Promise<complaintsControllerAcceptAndAssignResponse> => {
+  
+  return customFetch<complaintsControllerAcceptAndAssignResponse>(getComplaintsControllerAcceptAndAssignUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      acceptAndAssignDto,)
+  }
+);}
+
+
+
+
+export const getComplaintsControllerAcceptAndAssignMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerAcceptAndAssign>>, TError,{id: number;data: AcceptAndAssignDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerAcceptAndAssign>>, TError,{id: number;data: AcceptAndAssignDto}, TContext> => {
+
+const mutationKey = ['complaintsControllerAcceptAndAssign'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof complaintsControllerAcceptAndAssign>>, {id: number;data: AcceptAndAssignDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  complaintsControllerAcceptAndAssign(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ComplaintsControllerAcceptAndAssignMutationResult = NonNullable<Awaited<ReturnType<typeof complaintsControllerAcceptAndAssign>>>
+    export type ComplaintsControllerAcceptAndAssignMutationBody = AcceptAndAssignDto
+    export type ComplaintsControllerAcceptAndAssignMutationError = unknown
+
+    /**
+ * @summary Accept and assign a new complaint (Admin)
+ */
+export const useComplaintsControllerAcceptAndAssign = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerAcceptAndAssign>>, TError,{id: number;data: AcceptAndAssignDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof complaintsControllerAcceptAndAssign>>,
+        TError,
+        {id: number;data: AcceptAndAssignDto},
+        TContext
+      > => {
+
+      const mutationOptions = getComplaintsControllerAcceptAndAssignMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Close a new complaint without action (Admin)
+ */
+export type complaintsControllerCloseWithoutActionResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type complaintsControllerCloseWithoutActionResponseSuccess = (complaintsControllerCloseWithoutActionResponse201) & {
+  headers: Headers;
+};
+;
+
+export type complaintsControllerCloseWithoutActionResponse = (complaintsControllerCloseWithoutActionResponseSuccess)
+
+export const getComplaintsControllerCloseWithoutActionUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/complaints/${id}/close-without-action`
+}
+
+export const complaintsControllerCloseWithoutAction = async (id: number,
+    closeWithoutActionDto: CloseWithoutActionDto, options?: RequestInit): Promise<complaintsControllerCloseWithoutActionResponse> => {
+  
+  return customFetch<complaintsControllerCloseWithoutActionResponse>(getComplaintsControllerCloseWithoutActionUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      closeWithoutActionDto,)
+  }
+);}
+
+
+
+
+export const getComplaintsControllerCloseWithoutActionMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerCloseWithoutAction>>, TError,{id: number;data: CloseWithoutActionDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerCloseWithoutAction>>, TError,{id: number;data: CloseWithoutActionDto}, TContext> => {
+
+const mutationKey = ['complaintsControllerCloseWithoutAction'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof complaintsControllerCloseWithoutAction>>, {id: number;data: CloseWithoutActionDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  complaintsControllerCloseWithoutAction(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ComplaintsControllerCloseWithoutActionMutationResult = NonNullable<Awaited<ReturnType<typeof complaintsControllerCloseWithoutAction>>>
+    export type ComplaintsControllerCloseWithoutActionMutationBody = CloseWithoutActionDto
+    export type ComplaintsControllerCloseWithoutActionMutationError = unknown
+
+    /**
+ * @summary Close a new complaint without action (Admin)
+ */
+export const useComplaintsControllerCloseWithoutAction = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerCloseWithoutAction>>, TError,{id: number;data: CloseWithoutActionDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof complaintsControllerCloseWithoutAction>>,
+        TError,
+        {id: number;data: CloseWithoutActionDto},
+        TContext
+      > => {
+
+      const mutationOptions = getComplaintsControllerCloseWithoutActionMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Reassign handler (Admin)
+ */
+export type complaintsControllerReassignHandlerResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type complaintsControllerReassignHandlerResponseSuccess = (complaintsControllerReassignHandlerResponse201) & {
+  headers: Headers;
+};
+;
+
+export type complaintsControllerReassignHandlerResponse = (complaintsControllerReassignHandlerResponseSuccess)
+
+export const getComplaintsControllerReassignHandlerUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/complaints/${id}/reassign`
+}
+
+export const complaintsControllerReassignHandler = async (id: number,
+    reassignHandlerDto: ReassignHandlerDto, options?: RequestInit): Promise<complaintsControllerReassignHandlerResponse> => {
+  
+  return customFetch<complaintsControllerReassignHandlerResponse>(getComplaintsControllerReassignHandlerUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      reassignHandlerDto,)
+  }
+);}
+
+
+
+
+export const getComplaintsControllerReassignHandlerMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerReassignHandler>>, TError,{id: number;data: ReassignHandlerDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerReassignHandler>>, TError,{id: number;data: ReassignHandlerDto}, TContext> => {
+
+const mutationKey = ['complaintsControllerReassignHandler'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof complaintsControllerReassignHandler>>, {id: number;data: ReassignHandlerDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  complaintsControllerReassignHandler(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ComplaintsControllerReassignHandlerMutationResult = NonNullable<Awaited<ReturnType<typeof complaintsControllerReassignHandler>>>
+    export type ComplaintsControllerReassignHandlerMutationBody = ReassignHandlerDto
+    export type ComplaintsControllerReassignHandlerMutationError = unknown
+
+    /**
+ * @summary Reassign handler (Admin)
+ */
+export const useComplaintsControllerReassignHandler = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerReassignHandler>>, TError,{id: number;data: ReassignHandlerDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof complaintsControllerReassignHandler>>,
+        TError,
+        {id: number;data: ReassignHandlerDto},
+        TContext
+      > => {
+
+      const mutationOptions = getComplaintsControllerReassignHandlerMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Change priority (Admin)
+ */
+export type complaintsControllerChangePriorityResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type complaintsControllerChangePriorityResponseSuccess = (complaintsControllerChangePriorityResponse201) & {
+  headers: Headers;
+};
+;
+
+export type complaintsControllerChangePriorityResponse = (complaintsControllerChangePriorityResponseSuccess)
+
+export const getComplaintsControllerChangePriorityUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/complaints/${id}/change-priority`
+}
+
+export const complaintsControllerChangePriority = async (id: number,
+    changePriorityDto: ChangePriorityDto, options?: RequestInit): Promise<complaintsControllerChangePriorityResponse> => {
+  
+  return customFetch<complaintsControllerChangePriorityResponse>(getComplaintsControllerChangePriorityUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      changePriorityDto,)
+  }
+);}
+
+
+
+
+export const getComplaintsControllerChangePriorityMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerChangePriority>>, TError,{id: number;data: ChangePriorityDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerChangePriority>>, TError,{id: number;data: ChangePriorityDto}, TContext> => {
+
+const mutationKey = ['complaintsControllerChangePriority'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof complaintsControllerChangePriority>>, {id: number;data: ChangePriorityDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  complaintsControllerChangePriority(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ComplaintsControllerChangePriorityMutationResult = NonNullable<Awaited<ReturnType<typeof complaintsControllerChangePriority>>>
+    export type ComplaintsControllerChangePriorityMutationBody = ChangePriorityDto
+    export type ComplaintsControllerChangePriorityMutationError = unknown
+
+    /**
+ * @summary Change priority (Admin)
+ */
+export const useComplaintsControllerChangePriority = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerChangePriority>>, TError,{id: number;data: ChangePriorityDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof complaintsControllerChangePriority>>,
+        TError,
+        {id: number;data: ChangePriorityDto},
+        TContext
+      > => {
+
+      const mutationOptions = getComplaintsControllerChangePriorityMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Change target resolution date (Admin)
+ */
+export type complaintsControllerChangeTargetDateResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type complaintsControllerChangeTargetDateResponseSuccess = (complaintsControllerChangeTargetDateResponse201) & {
+  headers: Headers;
+};
+;
+
+export type complaintsControllerChangeTargetDateResponse = (complaintsControllerChangeTargetDateResponseSuccess)
+
+export const getComplaintsControllerChangeTargetDateUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/complaints/${id}/change-target-date`
+}
+
+export const complaintsControllerChangeTargetDate = async (id: number,
+    changeTargetDateDto: ChangeTargetDateDto, options?: RequestInit): Promise<complaintsControllerChangeTargetDateResponse> => {
+  
+  return customFetch<complaintsControllerChangeTargetDateResponse>(getComplaintsControllerChangeTargetDateUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      changeTargetDateDto,)
+  }
+);}
+
+
+
+
+export const getComplaintsControllerChangeTargetDateMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerChangeTargetDate>>, TError,{id: number;data: ChangeTargetDateDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerChangeTargetDate>>, TError,{id: number;data: ChangeTargetDateDto}, TContext> => {
+
+const mutationKey = ['complaintsControllerChangeTargetDate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof complaintsControllerChangeTargetDate>>, {id: number;data: ChangeTargetDateDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  complaintsControllerChangeTargetDate(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ComplaintsControllerChangeTargetDateMutationResult = NonNullable<Awaited<ReturnType<typeof complaintsControllerChangeTargetDate>>>
+    export type ComplaintsControllerChangeTargetDateMutationBody = ChangeTargetDateDto
+    export type ComplaintsControllerChangeTargetDateMutationError = unknown
+
+    /**
+ * @summary Change target resolution date (Admin)
+ */
+export const useComplaintsControllerChangeTargetDate = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerChangeTargetDate>>, TError,{id: number;data: ChangeTargetDateDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof complaintsControllerChangeTargetDate>>,
+        TError,
+        {id: number;data: ChangeTargetDateDto},
+        TContext
+      > => {
+
+      const mutationOptions = getComplaintsControllerChangeTargetDateMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Change confidentiality status (Admin)
+ */
+export type complaintsControllerChangeConfidentialityResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type complaintsControllerChangeConfidentialityResponseSuccess = (complaintsControllerChangeConfidentialityResponse201) & {
+  headers: Headers;
+};
+;
+
+export type complaintsControllerChangeConfidentialityResponse = (complaintsControllerChangeConfidentialityResponseSuccess)
+
+export const getComplaintsControllerChangeConfidentialityUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/complaints/${id}/change-confidentiality`
+}
+
+export const complaintsControllerChangeConfidentiality = async (id: number,
+    changeConfidentialityDto: ChangeConfidentialityDto, options?: RequestInit): Promise<complaintsControllerChangeConfidentialityResponse> => {
+  
+  return customFetch<complaintsControllerChangeConfidentialityResponse>(getComplaintsControllerChangeConfidentialityUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      changeConfidentialityDto,)
+  }
+);}
+
+
+
+
+export const getComplaintsControllerChangeConfidentialityMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerChangeConfidentiality>>, TError,{id: number;data: ChangeConfidentialityDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerChangeConfidentiality>>, TError,{id: number;data: ChangeConfidentialityDto}, TContext> => {
+
+const mutationKey = ['complaintsControllerChangeConfidentiality'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof complaintsControllerChangeConfidentiality>>, {id: number;data: ChangeConfidentialityDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  complaintsControllerChangeConfidentiality(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ComplaintsControllerChangeConfidentialityMutationResult = NonNullable<Awaited<ReturnType<typeof complaintsControllerChangeConfidentiality>>>
+    export type ComplaintsControllerChangeConfidentialityMutationBody = ChangeConfidentialityDto
+    export type ComplaintsControllerChangeConfidentialityMutationError = unknown
+
+    /**
+ * @summary Change confidentiality status (Admin)
+ */
+export const useComplaintsControllerChangeConfidentiality = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerChangeConfidentiality>>, TError,{id: number;data: ChangeConfidentialityDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof complaintsControllerChangeConfidentiality>>,
+        TError,
+        {id: number;data: ChangeConfidentialityDto},
+        TContext
+      > => {
+
+      const mutationOptions = getComplaintsControllerChangeConfidentialityMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Start work on Open complaint (Handler or Admin)
+ */
+export type complaintsControllerStartWorkResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type complaintsControllerStartWorkResponseSuccess = (complaintsControllerStartWorkResponse201) & {
+  headers: Headers;
+};
+;
+
+export type complaintsControllerStartWorkResponse = (complaintsControllerStartWorkResponseSuccess)
+
+export const getComplaintsControllerStartWorkUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/complaints/${id}/start-work`
+}
+
+export const complaintsControllerStartWork = async (id: number, options?: RequestInit): Promise<complaintsControllerStartWorkResponse> => {
+  
+  return customFetch<complaintsControllerStartWorkResponse>(getComplaintsControllerStartWorkUrl(id),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getComplaintsControllerStartWorkMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerStartWork>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerStartWork>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['complaintsControllerStartWork'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof complaintsControllerStartWork>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  complaintsControllerStartWork(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ComplaintsControllerStartWorkMutationResult = NonNullable<Awaited<ReturnType<typeof complaintsControllerStartWork>>>
+    
+    export type ComplaintsControllerStartWorkMutationError = unknown
+
+    /**
+ * @summary Start work on Open complaint (Handler or Admin)
+ */
+export const useComplaintsControllerStartWork = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerStartWork>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof complaintsControllerStartWork>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+
+      const mutationOptions = getComplaintsControllerStartWorkMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Record action taken during investigation (Handler or Admin)
+ */
+export type complaintsControllerAddActionResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type complaintsControllerAddActionResponseSuccess = (complaintsControllerAddActionResponse201) & {
+  headers: Headers;
+};
+;
+
+export type complaintsControllerAddActionResponse = (complaintsControllerAddActionResponseSuccess)
+
+export const getComplaintsControllerAddActionUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/complaints/${id}/actions`
+}
+
+export const complaintsControllerAddAction = async (id: number,
+    addActionDto: AddActionDto, options?: RequestInit): Promise<complaintsControllerAddActionResponse> => {
+  
+  return customFetch<complaintsControllerAddActionResponse>(getComplaintsControllerAddActionUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      addActionDto,)
+  }
+);}
+
+
+
+
+export const getComplaintsControllerAddActionMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerAddAction>>, TError,{id: number;data: AddActionDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerAddAction>>, TError,{id: number;data: AddActionDto}, TContext> => {
+
+const mutationKey = ['complaintsControllerAddAction'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof complaintsControllerAddAction>>, {id: number;data: AddActionDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  complaintsControllerAddAction(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ComplaintsControllerAddActionMutationResult = NonNullable<Awaited<ReturnType<typeof complaintsControllerAddAction>>>
+    export type ComplaintsControllerAddActionMutationBody = AddActionDto
+    export type ComplaintsControllerAddActionMutationError = unknown
+
+    /**
+ * @summary Record action taken during investigation (Handler or Admin)
+ */
+export const useComplaintsControllerAddAction = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerAddAction>>, TError,{id: number;data: AddActionDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof complaintsControllerAddAction>>,
+        TError,
+        {id: number;data: AddActionDto},
+        TContext
+      > => {
+
+      const mutationOptions = getComplaintsControllerAddActionMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Add note/remark (Complainant, Handler, or Admin)
+ */
+export type complaintsControllerAddRemarkResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type complaintsControllerAddRemarkResponseSuccess = (complaintsControllerAddRemarkResponse201) & {
+  headers: Headers;
+};
+;
+
+export type complaintsControllerAddRemarkResponse = (complaintsControllerAddRemarkResponseSuccess)
+
+export const getComplaintsControllerAddRemarkUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/complaints/${id}/remarks`
+}
+
+export const complaintsControllerAddRemark = async (id: number,
+    addRemarkDto: AddRemarkDto, options?: RequestInit): Promise<complaintsControllerAddRemarkResponse> => {
+  
+  return customFetch<complaintsControllerAddRemarkResponse>(getComplaintsControllerAddRemarkUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      addRemarkDto,)
+  }
+);}
+
+
+
+
+export const getComplaintsControllerAddRemarkMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerAddRemark>>, TError,{id: number;data: AddRemarkDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerAddRemark>>, TError,{id: number;data: AddRemarkDto}, TContext> => {
+
+const mutationKey = ['complaintsControllerAddRemark'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof complaintsControllerAddRemark>>, {id: number;data: AddRemarkDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  complaintsControllerAddRemark(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ComplaintsControllerAddRemarkMutationResult = NonNullable<Awaited<ReturnType<typeof complaintsControllerAddRemark>>>
+    export type ComplaintsControllerAddRemarkMutationBody = AddRemarkDto
+    export type ComplaintsControllerAddRemarkMutationError = unknown
+
+    /**
+ * @summary Add note/remark (Complainant, Handler, or Admin)
+ */
+export const useComplaintsControllerAddRemark = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerAddRemark>>, TError,{id: number;data: AddRemarkDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof complaintsControllerAddRemark>>,
+        TError,
+        {id: number;data: AddRemarkDto},
+        TContext
+      > => {
+
+      const mutationOptions = getComplaintsControllerAddRemarkMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Record complaint resolution (Handler or Admin)
+ */
+export type complaintsControllerRecordResolutionResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type complaintsControllerRecordResolutionResponseSuccess = (complaintsControllerRecordResolutionResponse201) & {
+  headers: Headers;
+};
+;
+
+export type complaintsControllerRecordResolutionResponse = (complaintsControllerRecordResolutionResponseSuccess)
+
+export const getComplaintsControllerRecordResolutionUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/complaints/${id}/resolve`
+}
+
+export const complaintsControllerRecordResolution = async (id: number,
+    recordResolutionDto: RecordResolutionDto, options?: RequestInit): Promise<complaintsControllerRecordResolutionResponse> => {
+  
+  return customFetch<complaintsControllerRecordResolutionResponse>(getComplaintsControllerRecordResolutionUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      recordResolutionDto,)
+  }
+);}
+
+
+
+
+export const getComplaintsControllerRecordResolutionMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerRecordResolution>>, TError,{id: number;data: RecordResolutionDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerRecordResolution>>, TError,{id: number;data: RecordResolutionDto}, TContext> => {
+
+const mutationKey = ['complaintsControllerRecordResolution'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof complaintsControllerRecordResolution>>, {id: number;data: RecordResolutionDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  complaintsControllerRecordResolution(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ComplaintsControllerRecordResolutionMutationResult = NonNullable<Awaited<ReturnType<typeof complaintsControllerRecordResolution>>>
+    export type ComplaintsControllerRecordResolutionMutationBody = RecordResolutionDto
+    export type ComplaintsControllerRecordResolutionMutationError = unknown
+
+    /**
+ * @summary Record complaint resolution (Handler or Admin)
+ */
+export const useComplaintsControllerRecordResolution = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerRecordResolution>>, TError,{id: number;data: RecordResolutionDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof complaintsControllerRecordResolution>>,
+        TError,
+        {id: number;data: RecordResolutionDto},
+        TContext
+      > => {
+
+      const mutationOptions = getComplaintsControllerRecordResolutionMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Employee confirms resolution within 7 days
+ */
+export type complaintsControllerConfirmResolutionResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type complaintsControllerConfirmResolutionResponseSuccess = (complaintsControllerConfirmResolutionResponse201) & {
+  headers: Headers;
+};
+;
+
+export type complaintsControllerConfirmResolutionResponse = (complaintsControllerConfirmResolutionResponseSuccess)
+
+export const getComplaintsControllerConfirmResolutionUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/complaints/${id}/confirm`
+}
+
+export const complaintsControllerConfirmResolution = async (id: number,
+    confirmResolutionDto: ConfirmResolutionDto, options?: RequestInit): Promise<complaintsControllerConfirmResolutionResponse> => {
+  
+  return customFetch<complaintsControllerConfirmResolutionResponse>(getComplaintsControllerConfirmResolutionUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      confirmResolutionDto,)
+  }
+);}
+
+
+
+
+export const getComplaintsControllerConfirmResolutionMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerConfirmResolution>>, TError,{id: number;data: ConfirmResolutionDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerConfirmResolution>>, TError,{id: number;data: ConfirmResolutionDto}, TContext> => {
+
+const mutationKey = ['complaintsControllerConfirmResolution'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof complaintsControllerConfirmResolution>>, {id: number;data: ConfirmResolutionDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  complaintsControllerConfirmResolution(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ComplaintsControllerConfirmResolutionMutationResult = NonNullable<Awaited<ReturnType<typeof complaintsControllerConfirmResolution>>>
+    export type ComplaintsControllerConfirmResolutionMutationBody = ConfirmResolutionDto
+    export type ComplaintsControllerConfirmResolutionMutationError = unknown
+
+    /**
+ * @summary Employee confirms resolution within 7 days
+ */
+export const useComplaintsControllerConfirmResolution = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerConfirmResolution>>, TError,{id: number;data: ConfirmResolutionDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof complaintsControllerConfirmResolution>>,
+        TError,
+        {id: number;data: ConfirmResolutionDto},
+        TContext
+      > => {
+
+      const mutationOptions = getComplaintsControllerConfirmResolutionMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Employee reopens resolution within 7 days
+ */
+export type complaintsControllerReopenComplaintResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type complaintsControllerReopenComplaintResponseSuccess = (complaintsControllerReopenComplaintResponse201) & {
+  headers: Headers;
+};
+;
+
+export type complaintsControllerReopenComplaintResponse = (complaintsControllerReopenComplaintResponseSuccess)
+
+export const getComplaintsControllerReopenComplaintUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/complaints/${id}/reopen`
+}
+
+export const complaintsControllerReopenComplaint = async (id: number,
+    reopenComplaintDto: ReopenComplaintDto, options?: RequestInit): Promise<complaintsControllerReopenComplaintResponse> => {
+  
+  return customFetch<complaintsControllerReopenComplaintResponse>(getComplaintsControllerReopenComplaintUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      reopenComplaintDto,)
+  }
+);}
+
+
+
+
+export const getComplaintsControllerReopenComplaintMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerReopenComplaint>>, TError,{id: number;data: ReopenComplaintDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerReopenComplaint>>, TError,{id: number;data: ReopenComplaintDto}, TContext> => {
+
+const mutationKey = ['complaintsControllerReopenComplaint'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof complaintsControllerReopenComplaint>>, {id: number;data: ReopenComplaintDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  complaintsControllerReopenComplaint(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ComplaintsControllerReopenComplaintMutationResult = NonNullable<Awaited<ReturnType<typeof complaintsControllerReopenComplaint>>>
+    export type ComplaintsControllerReopenComplaintMutationBody = ReopenComplaintDto
+    export type ComplaintsControllerReopenComplaintMutationError = unknown
+
+    /**
+ * @summary Employee reopens resolution within 7 days
+ */
+export const useComplaintsControllerReopenComplaint = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerReopenComplaint>>, TError,{id: number;data: ReopenComplaintDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof complaintsControllerReopenComplaint>>,
+        TError,
+        {id: number;data: ReopenComplaintDto},
+        TContext
+      > => {
+
+      const mutationOptions = getComplaintsControllerReopenComplaintMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Admin sends resolved complaint back to handler
+ */
+export type complaintsControllerSendBackToHandlerResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type complaintsControllerSendBackToHandlerResponseSuccess = (complaintsControllerSendBackToHandlerResponse201) & {
+  headers: Headers;
+};
+;
+
+export type complaintsControllerSendBackToHandlerResponse = (complaintsControllerSendBackToHandlerResponseSuccess)
+
+export const getComplaintsControllerSendBackToHandlerUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/complaints/${id}/send-back`
+}
+
+export const complaintsControllerSendBackToHandler = async (id: number,
+    sendBackDto: SendBackDto, options?: RequestInit): Promise<complaintsControllerSendBackToHandlerResponse> => {
+  
+  return customFetch<complaintsControllerSendBackToHandlerResponse>(getComplaintsControllerSendBackToHandlerUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      sendBackDto,)
+  }
+);}
+
+
+
+
+export const getComplaintsControllerSendBackToHandlerMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerSendBackToHandler>>, TError,{id: number;data: SendBackDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerSendBackToHandler>>, TError,{id: number;data: SendBackDto}, TContext> => {
+
+const mutationKey = ['complaintsControllerSendBackToHandler'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof complaintsControllerSendBackToHandler>>, {id: number;data: SendBackDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  complaintsControllerSendBackToHandler(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ComplaintsControllerSendBackToHandlerMutationResult = NonNullable<Awaited<ReturnType<typeof complaintsControllerSendBackToHandler>>>
+    export type ComplaintsControllerSendBackToHandlerMutationBody = SendBackDto
+    export type ComplaintsControllerSendBackToHandlerMutationError = unknown
+
+    /**
+ * @summary Admin sends resolved complaint back to handler
+ */
+export const useComplaintsControllerSendBackToHandler = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerSendBackToHandler>>, TError,{id: number;data: SendBackDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof complaintsControllerSendBackToHandler>>,
+        TError,
+        {id: number;data: SendBackDto},
+        TContext
+      > => {
+
+      const mutationOptions = getComplaintsControllerSendBackToHandlerMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Admin closes resolved complaint
+ */
+export type complaintsControllerCloseComplaintResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type complaintsControllerCloseComplaintResponseSuccess = (complaintsControllerCloseComplaintResponse201) & {
+  headers: Headers;
+};
+;
+
+export type complaintsControllerCloseComplaintResponse = (complaintsControllerCloseComplaintResponseSuccess)
+
+export const getComplaintsControllerCloseComplaintUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/complaints/${id}/close`
+}
+
+export const complaintsControllerCloseComplaint = async (id: number,
+    closeComplaintDto: CloseComplaintDto, options?: RequestInit): Promise<complaintsControllerCloseComplaintResponse> => {
+  
+  return customFetch<complaintsControllerCloseComplaintResponse>(getComplaintsControllerCloseComplaintUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      closeComplaintDto,)
+  }
+);}
+
+
+
+
+export const getComplaintsControllerCloseComplaintMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerCloseComplaint>>, TError,{id: number;data: CloseComplaintDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerCloseComplaint>>, TError,{id: number;data: CloseComplaintDto}, TContext> => {
+
+const mutationKey = ['complaintsControllerCloseComplaint'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof complaintsControllerCloseComplaint>>, {id: number;data: CloseComplaintDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  complaintsControllerCloseComplaint(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ComplaintsControllerCloseComplaintMutationResult = NonNullable<Awaited<ReturnType<typeof complaintsControllerCloseComplaint>>>
+    export type ComplaintsControllerCloseComplaintMutationBody = CloseComplaintDto
+    export type ComplaintsControllerCloseComplaintMutationError = unknown
+
+    /**
+ * @summary Admin closes resolved complaint
+ */
+export const useComplaintsControllerCloseComplaint = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerCloseComplaint>>, TError,{id: number;data: CloseComplaintDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof complaintsControllerCloseComplaint>>,
+        TError,
+        {id: number;data: CloseComplaintDto},
+        TContext
+      > => {
+
+      const mutationOptions = getComplaintsControllerCloseComplaintMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Employee withdraws complaint while in New or Open status
+ */
+export type complaintsControllerWithdrawComplaintResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type complaintsControllerWithdrawComplaintResponseSuccess = (complaintsControllerWithdrawComplaintResponse201) & {
+  headers: Headers;
+};
+;
+
+export type complaintsControllerWithdrawComplaintResponse = (complaintsControllerWithdrawComplaintResponseSuccess)
+
+export const getComplaintsControllerWithdrawComplaintUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/complaints/${id}/withdraw`
+}
+
+export const complaintsControllerWithdrawComplaint = async (id: number,
+    withdrawComplaintDto: WithdrawComplaintDto, options?: RequestInit): Promise<complaintsControllerWithdrawComplaintResponse> => {
+  
+  return customFetch<complaintsControllerWithdrawComplaintResponse>(getComplaintsControllerWithdrawComplaintUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      withdrawComplaintDto,)
+  }
+);}
+
+
+
+
+export const getComplaintsControllerWithdrawComplaintMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerWithdrawComplaint>>, TError,{id: number;data: WithdrawComplaintDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerWithdrawComplaint>>, TError,{id: number;data: WithdrawComplaintDto}, TContext> => {
+
+const mutationKey = ['complaintsControllerWithdrawComplaint'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof complaintsControllerWithdrawComplaint>>, {id: number;data: WithdrawComplaintDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  complaintsControllerWithdrawComplaint(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ComplaintsControllerWithdrawComplaintMutationResult = NonNullable<Awaited<ReturnType<typeof complaintsControllerWithdrawComplaint>>>
+    export type ComplaintsControllerWithdrawComplaintMutationBody = WithdrawComplaintDto
+    export type ComplaintsControllerWithdrawComplaintMutationError = unknown
+
+    /**
+ * @summary Employee withdraws complaint while in New or Open status
+ */
+export const useComplaintsControllerWithdrawComplaint = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof complaintsControllerWithdrawComplaint>>, TError,{id: number;data: WithdrawComplaintDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof complaintsControllerWithdrawComplaint>>,
+        TError,
+        {id: number;data: WithdrawComplaintDto},
+        TContext
+      > => {
+
+      const mutationOptions = getComplaintsControllerWithdrawComplaintMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Get current license settings
+ */
+export type licenseSettingsControllerGetSettingsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type licenseSettingsControllerGetSettingsResponseSuccess = (licenseSettingsControllerGetSettingsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type licenseSettingsControllerGetSettingsResponse = (licenseSettingsControllerGetSettingsResponseSuccess)
+
+export const getLicenseSettingsControllerGetSettingsUrl = () => {
+
+
+  
+
+  return `/api/v1/licenses/settings`
+}
+
+export const licenseSettingsControllerGetSettings = async ( options?: RequestInit): Promise<licenseSettingsControllerGetSettingsResponse> => {
+  
+  return customFetch<licenseSettingsControllerGetSettingsResponse>(getLicenseSettingsControllerGetSettingsUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getLicenseSettingsControllerGetSettingsQueryKey = () => {
+    return [
+    `/api/v1/licenses/settings`
+    ] as const;
+    }
+
+    
+export const getLicenseSettingsControllerGetSettingsQueryOptions = <TData = Awaited<ReturnType<typeof licenseSettingsControllerGetSettings>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseSettingsControllerGetSettings>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getLicenseSettingsControllerGetSettingsQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof licenseSettingsControllerGetSettings>>> = ({ signal }) => licenseSettingsControllerGetSettings({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof licenseSettingsControllerGetSettings>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type LicenseSettingsControllerGetSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof licenseSettingsControllerGetSettings>>>
+export type LicenseSettingsControllerGetSettingsQueryError = unknown
+
+
+export function useLicenseSettingsControllerGetSettings<TData = Awaited<ReturnType<typeof licenseSettingsControllerGetSettings>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseSettingsControllerGetSettings>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof licenseSettingsControllerGetSettings>>,
+          TError,
+          Awaited<ReturnType<typeof licenseSettingsControllerGetSettings>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLicenseSettingsControllerGetSettings<TData = Awaited<ReturnType<typeof licenseSettingsControllerGetSettings>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseSettingsControllerGetSettings>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof licenseSettingsControllerGetSettings>>,
+          TError,
+          Awaited<ReturnType<typeof licenseSettingsControllerGetSettings>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLicenseSettingsControllerGetSettings<TData = Awaited<ReturnType<typeof licenseSettingsControllerGetSettings>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseSettingsControllerGetSettings>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get current license settings
+ */
+
+export function useLicenseSettingsControllerGetSettings<TData = Awaited<ReturnType<typeof licenseSettingsControllerGetSettings>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseSettingsControllerGetSettings>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getLicenseSettingsControllerGetSettingsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Update license settings
+ */
+export type licenseSettingsControllerUpdateSettingsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type licenseSettingsControllerUpdateSettingsResponseSuccess = (licenseSettingsControllerUpdateSettingsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type licenseSettingsControllerUpdateSettingsResponse = (licenseSettingsControllerUpdateSettingsResponseSuccess)
+
+export const getLicenseSettingsControllerUpdateSettingsUrl = () => {
+
+
+  
+
+  return `/api/v1/licenses/settings`
+}
+
+export const licenseSettingsControllerUpdateSettings = async (updateLicenseSettingsDto: UpdateLicenseSettingsDto, options?: RequestInit): Promise<licenseSettingsControllerUpdateSettingsResponse> => {
+  
+  return customFetch<licenseSettingsControllerUpdateSettingsResponse>(getLicenseSettingsControllerUpdateSettingsUrl(),
+  {      
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateLicenseSettingsDto,)
+  }
+);}
+
+
+
+
+export const getLicenseSettingsControllerUpdateSettingsMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerUpdateSettings>>, TError,{data: UpdateLicenseSettingsDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerUpdateSettings>>, TError,{data: UpdateLicenseSettingsDto}, TContext> => {
+
+const mutationKey = ['licenseSettingsControllerUpdateSettings'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof licenseSettingsControllerUpdateSettings>>, {data: UpdateLicenseSettingsDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  licenseSettingsControllerUpdateSettings(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LicenseSettingsControllerUpdateSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof licenseSettingsControllerUpdateSettings>>>
+    export type LicenseSettingsControllerUpdateSettingsMutationBody = UpdateLicenseSettingsDto
+    export type LicenseSettingsControllerUpdateSettingsMutationError = unknown
+
+    /**
+ * @summary Update license settings
+ */
+export const useLicenseSettingsControllerUpdateSettings = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerUpdateSettings>>, TError,{data: UpdateLicenseSettingsDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof licenseSettingsControllerUpdateSettings>>,
+        TError,
+        {data: UpdateLicenseSettingsDto},
+        TContext
+      > => {
+
+      const mutationOptions = getLicenseSettingsControllerUpdateSettingsMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary List categories
+ */
+export type licenseSettingsControllerGetCategoriesResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type licenseSettingsControllerGetCategoriesResponseSuccess = (licenseSettingsControllerGetCategoriesResponse200) & {
+  headers: Headers;
+};
+;
+
+export type licenseSettingsControllerGetCategoriesResponse = (licenseSettingsControllerGetCategoriesResponseSuccess)
+
+export const getLicenseSettingsControllerGetCategoriesUrl = (params: LicenseSettingsControllerGetCategoriesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/licenses/settings/categories?${stringifiedParams}` : `/api/v1/licenses/settings/categories`
+}
+
+export const licenseSettingsControllerGetCategories = async (params: LicenseSettingsControllerGetCategoriesParams, options?: RequestInit): Promise<licenseSettingsControllerGetCategoriesResponse> => {
+  
+  return customFetch<licenseSettingsControllerGetCategoriesResponse>(getLicenseSettingsControllerGetCategoriesUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getLicenseSettingsControllerGetCategoriesQueryKey = (params?: LicenseSettingsControllerGetCategoriesParams,) => {
+    return [
+    `/api/v1/licenses/settings/categories`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getLicenseSettingsControllerGetCategoriesQueryOptions = <TData = Awaited<ReturnType<typeof licenseSettingsControllerGetCategories>>, TError = unknown>(params: LicenseSettingsControllerGetCategoriesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseSettingsControllerGetCategories>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getLicenseSettingsControllerGetCategoriesQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof licenseSettingsControllerGetCategories>>> = ({ signal }) => licenseSettingsControllerGetCategories(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof licenseSettingsControllerGetCategories>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type LicenseSettingsControllerGetCategoriesQueryResult = NonNullable<Awaited<ReturnType<typeof licenseSettingsControllerGetCategories>>>
+export type LicenseSettingsControllerGetCategoriesQueryError = unknown
+
+
+export function useLicenseSettingsControllerGetCategories<TData = Awaited<ReturnType<typeof licenseSettingsControllerGetCategories>>, TError = unknown>(
+ params: LicenseSettingsControllerGetCategoriesParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseSettingsControllerGetCategories>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof licenseSettingsControllerGetCategories>>,
+          TError,
+          Awaited<ReturnType<typeof licenseSettingsControllerGetCategories>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLicenseSettingsControllerGetCategories<TData = Awaited<ReturnType<typeof licenseSettingsControllerGetCategories>>, TError = unknown>(
+ params: LicenseSettingsControllerGetCategoriesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseSettingsControllerGetCategories>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof licenseSettingsControllerGetCategories>>,
+          TError,
+          Awaited<ReturnType<typeof licenseSettingsControllerGetCategories>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLicenseSettingsControllerGetCategories<TData = Awaited<ReturnType<typeof licenseSettingsControllerGetCategories>>, TError = unknown>(
+ params: LicenseSettingsControllerGetCategoriesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseSettingsControllerGetCategories>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List categories
+ */
+
+export function useLicenseSettingsControllerGetCategories<TData = Awaited<ReturnType<typeof licenseSettingsControllerGetCategories>>, TError = unknown>(
+ params: LicenseSettingsControllerGetCategoriesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseSettingsControllerGetCategories>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getLicenseSettingsControllerGetCategoriesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Create category
+ */
+export type licenseSettingsControllerCreateCategoryResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type licenseSettingsControllerCreateCategoryResponseSuccess = (licenseSettingsControllerCreateCategoryResponse201) & {
+  headers: Headers;
+};
+;
+
+export type licenseSettingsControllerCreateCategoryResponse = (licenseSettingsControllerCreateCategoryResponseSuccess)
+
+export const getLicenseSettingsControllerCreateCategoryUrl = () => {
+
+
+  
+
+  return `/api/v1/licenses/settings/categories`
+}
+
+export const licenseSettingsControllerCreateCategory = async (createCategoryDto: CreateCategoryDto, options?: RequestInit): Promise<licenseSettingsControllerCreateCategoryResponse> => {
+  
+  return customFetch<licenseSettingsControllerCreateCategoryResponse>(getLicenseSettingsControllerCreateCategoryUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createCategoryDto,)
+  }
+);}
+
+
+
+
+export const getLicenseSettingsControllerCreateCategoryMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerCreateCategory>>, TError,{data: CreateCategoryDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerCreateCategory>>, TError,{data: CreateCategoryDto}, TContext> => {
+
+const mutationKey = ['licenseSettingsControllerCreateCategory'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof licenseSettingsControllerCreateCategory>>, {data: CreateCategoryDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  licenseSettingsControllerCreateCategory(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LicenseSettingsControllerCreateCategoryMutationResult = NonNullable<Awaited<ReturnType<typeof licenseSettingsControllerCreateCategory>>>
+    export type LicenseSettingsControllerCreateCategoryMutationBody = CreateCategoryDto
+    export type LicenseSettingsControllerCreateCategoryMutationError = unknown
+
+    /**
+ * @summary Create category
+ */
+export const useLicenseSettingsControllerCreateCategory = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerCreateCategory>>, TError,{data: CreateCategoryDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof licenseSettingsControllerCreateCategory>>,
+        TError,
+        {data: CreateCategoryDto},
+        TContext
+      > => {
+
+      const mutationOptions = getLicenseSettingsControllerCreateCategoryMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Update category
+ */
+export type licenseSettingsControllerUpdateCategoryResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type licenseSettingsControllerUpdateCategoryResponseSuccess = (licenseSettingsControllerUpdateCategoryResponse200) & {
+  headers: Headers;
+};
+;
+
+export type licenseSettingsControllerUpdateCategoryResponse = (licenseSettingsControllerUpdateCategoryResponseSuccess)
+
+export const getLicenseSettingsControllerUpdateCategoryUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/licenses/settings/categories/${id}`
+}
+
+export const licenseSettingsControllerUpdateCategory = async (id: number,
+    updateCategoryDto: UpdateCategoryDto, options?: RequestInit): Promise<licenseSettingsControllerUpdateCategoryResponse> => {
+  
+  return customFetch<licenseSettingsControllerUpdateCategoryResponse>(getLicenseSettingsControllerUpdateCategoryUrl(id),
+  {      
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateCategoryDto,)
+  }
+);}
+
+
+
+
+export const getLicenseSettingsControllerUpdateCategoryMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerUpdateCategory>>, TError,{id: number;data: UpdateCategoryDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerUpdateCategory>>, TError,{id: number;data: UpdateCategoryDto}, TContext> => {
+
+const mutationKey = ['licenseSettingsControllerUpdateCategory'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof licenseSettingsControllerUpdateCategory>>, {id: number;data: UpdateCategoryDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  licenseSettingsControllerUpdateCategory(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LicenseSettingsControllerUpdateCategoryMutationResult = NonNullable<Awaited<ReturnType<typeof licenseSettingsControllerUpdateCategory>>>
+    export type LicenseSettingsControllerUpdateCategoryMutationBody = UpdateCategoryDto
+    export type LicenseSettingsControllerUpdateCategoryMutationError = unknown
+
+    /**
+ * @summary Update category
+ */
+export const useLicenseSettingsControllerUpdateCategory = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerUpdateCategory>>, TError,{id: number;data: UpdateCategoryDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof licenseSettingsControllerUpdateCategory>>,
+        TError,
+        {id: number;data: UpdateCategoryDto},
+        TContext
+      > => {
+
+      const mutationOptions = getLicenseSettingsControllerUpdateCategoryMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Delete or deactivate category
+ */
+export type licenseSettingsControllerDeleteCategoryResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type licenseSettingsControllerDeleteCategoryResponseSuccess = (licenseSettingsControllerDeleteCategoryResponse200) & {
+  headers: Headers;
+};
+;
+
+export type licenseSettingsControllerDeleteCategoryResponse = (licenseSettingsControllerDeleteCategoryResponseSuccess)
+
+export const getLicenseSettingsControllerDeleteCategoryUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/licenses/settings/categories/${id}`
+}
+
+export const licenseSettingsControllerDeleteCategory = async (id: number, options?: RequestInit): Promise<licenseSettingsControllerDeleteCategoryResponse> => {
+  
+  return customFetch<licenseSettingsControllerDeleteCategoryResponse>(getLicenseSettingsControllerDeleteCategoryUrl(id),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+);}
+
+
+
+
+export const getLicenseSettingsControllerDeleteCategoryMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerDeleteCategory>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerDeleteCategory>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['licenseSettingsControllerDeleteCategory'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof licenseSettingsControllerDeleteCategory>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  licenseSettingsControllerDeleteCategory(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LicenseSettingsControllerDeleteCategoryMutationResult = NonNullable<Awaited<ReturnType<typeof licenseSettingsControllerDeleteCategory>>>
+    
+    export type LicenseSettingsControllerDeleteCategoryMutationError = unknown
+
+    /**
+ * @summary Delete or deactivate category
+ */
+export const useLicenseSettingsControllerDeleteCategory = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerDeleteCategory>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof licenseSettingsControllerDeleteCategory>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+
+      const mutationOptions = getLicenseSettingsControllerDeleteCategoryMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary List vendors
+ */
+export type licenseSettingsControllerGetVendorsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type licenseSettingsControllerGetVendorsResponseSuccess = (licenseSettingsControllerGetVendorsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type licenseSettingsControllerGetVendorsResponse = (licenseSettingsControllerGetVendorsResponseSuccess)
+
+export const getLicenseSettingsControllerGetVendorsUrl = (params: LicenseSettingsControllerGetVendorsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/licenses/settings/vendors?${stringifiedParams}` : `/api/v1/licenses/settings/vendors`
+}
+
+export const licenseSettingsControllerGetVendors = async (params: LicenseSettingsControllerGetVendorsParams, options?: RequestInit): Promise<licenseSettingsControllerGetVendorsResponse> => {
+  
+  return customFetch<licenseSettingsControllerGetVendorsResponse>(getLicenseSettingsControllerGetVendorsUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getLicenseSettingsControllerGetVendorsQueryKey = (params?: LicenseSettingsControllerGetVendorsParams,) => {
+    return [
+    `/api/v1/licenses/settings/vendors`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getLicenseSettingsControllerGetVendorsQueryOptions = <TData = Awaited<ReturnType<typeof licenseSettingsControllerGetVendors>>, TError = unknown>(params: LicenseSettingsControllerGetVendorsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseSettingsControllerGetVendors>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getLicenseSettingsControllerGetVendorsQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof licenseSettingsControllerGetVendors>>> = ({ signal }) => licenseSettingsControllerGetVendors(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof licenseSettingsControllerGetVendors>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type LicenseSettingsControllerGetVendorsQueryResult = NonNullable<Awaited<ReturnType<typeof licenseSettingsControllerGetVendors>>>
+export type LicenseSettingsControllerGetVendorsQueryError = unknown
+
+
+export function useLicenseSettingsControllerGetVendors<TData = Awaited<ReturnType<typeof licenseSettingsControllerGetVendors>>, TError = unknown>(
+ params: LicenseSettingsControllerGetVendorsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseSettingsControllerGetVendors>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof licenseSettingsControllerGetVendors>>,
+          TError,
+          Awaited<ReturnType<typeof licenseSettingsControllerGetVendors>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLicenseSettingsControllerGetVendors<TData = Awaited<ReturnType<typeof licenseSettingsControllerGetVendors>>, TError = unknown>(
+ params: LicenseSettingsControllerGetVendorsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseSettingsControllerGetVendors>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof licenseSettingsControllerGetVendors>>,
+          TError,
+          Awaited<ReturnType<typeof licenseSettingsControllerGetVendors>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLicenseSettingsControllerGetVendors<TData = Awaited<ReturnType<typeof licenseSettingsControllerGetVendors>>, TError = unknown>(
+ params: LicenseSettingsControllerGetVendorsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseSettingsControllerGetVendors>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List vendors
+ */
+
+export function useLicenseSettingsControllerGetVendors<TData = Awaited<ReturnType<typeof licenseSettingsControllerGetVendors>>, TError = unknown>(
+ params: LicenseSettingsControllerGetVendorsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseSettingsControllerGetVendors>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getLicenseSettingsControllerGetVendorsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Create vendor
+ */
+export type licenseSettingsControllerCreateVendorResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type licenseSettingsControllerCreateVendorResponseSuccess = (licenseSettingsControllerCreateVendorResponse201) & {
+  headers: Headers;
+};
+;
+
+export type licenseSettingsControllerCreateVendorResponse = (licenseSettingsControllerCreateVendorResponseSuccess)
+
+export const getLicenseSettingsControllerCreateVendorUrl = () => {
+
+
+  
+
+  return `/api/v1/licenses/settings/vendors`
+}
+
+export const licenseSettingsControllerCreateVendor = async (createVendorDto: CreateVendorDto, options?: RequestInit): Promise<licenseSettingsControllerCreateVendorResponse> => {
+  
+  return customFetch<licenseSettingsControllerCreateVendorResponse>(getLicenseSettingsControllerCreateVendorUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createVendorDto,)
+  }
+);}
+
+
+
+
+export const getLicenseSettingsControllerCreateVendorMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerCreateVendor>>, TError,{data: CreateVendorDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerCreateVendor>>, TError,{data: CreateVendorDto}, TContext> => {
+
+const mutationKey = ['licenseSettingsControllerCreateVendor'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof licenseSettingsControllerCreateVendor>>, {data: CreateVendorDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  licenseSettingsControllerCreateVendor(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LicenseSettingsControllerCreateVendorMutationResult = NonNullable<Awaited<ReturnType<typeof licenseSettingsControllerCreateVendor>>>
+    export type LicenseSettingsControllerCreateVendorMutationBody = CreateVendorDto
+    export type LicenseSettingsControllerCreateVendorMutationError = unknown
+
+    /**
+ * @summary Create vendor
+ */
+export const useLicenseSettingsControllerCreateVendor = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerCreateVendor>>, TError,{data: CreateVendorDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof licenseSettingsControllerCreateVendor>>,
+        TError,
+        {data: CreateVendorDto},
+        TContext
+      > => {
+
+      const mutationOptions = getLicenseSettingsControllerCreateVendorMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Update vendor
+ */
+export type licenseSettingsControllerUpdateVendorResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type licenseSettingsControllerUpdateVendorResponseSuccess = (licenseSettingsControllerUpdateVendorResponse200) & {
+  headers: Headers;
+};
+;
+
+export type licenseSettingsControllerUpdateVendorResponse = (licenseSettingsControllerUpdateVendorResponseSuccess)
+
+export const getLicenseSettingsControllerUpdateVendorUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/licenses/settings/vendors/${id}`
+}
+
+export const licenseSettingsControllerUpdateVendor = async (id: number,
+    updateVendorDto: UpdateVendorDto, options?: RequestInit): Promise<licenseSettingsControllerUpdateVendorResponse> => {
+  
+  return customFetch<licenseSettingsControllerUpdateVendorResponse>(getLicenseSettingsControllerUpdateVendorUrl(id),
+  {      
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateVendorDto,)
+  }
+);}
+
+
+
+
+export const getLicenseSettingsControllerUpdateVendorMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerUpdateVendor>>, TError,{id: number;data: UpdateVendorDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerUpdateVendor>>, TError,{id: number;data: UpdateVendorDto}, TContext> => {
+
+const mutationKey = ['licenseSettingsControllerUpdateVendor'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof licenseSettingsControllerUpdateVendor>>, {id: number;data: UpdateVendorDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  licenseSettingsControllerUpdateVendor(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LicenseSettingsControllerUpdateVendorMutationResult = NonNullable<Awaited<ReturnType<typeof licenseSettingsControllerUpdateVendor>>>
+    export type LicenseSettingsControllerUpdateVendorMutationBody = UpdateVendorDto
+    export type LicenseSettingsControllerUpdateVendorMutationError = unknown
+
+    /**
+ * @summary Update vendor
+ */
+export const useLicenseSettingsControllerUpdateVendor = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerUpdateVendor>>, TError,{id: number;data: UpdateVendorDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof licenseSettingsControllerUpdateVendor>>,
+        TError,
+        {id: number;data: UpdateVendorDto},
+        TContext
+      > => {
+
+      const mutationOptions = getLicenseSettingsControllerUpdateVendorMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Delete or deactivate vendor
+ */
+export type licenseSettingsControllerDeleteVendorResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type licenseSettingsControllerDeleteVendorResponseSuccess = (licenseSettingsControllerDeleteVendorResponse200) & {
+  headers: Headers;
+};
+;
+
+export type licenseSettingsControllerDeleteVendorResponse = (licenseSettingsControllerDeleteVendorResponseSuccess)
+
+export const getLicenseSettingsControllerDeleteVendorUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/licenses/settings/vendors/${id}`
+}
+
+export const licenseSettingsControllerDeleteVendor = async (id: number, options?: RequestInit): Promise<licenseSettingsControllerDeleteVendorResponse> => {
+  
+  return customFetch<licenseSettingsControllerDeleteVendorResponse>(getLicenseSettingsControllerDeleteVendorUrl(id),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+);}
+
+
+
+
+export const getLicenseSettingsControllerDeleteVendorMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerDeleteVendor>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerDeleteVendor>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['licenseSettingsControllerDeleteVendor'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof licenseSettingsControllerDeleteVendor>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  licenseSettingsControllerDeleteVendor(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LicenseSettingsControllerDeleteVendorMutationResult = NonNullable<Awaited<ReturnType<typeof licenseSettingsControllerDeleteVendor>>>
+    
+    export type LicenseSettingsControllerDeleteVendorMutationError = unknown
+
+    /**
+ * @summary Delete or deactivate vendor
+ */
+export const useLicenseSettingsControllerDeleteVendor = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerDeleteVendor>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof licenseSettingsControllerDeleteVendor>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+
+      const mutationOptions = getLicenseSettingsControllerDeleteVendorMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary List revoke reasons
+ */
+export type licenseSettingsControllerGetRevokeReasonsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type licenseSettingsControllerGetRevokeReasonsResponseSuccess = (licenseSettingsControllerGetRevokeReasonsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type licenseSettingsControllerGetRevokeReasonsResponse = (licenseSettingsControllerGetRevokeReasonsResponseSuccess)
+
+export const getLicenseSettingsControllerGetRevokeReasonsUrl = (params: LicenseSettingsControllerGetRevokeReasonsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/licenses/settings/revoke-reasons?${stringifiedParams}` : `/api/v1/licenses/settings/revoke-reasons`
+}
+
+export const licenseSettingsControllerGetRevokeReasons = async (params: LicenseSettingsControllerGetRevokeReasonsParams, options?: RequestInit): Promise<licenseSettingsControllerGetRevokeReasonsResponse> => {
+  
+  return customFetch<licenseSettingsControllerGetRevokeReasonsResponse>(getLicenseSettingsControllerGetRevokeReasonsUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getLicenseSettingsControllerGetRevokeReasonsQueryKey = (params?: LicenseSettingsControllerGetRevokeReasonsParams,) => {
+    return [
+    `/api/v1/licenses/settings/revoke-reasons`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getLicenseSettingsControllerGetRevokeReasonsQueryOptions = <TData = Awaited<ReturnType<typeof licenseSettingsControllerGetRevokeReasons>>, TError = unknown>(params: LicenseSettingsControllerGetRevokeReasonsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseSettingsControllerGetRevokeReasons>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getLicenseSettingsControllerGetRevokeReasonsQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof licenseSettingsControllerGetRevokeReasons>>> = ({ signal }) => licenseSettingsControllerGetRevokeReasons(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof licenseSettingsControllerGetRevokeReasons>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type LicenseSettingsControllerGetRevokeReasonsQueryResult = NonNullable<Awaited<ReturnType<typeof licenseSettingsControllerGetRevokeReasons>>>
+export type LicenseSettingsControllerGetRevokeReasonsQueryError = unknown
+
+
+export function useLicenseSettingsControllerGetRevokeReasons<TData = Awaited<ReturnType<typeof licenseSettingsControllerGetRevokeReasons>>, TError = unknown>(
+ params: LicenseSettingsControllerGetRevokeReasonsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseSettingsControllerGetRevokeReasons>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof licenseSettingsControllerGetRevokeReasons>>,
+          TError,
+          Awaited<ReturnType<typeof licenseSettingsControllerGetRevokeReasons>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLicenseSettingsControllerGetRevokeReasons<TData = Awaited<ReturnType<typeof licenseSettingsControllerGetRevokeReasons>>, TError = unknown>(
+ params: LicenseSettingsControllerGetRevokeReasonsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseSettingsControllerGetRevokeReasons>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof licenseSettingsControllerGetRevokeReasons>>,
+          TError,
+          Awaited<ReturnType<typeof licenseSettingsControllerGetRevokeReasons>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLicenseSettingsControllerGetRevokeReasons<TData = Awaited<ReturnType<typeof licenseSettingsControllerGetRevokeReasons>>, TError = unknown>(
+ params: LicenseSettingsControllerGetRevokeReasonsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseSettingsControllerGetRevokeReasons>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List revoke reasons
+ */
+
+export function useLicenseSettingsControllerGetRevokeReasons<TData = Awaited<ReturnType<typeof licenseSettingsControllerGetRevokeReasons>>, TError = unknown>(
+ params: LicenseSettingsControllerGetRevokeReasonsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseSettingsControllerGetRevokeReasons>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getLicenseSettingsControllerGetRevokeReasonsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Create revoke reason
+ */
+export type licenseSettingsControllerCreateRevokeReasonResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type licenseSettingsControllerCreateRevokeReasonResponseSuccess = (licenseSettingsControllerCreateRevokeReasonResponse201) & {
+  headers: Headers;
+};
+;
+
+export type licenseSettingsControllerCreateRevokeReasonResponse = (licenseSettingsControllerCreateRevokeReasonResponseSuccess)
+
+export const getLicenseSettingsControllerCreateRevokeReasonUrl = () => {
+
+
+  
+
+  return `/api/v1/licenses/settings/revoke-reasons`
+}
+
+export const licenseSettingsControllerCreateRevokeReason = async (createReasonDto: CreateReasonDto, options?: RequestInit): Promise<licenseSettingsControllerCreateRevokeReasonResponse> => {
+  
+  return customFetch<licenseSettingsControllerCreateRevokeReasonResponse>(getLicenseSettingsControllerCreateRevokeReasonUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createReasonDto,)
+  }
+);}
+
+
+
+
+export const getLicenseSettingsControllerCreateRevokeReasonMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerCreateRevokeReason>>, TError,{data: CreateReasonDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerCreateRevokeReason>>, TError,{data: CreateReasonDto}, TContext> => {
+
+const mutationKey = ['licenseSettingsControllerCreateRevokeReason'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof licenseSettingsControllerCreateRevokeReason>>, {data: CreateReasonDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  licenseSettingsControllerCreateRevokeReason(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LicenseSettingsControllerCreateRevokeReasonMutationResult = NonNullable<Awaited<ReturnType<typeof licenseSettingsControllerCreateRevokeReason>>>
+    export type LicenseSettingsControllerCreateRevokeReasonMutationBody = CreateReasonDto
+    export type LicenseSettingsControllerCreateRevokeReasonMutationError = unknown
+
+    /**
+ * @summary Create revoke reason
+ */
+export const useLicenseSettingsControllerCreateRevokeReason = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerCreateRevokeReason>>, TError,{data: CreateReasonDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof licenseSettingsControllerCreateRevokeReason>>,
+        TError,
+        {data: CreateReasonDto},
+        TContext
+      > => {
+
+      const mutationOptions = getLicenseSettingsControllerCreateRevokeReasonMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Update revoke reason
+ */
+export type licenseSettingsControllerUpdateRevokeReasonResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type licenseSettingsControllerUpdateRevokeReasonResponseSuccess = (licenseSettingsControllerUpdateRevokeReasonResponse200) & {
+  headers: Headers;
+};
+;
+
+export type licenseSettingsControllerUpdateRevokeReasonResponse = (licenseSettingsControllerUpdateRevokeReasonResponseSuccess)
+
+export const getLicenseSettingsControllerUpdateRevokeReasonUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/licenses/settings/revoke-reasons/${id}`
+}
+
+export const licenseSettingsControllerUpdateRevokeReason = async (id: number,
+    updateReasonDto: UpdateReasonDto, options?: RequestInit): Promise<licenseSettingsControllerUpdateRevokeReasonResponse> => {
+  
+  return customFetch<licenseSettingsControllerUpdateRevokeReasonResponse>(getLicenseSettingsControllerUpdateRevokeReasonUrl(id),
+  {      
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateReasonDto,)
+  }
+);}
+
+
+
+
+export const getLicenseSettingsControllerUpdateRevokeReasonMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerUpdateRevokeReason>>, TError,{id: number;data: UpdateReasonDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerUpdateRevokeReason>>, TError,{id: number;data: UpdateReasonDto}, TContext> => {
+
+const mutationKey = ['licenseSettingsControllerUpdateRevokeReason'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof licenseSettingsControllerUpdateRevokeReason>>, {id: number;data: UpdateReasonDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  licenseSettingsControllerUpdateRevokeReason(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LicenseSettingsControllerUpdateRevokeReasonMutationResult = NonNullable<Awaited<ReturnType<typeof licenseSettingsControllerUpdateRevokeReason>>>
+    export type LicenseSettingsControllerUpdateRevokeReasonMutationBody = UpdateReasonDto
+    export type LicenseSettingsControllerUpdateRevokeReasonMutationError = unknown
+
+    /**
+ * @summary Update revoke reason
+ */
+export const useLicenseSettingsControllerUpdateRevokeReason = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerUpdateRevokeReason>>, TError,{id: number;data: UpdateReasonDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof licenseSettingsControllerUpdateRevokeReason>>,
+        TError,
+        {id: number;data: UpdateReasonDto},
+        TContext
+      > => {
+
+      const mutationOptions = getLicenseSettingsControllerUpdateRevokeReasonMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Delete or deactivate revoke reason
+ */
+export type licenseSettingsControllerDeleteRevokeReasonResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type licenseSettingsControllerDeleteRevokeReasonResponseSuccess = (licenseSettingsControllerDeleteRevokeReasonResponse200) & {
+  headers: Headers;
+};
+;
+
+export type licenseSettingsControllerDeleteRevokeReasonResponse = (licenseSettingsControllerDeleteRevokeReasonResponseSuccess)
+
+export const getLicenseSettingsControllerDeleteRevokeReasonUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/licenses/settings/revoke-reasons/${id}`
+}
+
+export const licenseSettingsControllerDeleteRevokeReason = async (id: number, options?: RequestInit): Promise<licenseSettingsControllerDeleteRevokeReasonResponse> => {
+  
+  return customFetch<licenseSettingsControllerDeleteRevokeReasonResponse>(getLicenseSettingsControllerDeleteRevokeReasonUrl(id),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+);}
+
+
+
+
+export const getLicenseSettingsControllerDeleteRevokeReasonMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerDeleteRevokeReason>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerDeleteRevokeReason>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['licenseSettingsControllerDeleteRevokeReason'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof licenseSettingsControllerDeleteRevokeReason>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  licenseSettingsControllerDeleteRevokeReason(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LicenseSettingsControllerDeleteRevokeReasonMutationResult = NonNullable<Awaited<ReturnType<typeof licenseSettingsControllerDeleteRevokeReason>>>
+    
+    export type LicenseSettingsControllerDeleteRevokeReasonMutationError = unknown
+
+    /**
+ * @summary Delete or deactivate revoke reason
+ */
+export const useLicenseSettingsControllerDeleteRevokeReason = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerDeleteRevokeReason>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof licenseSettingsControllerDeleteRevokeReason>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+
+      const mutationOptions = getLicenseSettingsControllerDeleteRevokeReasonMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary List discontinue reasons
+ */
+export type licenseSettingsControllerGetDiscontinueReasonsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type licenseSettingsControllerGetDiscontinueReasonsResponseSuccess = (licenseSettingsControllerGetDiscontinueReasonsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type licenseSettingsControllerGetDiscontinueReasonsResponse = (licenseSettingsControllerGetDiscontinueReasonsResponseSuccess)
+
+export const getLicenseSettingsControllerGetDiscontinueReasonsUrl = (params: LicenseSettingsControllerGetDiscontinueReasonsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/licenses/settings/discontinue-reasons?${stringifiedParams}` : `/api/v1/licenses/settings/discontinue-reasons`
+}
+
+export const licenseSettingsControllerGetDiscontinueReasons = async (params: LicenseSettingsControllerGetDiscontinueReasonsParams, options?: RequestInit): Promise<licenseSettingsControllerGetDiscontinueReasonsResponse> => {
+  
+  return customFetch<licenseSettingsControllerGetDiscontinueReasonsResponse>(getLicenseSettingsControllerGetDiscontinueReasonsUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getLicenseSettingsControllerGetDiscontinueReasonsQueryKey = (params?: LicenseSettingsControllerGetDiscontinueReasonsParams,) => {
+    return [
+    `/api/v1/licenses/settings/discontinue-reasons`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getLicenseSettingsControllerGetDiscontinueReasonsQueryOptions = <TData = Awaited<ReturnType<typeof licenseSettingsControllerGetDiscontinueReasons>>, TError = unknown>(params: LicenseSettingsControllerGetDiscontinueReasonsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseSettingsControllerGetDiscontinueReasons>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getLicenseSettingsControllerGetDiscontinueReasonsQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof licenseSettingsControllerGetDiscontinueReasons>>> = ({ signal }) => licenseSettingsControllerGetDiscontinueReasons(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof licenseSettingsControllerGetDiscontinueReasons>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type LicenseSettingsControllerGetDiscontinueReasonsQueryResult = NonNullable<Awaited<ReturnType<typeof licenseSettingsControllerGetDiscontinueReasons>>>
+export type LicenseSettingsControllerGetDiscontinueReasonsQueryError = unknown
+
+
+export function useLicenseSettingsControllerGetDiscontinueReasons<TData = Awaited<ReturnType<typeof licenseSettingsControllerGetDiscontinueReasons>>, TError = unknown>(
+ params: LicenseSettingsControllerGetDiscontinueReasonsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseSettingsControllerGetDiscontinueReasons>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof licenseSettingsControllerGetDiscontinueReasons>>,
+          TError,
+          Awaited<ReturnType<typeof licenseSettingsControllerGetDiscontinueReasons>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLicenseSettingsControllerGetDiscontinueReasons<TData = Awaited<ReturnType<typeof licenseSettingsControllerGetDiscontinueReasons>>, TError = unknown>(
+ params: LicenseSettingsControllerGetDiscontinueReasonsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseSettingsControllerGetDiscontinueReasons>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof licenseSettingsControllerGetDiscontinueReasons>>,
+          TError,
+          Awaited<ReturnType<typeof licenseSettingsControllerGetDiscontinueReasons>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLicenseSettingsControllerGetDiscontinueReasons<TData = Awaited<ReturnType<typeof licenseSettingsControllerGetDiscontinueReasons>>, TError = unknown>(
+ params: LicenseSettingsControllerGetDiscontinueReasonsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseSettingsControllerGetDiscontinueReasons>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List discontinue reasons
+ */
+
+export function useLicenseSettingsControllerGetDiscontinueReasons<TData = Awaited<ReturnType<typeof licenseSettingsControllerGetDiscontinueReasons>>, TError = unknown>(
+ params: LicenseSettingsControllerGetDiscontinueReasonsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseSettingsControllerGetDiscontinueReasons>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getLicenseSettingsControllerGetDiscontinueReasonsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Create discontinue reason
+ */
+export type licenseSettingsControllerCreateDiscontinueReasonResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type licenseSettingsControllerCreateDiscontinueReasonResponseSuccess = (licenseSettingsControllerCreateDiscontinueReasonResponse201) & {
+  headers: Headers;
+};
+;
+
+export type licenseSettingsControllerCreateDiscontinueReasonResponse = (licenseSettingsControllerCreateDiscontinueReasonResponseSuccess)
+
+export const getLicenseSettingsControllerCreateDiscontinueReasonUrl = () => {
+
+
+  
+
+  return `/api/v1/licenses/settings/discontinue-reasons`
+}
+
+export const licenseSettingsControllerCreateDiscontinueReason = async (createReasonDto: CreateReasonDto, options?: RequestInit): Promise<licenseSettingsControllerCreateDiscontinueReasonResponse> => {
+  
+  return customFetch<licenseSettingsControllerCreateDiscontinueReasonResponse>(getLicenseSettingsControllerCreateDiscontinueReasonUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createReasonDto,)
+  }
+);}
+
+
+
+
+export const getLicenseSettingsControllerCreateDiscontinueReasonMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerCreateDiscontinueReason>>, TError,{data: CreateReasonDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerCreateDiscontinueReason>>, TError,{data: CreateReasonDto}, TContext> => {
+
+const mutationKey = ['licenseSettingsControllerCreateDiscontinueReason'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof licenseSettingsControllerCreateDiscontinueReason>>, {data: CreateReasonDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  licenseSettingsControllerCreateDiscontinueReason(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LicenseSettingsControllerCreateDiscontinueReasonMutationResult = NonNullable<Awaited<ReturnType<typeof licenseSettingsControllerCreateDiscontinueReason>>>
+    export type LicenseSettingsControllerCreateDiscontinueReasonMutationBody = CreateReasonDto
+    export type LicenseSettingsControllerCreateDiscontinueReasonMutationError = unknown
+
+    /**
+ * @summary Create discontinue reason
+ */
+export const useLicenseSettingsControllerCreateDiscontinueReason = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerCreateDiscontinueReason>>, TError,{data: CreateReasonDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof licenseSettingsControllerCreateDiscontinueReason>>,
+        TError,
+        {data: CreateReasonDto},
+        TContext
+      > => {
+
+      const mutationOptions = getLicenseSettingsControllerCreateDiscontinueReasonMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Update discontinue reason
+ */
+export type licenseSettingsControllerUpdateDiscontinueReasonResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type licenseSettingsControllerUpdateDiscontinueReasonResponseSuccess = (licenseSettingsControllerUpdateDiscontinueReasonResponse200) & {
+  headers: Headers;
+};
+;
+
+export type licenseSettingsControllerUpdateDiscontinueReasonResponse = (licenseSettingsControllerUpdateDiscontinueReasonResponseSuccess)
+
+export const getLicenseSettingsControllerUpdateDiscontinueReasonUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/licenses/settings/discontinue-reasons/${id}`
+}
+
+export const licenseSettingsControllerUpdateDiscontinueReason = async (id: number,
+    updateReasonDto: UpdateReasonDto, options?: RequestInit): Promise<licenseSettingsControllerUpdateDiscontinueReasonResponse> => {
+  
+  return customFetch<licenseSettingsControllerUpdateDiscontinueReasonResponse>(getLicenseSettingsControllerUpdateDiscontinueReasonUrl(id),
+  {      
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateReasonDto,)
+  }
+);}
+
+
+
+
+export const getLicenseSettingsControllerUpdateDiscontinueReasonMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerUpdateDiscontinueReason>>, TError,{id: number;data: UpdateReasonDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerUpdateDiscontinueReason>>, TError,{id: number;data: UpdateReasonDto}, TContext> => {
+
+const mutationKey = ['licenseSettingsControllerUpdateDiscontinueReason'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof licenseSettingsControllerUpdateDiscontinueReason>>, {id: number;data: UpdateReasonDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  licenseSettingsControllerUpdateDiscontinueReason(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LicenseSettingsControllerUpdateDiscontinueReasonMutationResult = NonNullable<Awaited<ReturnType<typeof licenseSettingsControllerUpdateDiscontinueReason>>>
+    export type LicenseSettingsControllerUpdateDiscontinueReasonMutationBody = UpdateReasonDto
+    export type LicenseSettingsControllerUpdateDiscontinueReasonMutationError = unknown
+
+    /**
+ * @summary Update discontinue reason
+ */
+export const useLicenseSettingsControllerUpdateDiscontinueReason = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerUpdateDiscontinueReason>>, TError,{id: number;data: UpdateReasonDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof licenseSettingsControllerUpdateDiscontinueReason>>,
+        TError,
+        {id: number;data: UpdateReasonDto},
+        TContext
+      > => {
+
+      const mutationOptions = getLicenseSettingsControllerUpdateDiscontinueReasonMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Delete or deactivate discontinue reason
+ */
+export type licenseSettingsControllerDeleteDiscontinueReasonResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type licenseSettingsControllerDeleteDiscontinueReasonResponseSuccess = (licenseSettingsControllerDeleteDiscontinueReasonResponse200) & {
+  headers: Headers;
+};
+;
+
+export type licenseSettingsControllerDeleteDiscontinueReasonResponse = (licenseSettingsControllerDeleteDiscontinueReasonResponseSuccess)
+
+export const getLicenseSettingsControllerDeleteDiscontinueReasonUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/licenses/settings/discontinue-reasons/${id}`
+}
+
+export const licenseSettingsControllerDeleteDiscontinueReason = async (id: number, options?: RequestInit): Promise<licenseSettingsControllerDeleteDiscontinueReasonResponse> => {
+  
+  return customFetch<licenseSettingsControllerDeleteDiscontinueReasonResponse>(getLicenseSettingsControllerDeleteDiscontinueReasonUrl(id),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+);}
+
+
+
+
+export const getLicenseSettingsControllerDeleteDiscontinueReasonMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerDeleteDiscontinueReason>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerDeleteDiscontinueReason>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['licenseSettingsControllerDeleteDiscontinueReason'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof licenseSettingsControllerDeleteDiscontinueReason>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  licenseSettingsControllerDeleteDiscontinueReason(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LicenseSettingsControllerDeleteDiscontinueReasonMutationResult = NonNullable<Awaited<ReturnType<typeof licenseSettingsControllerDeleteDiscontinueReason>>>
+    
+    export type LicenseSettingsControllerDeleteDiscontinueReasonMutationError = unknown
+
+    /**
+ * @summary Delete or deactivate discontinue reason
+ */
+export const useLicenseSettingsControllerDeleteDiscontinueReason = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerDeleteDiscontinueReason>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof licenseSettingsControllerDeleteDiscontinueReason>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+
+      const mutationOptions = getLicenseSettingsControllerDeleteDiscontinueReasonMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary List software license managers
+ */
+export type licenseSettingsControllerGetManagersResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type licenseSettingsControllerGetManagersResponseSuccess = (licenseSettingsControllerGetManagersResponse200) & {
+  headers: Headers;
+};
+;
+
+export type licenseSettingsControllerGetManagersResponse = (licenseSettingsControllerGetManagersResponseSuccess)
+
+export const getLicenseSettingsControllerGetManagersUrl = () => {
+
+
+  
+
+  return `/api/v1/licenses/settings/managers`
+}
+
+export const licenseSettingsControllerGetManagers = async ( options?: RequestInit): Promise<licenseSettingsControllerGetManagersResponse> => {
+  
+  return customFetch<licenseSettingsControllerGetManagersResponse>(getLicenseSettingsControllerGetManagersUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getLicenseSettingsControllerGetManagersQueryKey = () => {
+    return [
+    `/api/v1/licenses/settings/managers`
+    ] as const;
+    }
+
+    
+export const getLicenseSettingsControllerGetManagersQueryOptions = <TData = Awaited<ReturnType<typeof licenseSettingsControllerGetManagers>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseSettingsControllerGetManagers>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getLicenseSettingsControllerGetManagersQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof licenseSettingsControllerGetManagers>>> = ({ signal }) => licenseSettingsControllerGetManagers({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof licenseSettingsControllerGetManagers>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type LicenseSettingsControllerGetManagersQueryResult = NonNullable<Awaited<ReturnType<typeof licenseSettingsControllerGetManagers>>>
+export type LicenseSettingsControllerGetManagersQueryError = unknown
+
+
+export function useLicenseSettingsControllerGetManagers<TData = Awaited<ReturnType<typeof licenseSettingsControllerGetManagers>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseSettingsControllerGetManagers>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof licenseSettingsControllerGetManagers>>,
+          TError,
+          Awaited<ReturnType<typeof licenseSettingsControllerGetManagers>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLicenseSettingsControllerGetManagers<TData = Awaited<ReturnType<typeof licenseSettingsControllerGetManagers>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseSettingsControllerGetManagers>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof licenseSettingsControllerGetManagers>>,
+          TError,
+          Awaited<ReturnType<typeof licenseSettingsControllerGetManagers>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLicenseSettingsControllerGetManagers<TData = Awaited<ReturnType<typeof licenseSettingsControllerGetManagers>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseSettingsControllerGetManagers>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List software license managers
+ */
+
+export function useLicenseSettingsControllerGetManagers<TData = Awaited<ReturnType<typeof licenseSettingsControllerGetManagers>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseSettingsControllerGetManagers>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getLicenseSettingsControllerGetManagersQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Add an employee as software license manager
+ */
+export type licenseSettingsControllerAddManagerResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type licenseSettingsControllerAddManagerResponseSuccess = (licenseSettingsControllerAddManagerResponse201) & {
+  headers: Headers;
+};
+;
+
+export type licenseSettingsControllerAddManagerResponse = (licenseSettingsControllerAddManagerResponseSuccess)
+
+export const getLicenseSettingsControllerAddManagerUrl = () => {
+
+
+  
+
+  return `/api/v1/licenses/settings/managers`
+}
+
+export const licenseSettingsControllerAddManager = async (addManagerDto: AddManagerDto, options?: RequestInit): Promise<licenseSettingsControllerAddManagerResponse> => {
+  
+  return customFetch<licenseSettingsControllerAddManagerResponse>(getLicenseSettingsControllerAddManagerUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      addManagerDto,)
+  }
+);}
+
+
+
+
+export const getLicenseSettingsControllerAddManagerMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerAddManager>>, TError,{data: AddManagerDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerAddManager>>, TError,{data: AddManagerDto}, TContext> => {
+
+const mutationKey = ['licenseSettingsControllerAddManager'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof licenseSettingsControllerAddManager>>, {data: AddManagerDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  licenseSettingsControllerAddManager(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LicenseSettingsControllerAddManagerMutationResult = NonNullable<Awaited<ReturnType<typeof licenseSettingsControllerAddManager>>>
+    export type LicenseSettingsControllerAddManagerMutationBody = AddManagerDto
+    export type LicenseSettingsControllerAddManagerMutationError = unknown
+
+    /**
+ * @summary Add an employee as software license manager
+ */
+export const useLicenseSettingsControllerAddManager = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerAddManager>>, TError,{data: AddManagerDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof licenseSettingsControllerAddManager>>,
+        TError,
+        {data: AddManagerDto},
+        TContext
+      > => {
+
+      const mutationOptions = getLicenseSettingsControllerAddManagerMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Remove software license manager
+ */
+export type licenseSettingsControllerRemoveManagerResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type licenseSettingsControllerRemoveManagerResponseSuccess = (licenseSettingsControllerRemoveManagerResponse200) & {
+  headers: Headers;
+};
+;
+
+export type licenseSettingsControllerRemoveManagerResponse = (licenseSettingsControllerRemoveManagerResponseSuccess)
+
+export const getLicenseSettingsControllerRemoveManagerUrl = (empId: number,) => {
+
+
+  
+
+  return `/api/v1/licenses/settings/managers/${empId}`
+}
+
+export const licenseSettingsControllerRemoveManager = async (empId: number, options?: RequestInit): Promise<licenseSettingsControllerRemoveManagerResponse> => {
+  
+  return customFetch<licenseSettingsControllerRemoveManagerResponse>(getLicenseSettingsControllerRemoveManagerUrl(empId),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+);}
+
+
+
+
+export const getLicenseSettingsControllerRemoveManagerMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerRemoveManager>>, TError,{empId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerRemoveManager>>, TError,{empId: number}, TContext> => {
+
+const mutationKey = ['licenseSettingsControllerRemoveManager'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof licenseSettingsControllerRemoveManager>>, {empId: number}> = (props) => {
+          const {empId} = props ?? {};
+
+          return  licenseSettingsControllerRemoveManager(empId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LicenseSettingsControllerRemoveManagerMutationResult = NonNullable<Awaited<ReturnType<typeof licenseSettingsControllerRemoveManager>>>
+    
+    export type LicenseSettingsControllerRemoveManagerMutationError = unknown
+
+    /**
+ * @summary Remove software license manager
+ */
+export const useLicenseSettingsControllerRemoveManager = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseSettingsControllerRemoveManager>>, TError,{empId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof licenseSettingsControllerRemoveManager>>,
+        TError,
+        {empId: number},
+        TContext
+      > => {
+
+      const mutationOptions = getLicenseSettingsControllerRemoveManagerMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Software Register report
+ */
+export type licenseReportsControllerGetRegisterResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type licenseReportsControllerGetRegisterResponseSuccess = (licenseReportsControllerGetRegisterResponse200) & {
+  headers: Headers;
+};
+;
+
+export type licenseReportsControllerGetRegisterResponse = (licenseReportsControllerGetRegisterResponseSuccess)
+
+export const getLicenseReportsControllerGetRegisterUrl = () => {
+
+
+  
+
+  return `/api/v1/licenses/reports/register`
+}
+
+export const licenseReportsControllerGetRegister = async ( options?: RequestInit): Promise<licenseReportsControllerGetRegisterResponse> => {
+  
+  return customFetch<licenseReportsControllerGetRegisterResponse>(getLicenseReportsControllerGetRegisterUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getLicenseReportsControllerGetRegisterQueryKey = () => {
+    return [
+    `/api/v1/licenses/reports/register`
+    ] as const;
+    }
+
+    
+export const getLicenseReportsControllerGetRegisterQueryOptions = <TData = Awaited<ReturnType<typeof licenseReportsControllerGetRegister>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetRegister>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getLicenseReportsControllerGetRegisterQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof licenseReportsControllerGetRegister>>> = ({ signal }) => licenseReportsControllerGetRegister({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetRegister>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type LicenseReportsControllerGetRegisterQueryResult = NonNullable<Awaited<ReturnType<typeof licenseReportsControllerGetRegister>>>
+export type LicenseReportsControllerGetRegisterQueryError = unknown
+
+
+export function useLicenseReportsControllerGetRegister<TData = Awaited<ReturnType<typeof licenseReportsControllerGetRegister>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetRegister>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof licenseReportsControllerGetRegister>>,
+          TError,
+          Awaited<ReturnType<typeof licenseReportsControllerGetRegister>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLicenseReportsControllerGetRegister<TData = Awaited<ReturnType<typeof licenseReportsControllerGetRegister>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetRegister>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof licenseReportsControllerGetRegister>>,
+          TError,
+          Awaited<ReturnType<typeof licenseReportsControllerGetRegister>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLicenseReportsControllerGetRegister<TData = Awaited<ReturnType<typeof licenseReportsControllerGetRegister>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetRegister>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Software Register report
+ */
+
+export function useLicenseReportsControllerGetRegister<TData = Awaited<ReturnType<typeof licenseReportsControllerGetRegister>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetRegister>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getLicenseReportsControllerGetRegisterQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Upcoming renewals report
+ */
+export type licenseReportsControllerGetRenewalsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type licenseReportsControllerGetRenewalsResponseSuccess = (licenseReportsControllerGetRenewalsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type licenseReportsControllerGetRenewalsResponse = (licenseReportsControllerGetRenewalsResponseSuccess)
+
+export const getLicenseReportsControllerGetRenewalsUrl = (params: LicenseReportsControllerGetRenewalsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/licenses/reports/renewals?${stringifiedParams}` : `/api/v1/licenses/reports/renewals`
+}
+
+export const licenseReportsControllerGetRenewals = async (params: LicenseReportsControllerGetRenewalsParams, options?: RequestInit): Promise<licenseReportsControllerGetRenewalsResponse> => {
+  
+  return customFetch<licenseReportsControllerGetRenewalsResponse>(getLicenseReportsControllerGetRenewalsUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getLicenseReportsControllerGetRenewalsQueryKey = (params?: LicenseReportsControllerGetRenewalsParams,) => {
+    return [
+    `/api/v1/licenses/reports/renewals`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getLicenseReportsControllerGetRenewalsQueryOptions = <TData = Awaited<ReturnType<typeof licenseReportsControllerGetRenewals>>, TError = unknown>(params: LicenseReportsControllerGetRenewalsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetRenewals>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getLicenseReportsControllerGetRenewalsQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof licenseReportsControllerGetRenewals>>> = ({ signal }) => licenseReportsControllerGetRenewals(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetRenewals>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type LicenseReportsControllerGetRenewalsQueryResult = NonNullable<Awaited<ReturnType<typeof licenseReportsControllerGetRenewals>>>
+export type LicenseReportsControllerGetRenewalsQueryError = unknown
+
+
+export function useLicenseReportsControllerGetRenewals<TData = Awaited<ReturnType<typeof licenseReportsControllerGetRenewals>>, TError = unknown>(
+ params: LicenseReportsControllerGetRenewalsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetRenewals>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof licenseReportsControllerGetRenewals>>,
+          TError,
+          Awaited<ReturnType<typeof licenseReportsControllerGetRenewals>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLicenseReportsControllerGetRenewals<TData = Awaited<ReturnType<typeof licenseReportsControllerGetRenewals>>, TError = unknown>(
+ params: LicenseReportsControllerGetRenewalsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetRenewals>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof licenseReportsControllerGetRenewals>>,
+          TError,
+          Awaited<ReturnType<typeof licenseReportsControllerGetRenewals>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLicenseReportsControllerGetRenewals<TData = Awaited<ReturnType<typeof licenseReportsControllerGetRenewals>>, TError = unknown>(
+ params: LicenseReportsControllerGetRenewalsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetRenewals>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Upcoming renewals report
+ */
+
+export function useLicenseReportsControllerGetRenewals<TData = Awaited<ReturnType<typeof licenseReportsControllerGetRenewals>>, TError = unknown>(
+ params: LicenseReportsControllerGetRenewalsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetRenewals>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getLicenseReportsControllerGetRenewalsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Assignments by employee report
+ */
+export type licenseReportsControllerGetAssignmentsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type licenseReportsControllerGetAssignmentsResponseSuccess = (licenseReportsControllerGetAssignmentsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type licenseReportsControllerGetAssignmentsResponse = (licenseReportsControllerGetAssignmentsResponseSuccess)
+
+export const getLicenseReportsControllerGetAssignmentsUrl = (params: LicenseReportsControllerGetAssignmentsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/licenses/reports/assignments?${stringifiedParams}` : `/api/v1/licenses/reports/assignments`
+}
+
+export const licenseReportsControllerGetAssignments = async (params: LicenseReportsControllerGetAssignmentsParams, options?: RequestInit): Promise<licenseReportsControllerGetAssignmentsResponse> => {
+  
+  return customFetch<licenseReportsControllerGetAssignmentsResponse>(getLicenseReportsControllerGetAssignmentsUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getLicenseReportsControllerGetAssignmentsQueryKey = (params?: LicenseReportsControllerGetAssignmentsParams,) => {
+    return [
+    `/api/v1/licenses/reports/assignments`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getLicenseReportsControllerGetAssignmentsQueryOptions = <TData = Awaited<ReturnType<typeof licenseReportsControllerGetAssignments>>, TError = unknown>(params: LicenseReportsControllerGetAssignmentsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetAssignments>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getLicenseReportsControllerGetAssignmentsQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof licenseReportsControllerGetAssignments>>> = ({ signal }) => licenseReportsControllerGetAssignments(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetAssignments>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type LicenseReportsControllerGetAssignmentsQueryResult = NonNullable<Awaited<ReturnType<typeof licenseReportsControllerGetAssignments>>>
+export type LicenseReportsControllerGetAssignmentsQueryError = unknown
+
+
+export function useLicenseReportsControllerGetAssignments<TData = Awaited<ReturnType<typeof licenseReportsControllerGetAssignments>>, TError = unknown>(
+ params: LicenseReportsControllerGetAssignmentsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetAssignments>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof licenseReportsControllerGetAssignments>>,
+          TError,
+          Awaited<ReturnType<typeof licenseReportsControllerGetAssignments>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLicenseReportsControllerGetAssignments<TData = Awaited<ReturnType<typeof licenseReportsControllerGetAssignments>>, TError = unknown>(
+ params: LicenseReportsControllerGetAssignmentsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetAssignments>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof licenseReportsControllerGetAssignments>>,
+          TError,
+          Awaited<ReturnType<typeof licenseReportsControllerGetAssignments>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLicenseReportsControllerGetAssignments<TData = Awaited<ReturnType<typeof licenseReportsControllerGetAssignments>>, TError = unknown>(
+ params: LicenseReportsControllerGetAssignmentsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetAssignments>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Assignments by employee report
+ */
+
+export function useLicenseReportsControllerGetAssignments<TData = Awaited<ReturnType<typeof licenseReportsControllerGetAssignments>>, TError = unknown>(
+ params: LicenseReportsControllerGetAssignmentsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetAssignments>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getLicenseReportsControllerGetAssignmentsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Seat utilization and wastage report
+ */
+export type licenseReportsControllerGetSeatUtilizationResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type licenseReportsControllerGetSeatUtilizationResponseSuccess = (licenseReportsControllerGetSeatUtilizationResponse200) & {
+  headers: Headers;
+};
+;
+
+export type licenseReportsControllerGetSeatUtilizationResponse = (licenseReportsControllerGetSeatUtilizationResponseSuccess)
+
+export const getLicenseReportsControllerGetSeatUtilizationUrl = () => {
+
+
+  
+
+  return `/api/v1/licenses/reports/seat-utilization`
+}
+
+export const licenseReportsControllerGetSeatUtilization = async ( options?: RequestInit): Promise<licenseReportsControllerGetSeatUtilizationResponse> => {
+  
+  return customFetch<licenseReportsControllerGetSeatUtilizationResponse>(getLicenseReportsControllerGetSeatUtilizationUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getLicenseReportsControllerGetSeatUtilizationQueryKey = () => {
+    return [
+    `/api/v1/licenses/reports/seat-utilization`
+    ] as const;
+    }
+
+    
+export const getLicenseReportsControllerGetSeatUtilizationQueryOptions = <TData = Awaited<ReturnType<typeof licenseReportsControllerGetSeatUtilization>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetSeatUtilization>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getLicenseReportsControllerGetSeatUtilizationQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof licenseReportsControllerGetSeatUtilization>>> = ({ signal }) => licenseReportsControllerGetSeatUtilization({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetSeatUtilization>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type LicenseReportsControllerGetSeatUtilizationQueryResult = NonNullable<Awaited<ReturnType<typeof licenseReportsControllerGetSeatUtilization>>>
+export type LicenseReportsControllerGetSeatUtilizationQueryError = unknown
+
+
+export function useLicenseReportsControllerGetSeatUtilization<TData = Awaited<ReturnType<typeof licenseReportsControllerGetSeatUtilization>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetSeatUtilization>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof licenseReportsControllerGetSeatUtilization>>,
+          TError,
+          Awaited<ReturnType<typeof licenseReportsControllerGetSeatUtilization>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLicenseReportsControllerGetSeatUtilization<TData = Awaited<ReturnType<typeof licenseReportsControllerGetSeatUtilization>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetSeatUtilization>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof licenseReportsControllerGetSeatUtilization>>,
+          TError,
+          Awaited<ReturnType<typeof licenseReportsControllerGetSeatUtilization>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLicenseReportsControllerGetSeatUtilization<TData = Awaited<ReturnType<typeof licenseReportsControllerGetSeatUtilization>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetSeatUtilization>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Seat utilization and wastage report
+ */
+
+export function useLicenseReportsControllerGetSeatUtilization<TData = Awaited<ReturnType<typeof licenseReportsControllerGetSeatUtilization>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetSeatUtilization>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getLicenseReportsControllerGetSeatUtilizationQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Cost breakdown by category and vendor
+ */
+export type licenseReportsControllerGetCostBreakdownResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type licenseReportsControllerGetCostBreakdownResponseSuccess = (licenseReportsControllerGetCostBreakdownResponse200) & {
+  headers: Headers;
+};
+;
+
+export type licenseReportsControllerGetCostBreakdownResponse = (licenseReportsControllerGetCostBreakdownResponseSuccess)
+
+export const getLicenseReportsControllerGetCostBreakdownUrl = () => {
+
+
+  
+
+  return `/api/v1/licenses/reports/cost-breakdown`
+}
+
+export const licenseReportsControllerGetCostBreakdown = async ( options?: RequestInit): Promise<licenseReportsControllerGetCostBreakdownResponse> => {
+  
+  return customFetch<licenseReportsControllerGetCostBreakdownResponse>(getLicenseReportsControllerGetCostBreakdownUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getLicenseReportsControllerGetCostBreakdownQueryKey = () => {
+    return [
+    `/api/v1/licenses/reports/cost-breakdown`
+    ] as const;
+    }
+
+    
+export const getLicenseReportsControllerGetCostBreakdownQueryOptions = <TData = Awaited<ReturnType<typeof licenseReportsControllerGetCostBreakdown>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetCostBreakdown>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getLicenseReportsControllerGetCostBreakdownQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof licenseReportsControllerGetCostBreakdown>>> = ({ signal }) => licenseReportsControllerGetCostBreakdown({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetCostBreakdown>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type LicenseReportsControllerGetCostBreakdownQueryResult = NonNullable<Awaited<ReturnType<typeof licenseReportsControllerGetCostBreakdown>>>
+export type LicenseReportsControllerGetCostBreakdownQueryError = unknown
+
+
+export function useLicenseReportsControllerGetCostBreakdown<TData = Awaited<ReturnType<typeof licenseReportsControllerGetCostBreakdown>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetCostBreakdown>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof licenseReportsControllerGetCostBreakdown>>,
+          TError,
+          Awaited<ReturnType<typeof licenseReportsControllerGetCostBreakdown>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLicenseReportsControllerGetCostBreakdown<TData = Awaited<ReturnType<typeof licenseReportsControllerGetCostBreakdown>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetCostBreakdown>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof licenseReportsControllerGetCostBreakdown>>,
+          TError,
+          Awaited<ReturnType<typeof licenseReportsControllerGetCostBreakdown>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLicenseReportsControllerGetCostBreakdown<TData = Awaited<ReturnType<typeof licenseReportsControllerGetCostBreakdown>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetCostBreakdown>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Cost breakdown by category and vendor
+ */
+
+export function useLicenseReportsControllerGetCostBreakdown<TData = Awaited<ReturnType<typeof licenseReportsControllerGetCostBreakdown>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetCostBreakdown>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getLicenseReportsControllerGetCostBreakdownQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Expired and discontinued software report
+ */
+export type licenseReportsControllerGetExpiredAndDiscontinuedResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type licenseReportsControllerGetExpiredAndDiscontinuedResponseSuccess = (licenseReportsControllerGetExpiredAndDiscontinuedResponse200) & {
+  headers: Headers;
+};
+;
+
+export type licenseReportsControllerGetExpiredAndDiscontinuedResponse = (licenseReportsControllerGetExpiredAndDiscontinuedResponseSuccess)
+
+export const getLicenseReportsControllerGetExpiredAndDiscontinuedUrl = () => {
+
+
+  
+
+  return `/api/v1/licenses/reports/expired-discontinued`
+}
+
+export const licenseReportsControllerGetExpiredAndDiscontinued = async ( options?: RequestInit): Promise<licenseReportsControllerGetExpiredAndDiscontinuedResponse> => {
+  
+  return customFetch<licenseReportsControllerGetExpiredAndDiscontinuedResponse>(getLicenseReportsControllerGetExpiredAndDiscontinuedUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getLicenseReportsControllerGetExpiredAndDiscontinuedQueryKey = () => {
+    return [
+    `/api/v1/licenses/reports/expired-discontinued`
+    ] as const;
+    }
+
+    
+export const getLicenseReportsControllerGetExpiredAndDiscontinuedQueryOptions = <TData = Awaited<ReturnType<typeof licenseReportsControllerGetExpiredAndDiscontinued>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetExpiredAndDiscontinued>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getLicenseReportsControllerGetExpiredAndDiscontinuedQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof licenseReportsControllerGetExpiredAndDiscontinued>>> = ({ signal }) => licenseReportsControllerGetExpiredAndDiscontinued({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetExpiredAndDiscontinued>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type LicenseReportsControllerGetExpiredAndDiscontinuedQueryResult = NonNullable<Awaited<ReturnType<typeof licenseReportsControllerGetExpiredAndDiscontinued>>>
+export type LicenseReportsControllerGetExpiredAndDiscontinuedQueryError = unknown
+
+
+export function useLicenseReportsControllerGetExpiredAndDiscontinued<TData = Awaited<ReturnType<typeof licenseReportsControllerGetExpiredAndDiscontinued>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetExpiredAndDiscontinued>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof licenseReportsControllerGetExpiredAndDiscontinued>>,
+          TError,
+          Awaited<ReturnType<typeof licenseReportsControllerGetExpiredAndDiscontinued>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLicenseReportsControllerGetExpiredAndDiscontinued<TData = Awaited<ReturnType<typeof licenseReportsControllerGetExpiredAndDiscontinued>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetExpiredAndDiscontinued>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof licenseReportsControllerGetExpiredAndDiscontinued>>,
+          TError,
+          Awaited<ReturnType<typeof licenseReportsControllerGetExpiredAndDiscontinued>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLicenseReportsControllerGetExpiredAndDiscontinued<TData = Awaited<ReturnType<typeof licenseReportsControllerGetExpiredAndDiscontinued>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetExpiredAndDiscontinued>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Expired and discontinued software report
+ */
+
+export function useLicenseReportsControllerGetExpiredAndDiscontinued<TData = Awaited<ReturnType<typeof licenseReportsControllerGetExpiredAndDiscontinued>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetExpiredAndDiscontinued>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getLicenseReportsControllerGetExpiredAndDiscontinuedQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Audit and activity history report
+ */
+export type licenseReportsControllerGetActivityLogsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type licenseReportsControllerGetActivityLogsResponseSuccess = (licenseReportsControllerGetActivityLogsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type licenseReportsControllerGetActivityLogsResponse = (licenseReportsControllerGetActivityLogsResponseSuccess)
+
+export const getLicenseReportsControllerGetActivityLogsUrl = (params: LicenseReportsControllerGetActivityLogsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/licenses/reports/activity-logs?${stringifiedParams}` : `/api/v1/licenses/reports/activity-logs`
+}
+
+export const licenseReportsControllerGetActivityLogs = async (params: LicenseReportsControllerGetActivityLogsParams, options?: RequestInit): Promise<licenseReportsControllerGetActivityLogsResponse> => {
+  
+  return customFetch<licenseReportsControllerGetActivityLogsResponse>(getLicenseReportsControllerGetActivityLogsUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getLicenseReportsControllerGetActivityLogsQueryKey = (params?: LicenseReportsControllerGetActivityLogsParams,) => {
+    return [
+    `/api/v1/licenses/reports/activity-logs`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getLicenseReportsControllerGetActivityLogsQueryOptions = <TData = Awaited<ReturnType<typeof licenseReportsControllerGetActivityLogs>>, TError = unknown>(params: LicenseReportsControllerGetActivityLogsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetActivityLogs>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getLicenseReportsControllerGetActivityLogsQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof licenseReportsControllerGetActivityLogs>>> = ({ signal }) => licenseReportsControllerGetActivityLogs(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetActivityLogs>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type LicenseReportsControllerGetActivityLogsQueryResult = NonNullable<Awaited<ReturnType<typeof licenseReportsControllerGetActivityLogs>>>
+export type LicenseReportsControllerGetActivityLogsQueryError = unknown
+
+
+export function useLicenseReportsControllerGetActivityLogs<TData = Awaited<ReturnType<typeof licenseReportsControllerGetActivityLogs>>, TError = unknown>(
+ params: LicenseReportsControllerGetActivityLogsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetActivityLogs>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof licenseReportsControllerGetActivityLogs>>,
+          TError,
+          Awaited<ReturnType<typeof licenseReportsControllerGetActivityLogs>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLicenseReportsControllerGetActivityLogs<TData = Awaited<ReturnType<typeof licenseReportsControllerGetActivityLogs>>, TError = unknown>(
+ params: LicenseReportsControllerGetActivityLogsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetActivityLogs>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof licenseReportsControllerGetActivityLogs>>,
+          TError,
+          Awaited<ReturnType<typeof licenseReportsControllerGetActivityLogs>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLicenseReportsControllerGetActivityLogs<TData = Awaited<ReturnType<typeof licenseReportsControllerGetActivityLogs>>, TError = unknown>(
+ params: LicenseReportsControllerGetActivityLogsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetActivityLogs>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Audit and activity history report
+ */
+
+export function useLicenseReportsControllerGetActivityLogs<TData = Awaited<ReturnType<typeof licenseReportsControllerGetActivityLogs>>, TError = unknown>(
+ params: LicenseReportsControllerGetActivityLogsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseReportsControllerGetActivityLogs>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getLicenseReportsControllerGetActivityLogsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Get current employee assigned software
+ */
+export type licenseControllerGetMySoftwareResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type licenseControllerGetMySoftwareResponseSuccess = (licenseControllerGetMySoftwareResponse200) & {
+  headers: Headers;
+};
+;
+
+export type licenseControllerGetMySoftwareResponse = (licenseControllerGetMySoftwareResponseSuccess)
+
+export const getLicenseControllerGetMySoftwareUrl = () => {
+
+
+  
+
+  return `/api/v1/licenses/my`
+}
+
+export const licenseControllerGetMySoftware = async ( options?: RequestInit): Promise<licenseControllerGetMySoftwareResponse> => {
+  
+  return customFetch<licenseControllerGetMySoftwareResponse>(getLicenseControllerGetMySoftwareUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getLicenseControllerGetMySoftwareQueryKey = () => {
+    return [
+    `/api/v1/licenses/my`
+    ] as const;
+    }
+
+    
+export const getLicenseControllerGetMySoftwareQueryOptions = <TData = Awaited<ReturnType<typeof licenseControllerGetMySoftware>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseControllerGetMySoftware>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getLicenseControllerGetMySoftwareQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof licenseControllerGetMySoftware>>> = ({ signal }) => licenseControllerGetMySoftware({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof licenseControllerGetMySoftware>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type LicenseControllerGetMySoftwareQueryResult = NonNullable<Awaited<ReturnType<typeof licenseControllerGetMySoftware>>>
+export type LicenseControllerGetMySoftwareQueryError = unknown
+
+
+export function useLicenseControllerGetMySoftware<TData = Awaited<ReturnType<typeof licenseControllerGetMySoftware>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseControllerGetMySoftware>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof licenseControllerGetMySoftware>>,
+          TError,
+          Awaited<ReturnType<typeof licenseControllerGetMySoftware>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLicenseControllerGetMySoftware<TData = Awaited<ReturnType<typeof licenseControllerGetMySoftware>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseControllerGetMySoftware>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof licenseControllerGetMySoftware>>,
+          TError,
+          Awaited<ReturnType<typeof licenseControllerGetMySoftware>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLicenseControllerGetMySoftware<TData = Awaited<ReturnType<typeof licenseControllerGetMySoftware>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseControllerGetMySoftware>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get current employee assigned software
+ */
+
+export function useLicenseControllerGetMySoftware<TData = Awaited<ReturnType<typeof licenseControllerGetMySoftware>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseControllerGetMySoftware>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getLicenseControllerGetMySoftwareQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Get licenses assigned to departed or non-active employees
+ */
+export type licenseControllerGetLicensesToRecoverResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type licenseControllerGetLicensesToRecoverResponseSuccess = (licenseControllerGetLicensesToRecoverResponse200) & {
+  headers: Headers;
+};
+;
+
+export type licenseControllerGetLicensesToRecoverResponse = (licenseControllerGetLicensesToRecoverResponseSuccess)
+
+export const getLicenseControllerGetLicensesToRecoverUrl = () => {
+
+
+  
+
+  return `/api/v1/licenses/to-recover`
+}
+
+export const licenseControllerGetLicensesToRecover = async ( options?: RequestInit): Promise<licenseControllerGetLicensesToRecoverResponse> => {
+  
+  return customFetch<licenseControllerGetLicensesToRecoverResponse>(getLicenseControllerGetLicensesToRecoverUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getLicenseControllerGetLicensesToRecoverQueryKey = () => {
+    return [
+    `/api/v1/licenses/to-recover`
+    ] as const;
+    }
+
+    
+export const getLicenseControllerGetLicensesToRecoverQueryOptions = <TData = Awaited<ReturnType<typeof licenseControllerGetLicensesToRecover>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseControllerGetLicensesToRecover>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getLicenseControllerGetLicensesToRecoverQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof licenseControllerGetLicensesToRecover>>> = ({ signal }) => licenseControllerGetLicensesToRecover({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof licenseControllerGetLicensesToRecover>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type LicenseControllerGetLicensesToRecoverQueryResult = NonNullable<Awaited<ReturnType<typeof licenseControllerGetLicensesToRecover>>>
+export type LicenseControllerGetLicensesToRecoverQueryError = unknown
+
+
+export function useLicenseControllerGetLicensesToRecover<TData = Awaited<ReturnType<typeof licenseControllerGetLicensesToRecover>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseControllerGetLicensesToRecover>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof licenseControllerGetLicensesToRecover>>,
+          TError,
+          Awaited<ReturnType<typeof licenseControllerGetLicensesToRecover>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLicenseControllerGetLicensesToRecover<TData = Awaited<ReturnType<typeof licenseControllerGetLicensesToRecover>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseControllerGetLicensesToRecover>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof licenseControllerGetLicensesToRecover>>,
+          TError,
+          Awaited<ReturnType<typeof licenseControllerGetLicensesToRecover>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLicenseControllerGetLicensesToRecover<TData = Awaited<ReturnType<typeof licenseControllerGetLicensesToRecover>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseControllerGetLicensesToRecover>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get licenses assigned to departed or non-active employees
+ */
+
+export function useLicenseControllerGetLicensesToRecover<TData = Awaited<ReturnType<typeof licenseControllerGetLicensesToRecover>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseControllerGetLicensesToRecover>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getLicenseControllerGetLicensesToRecoverQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Sync software statuses and flag departed employees
+ */
+export type licenseControllerSyncStatusesResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type licenseControllerSyncStatusesResponseSuccess = (licenseControllerSyncStatusesResponse201) & {
+  headers: Headers;
+};
+;
+
+export type licenseControllerSyncStatusesResponse = (licenseControllerSyncStatusesResponseSuccess)
+
+export const getLicenseControllerSyncStatusesUrl = () => {
+
+
+  
+
+  return `/api/v1/licenses/sync`
+}
+
+export const licenseControllerSyncStatuses = async ( options?: RequestInit): Promise<licenseControllerSyncStatusesResponse> => {
+  
+  return customFetch<licenseControllerSyncStatusesResponse>(getLicenseControllerSyncStatusesUrl(),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getLicenseControllerSyncStatusesMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseControllerSyncStatuses>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof licenseControllerSyncStatuses>>, TError,void, TContext> => {
+
+const mutationKey = ['licenseControllerSyncStatuses'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof licenseControllerSyncStatuses>>, void> = () => {
+          
+
+          return  licenseControllerSyncStatuses(requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LicenseControllerSyncStatusesMutationResult = NonNullable<Awaited<ReturnType<typeof licenseControllerSyncStatuses>>>
+    
+    export type LicenseControllerSyncStatusesMutationError = unknown
+
+    /**
+ * @summary Sync software statuses and flag departed employees
+ */
+export const useLicenseControllerSyncStatuses = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseControllerSyncStatuses>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof licenseControllerSyncStatuses>>,
+        TError,
+        void,
+        TContext
+      > => {
+
+      const mutationOptions = getLicenseControllerSyncStatusesMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary List all software with filters, pagination, and metrics
+ */
+export type licenseControllerGetSoftwareListResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type licenseControllerGetSoftwareListResponseSuccess = (licenseControllerGetSoftwareListResponse200) & {
+  headers: Headers;
+};
+;
+
+export type licenseControllerGetSoftwareListResponse = (licenseControllerGetSoftwareListResponseSuccess)
+
+export const getLicenseControllerGetSoftwareListUrl = (params?: LicenseControllerGetSoftwareListParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/licenses?${stringifiedParams}` : `/api/v1/licenses`
+}
+
+export const licenseControllerGetSoftwareList = async (params?: LicenseControllerGetSoftwareListParams, options?: RequestInit): Promise<licenseControllerGetSoftwareListResponse> => {
+  
+  return customFetch<licenseControllerGetSoftwareListResponse>(getLicenseControllerGetSoftwareListUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getLicenseControllerGetSoftwareListQueryKey = (params?: LicenseControllerGetSoftwareListParams,) => {
+    return [
+    `/api/v1/licenses`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getLicenseControllerGetSoftwareListQueryOptions = <TData = Awaited<ReturnType<typeof licenseControllerGetSoftwareList>>, TError = unknown>(params?: LicenseControllerGetSoftwareListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseControllerGetSoftwareList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getLicenseControllerGetSoftwareListQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof licenseControllerGetSoftwareList>>> = ({ signal }) => licenseControllerGetSoftwareList(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof licenseControllerGetSoftwareList>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type LicenseControllerGetSoftwareListQueryResult = NonNullable<Awaited<ReturnType<typeof licenseControllerGetSoftwareList>>>
+export type LicenseControllerGetSoftwareListQueryError = unknown
+
+
+export function useLicenseControllerGetSoftwareList<TData = Awaited<ReturnType<typeof licenseControllerGetSoftwareList>>, TError = unknown>(
+ params: undefined |  LicenseControllerGetSoftwareListParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseControllerGetSoftwareList>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof licenseControllerGetSoftwareList>>,
+          TError,
+          Awaited<ReturnType<typeof licenseControllerGetSoftwareList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLicenseControllerGetSoftwareList<TData = Awaited<ReturnType<typeof licenseControllerGetSoftwareList>>, TError = unknown>(
+ params?: LicenseControllerGetSoftwareListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseControllerGetSoftwareList>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof licenseControllerGetSoftwareList>>,
+          TError,
+          Awaited<ReturnType<typeof licenseControllerGetSoftwareList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLicenseControllerGetSoftwareList<TData = Awaited<ReturnType<typeof licenseControllerGetSoftwareList>>, TError = unknown>(
+ params?: LicenseControllerGetSoftwareListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseControllerGetSoftwareList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List all software with filters, pagination, and metrics
+ */
+
+export function useLicenseControllerGetSoftwareList<TData = Awaited<ReturnType<typeof licenseControllerGetSoftwareList>>, TError = unknown>(
+ params?: LicenseControllerGetSoftwareListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseControllerGetSoftwareList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getLicenseControllerGetSoftwareListQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Register a new software license with initial term
+ */
+export type licenseControllerCreateSoftwareResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type licenseControllerCreateSoftwareResponseSuccess = (licenseControllerCreateSoftwareResponse201) & {
+  headers: Headers;
+};
+;
+
+export type licenseControllerCreateSoftwareResponse = (licenseControllerCreateSoftwareResponseSuccess)
+
+export const getLicenseControllerCreateSoftwareUrl = () => {
+
+
+  
+
+  return `/api/v1/licenses`
+}
+
+export const licenseControllerCreateSoftware = async (createSoftwareLicenseDto: CreateSoftwareLicenseDto, options?: RequestInit): Promise<licenseControllerCreateSoftwareResponse> => {
+  
+  return customFetch<licenseControllerCreateSoftwareResponse>(getLicenseControllerCreateSoftwareUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createSoftwareLicenseDto,)
+  }
+);}
+
+
+
+
+export const getLicenseControllerCreateSoftwareMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseControllerCreateSoftware>>, TError,{data: CreateSoftwareLicenseDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof licenseControllerCreateSoftware>>, TError,{data: CreateSoftwareLicenseDto}, TContext> => {
+
+const mutationKey = ['licenseControllerCreateSoftware'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof licenseControllerCreateSoftware>>, {data: CreateSoftwareLicenseDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  licenseControllerCreateSoftware(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LicenseControllerCreateSoftwareMutationResult = NonNullable<Awaited<ReturnType<typeof licenseControllerCreateSoftware>>>
+    export type LicenseControllerCreateSoftwareMutationBody = CreateSoftwareLicenseDto
+    export type LicenseControllerCreateSoftwareMutationError = unknown
+
+    /**
+ * @summary Register a new software license with initial term
+ */
+export const useLicenseControllerCreateSoftware = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseControllerCreateSoftware>>, TError,{data: CreateSoftwareLicenseDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof licenseControllerCreateSoftware>>,
+        TError,
+        {data: CreateSoftwareLicenseDto},
+        TContext
+      > => {
+
+      const mutationOptions = getLicenseControllerCreateSoftwareMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Get full details of a software license
+ */
+export type licenseControllerGetSoftwareByIdResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type licenseControllerGetSoftwareByIdResponseSuccess = (licenseControllerGetSoftwareByIdResponse200) & {
+  headers: Headers;
+};
+;
+
+export type licenseControllerGetSoftwareByIdResponse = (licenseControllerGetSoftwareByIdResponseSuccess)
+
+export const getLicenseControllerGetSoftwareByIdUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/licenses/${id}`
+}
+
+export const licenseControllerGetSoftwareById = async (id: number, options?: RequestInit): Promise<licenseControllerGetSoftwareByIdResponse> => {
+  
+  return customFetch<licenseControllerGetSoftwareByIdResponse>(getLicenseControllerGetSoftwareByIdUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getLicenseControllerGetSoftwareByIdQueryKey = (id?: number,) => {
+    return [
+    `/api/v1/licenses/${id}`
+    ] as const;
+    }
+
+    
+export const getLicenseControllerGetSoftwareByIdQueryOptions = <TData = Awaited<ReturnType<typeof licenseControllerGetSoftwareById>>, TError = unknown>(id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseControllerGetSoftwareById>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getLicenseControllerGetSoftwareByIdQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof licenseControllerGetSoftwareById>>> = ({ signal }) => licenseControllerGetSoftwareById(id, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof licenseControllerGetSoftwareById>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type LicenseControllerGetSoftwareByIdQueryResult = NonNullable<Awaited<ReturnType<typeof licenseControllerGetSoftwareById>>>
+export type LicenseControllerGetSoftwareByIdQueryError = unknown
+
+
+export function useLicenseControllerGetSoftwareById<TData = Awaited<ReturnType<typeof licenseControllerGetSoftwareById>>, TError = unknown>(
+ id: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseControllerGetSoftwareById>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof licenseControllerGetSoftwareById>>,
+          TError,
+          Awaited<ReturnType<typeof licenseControllerGetSoftwareById>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLicenseControllerGetSoftwareById<TData = Awaited<ReturnType<typeof licenseControllerGetSoftwareById>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseControllerGetSoftwareById>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof licenseControllerGetSoftwareById>>,
+          TError,
+          Awaited<ReturnType<typeof licenseControllerGetSoftwareById>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLicenseControllerGetSoftwareById<TData = Awaited<ReturnType<typeof licenseControllerGetSoftwareById>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseControllerGetSoftwareById>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get full details of a software license
+ */
+
+export function useLicenseControllerGetSoftwareById<TData = Awaited<ReturnType<typeof licenseControllerGetSoftwareById>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof licenseControllerGetSoftwareById>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getLicenseControllerGetSoftwareByIdQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Update software metadata
+ */
+export type licenseControllerUpdateSoftwareResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type licenseControllerUpdateSoftwareResponseSuccess = (licenseControllerUpdateSoftwareResponse200) & {
+  headers: Headers;
+};
+;
+
+export type licenseControllerUpdateSoftwareResponse = (licenseControllerUpdateSoftwareResponseSuccess)
+
+export const getLicenseControllerUpdateSoftwareUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/licenses/${id}`
+}
+
+export const licenseControllerUpdateSoftware = async (id: number,
+    updateSoftwareLicenseDto: UpdateSoftwareLicenseDto, options?: RequestInit): Promise<licenseControllerUpdateSoftwareResponse> => {
+  
+  return customFetch<licenseControllerUpdateSoftwareResponse>(getLicenseControllerUpdateSoftwareUrl(id),
+  {      
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateSoftwareLicenseDto,)
+  }
+);}
+
+
+
+
+export const getLicenseControllerUpdateSoftwareMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseControllerUpdateSoftware>>, TError,{id: number;data: UpdateSoftwareLicenseDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof licenseControllerUpdateSoftware>>, TError,{id: number;data: UpdateSoftwareLicenseDto}, TContext> => {
+
+const mutationKey = ['licenseControllerUpdateSoftware'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof licenseControllerUpdateSoftware>>, {id: number;data: UpdateSoftwareLicenseDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  licenseControllerUpdateSoftware(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LicenseControllerUpdateSoftwareMutationResult = NonNullable<Awaited<ReturnType<typeof licenseControllerUpdateSoftware>>>
+    export type LicenseControllerUpdateSoftwareMutationBody = UpdateSoftwareLicenseDto
+    export type LicenseControllerUpdateSoftwareMutationError = unknown
+
+    /**
+ * @summary Update software metadata
+ */
+export const useLicenseControllerUpdateSoftware = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseControllerUpdateSoftware>>, TError,{id: number;data: UpdateSoftwareLicenseDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof licenseControllerUpdateSoftware>>,
+        TError,
+        {id: number;data: UpdateSoftwareLicenseDto},
+        TContext
+      > => {
+
+      const mutationOptions = getLicenseControllerUpdateSoftwareMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Assign license seats to employees
+ */
+export type licenseControllerAssignLicenseResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type licenseControllerAssignLicenseResponseSuccess = (licenseControllerAssignLicenseResponse201) & {
+  headers: Headers;
+};
+;
+
+export type licenseControllerAssignLicenseResponse = (licenseControllerAssignLicenseResponseSuccess)
+
+export const getLicenseControllerAssignLicenseUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/licenses/${id}/assign`
+}
+
+export const licenseControllerAssignLicense = async (id: number,
+    assignLicenseDto: AssignLicenseDto, options?: RequestInit): Promise<licenseControllerAssignLicenseResponse> => {
+  
+  return customFetch<licenseControllerAssignLicenseResponse>(getLicenseControllerAssignLicenseUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      assignLicenseDto,)
+  }
+);}
+
+
+
+
+export const getLicenseControllerAssignLicenseMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseControllerAssignLicense>>, TError,{id: number;data: AssignLicenseDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof licenseControllerAssignLicense>>, TError,{id: number;data: AssignLicenseDto}, TContext> => {
+
+const mutationKey = ['licenseControllerAssignLicense'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof licenseControllerAssignLicense>>, {id: number;data: AssignLicenseDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  licenseControllerAssignLicense(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LicenseControllerAssignLicenseMutationResult = NonNullable<Awaited<ReturnType<typeof licenseControllerAssignLicense>>>
+    export type LicenseControllerAssignLicenseMutationBody = AssignLicenseDto
+    export type LicenseControllerAssignLicenseMutationError = unknown
+
+    /**
+ * @summary Assign license seats to employees
+ */
+export const useLicenseControllerAssignLicense = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseControllerAssignLicense>>, TError,{id: number;data: AssignLicenseDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof licenseControllerAssignLicense>>,
+        TError,
+        {id: number;data: AssignLicenseDto},
+        TContext
+      > => {
+
+      const mutationOptions = getLicenseControllerAssignLicenseMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Renew software license with a new term
+ */
+export type licenseControllerRenewLicenseResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type licenseControllerRenewLicenseResponseSuccess = (licenseControllerRenewLicenseResponse201) & {
+  headers: Headers;
+};
+;
+
+export type licenseControllerRenewLicenseResponse = (licenseControllerRenewLicenseResponseSuccess)
+
+export const getLicenseControllerRenewLicenseUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/licenses/${id}/renew`
+}
+
+export const licenseControllerRenewLicense = async (id: number,
+    renewLicenseDto: RenewLicenseDto, options?: RequestInit): Promise<licenseControllerRenewLicenseResponse> => {
+  
+  return customFetch<licenseControllerRenewLicenseResponse>(getLicenseControllerRenewLicenseUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      renewLicenseDto,)
+  }
+);}
+
+
+
+
+export const getLicenseControllerRenewLicenseMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseControllerRenewLicense>>, TError,{id: number;data: RenewLicenseDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof licenseControllerRenewLicense>>, TError,{id: number;data: RenewLicenseDto}, TContext> => {
+
+const mutationKey = ['licenseControllerRenewLicense'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof licenseControllerRenewLicense>>, {id: number;data: RenewLicenseDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  licenseControllerRenewLicense(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LicenseControllerRenewLicenseMutationResult = NonNullable<Awaited<ReturnType<typeof licenseControllerRenewLicense>>>
+    export type LicenseControllerRenewLicenseMutationBody = RenewLicenseDto
+    export type LicenseControllerRenewLicenseMutationError = unknown
+
+    /**
+ * @summary Renew software license with a new term
+ */
+export const useLicenseControllerRenewLicense = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseControllerRenewLicense>>, TError,{id: number;data: RenewLicenseDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof licenseControllerRenewLicense>>,
+        TError,
+        {id: number;data: RenewLicenseDto},
+        TContext
+      > => {
+
+      const mutationOptions = getLicenseControllerRenewLicenseMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Discontinue a software license
+ */
+export type licenseControllerDiscontinueSoftwareResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type licenseControllerDiscontinueSoftwareResponseSuccess = (licenseControllerDiscontinueSoftwareResponse201) & {
+  headers: Headers;
+};
+;
+
+export type licenseControllerDiscontinueSoftwareResponse = (licenseControllerDiscontinueSoftwareResponseSuccess)
+
+export const getLicenseControllerDiscontinueSoftwareUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/licenses/${id}/discontinue`
+}
+
+export const licenseControllerDiscontinueSoftware = async (id: number,
+    discontinueLicenseDto: DiscontinueLicenseDto, options?: RequestInit): Promise<licenseControllerDiscontinueSoftwareResponse> => {
+  
+  return customFetch<licenseControllerDiscontinueSoftwareResponse>(getLicenseControllerDiscontinueSoftwareUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      discontinueLicenseDto,)
+  }
+);}
+
+
+
+
+export const getLicenseControllerDiscontinueSoftwareMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseControllerDiscontinueSoftware>>, TError,{id: number;data: DiscontinueLicenseDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof licenseControllerDiscontinueSoftware>>, TError,{id: number;data: DiscontinueLicenseDto}, TContext> => {
+
+const mutationKey = ['licenseControllerDiscontinueSoftware'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof licenseControllerDiscontinueSoftware>>, {id: number;data: DiscontinueLicenseDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  licenseControllerDiscontinueSoftware(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LicenseControllerDiscontinueSoftwareMutationResult = NonNullable<Awaited<ReturnType<typeof licenseControllerDiscontinueSoftware>>>
+    export type LicenseControllerDiscontinueSoftwareMutationBody = DiscontinueLicenseDto
+    export type LicenseControllerDiscontinueSoftwareMutationError = unknown
+
+    /**
+ * @summary Discontinue a software license
+ */
+export const useLicenseControllerDiscontinueSoftware = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseControllerDiscontinueSoftware>>, TError,{id: number;data: DiscontinueLicenseDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof licenseControllerDiscontinueSoftware>>,
+        TError,
+        {id: number;data: DiscontinueLicenseDto},
+        TContext
+      > => {
+
+      const mutationOptions = getLicenseControllerDiscontinueSoftwareMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Revoke or transfer a license assignment
+ */
+export type licenseControllerRevokeAssignmentResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type licenseControllerRevokeAssignmentResponseSuccess = (licenseControllerRevokeAssignmentResponse201) & {
+  headers: Headers;
+};
+;
+
+export type licenseControllerRevokeAssignmentResponse = (licenseControllerRevokeAssignmentResponseSuccess)
+
+export const getLicenseControllerRevokeAssignmentUrl = (assignmentId: number,) => {
+
+
+  
+
+  return `/api/v1/licenses/assignments/${assignmentId}/revoke`
+}
+
+export const licenseControllerRevokeAssignment = async (assignmentId: number,
+    revokeLicenseDto: RevokeLicenseDto, options?: RequestInit): Promise<licenseControllerRevokeAssignmentResponse> => {
+  
+  return customFetch<licenseControllerRevokeAssignmentResponse>(getLicenseControllerRevokeAssignmentUrl(assignmentId),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      revokeLicenseDto,)
+  }
+);}
+
+
+
+
+export const getLicenseControllerRevokeAssignmentMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseControllerRevokeAssignment>>, TError,{assignmentId: number;data: RevokeLicenseDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof licenseControllerRevokeAssignment>>, TError,{assignmentId: number;data: RevokeLicenseDto}, TContext> => {
+
+const mutationKey = ['licenseControllerRevokeAssignment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof licenseControllerRevokeAssignment>>, {assignmentId: number;data: RevokeLicenseDto}> = (props) => {
+          const {assignmentId,data} = props ?? {};
+
+          return  licenseControllerRevokeAssignment(assignmentId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LicenseControllerRevokeAssignmentMutationResult = NonNullable<Awaited<ReturnType<typeof licenseControllerRevokeAssignment>>>
+    export type LicenseControllerRevokeAssignmentMutationBody = RevokeLicenseDto
+    export type LicenseControllerRevokeAssignmentMutationError = unknown
+
+    /**
+ * @summary Revoke or transfer a license assignment
+ */
+export const useLicenseControllerRevokeAssignment = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof licenseControllerRevokeAssignment>>, TError,{assignmentId: number;data: RevokeLicenseDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof licenseControllerRevokeAssignment>>,
+        TError,
+        {assignmentId: number;data: RevokeLicenseDto},
+        TContext
+      > => {
+
+      const mutationOptions = getLicenseControllerRevokeAssignmentMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary List companies: filters, search, sort, 10 per page, and the four counters
+ */
+export type salesCompanyControllerListResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesCompanyControllerListResponseSuccess = (salesCompanyControllerListResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesCompanyControllerListResponse = (salesCompanyControllerListResponseSuccess)
+
+export const getSalesCompanyControllerListUrl = (params?: SalesCompanyControllerListParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/sales/companies?${stringifiedParams}` : `/api/v1/sales/companies`
+}
+
+export const salesCompanyControllerList = async (params?: SalesCompanyControllerListParams, options?: RequestInit): Promise<salesCompanyControllerListResponse> => {
+  
+  return customFetch<salesCompanyControllerListResponse>(getSalesCompanyControllerListUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getSalesCompanyControllerListQueryKey = (params?: SalesCompanyControllerListParams,) => {
+    return [
+    `/api/v1/sales/companies`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getSalesCompanyControllerListQueryOptions = <TData = Awaited<ReturnType<typeof salesCompanyControllerList>>, TError = unknown>(params?: SalesCompanyControllerListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesCompanyControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSalesCompanyControllerListQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof salesCompanyControllerList>>> = ({ signal }) => salesCompanyControllerList(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof salesCompanyControllerList>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type SalesCompanyControllerListQueryResult = NonNullable<Awaited<ReturnType<typeof salesCompanyControllerList>>>
+export type SalesCompanyControllerListQueryError = unknown
+
+
+export function useSalesCompanyControllerList<TData = Awaited<ReturnType<typeof salesCompanyControllerList>>, TError = unknown>(
+ params: undefined |  SalesCompanyControllerListParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesCompanyControllerList>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesCompanyControllerList>>,
+          TError,
+          Awaited<ReturnType<typeof salesCompanyControllerList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesCompanyControllerList<TData = Awaited<ReturnType<typeof salesCompanyControllerList>>, TError = unknown>(
+ params?: SalesCompanyControllerListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesCompanyControllerList>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesCompanyControllerList>>,
+          TError,
+          Awaited<ReturnType<typeof salesCompanyControllerList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesCompanyControllerList<TData = Awaited<ReturnType<typeof salesCompanyControllerList>>, TError = unknown>(
+ params?: SalesCompanyControllerListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesCompanyControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List companies: filters, search, sort, 10 per page, and the four counters
+ */
+
+export function useSalesCompanyControllerList<TData = Awaited<ReturnType<typeof salesCompanyControllerList>>, TError = unknown>(
+ params?: SalesCompanyControllerListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesCompanyControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getSalesCompanyControllerListQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Add Company. 409 DUPLICATE_COMPANY is a warning: repeat with confirm_duplicate=true to save anyway.
+ */
+export type salesCompanyControllerCreateResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type salesCompanyControllerCreateResponseSuccess = (salesCompanyControllerCreateResponse201) & {
+  headers: Headers;
+};
+;
+
+export type salesCompanyControllerCreateResponse = (salesCompanyControllerCreateResponseSuccess)
+
+export const getSalesCompanyControllerCreateUrl = () => {
+
+
+  
+
+  return `/api/v1/sales/companies`
+}
+
+export const salesCompanyControllerCreate = async (createSalesCompanyBodyDto: CreateSalesCompanyBodyDto, options?: RequestInit): Promise<salesCompanyControllerCreateResponse> => {
+  
+  return customFetch<salesCompanyControllerCreateResponse>(getSalesCompanyControllerCreateUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createSalesCompanyBodyDto,)
+  }
+);}
+
+
+
+
+export const getSalesCompanyControllerCreateMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesCompanyControllerCreate>>, TError,{data: CreateSalesCompanyBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof salesCompanyControllerCreate>>, TError,{data: CreateSalesCompanyBodyDto}, TContext> => {
+
+const mutationKey = ['salesCompanyControllerCreate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof salesCompanyControllerCreate>>, {data: CreateSalesCompanyBodyDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  salesCompanyControllerCreate(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SalesCompanyControllerCreateMutationResult = NonNullable<Awaited<ReturnType<typeof salesCompanyControllerCreate>>>
+    export type SalesCompanyControllerCreateMutationBody = CreateSalesCompanyBodyDto
+    export type SalesCompanyControllerCreateMutationError = unknown
+
+    /**
+ * @summary Add Company. 409 DUPLICATE_COMPANY is a warning: repeat with confirm_duplicate=true to save anyway.
+ */
+export const useSalesCompanyControllerCreate = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesCompanyControllerCreate>>, TError,{data: CreateSalesCompanyBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof salesCompanyControllerCreate>>,
+        TError,
+        {data: CreateSalesCompanyBodyDto},
+        TContext
+      > => {
+
+      const mutationOptions = getSalesCompanyControllerCreateMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Values for the dropdowns of the Company forms and filters
+ */
+export type salesCompanyControllerMastersResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesCompanyControllerMastersResponseSuccess = (salesCompanyControllerMastersResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesCompanyControllerMastersResponse = (salesCompanyControllerMastersResponseSuccess)
+
+export const getSalesCompanyControllerMastersUrl = () => {
+
+
+  
+
+  return `/api/v1/sales/companies/masters`
+}
+
+export const salesCompanyControllerMasters = async ( options?: RequestInit): Promise<salesCompanyControllerMastersResponse> => {
+  
+  return customFetch<salesCompanyControllerMastersResponse>(getSalesCompanyControllerMastersUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getSalesCompanyControllerMastersQueryKey = () => {
+    return [
+    `/api/v1/sales/companies/masters`
+    ] as const;
+    }
+
+    
+export const getSalesCompanyControllerMastersQueryOptions = <TData = Awaited<ReturnType<typeof salesCompanyControllerMasters>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesCompanyControllerMasters>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSalesCompanyControllerMastersQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof salesCompanyControllerMasters>>> = ({ signal }) => salesCompanyControllerMasters({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof salesCompanyControllerMasters>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type SalesCompanyControllerMastersQueryResult = NonNullable<Awaited<ReturnType<typeof salesCompanyControllerMasters>>>
+export type SalesCompanyControllerMastersQueryError = unknown
+
+
+export function useSalesCompanyControllerMasters<TData = Awaited<ReturnType<typeof salesCompanyControllerMasters>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesCompanyControllerMasters>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesCompanyControllerMasters>>,
+          TError,
+          Awaited<ReturnType<typeof salesCompanyControllerMasters>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesCompanyControllerMasters<TData = Awaited<ReturnType<typeof salesCompanyControllerMasters>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesCompanyControllerMasters>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesCompanyControllerMasters>>,
+          TError,
+          Awaited<ReturnType<typeof salesCompanyControllerMasters>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesCompanyControllerMasters<TData = Awaited<ReturnType<typeof salesCompanyControllerMasters>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesCompanyControllerMasters>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Values for the dropdowns of the Company forms and filters
+ */
+
+export function useSalesCompanyControllerMasters<TData = Awaited<ReturnType<typeof salesCompanyControllerMasters>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesCompanyControllerMasters>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getSalesCompanyControllerMastersQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Same name + city, or same mobile / email as a contact of another company
+ */
+export type salesCompanyControllerDuplicateCheckResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesCompanyControllerDuplicateCheckResponseSuccess = (salesCompanyControllerDuplicateCheckResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesCompanyControllerDuplicateCheckResponse = (salesCompanyControllerDuplicateCheckResponseSuccess)
+
+export const getSalesCompanyControllerDuplicateCheckUrl = (params?: SalesCompanyControllerDuplicateCheckParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/sales/companies/duplicate-check?${stringifiedParams}` : `/api/v1/sales/companies/duplicate-check`
+}
+
+export const salesCompanyControllerDuplicateCheck = async (params?: SalesCompanyControllerDuplicateCheckParams, options?: RequestInit): Promise<salesCompanyControllerDuplicateCheckResponse> => {
+  
+  return customFetch<salesCompanyControllerDuplicateCheckResponse>(getSalesCompanyControllerDuplicateCheckUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getSalesCompanyControllerDuplicateCheckQueryKey = (params?: SalesCompanyControllerDuplicateCheckParams,) => {
+    return [
+    `/api/v1/sales/companies/duplicate-check`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getSalesCompanyControllerDuplicateCheckQueryOptions = <TData = Awaited<ReturnType<typeof salesCompanyControllerDuplicateCheck>>, TError = unknown>(params?: SalesCompanyControllerDuplicateCheckParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesCompanyControllerDuplicateCheck>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSalesCompanyControllerDuplicateCheckQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof salesCompanyControllerDuplicateCheck>>> = ({ signal }) => salesCompanyControllerDuplicateCheck(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof salesCompanyControllerDuplicateCheck>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type SalesCompanyControllerDuplicateCheckQueryResult = NonNullable<Awaited<ReturnType<typeof salesCompanyControllerDuplicateCheck>>>
+export type SalesCompanyControllerDuplicateCheckQueryError = unknown
+
+
+export function useSalesCompanyControllerDuplicateCheck<TData = Awaited<ReturnType<typeof salesCompanyControllerDuplicateCheck>>, TError = unknown>(
+ params: undefined |  SalesCompanyControllerDuplicateCheckParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesCompanyControllerDuplicateCheck>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesCompanyControllerDuplicateCheck>>,
+          TError,
+          Awaited<ReturnType<typeof salesCompanyControllerDuplicateCheck>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesCompanyControllerDuplicateCheck<TData = Awaited<ReturnType<typeof salesCompanyControllerDuplicateCheck>>, TError = unknown>(
+ params?: SalesCompanyControllerDuplicateCheckParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesCompanyControllerDuplicateCheck>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesCompanyControllerDuplicateCheck>>,
+          TError,
+          Awaited<ReturnType<typeof salesCompanyControllerDuplicateCheck>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesCompanyControllerDuplicateCheck<TData = Awaited<ReturnType<typeof salesCompanyControllerDuplicateCheck>>, TError = unknown>(
+ params?: SalesCompanyControllerDuplicateCheckParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesCompanyControllerDuplicateCheck>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Same name + city, or same mobile / email as a contact of another company
+ */
+
+export function useSalesCompanyControllerDuplicateCheck<TData = Awaited<ReturnType<typeof salesCompanyControllerDuplicateCheck>>, TError = unknown>(
+ params?: SalesCompanyControllerDuplicateCheckParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesCompanyControllerDuplicateCheck>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getSalesCompanyControllerDuplicateCheckQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Company Details: all fields, contacts and the lead / client tag
+ */
+export type salesCompanyControllerGetResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesCompanyControllerGetResponseSuccess = (salesCompanyControllerGetResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesCompanyControllerGetResponse = (salesCompanyControllerGetResponseSuccess)
+
+export const getSalesCompanyControllerGetUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/sales/companies/${id}`
+}
+
+export const salesCompanyControllerGet = async (id: number, options?: RequestInit): Promise<salesCompanyControllerGetResponse> => {
+  
+  return customFetch<salesCompanyControllerGetResponse>(getSalesCompanyControllerGetUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getSalesCompanyControllerGetQueryKey = (id?: number,) => {
+    return [
+    `/api/v1/sales/companies/${id}`
+    ] as const;
+    }
+
+    
+export const getSalesCompanyControllerGetQueryOptions = <TData = Awaited<ReturnType<typeof salesCompanyControllerGet>>, TError = unknown>(id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesCompanyControllerGet>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSalesCompanyControllerGetQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof salesCompanyControllerGet>>> = ({ signal }) => salesCompanyControllerGet(id, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof salesCompanyControllerGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type SalesCompanyControllerGetQueryResult = NonNullable<Awaited<ReturnType<typeof salesCompanyControllerGet>>>
+export type SalesCompanyControllerGetQueryError = unknown
+
+
+export function useSalesCompanyControllerGet<TData = Awaited<ReturnType<typeof salesCompanyControllerGet>>, TError = unknown>(
+ id: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesCompanyControllerGet>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesCompanyControllerGet>>,
+          TError,
+          Awaited<ReturnType<typeof salesCompanyControllerGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesCompanyControllerGet<TData = Awaited<ReturnType<typeof salesCompanyControllerGet>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesCompanyControllerGet>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesCompanyControllerGet>>,
+          TError,
+          Awaited<ReturnType<typeof salesCompanyControllerGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesCompanyControllerGet<TData = Awaited<ReturnType<typeof salesCompanyControllerGet>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesCompanyControllerGet>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Company Details: all fields, contacts and the lead / client tag
+ */
+
+export function useSalesCompanyControllerGet<TData = Awaited<ReturnType<typeof salesCompanyControllerGet>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesCompanyControllerGet>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getSalesCompanyControllerGetQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Edit a company (only the keys that are sent change)
+ */
+export type salesCompanyControllerUpdateResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesCompanyControllerUpdateResponseSuccess = (salesCompanyControllerUpdateResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesCompanyControllerUpdateResponse = (salesCompanyControllerUpdateResponseSuccess)
+
+export const getSalesCompanyControllerUpdateUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/sales/companies/${id}`
+}
+
+export const salesCompanyControllerUpdate = async (id: number,
+    updateSalesCompanyBodyDto: UpdateSalesCompanyBodyDto, options?: RequestInit): Promise<salesCompanyControllerUpdateResponse> => {
+  
+  return customFetch<salesCompanyControllerUpdateResponse>(getSalesCompanyControllerUpdateUrl(id),
+  {      
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateSalesCompanyBodyDto,)
+  }
+);}
+
+
+
+
+export const getSalesCompanyControllerUpdateMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesCompanyControllerUpdate>>, TError,{id: number;data: UpdateSalesCompanyBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof salesCompanyControllerUpdate>>, TError,{id: number;data: UpdateSalesCompanyBodyDto}, TContext> => {
+
+const mutationKey = ['salesCompanyControllerUpdate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof salesCompanyControllerUpdate>>, {id: number;data: UpdateSalesCompanyBodyDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  salesCompanyControllerUpdate(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SalesCompanyControllerUpdateMutationResult = NonNullable<Awaited<ReturnType<typeof salesCompanyControllerUpdate>>>
+    export type SalesCompanyControllerUpdateMutationBody = UpdateSalesCompanyBodyDto
+    export type SalesCompanyControllerUpdateMutationError = unknown
+
+    /**
+ * @summary Edit a company (only the keys that are sent change)
+ */
+export const useSalesCompanyControllerUpdate = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesCompanyControllerUpdate>>, TError,{id: number;data: UpdateSalesCompanyBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof salesCompanyControllerUpdate>>,
+        TError,
+        {id: number;data: UpdateSalesCompanyBodyDto},
+        TContext
+      > => {
+
+      const mutationOptions = getSalesCompanyControllerUpdateMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Admin only, and only when the company has no lead, no client and no communication
+ */
+export type salesCompanyControllerRemoveResponse204 = {
+  data: void
+  status: 204
+}
+    
+export type salesCompanyControllerRemoveResponseSuccess = (salesCompanyControllerRemoveResponse204) & {
+  headers: Headers;
+};
+;
+
+export type salesCompanyControllerRemoveResponse = (salesCompanyControllerRemoveResponseSuccess)
+
+export const getSalesCompanyControllerRemoveUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/sales/companies/${id}`
+}
+
+export const salesCompanyControllerRemove = async (id: number, options?: RequestInit): Promise<salesCompanyControllerRemoveResponse> => {
+  
+  return customFetch<salesCompanyControllerRemoveResponse>(getSalesCompanyControllerRemoveUrl(id),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+);}
+
+
+
+
+export const getSalesCompanyControllerRemoveMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesCompanyControllerRemove>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof salesCompanyControllerRemove>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['salesCompanyControllerRemove'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof salesCompanyControllerRemove>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  salesCompanyControllerRemove(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SalesCompanyControllerRemoveMutationResult = NonNullable<Awaited<ReturnType<typeof salesCompanyControllerRemove>>>
+    
+    export type SalesCompanyControllerRemoveMutationError = unknown
+
+    /**
+ * @summary Admin only, and only when the company has no lead, no client and no communication
+ */
+export const useSalesCompanyControllerRemove = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesCompanyControllerRemove>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof salesCompanyControllerRemove>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+
+      const mutationOptions = getSalesCompanyControllerRemoveMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Leads List view: filters, sort (next follow-up first), 10 per page, status counters and follow-ups due today
+ */
+export type salesLeadControllerListResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesLeadControllerListResponseSuccess = (salesLeadControllerListResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesLeadControllerListResponse = (salesLeadControllerListResponseSuccess)
+
+export const getSalesLeadControllerListUrl = (params?: SalesLeadControllerListParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/sales/leads?${stringifiedParams}` : `/api/v1/sales/leads`
+}
+
+export const salesLeadControllerList = async (params?: SalesLeadControllerListParams, options?: RequestInit): Promise<salesLeadControllerListResponse> => {
+  
+  return customFetch<salesLeadControllerListResponse>(getSalesLeadControllerListUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getSalesLeadControllerListQueryKey = (params?: SalesLeadControllerListParams,) => {
+    return [
+    `/api/v1/sales/leads`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getSalesLeadControllerListQueryOptions = <TData = Awaited<ReturnType<typeof salesLeadControllerList>>, TError = unknown>(params?: SalesLeadControllerListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesLeadControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSalesLeadControllerListQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof salesLeadControllerList>>> = ({ signal }) => salesLeadControllerList(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof salesLeadControllerList>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type SalesLeadControllerListQueryResult = NonNullable<Awaited<ReturnType<typeof salesLeadControllerList>>>
+export type SalesLeadControllerListQueryError = unknown
+
+
+export function useSalesLeadControllerList<TData = Awaited<ReturnType<typeof salesLeadControllerList>>, TError = unknown>(
+ params: undefined |  SalesLeadControllerListParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesLeadControllerList>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesLeadControllerList>>,
+          TError,
+          Awaited<ReturnType<typeof salesLeadControllerList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesLeadControllerList<TData = Awaited<ReturnType<typeof salesLeadControllerList>>, TError = unknown>(
+ params?: SalesLeadControllerListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesLeadControllerList>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesLeadControllerList>>,
+          TError,
+          Awaited<ReturnType<typeof salesLeadControllerList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesLeadControllerList<TData = Awaited<ReturnType<typeof salesLeadControllerList>>, TError = unknown>(
+ params?: SalesLeadControllerListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesLeadControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Leads List view: filters, sort (next follow-up first), 10 per page, status counters and follow-ups due today
+ */
+
+export function useSalesLeadControllerList<TData = Awaited<ReturnType<typeof salesLeadControllerList>>, TError = unknown>(
+ params?: SalesLeadControllerListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesLeadControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getSalesLeadControllerListQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Leads Kanban view: one column per status (New, Contacted, Qualified, On Hold, Converted, Lost)
+ */
+export type salesLeadControllerBoardResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesLeadControllerBoardResponseSuccess = (salesLeadControllerBoardResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesLeadControllerBoardResponse = (salesLeadControllerBoardResponseSuccess)
+
+export const getSalesLeadControllerBoardUrl = (params?: SalesLeadControllerBoardParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/sales/leads/board?${stringifiedParams}` : `/api/v1/sales/leads/board`
+}
+
+export const salesLeadControllerBoard = async (params?: SalesLeadControllerBoardParams, options?: RequestInit): Promise<salesLeadControllerBoardResponse> => {
+  
+  return customFetch<salesLeadControllerBoardResponse>(getSalesLeadControllerBoardUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getSalesLeadControllerBoardQueryKey = (params?: SalesLeadControllerBoardParams,) => {
+    return [
+    `/api/v1/sales/leads/board`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getSalesLeadControllerBoardQueryOptions = <TData = Awaited<ReturnType<typeof salesLeadControllerBoard>>, TError = unknown>(params?: SalesLeadControllerBoardParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesLeadControllerBoard>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSalesLeadControllerBoardQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof salesLeadControllerBoard>>> = ({ signal }) => salesLeadControllerBoard(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof salesLeadControllerBoard>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type SalesLeadControllerBoardQueryResult = NonNullable<Awaited<ReturnType<typeof salesLeadControllerBoard>>>
+export type SalesLeadControllerBoardQueryError = unknown
+
+
+export function useSalesLeadControllerBoard<TData = Awaited<ReturnType<typeof salesLeadControllerBoard>>, TError = unknown>(
+ params: undefined |  SalesLeadControllerBoardParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesLeadControllerBoard>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesLeadControllerBoard>>,
+          TError,
+          Awaited<ReturnType<typeof salesLeadControllerBoard>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesLeadControllerBoard<TData = Awaited<ReturnType<typeof salesLeadControllerBoard>>, TError = unknown>(
+ params?: SalesLeadControllerBoardParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesLeadControllerBoard>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesLeadControllerBoard>>,
+          TError,
+          Awaited<ReturnType<typeof salesLeadControllerBoard>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesLeadControllerBoard<TData = Awaited<ReturnType<typeof salesLeadControllerBoard>>, TError = unknown>(
+ params?: SalesLeadControllerBoardParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesLeadControllerBoard>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Leads Kanban view: one column per status (New, Contacted, Qualified, On Hold, Converted, Lost)
+ */
+
+export function useSalesLeadControllerBoard<TData = Awaited<ReturnType<typeof salesLeadControllerBoard>>, TError = unknown>(
+ params?: SalesLeadControllerBoardParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesLeadControllerBoard>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getSalesLeadControllerBoardQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Statuses, Lead Sources, Service Fits, Lost reasons and the users a lead can be given to
+ */
+export type salesLeadControllerMastersResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesLeadControllerMastersResponseSuccess = (salesLeadControllerMastersResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesLeadControllerMastersResponse = (salesLeadControllerMastersResponseSuccess)
+
+export const getSalesLeadControllerMastersUrl = () => {
+
+
+  
+
+  return `/api/v1/sales/leads/masters`
+}
+
+export const salesLeadControllerMasters = async ( options?: RequestInit): Promise<salesLeadControllerMastersResponse> => {
+  
+  return customFetch<salesLeadControllerMastersResponse>(getSalesLeadControllerMastersUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getSalesLeadControllerMastersQueryKey = () => {
+    return [
+    `/api/v1/sales/leads/masters`
+    ] as const;
+    }
+
+    
+export const getSalesLeadControllerMastersQueryOptions = <TData = Awaited<ReturnType<typeof salesLeadControllerMasters>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesLeadControllerMasters>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSalesLeadControllerMastersQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof salesLeadControllerMasters>>> = ({ signal }) => salesLeadControllerMasters({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof salesLeadControllerMasters>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type SalesLeadControllerMastersQueryResult = NonNullable<Awaited<ReturnType<typeof salesLeadControllerMasters>>>
+export type SalesLeadControllerMastersQueryError = unknown
+
+
+export function useSalesLeadControllerMasters<TData = Awaited<ReturnType<typeof salesLeadControllerMasters>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesLeadControllerMasters>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesLeadControllerMasters>>,
+          TError,
+          Awaited<ReturnType<typeof salesLeadControllerMasters>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesLeadControllerMasters<TData = Awaited<ReturnType<typeof salesLeadControllerMasters>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesLeadControllerMasters>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesLeadControllerMasters>>,
+          TError,
+          Awaited<ReturnType<typeof salesLeadControllerMasters>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesLeadControllerMasters<TData = Awaited<ReturnType<typeof salesLeadControllerMasters>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesLeadControllerMasters>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Statuses, Lead Sources, Service Fits, Lost reasons and the users a lead can be given to
+ */
+
+export function useSalesLeadControllerMasters<TData = Awaited<ReturnType<typeof salesLeadControllerMasters>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesLeadControllerMasters>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getSalesLeadControllerMastersQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Lead Details header, summary and counts
+ */
+export type salesLeadControllerGetResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesLeadControllerGetResponseSuccess = (salesLeadControllerGetResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesLeadControllerGetResponse = (salesLeadControllerGetResponseSuccess)
+
+export const getSalesLeadControllerGetUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/sales/leads/${id}`
+}
+
+export const salesLeadControllerGet = async (id: number, options?: RequestInit): Promise<salesLeadControllerGetResponse> => {
+  
+  return customFetch<salesLeadControllerGetResponse>(getSalesLeadControllerGetUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getSalesLeadControllerGetQueryKey = (id?: number,) => {
+    return [
+    `/api/v1/sales/leads/${id}`
+    ] as const;
+    }
+
+    
+export const getSalesLeadControllerGetQueryOptions = <TData = Awaited<ReturnType<typeof salesLeadControllerGet>>, TError = unknown>(id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesLeadControllerGet>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSalesLeadControllerGetQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof salesLeadControllerGet>>> = ({ signal }) => salesLeadControllerGet(id, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof salesLeadControllerGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type SalesLeadControllerGetQueryResult = NonNullable<Awaited<ReturnType<typeof salesLeadControllerGet>>>
+export type SalesLeadControllerGetQueryError = unknown
+
+
+export function useSalesLeadControllerGet<TData = Awaited<ReturnType<typeof salesLeadControllerGet>>, TError = unknown>(
+ id: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesLeadControllerGet>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesLeadControllerGet>>,
+          TError,
+          Awaited<ReturnType<typeof salesLeadControllerGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesLeadControllerGet<TData = Awaited<ReturnType<typeof salesLeadControllerGet>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesLeadControllerGet>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesLeadControllerGet>>,
+          TError,
+          Awaited<ReturnType<typeof salesLeadControllerGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesLeadControllerGet<TData = Awaited<ReturnType<typeof salesLeadControllerGet>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesLeadControllerGet>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Lead Details header, summary and counts
+ */
+
+export function useSalesLeadControllerGet<TData = Awaited<ReturnType<typeof salesLeadControllerGet>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesLeadControllerGet>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getSalesLeadControllerGetQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Data for the Convert to Lead popup: company strip, defaults and dropdown values
+ */
+export type salesConvertToLeadControllerFormResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesConvertToLeadControllerFormResponseSuccess = (salesConvertToLeadControllerFormResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesConvertToLeadControllerFormResponse = (salesConvertToLeadControllerFormResponseSuccess)
+
+export const getSalesConvertToLeadControllerFormUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/sales/companies/${id}/lead-form`
+}
+
+export const salesConvertToLeadControllerForm = async (id: number, options?: RequestInit): Promise<salesConvertToLeadControllerFormResponse> => {
+  
+  return customFetch<salesConvertToLeadControllerFormResponse>(getSalesConvertToLeadControllerFormUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getSalesConvertToLeadControllerFormQueryKey = (id?: number,) => {
+    return [
+    `/api/v1/sales/companies/${id}/lead-form`
+    ] as const;
+    }
+
+    
+export const getSalesConvertToLeadControllerFormQueryOptions = <TData = Awaited<ReturnType<typeof salesConvertToLeadControllerForm>>, TError = unknown>(id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesConvertToLeadControllerForm>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSalesConvertToLeadControllerFormQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof salesConvertToLeadControllerForm>>> = ({ signal }) => salesConvertToLeadControllerForm(id, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof salesConvertToLeadControllerForm>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type SalesConvertToLeadControllerFormQueryResult = NonNullable<Awaited<ReturnType<typeof salesConvertToLeadControllerForm>>>
+export type SalesConvertToLeadControllerFormQueryError = unknown
+
+
+export function useSalesConvertToLeadControllerForm<TData = Awaited<ReturnType<typeof salesConvertToLeadControllerForm>>, TError = unknown>(
+ id: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesConvertToLeadControllerForm>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesConvertToLeadControllerForm>>,
+          TError,
+          Awaited<ReturnType<typeof salesConvertToLeadControllerForm>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesConvertToLeadControllerForm<TData = Awaited<ReturnType<typeof salesConvertToLeadControllerForm>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesConvertToLeadControllerForm>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesConvertToLeadControllerForm>>,
+          TError,
+          Awaited<ReturnType<typeof salesConvertToLeadControllerForm>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesConvertToLeadControllerForm<TData = Awaited<ReturnType<typeof salesConvertToLeadControllerForm>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesConvertToLeadControllerForm>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Data for the Convert to Lead popup: company strip, defaults and dropdown values
+ */
+
+export function useSalesConvertToLeadControllerForm<TData = Awaited<ReturnType<typeof salesConvertToLeadControllerForm>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesConvertToLeadControllerForm>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getSalesConvertToLeadControllerFormQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Convert a company to a lead (status New). 409 OPEN_LEAD_EXISTS carries the existing lead in errors[0].lead.
+ */
+export type salesConvertToLeadControllerConvertResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type salesConvertToLeadControllerConvertResponseSuccess = (salesConvertToLeadControllerConvertResponse201) & {
+  headers: Headers;
+};
+;
+
+export type salesConvertToLeadControllerConvertResponse = (salesConvertToLeadControllerConvertResponseSuccess)
+
+export const getSalesConvertToLeadControllerConvertUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/sales/companies/${id}/convert-to-lead`
+}
+
+export const salesConvertToLeadControllerConvert = async (id: number,
+    convertToLeadBodyDto: ConvertToLeadBodyDto, options?: RequestInit): Promise<salesConvertToLeadControllerConvertResponse> => {
+  
+  return customFetch<salesConvertToLeadControllerConvertResponse>(getSalesConvertToLeadControllerConvertUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      convertToLeadBodyDto,)
+  }
+);}
+
+
+
+
+export const getSalesConvertToLeadControllerConvertMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesConvertToLeadControllerConvert>>, TError,{id: number;data: ConvertToLeadBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof salesConvertToLeadControllerConvert>>, TError,{id: number;data: ConvertToLeadBodyDto}, TContext> => {
+
+const mutationKey = ['salesConvertToLeadControllerConvert'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof salesConvertToLeadControllerConvert>>, {id: number;data: ConvertToLeadBodyDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  salesConvertToLeadControllerConvert(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SalesConvertToLeadControllerConvertMutationResult = NonNullable<Awaited<ReturnType<typeof salesConvertToLeadControllerConvert>>>
+    export type SalesConvertToLeadControllerConvertMutationBody = ConvertToLeadBodyDto
+    export type SalesConvertToLeadControllerConvertMutationError = unknown
+
+    /**
+ * @summary Convert a company to a lead (status New). 409 OPEN_LEAD_EXISTS carries the existing lead in errors[0].lead.
+ */
+export const useSalesConvertToLeadControllerConvert = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesConvertToLeadControllerConvert>>, TError,{id: number;data: ConvertToLeadBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof salesConvertToLeadControllerConvert>>,
+        TError,
+        {id: number;data: ConvertToLeadBodyDto},
+        TContext
+      > => {
+
+      const mutationOptions = getSalesConvertToLeadControllerConvertMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary "+ Log Communication" on a company. Belongs to the open lead when there is one.
+ */
+export type salesActivityControllerLogOnCompanyResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type salesActivityControllerLogOnCompanyResponseSuccess = (salesActivityControllerLogOnCompanyResponse201) & {
+  headers: Headers;
+};
+;
+
+export type salesActivityControllerLogOnCompanyResponse = (salesActivityControllerLogOnCompanyResponseSuccess)
+
+export const getSalesActivityControllerLogOnCompanyUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/sales/companies/${id}/communications`
+}
+
+export const salesActivityControllerLogOnCompany = async (id: number,
+    conversationBodyDto: ConversationBodyDto, options?: RequestInit): Promise<salesActivityControllerLogOnCompanyResponse> => {
+  
+  return customFetch<salesActivityControllerLogOnCompanyResponse>(getSalesActivityControllerLogOnCompanyUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      conversationBodyDto,)
+  }
+);}
+
+
+
+
+export const getSalesActivityControllerLogOnCompanyMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesActivityControllerLogOnCompany>>, TError,{id: number;data: ConversationBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof salesActivityControllerLogOnCompany>>, TError,{id: number;data: ConversationBodyDto}, TContext> => {
+
+const mutationKey = ['salesActivityControllerLogOnCompany'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof salesActivityControllerLogOnCompany>>, {id: number;data: ConversationBodyDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  salesActivityControllerLogOnCompany(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SalesActivityControllerLogOnCompanyMutationResult = NonNullable<Awaited<ReturnType<typeof salesActivityControllerLogOnCompany>>>
+    export type SalesActivityControllerLogOnCompanyMutationBody = ConversationBodyDto
+    export type SalesActivityControllerLogOnCompanyMutationError = unknown
+
+    /**
+ * @summary "+ Log Communication" on a company. Belongs to the open lead when there is one.
+ */
+export const useSalesActivityControllerLogOnCompany = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesActivityControllerLogOnCompany>>, TError,{id: number;data: ConversationBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof salesActivityControllerLogOnCompany>>,
+        TError,
+        {id: number;data: ConversationBodyDto},
+        TContext
+      > => {
+
+      const mutationOptions = getSalesActivityControllerLogOnCompanyMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Communication history of a company, newest first
+ */
+export type salesActivityControllerCompanyCommunicationsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesActivityControllerCompanyCommunicationsResponseSuccess = (salesActivityControllerCompanyCommunicationsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesActivityControllerCompanyCommunicationsResponse = (salesActivityControllerCompanyCommunicationsResponseSuccess)
+
+export const getSalesActivityControllerCompanyCommunicationsUrl = (id: number,
+    params?: SalesActivityControllerCompanyCommunicationsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/sales/companies/${id}/communications?${stringifiedParams}` : `/api/v1/sales/companies/${id}/communications`
+}
+
+export const salesActivityControllerCompanyCommunications = async (id: number,
+    params?: SalesActivityControllerCompanyCommunicationsParams, options?: RequestInit): Promise<salesActivityControllerCompanyCommunicationsResponse> => {
+  
+  return customFetch<salesActivityControllerCompanyCommunicationsResponse>(getSalesActivityControllerCompanyCommunicationsUrl(id,params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getSalesActivityControllerCompanyCommunicationsQueryKey = (id?: number,
+    params?: SalesActivityControllerCompanyCommunicationsParams,) => {
+    return [
+    `/api/v1/sales/companies/${id}/communications`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getSalesActivityControllerCompanyCommunicationsQueryOptions = <TData = Awaited<ReturnType<typeof salesActivityControllerCompanyCommunications>>, TError = unknown>(id: number,
+    params?: SalesActivityControllerCompanyCommunicationsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesActivityControllerCompanyCommunications>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSalesActivityControllerCompanyCommunicationsQueryKey(id,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof salesActivityControllerCompanyCommunications>>> = ({ signal }) => salesActivityControllerCompanyCommunications(id,params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof salesActivityControllerCompanyCommunications>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type SalesActivityControllerCompanyCommunicationsQueryResult = NonNullable<Awaited<ReturnType<typeof salesActivityControllerCompanyCommunications>>>
+export type SalesActivityControllerCompanyCommunicationsQueryError = unknown
+
+
+export function useSalesActivityControllerCompanyCommunications<TData = Awaited<ReturnType<typeof salesActivityControllerCompanyCommunications>>, TError = unknown>(
+ id: number,
+    params: undefined |  SalesActivityControllerCompanyCommunicationsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesActivityControllerCompanyCommunications>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesActivityControllerCompanyCommunications>>,
+          TError,
+          Awaited<ReturnType<typeof salesActivityControllerCompanyCommunications>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesActivityControllerCompanyCommunications<TData = Awaited<ReturnType<typeof salesActivityControllerCompanyCommunications>>, TError = unknown>(
+ id: number,
+    params?: SalesActivityControllerCompanyCommunicationsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesActivityControllerCompanyCommunications>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesActivityControllerCompanyCommunications>>,
+          TError,
+          Awaited<ReturnType<typeof salesActivityControllerCompanyCommunications>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesActivityControllerCompanyCommunications<TData = Awaited<ReturnType<typeof salesActivityControllerCompanyCommunications>>, TError = unknown>(
+ id: number,
+    params?: SalesActivityControllerCompanyCommunicationsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesActivityControllerCompanyCommunications>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Communication history of a company, newest first
+ */
+
+export function useSalesActivityControllerCompanyCommunications<TData = Awaited<ReturnType<typeof salesActivityControllerCompanyCommunications>>, TError = unknown>(
+ id: number,
+    params?: SalesActivityControllerCompanyCommunicationsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesActivityControllerCompanyCommunications>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getSalesActivityControllerCompanyCommunicationsQueryOptions(id,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Company History tab: every change, who and when
+ */
+export type salesActivityControllerCompanyHistoryResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesActivityControllerCompanyHistoryResponseSuccess = (salesActivityControllerCompanyHistoryResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesActivityControllerCompanyHistoryResponse = (salesActivityControllerCompanyHistoryResponseSuccess)
+
+export const getSalesActivityControllerCompanyHistoryUrl = (id: number,
+    params?: SalesActivityControllerCompanyHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/sales/companies/${id}/history?${stringifiedParams}` : `/api/v1/sales/companies/${id}/history`
+}
+
+export const salesActivityControllerCompanyHistory = async (id: number,
+    params?: SalesActivityControllerCompanyHistoryParams, options?: RequestInit): Promise<salesActivityControllerCompanyHistoryResponse> => {
+  
+  return customFetch<salesActivityControllerCompanyHistoryResponse>(getSalesActivityControllerCompanyHistoryUrl(id,params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getSalesActivityControllerCompanyHistoryQueryKey = (id?: number,
+    params?: SalesActivityControllerCompanyHistoryParams,) => {
+    return [
+    `/api/v1/sales/companies/${id}/history`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getSalesActivityControllerCompanyHistoryQueryOptions = <TData = Awaited<ReturnType<typeof salesActivityControllerCompanyHistory>>, TError = unknown>(id: number,
+    params?: SalesActivityControllerCompanyHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesActivityControllerCompanyHistory>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSalesActivityControllerCompanyHistoryQueryKey(id,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof salesActivityControllerCompanyHistory>>> = ({ signal }) => salesActivityControllerCompanyHistory(id,params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof salesActivityControllerCompanyHistory>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type SalesActivityControllerCompanyHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof salesActivityControllerCompanyHistory>>>
+export type SalesActivityControllerCompanyHistoryQueryError = unknown
+
+
+export function useSalesActivityControllerCompanyHistory<TData = Awaited<ReturnType<typeof salesActivityControllerCompanyHistory>>, TError = unknown>(
+ id: number,
+    params: undefined |  SalesActivityControllerCompanyHistoryParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesActivityControllerCompanyHistory>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesActivityControllerCompanyHistory>>,
+          TError,
+          Awaited<ReturnType<typeof salesActivityControllerCompanyHistory>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesActivityControllerCompanyHistory<TData = Awaited<ReturnType<typeof salesActivityControllerCompanyHistory>>, TError = unknown>(
+ id: number,
+    params?: SalesActivityControllerCompanyHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesActivityControllerCompanyHistory>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesActivityControllerCompanyHistory>>,
+          TError,
+          Awaited<ReturnType<typeof salesActivityControllerCompanyHistory>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesActivityControllerCompanyHistory<TData = Awaited<ReturnType<typeof salesActivityControllerCompanyHistory>>, TError = unknown>(
+ id: number,
+    params?: SalesActivityControllerCompanyHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesActivityControllerCompanyHistory>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Company History tab: every change, who and when
+ */
+
+export function useSalesActivityControllerCompanyHistory<TData = Awaited<ReturnType<typeof salesActivityControllerCompanyHistory>>, TError = unknown>(
+ id: number,
+    params?: SalesActivityControllerCompanyHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesActivityControllerCompanyHistory>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getSalesActivityControllerCompanyHistoryQueryOptions(id,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary "Log Conversation" on a lead. The first one moves a New lead to Contacted. Optional next follow-up is saved with it.
+ */
+export type salesActivityControllerLogOnLeadResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type salesActivityControllerLogOnLeadResponseSuccess = (salesActivityControllerLogOnLeadResponse201) & {
+  headers: Headers;
+};
+;
+
+export type salesActivityControllerLogOnLeadResponse = (salesActivityControllerLogOnLeadResponseSuccess)
+
+export const getSalesActivityControllerLogOnLeadUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/sales/leads/${id}/conversations`
+}
+
+export const salesActivityControllerLogOnLead = async (id: number,
+    conversationBodyDto: ConversationBodyDto, options?: RequestInit): Promise<salesActivityControllerLogOnLeadResponse> => {
+  
+  return customFetch<salesActivityControllerLogOnLeadResponse>(getSalesActivityControllerLogOnLeadUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      conversationBodyDto,)
+  }
+);}
+
+
+
+
+export const getSalesActivityControllerLogOnLeadMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesActivityControllerLogOnLead>>, TError,{id: number;data: ConversationBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof salesActivityControllerLogOnLead>>, TError,{id: number;data: ConversationBodyDto}, TContext> => {
+
+const mutationKey = ['salesActivityControllerLogOnLead'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof salesActivityControllerLogOnLead>>, {id: number;data: ConversationBodyDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  salesActivityControllerLogOnLead(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SalesActivityControllerLogOnLeadMutationResult = NonNullable<Awaited<ReturnType<typeof salesActivityControllerLogOnLead>>>
+    export type SalesActivityControllerLogOnLeadMutationBody = ConversationBodyDto
+    export type SalesActivityControllerLogOnLeadMutationError = unknown
+
+    /**
+ * @summary "Log Conversation" on a lead. The first one moves a New lead to Contacted. Optional next follow-up is saved with it.
+ */
+export const useSalesActivityControllerLogOnLead = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesActivityControllerLogOnLead>>, TError,{id: number;data: ConversationBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof salesActivityControllerLogOnLead>>,
+        TError,
+        {id: number;data: ConversationBodyDto},
+        TContext
+      > => {
+
+      const mutationOptions = getSalesActivityControllerLogOnLeadMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Conversations tab, newest first
+ */
+export type salesActivityControllerLeadConversationsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesActivityControllerLeadConversationsResponseSuccess = (salesActivityControllerLeadConversationsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesActivityControllerLeadConversationsResponse = (salesActivityControllerLeadConversationsResponseSuccess)
+
+export const getSalesActivityControllerLeadConversationsUrl = (id: number,
+    params?: SalesActivityControllerLeadConversationsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/sales/leads/${id}/conversations?${stringifiedParams}` : `/api/v1/sales/leads/${id}/conversations`
+}
+
+export const salesActivityControllerLeadConversations = async (id: number,
+    params?: SalesActivityControllerLeadConversationsParams, options?: RequestInit): Promise<salesActivityControllerLeadConversationsResponse> => {
+  
+  return customFetch<salesActivityControllerLeadConversationsResponse>(getSalesActivityControllerLeadConversationsUrl(id,params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getSalesActivityControllerLeadConversationsQueryKey = (id?: number,
+    params?: SalesActivityControllerLeadConversationsParams,) => {
+    return [
+    `/api/v1/sales/leads/${id}/conversations`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getSalesActivityControllerLeadConversationsQueryOptions = <TData = Awaited<ReturnType<typeof salesActivityControllerLeadConversations>>, TError = unknown>(id: number,
+    params?: SalesActivityControllerLeadConversationsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesActivityControllerLeadConversations>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSalesActivityControllerLeadConversationsQueryKey(id,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof salesActivityControllerLeadConversations>>> = ({ signal }) => salesActivityControllerLeadConversations(id,params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof salesActivityControllerLeadConversations>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type SalesActivityControllerLeadConversationsQueryResult = NonNullable<Awaited<ReturnType<typeof salesActivityControllerLeadConversations>>>
+export type SalesActivityControllerLeadConversationsQueryError = unknown
+
+
+export function useSalesActivityControllerLeadConversations<TData = Awaited<ReturnType<typeof salesActivityControllerLeadConversations>>, TError = unknown>(
+ id: number,
+    params: undefined |  SalesActivityControllerLeadConversationsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesActivityControllerLeadConversations>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesActivityControllerLeadConversations>>,
+          TError,
+          Awaited<ReturnType<typeof salesActivityControllerLeadConversations>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesActivityControllerLeadConversations<TData = Awaited<ReturnType<typeof salesActivityControllerLeadConversations>>, TError = unknown>(
+ id: number,
+    params?: SalesActivityControllerLeadConversationsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesActivityControllerLeadConversations>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesActivityControllerLeadConversations>>,
+          TError,
+          Awaited<ReturnType<typeof salesActivityControllerLeadConversations>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesActivityControllerLeadConversations<TData = Awaited<ReturnType<typeof salesActivityControllerLeadConversations>>, TError = unknown>(
+ id: number,
+    params?: SalesActivityControllerLeadConversationsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesActivityControllerLeadConversations>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Conversations tab, newest first
+ */
+
+export function useSalesActivityControllerLeadConversations<TData = Awaited<ReturnType<typeof salesActivityControllerLeadConversations>>, TError = unknown>(
+ id: number,
+    params?: SalesActivityControllerLeadConversationsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesActivityControllerLeadConversations>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getSalesActivityControllerLeadConversationsQueryOptions(id,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Edit a conversation: its author for 24 hours, the Admin any time. Every edit goes to History.
+ */
+export type salesActivityControllerEditConversationResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesActivityControllerEditConversationResponseSuccess = (salesActivityControllerEditConversationResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesActivityControllerEditConversationResponse = (salesActivityControllerEditConversationResponseSuccess)
+
+export const getSalesActivityControllerEditConversationUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/sales/conversations/${id}`
+}
+
+export const salesActivityControllerEditConversation = async (id: number,
+    conversationBodyDto: ConversationBodyDto, options?: RequestInit): Promise<salesActivityControllerEditConversationResponse> => {
+  
+  return customFetch<salesActivityControllerEditConversationResponse>(getSalesActivityControllerEditConversationUrl(id),
+  {      
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      conversationBodyDto,)
+  }
+);}
+
+
+
+
+export const getSalesActivityControllerEditConversationMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesActivityControllerEditConversation>>, TError,{id: number;data: ConversationBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof salesActivityControllerEditConversation>>, TError,{id: number;data: ConversationBodyDto}, TContext> => {
+
+const mutationKey = ['salesActivityControllerEditConversation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof salesActivityControllerEditConversation>>, {id: number;data: ConversationBodyDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  salesActivityControllerEditConversation(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SalesActivityControllerEditConversationMutationResult = NonNullable<Awaited<ReturnType<typeof salesActivityControllerEditConversation>>>
+    export type SalesActivityControllerEditConversationMutationBody = ConversationBodyDto
+    export type SalesActivityControllerEditConversationMutationError = unknown
+
+    /**
+ * @summary Edit a conversation: its author for 24 hours, the Admin any time. Every edit goes to History.
+ */
+export const useSalesActivityControllerEditConversation = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesActivityControllerEditConversation>>, TError,{id: number;data: ConversationBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof salesActivityControllerEditConversation>>,
+        TError,
+        {id: number;data: ConversationBodyDto},
+        TContext
+      > => {
+
+      const mutationOptions = getSalesActivityControllerEditConversationMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Quick log: one line, saved with the exact time. A call/email/... is a conversation with the primary contact; "Note" is a General note.
+ */
+export type salesActivityControllerQuickLogResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type salesActivityControllerQuickLogResponseSuccess = (salesActivityControllerQuickLogResponse201) & {
+  headers: Headers;
+};
+;
+
+export type salesActivityControllerQuickLogResponse = (salesActivityControllerQuickLogResponseSuccess)
+
+export const getSalesActivityControllerQuickLogUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/sales/leads/${id}/quick-log`
+}
+
+export const salesActivityControllerQuickLog = async (id: number,
+    quickLogBodyDto: QuickLogBodyDto, options?: RequestInit): Promise<salesActivityControllerQuickLogResponse> => {
+  
+  return customFetch<salesActivityControllerQuickLogResponse>(getSalesActivityControllerQuickLogUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      quickLogBodyDto,)
+  }
+);}
+
+
+
+
+export const getSalesActivityControllerQuickLogMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesActivityControllerQuickLog>>, TError,{id: number;data: QuickLogBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof salesActivityControllerQuickLog>>, TError,{id: number;data: QuickLogBodyDto}, TContext> => {
+
+const mutationKey = ['salesActivityControllerQuickLog'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof salesActivityControllerQuickLog>>, {id: number;data: QuickLogBodyDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  salesActivityControllerQuickLog(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SalesActivityControllerQuickLogMutationResult = NonNullable<Awaited<ReturnType<typeof salesActivityControllerQuickLog>>>
+    export type SalesActivityControllerQuickLogMutationBody = QuickLogBodyDto
+    export type SalesActivityControllerQuickLogMutationError = unknown
+
+    /**
+ * @summary Quick log: one line, saved with the exact time. A call/email/... is a conversation with the primary contact; "Note" is a General note.
+ */
+export const useSalesActivityControllerQuickLog = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesActivityControllerQuickLog>>, TError,{id: number;data: QuickLogBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof salesActivityControllerQuickLog>>,
+        TError,
+        {id: number;data: QuickLogBodyDto},
+        TContext
+      > => {
+
+      const mutationOptions = getSalesActivityControllerQuickLogMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Notes tab: pinned first, then newest first
+ */
+export type salesActivityControllerNotesResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesActivityControllerNotesResponseSuccess = (salesActivityControllerNotesResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesActivityControllerNotesResponse = (salesActivityControllerNotesResponseSuccess)
+
+export const getSalesActivityControllerNotesUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/sales/leads/${id}/notes`
+}
+
+export const salesActivityControllerNotes = async (id: number, options?: RequestInit): Promise<salesActivityControllerNotesResponse> => {
+  
+  return customFetch<salesActivityControllerNotesResponse>(getSalesActivityControllerNotesUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getSalesActivityControllerNotesQueryKey = (id?: number,) => {
+    return [
+    `/api/v1/sales/leads/${id}/notes`
+    ] as const;
+    }
+
+    
+export const getSalesActivityControllerNotesQueryOptions = <TData = Awaited<ReturnType<typeof salesActivityControllerNotes>>, TError = unknown>(id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesActivityControllerNotes>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSalesActivityControllerNotesQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof salesActivityControllerNotes>>> = ({ signal }) => salesActivityControllerNotes(id, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof salesActivityControllerNotes>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type SalesActivityControllerNotesQueryResult = NonNullable<Awaited<ReturnType<typeof salesActivityControllerNotes>>>
+export type SalesActivityControllerNotesQueryError = unknown
+
+
+export function useSalesActivityControllerNotes<TData = Awaited<ReturnType<typeof salesActivityControllerNotes>>, TError = unknown>(
+ id: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesActivityControllerNotes>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesActivityControllerNotes>>,
+          TError,
+          Awaited<ReturnType<typeof salesActivityControllerNotes>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesActivityControllerNotes<TData = Awaited<ReturnType<typeof salesActivityControllerNotes>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesActivityControllerNotes>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesActivityControllerNotes>>,
+          TError,
+          Awaited<ReturnType<typeof salesActivityControllerNotes>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesActivityControllerNotes<TData = Awaited<ReturnType<typeof salesActivityControllerNotes>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesActivityControllerNotes>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Notes tab: pinned first, then newest first
+ */
+
+export function useSalesActivityControllerNotes<TData = Awaited<ReturnType<typeof salesActivityControllerNotes>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesActivityControllerNotes>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getSalesActivityControllerNotesQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Add a General / Requirement / Budget / Readiness note
+ */
+export type salesActivityControllerAddNoteResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type salesActivityControllerAddNoteResponseSuccess = (salesActivityControllerAddNoteResponse201) & {
+  headers: Headers;
+};
+;
+
+export type salesActivityControllerAddNoteResponse = (salesActivityControllerAddNoteResponseSuccess)
+
+export const getSalesActivityControllerAddNoteUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/sales/leads/${id}/notes`
+}
+
+export const salesActivityControllerAddNote = async (id: number,
+    noteBodyDto: NoteBodyDto, options?: RequestInit): Promise<salesActivityControllerAddNoteResponse> => {
+  
+  return customFetch<salesActivityControllerAddNoteResponse>(getSalesActivityControllerAddNoteUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      noteBodyDto,)
+  }
+);}
+
+
+
+
+export const getSalesActivityControllerAddNoteMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesActivityControllerAddNote>>, TError,{id: number;data: NoteBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof salesActivityControllerAddNote>>, TError,{id: number;data: NoteBodyDto}, TContext> => {
+
+const mutationKey = ['salesActivityControllerAddNote'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof salesActivityControllerAddNote>>, {id: number;data: NoteBodyDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  salesActivityControllerAddNote(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SalesActivityControllerAddNoteMutationResult = NonNullable<Awaited<ReturnType<typeof salesActivityControllerAddNote>>>
+    export type SalesActivityControllerAddNoteMutationBody = NoteBodyDto
+    export type SalesActivityControllerAddNoteMutationError = unknown
+
+    /**
+ * @summary Add a General / Requirement / Budget / Readiness note
+ */
+export const useSalesActivityControllerAddNote = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesActivityControllerAddNote>>, TError,{id: number;data: NoteBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof salesActivityControllerAddNote>>,
+        TError,
+        {id: number;data: NoteBodyDto},
+        TContext
+      > => {
+
+      const mutationOptions = getSalesActivityControllerAddNoteMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Edit a note (author 24 hours, Admin any time) or pin / unpin it
+ */
+export type salesActivityControllerEditNoteResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesActivityControllerEditNoteResponseSuccess = (salesActivityControllerEditNoteResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesActivityControllerEditNoteResponse = (salesActivityControllerEditNoteResponseSuccess)
+
+export const getSalesActivityControllerEditNoteUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/sales/notes/${id}`
+}
+
+export const salesActivityControllerEditNote = async (id: number,
+    noteBodyDto: NoteBodyDto, options?: RequestInit): Promise<salesActivityControllerEditNoteResponse> => {
+  
+  return customFetch<salesActivityControllerEditNoteResponse>(getSalesActivityControllerEditNoteUrl(id),
+  {      
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      noteBodyDto,)
+  }
+);}
+
+
+
+
+export const getSalesActivityControllerEditNoteMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesActivityControllerEditNote>>, TError,{id: number;data: NoteBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof salesActivityControllerEditNote>>, TError,{id: number;data: NoteBodyDto}, TContext> => {
+
+const mutationKey = ['salesActivityControllerEditNote'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof salesActivityControllerEditNote>>, {id: number;data: NoteBodyDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  salesActivityControllerEditNote(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SalesActivityControllerEditNoteMutationResult = NonNullable<Awaited<ReturnType<typeof salesActivityControllerEditNote>>>
+    export type SalesActivityControllerEditNoteMutationBody = NoteBodyDto
+    export type SalesActivityControllerEditNoteMutationError = unknown
+
+    /**
+ * @summary Edit a note (author 24 hours, Admin any time) or pin / unpin it
+ */
+export const useSalesActivityControllerEditNote = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesActivityControllerEditNote>>, TError,{id: number;data: NoteBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof salesActivityControllerEditNote>>,
+        TError,
+        {id: number;data: NoteBodyDto},
+        TContext
+      > => {
+
+      const mutationOptions = getSalesActivityControllerEditNoteMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Activity tab: pending follow-ups first, pinned notes next, then conversations, notes and status changes, newest first
+ */
+export type salesActivityControllerTimelineResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesActivityControllerTimelineResponseSuccess = (salesActivityControllerTimelineResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesActivityControllerTimelineResponse = (salesActivityControllerTimelineResponseSuccess)
+
+export const getSalesActivityControllerTimelineUrl = (id: number,
+    params?: SalesActivityControllerTimelineParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/sales/leads/${id}/timeline?${stringifiedParams}` : `/api/v1/sales/leads/${id}/timeline`
+}
+
+export const salesActivityControllerTimeline = async (id: number,
+    params?: SalesActivityControllerTimelineParams, options?: RequestInit): Promise<salesActivityControllerTimelineResponse> => {
+  
+  return customFetch<salesActivityControllerTimelineResponse>(getSalesActivityControllerTimelineUrl(id,params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getSalesActivityControllerTimelineQueryKey = (id?: number,
+    params?: SalesActivityControllerTimelineParams,) => {
+    return [
+    `/api/v1/sales/leads/${id}/timeline`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getSalesActivityControllerTimelineQueryOptions = <TData = Awaited<ReturnType<typeof salesActivityControllerTimeline>>, TError = unknown>(id: number,
+    params?: SalesActivityControllerTimelineParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesActivityControllerTimeline>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSalesActivityControllerTimelineQueryKey(id,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof salesActivityControllerTimeline>>> = ({ signal }) => salesActivityControllerTimeline(id,params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof salesActivityControllerTimeline>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type SalesActivityControllerTimelineQueryResult = NonNullable<Awaited<ReturnType<typeof salesActivityControllerTimeline>>>
+export type SalesActivityControllerTimelineQueryError = unknown
+
+
+export function useSalesActivityControllerTimeline<TData = Awaited<ReturnType<typeof salesActivityControllerTimeline>>, TError = unknown>(
+ id: number,
+    params: undefined |  SalesActivityControllerTimelineParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesActivityControllerTimeline>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesActivityControllerTimeline>>,
+          TError,
+          Awaited<ReturnType<typeof salesActivityControllerTimeline>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesActivityControllerTimeline<TData = Awaited<ReturnType<typeof salesActivityControllerTimeline>>, TError = unknown>(
+ id: number,
+    params?: SalesActivityControllerTimelineParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesActivityControllerTimeline>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesActivityControllerTimeline>>,
+          TError,
+          Awaited<ReturnType<typeof salesActivityControllerTimeline>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesActivityControllerTimeline<TData = Awaited<ReturnType<typeof salesActivityControllerTimeline>>, TError = unknown>(
+ id: number,
+    params?: SalesActivityControllerTimelineParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesActivityControllerTimeline>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Activity tab: pending follow-ups first, pinned notes next, then conversations, notes and status changes, newest first
+ */
+
+export function useSalesActivityControllerTimeline<TData = Awaited<ReturnType<typeof salesActivityControllerTimeline>>, TError = unknown>(
+ id: number,
+    params?: SalesActivityControllerTimelineParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesActivityControllerTimeline>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getSalesActivityControllerTimelineQueryOptions(id,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Lead History tab: every change, who and when
+ */
+export type salesActivityControllerHistoryResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesActivityControllerHistoryResponseSuccess = (salesActivityControllerHistoryResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesActivityControllerHistoryResponse = (salesActivityControllerHistoryResponseSuccess)
+
+export const getSalesActivityControllerHistoryUrl = (id: number,
+    params?: SalesActivityControllerHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/sales/leads/${id}/history?${stringifiedParams}` : `/api/v1/sales/leads/${id}/history`
+}
+
+export const salesActivityControllerHistory = async (id: number,
+    params?: SalesActivityControllerHistoryParams, options?: RequestInit): Promise<salesActivityControllerHistoryResponse> => {
+  
+  return customFetch<salesActivityControllerHistoryResponse>(getSalesActivityControllerHistoryUrl(id,params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getSalesActivityControllerHistoryQueryKey = (id?: number,
+    params?: SalesActivityControllerHistoryParams,) => {
+    return [
+    `/api/v1/sales/leads/${id}/history`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getSalesActivityControllerHistoryQueryOptions = <TData = Awaited<ReturnType<typeof salesActivityControllerHistory>>, TError = unknown>(id: number,
+    params?: SalesActivityControllerHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesActivityControllerHistory>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSalesActivityControllerHistoryQueryKey(id,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof salesActivityControllerHistory>>> = ({ signal }) => salesActivityControllerHistory(id,params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof salesActivityControllerHistory>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type SalesActivityControllerHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof salesActivityControllerHistory>>>
+export type SalesActivityControllerHistoryQueryError = unknown
+
+
+export function useSalesActivityControllerHistory<TData = Awaited<ReturnType<typeof salesActivityControllerHistory>>, TError = unknown>(
+ id: number,
+    params: undefined |  SalesActivityControllerHistoryParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesActivityControllerHistory>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesActivityControllerHistory>>,
+          TError,
+          Awaited<ReturnType<typeof salesActivityControllerHistory>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesActivityControllerHistory<TData = Awaited<ReturnType<typeof salesActivityControllerHistory>>, TError = unknown>(
+ id: number,
+    params?: SalesActivityControllerHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesActivityControllerHistory>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesActivityControllerHistory>>,
+          TError,
+          Awaited<ReturnType<typeof salesActivityControllerHistory>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesActivityControllerHistory<TData = Awaited<ReturnType<typeof salesActivityControllerHistory>>, TError = unknown>(
+ id: number,
+    params?: SalesActivityControllerHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesActivityControllerHistory>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Lead History tab: every change, who and when
+ */
+
+export function useSalesActivityControllerHistory<TData = Awaited<ReturnType<typeof salesActivityControllerHistory>>, TError = unknown>(
+ id: number,
+    params?: SalesActivityControllerHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesActivityControllerHistory>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getSalesActivityControllerHistoryQueryOptions(id,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary The Qualify popup checklist, whether "Mark as Qualified" is on, and which actions the status allows
+ */
+export type salesLeadStatusControllerQualificationResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesLeadStatusControllerQualificationResponseSuccess = (salesLeadStatusControllerQualificationResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesLeadStatusControllerQualificationResponse = (salesLeadStatusControllerQualificationResponseSuccess)
+
+export const getSalesLeadStatusControllerQualificationUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/sales/leads/${id}/qualification`
+}
+
+export const salesLeadStatusControllerQualification = async (id: number, options?: RequestInit): Promise<salesLeadStatusControllerQualificationResponse> => {
+  
+  return customFetch<salesLeadStatusControllerQualificationResponse>(getSalesLeadStatusControllerQualificationUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getSalesLeadStatusControllerQualificationQueryKey = (id?: number,) => {
+    return [
+    `/api/v1/sales/leads/${id}/qualification`
+    ] as const;
+    }
+
+    
+export const getSalesLeadStatusControllerQualificationQueryOptions = <TData = Awaited<ReturnType<typeof salesLeadStatusControllerQualification>>, TError = unknown>(id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesLeadStatusControllerQualification>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSalesLeadStatusControllerQualificationQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof salesLeadStatusControllerQualification>>> = ({ signal }) => salesLeadStatusControllerQualification(id, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof salesLeadStatusControllerQualification>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type SalesLeadStatusControllerQualificationQueryResult = NonNullable<Awaited<ReturnType<typeof salesLeadStatusControllerQualification>>>
+export type SalesLeadStatusControllerQualificationQueryError = unknown
+
+
+export function useSalesLeadStatusControllerQualification<TData = Awaited<ReturnType<typeof salesLeadStatusControllerQualification>>, TError = unknown>(
+ id: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesLeadStatusControllerQualification>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesLeadStatusControllerQualification>>,
+          TError,
+          Awaited<ReturnType<typeof salesLeadStatusControllerQualification>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesLeadStatusControllerQualification<TData = Awaited<ReturnType<typeof salesLeadStatusControllerQualification>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesLeadStatusControllerQualification>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesLeadStatusControllerQualification>>,
+          TError,
+          Awaited<ReturnType<typeof salesLeadStatusControllerQualification>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesLeadStatusControllerQualification<TData = Awaited<ReturnType<typeof salesLeadStatusControllerQualification>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesLeadStatusControllerQualification>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary The Qualify popup checklist, whether "Mark as Qualified" is on, and which actions the status allows
+ */
+
+export function useSalesLeadStatusControllerQualification<TData = Awaited<ReturnType<typeof salesLeadStatusControllerQualification>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesLeadStatusControllerQualification>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getSalesLeadStatusControllerQualificationQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Qualify Lead (Contacted -> Qualified). 422 QUALIFICATION_INCOMPLETE lists what is missing.
+ */
+export type salesLeadStatusControllerQualifyResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesLeadStatusControllerQualifyResponseSuccess = (salesLeadStatusControllerQualifyResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesLeadStatusControllerQualifyResponse = (salesLeadStatusControllerQualifyResponseSuccess)
+
+export const getSalesLeadStatusControllerQualifyUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/sales/leads/${id}/qualify`
+}
+
+export const salesLeadStatusControllerQualify = async (id: number,
+    qualifyBodyDto: QualifyBodyDto, options?: RequestInit): Promise<salesLeadStatusControllerQualifyResponse> => {
+  
+  return customFetch<salesLeadStatusControllerQualifyResponse>(getSalesLeadStatusControllerQualifyUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      qualifyBodyDto,)
+  }
+);}
+
+
+
+
+export const getSalesLeadStatusControllerQualifyMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesLeadStatusControllerQualify>>, TError,{id: number;data: QualifyBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof salesLeadStatusControllerQualify>>, TError,{id: number;data: QualifyBodyDto}, TContext> => {
+
+const mutationKey = ['salesLeadStatusControllerQualify'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof salesLeadStatusControllerQualify>>, {id: number;data: QualifyBodyDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  salesLeadStatusControllerQualify(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SalesLeadStatusControllerQualifyMutationResult = NonNullable<Awaited<ReturnType<typeof salesLeadStatusControllerQualify>>>
+    export type SalesLeadStatusControllerQualifyMutationBody = QualifyBodyDto
+    export type SalesLeadStatusControllerQualifyMutationError = unknown
+
+    /**
+ * @summary Qualify Lead (Contacted -> Qualified). 422 QUALIFICATION_INCOMPLETE lists what is missing.
+ */
+export const useSalesLeadStatusControllerQualify = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesLeadStatusControllerQualify>>, TError,{id: number;data: QualifyBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof salesLeadStatusControllerQualify>>,
+        TError,
+        {id: number;data: QualifyBodyDto},
+        TContext
+      > => {
+
+      const mutationOptions = getSalesLeadStatusControllerQualifyMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Put On Hold (Contacted / Qualified). The check-back date becomes a Pending follow-up.
+ */
+export type salesLeadStatusControllerHoldResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesLeadStatusControllerHoldResponseSuccess = (salesLeadStatusControllerHoldResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesLeadStatusControllerHoldResponse = (salesLeadStatusControllerHoldResponseSuccess)
+
+export const getSalesLeadStatusControllerHoldUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/sales/leads/${id}/hold`
+}
+
+export const salesLeadStatusControllerHold = async (id: number,
+    holdBodyDto: HoldBodyDto, options?: RequestInit): Promise<salesLeadStatusControllerHoldResponse> => {
+  
+  return customFetch<salesLeadStatusControllerHoldResponse>(getSalesLeadStatusControllerHoldUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      holdBodyDto,)
+  }
+);}
+
+
+
+
+export const getSalesLeadStatusControllerHoldMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesLeadStatusControllerHold>>, TError,{id: number;data: HoldBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof salesLeadStatusControllerHold>>, TError,{id: number;data: HoldBodyDto}, TContext> => {
+
+const mutationKey = ['salesLeadStatusControllerHold'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof salesLeadStatusControllerHold>>, {id: number;data: HoldBodyDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  salesLeadStatusControllerHold(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SalesLeadStatusControllerHoldMutationResult = NonNullable<Awaited<ReturnType<typeof salesLeadStatusControllerHold>>>
+    export type SalesLeadStatusControllerHoldMutationBody = HoldBodyDto
+    export type SalesLeadStatusControllerHoldMutationError = unknown
+
+    /**
+ * @summary Put On Hold (Contacted / Qualified). The check-back date becomes a Pending follow-up.
+ */
+export const useSalesLeadStatusControllerHold = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesLeadStatusControllerHold>>, TError,{id: number;data: HoldBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof salesLeadStatusControllerHold>>,
+        TError,
+        {id: number;data: HoldBodyDto},
+        TContext
+      > => {
+
+      const mutationOptions = getSalesLeadStatusControllerHoldMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Mark as Lost (New / Contacted / Qualified). A reason is needed; pending follow-ups are cancelled.
+ */
+export type salesLeadStatusControllerLostResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesLeadStatusControllerLostResponseSuccess = (salesLeadStatusControllerLostResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesLeadStatusControllerLostResponse = (salesLeadStatusControllerLostResponseSuccess)
+
+export const getSalesLeadStatusControllerLostUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/sales/leads/${id}/lost`
+}
+
+export const salesLeadStatusControllerLost = async (id: number,
+    lostBodyDto: LostBodyDto, options?: RequestInit): Promise<salesLeadStatusControllerLostResponse> => {
+  
+  return customFetch<salesLeadStatusControllerLostResponse>(getSalesLeadStatusControllerLostUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      lostBodyDto,)
+  }
+);}
+
+
+
+
+export const getSalesLeadStatusControllerLostMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesLeadStatusControllerLost>>, TError,{id: number;data: LostBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof salesLeadStatusControllerLost>>, TError,{id: number;data: LostBodyDto}, TContext> => {
+
+const mutationKey = ['salesLeadStatusControllerLost'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof salesLeadStatusControllerLost>>, {id: number;data: LostBodyDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  salesLeadStatusControllerLost(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SalesLeadStatusControllerLostMutationResult = NonNullable<Awaited<ReturnType<typeof salesLeadStatusControllerLost>>>
+    export type SalesLeadStatusControllerLostMutationBody = LostBodyDto
+    export type SalesLeadStatusControllerLostMutationError = unknown
+
+    /**
+ * @summary Mark as Lost (New / Contacted / Qualified). A reason is needed; pending follow-ups are cancelled.
+ */
+export const useSalesLeadStatusControllerLost = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesLeadStatusControllerLost>>, TError,{id: number;data: LostBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof salesLeadStatusControllerLost>>,
+        TError,
+        {id: number;data: LostBodyDto},
+        TContext
+      > => {
+
+      const mutationOptions = getSalesLeadStatusControllerLostMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Reopen: Lost goes back to Contacted, On Hold goes back to the status it had before
+ */
+export type salesLeadStatusControllerReopenResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesLeadStatusControllerReopenResponseSuccess = (salesLeadStatusControllerReopenResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesLeadStatusControllerReopenResponse = (salesLeadStatusControllerReopenResponseSuccess)
+
+export const getSalesLeadStatusControllerReopenUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/sales/leads/${id}/reopen`
+}
+
+export const salesLeadStatusControllerReopen = async (id: number, options?: RequestInit): Promise<salesLeadStatusControllerReopenResponse> => {
+  
+  return customFetch<salesLeadStatusControllerReopenResponse>(getSalesLeadStatusControllerReopenUrl(id),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getSalesLeadStatusControllerReopenMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesLeadStatusControllerReopen>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof salesLeadStatusControllerReopen>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['salesLeadStatusControllerReopen'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof salesLeadStatusControllerReopen>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  salesLeadStatusControllerReopen(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SalesLeadStatusControllerReopenMutationResult = NonNullable<Awaited<ReturnType<typeof salesLeadStatusControllerReopen>>>
+    
+    export type SalesLeadStatusControllerReopenMutationError = unknown
+
+    /**
+ * @summary Reopen: Lost goes back to Contacted, On Hold goes back to the status it had before
+ */
+export const useSalesLeadStatusControllerReopen = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesLeadStatusControllerReopen>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof salesLeadStatusControllerReopen>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+
+      const mutationOptions = getSalesLeadStatusControllerReopenMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Admin only: give the lead to another user (they are told)
+ */
+export type salesLeadStatusControllerChangeLeadByResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesLeadStatusControllerChangeLeadByResponseSuccess = (salesLeadStatusControllerChangeLeadByResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesLeadStatusControllerChangeLeadByResponse = (salesLeadStatusControllerChangeLeadByResponseSuccess)
+
+export const getSalesLeadStatusControllerChangeLeadByUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/sales/leads/${id}/change-lead-by`
+}
+
+export const salesLeadStatusControllerChangeLeadBy = async (id: number,
+    changeLeadByBodyDto: ChangeLeadByBodyDto, options?: RequestInit): Promise<salesLeadStatusControllerChangeLeadByResponse> => {
+  
+  return customFetch<salesLeadStatusControllerChangeLeadByResponse>(getSalesLeadStatusControllerChangeLeadByUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      changeLeadByBodyDto,)
+  }
+);}
+
+
+
+
+export const getSalesLeadStatusControllerChangeLeadByMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesLeadStatusControllerChangeLeadBy>>, TError,{id: number;data: ChangeLeadByBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof salesLeadStatusControllerChangeLeadBy>>, TError,{id: number;data: ChangeLeadByBodyDto}, TContext> => {
+
+const mutationKey = ['salesLeadStatusControllerChangeLeadBy'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof salesLeadStatusControllerChangeLeadBy>>, {id: number;data: ChangeLeadByBodyDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  salesLeadStatusControllerChangeLeadBy(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SalesLeadStatusControllerChangeLeadByMutationResult = NonNullable<Awaited<ReturnType<typeof salesLeadStatusControllerChangeLeadBy>>>
+    export type SalesLeadStatusControllerChangeLeadByMutationBody = ChangeLeadByBodyDto
+    export type SalesLeadStatusControllerChangeLeadByMutationError = unknown
+
+    /**
+ * @summary Admin only: give the lead to another user (they are told)
+ */
+export const useSalesLeadStatusControllerChangeLeadBy = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesLeadStatusControllerChangeLeadBy>>, TError,{id: number;data: ChangeLeadByBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof salesLeadStatusControllerChangeLeadBy>>,
+        TError,
+        {id: number;data: ChangeLeadByBodyDto},
+        TContext
+      > => {
+
+      const mutationOptions = getSalesLeadStatusControllerChangeLeadByMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Every person at the company; the Primary tag marks the main contact
+ */
+export type salesContactControllerListResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesContactControllerListResponseSuccess = (salesContactControllerListResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesContactControllerListResponse = (salesContactControllerListResponseSuccess)
+
+export const getSalesContactControllerListUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/sales/companies/${id}/contacts`
+}
+
+export const salesContactControllerList = async (id: number, options?: RequestInit): Promise<salesContactControllerListResponse> => {
+  
+  return customFetch<salesContactControllerListResponse>(getSalesContactControllerListUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getSalesContactControllerListQueryKey = (id?: number,) => {
+    return [
+    `/api/v1/sales/companies/${id}/contacts`
+    ] as const;
+    }
+
+    
+export const getSalesContactControllerListQueryOptions = <TData = Awaited<ReturnType<typeof salesContactControllerList>>, TError = unknown>(id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesContactControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSalesContactControllerListQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof salesContactControllerList>>> = ({ signal }) => salesContactControllerList(id, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof salesContactControllerList>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type SalesContactControllerListQueryResult = NonNullable<Awaited<ReturnType<typeof salesContactControllerList>>>
+export type SalesContactControllerListQueryError = unknown
+
+
+export function useSalesContactControllerList<TData = Awaited<ReturnType<typeof salesContactControllerList>>, TError = unknown>(
+ id: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesContactControllerList>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesContactControllerList>>,
+          TError,
+          Awaited<ReturnType<typeof salesContactControllerList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesContactControllerList<TData = Awaited<ReturnType<typeof salesContactControllerList>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesContactControllerList>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesContactControllerList>>,
+          TError,
+          Awaited<ReturnType<typeof salesContactControllerList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesContactControllerList<TData = Awaited<ReturnType<typeof salesContactControllerList>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesContactControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Every person at the company; the Primary tag marks the main contact
+ */
+
+export function useSalesContactControllerList<TData = Awaited<ReturnType<typeof salesContactControllerList>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesContactControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getSalesContactControllerListQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary + Add Contact. 409 DUPLICATE_CONTACT warns when the mobile / email belongs to another company; repeat with confirm_duplicate.
+ */
+export type salesContactControllerAddResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type salesContactControllerAddResponseSuccess = (salesContactControllerAddResponse201) & {
+  headers: Headers;
+};
+;
+
+export type salesContactControllerAddResponse = (salesContactControllerAddResponseSuccess)
+
+export const getSalesContactControllerAddUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/sales/companies/${id}/contacts`
+}
+
+export const salesContactControllerAdd = async (id: number,
+    contactBodyDto: ContactBodyDto, options?: RequestInit): Promise<salesContactControllerAddResponse> => {
+  
+  return customFetch<salesContactControllerAddResponse>(getSalesContactControllerAddUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      contactBodyDto,)
+  }
+);}
+
+
+
+
+export const getSalesContactControllerAddMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesContactControllerAdd>>, TError,{id: number;data: ContactBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof salesContactControllerAdd>>, TError,{id: number;data: ContactBodyDto}, TContext> => {
+
+const mutationKey = ['salesContactControllerAdd'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof salesContactControllerAdd>>, {id: number;data: ContactBodyDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  salesContactControllerAdd(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SalesContactControllerAddMutationResult = NonNullable<Awaited<ReturnType<typeof salesContactControllerAdd>>>
+    export type SalesContactControllerAddMutationBody = ContactBodyDto
+    export type SalesContactControllerAddMutationError = unknown
+
+    /**
+ * @summary + Add Contact. 409 DUPLICATE_CONTACT warns when the mobile / email belongs to another company; repeat with confirm_duplicate.
+ */
+export const useSalesContactControllerAdd = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesContactControllerAdd>>, TError,{id: number;data: ContactBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof salesContactControllerAdd>>,
+        TError,
+        {id: number;data: ContactBodyDto},
+        TContext
+      > => {
+
+      const mutationOptions = getSalesContactControllerAddMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Edit a contact (id = company_person_id)
+ */
+export type salesContactControllerUpdateResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesContactControllerUpdateResponseSuccess = (salesContactControllerUpdateResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesContactControllerUpdateResponse = (salesContactControllerUpdateResponseSuccess)
+
+export const getSalesContactControllerUpdateUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/sales/contacts/${id}`
+}
+
+export const salesContactControllerUpdate = async (id: number,
+    contactBodyDto: ContactBodyDto, options?: RequestInit): Promise<salesContactControllerUpdateResponse> => {
+  
+  return customFetch<salesContactControllerUpdateResponse>(getSalesContactControllerUpdateUrl(id),
+  {      
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      contactBodyDto,)
+  }
+);}
+
+
+
+
+export const getSalesContactControllerUpdateMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesContactControllerUpdate>>, TError,{id: number;data: ContactBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof salesContactControllerUpdate>>, TError,{id: number;data: ContactBodyDto}, TContext> => {
+
+const mutationKey = ['salesContactControllerUpdate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof salesContactControllerUpdate>>, {id: number;data: ContactBodyDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  salesContactControllerUpdate(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SalesContactControllerUpdateMutationResult = NonNullable<Awaited<ReturnType<typeof salesContactControllerUpdate>>>
+    export type SalesContactControllerUpdateMutationBody = ContactBodyDto
+    export type SalesContactControllerUpdateMutationError = unknown
+
+    /**
+ * @summary Edit a contact (id = company_person_id)
+ */
+export const useSalesContactControllerUpdate = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesContactControllerUpdate>>, TError,{id: number;data: ContactBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof salesContactControllerUpdate>>,
+        TError,
+        {id: number;data: ContactBodyDto},
+        TContext
+      > => {
+
+      const mutationOptions = getSalesContactControllerUpdateMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Delete a contact that is not used anywhere; otherwise mark "Left the company"
+ */
+export type salesContactControllerRemoveResponse204 = {
+  data: void
+  status: 204
+}
+    
+export type salesContactControllerRemoveResponseSuccess = (salesContactControllerRemoveResponse204) & {
+  headers: Headers;
+};
+;
+
+export type salesContactControllerRemoveResponse = (salesContactControllerRemoveResponseSuccess)
+
+export const getSalesContactControllerRemoveUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/sales/contacts/${id}`
+}
+
+export const salesContactControllerRemove = async (id: number, options?: RequestInit): Promise<salesContactControllerRemoveResponse> => {
+  
+  return customFetch<salesContactControllerRemoveResponse>(getSalesContactControllerRemoveUrl(id),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+);}
+
+
+
+
+export const getSalesContactControllerRemoveMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesContactControllerRemove>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof salesContactControllerRemove>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['salesContactControllerRemove'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof salesContactControllerRemove>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  salesContactControllerRemove(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SalesContactControllerRemoveMutationResult = NonNullable<Awaited<ReturnType<typeof salesContactControllerRemove>>>
+    
+    export type SalesContactControllerRemoveMutationError = unknown
+
+    /**
+ * @summary Delete a contact that is not used anywhere; otherwise mark "Left the company"
+ */
+export const useSalesContactControllerRemove = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesContactControllerRemove>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof salesContactControllerRemove>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+
+      const mutationOptions = getSalesContactControllerRemoveMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Make this contact primary (only one can be)
+ */
+export type salesContactControllerMakePrimaryResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesContactControllerMakePrimaryResponseSuccess = (salesContactControllerMakePrimaryResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesContactControllerMakePrimaryResponse = (salesContactControllerMakePrimaryResponseSuccess)
+
+export const getSalesContactControllerMakePrimaryUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/sales/contacts/${id}/make-primary`
+}
+
+export const salesContactControllerMakePrimary = async (id: number, options?: RequestInit): Promise<salesContactControllerMakePrimaryResponse> => {
+  
+  return customFetch<salesContactControllerMakePrimaryResponse>(getSalesContactControllerMakePrimaryUrl(id),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getSalesContactControllerMakePrimaryMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesContactControllerMakePrimary>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof salesContactControllerMakePrimary>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['salesContactControllerMakePrimary'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof salesContactControllerMakePrimary>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  salesContactControllerMakePrimary(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SalesContactControllerMakePrimaryMutationResult = NonNullable<Awaited<ReturnType<typeof salesContactControllerMakePrimary>>>
+    
+    export type SalesContactControllerMakePrimaryMutationError = unknown
+
+    /**
+ * @summary Make this contact primary (only one can be)
+ */
+export const useSalesContactControllerMakePrimary = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesContactControllerMakePrimary>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof salesContactControllerMakePrimary>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+
+      const mutationOptions = getSalesContactControllerMakePrimaryMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary "Left the company": kept in history, not offered in new conversations
+ */
+export type salesContactControllerLeftResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesContactControllerLeftResponseSuccess = (salesContactControllerLeftResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesContactControllerLeftResponse = (salesContactControllerLeftResponseSuccess)
+
+export const getSalesContactControllerLeftUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/sales/contacts/${id}/left-company`
+}
+
+export const salesContactControllerLeft = async (id: number, options?: RequestInit): Promise<salesContactControllerLeftResponse> => {
+  
+  return customFetch<salesContactControllerLeftResponse>(getSalesContactControllerLeftUrl(id),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getSalesContactControllerLeftMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesContactControllerLeft>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof salesContactControllerLeft>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['salesContactControllerLeft'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof salesContactControllerLeft>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  salesContactControllerLeft(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SalesContactControllerLeftMutationResult = NonNullable<Awaited<ReturnType<typeof salesContactControllerLeft>>>
+    
+    export type SalesContactControllerLeftMutationError = unknown
+
+    /**
+ * @summary "Left the company": kept in history, not offered in new conversations
+ */
+export const useSalesContactControllerLeft = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesContactControllerLeft>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof salesContactControllerLeft>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+
+      const mutationOptions = getSalesContactControllerLeftMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Follow-ups page. Tabs: today, upcoming, overdue, completed, cancelled (each tab count is returned). A Sales user sees follow-ups assigned to them or on their leads; the Admin sees all.
+ */
+export type salesFollowUpControllerListResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesFollowUpControllerListResponseSuccess = (salesFollowUpControllerListResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesFollowUpControllerListResponse = (salesFollowUpControllerListResponseSuccess)
+
+export const getSalesFollowUpControllerListUrl = (params?: SalesFollowUpControllerListParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/sales/follow-ups?${stringifiedParams}` : `/api/v1/sales/follow-ups`
+}
+
+export const salesFollowUpControllerList = async (params?: SalesFollowUpControllerListParams, options?: RequestInit): Promise<salesFollowUpControllerListResponse> => {
+  
+  return customFetch<salesFollowUpControllerListResponse>(getSalesFollowUpControllerListUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getSalesFollowUpControllerListQueryKey = (params?: SalesFollowUpControllerListParams,) => {
+    return [
+    `/api/v1/sales/follow-ups`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getSalesFollowUpControllerListQueryOptions = <TData = Awaited<ReturnType<typeof salesFollowUpControllerList>>, TError = unknown>(params?: SalesFollowUpControllerListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesFollowUpControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSalesFollowUpControllerListQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof salesFollowUpControllerList>>> = ({ signal }) => salesFollowUpControllerList(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof salesFollowUpControllerList>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type SalesFollowUpControllerListQueryResult = NonNullable<Awaited<ReturnType<typeof salesFollowUpControllerList>>>
+export type SalesFollowUpControllerListQueryError = unknown
+
+
+export function useSalesFollowUpControllerList<TData = Awaited<ReturnType<typeof salesFollowUpControllerList>>, TError = unknown>(
+ params: undefined |  SalesFollowUpControllerListParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesFollowUpControllerList>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesFollowUpControllerList>>,
+          TError,
+          Awaited<ReturnType<typeof salesFollowUpControllerList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesFollowUpControllerList<TData = Awaited<ReturnType<typeof salesFollowUpControllerList>>, TError = unknown>(
+ params?: SalesFollowUpControllerListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesFollowUpControllerList>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesFollowUpControllerList>>,
+          TError,
+          Awaited<ReturnType<typeof salesFollowUpControllerList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesFollowUpControllerList<TData = Awaited<ReturnType<typeof salesFollowUpControllerList>>, TError = unknown>(
+ params?: SalesFollowUpControllerListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesFollowUpControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Follow-ups page. Tabs: today, upcoming, overdue, completed, cancelled (each tab count is returned). A Sales user sees follow-ups assigned to them or on their leads; the Admin sees all.
+ */
+
+export function useSalesFollowUpControllerList<TData = Awaited<ReturnType<typeof salesFollowUpControllerList>>, TError = unknown>(
+ params?: SalesFollowUpControllerListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesFollowUpControllerList>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getSalesFollowUpControllerListQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary + Schedule Follow-up: for a lead, or for a company that is not yet a lead
+ */
+export type salesFollowUpControllerScheduleResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type salesFollowUpControllerScheduleResponseSuccess = (salesFollowUpControllerScheduleResponse201) & {
+  headers: Headers;
+};
+;
+
+export type salesFollowUpControllerScheduleResponse = (salesFollowUpControllerScheduleResponseSuccess)
+
+export const getSalesFollowUpControllerScheduleUrl = () => {
+
+
+  
+
+  return `/api/v1/sales/follow-ups`
+}
+
+export const salesFollowUpControllerSchedule = async (scheduleFollowUpBodyDto: ScheduleFollowUpBodyDto, options?: RequestInit): Promise<salesFollowUpControllerScheduleResponse> => {
+  
+  return customFetch<salesFollowUpControllerScheduleResponse>(getSalesFollowUpControllerScheduleUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      scheduleFollowUpBodyDto,)
+  }
+);}
+
+
+
+
+export const getSalesFollowUpControllerScheduleMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesFollowUpControllerSchedule>>, TError,{data: ScheduleFollowUpBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof salesFollowUpControllerSchedule>>, TError,{data: ScheduleFollowUpBodyDto}, TContext> => {
+
+const mutationKey = ['salesFollowUpControllerSchedule'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof salesFollowUpControllerSchedule>>, {data: ScheduleFollowUpBodyDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  salesFollowUpControllerSchedule(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SalesFollowUpControllerScheduleMutationResult = NonNullable<Awaited<ReturnType<typeof salesFollowUpControllerSchedule>>>
+    export type SalesFollowUpControllerScheduleMutationBody = ScheduleFollowUpBodyDto
+    export type SalesFollowUpControllerScheduleMutationError = unknown
+
+    /**
+ * @summary + Schedule Follow-up: for a lead, or for a company that is not yet a lead
+ */
+export const useSalesFollowUpControllerSchedule = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesFollowUpControllerSchedule>>, TError,{data: ScheduleFollowUpBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof salesFollowUpControllerSchedule>>,
+        TError,
+        {data: ScheduleFollowUpBodyDto},
+        TContext
+      > => {
+
+      const mutationOptions = getSalesFollowUpControllerScheduleMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary One follow-up: the strip of the Complete pop-up, with the buttons the user may press
+ */
+export type salesFollowUpControllerGetResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesFollowUpControllerGetResponseSuccess = (salesFollowUpControllerGetResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesFollowUpControllerGetResponse = (salesFollowUpControllerGetResponseSuccess)
+
+export const getSalesFollowUpControllerGetUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/sales/follow-ups/${id}`
+}
+
+export const salesFollowUpControllerGet = async (id: number, options?: RequestInit): Promise<salesFollowUpControllerGetResponse> => {
+  
+  return customFetch<salesFollowUpControllerGetResponse>(getSalesFollowUpControllerGetUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getSalesFollowUpControllerGetQueryKey = (id?: number,) => {
+    return [
+    `/api/v1/sales/follow-ups/${id}`
+    ] as const;
+    }
+
+    
+export const getSalesFollowUpControllerGetQueryOptions = <TData = Awaited<ReturnType<typeof salesFollowUpControllerGet>>, TError = unknown>(id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesFollowUpControllerGet>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSalesFollowUpControllerGetQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof salesFollowUpControllerGet>>> = ({ signal }) => salesFollowUpControllerGet(id, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof salesFollowUpControllerGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type SalesFollowUpControllerGetQueryResult = NonNullable<Awaited<ReturnType<typeof salesFollowUpControllerGet>>>
+export type SalesFollowUpControllerGetQueryError = unknown
+
+
+export function useSalesFollowUpControllerGet<TData = Awaited<ReturnType<typeof salesFollowUpControllerGet>>, TError = unknown>(
+ id: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesFollowUpControllerGet>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesFollowUpControllerGet>>,
+          TError,
+          Awaited<ReturnType<typeof salesFollowUpControllerGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesFollowUpControllerGet<TData = Awaited<ReturnType<typeof salesFollowUpControllerGet>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesFollowUpControllerGet>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesFollowUpControllerGet>>,
+          TError,
+          Awaited<ReturnType<typeof salesFollowUpControllerGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesFollowUpControllerGet<TData = Awaited<ReturnType<typeof salesFollowUpControllerGet>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesFollowUpControllerGet>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary One follow-up: the strip of the Complete pop-up, with the buttons the user may press
+ */
+
+export function useSalesFollowUpControllerGet<TData = Awaited<ReturnType<typeof salesFollowUpControllerGet>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesFollowUpControllerGet>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getSalesFollowUpControllerGetQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Edit purpose, contact or Assigned to while Pending or Overdue (the date changes only through Reschedule)
+ */
+export type salesFollowUpControllerEditResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesFollowUpControllerEditResponseSuccess = (salesFollowUpControllerEditResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesFollowUpControllerEditResponse = (salesFollowUpControllerEditResponseSuccess)
+
+export const getSalesFollowUpControllerEditUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/sales/follow-ups/${id}`
+}
+
+export const salesFollowUpControllerEdit = async (id: number,
+    editFollowUpBodyDto: EditFollowUpBodyDto, options?: RequestInit): Promise<salesFollowUpControllerEditResponse> => {
+  
+  return customFetch<salesFollowUpControllerEditResponse>(getSalesFollowUpControllerEditUrl(id),
+  {      
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      editFollowUpBodyDto,)
+  }
+);}
+
+
+
+
+export const getSalesFollowUpControllerEditMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesFollowUpControllerEdit>>, TError,{id: number;data: EditFollowUpBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof salesFollowUpControllerEdit>>, TError,{id: number;data: EditFollowUpBodyDto}, TContext> => {
+
+const mutationKey = ['salesFollowUpControllerEdit'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof salesFollowUpControllerEdit>>, {id: number;data: EditFollowUpBodyDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  salesFollowUpControllerEdit(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SalesFollowUpControllerEditMutationResult = NonNullable<Awaited<ReturnType<typeof salesFollowUpControllerEdit>>>
+    export type SalesFollowUpControllerEditMutationBody = EditFollowUpBodyDto
+    export type SalesFollowUpControllerEditMutationError = unknown
+
+    /**
+ * @summary Edit purpose, contact or Assigned to while Pending or Overdue (the date changes only through Reschedule)
+ */
+export const useSalesFollowUpControllerEdit = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesFollowUpControllerEdit>>, TError,{id: number;data: EditFollowUpBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof salesFollowUpControllerEdit>>,
+        TError,
+        {id: number;data: EditFollowUpBodyDto},
+        TContext
+      > => {
+
+      const mutationOptions = getSalesFollowUpControllerEditMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Complete: saves what happened as a conversation, marks it Completed and runs the next step (schedule / qualify / hold / lost / none) - all or nothing.
+ */
+export type salesFollowUpControllerCompleteResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesFollowUpControllerCompleteResponseSuccess = (salesFollowUpControllerCompleteResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesFollowUpControllerCompleteResponse = (salesFollowUpControllerCompleteResponseSuccess)
+
+export const getSalesFollowUpControllerCompleteUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/sales/follow-ups/${id}/complete`
+}
+
+export const salesFollowUpControllerComplete = async (id: number,
+    completeFollowUpBodyDto: CompleteFollowUpBodyDto, options?: RequestInit): Promise<salesFollowUpControllerCompleteResponse> => {
+  
+  return customFetch<salesFollowUpControllerCompleteResponse>(getSalesFollowUpControllerCompleteUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      completeFollowUpBodyDto,)
+  }
+);}
+
+
+
+
+export const getSalesFollowUpControllerCompleteMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesFollowUpControllerComplete>>, TError,{id: number;data: CompleteFollowUpBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof salesFollowUpControllerComplete>>, TError,{id: number;data: CompleteFollowUpBodyDto}, TContext> => {
+
+const mutationKey = ['salesFollowUpControllerComplete'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof salesFollowUpControllerComplete>>, {id: number;data: CompleteFollowUpBodyDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  salesFollowUpControllerComplete(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SalesFollowUpControllerCompleteMutationResult = NonNullable<Awaited<ReturnType<typeof salesFollowUpControllerComplete>>>
+    export type SalesFollowUpControllerCompleteMutationBody = CompleteFollowUpBodyDto
+    export type SalesFollowUpControllerCompleteMutationError = unknown
+
+    /**
+ * @summary Complete: saves what happened as a conversation, marks it Completed and runs the next step (schedule / qualify / hold / lost / none) - all or nothing.
+ */
+export const useSalesFollowUpControllerComplete = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesFollowUpControllerComplete>>, TError,{id: number;data: CompleteFollowUpBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof salesFollowUpControllerComplete>>,
+        TError,
+        {id: number;data: CompleteFollowUpBodyDto},
+        TContext
+      > => {
+
+      const mutationOptions = getSalesFollowUpControllerCompleteMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Reschedule (Pending or Overdue): new date and time plus a reason. The third time the Admin is told.
+ */
+export type salesFollowUpControllerRescheduleResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesFollowUpControllerRescheduleResponseSuccess = (salesFollowUpControllerRescheduleResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesFollowUpControllerRescheduleResponse = (salesFollowUpControllerRescheduleResponseSuccess)
+
+export const getSalesFollowUpControllerRescheduleUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/sales/follow-ups/${id}/reschedule`
+}
+
+export const salesFollowUpControllerReschedule = async (id: number,
+    rescheduleBodyDto: RescheduleBodyDto, options?: RequestInit): Promise<salesFollowUpControllerRescheduleResponse> => {
+  
+  return customFetch<salesFollowUpControllerRescheduleResponse>(getSalesFollowUpControllerRescheduleUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      rescheduleBodyDto,)
+  }
+);}
+
+
+
+
+export const getSalesFollowUpControllerRescheduleMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesFollowUpControllerReschedule>>, TError,{id: number;data: RescheduleBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof salesFollowUpControllerReschedule>>, TError,{id: number;data: RescheduleBodyDto}, TContext> => {
+
+const mutationKey = ['salesFollowUpControllerReschedule'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof salesFollowUpControllerReschedule>>, {id: number;data: RescheduleBodyDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  salesFollowUpControllerReschedule(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SalesFollowUpControllerRescheduleMutationResult = NonNullable<Awaited<ReturnType<typeof salesFollowUpControllerReschedule>>>
+    export type SalesFollowUpControllerRescheduleMutationBody = RescheduleBodyDto
+    export type SalesFollowUpControllerRescheduleMutationError = unknown
+
+    /**
+ * @summary Reschedule (Pending or Overdue): new date and time plus a reason. The third time the Admin is told.
+ */
+export const useSalesFollowUpControllerReschedule = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesFollowUpControllerReschedule>>, TError,{id: number;data: RescheduleBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof salesFollowUpControllerReschedule>>,
+        TError,
+        {id: number;data: RescheduleBodyDto},
+        TContext
+      > => {
+
+      const mutationOptions = getSalesFollowUpControllerRescheduleMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Cancel (Pending or Overdue): a reason is needed
+ */
+export type salesFollowUpControllerCancelResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesFollowUpControllerCancelResponseSuccess = (salesFollowUpControllerCancelResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesFollowUpControllerCancelResponse = (salesFollowUpControllerCancelResponseSuccess)
+
+export const getSalesFollowUpControllerCancelUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/sales/follow-ups/${id}/cancel`
+}
+
+export const salesFollowUpControllerCancel = async (id: number,
+    cancelBodyDto: CancelBodyDto, options?: RequestInit): Promise<salesFollowUpControllerCancelResponse> => {
+  
+  return customFetch<salesFollowUpControllerCancelResponse>(getSalesFollowUpControllerCancelUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      cancelBodyDto,)
+  }
+);}
+
+
+
+
+export const getSalesFollowUpControllerCancelMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesFollowUpControllerCancel>>, TError,{id: number;data: CancelBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof salesFollowUpControllerCancel>>, TError,{id: number;data: CancelBodyDto}, TContext> => {
+
+const mutationKey = ['salesFollowUpControllerCancel'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof salesFollowUpControllerCancel>>, {id: number;data: CancelBodyDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  salesFollowUpControllerCancel(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SalesFollowUpControllerCancelMutationResult = NonNullable<Awaited<ReturnType<typeof salesFollowUpControllerCancel>>>
+    export type SalesFollowUpControllerCancelMutationBody = CancelBodyDto
+    export type SalesFollowUpControllerCancelMutationError = unknown
+
+    /**
+ * @summary Cancel (Pending or Overdue): a reason is needed
+ */
+export const useSalesFollowUpControllerCancel = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesFollowUpControllerCancel>>, TError,{id: number;data: CancelBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof salesFollowUpControllerCancel>>,
+        TError,
+        {id: number;data: CancelBodyDto},
+        TContext
+      > => {
+
+      const mutationOptions = getSalesFollowUpControllerCancelMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Follow-ups tab of Lead Details: open ones first, then the finished ones
+ */
+export type salesFollowUpControllerForLeadResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesFollowUpControllerForLeadResponseSuccess = (salesFollowUpControllerForLeadResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesFollowUpControllerForLeadResponse = (salesFollowUpControllerForLeadResponseSuccess)
+
+export const getSalesFollowUpControllerForLeadUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/sales/leads/${id}/follow-ups`
+}
+
+export const salesFollowUpControllerForLead = async (id: number, options?: RequestInit): Promise<salesFollowUpControllerForLeadResponse> => {
+  
+  return customFetch<salesFollowUpControllerForLeadResponse>(getSalesFollowUpControllerForLeadUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getSalesFollowUpControllerForLeadQueryKey = (id?: number,) => {
+    return [
+    `/api/v1/sales/leads/${id}/follow-ups`
+    ] as const;
+    }
+
+    
+export const getSalesFollowUpControllerForLeadQueryOptions = <TData = Awaited<ReturnType<typeof salesFollowUpControllerForLead>>, TError = unknown>(id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesFollowUpControllerForLead>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSalesFollowUpControllerForLeadQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof salesFollowUpControllerForLead>>> = ({ signal }) => salesFollowUpControllerForLead(id, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof salesFollowUpControllerForLead>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type SalesFollowUpControllerForLeadQueryResult = NonNullable<Awaited<ReturnType<typeof salesFollowUpControllerForLead>>>
+export type SalesFollowUpControllerForLeadQueryError = unknown
+
+
+export function useSalesFollowUpControllerForLead<TData = Awaited<ReturnType<typeof salesFollowUpControllerForLead>>, TError = unknown>(
+ id: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesFollowUpControllerForLead>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesFollowUpControllerForLead>>,
+          TError,
+          Awaited<ReturnType<typeof salesFollowUpControllerForLead>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesFollowUpControllerForLead<TData = Awaited<ReturnType<typeof salesFollowUpControllerForLead>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesFollowUpControllerForLead>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesFollowUpControllerForLead>>,
+          TError,
+          Awaited<ReturnType<typeof salesFollowUpControllerForLead>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesFollowUpControllerForLead<TData = Awaited<ReturnType<typeof salesFollowUpControllerForLead>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesFollowUpControllerForLead>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Follow-ups tab of Lead Details: open ones first, then the finished ones
+ */
+
+export function useSalesFollowUpControllerForLead<TData = Awaited<ReturnType<typeof salesFollowUpControllerForLead>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesFollowUpControllerForLead>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getSalesFollowUpControllerForLeadQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Quick log "Follow-up" on Lead Details: date, time and type, saved as a Pending follow-up
+ */
+export type salesFollowUpControllerScheduleOnLeadResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type salesFollowUpControllerScheduleOnLeadResponseSuccess = (salesFollowUpControllerScheduleOnLeadResponse201) & {
+  headers: Headers;
+};
+;
+
+export type salesFollowUpControllerScheduleOnLeadResponse = (salesFollowUpControllerScheduleOnLeadResponseSuccess)
+
+export const getSalesFollowUpControllerScheduleOnLeadUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/sales/leads/${id}/follow-ups`
+}
+
+export const salesFollowUpControllerScheduleOnLead = async (id: number,
+    scheduleOnLeadBodyDto: ScheduleOnLeadBodyDto, options?: RequestInit): Promise<salesFollowUpControllerScheduleOnLeadResponse> => {
+  
+  return customFetch<salesFollowUpControllerScheduleOnLeadResponse>(getSalesFollowUpControllerScheduleOnLeadUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      scheduleOnLeadBodyDto,)
+  }
+);}
+
+
+
+
+export const getSalesFollowUpControllerScheduleOnLeadMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesFollowUpControllerScheduleOnLead>>, TError,{id: number;data: ScheduleOnLeadBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof salesFollowUpControllerScheduleOnLead>>, TError,{id: number;data: ScheduleOnLeadBodyDto}, TContext> => {
+
+const mutationKey = ['salesFollowUpControllerScheduleOnLead'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof salesFollowUpControllerScheduleOnLead>>, {id: number;data: ScheduleOnLeadBodyDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  salesFollowUpControllerScheduleOnLead(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SalesFollowUpControllerScheduleOnLeadMutationResult = NonNullable<Awaited<ReturnType<typeof salesFollowUpControllerScheduleOnLead>>>
+    export type SalesFollowUpControllerScheduleOnLeadMutationBody = ScheduleOnLeadBodyDto
+    export type SalesFollowUpControllerScheduleOnLeadMutationError = unknown
+
+    /**
+ * @summary Quick log "Follow-up" on Lead Details: date, time and type, saved as a Pending follow-up
+ */
+export const useSalesFollowUpControllerScheduleOnLead = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesFollowUpControllerScheduleOnLead>>, TError,{id: number;data: ScheduleOnLeadBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof salesFollowUpControllerScheduleOnLead>>,
+        TError,
+        {id: number;data: ScheduleOnLeadBodyDto},
+        TContext
+      > => {
+
+      const mutationOptions = getSalesFollowUpControllerScheduleOnLeadMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Data for the "Mark as Won and Convert to Client" pop-up: Client ID preview, Won on range and what is carried forward
+ */
+export type salesClientControllerFormResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesClientControllerFormResponseSuccess = (salesClientControllerFormResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesClientControllerFormResponse = (salesClientControllerFormResponseSuccess)
+
+export const getSalesClientControllerFormUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/sales/leads/${id}/client-form`
+}
+
+export const salesClientControllerForm = async (id: number, options?: RequestInit): Promise<salesClientControllerFormResponse> => {
+  
+  return customFetch<salesClientControllerFormResponse>(getSalesClientControllerFormUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getSalesClientControllerFormQueryKey = (id?: number,) => {
+    return [
+    `/api/v1/sales/leads/${id}/client-form`
+    ] as const;
+    }
+
+    
+export const getSalesClientControllerFormQueryOptions = <TData = Awaited<ReturnType<typeof salesClientControllerForm>>, TError = unknown>(id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesClientControllerForm>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSalesClientControllerFormQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof salesClientControllerForm>>> = ({ signal }) => salesClientControllerForm(id, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof salesClientControllerForm>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type SalesClientControllerFormQueryResult = NonNullable<Awaited<ReturnType<typeof salesClientControllerForm>>>
+export type SalesClientControllerFormQueryError = unknown
+
+
+export function useSalesClientControllerForm<TData = Awaited<ReturnType<typeof salesClientControllerForm>>, TError = unknown>(
+ id: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesClientControllerForm>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesClientControllerForm>>,
+          TError,
+          Awaited<ReturnType<typeof salesClientControllerForm>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesClientControllerForm<TData = Awaited<ReturnType<typeof salesClientControllerForm>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesClientControllerForm>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesClientControllerForm>>,
+          TError,
+          Awaited<ReturnType<typeof salesClientControllerForm>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesClientControllerForm<TData = Awaited<ReturnType<typeof salesClientControllerForm>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesClientControllerForm>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Data for the "Mark as Won and Convert to Client" pop-up: Client ID preview, Won on range and what is carried forward
+ */
+
+export function useSalesClientControllerForm<TData = Awaited<ReturnType<typeof salesClientControllerForm>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesClientControllerForm>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getSalesClientControllerFormQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Mark as Won and Convert to Client in one step (Qualified leads only). The lead becomes Converted and locked, the Win note is saved, pending follow-ups are cancelled. The Admin and Lead By user are told.
+ */
+export type salesClientControllerConvertResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type salesClientControllerConvertResponseSuccess = (salesClientControllerConvertResponse201) & {
+  headers: Headers;
+};
+;
+
+export type salesClientControllerConvertResponse = (salesClientControllerConvertResponseSuccess)
+
+export const getSalesClientControllerConvertUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/sales/leads/${id}/convert-to-client`
+}
+
+export const salesClientControllerConvert = async (id: number,
+    convertToClientBodyDto: ConvertToClientBodyDto, options?: RequestInit): Promise<salesClientControllerConvertResponse> => {
+  
+  return customFetch<salesClientControllerConvertResponse>(getSalesClientControllerConvertUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      convertToClientBodyDto,)
+  }
+);}
+
+
+
+
+export const getSalesClientControllerConvertMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesClientControllerConvert>>, TError,{id: number;data: ConvertToClientBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof salesClientControllerConvert>>, TError,{id: number;data: ConvertToClientBodyDto}, TContext> => {
+
+const mutationKey = ['salesClientControllerConvert'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof salesClientControllerConvert>>, {id: number;data: ConvertToClientBodyDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  salesClientControllerConvert(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SalesClientControllerConvertMutationResult = NonNullable<Awaited<ReturnType<typeof salesClientControllerConvert>>>
+    export type SalesClientControllerConvertMutationBody = ConvertToClientBodyDto
+    export type SalesClientControllerConvertMutationError = unknown
+
+    /**
+ * @summary Mark as Won and Convert to Client in one step (Qualified leads only). The lead becomes Converted and locked, the Win note is saved, pending follow-ups are cancelled. The Admin and Lead By user are told.
+ */
+export const useSalesClientControllerConvert = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesClientControllerConvert>>, TError,{id: number;data: ConvertToClientBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof salesClientControllerConvert>>,
+        TError,
+        {id: number;data: ConvertToClientBodyDto},
+        TContext
+      > => {
+
+      const mutationOptions = getSalesClientControllerConvertMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Admin only: reverse a conversion with a reason, while the client has no project. The lead goes back to Qualified.
+ */
+export type salesClientControllerReverseResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesClientControllerReverseResponseSuccess = (salesClientControllerReverseResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesClientControllerReverseResponse = (salesClientControllerReverseResponseSuccess)
+
+export const getSalesClientControllerReverseUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/sales/leads/${id}/reverse-conversion`
+}
+
+export const salesClientControllerReverse = async (id: number,
+    reverseConversionBodyDto: ReverseConversionBodyDto, options?: RequestInit): Promise<salesClientControllerReverseResponse> => {
+  
+  return customFetch<salesClientControllerReverseResponse>(getSalesClientControllerReverseUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      reverseConversionBodyDto,)
+  }
+);}
+
+
+
+
+export const getSalesClientControllerReverseMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesClientControllerReverse>>, TError,{id: number;data: ReverseConversionBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof salesClientControllerReverse>>, TError,{id: number;data: ReverseConversionBodyDto}, TContext> => {
+
+const mutationKey = ['salesClientControllerReverse'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof salesClientControllerReverse>>, {id: number;data: ReverseConversionBodyDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  salesClientControllerReverse(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SalesClientControllerReverseMutationResult = NonNullable<Awaited<ReturnType<typeof salesClientControllerReverse>>>
+    export type SalesClientControllerReverseMutationBody = ReverseConversionBodyDto
+    export type SalesClientControllerReverseMutationError = unknown
+
+    /**
+ * @summary Admin only: reverse a conversion with a reason, while the client has no project. The lead goes back to Qualified.
+ */
+export const useSalesClientControllerReverse = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesClientControllerReverse>>, TError,{id: number;data: ReverseConversionBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof salesClientControllerReverse>>,
+        TError,
+        {id: number;data: ReverseConversionBodyDto},
+        TContext
+      > => {
+
+      const mutationOptions = getSalesClientControllerReverseMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Client Details: the company, its contacts, the lead it was converted from and what was carried forward
+ */
+export type salesClientControllerGetResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesClientControllerGetResponseSuccess = (salesClientControllerGetResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesClientControllerGetResponse = (salesClientControllerGetResponseSuccess)
+
+export const getSalesClientControllerGetUrl = (id: number,) => {
+
+
+  
+
+  return `/api/v1/sales/clients/${id}`
+}
+
+export const salesClientControllerGet = async (id: number, options?: RequestInit): Promise<salesClientControllerGetResponse> => {
+  
+  return customFetch<salesClientControllerGetResponse>(getSalesClientControllerGetUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getSalesClientControllerGetQueryKey = (id?: number,) => {
+    return [
+    `/api/v1/sales/clients/${id}`
+    ] as const;
+    }
+
+    
+export const getSalesClientControllerGetQueryOptions = <TData = Awaited<ReturnType<typeof salesClientControllerGet>>, TError = unknown>(id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesClientControllerGet>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSalesClientControllerGetQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof salesClientControllerGet>>> = ({ signal }) => salesClientControllerGet(id, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof salesClientControllerGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type SalesClientControllerGetQueryResult = NonNullable<Awaited<ReturnType<typeof salesClientControllerGet>>>
+export type SalesClientControllerGetQueryError = unknown
+
+
+export function useSalesClientControllerGet<TData = Awaited<ReturnType<typeof salesClientControllerGet>>, TError = unknown>(
+ id: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesClientControllerGet>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesClientControllerGet>>,
+          TError,
+          Awaited<ReturnType<typeof salesClientControllerGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesClientControllerGet<TData = Awaited<ReturnType<typeof salesClientControllerGet>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesClientControllerGet>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesClientControllerGet>>,
+          TError,
+          Awaited<ReturnType<typeof salesClientControllerGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesClientControllerGet<TData = Awaited<ReturnType<typeof salesClientControllerGet>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesClientControllerGet>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Client Details: the company, its contacts, the lead it was converted from and what was carried forward
+ */
+
+export function useSalesClientControllerGet<TData = Awaited<ReturnType<typeof salesClientControllerGet>>, TError = unknown>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesClientControllerGet>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getSalesClientControllerGetQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Download the import template (36 columns, a Lists sheet, instructions)
+ */
+export type salesImportExportControllerTemplateResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesImportExportControllerTemplateResponseSuccess = (salesImportExportControllerTemplateResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesImportExportControllerTemplateResponse = (salesImportExportControllerTemplateResponseSuccess)
+
+export const getSalesImportExportControllerTemplateUrl = (params?: SalesImportExportControllerTemplateParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/sales/imports/template?${stringifiedParams}` : `/api/v1/sales/imports/template`
+}
+
+export const salesImportExportControllerTemplate = async (params?: SalesImportExportControllerTemplateParams, options?: RequestInit): Promise<salesImportExportControllerTemplateResponse> => {
+  
+  return customFetch<salesImportExportControllerTemplateResponse>(getSalesImportExportControllerTemplateUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getSalesImportExportControllerTemplateQueryKey = (params?: SalesImportExportControllerTemplateParams,) => {
+    return [
+    `/api/v1/sales/imports/template`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getSalesImportExportControllerTemplateQueryOptions = <TData = Awaited<ReturnType<typeof salesImportExportControllerTemplate>>, TError = unknown>(params?: SalesImportExportControllerTemplateParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesImportExportControllerTemplate>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSalesImportExportControllerTemplateQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof salesImportExportControllerTemplate>>> = ({ signal }) => salesImportExportControllerTemplate(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof salesImportExportControllerTemplate>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type SalesImportExportControllerTemplateQueryResult = NonNullable<Awaited<ReturnType<typeof salesImportExportControllerTemplate>>>
+export type SalesImportExportControllerTemplateQueryError = unknown
+
+
+export function useSalesImportExportControllerTemplate<TData = Awaited<ReturnType<typeof salesImportExportControllerTemplate>>, TError = unknown>(
+ params: undefined |  SalesImportExportControllerTemplateParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesImportExportControllerTemplate>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesImportExportControllerTemplate>>,
+          TError,
+          Awaited<ReturnType<typeof salesImportExportControllerTemplate>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesImportExportControllerTemplate<TData = Awaited<ReturnType<typeof salesImportExportControllerTemplate>>, TError = unknown>(
+ params?: SalesImportExportControllerTemplateParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesImportExportControllerTemplate>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesImportExportControllerTemplate>>,
+          TError,
+          Awaited<ReturnType<typeof salesImportExportControllerTemplate>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesImportExportControllerTemplate<TData = Awaited<ReturnType<typeof salesImportExportControllerTemplate>>, TError = unknown>(
+ params?: SalesImportExportControllerTemplateParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesImportExportControllerTemplate>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Download the import template (36 columns, a Lists sheet, instructions)
+ */
+
+export function useSalesImportExportControllerTemplate<TData = Awaited<ReturnType<typeof salesImportExportControllerTemplate>>, TError = unknown>(
+ params?: SalesImportExportControllerTemplateParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesImportExportControllerTemplate>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getSalesImportExportControllerTemplateQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Steps 1 and 2: upload the file; returns the automatic column match and a first check
+ */
+export type salesImportExportControllerUploadResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesImportExportControllerUploadResponseSuccess = (salesImportExportControllerUploadResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesImportExportControllerUploadResponse = (salesImportExportControllerUploadResponseSuccess)
+
+export const getSalesImportExportControllerUploadUrl = () => {
+
+
+  
+
+  return `/api/v1/sales/imports`
+}
+
+export const salesImportExportControllerUpload = async (salesImportExportControllerUploadBody: SalesImportExportControllerUploadBody, options?: RequestInit): Promise<salesImportExportControllerUploadResponse> => {
+    const formData = new FormData();
+formData.append(`file`, salesImportExportControllerUploadBody.file)
+
+  return customFetch<salesImportExportControllerUploadResponse>(getSalesImportExportControllerUploadUrl(),
+  {      
+    ...options,
+    method: 'POST'
+    ,
+    body: 
+      formData,
+  }
+);}
+
+
+
+
+export const getSalesImportExportControllerUploadMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesImportExportControllerUpload>>, TError,{data: SalesImportExportControllerUploadBody}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof salesImportExportControllerUpload>>, TError,{data: SalesImportExportControllerUploadBody}, TContext> => {
+
+const mutationKey = ['salesImportExportControllerUpload'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof salesImportExportControllerUpload>>, {data: SalesImportExportControllerUploadBody}> = (props) => {
+          const {data} = props ?? {};
+
+          return  salesImportExportControllerUpload(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SalesImportExportControllerUploadMutationResult = NonNullable<Awaited<ReturnType<typeof salesImportExportControllerUpload>>>
+    export type SalesImportExportControllerUploadMutationBody = SalesImportExportControllerUploadBody
+    export type SalesImportExportControllerUploadMutationError = unknown
+
+    /**
+ * @summary Steps 1 and 2: upload the file; returns the automatic column match and a first check
+ */
+export const useSalesImportExportControllerUpload = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesImportExportControllerUpload>>, TError,{data: SalesImportExportControllerUploadBody}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof salesImportExportControllerUpload>>,
+        TError,
+        {data: SalesImportExportControllerUploadBody},
+        TContext
+      > => {
+
+      const mutationOptions = getSalesImportExportControllerUploadMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Step 3: check every row with the chosen column match and options
+ */
+export type salesImportExportControllerCheckResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesImportExportControllerCheckResponseSuccess = (salesImportExportControllerCheckResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesImportExportControllerCheckResponse = (salesImportExportControllerCheckResponseSuccess)
+
+export const getSalesImportExportControllerCheckUrl = (jobId: string,) => {
+
+
+  
+
+  return `/api/v1/sales/imports/${jobId}/check`
+}
+
+export const salesImportExportControllerCheck = async (jobId: string,
+    checkImportBodyDto: CheckImportBodyDto, options?: RequestInit): Promise<salesImportExportControllerCheckResponse> => {
+  
+  return customFetch<salesImportExportControllerCheckResponse>(getSalesImportExportControllerCheckUrl(jobId),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      checkImportBodyDto,)
+  }
+);}
+
+
+
+
+export const getSalesImportExportControllerCheckMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesImportExportControllerCheck>>, TError,{jobId: string;data: CheckImportBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof salesImportExportControllerCheck>>, TError,{jobId: string;data: CheckImportBodyDto}, TContext> => {
+
+const mutationKey = ['salesImportExportControllerCheck'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof salesImportExportControllerCheck>>, {jobId: string;data: CheckImportBodyDto}> = (props) => {
+          const {jobId,data} = props ?? {};
+
+          return  salesImportExportControllerCheck(jobId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SalesImportExportControllerCheckMutationResult = NonNullable<Awaited<ReturnType<typeof salesImportExportControllerCheck>>>
+    export type SalesImportExportControllerCheckMutationBody = CheckImportBodyDto
+    export type SalesImportExportControllerCheckMutationError = unknown
+
+    /**
+ * @summary Step 3: check every row with the chosen column match and options
+ */
+export const useSalesImportExportControllerCheck = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesImportExportControllerCheck>>, TError,{jobId: string;data: CheckImportBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof salesImportExportControllerCheck>>,
+        TError,
+        {jobId: string;data: CheckImportBodyDto},
+        TContext
+      > => {
+
+      const mutationOptions = getSalesImportExportControllerCheckMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Import the rows that passed the check; rows with errors are never imported
+ */
+export type salesImportExportControllerConfirmResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesImportExportControllerConfirmResponseSuccess = (salesImportExportControllerConfirmResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesImportExportControllerConfirmResponse = (salesImportExportControllerConfirmResponseSuccess)
+
+export const getSalesImportExportControllerConfirmUrl = (jobId: string,) => {
+
+
+  
+
+  return `/api/v1/sales/imports/${jobId}/confirm`
+}
+
+export const salesImportExportControllerConfirm = async (jobId: string, options?: RequestInit): Promise<salesImportExportControllerConfirmResponse> => {
+  
+  return customFetch<salesImportExportControllerConfirmResponse>(getSalesImportExportControllerConfirmUrl(jobId),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getSalesImportExportControllerConfirmMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesImportExportControllerConfirm>>, TError,{jobId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof salesImportExportControllerConfirm>>, TError,{jobId: string}, TContext> => {
+
+const mutationKey = ['salesImportExportControllerConfirm'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof salesImportExportControllerConfirm>>, {jobId: string}> = (props) => {
+          const {jobId} = props ?? {};
+
+          return  salesImportExportControllerConfirm(jobId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SalesImportExportControllerConfirmMutationResult = NonNullable<Awaited<ReturnType<typeof salesImportExportControllerConfirm>>>
+    
+    export type SalesImportExportControllerConfirmMutationError = unknown
+
+    /**
+ * @summary Import the rows that passed the check; rows with errors are never imported
+ */
+export const useSalesImportExportControllerConfirm = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesImportExportControllerConfirm>>, TError,{jobId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof salesImportExportControllerConfirm>>,
+        TError,
+        {jobId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getSalesImportExportControllerConfirmMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary One import: counts, what happened to each row, and whether it can still be undone
+ */
+export type salesImportExportControllerGetImportResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesImportExportControllerGetImportResponseSuccess = (salesImportExportControllerGetImportResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesImportExportControllerGetImportResponse = (salesImportExportControllerGetImportResponseSuccess)
+
+export const getSalesImportExportControllerGetImportUrl = (jobId: string,) => {
+
+
+  
+
+  return `/api/v1/sales/imports/${jobId}`
+}
+
+export const salesImportExportControllerGetImport = async (jobId: string, options?: RequestInit): Promise<salesImportExportControllerGetImportResponse> => {
+  
+  return customFetch<salesImportExportControllerGetImportResponse>(getSalesImportExportControllerGetImportUrl(jobId),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getSalesImportExportControllerGetImportQueryKey = (jobId?: string,) => {
+    return [
+    `/api/v1/sales/imports/${jobId}`
+    ] as const;
+    }
+
+    
+export const getSalesImportExportControllerGetImportQueryOptions = <TData = Awaited<ReturnType<typeof salesImportExportControllerGetImport>>, TError = unknown>(jobId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesImportExportControllerGetImport>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSalesImportExportControllerGetImportQueryKey(jobId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof salesImportExportControllerGetImport>>> = ({ signal }) => salesImportExportControllerGetImport(jobId, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(jobId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof salesImportExportControllerGetImport>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type SalesImportExportControllerGetImportQueryResult = NonNullable<Awaited<ReturnType<typeof salesImportExportControllerGetImport>>>
+export type SalesImportExportControllerGetImportQueryError = unknown
+
+
+export function useSalesImportExportControllerGetImport<TData = Awaited<ReturnType<typeof salesImportExportControllerGetImport>>, TError = unknown>(
+ jobId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesImportExportControllerGetImport>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesImportExportControllerGetImport>>,
+          TError,
+          Awaited<ReturnType<typeof salesImportExportControllerGetImport>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesImportExportControllerGetImport<TData = Awaited<ReturnType<typeof salesImportExportControllerGetImport>>, TError = unknown>(
+ jobId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesImportExportControllerGetImport>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesImportExportControllerGetImport>>,
+          TError,
+          Awaited<ReturnType<typeof salesImportExportControllerGetImport>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesImportExportControllerGetImport<TData = Awaited<ReturnType<typeof salesImportExportControllerGetImport>>, TError = unknown>(
+ jobId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesImportExportControllerGetImport>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary One import: counts, what happened to each row, and whether it can still be undone
+ */
+
+export function useSalesImportExportControllerGetImport<TData = Awaited<ReturnType<typeof salesImportExportControllerGetImport>>, TError = unknown>(
+ jobId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesImportExportControllerGetImport>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getSalesImportExportControllerGetImportQueryOptions(jobId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Download the rows with errors (with a Problem column) to fix and import again
+ */
+export type salesImportExportControllerErrorRowsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesImportExportControllerErrorRowsResponseSuccess = (salesImportExportControllerErrorRowsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesImportExportControllerErrorRowsResponse = (salesImportExportControllerErrorRowsResponseSuccess)
+
+export const getSalesImportExportControllerErrorRowsUrl = (jobId: string,
+    params?: SalesImportExportControllerErrorRowsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/sales/imports/${jobId}/error-rows?${stringifiedParams}` : `/api/v1/sales/imports/${jobId}/error-rows`
+}
+
+export const salesImportExportControllerErrorRows = async (jobId: string,
+    params?: SalesImportExportControllerErrorRowsParams, options?: RequestInit): Promise<salesImportExportControllerErrorRowsResponse> => {
+  
+  return customFetch<salesImportExportControllerErrorRowsResponse>(getSalesImportExportControllerErrorRowsUrl(jobId,params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getSalesImportExportControllerErrorRowsQueryKey = (jobId?: string,
+    params?: SalesImportExportControllerErrorRowsParams,) => {
+    return [
+    `/api/v1/sales/imports/${jobId}/error-rows`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getSalesImportExportControllerErrorRowsQueryOptions = <TData = Awaited<ReturnType<typeof salesImportExportControllerErrorRows>>, TError = unknown>(jobId: string,
+    params?: SalesImportExportControllerErrorRowsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesImportExportControllerErrorRows>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSalesImportExportControllerErrorRowsQueryKey(jobId,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof salesImportExportControllerErrorRows>>> = ({ signal }) => salesImportExportControllerErrorRows(jobId,params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(jobId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof salesImportExportControllerErrorRows>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type SalesImportExportControllerErrorRowsQueryResult = NonNullable<Awaited<ReturnType<typeof salesImportExportControllerErrorRows>>>
+export type SalesImportExportControllerErrorRowsQueryError = unknown
+
+
+export function useSalesImportExportControllerErrorRows<TData = Awaited<ReturnType<typeof salesImportExportControllerErrorRows>>, TError = unknown>(
+ jobId: string,
+    params: undefined |  SalesImportExportControllerErrorRowsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesImportExportControllerErrorRows>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesImportExportControllerErrorRows>>,
+          TError,
+          Awaited<ReturnType<typeof salesImportExportControllerErrorRows>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesImportExportControllerErrorRows<TData = Awaited<ReturnType<typeof salesImportExportControllerErrorRows>>, TError = unknown>(
+ jobId: string,
+    params?: SalesImportExportControllerErrorRowsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesImportExportControllerErrorRows>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesImportExportControllerErrorRows>>,
+          TError,
+          Awaited<ReturnType<typeof salesImportExportControllerErrorRows>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesImportExportControllerErrorRows<TData = Awaited<ReturnType<typeof salesImportExportControllerErrorRows>>, TError = unknown>(
+ jobId: string,
+    params?: SalesImportExportControllerErrorRowsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesImportExportControllerErrorRows>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Download the rows with errors (with a Problem column) to fix and import again
+ */
+
+export function useSalesImportExportControllerErrorRows<TData = Awaited<ReturnType<typeof salesImportExportControllerErrorRows>>, TError = unknown>(
+ jobId: string,
+    params?: SalesImportExportControllerErrorRowsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesImportExportControllerErrorRows>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getSalesImportExportControllerErrorRowsQueryOptions(jobId,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Admin only: undo an import within 24 hours, if nothing was added to the imported companies
+ */
+export type salesImportExportControllerUndoResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesImportExportControllerUndoResponseSuccess = (salesImportExportControllerUndoResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesImportExportControllerUndoResponse = (salesImportExportControllerUndoResponseSuccess)
+
+export const getSalesImportExportControllerUndoUrl = (jobId: string,) => {
+
+
+  
+
+  return `/api/v1/sales/imports/${jobId}/undo`
+}
+
+export const salesImportExportControllerUndo = async (jobId: string, options?: RequestInit): Promise<salesImportExportControllerUndoResponse> => {
+  
+  return customFetch<salesImportExportControllerUndoResponse>(getSalesImportExportControllerUndoUrl(jobId),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getSalesImportExportControllerUndoMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesImportExportControllerUndo>>, TError,{jobId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof salesImportExportControllerUndo>>, TError,{jobId: string}, TContext> => {
+
+const mutationKey = ['salesImportExportControllerUndo'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof salesImportExportControllerUndo>>, {jobId: string}> = (props) => {
+          const {jobId} = props ?? {};
+
+          return  salesImportExportControllerUndo(jobId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SalesImportExportControllerUndoMutationResult = NonNullable<Awaited<ReturnType<typeof salesImportExportControllerUndo>>>
+    
+    export type SalesImportExportControllerUndoMutationError = unknown
+
+    /**
+ * @summary Admin only: undo an import within 24 hours, if nothing was added to the imported companies
+ */
+export const useSalesImportExportControllerUndo = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesImportExportControllerUndo>>, TError,{jobId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof salesImportExportControllerUndo>>,
+        TError,
+        {jobId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getSalesImportExportControllerUndoMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary History: imports and exports. The Admin sees all, a Sales user only their own
+ */
+export type salesImportExportControllerHistoryResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesImportExportControllerHistoryResponseSuccess = (salesImportExportControllerHistoryResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesImportExportControllerHistoryResponse = (salesImportExportControllerHistoryResponseSuccess)
+
+export const getSalesImportExportControllerHistoryUrl = (params?: SalesImportExportControllerHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/sales/history?${stringifiedParams}` : `/api/v1/sales/history`
+}
+
+export const salesImportExportControllerHistory = async (params?: SalesImportExportControllerHistoryParams, options?: RequestInit): Promise<salesImportExportControllerHistoryResponse> => {
+  
+  return customFetch<salesImportExportControllerHistoryResponse>(getSalesImportExportControllerHistoryUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getSalesImportExportControllerHistoryQueryKey = (params?: SalesImportExportControllerHistoryParams,) => {
+    return [
+    `/api/v1/sales/history`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getSalesImportExportControllerHistoryQueryOptions = <TData = Awaited<ReturnType<typeof salesImportExportControllerHistory>>, TError = unknown>(params?: SalesImportExportControllerHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesImportExportControllerHistory>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSalesImportExportControllerHistoryQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof salesImportExportControllerHistory>>> = ({ signal }) => salesImportExportControllerHistory(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof salesImportExportControllerHistory>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type SalesImportExportControllerHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof salesImportExportControllerHistory>>>
+export type SalesImportExportControllerHistoryQueryError = unknown
+
+
+export function useSalesImportExportControllerHistory<TData = Awaited<ReturnType<typeof salesImportExportControllerHistory>>, TError = unknown>(
+ params: undefined |  SalesImportExportControllerHistoryParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesImportExportControllerHistory>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesImportExportControllerHistory>>,
+          TError,
+          Awaited<ReturnType<typeof salesImportExportControllerHistory>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesImportExportControllerHistory<TData = Awaited<ReturnType<typeof salesImportExportControllerHistory>>, TError = unknown>(
+ params?: SalesImportExportControllerHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesImportExportControllerHistory>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesImportExportControllerHistory>>,
+          TError,
+          Awaited<ReturnType<typeof salesImportExportControllerHistory>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesImportExportControllerHistory<TData = Awaited<ReturnType<typeof salesImportExportControllerHistory>>, TError = unknown>(
+ params?: SalesImportExportControllerHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesImportExportControllerHistory>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary History: imports and exports. The Admin sees all, a Sales user only their own
+ */
+
+export function useSalesImportExportControllerHistory<TData = Awaited<ReturnType<typeof salesImportExportControllerHistory>>, TError = unknown>(
+ params?: SalesImportExportControllerHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesImportExportControllerHistory>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getSalesImportExportControllerHistoryQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Export companies: the current list (filters in the query string) or the selected ids
+ */
+export type salesImportExportControllerExportCompaniesResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesImportExportControllerExportCompaniesResponseSuccess = (salesImportExportControllerExportCompaniesResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesImportExportControllerExportCompaniesResponse = (salesImportExportControllerExportCompaniesResponseSuccess)
+
+export const getSalesImportExportControllerExportCompaniesUrl = (params?: SalesImportExportControllerExportCompaniesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/sales/exports/companies?${stringifiedParams}` : `/api/v1/sales/exports/companies`
+}
+
+export const salesImportExportControllerExportCompanies = async (exportBodyDto: ExportBodyDto,
+    params?: SalesImportExportControllerExportCompaniesParams, options?: RequestInit): Promise<salesImportExportControllerExportCompaniesResponse> => {
+  
+  return customFetch<salesImportExportControllerExportCompaniesResponse>(getSalesImportExportControllerExportCompaniesUrl(params),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      exportBodyDto,)
+  }
+);}
+
+
+
+
+export const getSalesImportExportControllerExportCompaniesMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesImportExportControllerExportCompanies>>, TError,{data: ExportBodyDto;params?: SalesImportExportControllerExportCompaniesParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof salesImportExportControllerExportCompanies>>, TError,{data: ExportBodyDto;params?: SalesImportExportControllerExportCompaniesParams}, TContext> => {
+
+const mutationKey = ['salesImportExportControllerExportCompanies'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof salesImportExportControllerExportCompanies>>, {data: ExportBodyDto;params?: SalesImportExportControllerExportCompaniesParams}> = (props) => {
+          const {data,params} = props ?? {};
+
+          return  salesImportExportControllerExportCompanies(data,params,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SalesImportExportControllerExportCompaniesMutationResult = NonNullable<Awaited<ReturnType<typeof salesImportExportControllerExportCompanies>>>
+    export type SalesImportExportControllerExportCompaniesMutationBody = ExportBodyDto
+    export type SalesImportExportControllerExportCompaniesMutationError = unknown
+
+    /**
+ * @summary Export companies: the current list (filters in the query string) or the selected ids
+ */
+export const useSalesImportExportControllerExportCompanies = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesImportExportControllerExportCompanies>>, TError,{data: ExportBodyDto;params?: SalesImportExportControllerExportCompaniesParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof salesImportExportControllerExportCompanies>>,
+        TError,
+        {data: ExportBodyDto;params?: SalesImportExportControllerExportCompaniesParams},
+        TContext
+      > => {
+
+      const mutationOptions = getSalesImportExportControllerExportCompaniesMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Export leads: the current list (filters in the query string) or the selected ids
+ */
+export type salesImportExportControllerExportLeadsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesImportExportControllerExportLeadsResponseSuccess = (salesImportExportControllerExportLeadsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesImportExportControllerExportLeadsResponse = (salesImportExportControllerExportLeadsResponseSuccess)
+
+export const getSalesImportExportControllerExportLeadsUrl = (params?: SalesImportExportControllerExportLeadsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/sales/exports/leads?${stringifiedParams}` : `/api/v1/sales/exports/leads`
+}
+
+export const salesImportExportControllerExportLeads = async (exportBodyDto: ExportBodyDto,
+    params?: SalesImportExportControllerExportLeadsParams, options?: RequestInit): Promise<salesImportExportControllerExportLeadsResponse> => {
+  
+  return customFetch<salesImportExportControllerExportLeadsResponse>(getSalesImportExportControllerExportLeadsUrl(params),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      exportBodyDto,)
+  }
+);}
+
+
+
+
+export const getSalesImportExportControllerExportLeadsMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesImportExportControllerExportLeads>>, TError,{data: ExportBodyDto;params?: SalesImportExportControllerExportLeadsParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof salesImportExportControllerExportLeads>>, TError,{data: ExportBodyDto;params?: SalesImportExportControllerExportLeadsParams}, TContext> => {
+
+const mutationKey = ['salesImportExportControllerExportLeads'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof salesImportExportControllerExportLeads>>, {data: ExportBodyDto;params?: SalesImportExportControllerExportLeadsParams}> = (props) => {
+          const {data,params} = props ?? {};
+
+          return  salesImportExportControllerExportLeads(data,params,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SalesImportExportControllerExportLeadsMutationResult = NonNullable<Awaited<ReturnType<typeof salesImportExportControllerExportLeads>>>
+    export type SalesImportExportControllerExportLeadsMutationBody = ExportBodyDto
+    export type SalesImportExportControllerExportLeadsMutationError = unknown
+
+    /**
+ * @summary Export leads: the current list (filters in the query string) or the selected ids
+ */
+export const useSalesImportExportControllerExportLeads = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesImportExportControllerExportLeads>>, TError,{data: ExportBodyDto;params?: SalesImportExportControllerExportLeadsParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof salesImportExportControllerExportLeads>>,
+        TError,
+        {data: ExportBodyDto;params?: SalesImportExportControllerExportLeadsParams},
+        TContext
+      > => {
+
+      const mutationOptions = getSalesImportExportControllerExportLeadsMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Export follow-ups: the current tab (filters in the query string) or the selected ids
+ */
+export type salesImportExportControllerExportFollowUpsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesImportExportControllerExportFollowUpsResponseSuccess = (salesImportExportControllerExportFollowUpsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesImportExportControllerExportFollowUpsResponse = (salesImportExportControllerExportFollowUpsResponseSuccess)
+
+export const getSalesImportExportControllerExportFollowUpsUrl = (params?: SalesImportExportControllerExportFollowUpsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/sales/exports/follow-ups?${stringifiedParams}` : `/api/v1/sales/exports/follow-ups`
+}
+
+export const salesImportExportControllerExportFollowUps = async (exportBodyDto: ExportBodyDto,
+    params?: SalesImportExportControllerExportFollowUpsParams, options?: RequestInit): Promise<salesImportExportControllerExportFollowUpsResponse> => {
+  
+  return customFetch<salesImportExportControllerExportFollowUpsResponse>(getSalesImportExportControllerExportFollowUpsUrl(params),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      exportBodyDto,)
+  }
+);}
+
+
+
+
+export const getSalesImportExportControllerExportFollowUpsMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesImportExportControllerExportFollowUps>>, TError,{data: ExportBodyDto;params?: SalesImportExportControllerExportFollowUpsParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof salesImportExportControllerExportFollowUps>>, TError,{data: ExportBodyDto;params?: SalesImportExportControllerExportFollowUpsParams}, TContext> => {
+
+const mutationKey = ['salesImportExportControllerExportFollowUps'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof salesImportExportControllerExportFollowUps>>, {data: ExportBodyDto;params?: SalesImportExportControllerExportFollowUpsParams}> = (props) => {
+          const {data,params} = props ?? {};
+
+          return  salesImportExportControllerExportFollowUps(data,params,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SalesImportExportControllerExportFollowUpsMutationResult = NonNullable<Awaited<ReturnType<typeof salesImportExportControllerExportFollowUps>>>
+    export type SalesImportExportControllerExportFollowUpsMutationBody = ExportBodyDto
+    export type SalesImportExportControllerExportFollowUpsMutationError = unknown
+
+    /**
+ * @summary Export follow-ups: the current tab (filters in the query string) or the selected ids
+ */
+export const useSalesImportExportControllerExportFollowUps = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesImportExportControllerExportFollowUps>>, TError,{data: ExportBodyDto;params?: SalesImportExportControllerExportFollowUpsParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof salesImportExportControllerExportFollowUps>>,
+        TError,
+        {data: ExportBodyDto;params?: SalesImportExportControllerExportFollowUpsParams},
+        TContext
+      > => {
+
+      const mutationOptions = getSalesImportExportControllerExportFollowUpsMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * @summary Do I have the Import and Export rights?
+ */
+export type salesImportExportControllerMyRightsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesImportExportControllerMyRightsResponseSuccess = (salesImportExportControllerMyRightsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesImportExportControllerMyRightsResponse = (salesImportExportControllerMyRightsResponseSuccess)
+
+export const getSalesImportExportControllerMyRightsUrl = () => {
+
+
+  
+
+  return `/api/v1/sales/rights/me`
+}
+
+export const salesImportExportControllerMyRights = async ( options?: RequestInit): Promise<salesImportExportControllerMyRightsResponse> => {
+  
+  return customFetch<salesImportExportControllerMyRightsResponse>(getSalesImportExportControllerMyRightsUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getSalesImportExportControllerMyRightsQueryKey = () => {
+    return [
+    `/api/v1/sales/rights/me`
+    ] as const;
+    }
+
+    
+export const getSalesImportExportControllerMyRightsQueryOptions = <TData = Awaited<ReturnType<typeof salesImportExportControllerMyRights>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesImportExportControllerMyRights>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSalesImportExportControllerMyRightsQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof salesImportExportControllerMyRights>>> = ({ signal }) => salesImportExportControllerMyRights({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof salesImportExportControllerMyRights>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type SalesImportExportControllerMyRightsQueryResult = NonNullable<Awaited<ReturnType<typeof salesImportExportControllerMyRights>>>
+export type SalesImportExportControllerMyRightsQueryError = unknown
+
+
+export function useSalesImportExportControllerMyRights<TData = Awaited<ReturnType<typeof salesImportExportControllerMyRights>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesImportExportControllerMyRights>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesImportExportControllerMyRights>>,
+          TError,
+          Awaited<ReturnType<typeof salesImportExportControllerMyRights>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesImportExportControllerMyRights<TData = Awaited<ReturnType<typeof salesImportExportControllerMyRights>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesImportExportControllerMyRights>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesImportExportControllerMyRights>>,
+          TError,
+          Awaited<ReturnType<typeof salesImportExportControllerMyRights>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesImportExportControllerMyRights<TData = Awaited<ReturnType<typeof salesImportExportControllerMyRights>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesImportExportControllerMyRights>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Do I have the Import and Export rights?
+ */
+
+export function useSalesImportExportControllerMyRights<TData = Awaited<ReturnType<typeof salesImportExportControllerMyRights>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesImportExportControllerMyRights>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getSalesImportExportControllerMyRightsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Admin only: Import / Export rights of every Sales user
+ */
+export type salesImportExportControllerListRightsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesImportExportControllerListRightsResponseSuccess = (salesImportExportControllerListRightsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesImportExportControllerListRightsResponse = (salesImportExportControllerListRightsResponseSuccess)
+
+export const getSalesImportExportControllerListRightsUrl = () => {
+
+
+  
+
+  return `/api/v1/sales/rights`
+}
+
+export const salesImportExportControllerListRights = async ( options?: RequestInit): Promise<salesImportExportControllerListRightsResponse> => {
+  
+  return customFetch<salesImportExportControllerListRightsResponse>(getSalesImportExportControllerListRightsUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getSalesImportExportControllerListRightsQueryKey = () => {
+    return [
+    `/api/v1/sales/rights`
+    ] as const;
+    }
+
+    
+export const getSalesImportExportControllerListRightsQueryOptions = <TData = Awaited<ReturnType<typeof salesImportExportControllerListRights>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesImportExportControllerListRights>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSalesImportExportControllerListRightsQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof salesImportExportControllerListRights>>> = ({ signal }) => salesImportExportControllerListRights({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof salesImportExportControllerListRights>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type SalesImportExportControllerListRightsQueryResult = NonNullable<Awaited<ReturnType<typeof salesImportExportControllerListRights>>>
+export type SalesImportExportControllerListRightsQueryError = unknown
+
+
+export function useSalesImportExportControllerListRights<TData = Awaited<ReturnType<typeof salesImportExportControllerListRights>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesImportExportControllerListRights>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesImportExportControllerListRights>>,
+          TError,
+          Awaited<ReturnType<typeof salesImportExportControllerListRights>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesImportExportControllerListRights<TData = Awaited<ReturnType<typeof salesImportExportControllerListRights>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesImportExportControllerListRights>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesImportExportControllerListRights>>,
+          TError,
+          Awaited<ReturnType<typeof salesImportExportControllerListRights>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesImportExportControllerListRights<TData = Awaited<ReturnType<typeof salesImportExportControllerListRights>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesImportExportControllerListRights>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Admin only: Import / Export rights of every Sales user
+ */
+
+export function useSalesImportExportControllerListRights<TData = Awaited<ReturnType<typeof salesImportExportControllerListRights>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesImportExportControllerListRights>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getSalesImportExportControllerListRightsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * @summary Admin only: give or take away the Import and / or Export right of a Sales user
+ */
+export type salesImportExportControllerSetRightsResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type salesImportExportControllerSetRightsResponseSuccess = (salesImportExportControllerSetRightsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type salesImportExportControllerSetRightsResponse = (salesImportExportControllerSetRightsResponseSuccess)
+
+export const getSalesImportExportControllerSetRightsUrl = (empId: number,) => {
+
+
+  
+
+  return `/api/v1/sales/rights/${empId}`
+}
+
+export const salesImportExportControllerSetRights = async (empId: number,
+    setRightsBodyDto: SetRightsBodyDto, options?: RequestInit): Promise<salesImportExportControllerSetRightsResponse> => {
+  
+  return customFetch<salesImportExportControllerSetRightsResponse>(getSalesImportExportControllerSetRightsUrl(empId),
+  {      
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      setRightsBodyDto,)
+  }
+);}
+
+
+
+
+export const getSalesImportExportControllerSetRightsMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesImportExportControllerSetRights>>, TError,{empId: number;data: SetRightsBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof salesImportExportControllerSetRights>>, TError,{empId: number;data: SetRightsBodyDto}, TContext> => {
+
+const mutationKey = ['salesImportExportControllerSetRights'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof salesImportExportControllerSetRights>>, {empId: number;data: SetRightsBodyDto}> = (props) => {
+          const {empId,data} = props ?? {};
+
+          return  salesImportExportControllerSetRights(empId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SalesImportExportControllerSetRightsMutationResult = NonNullable<Awaited<ReturnType<typeof salesImportExportControllerSetRights>>>
+    export type SalesImportExportControllerSetRightsMutationBody = SetRightsBodyDto
+    export type SalesImportExportControllerSetRightsMutationError = unknown
+
+    /**
+ * @summary Admin only: give or take away the Import and / or Export right of a Sales user
+ */
+export const useSalesImportExportControllerSetRights = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof salesImportExportControllerSetRights>>, TError,{empId: number;data: SetRightsBodyDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof salesImportExportControllerSetRights>>,
+        TError,
+        {empId: number;data: SetRightsBodyDto},
+        TContext
+      > => {
+
+      const mutationOptions = getSalesImportExportControllerSetRightsMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }

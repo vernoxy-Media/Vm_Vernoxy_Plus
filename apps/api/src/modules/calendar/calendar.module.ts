@@ -68,6 +68,7 @@ import { CalendarController } from './presentation/controllers/calendar.controll
       inject: [CALENDAR_TOKENS.CalendarRepository],
     },
   ],
-  exports: [GetCalendarEventsUseCase, CreateCalendarEventUseCase],
+  // CalendarRepository is exported for the Sales module, which mirrors follow-ups as Calendar events.
+  exports: [GetCalendarEventsUseCase, CreateCalendarEventUseCase, CALENDAR_TOKENS.CalendarRepository],
 })
 export class CalendarModule {}

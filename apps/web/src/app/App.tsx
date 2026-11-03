@@ -39,6 +39,19 @@ import { ProjectDetailPage } from '@/features/projects/pages/ProjectDetailPage';
 import { MyTasksPage } from '@/features/tasks/pages/MyTasksPage';
 import { AppLayout } from '@/shared/layouts/AppLayout';
 
+// Sales CRM Feature imports
+import { SalesRoute } from '@/features/sales/components/common/SalesRoute';
+import { CompaniesListPage as SalesCompaniesListPage } from '@/features/sales/pages/CompaniesListPage';
+import { CompanyFormPage as SalesCompanyFormPage } from '@/features/sales/pages/CompanyFormPage';
+import { CompanyDetailPage as SalesCompanyDetailPage } from '@/features/sales/pages/CompanyDetailPage';
+import { LeadsListPage } from '@/features/sales/pages/LeadsListPage';
+import { LeadDetailPage } from '@/features/sales/pages/LeadDetailPage';
+import { FollowUpsPage } from '@/features/sales/pages/FollowUpsPage';
+import { ImportPage as SalesImportPage } from '@/features/sales/pages/ImportPage';
+import { HistoryPage as SalesHistoryPage } from '@/features/sales/pages/HistoryPage';
+import { RightsPage as SalesRightsPage } from '@/features/sales/pages/RightsPage';
+import { ClientDetailPage } from '@/features/sales/pages/ClientDetailPage';
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -382,7 +395,7 @@ export const App: React.FC = () => {
               element={<Navigate to="/complaints?tab=reports" replace />}
             />
 
-            {/* Companies Module */}
+            {/* Legacy Companies Module */}
             <Route
               path="/companies"
               element={
@@ -431,6 +444,122 @@ export const App: React.FC = () => {
                     <CompanyFormPage />
                   </AppLayout>
                 </CompanyRoute>
+              }
+            />
+
+            {/* Sales CRM Module Routes */}
+            <Route
+              path="/sales"
+              element={<Navigate to="/sales/companies" replace />}
+            />
+            <Route
+              path="/sales/companies"
+              element={
+                <SalesRoute>
+                  <AppLayout fluid>
+                    <SalesCompaniesListPage />
+                  </AppLayout>
+                </SalesRoute>
+              }
+            />
+            <Route
+              path="/sales/companies/new"
+              element={
+                <SalesRoute>
+                  <AppLayout fluid>
+                    <SalesCompanyFormPage />
+                  </AppLayout>
+                </SalesRoute>
+              }
+            />
+            <Route
+              path="/sales/companies/:id"
+              element={
+                <SalesRoute>
+                  <AppLayout fluid>
+                    <SalesCompanyDetailPage />
+                  </AppLayout>
+                </SalesRoute>
+              }
+            />
+            <Route
+              path="/sales/companies/:id/edit"
+              element={
+                <SalesRoute>
+                  <AppLayout fluid>
+                    <SalesCompanyFormPage />
+                  </AppLayout>
+                </SalesRoute>
+              }
+            />
+            <Route
+              path="/sales/leads"
+              element={
+                <SalesRoute>
+                  <AppLayout fluid>
+                    <LeadsListPage />
+                  </AppLayout>
+                </SalesRoute>
+              }
+            />
+            <Route
+              path="/sales/leads/:id"
+              element={
+                <SalesRoute>
+                  <AppLayout fluid>
+                    <LeadDetailPage />
+                  </AppLayout>
+                </SalesRoute>
+              }
+            />
+            <Route
+              path="/sales/follow-ups"
+              element={
+                <SalesRoute>
+                  <AppLayout fluid>
+                    <FollowUpsPage />
+                  </AppLayout>
+                </SalesRoute>
+              }
+            />
+            <Route
+              path="/sales/import"
+              element={
+                <SalesRoute>
+                  <AppLayout fluid>
+                    <SalesImportPage />
+                  </AppLayout>
+                </SalesRoute>
+              }
+            />
+            <Route
+              path="/sales/history"
+              element={
+                <SalesRoute>
+                  <AppLayout fluid>
+                    <SalesHistoryPage />
+                  </AppLayout>
+                </SalesRoute>
+              }
+            />
+            <Route
+              path="/sales/rights"
+              element={
+                <SalesRoute requireAdmin>
+                  <AppLayout fluid>
+                    <SalesRightsPage />
+                  </AppLayout>
+                </SalesRoute>
+              }
+            />
+            <Route
+              path="/sales/clients/:id"
+              element={
+                <SalesRoute>
+                  <AppLayout fluid>
+                    <ClientDetailPage />
+                  </AppLayout>
+                </SalesRoute>
               }
             />
 

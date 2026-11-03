@@ -610,8 +610,8 @@ export class EmployeeResponseDto {
   @ApiPropertyOptional({ type: String, example: '/api/v1/files/profile-photos/abc123.webp?exp=123&sig=456', nullable: true })
   profile_picture_url?: string | null;
 
-  @ApiProperty({ type: String, example: 'Active', enum: ['Active', 'Inactive'] })
-  status!: 'Active' | 'Inactive';
+  @ApiProperty({ type: String, example: 'Active', enum: ['Active', 'Inactive', 'Onboarding'] })
+  status!: 'Active' | 'Inactive' | 'Onboarding';
 
   @ApiProperty({ type: String, format: 'date', example: '2026-10-01' })
   joining_date!: Date;

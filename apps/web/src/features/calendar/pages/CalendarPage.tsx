@@ -13,6 +13,12 @@ import {
   Send,
   Check,
   SlidersHorizontal,
+  CalendarDays,
+  CalendarRange,
+  LayoutGrid,
+  List as ListIcon,
+  UserCheck,
+  ListChecks,
 } from 'lucide-react';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useLookupsQuery } from '@/features/organization/hooks/use-master-data';
@@ -516,172 +522,130 @@ export const CalendarPage: React.FC = () => {
   ].filter(Boolean).length;
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50/50 p-4 sm:p-6 space-y-3">
-      {/* Top Header Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-white px-4 py-3 rounded-2xl border border-slate-200 shadow-xs">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-            <CalendarIcon className="w-[18px] h-[18px]" />
-          </div>
-          <div>
-            <h1 className="text-lg font-black text-slate-900 tracking-tight leading-tight">Calendar</h1>
-          </div>
-        </div>
+    <div className="flex min-h-screen flex-col space-y-3 bg-gradient-to-b from-slate-50 via-slate-50 to-blue-50/30 p-3 sm:space-y-4 sm:p-6">
+      {/* Header: title, month navigator and the main actions */}
+      <div className="overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm sm:rounded-3xl">
+        <div className="h-1 bg-gradient-to-r from-blue-500 via-violet-500 to-fuchsia-500" aria-hidden="true" />
 
-        {/* View Mode + Navigator + Filters + Actions */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Month | Week | Day | List Pill Switcher */}
-          <div className="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200">
-            <button
-              onClick={() => setViewMode('month')}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                viewMode === 'month'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Month
-            </button>
-            <button
-              onClick={() => setViewMode('week')}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                viewMode === 'week'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Week
-            </button>
-            <button
-              onClick={() => setViewMode('day')}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                viewMode === 'day'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Day
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                viewMode === 'list'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-              title="Attendance List View"
-            >
-              List
-            </button>
+        <div className="flex flex-col gap-3 p-3 sm:gap-4 sm:p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-violet-600 text-white shadow-lg shadow-blue-500/30">
+                <CalendarIcon className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-lg font-extrabold leading-tight tracking-tight text-slate-900 sm:text-xl">Calendar</h1>
+                <p className="truncate text-xs font-medium text-slate-500">{titleRange}</p>
+              </div>
+            </div>
+
+            <div className="flex shrink-0 items-center gap-2">
+              {isAdmin && (
+                <button
+                  onClick={() => {
+                    setSlotDate(toLocalYMD(selectedDate));
+                    setIsAddHolidayOpen(true);
+                  }}
+                  className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-600 px-3 text-sm font-semibold text-white shadow-md shadow-purple-500/25 transition hover:brightness-110 active:scale-[0.98] sm:px-4"
+                  aria-label="Add holiday"
+                >
+                  <CalendarHeart className="h-4 w-4" />
+                  <span className="hidden sm:inline">Add Holiday</span>
+                </button>
+              )}
+              <button
+                onClick={() => (isAdmin ? setIsTaskFormOpen(true) : setIsQuickTaskOpen(true))}
+                className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-3 text-sm font-semibold text-white shadow-md shadow-blue-500/25 transition hover:brightness-110 active:scale-[0.98] sm:px-4"
+              >
+                <Plus className="h-4 w-4" />
+                <span>{isAdmin ? 'Add Task' : 'Quick Task'}</span>
+              </button>
+            </div>
           </div>
 
-          {/* Navigator arrows */}
-          <div className="flex items-center bg-slate-100 rounded-xl p-0.5 border border-slate-200">
-            <button
-              onClick={handlePrev}
-              title="Previous"
-              className="p-1.5 hover:bg-white rounded-lg text-slate-600 hover:text-slate-900 transition-all cursor-pointer"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <span className="px-2.5 text-xs font-bold text-slate-800 min-w-[130px] text-center select-none truncate">
-              {titleRange}
-            </span>
-            <button
-              onClick={handleNext}
-              title="Next"
-              className="p-1.5 hover:bg-white rounded-lg text-slate-600 hover:text-slate-900 transition-all cursor-pointer"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
+          <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
+            {/* Month | Week | Day | List */}
+            <div role="tablist" aria-label="Calendar view" className="grid grid-cols-4 gap-1 rounded-2xl bg-slate-100 p-1 lg:inline-grid lg:w-auto">
+              {([
+                ['month', 'Month', LayoutGrid],
+                ['week', 'Week', CalendarRange],
+                ['day', 'Day', CalendarDays],
+                ['list', 'List', ListIcon],
+              ] as const).map(([mode, label, Icon]) => (
+                <button
+                  key={mode}
+                  role="tab"
+                  aria-selected={viewMode === mode}
+                  onClick={() => setViewMode(mode)}
+                  title={mode === 'list' ? 'Attendance List View' : label}
+                  className={`flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-xl px-3 text-[13px] font-semibold transition-all ${
+                    viewMode === mode ? 'bg-white text-blue-700 shadow-sm ring-1 ring-blue-100' : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span>{label}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="flex min-w-0 flex-1 items-center justify-between rounded-2xl bg-slate-100 p-1 lg:flex-none">
+                <button onClick={handlePrev} title="Previous" aria-label="Previous" className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl text-slate-600 transition hover:bg-white hover:shadow-sm">
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <span className="min-w-0 flex-1 select-none truncate px-3 text-center text-sm font-bold text-slate-800 lg:min-w-[10.5rem] lg:flex-none">{titleRange}</span>
+                <button onClick={handleNext} title="Next" aria-label="Next" className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl text-slate-600 transition hover:bg-white hover:shadow-sm">
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+
+              <button onClick={handleToday} className="h-11 shrink-0 cursor-pointer rounded-2xl border border-blue-200 bg-blue-50 px-4 text-sm font-semibold text-blue-700 transition hover:bg-blue-100">
+                Today
+              </button>
+
+              {kpiMode === 'tasks' && (
+                <button
+                  onClick={() => setIsFiltersOpen(!isFiltersOpen)}
+                  aria-label="Filters"
+                  className={`relative flex h-11 shrink-0 cursor-pointer items-center gap-2 rounded-2xl border px-3.5 text-sm font-semibold transition ${
+                    isFiltersOpen ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <SlidersHorizontal className="h-4 w-4" />
+                  <span className="hidden sm:inline">Filters</span>
+                  {activeFilterCount > 0 && <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] font-bold text-white">{activeFilterCount}</span>}
+                </button>
+              )}
+            </div>
           </div>
-
-          <button
-            onClick={handleToday}
-            className="px-3 py-1.5 text-xs font-bold rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 shadow-2xs transition-colors cursor-pointer"
-          >
-            Today
-          </button>
-
-          {kpiMode === 'tasks' && (
-          <button
-            onClick={() => setIsFiltersOpen(!isFiltersOpen)}
-            className={`relative flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl border transition-colors cursor-pointer ${
-              isFiltersOpen
-                ? 'bg-blue-50 border-blue-200 text-blue-700'
-                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-            } shadow-2xs`}
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5" />
-            Filters
-            {activeFilterCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-blue-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
-                {activeFilterCount}
-              </span>
-            )}
-          </button>
-          )}
-
-          {/* Add Holiday button (Admin only per BFD CAL-09) */}
-          {isAdmin && (
-            <button
-              onClick={() => {
-                setSlotDate(toLocalYMD(selectedDate));
-                setIsAddHolidayOpen(true);
-              }}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-xl bg-purple-600 text-white hover:bg-purple-700 shadow-2xs transition-colors cursor-pointer"
-            >
-              <CalendarHeart className="w-4 h-4" />
-              Add Holiday
-            </button>
-          )}
-
-          {/* Task Action button */}
-          {isAdmin ? (
-            <button
-              onClick={() => setIsTaskFormOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-xl bg-blue-600 text-white hover:bg-blue-700 shadow-2xs transition-colors cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              Add Task
-            </button>
-          ) : (
-            <button
-              onClick={() => setIsQuickTaskOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-xl bg-blue-600 text-white hover:bg-blue-700 shadow-2xs transition-colors cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              Quick Task
-            </button>
-          )}
         </div>
       </div>
 
-      {/* KPI Summary Switcher & Cards */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200">
-            <button
-              onClick={() => setKpiMode('attendance')}
-              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                kpiMode === 'attendance'
-                  ? 'bg-teal-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Attendance Summary
-            </button>
-            <button
-              onClick={() => setKpiMode('tasks')}
-              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                kpiMode === 'tasks'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Operations & Tasks
-            </button>
-          </div>
+      {/* Attendance | Operations switch and the summary cards */}
+      <div className="space-y-3">
+        <div role="tablist" aria-label="Calendar data" className="grid grid-cols-2 gap-1 rounded-2xl bg-slate-100 p-1 sm:inline-grid sm:w-auto">
+          <button
+            role="tab"
+            aria-selected={kpiMode === 'attendance'}
+            onClick={() => setKpiMode('attendance')}
+            className={`flex h-9 cursor-pointer items-center justify-center gap-2 rounded-xl px-4 text-[13px] font-semibold transition-all ${
+              kpiMode === 'attendance' ? 'bg-gradient-to-r from-teal-500 to-emerald-500 text-white shadow-md shadow-teal-500/25' : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <UserCheck className="h-4 w-4" />
+            Attendance
+          </button>
+          <button
+            role="tab"
+            aria-selected={kpiMode === 'tasks'}
+            onClick={() => setKpiMode('tasks')}
+            className={`flex h-9 cursor-pointer items-center justify-center gap-2 rounded-xl px-4 text-[13px] font-semibold transition-all ${
+              kpiMode === 'tasks' ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md shadow-blue-500/25' : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <ListChecks className="h-4 w-4" />
+            Operations &amp; Tasks
+          </button>
         </div>
 
         {kpiMode === 'attendance' ? (
