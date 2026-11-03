@@ -183,7 +183,37 @@ export const CandidatesPage: React.FC = () => {
     selected: 0,
     onboarding: 0,
   };
-  const totalPages = Math.ceil(totalCount / pageSize) || 1;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const validCurrentPage = Math.min(currentPage, totalPages);
+
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [totalPages, currentPage]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const getPaginationRange = () => {
+    if (totalPages <= 5) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    const pages: (number | string)[] = [];
+    if (validCurrentPage <= 3) {
+      pages.push(1, 2, 3, 4, '...', totalPages);
+    } else if (validCurrentPage >= totalPages - 2) {
+      pages.push(1, '...', totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+    } else {
+      pages.push(1, '...', validCurrentPage - 1, validCurrentPage, validCurrentPage + 1, '...', totalPages);
+    }
+    return pages;
+  };
+
+  const startIndex = totalCount > 0 ? (validCurrentPage - 1) * pageSize + 1 : 0;
+  const endIndex = Math.min(validCurrentPage * pageSize, totalCount);
 
   const sortedCandidates = useMemo(() => {
     const list = [...candidates];
@@ -822,32 +852,67 @@ export const CandidatesPage: React.FC = () => {
             </div>
           )}
 
-          {/* Pagination Footer */}
-          {totalCount > pageSize && (
-            <div className="p-4 border-t border-slate-300 bg-slate-50/80 flex items-center justify-between text-xs text-slate-600">
+          {/* Marker: Pagination Footer (10 candidates per page, Page numbers at bottom right) */}
+          {totalCount > 0 && (
+            <div className="px-5 py-3.5 border-t border-slate-200 bg-white flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 shrink-0">
               <div>
-                Showing <strong className="font-bold text-slate-900">{(currentPage - 1) * pageSize + 1}</strong> to{' '}
-                <strong className="font-bold text-slate-900">{Math.min(currentPage * pageSize, totalCount)}</strong> of{' '}
-                <strong className="font-bold text-slate-900">{totalCount}</strong> candidates
+                Showing{' '}
+                <span className="font-semibold text-slate-700">
+                  {startIndex}–{endIndex}
+                </span>{' '}
+                of{' '}
+                <span className="font-semibold text-slate-700">
+                  {totalCount}
+                </span>{' '}
+                candidates
               </div>
-              <div className="flex items-center gap-2">
+
+              <div className="flex items-center gap-1">
                 <button
                   type="button"
-                  disabled={currentPage <= 1}
-                  onClick={() => setCurrentPage((p) => p - 1)}
-                  className="p-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none transition shadow-2xs font-bold"
+                  id="candidates-prev-page-btn"
+                  disabled={validCurrentPage <= 1}
+                  onClick={() => handlePageChange(Math.max(1, validCurrentPage - 1))}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
                   title="Previous Page"
                 >
                   <ChevronLeft className="w-4 h-4 stroke-[2]" />
                 </button>
-                <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-white border border-slate-300 font-bold text-slate-800 shadow-2xs">
-                  Page {currentPage} of {totalPages}
-                </span>
+
+                {getPaginationRange().map((pg, idx) => {
+                  if (typeof pg === 'string') {
+                    return (
+                      <span
+                        key={`ellipsis-${idx}`}
+                        className="w-8 h-8 flex items-center justify-center text-slate-400 font-medium text-xs select-none"
+                      >
+                        …
+                      </span>
+                    );
+                  }
+                  const isActive = pg === validCurrentPage;
+                  return (
+                    <button
+                      key={pg}
+                      type="button"
+                      onClick={() => handlePageChange(pg)}
+                      className={`w-8 h-8 rounded-lg font-semibold text-xs flex items-center justify-center transition-all cursor-pointer ${
+                        isActive
+                          ? 'bg-blue-600 text-white shadow-2xs'
+                          : 'border border-slate-200 text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      {pg}
+                    </button>
+                  );
+                })}
+
                 <button
                   type="button"
-                  disabled={currentPage >= totalPages}
-                  onClick={() => setCurrentPage((p) => p + 1)}
-                  className="p-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none transition shadow-2xs font-bold"
+                  id="candidates-next-page-btn"
+                  disabled={validCurrentPage >= totalPages}
+                  onClick={() => handlePageChange(Math.min(totalPages, validCurrentPage + 1))}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
                   title="Next Page"
                 >
                   <ChevronRight className="w-4 h-4 stroke-[2]" />
