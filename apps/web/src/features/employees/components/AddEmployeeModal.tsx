@@ -5,9 +5,9 @@ import {
   X,
   User,
   Building2,
-  Landmark,
   ShieldCheck,
   AlertCircle,
+  AlertTriangle,
   Loader2,
   Lock,
   Copy,
@@ -24,6 +24,7 @@ import {
 import { useLookupsQuery } from '@/features/organization/hooks/use-master-data';
 import { useAttendanceSettingsQuery, useAssignEmployeeShiftMutation } from '@/features/attendance/hooks/use-attendance-settings';
 import { useLeavePoliciesQuery } from '@/features/leave/hooks/use-leave';
+import { checkJoiningDateConflict } from '@/features/attendance/utils/joining-date-check';
 import { employeeCreateSchema, type EmployeeFormValues } from '../schemas/employee-form.schema';
 import { CountryPhoneInput, DepartmentMultiSelect, SearchableSelect, ReportingManagerSelect } from '@/shared/ui';
 
@@ -67,7 +68,7 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
   onClose,
   onSuccess,
 }) => {
-  const [activeTab, setActiveTab] = useState<'personal' | 'job' | 'salary' | 'security'>('personal');
+  const [activeTab, setActiveTab] = useState<'personal' | 'job'>('personal');
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [copiedEmail, setCopiedEmail] = useState(false);
   const [selectedPhotoFile, setSelectedPhotoFile] = useState<File | null>(null);
@@ -134,6 +135,8 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
       bank_name: '',
       account_number: '',
       ifsc_code: '',
+      probation_period: '90 Days (3 Months)',
+      notice_period: '30 Days',
       status: 'Active',
       password: initialPassword,
       confirm_password: initialPassword,
@@ -157,6 +160,11 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
   const watchedPfApplicable = watch('pf_applicable');
   const watchedOtEligible = watch('ot_eligible');
   const watchedOtRateType = watch('ot_rate_type') || 'MULTIPLIER';
+  const watchedJoiningDate = watch('joining_date');
+
+  const joiningCheck = React.useMemo(() => {
+    return checkJoiningDateConflict(watchedJoiningDate, attendanceSettings, selectedShiftId);
+  }, [watchedJoiningDate, attendanceSettings, selectedShiftId]);
 
   const handleCopyEmail = () => {
     if (createdResult?.email) {
@@ -176,11 +184,9 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
 
 
   const onSubmit = async (values: EmployeeFormValues) => {
-    // Prevent premature submission before reaching the final Emergency & Access tab
-    if (activeTab !== 'security') {
-      if (activeTab === 'personal') setActiveTab('job');
-      else if (activeTab === 'job') setActiveTab('salary');
-      else if (activeTab === 'salary') setActiveTab('security');
+    // If user submits while on personal tab, move to organization details tab
+    if (activeTab === 'personal') {
+      setActiveTab('job');
       return;
     }
 
@@ -225,6 +231,8 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
         bank_name: values.bank_name?.trim() || null,
         account_number: values.account_number?.trim() || null,
         ifsc_code: values.ifsc_code?.trim() || null,
+        probation_period: values.probation_period?.trim() || null,
+        notice_period: values.notice_period?.trim() || null,
       } as any);
 
       if (selectedPhotoFile && createdEmp.emp_id) {
@@ -360,7 +368,7 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
             }`}
           >
             <User className="w-3.5 h-3.5" />
-            <span>Personal</span>
+            <span>Personal Details</span>
           </button>
 
           <button
@@ -373,33 +381,7 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
             }`}
           >
             <Building2 className="w-3.5 h-3.5" />
-            <span>Job & Org</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('salary')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
-              activeTab === 'salary'
-                ? 'bg-blue-600 text-white shadow-2xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
-          >
-            <Landmark className="w-3.5 h-3.5" />
-            <span>Salary & Bank</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('security')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
-              activeTab === 'security'
-                ? 'bg-blue-600 text-white shadow-2xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
-          >
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Emergency & Access</span>
+            <span>Organization Details</span>
           </button>
         </div>
 
@@ -407,11 +389,9 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
         <form
           onSubmit={handleSubmit(onSubmit)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT' && activeTab !== 'security') {
+            if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT' && activeTab !== 'job') {
               e.preventDefault();
-              if (activeTab === 'personal') setActiveTab('job');
-              else if (activeTab === 'job') setActiveTab('salary');
-              else if (activeTab === 'salary') setActiveTab('security');
+              setActiveTab('job');
             }
           }}
           className="flex-1 overflow-y-auto p-7 space-y-5 custom-scrollbar"
@@ -423,56 +403,54 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
             </div>
           )}
 
-          {/* TAB 1: PERSONAL INFO */}
+          {/* TAB 1: PERSONAL DETAILS (Reference Screen 1, Markers 1 - 11) */}
           {activeTab === 'personal' && (
             <div className="space-y-4.5 animate-in fade-in duration-150">
-              {/* Full Name */}
+              {/* 1. Emp ID (Marker 1) */}
               <div className="space-y-1.5">
-                <label className="text-[13px] font-semibold text-slate-700 tracking-tight">
-                  Full Name <span className="text-red-500">*</span>
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight flex items-center gap-1.5">
+                    Emp ID
+                    <Lock className="w-3.5 h-3.5 text-slate-400" />
+                  </label>
+                  <span className="text-[11px] text-slate-400">Filled by the system</span>
+                </div>
+                <div className="relative">
+                  <input
+                    type="text"
+                    disabled
+                    readOnly
+                    value="Auto-generated by system (e.g. EMP-0026)"
+                    className="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-[13px] text-slate-500 font-mono cursor-not-allowed select-none"
+                  />
+                  <Lock className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+              </div>
+
+              {/* 2. Full Name (Marker 2) */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">
+                    Full Name <span className="text-red-500">*</span>
+                  </label>
+                  <span className="text-[11px] text-slate-400">The name as it is on the Aadhaar Card.</span>
+                </div>
                 <input
                   type="text"
                   {...register('name')}
-                  placeholder="Enter full name (e.g. Rahul Sharma)"
+                  placeholder="The name as it is on the Aadhaar Card"
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
                 />
                 {errors.name && <p className="text-[11px] text-red-500 font-medium">{errors.name.message}</p>}
               </div>
 
-              {/* Login Email & Mobile Number */}
+              {/* 3. Gender (Marker 3) & 4. Phone Number (Marker 4) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div className="space-y-1.5">
-                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">
-                    Primary / Login Email <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    {...register('email')}
-                    placeholder="name@company.com"
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                  />
-                  {errors.email && <p className="text-[11px] text-red-500 font-medium">{errors.email.message}</p>}
-                </div>
-
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Mobile Number</label>
-                    <span className="text-[11px] text-slate-400">10 digits</span>
+                    <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Gender</label>
+                    <span className="text-[11px] text-slate-400">Pick from Male, Female or Other</span>
                   </div>
-                  <CountryPhoneInput
-                    value={watch('mob') || ''}
-                    onChange={(val) => setValue('mob', val, { shouldValidate: true, shouldDirty: true })}
-                    placeholder="9876543210"
-                    error={errors.mob?.message}
-                  />
-                </div>
-              </div>
-
-              {/* Gender & Blood Group */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div className="space-y-1.5">
-                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Gender</label>
                   <select
                     {...register('gender_id')}
                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition cursor-pointer"
@@ -487,7 +465,123 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Blood Group</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Phone Number</label>
+                    <span className="text-[11px] text-slate-400">10-digit mobile (+91)</span>
+                  </div>
+                  <CountryPhoneInput
+                    value={watch('mob') || ''}
+                    onChange={(val) => setValue('mob', val, { shouldValidate: true, shouldDirty: true })}
+                    placeholder="9876543210"
+                    error={errors.mob?.message}
+                  />
+                </div>
+              </div>
+
+              {/* 5. Emergency Contact Name (Marker 5) & Relationship */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Emergency Contact Name</label>
+                    <span className="text-[11px] text-slate-400">Who to call in an emergency</span>
+                  </div>
+                  <input
+                    type="text"
+                    {...register('emergency_contact_name')}
+                    placeholder="Who to call in an emergency"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Relationship</label>
+                  <input
+                    type="text"
+                    {...register('emergency_contact_relation')}
+                    placeholder="How they are related (e.g. Father, Spouse)"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                  />
+                </div>
+              </div>
+
+              {/* 6. Emergency Contact Number (Marker 6) */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Emergency Contact Number</label>
+                  <span className="text-[11px] text-slate-400">Mobile number of that person</span>
+                </div>
+                <CountryPhoneInput
+                  value={watch('emergency_contact_number') || ''}
+                  onChange={(val) =>
+                    setValue('emergency_contact_number', val, {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                    })
+                  }
+                  placeholder="9876543210"
+                  error={errors.emergency_contact_number?.message}
+                />
+              </div>
+
+              {/* 7. Personal Email (Marker 7) & 8. Office Email (Marker 8) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Personal Email</label>
+                    <span className="text-[11px] text-slate-400">Private email (post-exit use)</span>
+                  </div>
+                  <input
+                    type="email"
+                    {...register('personal_email')}
+                    placeholder="personal@gmail.com"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                  />
+                  {errors.personal_email && (
+                    <p className="text-[11px] text-red-500 font-medium">{errors.personal_email.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[13px] font-semibold text-slate-700 tracking-tight">
+                      Office Email <span className="text-red-500">*</span>
+                    </label>
+                    <span className="text-[11px] text-slate-400">Login details go here</span>
+                  </div>
+                  <input
+                    type="email"
+                    {...register('email')}
+                    onChange={(e) => {
+                      setValue('email', e.target.value, { shouldValidate: true, shouldDirty: true });
+                      setValue('office_email', e.target.value);
+                    }}
+                    placeholder="name@company.com"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                  />
+                  {errors.email && <p className="text-[11px] text-red-500 font-medium">{errors.email.message}</p>}
+                </div>
+              </div>
+
+              {/* 9. Birth Date (Marker 9) & 10. Blood Group (Marker 10) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Birth Date</label>
+                    <span className="text-[11px] text-slate-400">Picked from calendar (18+)</span>
+                  </div>
+                  <input
+                    type="date"
+                    {...register('birth_date')}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition cursor-pointer"
+                  />
+                  {errors.birth_date && <p className="text-[11px] text-red-500 font-medium">{errors.birth_date.message}</p>}
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Blood Group</label>
+                    <span className="text-[11px] text-slate-400">Pick from list</span>
+                  </div>
                   <select
                     {...register('blood_group')}
                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition cursor-pointer"
@@ -502,62 +596,50 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
                 </div>
               </div>
 
-              {/* Date of Birth & Photo */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Date of Birth</label>
-                    <span className="text-[11px] text-slate-400">18+ required</span>
-                  </div>
-                  <input
-                    type="date"
-                    {...register('birth_date')}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition cursor-pointer"
-                  />
-                  {errors.birth_date && <p className="text-[11px] text-red-500 font-medium">{errors.birth_date.message}</p>}
-                </div>
-
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Profile Photo</label>
-                    <span className="text-[11px] text-slate-400">Optional</span>
-                  </div>
-                  <label className="flex items-center gap-2.5 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 hover:bg-slate-100 transition cursor-pointer">
-                    {photoPreview ? (
-                      <img src={photoPreview} alt="Preview" className="w-5 h-5 rounded-full object-cover shrink-0" />
-                    ) : (
-                      <Upload className="w-4 h-4 text-slate-400 shrink-0" />
-                    )}
-                    <span className="truncate">{selectedPhotoFile ? selectedPhotoFile.name : 'Choose photo (JPG/PNG)'}</span>
-                    <input type="file" accept="image/*" onChange={handlePhotoSelect} className="hidden" />
-                  </label>
-                </div>
-              </div>
-
-              {/* Address */}
+              {/* 11. Address (Marker 11) */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Current Address</label>
-                  <span className="text-[11px] text-slate-400">Optional</span>
+                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Address</label>
+                  <span className="text-[11px] text-slate-400">Full address in one box. Not compulsory.</span>
                 </div>
                 <textarea
                   rows={2}
                   {...register('address')}
-                  placeholder="Street, City, State, PIN code..."
+                  placeholder="Full address in one box..."
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition resize-none"
                 />
+              </div>
+
+              {/* Profile Photo (Existing optional field) */}
+              <div className="space-y-1.5 pt-1">
+                <div className="flex items-center justify-between">
+                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Profile Photo</label>
+                  <span className="text-[11px] text-slate-400">Optional</span>
+                </div>
+                <label className="flex items-center gap-2.5 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 hover:bg-slate-100 transition cursor-pointer">
+                  {photoPreview ? (
+                    <img src={photoPreview} alt="Preview" className="w-5 h-5 rounded-full object-cover shrink-0" />
+                  ) : (
+                    <Upload className="w-4 h-4 text-slate-400 shrink-0" />
+                  )}
+                  <span className="truncate">{selectedPhotoFile ? selectedPhotoFile.name : 'Choose photo (JPG/PNG)'}</span>
+                  <input type="file" accept="image/*" onChange={handlePhotoSelect} className="hidden" />
+                </label>
               </div>
             </div>
           )}
 
-          {/* TAB 2: JOB & ORGANIZATION */}
+          {/* TAB 2: ORGANIZATION DETAILS */}
           {activeTab === 'job' && (
             <div className="space-y-4.5 animate-in fade-in duration-150">
-              {/* Department Selection with Search Bar & Checkbox Dropdown */}
+              {/* Marker 1: Departments */}
               <div className="space-y-1.5">
-                <label className="text-[13px] font-semibold text-slate-700 tracking-tight">
-                  Departments <span className="text-red-500">*</span>
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">
+                    Departments <span className="text-red-500">*</span>
+                  </label>
+                  <span className="text-[11px] text-slate-400">Controls what the person sees in the CRM</span>
+                </div>
                 <DepartmentMultiSelect
                   departments={deptOptions}
                   selectedIds={watchedDepIds}
@@ -570,12 +652,16 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
                 />
               </div>
 
-              {/* Designation & Employment Type */}
+              {/* Marker 2 & 3: Designation & Reporting Manager */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                {/* Marker 2: Designation */}
                 <div className="space-y-1.5">
-                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">
-                    Designation <span className="text-red-500">*</span>
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-[13px] font-semibold text-slate-700 tracking-tight">
+                      Designation <span className="text-red-500">*</span>
+                    </label>
+                    <span className="text-[11px] text-slate-400">Pick from searchable list</span>
+                  </div>
                   <SearchableSelect
                     options={roleOptions.map((r: any) => ({
                       value: r.role_id,
@@ -594,26 +680,12 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
                   />
                 </div>
 
+                {/* Marker 3: Reporting Manager */}
                 <div className="space-y-1.5">
-                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Employment Type</label>
-                  <select
-                    {...register('employment_type_id')}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition cursor-pointer"
-                  >
-                    <option value="">Select Type</option>
-                    {employmentTypeLookups.map((et) => (
-                      <option key={et.id} value={et.id}>
-                        {et.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Reporting Manager & Joining Date */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div className="space-y-1.5">
-                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Reporting Manager</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Reporting Manager</label>
+                    <span className="text-[11px] text-slate-400">Can be left empty</span>
+                  </div>
                   <ReportingManagerSelect
                     options={managerOptions}
                     value={watch('reporting_manager')}
@@ -628,7 +700,27 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
                     error={errors.reporting_manager?.message}
                   />
                 </div>
+              </div>
 
+              {/* Marker 4 & 5: Employment Type & Joining Date */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                {/* Marker 4: Employment Type */}
+                <div className="space-y-1.5">
+                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Employment Type</label>
+                  <select
+                    {...register('employment_type_id')}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition cursor-pointer"
+                  >
+                    <option value="">Full-time, Part-time, Intern or Contract</option>
+                    {employmentTypeLookups.map((et) => (
+                      <option key={et.id} value={et.id}>
+                        {et.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Marker 5: Joining Date */}
                 <div className="space-y-1.5">
                   <label className="text-[13px] font-semibold text-slate-700 tracking-tight">
                     Joining Date <span className="text-red-500">*</span>
@@ -641,10 +733,136 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
                   {errors.joining_date && (
                     <p className="text-[11px] text-red-500 font-medium">{errors.joining_date.message}</p>
                   )}
+                  {joiningCheck && joiningCheck.severity === 'warning' && (
+                    <div className="p-2 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-1.5 text-xs text-amber-800 animate-in fade-in">
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-600 mt-0.5 shrink-0" />
+                      <div>
+                        <span className="font-semibold">Notice: </span>
+                        <span>{joiningCheck.message}</span>
+                      </div>
+                    </div>
+                  )}
+                  {joiningCheck && joiningCheck.severity === 'ok' && watchedJoiningDate && (
+                    <p className="text-[11px] text-emerald-600 font-medium flex items-center gap-1.5">
+                      <CheckCircle className="w-3.5 h-3.5" />
+                      <span>{joiningCheck.message}</span>
+                    </p>
+                  )}
                 </div>
               </div>
 
-              {/* Shift & Leave Policy */}
+              {/* Marker 6 & 7: Salary & PF */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                {/* Marker 6: Salary */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Salary</label>
+                    <span className="text-[11px] text-slate-400">Monthly amount in ₹</span>
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-sm">₹</span>
+                    <input
+                      type="number"
+                      step="any"
+                      min="0"
+                      {...register('salary')}
+                      placeholder="0"
+                      className="w-full pl-8 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] font-medium text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                    />
+                  </div>
+                  {errors.salary && (
+                    <p className="text-[11px] text-red-500 font-medium">{errors.salary.message}</p>
+                  )}
+                </div>
+
+                {/* Marker 7: PF */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[13px] font-semibold text-slate-700 tracking-tight">PF</label>
+                    <span className="text-[11px] text-slate-400">Monthly PF amount in ₹</span>
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-sm">₹</span>
+                    <input
+                      type="number"
+                      step="any"
+                      min="0"
+                      {...register('pf')}
+                      placeholder="0"
+                      className="w-full pl-8 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] font-medium text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                    />
+                  </div>
+                  {errors.pf && (
+                    <p className="text-[11px] text-red-500 font-medium">{errors.pf.message}</p>
+                  )}
+                  <div className="flex items-center gap-4 pt-1">
+                    <label className="inline-flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-slate-700">
+                      <input
+                        type="checkbox"
+                        {...register('pf_applicable')}
+                        className="rounded text-blue-600 focus:ring-blue-500"
+                      />
+                      <span>PF Applicable</span>
+                    </label>
+                    {watchedPfApplicable && (
+                      <div className="flex-1">
+                        <input
+                          type="text"
+                          {...register('uan')}
+                          placeholder="12-digit UAN"
+                          className="w-full px-2.5 py-1 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-hidden focus:border-blue-500"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Preserved: Probation Period & Notice Period */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-1">
+                <div className="space-y-1.5">
+                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">
+                    Probation Period
+                  </label>
+                  <input
+                    type="text"
+                    list="add-probation-options"
+                    {...register('probation_period')}
+                    placeholder="e.g. 90 Days (3 Months)"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                  />
+                  <datalist id="add-probation-options">
+                    <option value="None" />
+                    <option value="30 Days" />
+                    <option value="60 Days" />
+                    <option value="90 Days (3 Months)" />
+                    <option value="6 Months" />
+                    <option value="1 Year" />
+                  </datalist>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">
+                    Notice Period
+                  </label>
+                  <input
+                    type="text"
+                    list="add-notice-options"
+                    {...register('notice_period')}
+                    placeholder="e.g. 30 Days"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                  />
+                  <datalist id="add-notice-options">
+                    <option value="Immediate" />
+                    <option value="15 Days" />
+                    <option value="30 Days" />
+                    <option value="60 Days" />
+                    <option value="90 Days" />
+                  </datalist>
+                </div>
+              </div>
+
+              {/* Preserved: Assigned Shift & Leave Policy */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div className="space-y-1.5">
                   <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Assigned Shift</label>
@@ -677,143 +895,96 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
                   </select>
                 </div>
               </div>
-            </div>
-          )}
 
-          {/* TAB 3: SALARY & BANKING */}
-          {activeTab === 'salary' && (
-            <div className="space-y-4.5 animate-in fade-in duration-150">
-              {/* Gross Salary & PF Applicable */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div className="space-y-1.5">
-                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Gross Monthly Salary (₹)</label>
-                  <input
-                    type="number"
-                    step="any"
-                    {...register('salary')}
-                    placeholder="e.g. 50000"
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">PF Scheme</label>
-                  <div className="flex items-center gap-2 pt-2">
-                    <label className="inline-flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700">
-                      <input
-                        type="checkbox"
-                        {...register('pf_applicable')}
-                        className="rounded text-blue-600 focus:ring-blue-500"
-                      />
-                      <span>PF Applicable</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              {/* UAN & Overtime */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                {watchedPfApplicable && (
-                  <div className="space-y-1.5">
-                    <label className="text-[13px] font-semibold text-slate-700 tracking-tight">UAN Number</label>
-                    <input
-                      type="text"
-                      {...register('uan')}
-                      placeholder="12-digit UAN"
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                    />
-                  </div>
-                )}
-
-                <div className="space-y-1.5 sm:col-span-2">
+              {/* Preserved: Overtime Policy */}
+              <div className="space-y-2 pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-between">
                   <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Overtime Policy</label>
-                  <div className="flex items-center gap-2 pt-1">
-                    <label className="inline-flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700">
-                      <input
-                        type="checkbox"
-                        {...register('ot_eligible')}
-                        className="rounded text-blue-600 focus:ring-blue-500"
-                      />
-                      <span>OT Eligible</span>
-                    </label>
-                  </div>
+                  <label className="inline-flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700">
+                    <input
+                      type="checkbox"
+                      {...register('ot_eligible')}
+                      className="rounded text-blue-600 focus:ring-blue-500"
+                    />
+                    <span>OT Eligible</span>
+                  </label>
+                </div>
 
-                  {watchedOtEligible && (
-                    <div className="mt-3 p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3.5 animate-in fade-in duration-150">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                        <div className="space-y-1.5">
-                          <label className="text-xs font-semibold text-slate-700">OT Rate Calculation</label>
-                          <select
-                            {...register('ot_rate_type')}
-                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                          >
-                            <option value="MULTIPLIER">Multiplier (e.g. 1.5x of hourly pay)</option>
-                            <option value="FIXED">Fixed Hourly Rate (₹ per hour)</option>
-                          </select>
-                        </div>
-
-                        {watchedOtRateType === 'FIXED' ? (
-                          <div className="space-y-1.5">
-                            <label className="text-xs font-semibold text-slate-700">Hourly OT Rate (₹)</label>
-                            <input
-                              type="number"
-                              step="1"
-                              min="0"
-                              {...register('ot_rate')}
-                              placeholder="e.g. 250"
-                              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono font-medium focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                            />
-                            {errors.ot_rate && <p className="text-[11px] text-red-500 font-medium">{errors.ot_rate.message}</p>}
-                          </div>
-                        ) : (
-                          <div className="space-y-1.5">
-                            <label className="text-xs font-semibold text-slate-700">OT Multiplier</label>
-                            <input
-                              type="number"
-                              step="0.1"
-                              min="1"
-                              max="5"
-                              {...register('ot_multiplier')}
-                              placeholder="1.5"
-                              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono font-medium focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                            />
-                            {errors.ot_multiplier && <p className="text-[11px] text-red-500 font-medium">{errors.ot_multiplier.message}</p>}
-                          </div>
-                        )}
+                {watchedOtEligible && (
+                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-3 animate-in fade-in duration-150">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-slate-700">OT Rate Calculation</label>
+                        <select
+                          {...register('ot_rate_type')}
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                        >
+                          <option value="MULTIPLIER">Multiplier (e.g. 1.5x of hourly pay)</option>
+                          <option value="FIXED">Fixed Hourly Rate (₹ per hour)</option>
+                        </select>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      {watchedOtRateType === 'FIXED' ? (
                         <div className="space-y-1.5">
-                          <label className="text-xs font-semibold text-slate-700">Daily Minimum OT Threshold (Mins)</label>
+                          <label className="text-xs font-semibold text-slate-700">Hourly OT Rate (₹)</label>
                           <input
                             type="number"
-                            step="5"
+                            step="1"
                             min="0"
-                            {...register('minimum_ot_per_day')}
-                            placeholder="0 (e.g. 30 mins)"
+                            {...register('ot_rate')}
+                            placeholder="e.g. 250"
                             className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono font-medium focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
                           />
-                          <p className="text-[10px] text-slate-400">Minutes worked past shift before OT accumulates</p>
+                          {errors.ot_rate && <p className="text-[11px] text-red-500 font-medium">{errors.ot_rate.message}</p>}
                         </div>
-
+                      ) : (
                         <div className="space-y-1.5">
-                          <label className="text-xs font-semibold text-slate-700">Disbursement Method</label>
-                          <select
-                            {...register('ot_paid_as')}
-                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                          >
-                            <option value="SALARY">Direct Payroll Payout (₹)</option>
-                            <option value="COMP_OFF">Compensatory Off (Leave)</option>
-                          </select>
-                          <p className="text-[10px] text-slate-400">Whether OT is paid or credited as comp-off leave</p>
+                          <label className="text-xs font-semibold text-slate-700">OT Multiplier</label>
+                          <input
+                            type="number"
+                            step="0.1"
+                            min="1"
+                            max="5"
+                            {...register('ot_multiplier')}
+                            placeholder="1.5"
+                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono font-medium focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                          />
+                          {errors.ot_multiplier && <p className="text-[11px] text-red-500 font-medium">{errors.ot_multiplier.message}</p>}
                         </div>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-slate-700">Daily Minimum OT Threshold (Mins)</label>
+                        <input
+                          type="number"
+                          step="5"
+                          min="0"
+                          {...register('minimum_ot_per_day')}
+                          placeholder="0 (e.g. 30 mins)"
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono font-medium focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                        />
+                        <p className="text-[10px] text-slate-400">Minutes worked past shift before OT accumulates</p>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-slate-700">Disbursement Method</label>
+                        <select
+                          {...register('ot_paid_as')}
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                        >
+                          <option value="SALARY">Direct Payroll Payout (₹)</option>
+                          <option value="COMP_OFF">Compensatory Off (Leave)</option>
+                        </select>
+                        <p className="text-[10px] text-slate-400">Whether OT is paid or credited as comp-off leave</p>
                       </div>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
 
-              {/* Bank Details */}
+              {/* Preserved: Bank Account Details */}
               <div className="pt-2 border-t border-slate-100 space-y-3">
                 <h4 className="text-[13px] font-semibold text-slate-700 tracking-tight">Bank Account Details</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -848,77 +1019,31 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
                   </div>
                 </div>
               </div>
-            </div>
-          )}
 
-          {/* TAB 4: EMERGENCY & SECURITY */}
-          {activeTab === 'security' && (
-            <div className="space-y-4.5 animate-in fade-in duration-150">
-              {/* Emergency Contact */}
-              <div className="space-y-2.5">
-                <h4 className="text-[13px] font-semibold text-slate-700 tracking-tight">Emergency Contact Information</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-600">Contact Name</label>
-                    <input
-                      type="text"
-                      {...register('emergency_contact_name')}
-                      placeholder="Relative / Guardian"
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-600">Relationship</label>
-                    <input
-                      type="text"
-                      {...register('emergency_contact_relation')}
-                      placeholder="e.g. Father, Spouse"
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5 sm:col-span-1">
-                    <label className="text-xs font-semibold text-slate-600">Emergency Phone</label>
-                    <CountryPhoneInput
-                      value={watch('emergency_contact_number') || ''}
-                      onChange={(val) =>
-                        setValue('emergency_contact_number', val, {
-                          shouldValidate: true,
-                          shouldDirty: true,
-                        })
-                      }
-                      placeholder="9876543210"
-                      error={errors.emergency_contact_number?.message}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Password / Access (BFD Part 7, Marker 5: "The system makes a one-time temporary password. Nobody types it, and the Admin never sees it.") */}
+              {/* Preserved: System Temporary Password / Access */}
               <input type="hidden" {...register('password')} />
               <input type="hidden" {...register('confirm_password')} />
 
-              <div className="pt-3 border-t border-slate-100">
-                <div className="p-3.5 rounded-2xl bg-gradient-to-br from-slate-50 to-blue-50/30 border border-blue-100/80 shadow-xs space-y-2.5">
+              <div className="pt-2 border-t border-slate-100">
+                <div className="p-3 rounded-2xl bg-gradient-to-br from-slate-50 to-blue-50/30 border border-blue-100/80 shadow-xs space-y-2">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
-                      <Lock className="w-4 h-4" />
+                    <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+                      <Lock className="w-3.5 h-3.5" />
                     </div>
                     <div>
                       <h4 className="text-xs font-bold text-slate-800 tracking-tight flex items-center gap-1.5">
                         System Temporary Password
                         <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
-                          Automated & Secure
+                          Automated
                         </span>
                       </h4>
-                      <p className="text-[11px] text-slate-500">
+                      <p className="text-[10.5px] text-slate-500">
                         Cryptographically generated for one-time employee activation
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-200/80">
+                  <div className="flex items-center justify-between p-2 rounded-xl bg-white border border-slate-200/80">
                     <div className="font-mono text-xs text-slate-400 tracking-widest pl-1 select-none">
                       ••••••••••••••••
                     </div>
@@ -927,19 +1052,12 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
                       Zero-Knowledge Protection
                     </span>
                   </div>
-
-                  <div className="p-2.5 rounded-xl bg-blue-50/60 border border-blue-100 text-[11px] text-blue-900 leading-relaxed flex items-start gap-1.5">
-                    <span className="font-bold text-blue-700 shrink-0">•</span>
-                    <span>
-                      <strong>BFD Security Protocol (Page 23, Marker 5):</strong> The system generates a one-time temporary password. Nobody types it, and the Admin never sees it. Credentials will be securely emailed directly to the employee.
-                    </span>
-                  </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Modal Footer (Matching Reference Image) */}
+          {/* Modal Footer (Marker 8: "Cancel" leaves the form. "Save Employee" runs checks & creates) */}
           <div className="flex items-center justify-between pt-4 border-t border-slate-100">
             <button
               type="button"
@@ -950,34 +1068,28 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
             </button>
 
             <div className="flex items-center gap-2">
-              {activeTab !== 'personal' && (
+              {activeTab === 'job' && (
                 <button
                   type="button"
-                  onClick={() => {
-                    if (activeTab === 'security') setActiveTab('salary');
-                    else if (activeTab === 'salary') setActiveTab('job');
-                    else if (activeTab === 'job') setActiveTab('personal');
-                  }}
+                  onClick={() => setActiveTab('personal')}
                   className="px-4 py-2.5 border border-slate-200 hover:bg-slate-50 rounded-xl text-xs font-bold text-slate-600 transition cursor-pointer"
                 >
                   Previous
                 </button>
               )}
 
-              {activeTab !== 'security' ? (
+              {activeTab === 'personal' ? (
                 <button
                   key="btn-next-step"
                   type="button"
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    if (activeTab === 'personal') setActiveTab('job');
-                    else if (activeTab === 'job') setActiveTab('salary');
-                    else if (activeTab === 'salary') setActiveTab('security');
+                    setActiveTab('job');
                   }}
                   className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
                 >
-                  Next Step
+                  Next: Organization Details
                 </button>
               ) : (
                 <button
@@ -987,7 +1099,7 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
                   className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                  <span>Create Employee</span>
+                  <span>Save Employee</span>
                 </button>
               )}
             </div>

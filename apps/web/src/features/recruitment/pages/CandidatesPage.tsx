@@ -366,22 +366,22 @@ export const CandidatesPage: React.FC = () => {
               setStageFilter(stageFilter === 'onboarding' ? 'Open' : 'onboarding');
               setCurrentPage(1);
             }}
-            className={`bg-white rounded-2xl p-5 border shadow-2xs flex items-center justify-between gap-4 cursor-pointer transition-all hover:border-slate-400 ${
+            className={`bg-white rounded-2xl p-5 border shadow-2xs flex items-center justify-between gap-4 cursor-pointer transition-all hover:border-purple-400 ${
               stageFilter === 'onboarding'
-                ? 'border-emerald-500 bg-emerald-50/15 ring-2 ring-emerald-500/10'
+                ? 'border-purple-500 bg-purple-50/20 ring-2 ring-purple-500/10'
                 : 'border-slate-300'
             }`}
             title="Click to filter by onboarding"
           >
             <div className="space-y-1 min-w-0">
-              <p className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Onboarding</p>
-              <h3 className="text-2xl font-extrabold text-emerald-600 leading-tight">{stats.onboarding}</h3>
-              <div className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-600 pt-0.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+              <p className="text-xs font-bold text-purple-700 uppercase tracking-wider">Onboarding</p>
+              <h3 className="text-2xl font-extrabold text-purple-600 leading-tight">{stats.onboarding}</h3>
+              <div className="flex items-center gap-1.5 text-[11px] font-medium text-purple-600 pt-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-500 shrink-0"></span>
                 <span className="truncate">Joining soon</span>
               </div>
             </div>
-            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100/80 shadow-2xs">
+            <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 border border-purple-100/80 shadow-2xs">
               <UserCheck className="w-6 h-6 stroke-[2]" />
             </div>
           </div>
@@ -453,8 +453,7 @@ export const CandidatesPage: React.FC = () => {
                 }}
                 className="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 bg-white text-slate-900 font-bold shadow-2xs cursor-pointer"
               >
-                <option value="Open">Stage: Open</option>
-                <option value="open">Open</option>
+                <option value="Open">Open</option>
                 <option value="new">New</option>
                 <option value="screening">Screening</option>
                 <option value="interviewing">Interviewing</option>
@@ -464,7 +463,7 @@ export const CandidatesPage: React.FC = () => {
                 <option value="joined">Joined</option>
                 <option value="did_not_join">Did not join</option>
                 <option value="rejected">Rejected</option>
-                <option value="All">Stage: All</option>
+                <option value="All">All</option>
               </select>
             </div>
 
@@ -642,12 +641,6 @@ export const CandidatesPage: React.FC = () => {
                                     >
                                       <span>Onboarding Documents</span>
                                     </Link>
-                                  </>
-                                )}
-                                {cand.current_location && (
-                                  <>
-                                    <span>•</span>
-                                    <span>{cand.current_location}</span>
                                   </>
                                 )}
                               </div>

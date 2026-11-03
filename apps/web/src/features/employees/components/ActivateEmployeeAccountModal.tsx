@@ -180,12 +180,12 @@ export const ActivateEmployeeAccountModal: React.FC<ActivateEmployeeAccountModal
               <input
                 type="text"
                 disabled
-                value="System generates a one-time temporary password"
+                value="System generates a site link for employee to set their own password"
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-100/80 border border-slate-200 text-slate-500 text-xs italic cursor-not-allowed"
               />
               <Sparkles className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
-            <p className="text-[11px] text-slate-400">Nobody types it, and the Admin never sees it until generation.</p>
+            <p className="text-[11px] text-slate-400">Nobody types it, and the Admin never sees it. The employee sets their own password via the site link.</p>
           </div>
 
           {/* Marker 6: Emails Checkboxes */}

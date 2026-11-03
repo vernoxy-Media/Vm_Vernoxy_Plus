@@ -55,6 +55,8 @@ export interface Employee {
     label: string;
   } | null;
   salary?: number | null;
+  probation_period?: string | null;
+  notice_period?: string | null;
   pf?: number | null;
   termination_date?: Date | null;
   deactivation_reason?: string | null;

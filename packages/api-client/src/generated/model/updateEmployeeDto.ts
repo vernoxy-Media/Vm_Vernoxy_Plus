@@ -80,4 +80,6 @@ export interface UpdateEmployeeDto {
   deactivation_reason?: string | null;
   /** @nullable */
   deactivation_notes?: string | null;
+  probation_period?: string | null;
+  notice_period?: string | null;
 }

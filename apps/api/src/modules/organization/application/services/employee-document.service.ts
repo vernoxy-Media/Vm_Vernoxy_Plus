@@ -1,4 +1,13 @@
-import { Injectable, NotFoundException, BadRequestException, Inject, Optional, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Inject,
+  Optional,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { PrismaService } from '../../../../core/prisma/prisma.service';
 import { AUTH_TOKENS } from '../../../auth/application/ports/tokens';
 import { MailPort } from '../../../auth/application/ports/auth.ports';
@@ -24,6 +33,9 @@ export interface PredefinedDoc {
 }
 
 export const PREDEFINED_DOCS: PredefinedDoc[] = [
+  // Agreement (Moved to top as requested)
+  { type: 'nda_signed', category: 'agreement', title: 'NDA signed', isRequiredForActivation: true },
+
   // Given to employee
   { type: 'offer_letter', category: 'given_to_employee', title: 'Offer Letter' },
   { type: 'joining_letter', category: 'given_to_employee', title: 'Joining Letter' },
@@ -34,7 +46,7 @@ export const PREDEFINED_DOCS: PredefinedDoc[] = [
   // Taken from employee (BFD Screen 8 Part 2 rules)
   { type: 'marksheet_10th', category: 'taken_from_employee', title: '10th Standard Marksheet', isRequiredForActivation: true },
   { type: 'marksheet_12th', category: 'taken_from_employee', title: '12th Standard Marksheet (or Diploma)', isRequiredForActivation: true },
-  { type: 'marksheet_ug', category: 'taken_from_employee', title: 'Graduation Degree / Marksheet', isRequiredForActivation: true },
+  { type: 'marksheet_ug', category: 'taken_from_employee', title: 'Graduation Degree / Marksheet' },
   { type: 'marksheet_pg', category: 'taken_from_employee', title: 'Post-Graduation Marksheet' },
   { type: 'pan_card', category: 'taken_from_employee', title: 'PAN Card', isRequiredForActivation: true },
   { type: 'aadhaar_card', category: 'taken_from_employee', title: 'Aadhaar Card', isRequiredForActivation: true },
@@ -42,11 +54,6 @@ export const PREDEFINED_DOCS: PredefinedDoc[] = [
   { type: 'bank_details', category: 'taken_from_employee', title: 'Bank Details (Passbook or cancelled cheque)', isRequiredForActivation: true },
   { type: 'experience_letter_old', category: 'taken_from_employee', title: 'Previous Experience / Relieving Letter' },
   { type: 'salary_slip_old', category: 'taken_from_employee', title: 'Last 3 Salary Slips' },
-  { type: 'offer_letter_old', category: 'taken_from_employee', title: 'Offer Letter (old company)' },
-  { type: 'joining_letter_old', category: 'taken_from_employee', title: 'Joining Letter (old company)' },
-
-  // Agreement
-  { type: 'nda_signed', category: 'agreement', title: 'NDA signed', isRequiredForActivation: true },
 ];
 
 const argon2Options: argon2.HashOptions = {
@@ -77,13 +84,73 @@ function generateTemporaryPassword(): string {
 }
 
 @Injectable()
-export class EmployeeDocumentService {
+export class EmployeeDocumentService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(EmployeeDocumentService.name);
+  private autoActivateInterval: NodeJS.Timeout | null = null;
 
   constructor(
     private readonly prisma: PrismaService,
     @Optional() @Inject(AUTH_TOKENS.MailPort) private readonly mailPort?: MailPort,
   ) {}
+
+  onModuleInit() {
+    // Check auto-activation on startup and every 5 minutes
+    setTimeout(() => {
+      this.autoActivateJoinedEmployees().catch((err) =>
+        this.logger.error(`Error in initial auto-activation: ${err.message}`),
+      );
+    }, 5000);
+
+    this.autoActivateInterval = setInterval(() => {
+      this.autoActivateJoinedEmployees().catch((err) =>
+        this.logger.error(`Error in periodic auto-activation: ${err.message}`),
+      );
+    }, 5 * 60 * 1000);
+  }
+
+  onModuleDestroy() {
+    if (this.autoActivateInterval) {
+      clearInterval(this.autoActivateInterval);
+    }
+  }
+
+  async autoActivateJoinedEmployees(): Promise<number> {
+    try {
+      const candidatesToActivate = await this.prisma.$queryRaw<Array<{ emp_id: number; name: string }>>`
+        SELECT e.emp_id, e.name
+        FROM employees e
+        WHERE e.status = 'Onboarding'
+          AND e.joining_date <= CURRENT_DATE
+          AND e.deleted_at IS NULL
+      `;
+
+      if (!candidatesToActivate || candidatesToActivate.length === 0) {
+        return 0;
+      }
+
+      let activatedCount = 0;
+      for (const cand of candidatesToActivate) {
+        try {
+          const eligibility = await this.getActivationEligibility(cand.emp_id);
+          if (eligibility.can_activate) {
+            await this.activateEmployee(cand.emp_id, 1);
+            activatedCount++;
+            this.logger.log(
+              `[AutoActivation] Auto-activated employee ${cand.name} (EMP-${cand.emp_id}) on joining date.`,
+            );
+          }
+        } catch (subErr: any) {
+          this.logger.warn(
+            `[AutoActivation] Could not auto-activate ${cand.name} (EMP-${cand.emp_id}): ${subErr.message}`,
+          );
+        }
+      }
+      return activatedCount;
+    } catch (err: any) {
+      this.logger.error(`Failed to execute autoActivateJoinedEmployees: ${err.message}`);
+      return 0;
+    }
+  }
 
   async getEmployeeDocuments(empId: number): Promise<EmployeeDocumentItemDto[]> {
     const empResult = await this.prisma.$queryRaw<Array<{ emp_id: number; status: string }>>`
@@ -93,7 +160,7 @@ export class EmployeeDocumentService {
       throw new NotFoundException(`Employee with ID ${empId} not found`);
     }
     const emp = empResult[0];
-    const isEmployeeActive = emp.status === 'Active';
+    const isEmployeeDeactivated = emp.status === 'Inactive';
 
     // Fetch existing docs
     const existingDocs = await this.prisma.$queryRaw<any[]>`
@@ -109,7 +176,7 @@ export class EmployeeDocumentService {
     for (const def of PREDEFINED_DOCS) {
       if (!existingMap.has(def.type)) {
         const isReq = def.isRequiredForActivation ?? false;
-        const defaultStatus = def.lockWhenActive && isEmployeeActive
+        const defaultStatus = def.lockWhenActive && !isEmployeeDeactivated
           ? 'locked'
           : (isReq ? 'file_pending' : 'not_ticked');
         const defaultTicked = isReq;
@@ -132,9 +199,9 @@ export class EmployeeDocumentService {
       if (doc) {
         let status = doc.status;
         if (def.lockWhenActive) {
-          if (isEmployeeActive) {
+          if (!isEmployeeDeactivated) {
             status = 'locked';
-          } else if (!isEmployeeActive && status === 'locked') {
+          } else if (isEmployeeDeactivated && status === 'locked') {
             status = doc.is_ticked ? 'file_pending' : 'not_ticked';
           }
         }
@@ -162,7 +229,91 @@ export class EmployeeDocumentService {
       }
     }
 
+    // Also include any custom / other documents added for this employee
+    for (const d of existingDocs) {
+      if (!PREDEFINED_DOCS.some((def) => def.type === d.document_type)) {
+        if (d.document_type === 'offer_letter_old' || d.document_type === 'joining_letter_old') {
+          continue;
+        }
+        results.push({
+          doc_id: d.doc_id,
+          emp_id: d.emp_id,
+          category: d.category || 'other',
+          document_type: d.document_type,
+          title: d.title,
+          is_ticked: Boolean(d.is_ticked),
+          status: d.status,
+          is_required_for_activation: Boolean(d.is_required_for_activation),
+          file_url: d.file_url,
+          file_name: d.file_name,
+          file_size: d.file_size ? Number(d.file_size) : null,
+          mime_type: d.mime_type,
+          draft_content: null,
+          template_id: d.template_id,
+          issued_at: d.issued_at ? new Date(d.issued_at).toISOString() : null,
+          created_at: new Date(d.created_at).toISOString(),
+          updated_at: d.updated_at ? new Date(d.updated_at).toISOString() : null,
+        });
+      }
+    }
+
     return results;
+  }
+
+  async addCustomDocument(
+    empId: number,
+    title: string,
+    isRequired: boolean,
+    adminId: number,
+  ): Promise<EmployeeDocumentItemDto> {
+    const slug = title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .slice(0, 30);
+    const documentType = `custom_${slug || 'doc'}_${Date.now()}`;
+
+    const inserted = await this.prisma.$queryRaw<any[]>`
+      INSERT INTO employee_documents (
+        emp_id, category, document_type, title, is_ticked, status, is_required_for_activation, created_by
+      ) VALUES (
+        ${empId}, 'other', ${documentType}, ${title.trim()}, true, 'file_pending', ${isRequired}, ${adminId}
+      )
+      RETURNING *
+    `;
+
+    const doc = inserted[0];
+    return {
+      doc_id: doc.doc_id,
+      emp_id: doc.emp_id,
+      category: doc.category,
+      document_type: doc.document_type,
+      title: doc.title,
+      is_ticked: Boolean(doc.is_ticked),
+      status: doc.status,
+      is_required_for_activation: Boolean(doc.is_required_for_activation),
+      file_url: doc.file_url,
+      file_name: doc.file_name,
+      file_size: doc.file_size ? Number(doc.file_size) : null,
+      mime_type: doc.mime_type,
+      draft_content: null,
+      template_id: doc.template_id,
+      issued_at: null,
+      created_at: new Date(doc.created_at).toISOString(),
+      updated_at: doc.updated_at ? new Date(doc.updated_at).toISOString() : null,
+    };
+  }
+
+  async deleteCustomDocument(
+    empId: number,
+    documentType: string,
+    adminId: number,
+  ): Promise<{ success: boolean }> {
+    await this.prisma.$executeRaw`
+      DELETE FROM employee_documents
+      WHERE emp_id = ${empId} AND document_type = ${documentType}
+    `;
+    return { success: true };
   }
 
   async toggleDocument(empId: number, documentType: string, isTicked: boolean, adminId: number): Promise<EmployeeDocumentItemDto> {
@@ -243,6 +394,16 @@ export class EmployeeDocumentService {
     await fs.promises.writeFile(absPath, file.buffer);
 
     const fileUrl = `/api/v1/employees/${empId}/documents/${documentType}/download`;
+    let finalStatus: string;
+    if (documentType === 'offer_letter') {
+      finalStatus = target.status === 'draft' ? 'issued' : 'accepted';
+    } else if (documentType === 'joining_letter') {
+      finalStatus = target.status === 'draft' ? 'issued' : 'uploaded';
+    } else if (documentType === 'nda_signed') {
+      finalStatus = target.status === 'draft' ? 'issued' : 'signed';
+    } else {
+      finalStatus = 'uploaded';
+    }
 
     await this.prisma.$executeRaw`
       UPDATE employee_documents
@@ -252,7 +413,7 @@ export class EmployeeDocumentService {
           mime_type = ${file.mimetype},
           draft_content = NULL,
           is_ticked = TRUE,
-          status = 'uploaded',
+          status = ${finalStatus},
           updated_at = NOW(),
           updated_by = ${adminId}
       WHERE emp_id = ${empId} AND document_type = ${documentType}
@@ -304,9 +465,16 @@ export class EmployeeDocumentService {
   async listTemplates(documentType?: string): Promise<DocumentTemplateItemDto[]> {
     let templates: any[];
     if (documentType) {
-      templates = await this.prisma.$queryRaw<any[]>`
-        SELECT * FROM document_templates WHERE is_active = TRUE AND document_type = ${documentType} ORDER BY template_id ASC
-      `;
+      const isNda = documentType.includes('nda');
+      if (isNda) {
+        templates = await this.prisma.$queryRaw<any[]>`
+          SELECT * FROM document_templates WHERE is_active = TRUE AND document_type IN ('nda', 'nda_signed') ORDER BY template_id ASC
+        `;
+      } else {
+        templates = await this.prisma.$queryRaw<any[]>`
+          SELECT * FROM document_templates WHERE is_active = TRUE AND document_type = ${documentType} ORDER BY template_id ASC
+        `;
+      }
     } else {
       templates = await this.prisma.$queryRaw<any[]>`
         SELECT * FROM document_templates WHERE is_active = TRUE ORDER BY template_id ASC
@@ -356,9 +524,9 @@ export class EmployeeDocumentService {
         WHERE emp_id = ${empId} AND document_type = 'offer_letter'
       `;
       const offerStatus = offerRows && offerRows[0]?.status;
-      if (offerStatus !== 'uploaded' && offerStatus !== 'final') {
+      if (offerStatus !== 'accepted' && offerStatus !== 'uploaded' && offerStatus !== 'final') {
         throw new BadRequestException(
-          'Joining Letter can only be generated after the Offer Letter is Accepted / Signed.',
+          'Joining Letter can only be generated after the Offer Letter is Accepted.',
         );
       }
     }
@@ -380,9 +548,17 @@ export class EmployeeDocumentService {
       if (tRows && tRows.length > 0) tpl = tRows[0];
     }
     if (!tpl) {
-      const tRows = await this.prisma.$queryRaw<any[]>`
-        SELECT * FROM document_templates WHERE document_type = ${dto.document_type} AND is_active = TRUE LIMIT 1
-      `;
+      const isNda = dto.document_type.includes('nda');
+      let tRows: any[];
+      if (isNda) {
+        tRows = await this.prisma.$queryRaw<any[]>`
+          SELECT * FROM document_templates WHERE document_type IN ('nda', 'nda_signed') AND is_active = TRUE LIMIT 1
+        `;
+      } else {
+        tRows = await this.prisma.$queryRaw<any[]>`
+          SELECT * FROM document_templates WHERE document_type = ${dto.document_type} AND is_active = TRUE LIMIT 1
+        `;
+      }
       if (tRows && tRows.length > 0) tpl = tRows[0];
     }
     if (!tpl) {
@@ -400,22 +576,33 @@ export class EmployeeDocumentService {
     const pfVal = dto.custom_pf !== undefined ? Number(dto.custom_pf) : Number(emp.pf || 0);
     const joiningDateStr = formatDate(emp.joining_date);
     const proposedJoiningDateStr = dto.proposed_joining_date ? formatDate(dto.proposed_joining_date) : joiningDateStr;
+    const offerValidTillStr = dto.offer_valid_till_date ? formatDate(dto.offer_valid_till_date) : '-';
     const todayStr = formatDate(new Date());
     const termDateStr = emp.termination_date ? formatDate(emp.termination_date) : todayStr;
+    const empName = dto.candidate_name?.trim() || emp.name;
+    const designationStr = dto.designation?.trim() || emp.role_name || 'Executive';
+    const finalDepNames = dto.department?.trim() || depNames;
+
+    const reportingManagerStr = emp.manager_name || 'Management';
+    const shiftStr = emp.shift || 'General Shift (09:30 AM - 06:30 PM)';
+    const probationStr = emp.probation_period || '3 Months';
 
     // 4. Substitute placeholders
     let draftHtml = tpl.content_html;
     draftHtml = draftHtml.replace(/\{\{current_date\}\}/g, todayStr);
-    draftHtml = draftHtml.replace(/\{\{employee_name\}\}/g, emp.name);
+    draftHtml = draftHtml.replace(/\{\{employee_name\}\}/g, empName);
     draftHtml = draftHtml.replace(/\{\{employee_code\}\}/g, `EMP-${String(emp.emp_id).padStart(4, '0')}`);
-    draftHtml = draftHtml.replace(/\{\{designation\}\}/g, emp.role_name || 'Executive');
-    draftHtml = draftHtml.replace(/\{\{department\}\}/g, depNames);
+    draftHtml = draftHtml.replace(/\{\{designation\}\}/g, designationStr);
+    draftHtml = draftHtml.replace(/\{\{department\}\}/g, finalDepNames);
     draftHtml = draftHtml.replace(/\{\{joining_date\}\}/g, joiningDateStr);
     draftHtml = draftHtml.replace(/\{\{proposed_joining_date\}\}/g, proposedJoiningDateStr);
+    draftHtml = draftHtml.replace(/\{\{offer_valid_till_date\}\}/g, offerValidTillStr);
     draftHtml = draftHtml.replace(/\{\{salary\}\}/g, salaryVal.toLocaleString());
     draftHtml = draftHtml.replace(/\{\{pf\}\}/g, pfVal.toLocaleString());
     draftHtml = draftHtml.replace(/\{\{employee_address\}\}/g, emp.address || 'Surat, Gujarat');
-    draftHtml = draftHtml.replace(/\{\{reporting_manager\}\}/g, emp.manager_name || 'Management');
+    draftHtml = draftHtml.replace(/\{\{reporting_manager\}\}/g, reportingManagerStr);
+    draftHtml = draftHtml.replace(/\{\{shift\}\}/g, shiftStr);
+    draftHtml = draftHtml.replace(/\{\{probation\}\}/g, probationStr);
     draftHtml = draftHtml.replace(/\{\{termination_date\}\}/g, termDateStr);
 
     // 5. Save draft into employee_documents
@@ -470,7 +657,7 @@ export class EmployeeDocumentService {
           file_url = ${fileUrl},
           mime_type = 'application/msword',
           file_size = ${Buffer.byteLength(dto.final_content, 'utf8')},
-          status = 'uploaded',
+          status = 'issued',
           is_ticked = TRUE,
           issued_at = NOW(),
           issued_by = ${adminId},
@@ -481,6 +668,49 @@ export class EmployeeDocumentService {
 
     const refreshed = await this.getEmployeeDocuments(empId);
     return refreshed.find((d) => d.document_type === dto.document_type)!;
+  }
+
+  async declineDocument(
+    empId: number,
+    documentType: string,
+    reason: string,
+    adminId: number,
+  ): Promise<EmployeeDocumentItemDto> {
+    const docs = await this.getEmployeeDocuments(empId);
+    const target = docs.find((d) => d.document_type === documentType);
+    if (!target) {
+      throw new NotFoundException(`Document ${documentType} not found`);
+    }
+
+    await this.prisma.$executeRaw`
+      UPDATE employee_documents
+      SET status = 'declined',
+          updated_at = NOW(),
+          updated_by = ${adminId}
+      WHERE emp_id = ${empId} AND document_type = ${documentType}
+    `;
+
+    // Activity log
+    await this.prisma.$executeRaw`
+      INSERT INTO activity_logs (entity_type, entity_id, event, summary, details, performed_by, performed_at)
+      VALUES (
+        'EMPLOYEE', ${empId}, 'OFFER_DECLINED', 'Offer Letter Marked as Declined',
+        jsonb_build_object('reason', ${reason || 'Candidate declined the offer'}, 'document_type', ${documentType}),
+        ${adminId}, NOW()
+      )
+    `;
+
+    // If offer_letter is declined, BFD Section 8: Admin marks employee "Did not join", onboarding stops
+    if (documentType === 'offer_letter') {
+      await this.prisma.$executeRaw`
+        UPDATE candidates
+        SET stage = 'rejected', rejection_reason = ${reason || 'Offer declined by candidate'}, updated_at = NOW()
+        WHERE converted_to_emp_id = ${empId}
+      `.catch(() => {});
+    }
+
+    const refreshed = await this.getEmployeeDocuments(empId);
+    return refreshed.find((d) => d.document_type === documentType)!;
   }
 
   async getDocumentForDownload(
@@ -540,8 +770,12 @@ export class EmployeeDocumentService {
   }
 
   async getActivationEligibility(empId: number): Promise<EmployeeActivationStatusDto> {
-    const empResult = await this.prisma.$queryRaw<Array<{ emp_id: number; status: string }>>`
-      SELECT emp_id, status FROM employees WHERE emp_id = ${empId} AND deleted_at IS NULL
+    const empResult = await this.prisma.$queryRaw<Array<any>>`
+      SELECT e.emp_id, e.status, e.address, e.emergency_contact_name, e.emergency_contact_number, e.birth_date,
+             p.emp_id AS pay_policy_emp_id, p.bank_name, p.account_number, p.pf_applicable, p.ot_eligible
+      FROM employees e
+      LEFT JOIN employee_pay_policies p ON p.emp_id = e.emp_id
+      WHERE e.emp_id = ${empId} AND e.deleted_at IS NULL
     `;
     if (!empResult || empResult.length === 0) {
       throw new NotFoundException(`Employee with ID ${empId} not found`);
@@ -554,6 +788,8 @@ export class EmployeeDocumentService {
         missing_documents: [],
         total_required: 0,
         completed_required: 0,
+        is_details_completed: true,
+        missing_details: [],
       };
     }
 
@@ -565,14 +801,40 @@ export class EmployeeDocumentService {
     const missingDocs: string[] = [];
 
     for (const doc of requiredDocs) {
-      if (doc.status !== 'uploaded' && doc.status !== 'final') {
+      const isComplete =
+        doc.status === 'uploaded' ||
+        doc.status === 'final' ||
+        doc.status === 'accepted' ||
+        doc.status === 'signed' ||
+        doc.status === 'issued' ||
+        Boolean(doc.file_url);
+
+      if (!isComplete) {
         missingDocs.push(doc.title);
       }
     }
 
     const totalRequired = requiredDocs.length;
     const completedRequired = totalRequired - missingDocs.length;
-    const canActivate = missingDocs.length === 0 && totalRequired > 0;
+    const isDocsComplete = missingDocs.length === 0 && totalRequired > 0;
+
+    // Check if employee master details (BFD Part 5: Personal, Emergency, Pay Policy) have been completed
+    const isDetailsCompleted = Boolean(
+      emp.pay_policy_emp_id ||
+      (emp.emergency_contact_name && emp.address)
+    );
+
+    const missingDetails: string[] = [];
+    if (!isDetailsCompleted) {
+      if (!emp.emergency_contact_name || !emp.address) {
+        missingDetails.push('Personal Details (Address, Emergency Contact)');
+      }
+      if (!emp.pay_policy_emp_id) {
+        missingDetails.push('Salary & Policies (PF, OT, Bank Details)');
+      }
+    }
+
+    const canActivate = isDocsComplete && isDetailsCompleted;
 
     return {
       can_activate: canActivate,
@@ -580,6 +842,8 @@ export class EmployeeDocumentService {
       missing_documents: missingDocs,
       total_required: totalRequired,
       completed_required: completedRequired,
+      is_details_completed: isDetailsCompleted,
+      missing_details: missingDetails,
     };
   }
 
@@ -589,9 +853,14 @@ export class EmployeeDocumentService {
       throw new BadRequestException('Employee account is already active.');
     }
     if (!eligibility.can_activate) {
-      throw new BadRequestException(
-        `Cannot activate account. Mandatory documents are missing: ${eligibility.missing_documents.join(', ')}`,
-      );
+      const reasons: string[] = [];
+      if (eligibility.missing_documents.length > 0) {
+        reasons.push(`Mandatory documents missing: ${eligibility.missing_documents.join(', ')}`);
+      }
+      if (!eligibility.is_details_completed) {
+        reasons.push('Employee details (PF, OT, Bank, Emergency Contact) must be filled before activating account.');
+      }
+      throw new BadRequestException(`Cannot activate account. ${reasons.join(' ')}`);
     }
 
     const empResult = await this.prisma.$queryRaw<any[]>`

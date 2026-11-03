@@ -20,8 +20,8 @@ export class EmployeeDocumentItemDto {
   @ApiProperty()
   is_ticked!: boolean;
 
-  @ApiProperty({ enum: ['uploaded', 'file_pending', 'not_ticked', 'locked', 'draft', 'final'] })
-  status!: 'uploaded' | 'file_pending' | 'not_ticked' | 'locked' | 'draft' | 'final';
+  @ApiProperty({ enum: ['uploaded', 'file_pending', 'not_ticked', 'locked', 'draft', 'final', 'issued', 'accepted', 'signed', 'declined'] })
+  status!: 'uploaded' | 'file_pending' | 'not_ticked' | 'locked' | 'draft' | 'final' | 'issued' | 'accepted' | 'signed' | 'declined';
 
   @ApiPropertyOptional()
   is_required_for_activation?: boolean;
@@ -97,7 +97,27 @@ export class GenerateDocumentDraftDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
+  candidate_name?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  designation?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  department?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
   proposed_joining_date?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  offer_valid_till_date?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -147,6 +167,12 @@ export class EmployeeActivationStatusDto {
 
   @ApiProperty()
   completed_required!: number;
+
+  @ApiPropertyOptional()
+  is_details_completed?: boolean;
+
+  @ApiPropertyOptional({ type: [String] })
+  missing_details?: string[];
 }
 
 export class ActivateEmployeeResponseDto {
@@ -167,4 +193,16 @@ export class ActivateEmployeeResponseDto {
 
   @ApiProperty()
   must_change_password!: boolean;
+}
+
+export class CreateCustomDocumentDto {
+  @ApiProperty({ type: String, example: 'Electricity Bill' })
+  @IsString()
+  @IsNotEmpty()
+  title!: string;
+
+  @ApiPropertyOptional({ type: Boolean, example: false })
+  @IsOptional()
+  @IsBoolean()
+  is_required_for_activation?: boolean;
 }

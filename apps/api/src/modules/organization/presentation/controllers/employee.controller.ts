@@ -220,6 +220,8 @@ export class EmployeeController {
         emergency_contact_relation: dto.emergency_contact_relation,
         employment_type_id: dto.employment_type_id,
         salary: dto.salary,
+        probation_period: dto.probation_period,
+        notice_period: dto.notice_period,
         pf: dto.pf,
         ot_eligible: dto.ot_eligible,
         ot_rate_type: dto.ot_rate_type,
@@ -235,6 +237,7 @@ export class EmployeeController {
         bank_name: dto.bank_name,
         account_number: dto.account_number,
         ifsc_code: dto.ifsc_code,
+        leave_policy_id: dto.leave_policy_id,
         acting_admin_id: actingAdminId,
       });
       return toEmployeeResponseDto(emp);
@@ -310,6 +313,8 @@ export class EmployeeController {
         emergency_contact_relation: dto.emergency_contact_relation,
         employment_type_id: dto.employment_type_id,
         salary: dto.salary,
+        probation_period: dto.probation_period,
+        notice_period: dto.notice_period,
         pf: dto.pf,
         ot_eligible: dto.ot_eligible,
         ot_rate_type: dto.ot_rate_type,
@@ -325,6 +330,7 @@ export class EmployeeController {
         bank_name: dto.bank_name,
         account_number: dto.account_number,
         ifsc_code: dto.ifsc_code,
+        leave_policy_id: dto.leave_policy_id,
         termination_date: dto.termination_date,
         deactivation_reason: dto.deactivation_reason,
         deactivation_notes: dto.deactivation_notes,

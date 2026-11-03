@@ -10,6 +10,8 @@ import {
   CheckCircle,
   Building2,
   Check,
+  Lock,
+  Eye,
 } from 'lucide-react';
 import {
   useNextCandidateCodeQuery,
@@ -26,6 +28,45 @@ import {
 } from '@/features/organization/hooks/use-organization';
 import { useLookupsQuery } from '@/features/organization/hooks/use-master-data';
 import { CountryPhoneInput, SearchableSelect } from '@/shared/ui';
+
+function formatExp(years?: number | null, months?: number | null): string {
+  const y = years || 0;
+  const m = months || 0;
+  if (!y && !m) return '';
+  const parts: string[] = [];
+  if (y > 0) parts.push(`${y} ${y === 1 ? 'year' : 'years'}`);
+  if (m > 0) parts.push(`${m} ${m === 1 ? 'month' : 'months'}`);
+  return parts.join(' ');
+}
+
+function parseExperienceString(str: string): { years: number; months: number } {
+  if (!str || !str.trim()) return { years: 0, months: 0 };
+  const s = str.trim().toLowerCase();
+
+  const yrMatch = s.match(/(\d+(?:\.\d+)?)\s*(?:years?|yrs?|y\b)/);
+  const moMatch = s.match(/(\d+)\s*(?:months?|mos?|m\b)/);
+
+  if (yrMatch || moMatch) {
+    let years = yrMatch ? parseFloat(yrMatch[1]) : 0;
+    let months = moMatch ? parseInt(moMatch[1], 10) : 0;
+    if (!moMatch && years % 1 !== 0) {
+      const dec = years % 1;
+      years = Math.floor(years);
+      months = Math.round(dec * 12);
+    }
+    return { years: Math.floor(years), months: Math.min(11, months) };
+  }
+
+  const numMatch = s.match(/^(\d+(?:\.\d+)?)$/);
+  if (numMatch) {
+    const val = parseFloat(numMatch[1]);
+    const years = Math.floor(val);
+    const months = Math.min(11, Math.round((val % 1) * 12));
+    return { years, months };
+  }
+
+  return { years: 0, months: 0 };
+}
 
 interface AddCandidateModalProps {
   isOpen: boolean;
@@ -57,7 +98,6 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
   const { data: roles = [] } = useRoleOptionsQuery(selectedDepId);
   const { data: employees = [] } = useEmployeeOptionsQuery();
 
-  const { data: genders = [] } = useLookupsQuery('gender');
   const { data: sources = [] } = useLookupsQuery('candidate_source');
   const { data: portals = [] } = useLookupsQuery('job_portal');
   const { data: noticePeriods = [] } = useLookupsQuery('notice_period');
@@ -75,7 +115,8 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
   const [countryCode, setCountryCode] = useState('+91');
   const [email, setEmail] = useState('');
   const [genderId, setGenderId] = useState<number | undefined>(undefined);
-  const [currentLocation, setCurrentLocation] = useState('');
+  const [city, setCity] = useState('');
+  const [stateLoc, setStateLoc] = useState('');
 
   // Resume State
   const [resumeUrl, setResumeUrl] = useState('');
@@ -86,10 +127,11 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form State - Role & Experience
-  const [stage, setStage] = useState('open');
+  const [stage, setStage] = useState('new');
   const [experienceType, setExperienceType] = useState<'fresher' | 'experienced'>('experienced');
   const [expYears, setExpYears] = useState(0);
   const [expMonths, setExpMonths] = useState(0);
+  const [totalExperience, setTotalExperience] = useState('');
   const [currentCompany, setCurrentCompany] = useState('');
   const [currentDesignation, setCurrentDesignation] = useState('');
   const [currentCtc, setCurrentCtc] = useState<string>('');
@@ -121,17 +163,23 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
       setPhone(candidateToEdit.phone ? String(candidateToEdit.phone).replace(/\D/g, '').slice(-10) : '');
       setEmail(candidateToEdit.email || '');
       setGenderId(candidateToEdit.gender_id ?? candidateToEdit.genderId ?? undefined);
-      setCurrentLocation(candidateToEdit.current_location || candidateToEdit.currentLocation || '');
+      const locStr = candidateToEdit.current_location || candidateToEdit.currentLocation || '';
+      const locParts = locStr.split(',');
+      setCity(locParts[0]?.trim() || '');
+      setStateLoc(locParts.slice(1).join(',').trim() || '');
       setResumeUrl(candidateToEdit.resume_url || candidateToEdit.resumeUrl || '');
       setResumeFilename(candidateToEdit.resume_filename || candidateToEdit.resumeFilename || '');
       setResumeSize(candidateToEdit.resume_size ?? candidateToEdit.resumeSize ?? undefined);
       setResumeMime(candidateToEdit.resume_mime || candidateToEdit.resumeMime || '');
       setSelectedDepId(candidateToEdit.dep_id ?? candidateToEdit.depId ?? undefined);
       setSelectedRoleId(candidateToEdit.role_id ?? candidateToEdit.roleId ?? undefined);
-      setStage(candidateToEdit.stage || 'open');
+      setStage(candidateToEdit.stage || 'new');
       setExperienceType(candidateToEdit.experience_type || candidateToEdit.experienceType || 'experienced');
-      setExpYears(candidateToEdit.exp_years ?? candidateToEdit.expYears ?? 0);
-      setExpMonths(candidateToEdit.exp_months ?? candidateToEdit.expMonths ?? 0);
+      const initY = candidateToEdit.exp_years ?? candidateToEdit.expYears ?? 0;
+      const initM = candidateToEdit.exp_months ?? candidateToEdit.expMonths ?? 0;
+      setExpYears(initY);
+      setExpMonths(initM);
+      setTotalExperience(formatExp(initY, initM));
       setCurrentCompany(candidateToEdit.current_company || candidateToEdit.currentCompany || '');
       setCurrentDesignation(candidateToEdit.current_designation || candidateToEdit.currentDesignation || '');
       setCurrentCtc(candidateToEdit.current_ctc ? String(candidateToEdit.current_ctc) : candidateToEdit.currentCtc ? String(candidateToEdit.currentCtc) : '');
@@ -401,17 +449,19 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
     setCountryCode('+91');
     setEmail('');
     setGenderId(undefined);
-    setCurrentLocation('');
+    setCity('');
+    setStateLoc('');
     setResumeUrl('');
     setResumeFilename('');
     setResumeSize(undefined);
     setResumeMime('');
     setSelectedRoleId(undefined);
     setSelectedDepId(undefined);
-    setStage('open');
+    setStage('new');
     setExperienceType('experienced');
     setExpYears(0);
     setExpMonths(0);
+    setTotalExperience('');
     setCurrentCompany('');
     setCurrentDesignation('');
     setCurrentCtc('');
@@ -448,19 +498,20 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
 
     setGlobalError(null);
     const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+    const currentLocation = [city.trim(), stateLoc.trim()].filter(Boolean).join(', ');
     const payload = {
       name: name.trim(),
       phone: cleanPhone,
       email: email.trim().toLowerCase(),
       gender_id: genderId,
-      current_location: currentLocation.trim() || undefined,
+      current_location: currentLocation || undefined,
       resume_url: resumeUrl || undefined,
       resume_filename: resumeFilename || undefined,
       resume_size: resumeSize,
       resume_mime: resumeMime || undefined,
       role_id: selectedRoleId!,
       dep_id: selectedDepId!,
-      stage: stage || 'open',
+      stage: stage || 'new',
       experience_type: experienceType,
       exp_years: experienceType === 'fresher' ? 0 : expYears,
       exp_months: experienceType === 'fresher' ? 0 : expMonths,
@@ -694,7 +745,29 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
           {/* TAB 1: CANDIDATE INFO */}
           {activeTab === 'info' && (
             <div className="space-y-4.5 animate-in fade-in duration-150">
-              {/* Full Name */}
+              {/* Marker 1: Candidate ID */}
+              <div className="space-y-1.5">
+                <label className="text-[13px] font-semibold text-slate-700 tracking-tight flex items-center gap-1.5">
+                  <span>Candidate ID</span>
+                  <Lock className="w-3.5 h-3.5 text-slate-400" />
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    disabled
+                    value={
+                      candidateToEdit
+                        ? candidateToEdit.candidate_code || `CAN-${String(candidateToEdit.candidate_id || candidateToEdit.candidateId).padStart(4, '0')}`
+                        : (nextCodeData?.candidate_code || 'CAN-XXXX')
+                    }
+                    className="w-full pl-3.5 pr-10 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-[13.5px] font-mono font-bold text-slate-500 cursor-not-allowed select-none"
+                  />
+                  <Lock className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+                <p className="text-[11px] text-slate-400">Filled by the system. Cannot be changed.</p>
+              </div>
+
+              {/* Marker 2: Full Name */}
               <div className="space-y-1.5">
                 <label className="text-[13px] font-semibold text-slate-700 tracking-tight">
                   Full Name <span className="text-red-500">*</span>
@@ -713,26 +786,8 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
                 {errors.name && <p className="text-[11px] text-red-500 font-medium">{errors.name}</p>}
               </div>
 
-              {/* Email & Phone */}
+              {/* Marker 3 & Marker 4: Phone Number & Email Address */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div className="space-y-1.5">
-                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">
-                    Email Address <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value);
-                      if (errors.email) setErrors((prev) => ({ ...prev, email: '' }));
-                    }}
-                    placeholder="candidate@example.com"
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                  />
-                  {errors.email && <p className="text-[11px] text-red-500 font-medium">{errors.email}</p>}
-                </div>
-
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
                     <label className="text-[13px] font-semibold text-slate-700 tracking-tight">
@@ -752,76 +807,116 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
                     error={errors.phone}
                   />
                 </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">
+                    Email Address <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (errors.email) setErrors((prev) => ({ ...prev, email: '' }));
+                    }}
+                    placeholder="candidate@example.com"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                  />
+                  {errors.email && <p className="text-[11px] text-red-500 font-medium">{errors.email}</p>}
+                </div>
               </div>
 
-              {/* Gender & Current Location */}
+              {/* Marker 5: Current Location (City and State - 2 separate fields) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div className="space-y-1.5">
-                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Gender</label>
-                  <select
-                    value={genderId ?? ''}
-                    onChange={(e) => setGenderId(e.target.value ? Number(e.target.value) : undefined)}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition cursor-pointer"
-                  >
-                    <option value="">Select Gender</option>
-                    {genders.map((g) => (
-                      <option key={g.id} value={g.id}>
-                        {g.label}
-                      </option>
-                    ))}
-                  </select>
+                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">City</label>
+                  <input
+                    type="text"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    placeholder="e.g. Surat"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                  />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Current Location / City</label>
+                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">State</label>
                   <input
                     type="text"
-                    value={currentLocation}
-                    onChange={(e) => setCurrentLocation(e.target.value)}
-                    placeholder="e.g. Surat, Gujarat"
+                    value={stateLoc}
+                    onChange={(e) => setStateLoc(e.target.value)}
+                    placeholder="e.g. Gujarat"
                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
                   />
                 </div>
               </div>
 
-              {/* Resume Upload */}
+              {/* Marker 6: Resume Upload / Management */}
               <div className="space-y-1.5 pt-1">
                 <div className="flex items-center justify-between">
                   <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Resume / CV Document</label>
                   <span className="text-[11px] text-slate-400">PDF, DOC, DOCX up to 5MB</span>
                 </div>
 
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.doc,.docx"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+
                 {resumeFilename ? (
-                  <div className="flex items-center justify-between p-3 bg-blue-50/60 border border-blue-200 rounded-xl">
-                    <div className="flex items-center gap-2.5">
+                  <div className="flex items-center justify-between p-3.5 bg-blue-50/60 border border-blue-200 rounded-xl">
+                    <div className="flex items-center gap-2.5 min-w-0">
                       <FileText className="w-5 h-5 text-blue-600 shrink-0" />
-                      <div>
-                        <p className="text-xs font-semibold text-slate-800 line-clamp-1">{resumeFilename}</p>
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold text-slate-800 truncate">{resumeFilename}</p>
                         {resumeSize && (
                           <p className="text-[10px] text-slate-500">{(resumeSize / 1024).toFixed(0)} KB</p>
                         )}
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={handleRemoveResume}
-                      className="p-1 text-slate-400 hover:text-red-600 rounded-lg transition cursor-pointer"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {resumeUrl && (
+                        <a
+                          href={resumeUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-blue-700 hover:text-blue-800 bg-white border border-blue-200 hover:bg-blue-50 rounded-lg shadow-2xs transition"
+                          title="View resume"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>View</span>
+                        </a>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploadingResume}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-slate-700 hover:text-slate-800 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg shadow-2xs transition cursor-pointer"
+                        title="Replace resume file"
+                      >
+                        <Upload className="w-3.5 h-3.5 text-slate-500" />
+                        <span>Replace</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleRemoveResume}
+                        disabled={isUploadingResume}
+                        className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer"
+                        title="Remove resume"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div
                     onClick={() => fileInputRef.current?.click()}
                     className="border-2 border-dashed border-slate-200 hover:border-blue-400 bg-slate-50/60 hover:bg-blue-50/20 rounded-2xl p-5 text-center cursor-pointer transition flex flex-col items-center justify-center gap-2"
                   >
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".pdf,.doc,.docx"
-                      onChange={handleFileSelect}
-                      className="hidden"
-                    />
                     <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
                       {isUploadingResume ? (
                         <Loader2 className="w-5 h-5 animate-spin" />
@@ -940,30 +1035,36 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
                     </div>
                   </div>
 
-                  {/* Total Experience: Years & Months */}
-                  <div className="grid grid-cols-2 gap-5">
-                    <div className="space-y-1.5">
-                      <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Experience (Years)</label>
-                      <input
-                        type="number"
-                        min={0}
-                        max={40}
-                        value={expYears}
-                        onChange={(e) => setExpYears(Math.max(0, parseInt(e.target.value, 10) || 0))}
-                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Experience (Months)</label>
-                      <input
-                        type="number"
-                        min={0}
-                        max={11}
-                        value={expMonths}
-                        onChange={(e) => setExpMonths(Math.max(0, parseInt(e.target.value, 10) || 0))}
-                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                      />
-                    </div>
+                  {/* Total Experience (Image 2) */}
+                  <div className="space-y-1.5">
+                    <label className="text-[13px] font-semibold text-slate-700 tracking-tight">
+                      Total Experience
+                    </label>
+                    <input
+                      type="text"
+                      list="candidate-exp-presets"
+                      value={totalExperience}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setTotalExperience(val);
+                        const parsed = parseExperienceString(val);
+                        setExpYears(parsed.years);
+                        setExpMonths(parsed.months);
+                      }}
+                      placeholder="3 years 4 months"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                    />
+                    <datalist id="candidate-exp-presets">
+                      <option value="6 months" />
+                      <option value="1 year" />
+                      <option value="2 years" />
+                      <option value="3 years" />
+                      <option value="3 years 4 months" />
+                      <option value="4 years" />
+                      <option value="5 years" />
+                      <option value="7 years" />
+                      <option value="10 years" />
+                    </datalist>
                   </div>
 
                   {/* CTCs */}
@@ -1200,14 +1301,13 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
                   onChange={(e) => setStage(e.target.value)}
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition cursor-pointer"
                 >
-                  {!stages.some((st) => st.code.toLowerCase() === 'open') && (
-                    <option value="open">Open</option>
-                  )}
-                  {stages.map((st) => (
-                    <option key={st.id} value={st.code}>
-                      {st.label}
-                    </option>
-                  ))}
+                  {stages
+                    .filter((st) => st.code.toLowerCase() !== 'open')
+                    .map((st) => (
+                      <option key={st.id} value={st.code}>
+                        {st.label}
+                      </option>
+                    ))}
                 </select>
               </div>
 

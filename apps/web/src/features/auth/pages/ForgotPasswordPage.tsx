@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -15,6 +15,8 @@ type ForgotFormValues = z.infer<typeof forgotSchema>;
 
 export const ForgotPasswordPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialEmail = searchParams.get('email') || '';
   const [isSuccess, setIsSuccess] = useState(false);
   const [submittedEmail, setSubmittedEmail] = useState('');
   const [devOtp, setDevOtp] = useState<string | null>(null);
@@ -25,6 +27,9 @@ export const ForgotPasswordPage: React.FC = () => {
     formState: { errors, isSubmitting },
   } = useForm<ForgotFormValues>({
     resolver: zodResolver(forgotSchema),
+    defaultValues: {
+      email: initialEmail,
+    },
   });
 
   const onSubmit = async (values: ForgotFormValues) => {

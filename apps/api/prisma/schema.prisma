@@ -202,6 +202,8 @@ model employees {
   deactivated_at                                                                             DateTime?                         @db.Timestamptz(6)
   deactivated_by                                                                             Int?
   leave_policy_id                                                                            Int?
+  probation_period                                                                           String?                           @db.VarChar(100)
+  notice_period                                                                              String?                           @db.VarChar(100)
   probation_end_date                                                                         DateTime?                         @db.Date
   leave_approver_id                                                                          Int?
   activity_logs                                                                              activity_logs[]

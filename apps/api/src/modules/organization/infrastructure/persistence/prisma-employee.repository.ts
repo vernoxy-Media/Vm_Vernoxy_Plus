@@ -134,6 +134,8 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
             label: record.master_lookup_employees_employment_type_idTomaster_lookup.label,
           }
         : null,
+      probation_period: record.probation_period ?? null,
+      notice_period: record.notice_period ?? null,
       salary: record.salary !== null && record.salary !== undefined ? Number(record.salary) : 0,
       pf: record.pf !== null && record.pf !== undefined ? Number(record.pf) : 0,
       termination_date: record.termination_date ?? null,
@@ -422,6 +424,8 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       emergency_contact_relation?: string | null;
       employment_type_id?: number | null;
       salary?: number;
+      probation_period?: string | null;
+      notice_period?: string | null;
       pf?: number;
       ot_eligible?: boolean;
       ot_rate_type?: 'FIXED' | 'MULTIPLIER' | null;
@@ -437,6 +441,7 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       bank_name?: string | null;
       account_number?: string | null;
       ifsc_code?: string | null;
+      leave_policy_id?: number | null;
       created_by: number;
     },
     tx?: unknown,
@@ -463,6 +468,7 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
         employment_type_id: data.employment_type_id ?? null,
         salary: data.salary ?? 0,
         pf: data.pf ?? 0,
+        leave_policy_id: data.leave_policy_id ?? null,
         created_by: data.created_by,
         status: 'Active',
       },
@@ -573,7 +579,7 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       reporting_manager?: number | null;
       joining_date?: Date;
       exit_date?: Date | null;
-      status?: 'Active' | 'Inactive';
+      status?: 'Active' | 'Inactive' | 'Onboarding';
       profile_picture?: string | null;
       gender_id?: number | null;
       personal_email?: string | null;
@@ -586,6 +592,8 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       emergency_contact_relation?: string | null;
       employment_type_id?: number | null;
       salary?: number;
+      probation_period?: string | null;
+      notice_period?: string | null;
       pf?: number;
       ot_eligible?: boolean;
       ot_rate_type?: 'FIXED' | 'MULTIPLIER' | null;
@@ -601,6 +609,7 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       bank_name?: string | null;
       account_number?: string | null;
       ifsc_code?: string | null;
+      leave_policy_id?: number | null;
       termination_date?: Date | null;
       deactivation_reason?: string | null;
       deactivation_notes?: string | null;
@@ -635,7 +644,10 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
     if (data.emergency_contact_relation !== undefined) updateData.emergency_contact_relation = data.emergency_contact_relation;
     if (data.employment_type_id !== undefined) updateData.employment_type_id = data.employment_type_id;
     if (data.salary !== undefined) updateData.salary = data.salary;
+    if (data.probation_period !== undefined) updateData.probation_period = data.probation_period;
+    if (data.notice_period !== undefined) updateData.notice_period = data.notice_period;
     if (data.pf !== undefined) updateData.pf = data.pf;
+    if (data.leave_policy_id !== undefined) updateData.leave_policy_id = data.leave_policy_id;
     if (data.termination_date !== undefined) updateData.termination_date = data.termination_date;
     if (data.deactivation_reason !== undefined) updateData.deactivation_reason = data.deactivation_reason;
     if (data.deactivation_notes !== undefined) updateData.deactivation_notes = data.deactivation_notes;

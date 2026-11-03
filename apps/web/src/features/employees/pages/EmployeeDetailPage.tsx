@@ -13,17 +13,10 @@ import { useAuth } from '@/features/auth/context/AuthContext';
 import {
   ArrowLeft,
   Building2,
-  Briefcase,
   Calendar,
-  Mail,
-  Phone,
-  MapPin,
-  Heart,
   AlertTriangle,
   UserX,
   History,
-  FileText,
-  UserCheck,
   CheckCircle2,
   Edit2,
   Loader2,
@@ -39,6 +32,7 @@ import {
   Landmark,
 } from 'lucide-react';
 import { EmployeeDocumentsTab } from '../components/EmployeeDocumentsTab';
+import { OnboardingChecklistTab } from '../components/OnboardingChecklistTab';
 import { useLeavePoliciesQuery, useAssignEmployeePolicyMutation, useAllLeaveBalancesQuery } from '@/features/leave/hooks/use-leave';
 import { SearchableSelect } from '@/shared/ui/SearchableSelect';
 import {
@@ -50,28 +44,51 @@ import {
 import { AccountActivatedModal } from '../components/AccountActivatedModal';
 import { ActivateEmployeeAccountModal } from '../components/ActivateEmployeeAccountModal';
 import { EditProfileModal } from '../components/EditProfileModal';
+import { useAttendanceSettingsQuery } from '@/features/attendance/hooks/use-attendance-settings';
+import { useCandidatesQuery } from '@/features/recruitment/hooks/use-recruitment';
 
-function formatDuration(startDate: Date | string, endDate?: Date | string | null): string {
-  const start = new Date(startDate);
-  const end = endDate ? new Date(endDate) : new Date();
-  if (isNaN(start.getTime())) return '-';
+function formatDate(dateString?: string | Date | null): string {
+  if (!dateString) return '-';
+  const d = new Date(dateString);
+  if (isNaN(d.getTime())) return '-';
+  return d.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
 
-  const diffMs = end.getTime() - start.getTime();
-  if (diffMs < 0) return 'Future joining date';
+function getProbationEndDate(joiningDate?: string | Date, probationPeriod?: string | null): string {
+  if (!joiningDate) return '-';
+  const join = new Date(joiningDate);
+  if (isNaN(join.getTime())) return '-';
 
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  const years = Math.floor(diffDays / 365);
-  const months = Math.floor((diffDays % 365) / 30);
-  const days = (diffDays % 365) % 30;
-
-  const parts: string[] = [];
-  if (years > 0) parts.push(`${years} ${years === 1 ? 'yr' : 'yrs'}`);
-  if (months > 0) parts.push(`${months} ${months === 1 ? 'mo' : 'mos'}`);
-  if (parts.length === 0 || (years === 0 && days > 0)) {
-    parts.push(`${days} ${days === 1 ? 'day' : 'days'}`);
+  let monthsToAdd = 3; // Default 3 months
+  if (probationPeriod) {
+    const p = probationPeriod.toLowerCase();
+    if (p.includes('1 month') || p.includes('30 days')) monthsToAdd = 1;
+    else if (p.includes('2 month') || p.includes('60 days')) monthsToAdd = 2;
+    else if (p.includes('3 month') || p.includes('90 days')) monthsToAdd = 3;
+    else if (p.includes('6 month') || p.includes('180 days')) monthsToAdd = 6;
+    else if (p.includes('1 year') || p.includes('12 month')) monthsToAdd = 12;
+    else {
+      const match = p.match(/\d+/);
+      if (match) {
+        const num = parseInt(match[0], 10);
+        monthsToAdd = num > 12 ? Math.round(num / 30) : num;
+      }
+    }
   }
 
-  return parts.join(', ');
+  const end = new Date(join);
+  end.setMonth(end.getMonth() + monthsToAdd);
+  end.setDate(end.getDate() - 1);
+
+  return end.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
 }
 
 export const EmployeeDetailPage: React.FC = () => {
@@ -83,8 +100,10 @@ export const EmployeeDetailPage: React.FC = () => {
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
 
   const tabParam = searchParams.get('tab');
-  const [activeTab, setActiveTab] = useState<'overview' | 'pay_policy' | 'documents' | 'history'>(
-    tabParam === 'documents' || tabParam === 'onboarding'
+  const [activeTab, setActiveTab] = useState<'overview' | 'pay_policy' | 'onboarding' | 'documents' | 'history'>(
+    tabParam === 'onboarding'
+      ? 'onboarding'
+      : tabParam === 'documents'
       ? 'documents'
       : tabParam === 'pay' || tabParam === 'policies'
       ? 'pay_policy'
@@ -93,7 +112,9 @@ export const EmployeeDetailPage: React.FC = () => {
 
   useEffect(() => {
     const currentTab = searchParams.get('tab');
-    if (currentTab === 'documents' || currentTab === 'onboarding') {
+    if (currentTab === 'onboarding') {
+      setActiveTab('onboarding');
+    } else if (currentTab === 'documents') {
       setActiveTab('documents');
     } else if (currentTab === 'pay' || currentTab === 'policies') {
       setActiveTab('pay_policy');
@@ -114,7 +135,7 @@ export const EmployeeDetailPage: React.FC = () => {
 
   useEffect(() => {
     if (employee?.status === 'Onboarding' && !searchParams.get('tab')) {
-      setActiveTab('documents');
+      setActiveTab('onboarding');
     }
   }, [employee?.status, searchParams]);
   const { data: leavePolicies = [] } = useLeavePoliciesQuery();
@@ -133,6 +154,18 @@ export const EmployeeDetailPage: React.FC = () => {
   const { data: deactivationReasonsLookup } = useLookupsQuery('deactivation_reason');
 
   const deactivateMutation = useDeactivateEmployeeMutation();
+  const { data: attendanceSettings } = useAttendanceSettingsQuery();
+  const { data: candidatesData } = useCandidatesQuery({});
+
+  const assignedShiftId = employee ? attendanceSettings?.employee_shifts?.[String(employee.emp_id)] : undefined;
+  const assignedShift = attendanceSettings?.shifts?.find((s) => String(s.shift_id) === String(assignedShiftId));
+  const currentShiftDisplay = assignedShift
+    ? `${assignedShift.shift_name} · ${assignedShift.start_time}–${assignedShift.end_time}`
+    : 'General · 09:30–18:30';
+
+  const recruitedCandidate = candidatesData?.items?.find(
+    (c) => c.converted_to_emp_id === employee?.emp_id,
+  );
 
   const isSelf = currentUser?.emp_id === empId;
   const isInactive = employee?.status === 'Inactive';
@@ -290,34 +323,20 @@ export const EmployeeDetailPage: React.FC = () => {
                   </span>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-y-1.5 gap-x-3 text-xs text-slate-500 font-medium">
-                  <span className="font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md font-semibold">
-                    EMP #{employee.emp_id}
+                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 font-medium">
+                  <span className="font-mono text-slate-500 font-medium">
+                    EMP-{String(employee.emp_id).padStart(4, '0')}
                   </span>
                   <span>&bull;</span>
-                  <span className="text-slate-700 font-medium">
+                  <span className="text-slate-500 font-medium">
                     {employee.role?.role_name || 'Designation Unassigned'}
                   </span>
                   <span>&bull;</span>
-                  {/* Multi-department tags */}
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {employee.departments && employee.departments.length > 0 ? (
-                      employee.departments.map((dept) => (
-                        <span
-                          key={dept.dep_id}
-                          className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200/50 text-xs font-medium"
-                        >
-                          <Building2 className="w-3 h-3 text-blue-500" />
-                          {dept.name}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-700 text-xs">
-                        <Building2 className="w-3 h-3 text-slate-400" />
-                        {employee.department?.name || `Department #${employee.dep_id}`}
-                      </span>
-                    )}
-                  </div>
+                  <span className="text-slate-500 font-medium">
+                    {employee.departments && employee.departments.length > 0
+                      ? employee.departments.map((d) => d.name).join(', ')
+                      : employee.department?.name || 'Department Unassigned'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -385,19 +404,17 @@ export const EmployeeDetailPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsEditProfileModalOpen(true)}
-                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition shadow-2xs cursor-pointer"
+                className="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold transition shadow-xs cursor-pointer"
               >
-                <Edit2 className="w-3.5 h-3.5" />
-                Edit Employee
+                Edit
               </button>
 
               {isInactive ? (
                 <button
                   type="button"
                   disabled
-                  className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 text-slate-400 text-xs font-semibold cursor-not-allowed border border-slate-200/60"
+                  className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-slate-100 text-slate-400 text-xs font-semibold cursor-not-allowed border border-slate-200/60"
                 >
-                  <UserX className="w-3.5 h-3.5" />
                   Deactivated
                 </button>
               ) : (
@@ -406,13 +423,12 @@ export const EmployeeDetailPage: React.FC = () => {
                   onClick={() => setIsDeactivateModalOpen(true)}
                   disabled={isSelf}
                   title={isSelf ? 'Cannot deactivate your own account' : 'Deactivate employee'}
-                  className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition ${
+                  className={`inline-flex items-center justify-center px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
                     isSelf
                       ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
-                      : 'bg-rose-50 text-rose-700 border border-rose-200/80 hover:bg-rose-100 shadow-2xs'
+                      : 'bg-red-600 hover:bg-red-700 text-white shadow-xs'
                   }`}
                 >
-                  <UserX className="w-3.5 h-3.5 text-rose-600" />
                   Deactivate Employee
                 </button>
               )}
@@ -449,47 +465,65 @@ export const EmployeeDetailPage: React.FC = () => {
           </div>
         )}
 
-        {/* Tab Navigation (Matching Reference Screen 1: Overview, Documents, History) */}
+        {/* Tab Navigation (Reference Screen 12 Marker 1: Overview, Pay & Policies, Onboarding, Documents, History) */}
         <div className="border-b border-slate-200">
-          <nav className="flex space-x-8">
+          <nav className="flex space-x-8 -mb-px overflow-x-auto">
             <button
               type="button"
               onClick={() => setActiveTab('overview')}
-              className={`py-3 px-1 border-b-2 font-semibold text-sm transition-colors flex items-center gap-2 ${
+              className={`py-3 px-1 border-b-2 font-semibold text-sm transition-colors flex items-center gap-2 cursor-pointer ${
                 activeTab === 'overview'
                   ? 'border-blue-600 text-blue-600'
                   : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
               }`}
             >
-              Overview
+              <span>Overview</span>
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('pay_policy')}
-              className={`py-3 px-1 border-b-2 font-semibold text-sm transition-colors flex items-center gap-2 ${
+              className={`py-3 px-1 border-b-2 font-semibold text-sm transition-colors flex items-center gap-2 cursor-pointer ${
                 activeTab === 'pay_policy'
                   ? 'border-blue-600 text-blue-600'
                   : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
               }`}
             >
-              <Wallet className="w-4 h-4 text-slate-400" />
-              Pay & Policies
+              <span>Pay & Policies</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('onboarding')}
+              className={`py-3 px-1 border-b-2 font-semibold text-sm transition-colors flex items-center gap-2 cursor-pointer ${
+                activeTab === 'onboarding'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
+              }`}
+            >
+              <span>Onboarding</span>
+              {isOnboarding && (
+                <span className="w-5 h-5 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center">
+                  {activationStatus?.can_activate
+                    ? '✓'
+                    : Math.max(
+                        1,
+                        (activationStatus?.missing_documents?.length || 0) +
+                          (activationStatus?.is_details_completed ? 0 : 1),
+                      )}
+                </span>
+              )}
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('documents')}
-              className={`py-3 px-1 border-b-2 font-semibold text-sm transition-colors flex items-center gap-2 ${
+              className={`py-3 px-1 border-b-2 font-semibold text-sm transition-colors flex items-center gap-2 cursor-pointer ${
                 activeTab === 'documents'
-                  ? isOnboarding
-                    ? 'border-purple-600 text-purple-700'
-                    : 'border-blue-600 text-blue-600'
+                  ? 'border-blue-600 text-blue-600'
                   : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
               }`}
             >
-              <FileText className={`w-4 h-4 ${isOnboarding ? 'text-purple-600' : 'text-slate-400'}`} />
-              <span>{isOnboarding ? 'Onboarding & Documents' : 'Documents'}</span>
+              <span>Documents</span>
               {isOnboarding && (
-                <span className="px-2 py-0.5 rounded-full text-2xs font-bold bg-purple-100 text-purple-700">
+                <span className="px-2 py-0.5 rounded-full text-2xs font-bold bg-slate-100 text-slate-700">
                   {activationStatus?.completed_required ?? 0}/{activationStatus?.total_required ?? 7}
                 </span>
               )}
@@ -497,14 +531,13 @@ export const EmployeeDetailPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveTab('history')}
-              className={`py-3 px-1 border-b-2 font-semibold text-sm transition-colors flex items-center gap-2 ${
+              className={`py-3 px-1 border-b-2 font-semibold text-sm transition-colors flex items-center gap-2 cursor-pointer ${
                 activeTab === 'history'
                   ? 'border-blue-600 text-blue-600'
                   : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
               }`}
             >
-              <History className="w-4 h-4 text-slate-400" />
-              History
+              <span>History</span>
               {historyList && historyList.length > 0 && (
                 <span className="px-1.5 py-0.2 rounded-full text-2xs font-bold bg-slate-100 text-slate-700">
                   {historyList.length}
@@ -515,362 +548,209 @@ export const EmployeeDetailPage: React.FC = () => {
         </div>
 
         {/* ========================================================================= */}
-        {/* OVERVIEW TAB CONTENT (Reference Screen 1)                                */}
+        {/* OVERVIEW TAB CONTENT (Reference Screen 12)                                */}
         {/* ========================================================================= */}
         {activeTab === 'overview' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* 1. Personal Information Card */}
-            <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xs p-6 space-y-6">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
-                    <Mail className="w-4 h-4" />
-                  </div>
-                  <h3 className="font-bold text-slate-900 text-base">Personal Information</h3>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm">
-                <div>
-                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
-                    Gender
-                  </label>
-                  <p className="mt-1 font-semibold text-slate-800">
-                    {employee.gender?.label || 'Not specified'}
-                  </p>
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
-                    Mobile Phone
-                  </label>
-                  <p className="mt-1 font-semibold text-slate-800 font-mono flex items-center gap-1.5">
-                    <Phone className="w-3.5 h-3.5 text-slate-400" />
-                    {employee.mob || 'Not specified'}
-                  </p>
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
-                    Personal Email
-                  </label>
-                  <p className="mt-1 font-semibold text-slate-800 truncate" title={employee.personal_email || ''}>
-                    {employee.personal_email || 'Not specified'}
-                  </p>
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
-                    Office Email
-                  </label>
-                  <p className="mt-1 font-semibold text-slate-800 truncate" title={employee.office_email || employee.email}>
-                    {employee.office_email || employee.email}
-                  </p>
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
-                    Birth Date
-                  </label>
-                  <p className="mt-1 font-semibold text-slate-800 flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                    {employee.birth_date
-                      ? new Date(employee.birth_date).toLocaleDateString(undefined, {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric',
-                        })
-                      : 'Not specified'}
-                  </p>
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
-                    Blood Group
-                  </label>
-                  <p className="mt-1 font-semibold text-slate-800 flex items-center gap-1.5">
-                    <Heart className="w-3.5 h-3.5 text-rose-500" />
-                    {employee.blood_group || 'Not specified'}
-                  </p>
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
-                    Address
-                  </label>
-                  <p className="mt-1 font-medium text-slate-700 flex items-start gap-1.5">
-                    <MapPin className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-                    <span>{employee.address || 'No residential address specified.'}</span>
-                  </p>
-                </div>
-
-                <div className="sm:col-span-2 pt-3 border-t border-slate-100">
-                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">
-                    Emergency Contact
-                  </label>
-                  {employee.emergency_contact_name || employee.emergency_contact_number ? (
-                    <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/70 flex items-center justify-between">
-                      <div>
-                        <p className="font-bold text-slate-900 text-sm">{employee.emergency_contact_name || 'Emergency Contact'}</p>
-                        <p className="text-xs text-slate-500 mt-0.5">
-                          {employee.emergency_contact_relation ? `${employee.emergency_contact_relation} • ` : ''}
-                          <span className="font-mono">{employee.emergency_contact_number}</span>
-                        </p>
-                      </div>
-                      {employee.emergency_contact_number && (
-                        <a
-                          href={`tel:${employee.emergency_contact_number}`}
-                          className="p-2 rounded-xl bg-white border border-slate-200 text-slate-700 hover:text-blue-600 transition"
-                        >
-                          <Phone className="w-4 h-4" />
-                        </a>
-                      )}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-slate-400 italic">No emergency contact information provided.</p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* 2. Job Information Card */}
-            <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xs p-6 space-y-6">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-purple-50 text-purple-600">
-                    <Briefcase className="w-4 h-4" />
-                  </div>
-                  <h3 className="font-bold text-slate-900 text-base">Job Information</h3>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm">
-                <div>
-                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
-                    Primary Department
-                  </label>
-                  <p className="mt-1 font-semibold text-slate-800 flex items-center gap-1.5">
-                    <Building2 className="w-3.5 h-3.5 text-slate-400" />
-                    {employee.department?.name || `Department #${employee.dep_id}`}
-                  </p>
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
-                    Designation (Role)
-                  </label>
-                  <p className="mt-1 font-semibold text-slate-800">
-                    {employee.role?.role_name || 'Unassigned'}
-                  </p>
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    All Assigned Departments
-                  </label>
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {employee.departments && employee.departments.length > 0 ? (
-                      employee.departments.map((d) => (
-                        <span
-                          key={d.dep_id}
-                          className={`inline-flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-semibold ${
-                            d.is_primary
-                              ? 'bg-blue-50 text-blue-700 border border-blue-200/80 shadow-2xs'
-                              : 'bg-slate-100 text-slate-700 border border-slate-200/60'
-                          }`}
-                        >
-                          <Building2 className="w-3 h-3" />
-                          {d.name}
-                          {d.is_primary && (
-                            <span className="text-2xs uppercase px-1 py-0.2 rounded bg-blue-100 text-blue-800 font-bold ml-1">
-                              Primary
-                            </span>
-                          )}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-xs text-slate-500">
-                        {employee.department?.name || 'Department unassigned'}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
-                    Reporting Manager
-                  </label>
-                  <p className="mt-1 font-semibold text-slate-800 flex items-center gap-1.5">
-                    <UserCheck className="w-3.5 h-3.5 text-blue-500" />
-                    {employee.manager ? (
-                      <Link
-                        to={`/admin/employees/${employee.manager.emp_id || employee.reporting_manager}`}
-                        className="text-blue-600 hover:text-blue-800 hover:underline font-semibold"
-                        title="View Manager Profile"
-                      >
-                        {employee.manager.name}
-                      </Link>
-                    ) : (
-                      'None (Top-level Executive)'
-                    )}
-                  </p>
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
-                    Employment Type
-                  </label>
-                  <p className="mt-1 font-semibold text-slate-800">
-                    {employee.employment_type?.label || 'Full-time'}
-                  </p>
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
-                    Joining Date
-                  </label>
-                  <p className="mt-1 font-semibold text-slate-800 flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                    {new Date(employee.joining_date).toLocaleDateString(undefined, {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                    })}
-                  </p>
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
-                    Time in Company
-                  </label>
-                  <p className="mt-1 font-semibold text-slate-800 flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-emerald-600" />
-                    {formatDuration(employee.joining_date, employee.termination_date || employee.exit_date)}
-                  </p>
-                </div>
-
-                {/* If inactive, show Termination info */}
-                {isInactive && (
-                  <>
-                    <div className="pt-2 border-t border-slate-100">
-                      <label className="text-xs font-semibold text-rose-500 uppercase tracking-wider block">
-                        Termination Date
-                      </label>
-                      <p className="mt-1 font-bold text-rose-800">
-                        {employee.termination_date
-                          ? new Date(employee.termination_date).toLocaleDateString(undefined, {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric',
-                            })
-                          : 'N/A'}
-                      </p>
-                    </div>
-
-                    <div className="pt-2 border-t border-slate-100">
-                      <label className="text-xs font-semibold text-rose-500 uppercase tracking-wider block">
-                        Deactivation Reason
-                      </label>
-                      <p className="mt-1 font-bold text-rose-800">
-                        {employee.deactivation_reason || 'Resigned'}
-                      </p>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* 3. Compensation & Statutory Card (BFD Page 15 Marker 8: Admin only with lock) */}
-            <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xs p-6 space-y-6 sm:col-span-2">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-amber-50 text-amber-600">
-                    <Wallet className="w-4 h-4" />
+          <div className="space-y-6">
+            {/* Card 1: Personal Information (Marker 2) */}
+            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-6 md:p-8">
+              <h3 className="text-base font-bold text-slate-900 mb-6">Personal Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-y-6 gap-x-8 text-sm">
+                {/* Column 1 */}
+                <div className="space-y-5">
+                  <div>
+                    <span className="text-xs text-slate-400 block font-normal">Full Name</span>
+                    <p className="mt-1 font-semibold text-slate-900">{employee.name || '-'}</p>
                   </div>
                   <div>
-                    <h3 className="font-bold text-slate-900 text-base">Salary & PF (Compensation)</h3>
-                    <p className="text-xs text-slate-400">Strictly confidential employee payroll information</p>
+                    <span className="text-xs text-slate-400 block font-normal">Blood Group</span>
+                    <p className="mt-1 font-semibold text-slate-900">
+                      {typeof employee.blood_group === 'object'
+                        ? (employee.blood_group as any)?.label
+                        : employee.blood_group || '-'}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-slate-400 block font-normal">Office Email</span>
+                    <p className="mt-1 font-semibold text-slate-900 truncate" title={employee.office_email || employee.email}>
+                      {employee.office_email || employee.email || '-'}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-slate-400 block font-normal">Current Address</span>
+                    <p className="mt-1 font-semibold text-slate-900 leading-relaxed">{employee.address || '-'}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 shadow-2xs">
-                    <Lock className="w-3.5 h-3.5 text-amber-600" />
-                    <span>Admin Only</span>
-                  </span>
+
+                {/* Column 2 */}
+                <div className="space-y-5">
+                  <div>
+                    <span className="text-xs text-slate-400 block font-normal">Date of Birth</span>
+                    <p className="mt-1 font-semibold text-slate-900">
+                      {(employee as any).dob
+                        ? formatDate((employee as any).dob)
+                        : employee.birth_date
+                        ? formatDate(employee.birth_date)
+                        : '-'}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-slate-400 block font-normal">Phone</span>
+                    <p className="mt-1 font-semibold text-slate-900">{employee.mob || '-'}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-slate-400 block font-normal">Marital Status</span>
+                    <p className="mt-1 font-semibold text-slate-900">
+                      {typeof (employee as any).marital_status === 'object'
+                        ? (employee as any).marital_status?.label
+                        : (employee as any).marital_status || 'Single'}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-slate-400 block font-normal">Permanent Address</span>
+                    <p className="mt-1 font-semibold text-slate-900 leading-relaxed">
+                      {(employee as any).permanent_address || 'Same as current'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Column 3 */}
+                <div className="space-y-5">
+                  <div>
+                    <span className="text-xs text-slate-400 block font-normal">Gender</span>
+                    <p className="mt-1 font-semibold text-slate-900">
+                      {typeof employee.gender === 'object'
+                        ? (employee.gender as any)?.label
+                        : employee.gender || '-'}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-slate-400 block font-normal">Personal Email</span>
+                    <p className="mt-1 font-semibold text-slate-900 truncate" title={employee.personal_email || ''}>
+                      {employee.personal_email || '-'}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-slate-400 block font-normal">PAN</span>
+                    <p className="mt-1 font-semibold text-slate-900 uppercase font-mono">{(employee as any).pan || '-'}</p>
+                  </div>
                 </div>
               </div>
+            </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/70">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
-                    Base Salary
-                  </label>
-                  <p className="text-2xl font-bold text-slate-900 mt-1 font-mono">
-                    ₹{Number(employee.salary || 0).toLocaleString()}
-                    <span className="text-xs text-slate-400 font-normal ml-1">/ month</span>
-                  </p>
-                  <p className="text-2xs text-slate-400 mt-2">Annualized CTC approx: ₹{(Number(employee.salary || 0) * 12).toLocaleString()}</p>
+            {/* Card 2: Emergency Contact (Marker 3) */}
+            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-6 md:p-8">
+              <h3 className="text-base font-bold text-slate-900 mb-6">Emergency Contact</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-y-6 gap-x-8 text-sm">
+                <div>
+                  <span className="text-xs text-slate-400 block font-normal">Name</span>
+                  <p className="mt-1 font-semibold text-slate-900">{employee.emergency_contact_name || '-'}</p>
                 </div>
-
-                <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/70">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
-                    Provident Fund (PF) Deduction
-                  </label>
-                  <p className="text-2xl font-bold text-slate-900 mt-1 font-mono">
-                    ₹{Number(employee.pf || 0).toLocaleString()}
-                    <span className="text-xs text-slate-400 font-normal ml-1">/ month</span>
-                  </p>
-                  <p className="text-2xs text-slate-400 mt-2">Statutory employee provident fund contribution</p>
+                <div>
+                  <span className="text-xs text-slate-400 block font-normal">Relation</span>
+                  <p className="mt-1 font-semibold text-slate-900">{employee.emergency_contact_relation || '-'}</p>
                 </div>
+                <div>
+                  <span className="text-xs text-slate-400 block font-normal">Phone</span>
+                  <p className="mt-1 font-semibold text-slate-900">
+                    {employee.emergency_contact_number || (employee as any).emergency_contact_phone || '-'}
+                  </p>
+                </div>
+              </div>
+            </div>
 
-                <div className="sm:col-span-2 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span
-                      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold ${
-                        employee.ot_eligible || (employee as any).pay_policy?.ot_eligible
-                          ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                          : 'bg-slate-100 text-slate-600 border border-slate-200'
-                      }`}
-                    >
-                      <Clock className="w-3.5 h-3.5" />
-                      {employee.ot_eligible || (employee as any).pay_policy?.ot_eligible
-                        ? `OT Eligible (${
-                            (employee.ot_rate_type || (employee as any).pay_policy?.ot_rate_type) === 'FIXED'
-                              ? `₹${employee.ot_rate ?? (employee as any).pay_policy?.ot_rate ?? 0}/hr`
-                              : `${employee.ot_multiplier ?? (employee as any).pay_policy?.ot_multiplier ?? 1.5}x Multiplier`
-                          })`
-                        : 'OT Disabled'}
-                    </span>
-
-                    <span
-                      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold ${
-                        employee.pf_applicable || (employee as any).pay_policy?.pf_applicable || Number(employee.pf) > 0
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          : 'bg-slate-100 text-slate-600 border border-slate-200'
-                      }`}
-                    >
-                      <ShieldCheck className="w-3.5 h-3.5" />
-                      {employee.pf_applicable || (employee as any).pay_policy?.pf_applicable || Number(employee.pf) > 0
-                        ? `PF Enrolled${(employee.uan || (employee as any).pay_policy?.uan) ? ` (UAN: ${employee.uan || (employee as any).pay_policy?.uan})` : ''}`
-                        : 'PF Exempt'}
-                    </span>
-
-                    {(employee.bank_name || (employee as any).pay_policy?.bank_name) && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
-                        <Landmark className="w-3.5 h-3.5" />
-                        {employee.bank_name || (employee as any).pay_policy?.bank_name}
-                      </span>
-                    )}
+            {/* Card 3: Employment (Marker 4) */}
+            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-6 md:p-8">
+              <h3 className="text-base font-bold text-slate-900 mb-6">Employment</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-y-6 gap-x-8 text-sm">
+                {/* Column 1 */}
+                <div className="space-y-5">
+                  <div>
+                    <span className="text-xs text-slate-400 block font-normal">Department(s)</span>
+                    <p className="mt-1 font-semibold text-slate-900">
+                      {employee.departments && employee.departments.length > 0
+                        ? employee.departments.map((d: any) => d.name).join(', ')
+                        : employee.department?.name || '-'}
+                    </p>
                   </div>
+                  <div>
+                    <span className="text-xs text-slate-400 block font-normal">Employment Type</span>
+                    <p className="mt-1 font-semibold text-slate-900">
+                      {typeof employee.employment_type === 'object'
+                        ? (employee.employment_type as any)?.label
+                        : employee.employment_type || 'Full-time'}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-slate-400 block font-normal">Shift</span>
+                    <p className="mt-1 font-semibold text-slate-900">{currentShiftDisplay}</p>
+                  </div>
+                </div>
 
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('pay_policy')}
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 transition"
-                  >
-                    View Full Pay Policy Details
-                    <TrendingUp className="w-3.5 h-3.5" />
-                  </button>
+                {/* Column 2 */}
+                <div className="space-y-5">
+                  <div>
+                    <span className="text-xs text-slate-400 block font-normal">Designation</span>
+                    <p className="mt-1 font-semibold text-slate-900">
+                      {(employee as any).designation?.title || employee.role?.role_name || '-'}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-slate-400 block font-normal">Joining Date</span>
+                    <p className="mt-1 font-semibold text-slate-900">
+                      {employee.joining_date ? formatDate(employee.joining_date) : '-'}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-slate-400 block font-normal">Work Location</span>
+                    <p className="mt-1 font-semibold text-slate-900">
+                      {(employee as any).work_location?.name || (employee as any).work_location || 'Ahmedabad Office'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Column 3 */}
+                <div className="space-y-5">
+                  <div>
+                    <span className="text-xs text-slate-400 block font-normal">Reporting Manager</span>
+                    <p className="mt-1 font-semibold text-slate-900">
+                      {employee.manager ? (
+                        <Link
+                          to={`/admin/employees/${employee.manager.emp_id || (employee as any).reporting_manager}`}
+                          className="text-blue-600 hover:underline"
+                        >
+                          {employee.manager.name}
+                        </Link>
+                      ) : (employee as any).manager_name ? (
+                        <span className="text-blue-600">{(employee as any).manager_name}</span>
+                      ) : (
+                        '-'
+                      )}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-slate-400 block font-normal">Probation ends</span>
+                    <p className="mt-1 font-semibold text-slate-900">
+                      {getProbationEndDate(employee.joining_date, employee.probation_period) || '-'}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-slate-400 block font-normal">Recruited from</span>
+                    <p className="mt-1 font-semibold text-slate-900">
+                      {recruitedCandidate ? (
+                        <Link
+                          to={`/admin/recruitment/candidates/${recruitedCandidate.candidate_id}`}
+                          className="text-blue-600 hover:underline font-mono"
+                        >
+                          {recruitedCandidate.candidate_code || `CAN-${String(recruitedCandidate.candidate_id).padStart(4, '0')}`}
+                        </Link>
+                      ) : (employee as any).recruited_from ? (
+                        <span className="text-blue-600 font-mono">{(employee as any).recruited_from}</span>
+                      ) : (
+                        '-'
+                      )}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1276,12 +1156,26 @@ export const EmployeeDetailPage: React.FC = () => {
         )}
 
         {/* ========================================================================= */}
+        {/* ONBOARDING CHECKLIST TAB CONTENT (BFD Section 8)                          */}
+        {/* ========================================================================= */}
+        {activeTab === 'onboarding' && employee && (
+          <OnboardingChecklistTab
+            employee={employee as any}
+            activationStatus={activationStatus}
+            onOpenEditProfile={() => setIsEditProfileModalOpen(true)}
+            onOpenActivateModal={handleOpenActivateModal}
+            onSwitchToDocuments={() => setActiveTab('documents')}
+          />
+        )}
+
+        {/* ========================================================================= */}
         {/* DOCUMENTS TAB CONTENT (Placeholder per user instructions)                 */}
         {/* ========================================================================= */}
         {activeTab === 'documents' && employee && (
           <EmployeeDocumentsTab
             employee={employee as any}
             onOpenActivateModal={handleOpenActivateModal}
+            onOpenEditProfile={() => setIsEditProfileModalOpen(true)}
             activationStatus={activationStatus}
           />
         )}

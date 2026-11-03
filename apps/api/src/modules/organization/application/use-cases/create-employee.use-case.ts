@@ -36,6 +36,8 @@ export interface CreateEmployeeCommand {
   emergency_contact_relation?: string | null;
   employment_type_id?: number | null;
   salary?: number;
+  probation_period?: string | null;
+  notice_period?: string | null;
   pf?: number;
   ot_eligible?: boolean;
   ot_rate_type?: 'FIXED' | 'MULTIPLIER' | null;
@@ -51,6 +53,7 @@ export interface CreateEmployeeCommand {
   bank_name?: string | null;
   account_number?: string | null;
   ifsc_code?: string | null;
+  leave_policy_id?: number | null;
   acting_admin_id: number;
 }
 
@@ -214,6 +217,7 @@ export class CreateEmployeeUseCase {
           bank_name: command.bank_name?.trim() || null,
           account_number: command.account_number?.trim() || null,
           ifsc_code: command.ifsc_code?.trim() || null,
+          leave_policy_id: command.leave_policy_id ?? null,
           created_by: command.acting_admin_id,
         },
         tx,

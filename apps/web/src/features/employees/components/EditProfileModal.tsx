@@ -8,6 +8,7 @@ import {
   Landmark,
   ShieldCheck,
   AlertCircle,
+  AlertTriangle,
   Loader2,
   Upload,
   CheckCircle,
@@ -24,6 +25,7 @@ import {
   useAttendanceSettingsQuery,
   useAssignEmployeeShiftMutation,
 } from '@/features/attendance/hooks/use-attendance-settings';
+import { checkJoiningDateConflict } from '@/features/attendance/utils/joining-date-check';
 import { useLeavePoliciesQuery } from '@/features/leave/hooks/use-leave';
 import {
   employeeEditSchema,
@@ -124,6 +126,11 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   const watchedPfApplicable = watch('pf_applicable');
   const watchedOtEligible = watch('ot_eligible');
   const watchedOtRateType = watch('ot_rate_type');
+  const watchedJoiningDate = watch('joining_date');
+
+  const joiningCheck = React.useMemo(() => {
+    return checkJoiningDateConflict(watchedJoiningDate, attendanceSettings, selectedShiftId);
+  }, [watchedJoiningDate, attendanceSettings, selectedShiftId]);
 
   // Filter roles based on selected departments
   const primaryDepId = watchedDepIds.length > 0 ? watchedDepIds[0] : undefined;
@@ -179,6 +186,8 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
         bank_name: (employee.bank_name ?? employee.pay_policy?.bank_name) || '',
         account_number: (employee.account_number ?? employee.pay_policy?.account_number) || '',
         ifsc_code: (employee.ifsc_code ?? employee.pay_policy?.ifsc_code) || '',
+        probation_period: employee.probation_period || '90 Days (3 Months)',
+        notice_period: employee.notice_period || '30 Days',
         exit_date: employee.exit_date
           ? new Date(employee.exit_date).toISOString().split('T')[0]
           : '',
@@ -285,8 +294,10 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
           bank_name: values.bank_name?.trim() || null,
           account_number: values.account_number?.trim() || null,
           ifsc_code: values.ifsc_code?.trim() || null,
-          exit_date: values.exit_date || null,
-          status: values.status,
+          probation_period: values.probation_period?.trim() || null,
+          notice_period: values.notice_period?.trim() || null,
+          exit_date: values.exit_date || employee.exit_date || null,
+          status: values.status || employee.status || 'Active',
         } as any,
       });
 
@@ -677,6 +688,21 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                   {errors.joining_date && (
                     <p className="text-[11px] text-red-500 font-medium">{errors.joining_date.message}</p>
                   )}
+                  {joiningCheck && joiningCheck.severity === 'warning' && (
+                    <div className="p-2 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-1.5 text-xs text-amber-800 animate-in fade-in">
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-600 mt-0.5 shrink-0" />
+                      <div>
+                        <span className="font-semibold">Notice: </span>
+                        <span>{joiningCheck.message}</span>
+                      </div>
+                    </div>
+                  )}
+                  {joiningCheck && joiningCheck.severity === 'ok' && watchedJoiningDate && (
+                    <p className="text-[11px] text-emerald-600 font-medium flex items-center gap-1.5">
+                      <CheckCircle className="w-3.5 h-3.5" />
+                      <span>{joiningCheck.message}</span>
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -711,6 +737,50 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                       </option>
                     ))}
                   </select>
+                </div>
+              </div>
+
+              {/* Probation & Notice Period */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div className="space-y-1.5">
+                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">
+                    Probation Period
+                  </label>
+                  <input
+                    type="text"
+                    list="edit-probation-options"
+                    {...register('probation_period')}
+                    placeholder="e.g. 90 Days (3 Months)"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                  />
+                  <datalist id="edit-probation-options">
+                    <option value="None" />
+                    <option value="30 Days" />
+                    <option value="60 Days" />
+                    <option value="90 Days (3 Months)" />
+                    <option value="6 Months" />
+                    <option value="1 Year" />
+                  </datalist>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">
+                    Notice Period
+                  </label>
+                  <input
+                    type="text"
+                    list="edit-notice-options"
+                    {...register('notice_period')}
+                    placeholder="e.g. 30 Days"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                  />
+                  <datalist id="edit-notice-options">
+                    <option value="Immediate" />
+                    <option value="15 Days" />
+                    <option value="30 Days" />
+                    <option value="60 Days" />
+                    <option value="90 Days" />
+                  </datalist>
                 </div>
               </div>
             </div>
@@ -939,32 +1009,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 </div>
               </div>
 
-              {/* Status & Exit Date */}
-              <div className="pt-3 border-t border-slate-100 space-y-3">
-                <h4 className="text-[13px] font-semibold text-slate-700 tracking-tight">Employment Status</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-600">Current Status</label>
-                    <select
-                      {...register('status')}
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition cursor-pointer"
-                    >
-                      <option value="Active">Active</option>
-                      <option value="Inactive">Inactive</option>
-                      <option value="Onboarding">Onboarding</option>
-                    </select>
-                  </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-600">Exit Date (if leaving/inactive)</label>
-                    <input
-                      type="date"
-                      {...register('exit_date')}
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition cursor-pointer"
-                    />
-                  </div>
-                </div>
-              </div>
             </div>
           )}
 

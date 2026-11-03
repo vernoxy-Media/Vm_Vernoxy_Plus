@@ -120,6 +120,9 @@ const SettingsJobPortalsSection = React.lazy(() =>
 const SettingsNoticePeriodsSection = React.lazy(() =>
   import('./sections/SettingsNoticePeriodsSection').then((m) => ({ default: m.SettingsNoticePeriodsSection }))
 );
+const SettingsProbationPeriodsSection = React.lazy(() =>
+  import('./sections/SettingsProbationPeriodsSection').then((m) => ({ default: m.SettingsProbationPeriodsSection }))
+);
 const SettingsCandidateStagesSection = React.lazy(() =>
   import('./sections/SettingsCandidateStagesSection').then((m) => ({ default: m.SettingsCandidateStagesSection }))
 );
@@ -412,6 +415,15 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     path: '/admin/settings/notice-periods',
     icon: CalendarClock,
     component: SettingsNoticePeriodsSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Recruitment',
+  },
+  {
+    id: 'probation-periods',
+    label: 'Probation Periods',
+    path: '/admin/settings/probation-periods',
+    icon: ShieldCheck,
+    component: SettingsProbationPeriodsSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
     group: 'Recruitment',
   },

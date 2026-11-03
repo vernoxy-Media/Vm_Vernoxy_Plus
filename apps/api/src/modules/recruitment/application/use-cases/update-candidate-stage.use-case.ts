@@ -30,8 +30,8 @@ export class UpdateCandidateStageUseCase {
       }
     }
 
-    // Rule: Once converted to employee, cannot revert to earlier pipeline stages
-    if (existing.convertedToEmpId && normTarget !== 'onboarding') {
+    // Rule: Once converted to employee or joined, cannot revert to earlier pipeline stages
+    if (existing.stage === 'joined' || (existing.convertedToEmpId && normTarget !== 'onboarding' && normTarget !== 'joined')) {
       throw new BadRequestException(
         `Candidate has already been converted to employee ${existing.convertedToEmpCode || `EMP-${existing.convertedToEmpId}`}. Stage cannot be changed.`,
       );

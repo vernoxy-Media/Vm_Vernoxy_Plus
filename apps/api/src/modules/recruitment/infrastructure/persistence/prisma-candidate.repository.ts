@@ -326,12 +326,20 @@ export class PrismaCandidateRepository implements ICandidateRepository {
     if (data.notice_period !== undefined) payload.notice_period = data.notice_period;
     if (data.serving_notice_lwd !== undefined) payload.serving_notice_lwd = data.serving_notice_lwd;
     if (data.key_skills !== undefined) payload.key_skills = data.key_skills;
-    if (data.source !== undefined) payload.source = data.source;
-    if (data.source_portal !== undefined) payload.source_portal = data.source_portal;
-    if (data.referred_by_emp_id !== undefined) payload.referred_by_emp_id = data.referred_by_emp_id;
-    if (data.consultancy_name !== undefined) payload.consultancy_name = data.consultancy_name;
-    if (data.college_name !== undefined) payload.college_name = data.college_name;
-    if (data.source_details !== undefined) payload.source_details = data.source_details;
+    if (data.source !== undefined) {
+      payload.source = data.source;
+      payload.source_portal = data.source === 'job_portal' ? (data.source_portal || null) : null;
+      payload.referred_by_emp_id = data.source === 'employee_referral' ? (data.referred_by_emp_id || null) : null;
+      payload.consultancy_name = data.source === 'consultancy' ? (data.consultancy_name || null) : null;
+      payload.college_name = data.source === 'campus' ? (data.college_name || null) : null;
+      payload.source_details = data.source === 'other' ? (data.source_details || null) : null;
+    } else {
+      if (data.source_portal !== undefined) payload.source_portal = data.source_portal;
+      if (data.referred_by_emp_id !== undefined) payload.referred_by_emp_id = data.referred_by_emp_id;
+      if (data.consultancy_name !== undefined) payload.consultancy_name = data.consultancy_name;
+      if (data.college_name !== undefined) payload.college_name = data.college_name;
+      if (data.source_details !== undefined) payload.source_details = data.source_details;
+    }
     if (data.notes !== undefined) payload.notes = data.notes;
     if (data.stage !== undefined) payload.stage = data.stage;
 
@@ -410,6 +418,8 @@ export class PrismaCandidateRepository implements ICandidateRepository {
           reporting_manager: candidate.reporting_manager_id || null,
           joining_date: joiningDate,
           salary: salary,
+          notice_period: candidate.notice_period || null,
+          probation_period: '3 Months',
           status: 'Onboarding' as any,
           created_by: adminId || null,
         },

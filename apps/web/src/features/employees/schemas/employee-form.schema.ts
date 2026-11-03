@@ -74,6 +74,8 @@ export const employeeCreateSchema = z
       z.number().optional().nullable(),
     ),
     joining_date: z.string().min(1, 'Please fill this field.'),
+    probation_period: z.string().optional().nullable(),
+    notice_period: z.string().optional().nullable(),
     salary: z.coerce.number().min(0, 'Please enter 0 or more.').default(0),
     pf: z.coerce.number().min(0, 'Please enter 0 or more.').default(0),
     // Overtime (OT)
@@ -167,6 +169,8 @@ export const employeeEditSchema = z.object({
     z.number().optional().nullable(),
   ),
   joining_date: z.string().min(1, 'Please fill this field.'),
+  probation_period: z.string().optional().nullable(),
+  notice_period: z.string().optional().nullable(),
   salary: z.coerce.number().min(0, 'Please enter 0 or more.').default(0),
   pf: z.coerce.number().min(0, 'Please enter 0 or more.').default(0),
   // Overtime (OT)

@@ -51,6 +51,8 @@ export interface EmployeeRepositoryPort {
       emergency_contact_relation?: string | null;
       employment_type_id?: number | null;
       salary?: number;
+      probation_period?: string | null;
+      notice_period?: string | null;
       pf?: number;
       ot_eligible?: boolean;
       ot_rate_type?: 'FIXED' | 'MULTIPLIER' | null;
@@ -66,6 +68,7 @@ export interface EmployeeRepositoryPort {
       bank_name?: string | null;
       account_number?: string | null;
       ifsc_code?: string | null;
+      leave_policy_id?: number | null;
       created_by: number;
     },
     tx?: unknown,
@@ -82,7 +85,7 @@ export interface EmployeeRepositoryPort {
       reporting_manager?: number | null;
       joining_date?: Date;
       exit_date?: Date | null;
-      status?: 'Active' | 'Inactive';
+      status?: 'Active' | 'Inactive' | 'Onboarding';
       profile_picture?: string | null;
       gender_id?: number | null;
       personal_email?: string | null;
@@ -95,6 +98,8 @@ export interface EmployeeRepositoryPort {
       emergency_contact_relation?: string | null;
       employment_type_id?: number | null;
       salary?: number;
+      probation_period?: string | null;
+      notice_period?: string | null;
       pf?: number;
       ot_eligible?: boolean;
       ot_rate_type?: 'FIXED' | 'MULTIPLIER' | null;
@@ -110,6 +115,7 @@ export interface EmployeeRepositoryPort {
       bank_name?: string | null;
       account_number?: string | null;
       ifsc_code?: string | null;
+      leave_policy_id?: number | null;
       termination_date?: Date | null;
       deactivation_reason?: string | null;
       deactivation_notes?: string | null;

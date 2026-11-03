@@ -29,7 +29,7 @@ export const AccountActivatedModal: React.FC<AccountActivatedModalProps> = ({
     setTimeout(() => setCopiedField(null), 2000);
   };
 
-  const allCredentialsText = `Vernoxy Pulse Employee Login\nName: ${employeeName || 'Employee'}\nOffice Email: ${result.office_email}\nNote: One-time temporary activation credentials have been sent directly to your email inbox.\n(You will be required to change your password on first login)`;
+  const allCredentialsText = `Vernoxy Pulse Employee Login\nName: ${employeeName || 'Employee'}\nOffice Email: ${result.office_email}\nNote: A secure password setup link has been sent directly to your email inbox.\n(You will set your own secure password upon clicking the link)`;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
@@ -92,28 +92,26 @@ export const AccountActivatedModal: React.FC<AccountActivatedModalProps> = ({
             </div>
           </div>
 
-          {/* Temporary Password Card (BFD Marker 5: Nobody types it, and the Admin never sees it) */}
+          {/* Password Setup Link Card */}
           <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5">
             <div className="flex items-center justify-between text-2xs font-bold text-slate-400 uppercase tracking-wider">
-              <span>One-Time System Password</span>
+              <span>Password Setup Link</span>
               <span className="text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full text-[10px] font-semibold flex items-center gap-1 normal-case">
                 <ShieldCheck className="w-3 h-3 text-emerald-600" />
                 Emailed Directly
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <div className="font-mono text-base font-bold text-slate-400 tracking-widest select-none">
-                ••••••••••••••••
-              </div>
+              <span className="text-xs font-semibold text-slate-700">Sent to employee inbox</span>
               <span className="text-[11px] text-slate-500 font-medium">Never visible to Admin</span>
             </div>
           </div>
 
-          {/* Mandatory Password Renewal Notice */}
-          <div className="p-3 rounded-2xl bg-amber-50/80 border border-amber-200/70 text-amber-900 text-xs flex items-start gap-2.5">
-            <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+          {/* Confidential Password Notice */}
+          <div className="p-3 rounded-2xl bg-blue-50/80 border border-blue-200/70 text-blue-950 text-xs flex items-start gap-2.5">
+            <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
             <p className="leading-relaxed">
-              <strong>Password Renewal Required:</strong> The employee will be forced to change this temporary password immediately upon their first login before accessing the system.
+              <strong>Employee Sets Own Password:</strong> The employee clicks the setup link in their email to create their password. If they ever forget it, the Admin can click "Resend Login" or the employee can use "Forgot Password".
             </p>
           </div>
         </div>

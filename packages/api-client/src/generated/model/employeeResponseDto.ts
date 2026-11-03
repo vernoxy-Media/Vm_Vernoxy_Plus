@@ -94,4 +94,6 @@ export interface EmployeeResponseDto {
   updated_by?: number | null;
   employee_code?: string;
   pending_documents_count?: number;
+  probation_period?: string | null;
+  notice_period?: string | null;
 }

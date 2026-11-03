@@ -38,6 +38,7 @@ import {
   FinalizeDocumentDraftDto,
   EmployeeActivationStatusDto,
   ActivateEmployeeResponseDto,
+  CreateCustomDocumentDto,
 } from '../dto/employee-document.dto';
 
 @ApiTags('Organization Documents')
@@ -89,6 +90,32 @@ export class EmployeeDocumentController {
     @Param('id', ParseIntPipe) id: number,
   ): Promise<EmployeeDocumentItemDto[]> {
     return this.documentService.getEmployeeDocuments(id);
+  }
+
+  @Post('employees/:id/documents/custom')
+  @ApiOperation({ summary: 'Add a custom/other document requirement for an employee' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiResponse({ status: 201, type: EmployeeDocumentItemDto })
+  async addCustomDocument(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: CreateCustomDocumentDto,
+    @Req() req: any,
+  ): Promise<EmployeeDocumentItemDto> {
+    const adminId = req.user?.emp_id || 1;
+    return this.documentService.addCustomDocument(id, dto.title, Boolean(dto.is_required_for_activation), adminId);
+  }
+
+  @Delete('employees/:id/documents/:documentType/custom')
+  @ApiOperation({ summary: 'Delete a custom document requirement for an employee' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'documentType', type: String })
+  async deleteCustomDocument(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('documentType') documentType: string,
+    @Req() req: any,
+  ): Promise<{ success: boolean }> {
+    const adminId = req.user?.emp_id || 1;
+    return this.documentService.deleteCustomDocument(id, documentType, adminId);
   }
 
   @Put('employees/:id/documents/:documentType/toggle')
@@ -180,6 +207,20 @@ export class EmployeeDocumentController {
   ): Promise<EmployeeDocumentItemDto> {
     const adminId = req.user?.emp_id || 1;
     return this.documentService.finalizeDraft(id, dto, adminId);
+  }
+
+  @Post('employees/:id/documents/:documentType/decline')
+  @ApiOperation({ summary: 'Mark document as declined with reason' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'documentType', type: String })
+  async declineDocument(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('documentType') documentType: string,
+    @Body('reason') reason: string,
+    @Req() req: any,
+  ): Promise<EmployeeDocumentItemDto> {
+    const adminId = req.user?.emp_id || 1;
+    return this.documentService.declineDocument(id, documentType, reason || 'Candidate declined', adminId);
   }
 
   @Get('employees/:id/documents/:documentType/download')

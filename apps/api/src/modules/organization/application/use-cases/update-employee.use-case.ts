@@ -22,7 +22,7 @@ export interface UpdateEmployeeCommand {
   reporting_manager?: number | null;
   joining_date?: Date | string;
   exit_date?: Date | string | null;
-  status?: 'Active' | 'Inactive';
+  status?: 'Active' | 'Inactive' | 'Onboarding';
   gender_id?: number | null;
   personal_email?: string | null;
   office_email?: string | null;
@@ -34,6 +34,8 @@ export interface UpdateEmployeeCommand {
   emergency_contact_relation?: string | null;
   employment_type_id?: number | null;
   salary?: number;
+  probation_period?: string | null;
+  notice_period?: string | null;
   pf?: number;
   ot_eligible?: boolean;
   ot_rate_type?: 'FIXED' | 'MULTIPLIER' | null;
@@ -49,6 +51,7 @@ export interface UpdateEmployeeCommand {
   bank_name?: string | null;
   account_number?: string | null;
   ifsc_code?: string | null;
+  leave_policy_id?: number | null;
   termination_date?: Date | string | null;
   deactivation_reason?: string | null;
   deactivation_notes?: string | null;
@@ -344,6 +347,7 @@ export class UpdateEmployeeUseCase {
       bank_name: command.bank_name !== undefined ? (command.bank_name?.trim() || null) : undefined,
       account_number: command.account_number !== undefined ? (command.account_number?.trim() || null) : undefined,
       ifsc_code: command.ifsc_code !== undefined ? (command.ifsc_code?.trim() || null) : undefined,
+      leave_policy_id: command.leave_policy_id,
       termination_date: parsedTerminationDate,
       deactivation_reason: command.deactivation_reason,
       deactivation_notes: command.deactivation_notes,

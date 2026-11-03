@@ -78,4 +78,6 @@ export interface CreateEmployeeDto {
   bank_name?: string | null;
   account_number?: string | null;
   ifsc_code?: string | null;
+  probation_period?: string | null;
+  notice_period?: string | null;
 }

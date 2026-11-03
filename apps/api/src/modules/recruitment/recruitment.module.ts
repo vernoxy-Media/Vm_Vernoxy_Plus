@@ -1,7 +1,10 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../core/prisma/prisma.module';
 import { AuthModule } from '../auth/auth.module';
-import { CandidateController } from './presentation/controllers/candidate.controller';
+import {
+  CandidateController,
+  CandidateResumeController,
+} from './presentation/controllers/candidate.controller';
 import { CANDIDATE_REPOSITORY } from './application/ports/candidate.repository.port';
 import { PrismaCandidateRepository } from './infrastructure/persistence/prisma-candidate.repository';
 import { CreateCandidateUseCase } from './application/use-cases/create-candidate.use-case';
@@ -17,7 +20,7 @@ import { UpdateCandidateUseCase } from './application/use-cases/update-candidate
 
 @Module({
   imports: [PrismaModule, AuthModule],
-  controllers: [CandidateController],
+  controllers: [CandidateResumeController, CandidateController],
   providers: [
     {
       provide: CANDIDATE_REPOSITORY,
