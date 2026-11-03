@@ -11,6 +11,8 @@ import {
   ExternalLink,
   Trash2,
   X,
+  Mail,
+  Send,
 } from 'lucide-react';
 import { getAccessToken } from '@vernoxy-pulse/api-client';
 import {
@@ -20,6 +22,7 @@ import {
   useDeclineEmployeeDocumentMutation,
   useAddCustomDocumentMutation,
   useDeleteCustomDocumentMutation,
+  useSendDocumentRequestMutation,
   EmployeeDocumentItem,
 } from '../hooks/use-employee-documents';
 import { GenerateDocumentModal } from './GenerateDocumentModal';
@@ -61,6 +64,13 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({
   const declineMutation = useDeclineEmployeeDocumentMutation();
   const addCustomDocMutation = useAddCustomDocumentMutation();
   const deleteCustomDocMutation = useDeleteCustomDocumentMutation();
+  const sendDocRequestMutation = useSendDocumentRequestMutation();
+
+  const [isSendRequestModalOpen, setIsSendRequestModalOpen] = useState(false);
+  const [requestEmail, setRequestEmail] = useState('');
+  const [requestNotes, setRequestNotes] = useState('');
+  const [requestStatus, setRequestStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [requestFeedbackMsg, setRequestFeedbackMsg] = useState('');
 
   const [isAddDocModalOpen, setIsAddDocModalOpen] = useState(false);
   const [newDocTitle, setNewDocTitle] = useState('');
@@ -163,6 +173,54 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({
       d.document_type !== 'joining_letter_old' &&
       (d.category === 'taken_from_employee' || d.category === 'other' || d.document_type.startsWith('custom_'))
   );
+
+  // BFD Marker 1: Progress counts only ticked rows: how many already have a file
+  const takenTickedCount = takenDocs.filter((d) => d.is_ticked).length;
+  const takenUploadedCount = takenDocs.filter((d) => d.is_ticked && (Boolean(d.file_url) || d.status === 'uploaded')).length;
+  const takenPercentage = takenTickedCount > 0 ? Math.round((takenUploadedCount / takenTickedCount) * 100) : 0;
+
+  // Pending documents list for candidate email request (BFD Reference Screen 8 Marker 3)
+  const pendingForRequest: EmployeeDocumentItem[] = [
+    ...agreementDocs,
+    ...takenDocs,
+  ].filter((doc) => {
+    const hasFile = Boolean(doc.file_url) || doc.status === 'uploaded' || doc.status === 'accepted' || doc.status === 'signed';
+    if (doc.is_ticked && !hasFile) return true;
+    if (doc.is_required_for_activation && !doc.is_ticked && !hasFile) return true;
+    return false;
+  });
+
+  const handleOpenSendRequestModal = () => {
+    const defaultEmail = (employee as any).personal_email || (employee as any).email || (employee as any).office_email || '';
+    setRequestEmail(defaultEmail);
+    setRequestNotes('');
+    setRequestStatus('idle');
+    setRequestFeedbackMsg('');
+    setIsSendRequestModalOpen(true);
+  };
+
+  const handleSendDocumentRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!requestEmail.trim()) {
+      setRequestStatus('error');
+      setRequestFeedbackMsg('Please enter a recipient email address.');
+      return;
+    }
+
+    try {
+      const res = await sendDocRequestMutation.mutateAsync({
+        empId: employee.emp_id,
+        email: requestEmail.trim(),
+        notes: requestNotes.trim() || undefined,
+      });
+
+      setRequestStatus('success');
+      setRequestFeedbackMsg(res.message || `Request email successfully sent to ${requestEmail}.`);
+    } catch (err: any) {
+      setRequestStatus('error');
+      setRequestFeedbackMsg(err.detail || err.message || 'Failed to send document request email.');
+    }
+  };
 
   const handleAddCustomDoc = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -856,27 +914,6 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({
             </div>
           </div>
         </div>
-
-        {/* Action Buttons: Add Document & Generate Document */}
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setIsAddDocModalOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200/90 shadow-2xs transition cursor-pointer"
-          >
-            <Plus className="w-4 h-4 text-blue-600" />
-            <span>Add Document</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setGenerateModalState({ isOpen: true, docType: 'offer_letter', startAtStep: 1 })}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-sm transition cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Generate Document</span>
-          </button>
-        </div>
       </div>
 
       {/* Main Documents Table Card */}
@@ -916,35 +953,67 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({
                 </>
               )}
 
-              {/* GROUP 3: TAKEN FROM THE EMPLOYEE */}
+              {/* GROUP 3: TAKEN FROM THE EMPLOYEE (BFD Reference Screen 8) */}
               <tr className="bg-slate-100/60 border-t border-b border-slate-200">
-                <td colSpan={4} className="py-2 px-4 text-2xs font-bold uppercase tracking-wider text-slate-600">
-                  <div className="flex items-center justify-between">
-                    <span>Taken from the employee</span>
-                    <button
-                      type="button"
-                      onClick={() => setIsAddDocModalOpen(true)}
-                      className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-800 transition normal-case cursor-pointer"
-                    >
-                      <Plus className="w-3 h-3" />
-                      <span>Add Document</span>
-                    </button>
+                <td colSpan={4} className="py-2.5 px-4 text-2xs font-bold uppercase tracking-wider text-slate-600">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span>Documents we take from the employee</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {/* Marker 1: Progress - Counts only ticked rows */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] font-semibold text-slate-500 normal-case font-mono">
+                          {takenUploadedCount} of {takenTickedCount} uploaded
+                        </span>
+                        <div className="w-20 sm:w-24 h-2 bg-slate-200 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                            style={{ width: `${takenPercentage}%` }}
+                          />
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsAddDocModalOpen(true)}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-800 transition normal-case cursor-pointer"
+                      >
+                        <Plus className="w-3 h-3" />
+                        <span>Add Document</span>
+                      </button>
+                    </div>
                   </div>
                 </td>
               </tr>
               {takenDocs.map(renderDocRow)}
 
-              {/* Inline row: Add other document */}
-              <tr className="border-b border-slate-100 hover:bg-blue-50/20 transition-colors">
+              {/* Marker 2: Add other document & Marker 3: Send document request to candidate */}
+              <tr className="border-b border-slate-100 bg-slate-50/40 hover:bg-slate-50/70 transition-colors">
                 <td colSpan={4} className="py-3 px-4">
-                  <button
-                    type="button"
-                    onClick={() => setIsAddDocModalOpen(true)}
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-800 transition cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>+ Add other document</span>
-                  </button>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setIsAddDocModalOpen(true)}
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-800 transition cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+ Add other document</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleOpenSendRequestModal}
+                      className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl border border-blue-200 bg-white hover:bg-blue-50 text-blue-700 text-xs font-bold shadow-2xs transition cursor-pointer"
+                    >
+                      <Mail className="w-3.5 h-3.5 text-blue-600" />
+                      <span>Send document request to candidate</span>
+                      {pendingForRequest.length > 0 && (
+                        <span className="px-1.5 py-0.5 rounded-md bg-blue-100 text-blue-800 text-[10px] font-black font-mono">
+                          {pendingForRequest.length}
+                        </span>
+                      )}
+                    </button>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -1224,6 +1293,148 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({
           </div>
         </div>
       )}
+    
+      {/* Send Document Request to Candidate Modal (BFD Reference Screen 8 Marker 3) */}
+      {isSendRequestModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-100 p-6 flex flex-col space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
+                  <Mail className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-800">Send Document Request</h3>
+                  <p className="text-xs text-slate-500">Email the candidate a checklist of pending documents</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsSendRequestModalOpen(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {requestStatus === 'success' ? (
+              <div className="py-6 space-y-4 text-center">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto">
+                  <CheckCircle2 className="w-6 h-6" />
+                </div>
+                <div>
+                  <h4 className="text-base font-bold text-slate-800">Request Email Sent!</h4>
+                  <p className="text-xs text-slate-600 mt-1 max-w-sm mx-auto">{requestFeedbackMsg}</p>
+                </div>
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsSendRequestModalOpen(false)}
+                    className="px-5 py-2.5 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition cursor-pointer"
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleSendDocumentRequest} className="space-y-4">
+                {requestStatus === 'error' && (
+                  <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-700 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
+                    <span>{requestFeedbackMsg}</span>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-2xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                    Candidate / Recipient Email <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={requestEmail}
+                    onChange={(e) => setRequestEmail(e.target.value)}
+                    placeholder="candidate@example.com"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Defaults to candidate's personal email on record. You can change this if needed.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-2xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                    Documents to Request ({pendingForRequest.length})
+                  </label>
+                  {pendingForRequest.length === 0 ? (
+                    <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 font-medium">
+                      All requested documents have already been uploaded.
+                    </div>
+                  ) : (
+                    <div className="max-h-40 overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100 bg-slate-50/50">
+                      {pendingForRequest.map((doc, idx) => (
+                        <div key={idx} className="p-2.5 text-xs flex items-center justify-between">
+                          <span className="font-semibold text-slate-700">{doc.title}</span>
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                              doc.is_required_for_activation
+                                ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                                : 'bg-slate-200 text-slate-700'
+                            }`}
+                          >
+                            {doc.is_required_for_activation ? 'Required' : 'Pending File'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-2xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                    Optional Note for Candidate
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={requestNotes}
+                    onChange={(e) => setRequestNotes(e.target.value)}
+                    placeholder="e.g. Please bring original physical copies on your joining date as well."
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setIsSendRequestModalOpen(false)}
+                    className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={sendDocRequestMutation.isPending || pendingForRequest.length === 0}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-2xs cursor-pointer disabled:opacity-50"
+                  >
+                    {sendDocRequestMutation.isPending ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Sending...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-3.5 h-3.5" />
+                        <span>Send Request Email</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

@@ -39,6 +39,8 @@ import {
   EmployeeActivationStatusDto,
   ActivateEmployeeResponseDto,
   CreateCustomDocumentDto,
+  SendDocumentRequestDto,
+  SendDocumentRequestResponseDto,
 } from '../dto/employee-document.dto';
 
 @ApiTags('Organization Documents')
@@ -243,4 +245,18 @@ export class EmployeeDocumentController {
     );
     res.send(fileData.content);
   }
+
+  @Post('employees/:id/documents/request-email')
+  @ApiOperation({ summary: 'Send email to candidate requesting all pending documents' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiResponse({ status: 200, type: SendDocumentRequestResponseDto })
+  async sendDocumentRequestEmail(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: SendDocumentRequestDto,
+    @Req() req: any,
+  ): Promise<SendDocumentRequestResponseDto> {
+    const adminId = req.user?.emp_id || 1;
+    return this.documentService.sendDocumentRequestEmail(id, adminId, dto);
+  }
+
 }

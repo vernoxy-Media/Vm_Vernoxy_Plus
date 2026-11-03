@@ -300,3 +300,38 @@ export function useDeleteCustomDocumentMutation() {
     },
   });
 }
+
+
+export interface SendDocumentRequestPayload {
+  empId: number;
+  email?: string;
+  notes?: string;
+}
+
+export interface SendDocumentRequestResponse {
+  success: boolean;
+  message: string;
+  sent_to: string;
+  candidate_name: string;
+  pending_count: number;
+  pending_documents: Array<{
+    title: string;
+    category?: string;
+    isRequired?: boolean;
+    reason: 'ticked_pending' | 'required_unticked';
+  }>;
+}
+
+export function useSendDocumentRequestMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ empId, email, notes }: SendDocumentRequestPayload) =>
+      customFetch<SendDocumentRequestResponse>(`/api/v1/employees/${empId}/documents/request-email`, {
+        method: 'POST',
+        body: JSON.stringify({ email, notes }),
+      }),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['employee-documents', variables.empId] });
+    },
+  });
+}

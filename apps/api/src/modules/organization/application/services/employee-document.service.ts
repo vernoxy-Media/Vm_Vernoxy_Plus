@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../../../core/prisma/prisma.service';
 import { AUTH_TOKENS } from '../../../auth/application/ports/tokens';
-import { MailPort } from '../../../auth/application/ports/auth.ports';
+import { MailPort, DocumentRequestMailItem } from '../../../auth/application/ports/auth.ports';
 import {
   EmployeeDocumentItemDto,
   DocumentTemplateItemDto,
@@ -1044,4 +1044,147 @@ export class EmployeeDocumentService implements OnModuleInit, OnModuleDestroy {
       must_change_password: true,
     };
   }
+
+  /**
+   * BFD Reference Screen 8 Marker 3:
+   * Send document request email to candidate listing every ticked-but-pending
+   * and required-but-unticked document.
+   */
+  async sendDocumentRequestEmail(
+    empId: number,
+    adminId?: number,
+    options?: { email?: string; notes?: string }
+  ): Promise<{
+    success: boolean;
+    message: string;
+    sent_to: string;
+    candidate_name: string;
+    pending_count: number;
+    pending_documents: DocumentRequestMailItem[];
+  }> {
+    const employee = await this.prisma.employees.findUnique({
+      where: { emp_id: empId },
+      select: {
+        emp_id: true,
+        name: true,
+        personal_email: true,
+        office_email: true,
+        email: true,
+        status: true,
+      },
+    });
+
+    if (!employee) {
+      throw new NotFoundException(`Employee #${empId} not found`);
+    }
+
+    const candidate = await this.prisma.candidates.findFirst({
+      where: { converted_to_emp_id: empId },
+      select: { candidate_id: true, name: true, email: true },
+    });
+
+    const recipientEmail = (
+      options?.email ||
+      candidate?.email ||
+      employee.personal_email ||
+      employee.email ||
+      employee.office_email ||
+      ''
+    ).trim();
+
+    if (!recipientEmail) {
+      throw new BadRequestException('No email address available to send the document request.');
+    }
+
+    const allDocs = await this.getEmployeeDocuments(empId);
+
+    // Rule: Marker 3 - Emails candidate a list of every ticked-but-pending and required-but-unticked document.
+    const pendingList: DocumentRequestMailItem[] = [];
+
+    for (const doc of allDocs) {
+      // Exclude purely company-given exit/post-employment letters (relieving, experience, salary slips)
+      if (
+        doc.category === 'given_to_employee' &&
+        doc.document_type !== 'offer_letter' &&
+        doc.document_type !== 'joining_letter'
+      ) {
+        continue;
+      }
+
+      const hasFile = Boolean(doc.file_url) || doc.status === 'uploaded' || doc.status === 'accepted' || doc.status === 'signed';
+
+      if (doc.is_ticked && !hasFile) {
+        pendingList.push({
+          title: doc.title,
+          category: doc.category === 'agreement' ? 'Agreement' : 'Documentation',
+          isRequired: Boolean(doc.is_required_for_activation),
+          reason: 'ticked_pending',
+        });
+      } else if (doc.is_required_for_activation && !doc.is_ticked && !hasFile) {
+        pendingList.push({
+          title: doc.title,
+          category: doc.category === 'agreement' ? 'Agreement' : 'Documentation',
+          isRequired: true,
+          reason: 'required_unticked',
+        });
+      }
+    }
+
+    if (pendingList.length === 0) {
+      return {
+        success: true,
+        message: 'All requested documents have already been uploaded. No pending documents to request.',
+        sent_to: recipientEmail,
+        candidate_name: candidate?.name || employee.name,
+        pending_count: 0,
+        pending_documents: [],
+      };
+    }
+
+    if (this.mailPort) {
+      try {
+        await this.mailPort.sendDocumentRequest({
+          to: recipientEmail,
+          candidateName: candidate?.name || employee.name,
+          employeeId: empId,
+          pendingDocuments: pendingList,
+          customMessage: options?.notes,
+        });
+      } catch (err: any) {
+        this.logger.error(`Failed to dispatch document request email: ${err.message}`);
+        throw new BadRequestException(`Failed to send email: ${err.message}`);
+      }
+    } else {
+      this.logger.warn(`MailPort not available. Skipping email delivery to ${recipientEmail}.`);
+    }
+
+    // Log in activity_logs
+    try {
+      await this.prisma.$executeRaw`
+        INSERT INTO activity_logs (entity_type, entity_id, event, summary, details, performed_by, performed_at)
+        VALUES (
+          'EMPLOYEE', ${empId}, 'DOCUMENT_REQUEST_SENT', 'Document Request Emailed',
+          jsonb_build_object(
+            'sent_to', ${recipientEmail},
+            'pending_count', ${pendingList.length},
+            'candidate_name', ${candidate?.name || employee.name},
+            'notes', ${options?.notes || null}
+          ),
+          ${adminId || null}, NOW()
+        )
+      `;
+    } catch (logErr: any) {
+      this.logger.warn(`Failed to record activity log for document request: ${logErr.message}`);
+    }
+
+    return {
+      success: true,
+      message: `Document request successfully sent to ${recipientEmail} (${pendingList.length} pending document${pendingList.length > 1 ? 's' : ''}).`,
+      sent_to: recipientEmail,
+      candidate_name: candidate?.name || employee.name,
+      pending_count: pendingList.length,
+      pending_documents: pendingList,
+    };
+  }
+
 }
