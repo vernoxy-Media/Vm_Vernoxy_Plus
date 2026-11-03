@@ -595,7 +595,7 @@ export class EmployeeDocumentService {
     }
 
     const empResult = await this.prisma.$queryRaw<any[]>`
-      SELECT emp_id, name, email, office_email, personal_email, status, joining_date, dep_id, role_id
+      SELECT emp_id, name, email, office_email, personal_email, status, joining_date, dep_id, role_id, reporting_manager
       FROM employees WHERE emp_id = ${empId} AND deleted_at IS NULL
     `;
     if (!empResult || empResult.length === 0) {
@@ -608,23 +608,40 @@ export class EmployeeDocumentService {
     const officeEmail = (emp.office_email || emp.email || '').trim().toLowerCase();
 
     // 1. Update employee status to Active
-    await this.prisma.$queryRaw`
+    await this.prisma.$executeRaw`
       UPDATE employees
       SET status = 'Active', updated_at = NOW(), updated_by = ${adminId}
       WHERE emp_id = ${empId}
     `;
 
     // 2. Upsert credentials with must_change_password = true
-    await this.prisma.$queryRaw`
-      INSERT INTO employee_credentials (emp_id, password_hash, must_change_password, created_by, updated_at)
-      VALUES (${empId}, ${passwordHash}, TRUE, ${adminId}, NOW())
-      ON CONFLICT (emp_id) DO UPDATE SET
-        password_hash = EXCLUDED.password_hash,
-        must_change_password = TRUE,
-        failed_attempts = 0,
-        locked_until = NULL,
-        updated_at = NOW()
-    `;
+    const existingCred = await this.prisma.employee_credentials.findFirst({
+      where: { emp_id: empId, deleted_at: null },
+    });
+
+    if (existingCred) {
+      await this.prisma.employee_credentials.update({
+        where: { credential_id: existingCred.credential_id },
+        data: {
+          password_hash: passwordHash,
+          must_change_password: true,
+          failed_attempts: 0,
+          locked_until: null,
+          updated_at: new Date(),
+          updated_by: adminId,
+        },
+      });
+    } else {
+      await this.prisma.employee_credentials.create({
+        data: {
+          emp_id: empId,
+          password_hash: passwordHash,
+          must_change_password: true,
+          created_by: adminId,
+          updated_at: new Date(),
+        },
+      });
+    }
 
     // 3. Log into activity_logs
     await this.prisma.$executeRaw`
@@ -643,9 +660,9 @@ export class EmployeeDocumentService {
     `;
 
     // 4. Log auth event
-    await this.prisma.$queryRaw`
+    await this.prisma.$executeRaw`
       INSERT INTO auth_events (emp_id, actor_emp_id, event_type, details)
-      VALUES (${empId}, ${adminId}, 'credentials_created', '{"source":"activation","must_change_password":true}'::jsonb)
+      VALUES (${empId}, ${adminId}, 'credentials_created'::auth_event_type, '{"source":"activation","must_change_password":true}'::jsonb)
     `;
 
     // 5. Update linked candidate stage to 'joined' (Part 7: Candidate stage Onboarding -> Joined)
