@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   Receipt,
   Plus,
@@ -22,6 +22,11 @@ import {
   Building,
   User,
   ShieldAlert,
+  Search,
+  Eye,
+  ChevronRight,
+  Inbox,
+  FilterX,
 } from 'lucide-react';
 import {
   useMyExpenses,
@@ -42,6 +47,9 @@ import {
   ExpenseTypeItem,
 } from '../hooks/use-expense-settings';
 import { useUploadAttachmentMutation } from '@/shared/hooks/use-attachments';
+import { Pagination } from '@/shared/ui/Pagination';
+import { RowActionsMenu, type RowAction } from '@/shared/ui/RowActionsMenu';
+import { ClaimStatusBadge, FlagChips, StatCard, inr, fmtDate } from '../components/expense-ui';
 
 export const MyExpensesPage: React.FC = (): React.ReactElement => {
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -259,350 +267,288 @@ export const MyExpensesPage: React.FC = (): React.ReactElement => {
     );
   });
 
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  useEffect(() => setPage(1), [statusFilter, searchTerm, pageSize]);
+  const safePage = Math.min(page, Math.max(1, Math.ceil(claimsList.length / pageSize)));
+  const rows = claimsList.slice((safePage - 1) * pageSize, safePage * pageSize);
+
+  const menuFor = (claim: ExpenseClaimSummary): RowAction[] => {
+    const list: RowAction[] = [{ label: 'View details', icon: Eye, onClick: () => setViewClaimId(claim.claim_id) }];
+    if (claim.status === 'DRAFT') {
+      list.push({ label: 'Edit draft', icon: Edit2, onClick: () => openEditModal(claim) });
+      list.push({
+        label: 'Delete draft',
+        icon: Trash2,
+        danger: true,
+        onClick: () => {
+          if (confirm('Delete this draft claim?')) deleteClaimMut.mutate(claim.claim_id);
+        },
+      });
+    }
+    if (claim.status === 'SUBMITTED') {
+      list.push({
+        label: 'Withdraw to draft',
+        icon: History,
+        danger: true,
+        onClick: () => {
+          if (confirm('Withdraw this claim back to draft?')) withdrawMut.mutate(claim.claim_id);
+        },
+      });
+    }
+    if (claim.status === 'REJECTED') {
+      list.push({ label: 'Copy to new draft', icon: Copy, onClick: () => copyToDraftMut.mutate(claim.claim_id) });
+    }
+    return list;
+  };
+
+  /** The one action most worth a visible button. */
+  const primaryFor = (claim: ExpenseClaimSummary) =>
+    claim.status === 'DRAFT' ? (
+      <button
+        type="button"
+        onClick={() => submitDraftMut.mutate(claim.claim_id)}
+        disabled={submitDraftMut.isPending}
+        className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 text-[13px] font-semibold text-white shadow-sm shadow-emerald-600/25 transition hover:bg-emerald-700 disabled:opacity-60"
+      >
+        <Send className="h-3.5 w-3.5" /> Submit
+      </button>
+    ) : (
+      <button
+        type="button"
+        onClick={() => setViewClaimId(claim.claim_id)}
+        className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-lg px-3 text-[13px] font-semibold text-indigo-600 transition hover:bg-indigo-50"
+      >
+        View <ChevronRight className="h-4 w-4" />
+      </button>
+    );
+
+  const statusTabs = [
+    { id: 'ALL', label: 'All claims', count: undefined as number | undefined },
+    { id: 'DRAFT', label: 'Drafts', count: stats.draftCount },
+    { id: 'SUBMITTED', label: 'Pending', count: stats.submittedCount },
+    { id: 'APPROVED', label: 'Approved', count: stats.approvedCount },
+    { id: 'REIMBURSED', label: 'Reimbursed', count: stats.reimbursedCount },
+    { id: 'REJECTED', label: 'Rejected', count: stats.rejectedCount },
+  ];
+
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <Receipt className="w-7 h-7 text-indigo-600" />
-            My Expenses
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Submit, track, and manage your business and personal expense reimbursements
-          </p>
+    <div className="w-full space-y-5">
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3.5">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-600/25">
+            <Receipt className="h-6 w-6" />
+          </span>
+          <div className="min-w-0">
+            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-[28px]">My Expenses</h1>
+            <p className="mt-0.5 text-sm text-slate-500">Submit, track and manage your expense reimbursements.</p>
+          </div>
         </div>
 
         <button
+          type="button"
           onClick={openCreateModal}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition shadow-sm cursor-pointer"
+          className="inline-flex h-10 shrink-0 cursor-pointer items-center justify-center gap-2 self-start rounded-xl bg-indigo-600 px-4 text-[13px] font-semibold text-white shadow-sm shadow-indigo-600/25 transition hover:bg-indigo-700 focus:outline-hidden focus:ring-4 focus:ring-indigo-600/20 active:scale-[0.98] sm:self-auto"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="h-4 w-4" strokeWidth={2.5} />
           New Expense Claim
         </button>
       </div>
 
-      {/* Stats Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Total Claimed
-            </span>
-            <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600">
-              <DollarSign className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl font-bold text-slate-900">
-              ₹{stats.totalClaimed.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-            </div>
-            <div className="text-xs text-slate-500 mt-1">Across all recorded claims</div>
-          </div>
-        </div>
-
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-amber-600">
-              In Approval
-            </span>
-            <div className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600">
-              <Clock className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl font-bold text-amber-700">
-              ₹{stats.pendingApproval.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-            </div>
-            <div className="text-xs text-amber-600 mt-1">
-              {stats.submittedCount} claim{stats.submittedCount !== 1 ? 's' : ''} awaiting review
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600">
-              Approved (Payout Ready)
-            </span>
-            <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
-              <CheckCircle2 className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl font-bold text-emerald-700">
-              ₹{stats.approvedReady.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-            </div>
-            <div className="text-xs text-emerald-600 mt-1">
-              {stats.approvedCount} claim{stats.approvedCount !== 1 ? 's' : ''} queued for payment
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-indigo-600">
-              Reimbursed
-            </span>
-            <div className="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
-              <Receipt className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl font-bold text-indigo-700">
-              ₹{stats.reimbursedTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-            </div>
-            <div className="text-xs text-indigo-600 mt-1">
-              {stats.reimbursedCount} paid claim{stats.reimbursedCount !== 1 ? 's' : ''}
-            </div>
-          </div>
-        </div>
+      {/* Stats */}
+      <div className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 lg:grid-cols-4 lg:gap-4">
+        <StatCard label="Total claimed" value={inr(stats.totalClaimed)} hint="Across all recorded claims" icon={DollarSign} tone="text-slate-900" tile="bg-slate-50 text-slate-600 ring-slate-100" bar="from-slate-400 to-slate-500" />
+        <StatCard
+          label="In approval"
+          value={inr(stats.pendingApproval)}
+          hint={`${stats.submittedCount} claim${stats.submittedCount !== 1 ? 's' : ''} awaiting review`}
+          icon={Clock}
+          tone="text-amber-600"
+          tile="bg-amber-50 text-amber-600 ring-amber-100"
+          bar="from-amber-400 to-orange-400"
+        />
+        <StatCard
+          label="Approved (payout ready)"
+          value={inr(stats.approvedReady)}
+          hint={`${stats.approvedCount} claim${stats.approvedCount !== 1 ? 's' : ''} queued for payment`}
+          icon={CheckCircle2}
+          tone="text-emerald-600"
+          tile="bg-emerald-50 text-emerald-600 ring-emerald-100"
+          bar="from-emerald-400 to-teal-400"
+        />
+        <StatCard
+          label="Reimbursed"
+          value={inr(stats.reimbursedTotal)}
+          hint={`${stats.reimbursedCount} paid claim${stats.reimbursedCount !== 1 ? 's' : ''}`}
+          icon={Receipt}
+          tone="text-indigo-600"
+          tile="bg-indigo-50 text-indigo-600 ring-indigo-100"
+          bar="from-indigo-500 to-violet-500"
+        />
       </div>
 
-      {/* Main Content Area */}
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-        {/* Navigation & Search Filters */}
-        <div className="p-4 border-b border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
-            {[
-              { id: 'ALL', label: 'All Claims' },
-              { id: 'DRAFT', label: `Drafts (${stats.draftCount})` },
-              { id: 'SUBMITTED', label: `Pending (${stats.submittedCount})` },
-              { id: 'APPROVED', label: `Approved (${stats.approvedCount})` },
-              { id: 'REIMBURSED', label: `Reimbursed (${stats.reimbursedCount})` },
-              { id: 'REJECTED', label: `Rejected (${stats.rejectedCount})` },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setStatusFilter(tab.id)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition cursor-pointer ${
-                  statusFilter === tab.id
-                    ? 'bg-indigo-50 text-indigo-700 font-semibold'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+      {/* Claims */}
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-col gap-3 border-b border-slate-100 p-3 sm:p-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="-mx-1 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div role="tablist" aria-label="Claim status" className="inline-flex gap-1 rounded-xl bg-slate-100 p-1">
+              {statusTabs.map((tab) => {
+                const on = statusFilter === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={on}
+                    onClick={() => setStatusFilter(tab.id)}
+                    className={`inline-flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-lg px-3.5 py-2 text-[13px] font-semibold transition ${
+                      on ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                    }`}
+                  >
+                    {tab.label}
+                    {tab.count !== undefined && <span className={`rounded-full px-1.5 py-0.5 text-[10.5px] font-bold leading-none ${on ? 'bg-indigo-50 text-indigo-700' : 'bg-white/70 text-slate-500'}`}>{tab.count}</span>}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          <div className="relative w-full md:w-64">
+          <div className="relative w-full lg:w-72">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               placeholder="Search claims..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-3 py-1.5 pl-8 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:bg-white transition"
+              className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-10 pr-4 text-sm text-slate-800 placeholder:text-slate-400 transition focus:border-blue-500 focus:bg-white focus:outline-hidden focus:ring-4 focus:ring-blue-500/10"
             />
-            <Receipt className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
           </div>
         </div>
 
-        {/* Claims Table */}
-        <div className="overflow-x-auto">
-          {isLoading ? (
-            <div className="flex items-center justify-center p-12 text-slate-400 gap-2">
-              <Loader2 className="w-5 h-5 animate-spin" />
-              <span>Loading expense claims...</span>
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center gap-3 py-24">
+            <Loader2 className="h-7 w-7 animate-spin text-indigo-600" />
+            <p className="text-sm font-medium text-slate-500">Loading expense claims...</p>
+          </div>
+        ) : claimsList.length === 0 ? (
+          <div className="px-4 py-16 text-center">
+            <span className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50 text-slate-300 ring-1 ring-slate-100">
+              <Inbox className="h-7 w-7" />
+            </span>
+            <h3 className="text-base font-semibold text-slate-800">No expense claims found</h3>
+            <p className="mx-auto mt-1 max-w-sm text-sm text-slate-500">
+              {statusFilter !== 'ALL' || searchTerm ? 'Nothing matches this view. Try another status or clear the search.' : 'You have not submitted any expense claims yet.'}
+            </p>
+            <div className="mt-4 flex justify-center gap-2">
+              {(statusFilter !== 'ALL' || searchTerm) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStatusFilter('ALL');
+                    setSearchTerm('');
+                  }}
+                  className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+                >
+                  <FilterX className="h-4 w-4" /> Clear filters
+                </button>
+              )}
+              <button type="button" onClick={openCreateModal} className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-xl bg-indigo-600 px-4 text-[13px] font-semibold text-white shadow-sm shadow-indigo-600/25 transition hover:bg-indigo-700">
+                <Plus className="h-4 w-4" /> New claim
+              </button>
             </div>
-          ) : claimsList.length === 0 ? (
-            <div className="text-center py-12 px-4">
-              <Receipt className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-              <h3 className="text-base font-semibold text-slate-800">No expense claims found</h3>
-              <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-                {statusFilter !== 'ALL'
-                  ? `There are no claims in ${statusFilter.toLowerCase()} status.`
-                  : 'You have not submitted any expense claims yet. Click the button above to create your first claim.'}
-              </p>
-            </div>
-          ) : (
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50/75 border-b border-slate-200 text-slate-500 text-[11px] font-semibold uppercase tracking-wider">
-                  <th className="py-3 px-4">Claim #</th>
-                  <th className="py-3 px-4">Expense Date</th>
-                  <th className="py-3 px-4">Category & Type</th>
-                  <th className="py-3 px-4">Merchant & Description</th>
-                  <th className="py-3 px-4 text-right">Amount (₹)</th>
-                  <th className="py-3 px-4 text-center">Flags</th>
-                  <th className="py-3 px-4 text-center">Status</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-xs">
-                {claimsList.map((claim: ExpenseClaimSummary) => {
-                  const hasFlags = claim.is_above_limit || claim.is_possible_duplicate || claim.is_late;
-                  return (
-                    <tr key={claim.claim_id} className="hover:bg-slate-50/60 transition-colors">
-                      <td className="py-3.5 px-4 font-mono font-medium text-slate-800">
-                        {claim.claim_no}
-                      </td>
+          </div>
+        ) : (
+          <>
+            {/* Small screens: cards */}
+            <ul className="divide-y divide-slate-100 md:hidden">
+              {rows.map((claim: ExpenseClaimSummary) => (
+                <li key={claim.claim_id} className="space-y-3 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="rounded-lg bg-indigo-50 px-2.5 py-1 font-mono text-xs font-semibold text-indigo-700">{claim.claim_no}</span>
+                    <ClaimStatusBadge status={claim.status} />
+                  </div>
+                  <div className="flex items-end justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-slate-900">{claim.category?.name || 'Expense'}</p>
+                      <p className="mt-0.5 truncate text-sm text-slate-500">{claim.merchant_name || claim.description}</p>
+                    </div>
+                    <p className="shrink-0 text-lg font-extrabold text-slate-900">{inr(claim.amount)}</p>
+                  </div>
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+                    <span className="inline-flex items-center gap-1.5">
+                      {claim.expense_type === 'Office Expense' ? <Building className="h-3.5 w-3.5" /> : <User className="h-3.5 w-3.5" />}
+                      {claim.expense_type} · {fmtDate(claim.expense_date)}
+                    </span>
+                    <FlagChips claim={claim} clean="" />
+                  </div>
+                  <div className="flex items-center justify-end gap-1 pt-1">
+                    {primaryFor(claim)}
+                    <RowActionsMenu label={`More actions for ${claim.claim_no}`} actions={menuFor(claim)} />
+                  </div>
+                </li>
+              ))}
+            </ul>
 
-                      <td className="py-3.5 px-4 text-slate-600">
-                        {new Date(claim.expense_date).toLocaleDateString('en-GB', {
-                          day: '2-digit',
-                          month: 'short',
-                          year: 'numeric',
-                        })}
+            {/* Larger screens: table */}
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full min-w-[900px] text-left text-sm">
+                <thead className="bg-slate-50/95">
+                  <tr className="border-b border-slate-200 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+                    <th className="whitespace-nowrap px-5 py-3">Claim #</th>
+                    <th className="whitespace-nowrap px-5 py-3">Expense date</th>
+                    <th className="whitespace-nowrap px-5 py-3">Category &amp; type</th>
+                    <th className="whitespace-nowrap px-5 py-3">Merchant &amp; description</th>
+                    <th className="whitespace-nowrap px-5 py-3 text-right">Amount</th>
+                    <th className="whitespace-nowrap px-5 py-3">Flags</th>
+                    <th className="whitespace-nowrap px-5 py-3">Status</th>
+                    <th className="whitespace-nowrap px-5 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {rows.map((claim: ExpenseClaimSummary) => (
+                    <tr key={claim.claim_id} className="transition-colors hover:bg-blue-50/30">
+                      <td className="px-5 py-3.5">
+                        <button type="button" onClick={() => setViewClaimId(claim.claim_id)} className="cursor-pointer whitespace-nowrap rounded-lg bg-indigo-50 px-2.5 py-1 font-mono text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100">
+                          {claim.claim_no}
+                        </button>
                       </td>
-
-                      <td className="py-3.5 px-4">
-                        <div className="font-medium text-slate-800">
-                          {claim.category?.name || 'Expense'}
+                      <td className="whitespace-nowrap px-5 py-3.5 text-slate-600">{fmtDate(claim.expense_date)}</td>
+                      <td className="px-5 py-3.5">
+                        <div className="font-semibold text-slate-800">{claim.category?.name || 'Expense'}</div>
+                        <div className="mt-0.5 flex items-center gap-1 text-xs text-slate-400">
+                          {claim.expense_type === 'Office Expense' ? <Building className="h-3 w-3" /> : <User className="h-3 w-3" />}
+                          {claim.expense_type}
                         </div>
-                        <div className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
-                          {claim.expense_type === 'Office Expense' ? (
-                            <Building className="w-3 h-3 text-slate-400" />
-                          ) : (
-                            <User className="w-3 h-3 text-slate-400" />
-                          )}
-                          <span>{claim.expense_type}</span>
-                        </div>
                       </td>
-
-                      <td className="py-3.5 px-4 max-w-xs">
-                        {claim.merchant_name && (
-                          <span className="font-medium text-slate-700 block truncate">
-                            {claim.merchant_name}
-                          </span>
-                        )}
-                        <p className="text-slate-500 truncate" title={claim.description}>
+                      <td className="max-w-[18rem] px-5 py-3.5">
+                        {claim.merchant_name && <span className="block truncate font-medium text-slate-700">{claim.merchant_name}</span>}
+                        <p className="truncate text-slate-500" title={claim.description}>
                           {claim.description}
                         </p>
                       </td>
-
-                      <td className="py-3.5 px-4 text-right font-semibold text-slate-900">
-                        ₹{claim.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      <td className="whitespace-nowrap px-5 py-3.5 text-right font-bold text-slate-900">{inr(claim.amount)}</td>
+                      <td className="px-5 py-3.5">
+                        <FlagChips claim={claim} />
                       </td>
-
-                      <td className="py-3.5 px-4 text-center">
-                        {hasFlags ? (
-                          <div className="flex items-center justify-center gap-1">
-                            {claim.is_above_limit && (
-                              <span
-                                className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800"
-                                title="Exceeds Category Limit"
-                              >
-                                Limit
-                              </span>
-                            )}
-                            {claim.is_possible_duplicate && (
-                              <span
-                                className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-800"
-                                title="Possible Duplicate"
-                              >
-                                Duplicate
-                              </span>
-                            )}
-                            {claim.is_late && (
-                              <span
-                                className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-orange-100 text-orange-800"
-                                title="Submitted Late"
-                              >
-                                Late
-                              </span>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-slate-400 text-[11px]">—</span>
-                        )}
+                      <td className="px-5 py-3.5">
+                        <ClaimStatusBadge status={claim.status} />
                       </td>
-
-                      <td className="py-3.5 px-4 text-center">
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold ${
-                            claim.status === 'DRAFT'
-                              ? 'bg-slate-100 text-slate-700'
-                              : claim.status === 'SUBMITTED'
-                              ? 'bg-amber-100 text-amber-800'
-                              : claim.status === 'APPROVED'
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : claim.status === 'REIMBURSED'
-                              ? 'bg-indigo-100 text-indigo-800'
-                              : 'bg-rose-100 text-rose-800'
-                          }`}
-                        >
-                          {claim.status === 'SUBMITTED' ? 'Under Review' : claim.status}
-                        </span>
-                      </td>
-
-                      <td className="py-3.5 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {/* View details */}
-                          <button
-                            onClick={() => setViewClaimId(claim.claim_id)}
-                            className="p-1 rounded text-slate-500 hover:text-indigo-600 hover:bg-slate-100 transition cursor-pointer"
-                            title="View details & timeline"
-                          >
-                            <History className="w-4 h-4" />
-                          </button>
-
-                          {/* Draft actions: Edit, Submit, Delete */}
-                          {claim.status === 'DRAFT' && (
-                            <>
-                              <button
-                                onClick={() => openEditModal(claim)}
-                                className="p-1 rounded text-slate-500 hover:text-blue-600 hover:bg-slate-100 transition cursor-pointer"
-                                title="Edit Draft"
-                              >
-                                <Edit2 className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => submitDraftMut.mutate(claim.claim_id)}
-                                disabled={submitDraftMut.isPending}
-                                className="p-1 rounded text-slate-500 hover:text-emerald-600 hover:bg-slate-100 transition cursor-pointer"
-                                title="Submit Claim"
-                              >
-                                <Send className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => {
-                                  if (confirm('Delete this draft claim?')) {
-                                    deleteClaimMut.mutate(claim.claim_id);
-                                  }
-                                }}
-                                className="p-1 rounded text-slate-500 hover:text-red-600 hover:bg-slate-100 transition cursor-pointer"
-                                title="Delete Draft"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </>
-                          )}
-
-                          {/* Submitted action: Withdraw */}
-                          {claim.status === 'SUBMITTED' && (
-                            <button
-                              onClick={() => {
-                                if (confirm('Withdraw this claim back to draft?')) {
-                                  withdrawMut.mutate(claim.claim_id);
-                                }
-                              }}
-                              className="px-2 py-0.5 text-[11px] font-medium rounded text-amber-700 bg-amber-50 hover:bg-amber-100 transition cursor-pointer"
-                            >
-                              Withdraw
-                            </button>
-                          )}
-
-                          {/* Rejected action: Copy to draft */}
-                          {claim.status === 'REJECTED' && (
-                            <button
-                              onClick={() => copyToDraftMut.mutate(claim.claim_id)}
-                              disabled={copyToDraftMut.isPending}
-                              className="p-1 rounded text-slate-500 hover:text-indigo-600 hover:bg-slate-100 transition cursor-pointer"
-                              title="Copy to new draft"
-                            >
-                              <Copy className="w-4 h-4" />
-                            </button>
-                          )}
+                      <td className="px-5 py-3.5 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {primaryFor(claim)}
+                          <RowActionsMenu label={`More actions for ${claim.claim_no}`} actions={menuFor(claim)} />
                         </div>
                       </td>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <Pagination page={safePage} pageSize={pageSize} total={claimsList.length} onPageChange={setPage} onPageSizeChange={setPageSize} />
+          </>
+        )}
       </div>
 
       {/* =========================================================================

@@ -592,6 +592,9 @@ model master_lookup {
   code                                                  String                         @db.VarChar(50)
   label                                                 String                         @db.VarChar(150)
   sort_order                                            Int                            @default(0)
+  parent_id                                             Int?
+  parent                                                master_lookup?                 @relation("master_lookup_parent", fields: [parent_id], references: [lookup_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_master_lookup_parent")
+  children                                              master_lookup[]                @relation("master_lookup_parent")
   is_active                                             Boolean                        @default(true)
   created_at                                            DateTime                       @default(now()) @db.Timestamptz(6)
   created_by                                            Int?
@@ -1766,6 +1769,8 @@ model crm_communications {
   what_discussed      String
   outcome             String?          @db.VarChar(100)
   attachment_url      String?
+  call_status         String?          @db.VarChar(20)
+  not_received_reason String?          @db.VarChar(150)
   created_by          Int?
   created_at          DateTime         @default(now()) @db.Timestamptz(6)
   updated_at          DateTime?        @db.Timestamptz(6)

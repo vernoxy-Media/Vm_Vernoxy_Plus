@@ -8,6 +8,9 @@ import {
 import { useCustomerTypeOptionsQuery, useIndustryOptionsQuery } from '@/features/organization/hooks/use-master-data';
 import { useEmployeesQuery } from '@/features/organization/hooks/use-organization';
 import { useAuthenticatedDownload } from '@/shared/hooks/use-authenticated-download';
+import { CursorPager } from '@/shared/ui/Pagination';
+import { RowActionsMenu } from '@/shared/ui/RowActionsMenu';
+import { useCursorPaging } from '@/features/settings/useCursorPaging';
 import { DependentSelect } from '../components/DependentSelect';
 import { LinkValue } from '../components/LinkValue';
 import { CompanyCard } from '../components/CompanyCard';
@@ -20,11 +23,50 @@ import {
   Trash2,
   Loader2,
   AlertCircle,
-  ChevronRight,
+  ChevronDown,
   Users,
   Download,
   Upload,
+  MapPin,
+  FileSpreadsheet,
+  FileText,
+  FilterX,
 } from 'lucide-react';
+
+const initials = (name: string) =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase())
+    .join('') || '?';
+
+/** Lead-ish types read amber, won customers green, anything else neutral. */
+const typeTone = (name?: string) => {
+  const n = (name ?? '').toLowerCase();
+  if (n.includes('lead') || n.includes('prospect')) return 'bg-amber-50 text-amber-700 ring-amber-100';
+  if (n.includes('client') || n.includes('customer')) return 'bg-emerald-50 text-emerald-700 ring-emerald-100';
+  return 'bg-slate-100 text-slate-600 ring-slate-200';
+};
+
+const FilterSelect: React.FC<{
+  label: string;
+  value: string | number;
+  onChange: (value: string) => void;
+  children: React.ReactNode;
+}> = ({ label, value, onChange, children }) => (
+  <label className="relative block min-w-0">
+    <span className="sr-only">{label}</span>
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="h-10 w-full cursor-pointer appearance-none truncate rounded-xl border border-slate-200 bg-white pl-3.5 pr-9 text-[13px] font-medium text-slate-700 transition hover:border-slate-300 focus:border-blue-500 focus:outline-hidden focus:ring-4 focus:ring-blue-500/10"
+    >
+      {children}
+    </select>
+    <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+  </label>
+);
 
 export const CompaniesListPage: React.FC = () => {
   const navigate = useNavigate();
@@ -34,7 +76,7 @@ export const CompaniesListPage: React.FC = () => {
   const [subIndustryId, setSubIndustryId] = useState<number | undefined>(undefined);
   const [ownerFilter, setOwnerFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<boolean | undefined>(undefined);
-  const [cursor, setCursor] = useState<string | undefined>(undefined);
+  const paging = useCursorPaging<string>();
 
   const { data: customerTypeOptions } = useCustomerTypeOptionsQuery();
   const { data: topIndustries } = useIndustryOptionsQuery();
@@ -52,8 +94,8 @@ export const CompaniesListPage: React.FC = () => {
     owner: ownerParam,
     owner_id: ownerIdParam,
     is_active: statusFilter,
-    limit: 20,
-    cursor,
+    limit: paging.limit,
+    cursor: paging.cursor,
   });
 
   const deleteMutation = useDeleteCompanyMutation();
@@ -95,99 +137,126 @@ export const CompaniesListPage: React.FC = () => {
     }
   };
 
+  const hasFilters =
+    Boolean(search) || customerTypeId !== undefined || industryId !== undefined || subIndustryId !== undefined || ownerFilter !== 'all' || statusFilter !== undefined;
+  const clearFilters = () => {
+    setSearch('');
+    setCustomerTypeId(undefined);
+    setIndustryId(undefined);
+    setSubIndustryId(undefined);
+    setOwnerFilter('all');
+    setStatusFilter(undefined);
+    paging.reset();
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="mx-auto w-full max-w-[1400px] space-y-5">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-100">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Companies</h1>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3.5">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-600/25">
+            <Building2 className="h-6 w-6" />
+          </span>
+          <div className="min-w-0">
+            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-[28px]">Companies</h1>
+            <p className="mt-0.5 text-sm text-slate-500">Leads and clients, their contacts and who owns them.</p>
+          </div>
         </div>
-        <div className="flex items-center gap-2.5">
-          {/* Export Dropdown */}
+
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Export */}
           <div className="relative">
             <button
               type="button"
               disabled={isExporting}
+              aria-haspopup="menu"
+              aria-expanded={showExportMenu}
               onClick={() => setShowExportMenu(!showExportMenu)}
-              className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-xs shrink-0 disabled:opacity-50"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-[13px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
             >
-              {isExporting ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Download className="w-3.5 h-3.5 text-slate-500" />
-              )}
+              {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 text-slate-500" />}
               Export
+              <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
             </button>
             {showExportMenu && (
-              <div
-                className="absolute right-0 mt-1 w-40 bg-white border border-slate-200 rounded-xl shadow-lg z-20 py-1 text-xs"
-                onMouseLeave={() => setShowExportMenu(false)}
-              >
-                <button
-                  type="button"
-                  onClick={() => handleExport('xlsx')}
-                  className="w-full text-left px-3 py-2 text-slate-700 hover:bg-slate-50 font-medium flex items-center gap-2"
-                >
-                  Export as Excel (.xlsx)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleExport('csv')}
-                  className="w-full text-left px-3 py-2 text-slate-700 hover:bg-slate-50 font-medium flex items-center gap-2"
-                >
-                  Export as CSV (.csv)
-                </button>
-              </div>
+              <>
+                <div className="fixed inset-0 z-30" onClick={() => setShowExportMenu(false)} aria-hidden />
+                <div role="menu" className="absolute right-0 z-40 mt-2 w-56 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10 animate-in fade-in zoom-in-95 duration-100">
+                  <button type="button" role="menuitem" onClick={() => handleExport('xlsx')} className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium text-slate-700 transition hover:bg-slate-50">
+                    <FileSpreadsheet className="h-4 w-4 text-emerald-500" />
+                    Excel (.xlsx)
+                  </button>
+                  <button type="button" role="menuitem" onClick={() => handleExport('csv')} className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium text-slate-700 transition hover:bg-slate-50">
+                    <FileText className="h-4 w-4 text-sky-500" />
+                    CSV (.csv)
+                  </button>
+                </div>
+              </>
             )}
           </div>
 
-          {/* Import Button */}
           <button
             type="button"
             onClick={() => navigate('/companies/import')}
-            className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-xs shrink-0"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-[13px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
           >
-            <Upload className="w-3.5 h-3.5 text-slate-500" />
+            <Upload className="h-4 w-4 text-slate-500" />
             Import
           </button>
 
-          {/* Add Company Button */}
           <button
             type="button"
             onClick={() => navigate('/companies/new')}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 transition-colors focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 shrink-0"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-[13px] font-semibold text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700 focus:outline-hidden focus:ring-4 focus:ring-blue-600/20 active:scale-[0.98]"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="h-4 w-4" strokeWidth={2.5} />
             Add Company
           </button>
         </div>
       </div>
 
-      {/* Filters Bar (stitched / sticky to top) */}
-      <div className="sticky top-16 lg:top-0 z-20 bg-[#f4f6fa]/95 backdrop-blur-xs py-1">
-        <div className="bg-slate-50/90 p-3 rounded-xl border border-slate-200 shadow-2xs space-y-3">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+      {/* Filters */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
-                setCursor(undefined);
+                paging.reset();
               }}
               placeholder="Search companies by name..."
-              className="w-full pl-10 pr-4 py-2 rounded-lg text-xs border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+              className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-10 pr-4 text-sm text-slate-800 placeholder:text-slate-400 transition focus:border-blue-500 focus:bg-white focus:outline-hidden focus:ring-4 focus:ring-blue-500/10"
             />
           </div>
 
-          <select
+          <div role="group" aria-label="Status" className="inline-flex self-start rounded-xl bg-slate-100 p-1 text-[13px] font-semibold sm:self-auto">
+            {([['All', undefined, 'text-blue-700'], ['Active', true, 'text-emerald-700'], ['Inactive', false, 'text-slate-800']] as const).map(([label, value, on]) => (
+              <button
+                key={label}
+                type="button"
+                onClick={() => {
+                  setStatusFilter(value);
+                  paging.reset();
+                }}
+                className={`rounded-lg px-3.5 py-1.5 transition ${statusFilter === value ? `bg-white shadow-sm ${on}` : 'text-slate-500 hover:text-slate-800'}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <FilterSelect
+            label="Customer type"
             value={customerTypeId ?? ''}
-            onChange={(e) => {
-              setCustomerTypeId(e.target.value ? Number(e.target.value) : undefined);
-              setCursor(undefined);
+            onChange={(v) => {
+              setCustomerTypeId(v ? Number(v) : undefined);
+              paging.reset();
             }}
-            className="px-3 py-2 rounded-lg text-xs border border-slate-200 bg-white font-medium"
           >
             <option value="">All Customer Types</option>
             {customerTypeOptions?.map((ct) => (
@@ -195,15 +264,15 @@ export const CompaniesListPage: React.FC = () => {
                 {ct.name}
               </option>
             ))}
-          </select>
+          </FilterSelect>
 
-          <select
+          <FilterSelect
+            label="Owner"
             value={ownerFilter}
-            onChange={(e) => {
-              setOwnerFilter(e.target.value);
-              setCursor(undefined);
+            onChange={(v) => {
+              setOwnerFilter(v);
+              paging.reset();
             }}
-            className="px-3 py-2 rounded-lg text-xs border border-slate-200 bg-white font-medium"
           >
             <option value="all">All Owners</option>
             <option value="unassigned">Unassigned</option>
@@ -212,252 +281,217 @@ export const CompaniesListPage: React.FC = () => {
                 {emp.name}
               </option>
             ))}
-          </select>
-        </div>
+          </FilterSelect>
 
-        {/* Second Row: DependentSelect (Industry -> Sub-industry) & Status */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-2 border-t border-slate-200/60">
-          <div className="flex items-center gap-2 flex-1">
-            <select
-              value={industryId ?? ''}
-              onChange={(e) => {
-                const val = e.target.value ? Number(e.target.value) : undefined;
-                setIndustryId(val);
-                setSubIndustryId(undefined);
-                setCursor(undefined);
-              }}
-              className="px-3 py-1.5 rounded-lg text-xs border border-slate-200 bg-white font-medium flex-1 sm:flex-initial"
-            >
-              <option value="">All Industries</option>
-              {topIndustries?.map((ind) => (
-                <option key={ind.id} value={ind.id}>
-                  {ind.name}
-                </option>
-              ))}
-            </select>
+          <FilterSelect
+            label="Industry"
+            value={industryId ?? ''}
+            onChange={(v) => {
+              setIndustryId(v ? Number(v) : undefined);
+              setSubIndustryId(undefined);
+              paging.reset();
+            }}
+          >
+            <option value="">All Industries</option>
+            {topIndustries?.map((ind) => (
+              <option key={ind.id} value={ind.id}>
+                {ind.name}
+              </option>
+            ))}
+          </FilterSelect>
 
-            <div className="flex-1 sm:w-48">
-              <DependentSelect
-                id="filter-sub-industry"
-                parentId={industryId}
-                value={subIndustryId}
-                onChange={(val) => {
-                  setSubIndustryId(val ? Number(val) : undefined);
-                  setCursor(undefined);
-                }}
-                fetchOptions={async (pid: number | string) => {
-                  const json = await customFetch<IndustryOptionDto[]>(`/api/v1/industries/options?parent_id=${pid}`);
-                  return json.map((x) => ({ value: x.id, label: x.name }));
-                }}
-                placeholder="Sub-industry"
-                noParentMessage="Select industry first"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1 p-1 bg-white rounded-lg border border-slate-200 text-xs font-medium self-start sm:self-auto">
-            <button
-              type="button"
-              onClick={() => {
-                setStatusFilter(undefined);
-                setCursor(undefined);
+          <div className="[&_select]:h-10 [&_select]:rounded-xl [&_select]:border-slate-200 [&_select]:py-0 [&_select]:text-[13px] [&_select]:font-medium [&_select]:shadow-none">
+            <DependentSelect
+              id="filter-sub-industry"
+              parentId={industryId}
+              value={subIndustryId}
+              onChange={(val) => {
+                setSubIndustryId(val ? Number(val) : undefined);
+                paging.reset();
               }}
-              className={`px-2.5 py-1 rounded-md transition-all ${
-                statusFilter === undefined ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-600'
-              }`}
-            >
-              All
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setStatusFilter(true);
-                setCursor(undefined);
+              fetchOptions={async (pid: number | string) => {
+                const json = await customFetch<IndustryOptionDto[]>(`/api/v1/industries/options?parent_id=${pid}`);
+                return json.map((x) => ({ value: x.id, label: x.name }));
               }}
-              className={`px-2.5 py-1 rounded-md transition-all ${
-                statusFilter === true ? 'bg-emerald-50 text-emerald-700 font-semibold' : 'text-slate-600'
-              }`}
-            >
-              Active
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setStatusFilter(false);
-                setCursor(undefined);
-              }}
-              className={`px-2.5 py-1 rounded-md transition-all ${
-                statusFilter === false ? 'bg-slate-100 text-slate-900 font-semibold' : 'text-slate-600'
-              }`}
-            >
-              Inactive
-            </button>
+              placeholder="Sub-industry"
+              noParentMessage="Select industry first"
+            />
           </div>
         </div>
+
+        {hasFilters && (
+          <div className="mt-3 flex justify-end">
+            <button type="button" onClick={clearFilters} className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-800">
+              <FilterX className="h-3.5 w-3.5" />
+              Clear filters
+            </button>
+          </div>
+        )}
       </div>
-    </div>
 
-      {/* Content Area */}
+      {/* Content */}
       {isLoading ? (
-        <div className="py-20 flex flex-col items-center justify-center gap-3 bg-white rounded-2xl border border-slate-200">
-          <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-          <p className="text-xs text-slate-500 font-medium">Loading companies...</p>
+        <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white py-24">
+          <Loader2 className="h-7 w-7 animate-spin text-blue-600" />
+          <p className="text-sm font-medium text-slate-500">Loading companies...</p>
         </div>
       ) : error ? (
-        <div className="py-12 text-center text-rose-600 bg-white rounded-2xl border border-slate-200 px-4">
-          <AlertCircle className="w-8 h-8 mx-auto mb-2 text-rose-500" />
-          <p className="font-semibold text-xs">Failed to load companies</p>
-          <p className="text-xs text-slate-500 mt-1">{(error as any)?.message || 'Unknown error'}</p>
+        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-14 text-center">
+          <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-50 text-rose-500">
+            <AlertCircle className="h-6 w-6" />
+          </span>
+          <p className="text-sm font-semibold text-slate-800">Failed to load companies</p>
+          <p className="mt-1 text-sm text-slate-500">{(error as any)?.message || 'Unknown error'}</p>
         </div>
       ) : data?.items?.length === 0 ? (
-        <div className="py-16 text-center bg-white rounded-2xl border border-slate-200 px-4">
-          <Building2 className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-          <h3 className="text-sm font-semibold text-slate-800">No companies found</h3>
-          <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-            {search
-              ? `No companies match "${search}". Try adjusting your filters.`
-              : 'Get started by creating your first company record.'}
+        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-16 text-center">
+          <span className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50 text-slate-300 ring-1 ring-slate-100">
+            <Building2 className="h-7 w-7" />
+          </span>
+          <h3 className="text-base font-semibold text-slate-800">No companies found</h3>
+          <p className="mx-auto mt-1 max-w-sm text-sm text-slate-500">
+            {hasFilters ? 'Nothing matches these filters. Try changing or clearing them.' : 'Get started by creating your first company record.'}
           </p>
+          <div className="mt-5">
+            {hasFilters ? (
+              <button type="button" onClick={clearFilters} className="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
+                <FilterX className="h-4 w-4" /> Clear filters
+              </button>
+            ) : (
+              <button type="button" onClick={() => navigate('/companies/new')} className="inline-flex h-9 items-center gap-2 rounded-xl bg-blue-600 px-4 text-[13px] font-semibold text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700">
+                <Plus className="h-4 w-4" /> Add Company
+              </button>
+            )}
+          </div>
         </div>
       ) : (
-        <>
-          {/* Mobile View: Stacked Cards (<640px) */}
-          <div className="sm:hidden space-y-3 overflow-y-auto max-h-[calc(100vh-280px)] pr-1">
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          {/* Mobile: stacked cards */}
+          <div className="space-y-3 p-3 sm:hidden">
             {data?.items.map((c) => (
               <CompanyCard key={c.company_id} company={c} onDelete={handleDelete} />
             ))}
           </div>
 
-          {/* Desktop View: Full Data Table (>=640px) */}
-          <div className="hidden sm:block rounded-xl border border-slate-200 overflow-hidden bg-white shadow-2xs">
-            <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-340px)] min-h-[380px]">
-              <table className="w-full text-left text-sm relative" id="companies-table">
-                <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider shadow-2xs">
-                  <tr>
-                    <th className="py-3 px-5">Company</th>
-                    <th className="py-3 px-5">Type</th>
-                    <th className="py-3 px-5">Industry</th>
-                    <th className="py-3 px-5">Primary Contact Info</th>
-                    <th className="py-3 px-5">Contacts</th>
-                    <th className="py-3 px-5">Owner</th>
-                    <th className="py-3 px-5">Status</th>
-                    <th className="py-3 px-5 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {data?.items.map((company) => (
-                    <tr
-                      key={company.company_id}
-                      id={`company-row-${company.company_id}`}
-                      className="hover:bg-slate-50/60 transition-colors"
-                    >
-                      <td className="py-3.5 px-5">
-                        <Link
-                          to={`/companies/${company.company_id}`}
-                          className="font-semibold text-slate-900 hover:text-blue-600 transition-colors block"
-                        >
-                          {company.name}
-                        </Link>
-                        <span className="text-xs text-slate-400">
-                          {[company.city, company.state].filter(Boolean).join(', ') || '—'}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-5 font-medium text-slate-700">
-                        {company.customer_type?.name}
-                      </td>
-                      <td className="py-3.5 px-5 text-slate-600">
-                        <div>{company.industry?.name}</div>
-                        {company.sub_industry && (
-                          <div className="text-xs text-slate-400">↳ {company.sub_industry.name}</div>
-                        )}
-                      </td>
-                      <td className="py-3.5 px-5 text-slate-600 space-y-1">
-                        {company.primary_email && (
-                          <div>
-                            <LinkValue type="email" value={company.primary_email} className="text-xs" />
+          {/* Desktop: table */}
+          <div className="hidden max-h-[calc(100vh-430px)] min-h-[360px] overflow-auto sm:block">
+            <table className="relative w-full min-w-[980px] text-left text-sm" id="companies-table">
+              <thead className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur-xs">
+                <tr className="border-b border-slate-200 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+                  <th className="whitespace-nowrap px-5 py-3">Company</th>
+                  <th className="whitespace-nowrap px-5 py-3">Type</th>
+                  <th className="whitespace-nowrap px-5 py-3">Industry</th>
+                  <th className="whitespace-nowrap px-5 py-3">Primary Contact</th>
+                  <th className="whitespace-nowrap px-5 py-3">Contacts</th>
+                  <th className="whitespace-nowrap px-5 py-3">Owner</th>
+                  <th className="whitespace-nowrap px-5 py-3">Status</th>
+                  <th className="w-px whitespace-nowrap px-5 py-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {data?.items.map((company) => {
+                  const place = [company.city, company.state].filter(Boolean).join(', ');
+                  const industry = company.industry?.name;
+                  return (
+                    <tr key={company.company_id} id={`company-row-${company.company_id}`} className="transition-colors hover:bg-blue-50/30">
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-3">
+                          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 text-[13px] font-bold text-blue-600 ring-1 ring-blue-100">
+                            {initials(company.name)}
+                          </span>
+                          <div className="min-w-0">
+                            <Link to={`/companies/${company.company_id}`} className="block truncate font-semibold text-slate-900 transition-colors hover:text-blue-600">
+                              {company.name}
+                            </Link>
+                            {place && (
+                              <span className="mt-0.5 flex items-center gap-1 text-xs text-slate-400">
+                                <MapPin className="h-3 w-3 shrink-0" />
+                                <span className="truncate">{place}</span>
+                              </span>
+                            )}
                           </div>
-                        )}
-                        {company.primary_phone && (
-                          <div>
-                            <LinkValue type="phone" value={company.primary_phone} className="text-xs" />
-                          </div>
-                        )}
-                        {!company.primary_email && !company.primary_phone && (
-                          <span className="text-slate-300 italic">None</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        {company.customer_type?.name ? (
+                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ${typeTone(company.customer_type.name)}`}>{company.customer_type.name}</span>
+                        ) : (
+                          <span className="text-slate-300">—</span>
                         )}
                       </td>
-                      <td className="py-3.5 px-5">
-                        <span className="inline-flex items-center gap-1 font-mono text-slate-700">
-                          <Users className="w-3.5 h-3.5 text-slate-400" />
+                      <td className="px-5 py-3.5">
+                        <div className={industry && industry !== 'Unclassified' ? 'font-medium text-slate-700' : 'text-slate-400'}>{industry || '—'}</div>
+                        {company.sub_industry && <div className="mt-0.5 text-xs text-slate-400">↳ {company.sub_industry.name}</div>}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        {company.primary_email || company.primary_phone ? (
+                          <div className="space-y-0.5">
+                            {company.primary_email && <LinkValue type="email" value={company.primary_email} className="block text-[13px]" />}
+                            {company.primary_phone && <LinkValue type="phone" value={company.primary_phone} className="block text-[13px]" />}
+                          </div>
+                        ) : (
+                          <span className="text-slate-300">No contact info</span>
+                        )}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                          <Users className="h-3.5 w-3.5 text-slate-400" />
                           {company.contact_count}
                         </span>
                       </td>
-                      <td className="py-3.5 px-5 text-slate-700 font-medium">
-                        {company.owner?.name || <span className="text-slate-400 italic">Unassigned</span>}
+                      <td className="px-5 py-3.5">
+                        {company.owner?.name ? (
+                          <div className="flex items-center gap-2">
+                            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[11px] font-bold text-indigo-600">{initials(company.owner.name)}</span>
+                            <span className="truncate font-medium text-slate-700">{company.owner.name}</span>
+                          </div>
+                        ) : (
+                          <span className="inline-flex items-center rounded-full border border-dashed border-slate-300 px-2.5 py-0.5 text-xs font-medium text-slate-400">Unassigned</span>
+                        )}
                       </td>
-                      <td className="py-3.5 px-5">
+                      <td className="px-5 py-3.5">
                         <span
-                          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${
-                            company.is_active
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60'
-                              : 'bg-slate-100 text-slate-600 border border-slate-200/60'
+                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ${
+                            company.is_active ? 'bg-emerald-50 text-emerald-700 ring-emerald-100' : 'bg-slate-100 text-slate-600 ring-slate-200'
                           }`}
                         >
-                          <span
-                            className={`w-1.5 h-1.5 rounded-full ${
-                              company.is_active ? 'bg-emerald-500' : 'bg-slate-400'
-                            }`}
-                          />
+                          <span className={`h-1.5 w-1.5 rounded-full ${company.is_active ? 'bg-emerald-500' : 'bg-slate-400'}`} />
                           {company.is_active ? 'Active' : 'Inactive'}
                         </span>
                       </td>
-                      <td className="py-3.5 px-5 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Link
-                            to={`/companies/${company.company_id}`}
-                            className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="View Details"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                          </Link>
-                          <Link
-                            to={`/companies/${company.company_id}/edit`}
-                            className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="Edit Company"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </Link>
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(company)}
-                            className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                            title="Delete Company"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                      <td className="px-5 py-3.5 text-right">
+                        <div className="flex items-center justify-end">
+                          <RowActionsMenu
+                            id={`company-actions-${company.company_id}`}
+                            label={`Actions for ${company.name}`}
+                            actions={[
+                              { label: 'View details', icon: Eye, onClick: () => navigate(`/companies/${company.company_id}`) },
+                              { label: 'Edit company', icon: Edit2, onClick: () => navigate(`/companies/${company.company_id}/edit`) },
+                              { label: 'Delete company', icon: Trash2, danger: true, onClick: () => handleDelete(company) },
+                            ]}
+                          />
                         </div>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Pagination */}
-            {data?.next_cursor && (
-              <div className="p-3 border-t border-slate-200 bg-slate-50/50 flex items-center justify-end">
-                <button
-                  type="button"
-                  onClick={() => setCursor(data.next_cursor || undefined)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-slate-200 text-slate-700 shadow-xs hover:bg-slate-100 transition-colors"
-                >
-                  Next Page
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            )}
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-        </>
+
+          {(
+            <CursorPager
+              page={paging.page}
+              shown={data?.items.length ?? 0}
+              hasPrev={paging.hasPrev}
+              hasNext={Boolean(data?.next_cursor)}
+              onPrev={paging.prev}
+              onNext={() => paging.next(data?.next_cursor)}
+              pageSize={paging.limit}
+              onPageSizeChange={paging.setLimit}
+            />
+          )}
+        </div>
       )}
     </div>
   );

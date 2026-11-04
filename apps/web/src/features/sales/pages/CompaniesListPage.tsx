@@ -40,8 +40,20 @@ import type {
   SalesCompanyLeadFilter,
   SalesCompanyControllerListParams,
 } from '../types/sales.types';
+import { usePersistentState } from '../hooks/usePersistentState';
 
-export const CompaniesListPage: React.FC = () => {
+export interface CompaniesListPageProps {
+  /** Start on this filter (the Clients menu opens the list on "client"). */
+  initialLead?: SalesCompanyLeadFilter;
+  title?: string;
+  subtitle?: string;
+}
+
+export const CompaniesListPage: React.FC<CompaniesListPageProps> = ({
+  initialLead = 'all',
+  title = 'Company Database',
+  subtitle = 'Target companies, their profiles, and the ones ready to become leads.',
+}) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { canImport, canExport } = useSalesRights();
@@ -57,14 +69,17 @@ export const CompaniesListPage: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   // Lead status filter (from counters or drawer)
-  const [leadStatusFilter, setLeadStatusFilter] = useState<SalesCompanyLeadFilter>('all');
+  const [leadStatusFilter, setLeadStatusFilter] = useState<SalesCompanyLeadFilter>(initialLead);
 
   // Filter drawer state
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [filters, setFilters] = useState<SalesCompanyControllerListParams>({});
+  const [filters, setFilters] = usePersistentState<SalesCompanyControllerListParams>(`companies:${initialLead}:filters`, {});
 
   // Selection for bulk export
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+
+  // Table or cards (remembered); the card grid is used on every screen size when chosen
+  const [view, setView] = usePersistentState<'table' | 'cards'>('companies:view', 'table');
 
   // Modals state
   const [exportModalOpen, setExportModalOpen] = useState(false);
@@ -187,8 +202,8 @@ export const CompaniesListPage: React.FC = () => {
       {/* Top Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-gray-900 sm:text-2xl">Companies</h1>
-          <p className="mt-0.5 hidden text-sm text-gray-500 2xl:block">Target companies, their profiles, and the ones ready to become leads.</p>
+          <h1 className="text-xl font-bold tracking-tight text-gray-900 sm:text-2xl">{title}</h1>
+          <p className="mt-0.5 hidden text-sm text-gray-500 2xl:block">{subtitle}</p>
         </div>
 
         <div className="flex w-full items-center gap-2 sm:w-auto">
@@ -262,6 +277,8 @@ export const CompaniesListPage: React.FC = () => {
         onClearSelection={() => setSelectedIds([])}
         onExportSelected={() => setExportModalOpen(true)}
         canExport={canExport}
+        view={view}
+        onViewChange={setView}
       />
 
       {/* Main Content Area */}
@@ -323,9 +340,30 @@ export const CompaniesListPage: React.FC = () => {
           }
         />
       ) : (
-        <div className="lg:overflow-hidden lg:rounded-2xl lg:border lg:border-gray-200/80 lg:bg-white lg:shadow-2xs">
+        <div className={view === 'table' ? 'lg:overflow-hidden lg:rounded-2xl lg:border lg:border-gray-200/80 lg:bg-white lg:shadow-2xs' : ''}>
+          {/* Card grid: 1 column on phones up to 4 on wide screens */}
+          {view === 'cards' && (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+              {companies.map((company) => (
+                <CompanyRow
+                  variant="grid"
+                  key={company.company_id}
+                  company={company}
+                  isSelected={selectedIds.includes(company.company_id)}
+                  onToggleSelect={handleToggleSelect}
+                  onConvertToLead={(c) => setConvertToLeadTarget(c)}
+                  onDelete={(c) => {
+                    setDeleteTarget(c);
+                    setDeleteErrorMessage(null);
+                    setDeleteBlockers([]);
+                  }}
+                />
+              ))}
+            </div>
+          )}
+
           {/* Desktop Table View (Hidden on mobile) */}
-          <div className="hidden lg:block overflow-x-auto">
+          <div className={`${view === 'table' ? 'hidden lg:block' : 'hidden'} overflow-x-auto`}>
             <table className="w-full border-collapse text-left">
               <thead>
                 <tr className="border-b border-slate-200/80 bg-slate-50/80 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
@@ -368,7 +406,7 @@ export const CompaniesListPage: React.FC = () => {
           </div>
 
           {/* Mobile & Tablet Stacked Card View (Hidden on desktop) */}
-          <div className="space-y-3 lg:hidden">
+          <div className={`space-y-3 lg:hidden ${view === 'cards' ? '!hidden' : ''}`}>
             {companies.map((company) => (
               <CompanyRow variant="card"
                 key={company.company_id}
@@ -386,7 +424,7 @@ export const CompaniesListPage: React.FC = () => {
           </div>
 
           {/* Pagination */}
-          <div className="px-1 py-3 lg:border-t lg:border-gray-200 lg:px-4">
+          <div className={`px-1 py-3 ${view === 'table' ? 'lg:border-t lg:border-gray-200 lg:px-4' : 'mt-2'}`}>
             <Pagination
               currentPage={page}
               totalPages={totalPages}

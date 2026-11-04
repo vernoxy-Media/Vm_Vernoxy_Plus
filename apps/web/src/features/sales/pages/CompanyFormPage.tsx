@@ -113,6 +113,8 @@ export const CompanyFormPage: React.FC = () => {
       designation: [],
       gidc_names: [],
       gidc_areas: [],
+      gidc_area_map: {},
+      gidc_common_areas: [],
       website_quality: [],
       lead_source: [],
       service_fit: [],
@@ -145,6 +147,7 @@ export const CompanyFormPage: React.FC = () => {
     watch,
     reset,
     setError,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<CompanyFormValues>({
     resolver: zodResolver(companyFormSchema),
@@ -237,6 +240,15 @@ export const CompanyFormPage: React.FC = () => {
   const watchMobile = watch('contact_mobile');
   const watchEmail = watch('contact_email');
   const watchIsGidc = watch('is_gidc');
+  const watchGidcName = watch('gidc_name');
+  // The areas of the chosen GIDC, plus the ones that apply to every GIDC. With no GIDC named yet, every area.
+  const areaOptions = React.useMemo(() => {
+    const map = masters.gidc_area_map ?? {};
+    const common = masters.gidc_common_areas ?? [];
+    const chosen = (watchGidcName ?? '').trim();
+    if (!chosen) return masters.gidc_areas ?? [];
+    return [...(map[chosen] ?? []), ...common.filter((a) => !(map[chosen] ?? []).includes(a))];
+  }, [masters, watchGidcName]);
 
   const debouncedName = useDebounce(watchName, 400);
   const debouncedCity = useDebounce(watchCity, 400);
@@ -793,7 +805,7 @@ export const CompanyFormPage: React.FC = () => {
                 </label>
                 <input
                   type="text"
-                  {...register('gidc_name')}
+                  {...register('gidc_name', { onChange: () => setValue('gidc_area_phase', '') })}
               aria-invalid={errors.gidc_name ? true : undefined}
                   placeholder="e.g. Vatva, Sanand, Naroda, Makarpura"
                   list="gidc-names-list"
@@ -826,7 +838,7 @@ export const CompanyFormPage: React.FC = () => {
                   }`}
                 />
                 <datalist id="gidc-areas-list">
-                  {masters.gidc_areas?.map((area) => (
+                  {areaOptions.map((area) => (
                     <option key={area} value={area} />
                   ))}
                 </datalist>

@@ -33,18 +33,18 @@ export const ExpensesPage: React.FC = () => {
     <div className="space-y-6">
       {/* Navigation Tabs (Single Expenses Hub - matching Tasks, Complaints & Leave) */}
       {isAdmin && (
-        <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+        <div className="flex max-w-full gap-1.5 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:inline-flex">
           <button
             type="button"
             id="tab-my-expenses"
             onClick={() => handleTabChange('my-expenses')}
-            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition cursor-pointer ${
+            className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-[13.5px] font-semibold transition-all duration-200 cursor-pointer ${
               activeTab === 'my-expenses'
-                ? 'bg-slate-900 text-white shadow-xs dark:bg-slate-100 dark:text-slate-900'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200'
+                ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/30'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
             }`}
           >
-            <Receipt className="w-4 h-4 text-blue-500" />
+            <Receipt className={`h-4 w-4 ${activeTab === 'my-expenses' ? 'text-white' : 'text-blue-500'}`} />
             <span>My Expenses</span>
           </button>
 
@@ -52,13 +52,13 @@ export const ExpensesPage: React.FC = () => {
             type="button"
             id="tab-expense-claims"
             onClick={() => handleTabChange('claims')}
-            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition cursor-pointer ${
+            className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-[13.5px] font-semibold transition-all duration-200 cursor-pointer ${
               activeTab === 'claims'
-                ? 'bg-slate-900 text-white shadow-xs dark:bg-slate-100 dark:text-slate-900'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200'
+                ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/30'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
             }`}
           >
-            <CheckCircle2 className="w-4 h-4 text-purple-500" />
+            <CheckCircle2 className={`h-4 w-4 ${activeTab === 'claims' ? 'text-white' : 'text-purple-500'}`} />
             <span>Expense Claims</span>
           </button>
 
@@ -66,13 +66,13 @@ export const ExpensesPage: React.FC = () => {
             type="button"
             id="tab-expense-reports"
             onClick={() => handleTabChange('reports')}
-            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition cursor-pointer ${
+            className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-[13.5px] font-semibold transition-all duration-200 cursor-pointer ${
               activeTab === 'reports'
-                ? 'bg-slate-900 text-white shadow-xs dark:bg-slate-100 dark:text-slate-900'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200'
+                ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/30'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
             }`}
           >
-            <BarChart3 className="w-4 h-4 text-emerald-500" />
+            <BarChart3 className={`h-4 w-4 ${activeTab === 'reports' ? 'text-white' : 'text-emerald-500'}`} />
             <span>Expense Reports</span>
           </button>
         </div>

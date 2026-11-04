@@ -26,6 +26,16 @@ export const ALLOWED_LOOKUP_TYPES = [
   'addition_category',
   'deduction_category',
   'day_adjustment_reason',
+  // Sales CRM masters kept by the Admin
+  'service_fit',
+  'designation',
+  'nature_of_business',
+  'gidc_name',
+  'gidc_phase',
+  'city',
+  'state',
+  'country',
+  'call_not_received_reason',
 ];
 
 export class ListLookupsUseCase {

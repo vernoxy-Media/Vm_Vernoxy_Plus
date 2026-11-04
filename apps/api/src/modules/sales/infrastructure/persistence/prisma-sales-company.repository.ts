@@ -509,7 +509,14 @@ export class PrismaSalesCompanyRepository implements SalesCompanyRepositoryPort 
       return rows.map((r) => r[field]).filter((v): v is string => !!v);
     };
 
-    const [industries, nature, designation, gidcNames, gidcAreas, quality, source, fit, states, countries, cities] =
+    /** Admin-kept values first, then anything already typed on a company, each only once. */
+    const merged = async (type: string, field: 'city' | 'state' | 'country'): Promise<string[]> => {
+      const [fromMaster, fromCompanies] = await Promise.all([lookup(type), distinct(field)]);
+      const extras = fromCompanies.filter((v) => !fromMaster.includes(v));
+      return [...fromMaster, ...extras];
+    };
+
+    const [industries, nature, designation, gidcNames, areaRows, quality, source, fit, states, countries, cities] =
       await Promise.all([
         this.prisma.industries.findMany({
           where: { deleted_at: null, is_active: true },
@@ -519,14 +526,29 @@ export class PrismaSalesCompanyRepository implements SalesCompanyRepositoryPort 
         lookup('nature_of_business'),
         lookup('designation'),
         lookup('gidc_name'),
-        lookup('gidc_phase'),
+        this.prisma.master_lookup.findMany({
+          where: { lookup_type: 'gidc_phase', deleted_at: null, is_active: true },
+          orderBy: [{ sort_order: 'asc' }, { label: 'asc' }],
+          select: { label: true, parent: { select: { label: true } } },
+        }),
         lookup('website_quality'),
         lookup('lead_source'),
         lookup('service_fit'),
-        distinct('state'),
-        distinct('country'),
-        distinct('city'),
+        merged('state', 'state'),
+        merged('country', 'country'),
+        merged('city', 'city'),
       ]);
+
+    const gidcAreas = areaRows.map((r) => r.label).filter((label, i, all) => all.indexOf(label) === i);
+    const gidcAreaMap: Record<string, string[]> = {};
+    const gidcCommonAreas: string[] = [];
+    for (const r of areaRows) {
+      if (!r.parent) {
+        if (!gidcCommonAreas.includes(r.label)) gidcCommonAreas.push(r.label);
+        continue;
+      }
+      (gidcAreaMap[r.parent.label] ??= []).push(r.label);
+    }
 
     return {
       industries: industries.map((i) => ({ id: i.industry_id, name: i.name, parent_id: i.parent_id })),
@@ -534,6 +556,8 @@ export class PrismaSalesCompanyRepository implements SalesCompanyRepositoryPort 
       designation,
       gidc_names: gidcNames,
       gidc_areas: gidcAreas,
+      gidc_area_map: gidcAreaMap,
+      gidc_common_areas: gidcCommonAreas,
       website_quality: quality,
       lead_source: source,
       service_fit: fit,

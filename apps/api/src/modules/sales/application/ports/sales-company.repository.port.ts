@@ -133,7 +133,12 @@ export interface SalesMasters {
   nature_of_business: string[];
   designation: string[];
   gidc_names: string[];
+  /** Every area, whichever GIDC it belongs to. */
   gidc_areas: string[];
+  /** GIDC name -> the areas that belong to it. */
+  gidc_area_map: Record<string, string[]>;
+  /** Areas that are not tied to one GIDC; they are offered for every GIDC. */
+  gidc_common_areas: string[];
   website_quality: string[];
   lead_source: string[];
   service_fit: string[];

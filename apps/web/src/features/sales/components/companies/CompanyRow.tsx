@@ -11,7 +11,7 @@ export interface CompanyRowProps {
   company: SalesCompanyListItem;
   isSelected: boolean;
   /** "table" renders the <tr> for the desktop table, "card" the stacked card for small screens. */
-  variant?: 'table' | 'card';
+  variant?: 'table' | 'card' | 'grid';
   onToggleSelect: (id: number) => void;
   onConvertToLead: (company: SalesCompanyListItem) => void;
   onDelete: (company: SalesCompanyListItem) => void;
@@ -153,6 +153,55 @@ export const CompanyRow: React.FC<CompanyRowProps> = ({
             </div>
           </td>
         </tr>
+      )}
+      {variant === 'grid' && (
+        <div
+          className={`group flex h-full flex-col overflow-hidden rounded-2xl border bg-white transition-all hover:-translate-y-0.5 hover:shadow-md ${
+            isSelected ? 'border-blue-400 ring-2 ring-blue-100' : 'border-slate-200/80 shadow-2xs'
+          }`}
+        >
+          <div className="flex items-start gap-3 p-4">
+            <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white shadow-2xs ${avatarColor}`}>{initials}</div>
+            <div className="min-w-0 flex-1">
+              <Link to={`/sales/companies/${company.company_id}`} className="block truncate text-[15px] font-semibold leading-tight text-slate-900 hover:text-blue-600" title={company.name}>
+                {company.name}
+              </Link>
+              <span className="mt-1 inline-block whitespace-nowrap rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-slate-500">
+                {company.company_code ?? `COM-${company.company_id}`}
+              </span>
+            </div>
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={() => onToggleSelect(company.company_id)}
+              aria-label={`Select ${company.name}`}
+              className="mt-1 h-4 w-4 shrink-0 cursor-pointer rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+            />
+            <ActionMenu items={menuItems} label={`Actions for ${company.name}`} />
+          </div>
+
+          <div className="flex flex-1 flex-col gap-2 px-4 pb-4 text-sm text-slate-600">
+            <span className="flex items-center gap-2">
+              <MapPin className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+              <span className="truncate">{company.city ?? '—'}</span>
+            </span>
+            <span className="flex items-center gap-2">
+              <User className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+              <span className="truncate">{company.contact_person ?? '—'}</span>
+            </span>
+            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+              {company.industry && <span className="max-w-full truncate rounded-lg bg-slate-100/80 px-2 py-1 text-xs font-medium text-slate-700">{company.industry}</span>}
+              <WebsiteQualityBadge quality={company.website_quality} />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/60 px-4 py-2.5">
+            {renderLeadTag()}
+            <Link to={`/sales/companies/${company.company_id}`} className="text-xs font-semibold text-slate-500 transition hover:text-blue-600">
+              View
+            </Link>
+          </div>
+        </div>
       )}
       {variant === 'card' && (
         <>

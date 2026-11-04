@@ -35,6 +35,16 @@ export const ALLOWED_LOOKUP_TYPES = [
   'addition_category',
   'deduction_category',
   'day_adjustment_reason',
+  // Sales CRM masters kept by the Admin
+  'service_fit',
+  'designation',
+  'nature_of_business',
+  'gidc_name',
+  'gidc_phase',
+  'city',
+  'state',
+  'country',
+  'call_not_received_reason',
 ];
 
 export class LookupOptionsQueryDto {
@@ -57,6 +67,9 @@ export class LookupOptionDto {
 
   @ApiProperty({ type: String, example: 'Engineering' })
   label!: string;
+
+  @ApiPropertyOptional({ type: Number, nullable: true, description: 'The row this one belongs to, such as the GIDC of an area' })
+  parent_id?: number | null;
 }
 
 // ---- Full Lookup Item DTO (for CRUD management) ----
@@ -82,6 +95,12 @@ export class MasterLookupItemDto {
 
   @ApiProperty({ type: String, example: '2024-01-01T00:00:00.000Z' })
   created_at!: string;
+
+  @ApiPropertyOptional({ type: Number, nullable: true })
+  parent_id?: number | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  parent_label?: string | null;
 }
 
 // ---- List Query ----
@@ -124,6 +143,13 @@ export class CreateLookupDto {
   @Transform(({ value }) => value === true || value === 'true')
   @IsBoolean()
   is_active?: boolean;
+
+  @ApiPropertyOptional({ type: Number, nullable: true, description: 'Parent row. Only a GIDC Area / Phase has one (a GIDC Name)' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  parent_id?: number | null;
 }
 
 // ---- Update DTO ----
@@ -153,4 +179,11 @@ export class UpdateLookupDto {
   @Transform(({ value }) => value === true || value === 'true')
   @IsBoolean()
   is_active?: boolean;
+
+  @ApiPropertyOptional({ type: Number, nullable: true, description: 'Parent row. Only a GIDC Area / Phase has one (a GIDC Name)' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  parent_id?: number | null;
 }

@@ -64,7 +64,7 @@ export class FollowUpJobs {
       if (claimed.length === 0) return;
       await this.notifier.send(
         claimed.map((f) => {
-          const m = messages.reminder({ company_name: f.company_name, type: f.type, at: f.follow_up_on, contact_name: f.contact_name });
+          const m = messages.reminder({ company_name: f.company_name, type: f.type, at: f.follow_up_on, contact_name: f.contact_name }, now);
           return { recipient_emp_id: f.assigned_to, kind: 'follow_up_reminder', title: m.title, body: m.body, entity_type: 'FOLLOW_UP' as const, entity_id: f.follow_up_id };
         }),
       );

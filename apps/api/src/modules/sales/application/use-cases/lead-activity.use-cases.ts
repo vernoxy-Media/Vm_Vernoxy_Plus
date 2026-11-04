@@ -19,10 +19,11 @@ import {
 } from '../../domain/errors/sales.errors';
 import {
   CONVERSATION_TYPES,
+  isNotReceivedCall,
   validateConversation,
   validateNote,
 } from '../../domain/services/activity-validator.service';
-import { canEditEntry } from '../../domain/services/lead-workflow.service';
+import { canEditEntry, resolveAssignee } from '../../domain/services/lead-workflow.service';
 import { cleanText } from '../../domain/services/sales-normalization.service';
 import { MSG } from '../../domain/services/company-validator.service';
 
@@ -35,6 +36,10 @@ export interface ConversationInput {
   communication_date?: Date | null;
   what_discussed?: string | null;
   outcome?: string | null;
+  /** Calls only: Received or Not received. */
+  call_status?: string | null;
+  /** Calls that were not received: the reason, from the Admin's list. */
+  not_received_reason?: string | null;
   /** The "Schedule next follow-up" part of the popup; saved together with the conversation. */
   next_follow_up?: { follow_up_on?: Date | null; type?: string | null; assigned_to?: number | null; purpose?: string | null } | null;
 }
@@ -72,7 +77,7 @@ export class LeadActivityUseCases {
   }
 
   /** Quick log on Lead Details: a conversation with the primary contact, outcome left empty. */
-  async quickLog(leadId: number, input: { type: string; text: string }, actor: SalesActor, now = new Date()): Promise<{ kind: 'conversation'; result: LogResult } | { kind: 'note'; note: WithEditable<NoteRecord> }> {
+  async quickLog(leadId: number, input: { type: string; text?: string; call_status?: string | null; not_received_reason?: string | null }, actor: SalesActor, now = new Date()): Promise<{ kind: 'conversation'; result: LogResult } | { kind: 'note'; note: WithEditable<NoteRecord> }> {
     const lead = assertLeadFound(await this.repo.getLeadForWork(leadId));
     assertCanWork(lead, actor);
     assertNotLocked(lead);
@@ -87,7 +92,7 @@ export class LeadActivityUseCases {
     const result = await this.log(
       lead.company_id,
       lead.lead_id,
-      { type: input.type, contact_id: contactId, what_discussed: text, communication_date: now },
+      { type: input.type, contact_id: contactId, what_discussed: text, communication_date: now, call_status: input.call_status, not_received_reason: input.not_received_reason },
       actor,
       now,
       { requireOutcome: false },
@@ -128,8 +133,19 @@ export class LeadActivityUseCases {
       communication_date: input.communication_date ?? now,
       what_discussed: cleanText(input.what_discussed),
       outcome: cleanText(input.outcome),
+      call_status: cleanText(input.call_status),
+      not_received_reason: cleanText(input.not_received_reason),
     };
     const errors: FieldError[] = validateConversation(fields, now, opts);
+
+    // A call nobody picked up: the reason must be on the Admin's list. It is saved as the text of the entry.
+    const notReceived = isNotReceivedCall(fields);
+    let reasonLabel: string | null = null;
+    if (notReceived && fields.not_received_reason && !errors.some((e) => e.field === 'not_received_reason')) {
+      const hit = await this.repo.resolveCallNotReceivedReason(fields.not_received_reason);
+      if (!hit) errors.push({ field: 'not_received_reason', message: 'Choose a reason from the list.' });
+      else reasonLabel = hit.label;
+    }
 
     if (fields.contact_id !== null && !errors.some((e) => e.field === 'contact_id')) {
       if (!(await this.repo.isActiveContactOfCompany(companyId, fields.contact_id))) {
@@ -146,8 +162,13 @@ export class LeadActivityUseCases {
       contact_id: fields.contact_id as number,
       type: fields.type as string,
       communication_date: fields.communication_date,
-      what_discussed: fields.what_discussed as string,
-      outcome: fields.outcome,
+      what_discussed: notReceived
+        ? `Call not received: ${reasonLabel}${fields.what_discussed ? `. ${fields.what_discussed}` : ''}`
+        : (fields.what_discussed as string),
+      outcome: notReceived ? 'No response' : fields.outcome,
+      call_status: fields.type === 'Call' ? (notReceived ? 'Not received' : 'Received') : null,
+      not_received_reason: notReceived ? reasonLabel : null,
+      counts_as_conversation: !notReceived,
       actor_emp_id: actor.emp_id,
       next_follow_up: followUp,
     });
@@ -170,7 +191,7 @@ export class LeadActivityUseCases {
     const before = errors.length;
     const at = fu.follow_up_on ?? null;
     const type = cleanText(fu.type);
-    const assignee = fu.assigned_to ?? actor.emp_id;
+    const assignee = resolveAssignee(fu.assigned_to, actor);
     if (!at || Number.isNaN(at.getTime())) errors.push({ field: 'next_follow_up.follow_up_on', message: MSG.required });
     else if (at.getTime() < now.getTime() - SLACK_MS) errors.push({ field: 'next_follow_up.follow_up_on', message: 'The follow-up must be today or later.' });
     if (!type) errors.push({ field: 'next_follow_up.type', message: MSG.required });
@@ -200,8 +221,17 @@ export class LeadActivityUseCases {
       communication_date: patch.communication_date ?? current.communication_date,
       what_discussed: patch.what_discussed !== undefined ? cleanText(patch.what_discussed) : current.what_discussed,
       outcome: patch.outcome !== undefined ? cleanText(patch.outcome) : current.outcome,
+      call_status: patch.call_status !== undefined ? cleanText(patch.call_status) : current.call_status,
+      not_received_reason: patch.not_received_reason !== undefined ? cleanText(patch.not_received_reason) : current.not_received_reason,
     };
     const errors = validateConversation(merged, now, { requireOutcome: false });
+    const editedNotReceived = isNotReceivedCall(merged);
+    let editedReasonLabel: string | null = null;
+    if (editedNotReceived && merged.not_received_reason && !errors.some((e) => e.field === 'not_received_reason')) {
+      const hit = await this.repo.resolveCallNotReceivedReason(merged.not_received_reason);
+      if (!hit) errors.push({ field: 'not_received_reason', message: 'Choose a reason from the list.' });
+      else editedReasonLabel = hit.label;
+    }
     if (
       merged.contact_id !== null &&
       merged.contact_id !== (current.contact?.person_id ?? null) &&
@@ -218,8 +248,10 @@ export class LeadActivityUseCases {
         type: merged.type as string,
         contact_id: merged.contact_id as number,
         communication_date: merged.communication_date,
-        what_discussed: merged.what_discussed as string,
-        outcome: merged.outcome,
+        what_discussed: editedNotReceived ? `Call not received: ${editedReasonLabel}` : (merged.what_discussed as string),
+        outcome: editedNotReceived ? 'No response' : merged.outcome,
+        call_status: merged.type === 'Call' ? (editedNotReceived ? 'Not received' : 'Received') : null,
+        not_received_reason: editedNotReceived ? editedReasonLabel : null,
       },
       actor.emp_id,
     );

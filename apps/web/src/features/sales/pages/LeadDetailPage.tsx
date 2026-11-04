@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
   Building2,
@@ -10,8 +9,6 @@ import {
   Phone,
   Mail,
   CheckCircle2,
-  PauseCircle,
-  XCircle,
   RotateCcw,
   UserCheck,
   Trophy,
@@ -31,7 +28,6 @@ import {
 } from 'lucide-react';
 import {
   useSalesLeadControllerGet,
-  useSalesLeadStatusControllerReopen,
   useSalesLeadStatusControllerQualification,
   useSalesContactControllerList,
 } from '@vernoxy-pulse/api-client';
@@ -39,8 +35,7 @@ import {
 import { StatusBadge } from '../components/common/StatusBadge';
 import { FollowUpFlagBadge } from '../components/common/FollowUpFlagBadge';
 import { DetailSkeleton } from '../components/common/SkeletonLoader';
-import { QualifyModal } from '../components/leads/QualifyModal';
-import { PutOnHoldModal } from '../components/leads/PutOnHoldModal';
+import { useMoveLeadStage, MOVE_STAGES } from '../hooks/useMoveLeadStage';
 import { MarkLostModal } from '../components/leads/MarkLostModal';
 import { ChangeLeadByModal } from '../components/leads/ChangeLeadByModal';
 import { MarkWonModal } from '../components/leads/MarkWonModal';
@@ -67,7 +62,6 @@ export const LeadDetailPage: React.FC = () => {
   const leadId = id ? Number(id) : 0;
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const queryClient = useQueryClient();
   const { isAdmin } = useSalesRights();
 
   // Active tab state
@@ -75,8 +69,6 @@ export const LeadDetailPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
 
   // Modals state
-  const [qualifyModalOpen, setQualifyModalOpen] = useState(false);
-  const [holdModalOpen, setHoldModalOpen] = useState(false);
   const [lostModalOpen, setLostModalOpen] = useState(false);
   const [changeLeadByOpen, setChangeLeadByOpen] = useState(false);
   const [markWonOpen, setMarkWonOpen] = useState(false);
@@ -141,18 +133,17 @@ export const LeadDetailPage: React.FC = () => {
     []
   );
 
-  // Reopen mutation
-  const reopenMutation = useSalesLeadStatusControllerReopen({
-    mutation: {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['/api/v1/sales/leads'] });
-        queryClient.invalidateQueries({ queryKey: [`/api/v1/sales/leads/${leadId}`] });
-      },
-      onError: (err: unknown) => {
-        alert(parseApiError(err).message || 'Failed to reopen lead');
-      },
-    },
-  });
+  const moveStage = useMoveLeadStage();
+  const moveTo = (to: (typeof MOVE_STAGES)[number]) => {
+    if (to === 'Lost') {
+      setLostModalOpen(true); // Lost asks for a reason
+      return;
+    }
+    moveStage.mutate(
+      { leadId, to },
+      { onSuccess: () => refetch(), onError: (err: unknown) => alert(parseApiError(err).message || 'Could not move this lead.') },
+    );
+  };
 
   if (isLoading) {
     return (
@@ -188,7 +179,6 @@ export const LeadDetailPage: React.FC = () => {
   const leadByInitials = lead.lead_by?.name ? getInitials(lead.lead_by.name) : '—';
   const leadByColor = lead.lead_by?.name ? getAvatarColor(lead.lead_by.name) : 'bg-gray-400';
 
-  const canQualify = qualData?.can_qualify ?? false;
 
   const ACCENT: Record<string, { band: string; ring: string }> = {
     New: { band: 'from-blue-500 via-sky-500 to-cyan-400', ring: 'ring-blue-100' },
@@ -202,6 +192,8 @@ export const LeadDetailPage: React.FC = () => {
   const doneCount = qualData?.items?.filter((i) => i.done).length ?? 0;
   const totalCount = qualData?.items?.length ?? 0;
   const progress = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
+  // The checklist is only a guide: a lead can be moved to Qualified whether or not it is complete.
+  const canQualify = totalCount > 0 && doneCount === totalCount;
   const location = [lead.company?.city, lead.company?.state].filter(Boolean).join(', ');
 
   const primaryBtn = 'inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold shadow-sm transition active:scale-[0.99] sm:w-auto';
@@ -308,44 +300,36 @@ export const LeadDetailPage: React.FC = () => {
           </div>
 
           {/* Actions */}
-          <div className="mt-5 flex flex-col gap-2 border-t border-gray-100 pt-4 sm:flex-row sm:flex-wrap sm:items-center">
-            {(lead.status === 'Contacted' || lead.status === 'New') && (
-              <button type="button" onClick={() => setQualifyModalOpen(true)} className={`${primaryBtn} bg-emerald-600 text-white shadow-emerald-600/20 hover:bg-emerald-700`}>
-                <CheckCircle2 className="h-4 w-4" />
-                Mark as Qualified
-              </button>
+          <div className="mt-5 flex flex-col gap-2 border-t border-gray-100 pt-4 sm:flex-row sm:flex-wrap sm:items-end">
+            {lead.status !== 'Converted' && (
+              <div className="flex w-full flex-col gap-1.5 sm:w-auto">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Move to stage</p>
+                <div role="group" aria-label="Move to stage" className="inline-flex flex-wrap gap-1 rounded-xl bg-gray-100 p-1">
+                  {MOVE_STAGES.map((st) => {
+                    const current = lead.status === st;
+                    return (
+                      <button
+                        key={st}
+                        type="button"
+                        disabled={current || moveStage.isPending}
+                        aria-pressed={current}
+                        onClick={() => moveTo(st)}
+                        className={`rounded-lg px-3.5 py-2 text-[13px] font-semibold transition ${
+                          current ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-500 hover:bg-white/70 hover:text-gray-900 disabled:opacity-50'
+                        }`}
+                      >
+                        {st}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             )}
 
-            {lead.status === 'Qualified' && (
+            {lead.status !== 'Converted' && lead.status !== 'Lost' && (
               <button type="button" onClick={() => setMarkWonOpen(true)} className={`${primaryBtn} bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-emerald-600/25 hover:brightness-110`}>
                 <Trophy className="h-4 w-4" />
                 Mark as Won
-              </button>
-            )}
-
-            {(lead.status === 'Lost' || lead.status === 'On Hold') && (
-              <button
-                type="button"
-                onClick={() => reopenMutation.mutate({ id: leadId })}
-                disabled={reopenMutation.isPending}
-                className={`${primaryBtn} bg-blue-600 text-white shadow-blue-600/20 hover:bg-blue-700 disabled:opacity-60`}
-              >
-                <RotateCcw className="h-4 w-4" />
-                Reopen
-              </button>
-            )}
-
-            {(lead.status === 'Contacted' || lead.status === 'Qualified' || lead.status === 'New') && (
-              <button type="button" onClick={() => setHoldModalOpen(true)} className={`${softBtn} border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100`}>
-                <PauseCircle className="h-4 w-4 text-amber-600" />
-                Put on Hold
-              </button>
-            )}
-
-            {(lead.status === 'New' || lead.status === 'Contacted' || lead.status === 'Qualified') && (
-              <button type="button" onClick={() => setLostModalOpen(true)} className={`${softBtn} border-gray-200 bg-white text-gray-700 hover:bg-gray-50`}>
-                <XCircle className="h-4 w-4 text-gray-400" />
-                Mark as Lost
               </button>
             )}
 
@@ -382,17 +366,17 @@ export const LeadDetailPage: React.FC = () => {
                 {canQualify ? <CheckCircle2 className="h-5 w-5" /> : <Clock className="h-5 w-5" />}
               </span>
               <div>
-                <h2 className="text-[15px] font-semibold text-gray-900">{canQualify ? 'Ready to qualify' : 'Qualification checklist'}</h2>
+                <h2 className="text-[15px] font-semibold text-gray-900">{canQualify ? 'Ready to qualify' : 'Qualification checklist (a guide)'}</h2>
                 <p className="mt-0.5 text-[13px] text-gray-600">
-                  {canQualify ? 'Everything is in place. You can move this deal to Qualified.' : `${doneCount} of ${totalCount} done. Log a conversation and add the notes that are missing.`}
+                  {canQualify ? 'Everything is in place. You can move this deal to Qualified.' : `${doneCount} of ${totalCount} done. You can still move this deal to Qualified at any time.`}
                 </p>
               </div>
             </div>
 
             <button
               type="button"
-              onClick={() => setQualifyModalOpen(true)}
-              disabled={!canQualify}
+              onClick={() => moveTo('Qualified')}
+              disabled={moveStage.isPending}
               className="inline-flex h-11 w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
             >
               Qualify deal
@@ -616,25 +600,6 @@ export const LeadDetailPage: React.FC = () => {
       {activeTab === 'activity' && <LeadActivityTimeline leadId={leadId} />}
 
       {/* Modals */}
-      <QualifyModal
-        isOpen={qualifyModalOpen}
-        onClose={() => setQualifyModalOpen(false)}
-        leadId={leadId}
-        leadCode={lead.lead_code || undefined}
-        companyName={lead.company?.name}
-        initialServiceFit={lead.service_fit}
-        onSuccess={() => refetch()}
-      />
-
-      <PutOnHoldModal
-        isOpen={holdModalOpen}
-        onClose={() => setHoldModalOpen(false)}
-        leadId={leadId}
-        leadCode={lead.lead_code || undefined}
-        companyName={lead.company?.name}
-        onSuccess={() => refetch()}
-      />
-
       <MarkLostModal
         isOpen={lostModalOpen}
         onClose={() => setLostModalOpen(false)}

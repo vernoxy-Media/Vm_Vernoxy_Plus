@@ -22,15 +22,19 @@ export class ConversationBodyDto {
   @ApiPropertyOptional({ description: 'person_id of a contact of the company' }) @IsOptional() @Type(() => Number) @IsInt() contact_id?: number;
   @ApiPropertyOptional({ type: String, format: 'date-time', description: 'Defaults to now; cannot be in the future' })
   @IsOptional() @Type(() => Date) communication_date?: Date;
-  @ApiPropertyOptional() @IsOptional() @IsString() what_discussed?: string;
-  @ApiPropertyOptional({ enum: OUTCOMES, description: 'Required in the Log Conversation popup' }) @IsOptional() @IsString() outcome?: string;
+  @ApiPropertyOptional({ description: 'Required, unless the call was not received' }) @IsOptional() @IsString() what_discussed?: string;
+  @ApiPropertyOptional({ enum: OUTCOMES, description: 'Required in the Log Conversation popup, unless the call was not received' }) @IsOptional() @IsString() outcome?: string;
+  @ApiPropertyOptional({ enum: ['Received', 'Not received'], description: 'Calls only. Received needs the call time and what was discussed; Not received needs a reason.' }) @IsOptional() @IsString() call_status?: string;
+  @ApiPropertyOptional({ description: 'A call that was not received: the reason, from the Call Not Received Reasons list' }) @IsOptional() @IsString() not_received_reason?: string;
   @ApiPropertyOptional({ type: NextFollowUpDto, description: 'The "Schedule next follow-up" part, saved together with the conversation' })
   @IsOptional() @ValidateNested() @Type(() => NextFollowUpDto) next_follow_up?: NextFollowUpDto;
 }
 
 export class QuickLogBodyDto {
   @ApiProperty({ enum: [...CONVERSATION_TYPES, 'Note'] }) @IsIn([...CONVERSATION_TYPES, 'Note']) type!: string;
-  @ApiProperty({ description: 'One line: what happened' }) @IsString() text!: string;
+  @ApiPropertyOptional({ description: 'One line: what happened. Optional for a call that was not received.' }) @IsOptional() @IsString() text?: string;
+  @ApiPropertyOptional({ enum: ['Received', 'Not received'] }) @IsOptional() @IsString() call_status?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() not_received_reason?: string;
 }
 
 export class NoteBodyDto {
@@ -64,6 +68,12 @@ export class HoldBodyDto {
 export class LostBodyDto {
   @ApiPropertyOptional({ description: 'Lost reason master label. "Other" needs a note.' }) @IsOptional() @IsString() reason?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() note?: string;
+}
+
+export class MoveStageBodyDto {
+  @ApiProperty({ enum: ['New', 'Contacted', 'Qualified', 'On Hold', 'Lost'], description: 'The stage to move the lead to' }) @IsIn(['New', 'Contacted', 'Qualified', 'On Hold', 'Lost']) to!: string;
+  @ApiPropertyOptional({ description: 'Required when moving to Lost: a Lost Reasons label' }) @IsOptional() @IsString() reason?: string;
+  @ApiPropertyOptional({ description: 'Required when the Lost reason is "Other"' }) @IsOptional() @IsString() note?: string;
 }
 
 export class ChangeLeadByBodyDto {

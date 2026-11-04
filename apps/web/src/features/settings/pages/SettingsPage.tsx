@@ -1,8 +1,9 @@
 import React from 'react';
 import { NavLink, useParams, Navigate, useNavigate } from 'react-router-dom';
+import { Settings } from 'lucide-react';
+import { SettingsJumpMenu } from '../components/SettingsJumpMenu';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { AdminLayout } from '@/shared/layouts/AdminLayout';
-import { PageHeader } from '@/shared/ui/PageHeader';
 import {
   getVisibleSettingsSections,
   getSettingsSectionGroups,
@@ -30,142 +31,97 @@ export const SettingsPage: React.FC = () => {
   const ActiveComponent = currentSection?.component || visibleSections[0]?.component;
   const currentGroup = currentSection?.group || 'Organization';
   const currentGroupSections = sectionGroups[currentGroup] || [];
+  const groups = SETTINGS_MAIN_GROUPS.filter((g) => (sectionGroups[g.name] || []).length > 0);
+
+  const jumpGroups = groups.map((g) => ({ id: g.id, name: g.name, icon: g.icon, sections: sectionGroups[g.name] }));
 
   return (
     <AdminLayout title="Settings" fluid>
-      <div className="space-y-6">
-        {/* Page Header with Master Data Quick Dropdown */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <PageHeader title="Settings" />
-
-          {/* Quick Dropdown Menu for Master Data */}
-          <div className="flex items-center gap-2 max-w-xs w-full">
-            <label htmlFor="master-data-select" className="text-xs font-semibold text-slate-500 whitespace-nowrap">
-              Master Data:
-            </label>
-            <select
-              id="master-data-select"
-              value={currentSection?.path || ''}
-              onChange={(e) => navigate(e.target.value)}
-              className="w-full px-3 py-2 text-xs font-semibold rounded-xl border border-slate-300 bg-white text-slate-800 shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
-            >
-              {SETTINGS_MAIN_GROUPS.map((group) => {
-                const sections = sectionGroups[group.name] || [];
-                if (sections.length === 0) return null;
-                return (
-                  <optgroup key={group.id} label={`── ${group.name} ──`}>
-                    {sections.map((sec) => (
-                      <option key={sec.id} value={sec.path}>
-                        {sec.label}
-                      </option>
-                    ))}
-                  </optgroup>
-                );
-              })}
-            </select>
+      <div className="mx-auto w-full max-w-[1400px] space-y-5 sm:space-y-6">
+        {/* Page header with the quick jump to any master-data screen */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex min-w-0 items-center gap-3.5">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-600/25">
+              <Settings className="h-6 w-6" />
+            </span>
+            <div className="min-w-0">
+              <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-[28px]">Settings</h1>
+              <p className="mt-0.5 text-sm text-slate-500">Manage master data and organisation-wide configuration.</p>
+            </div>
           </div>
+
+          <SettingsJumpMenu groups={jumpGroups} current={currentSection} onSelect={(path) => navigate(path)} />
         </div>
 
-        {/* Master Data Card Layout */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col md:flex-row min-h-[600px]">
-          {/* Left sidebar: ONLY Main Fields (Organization, CRM, Tasks, Projects, HR) */}
-          <div className="w-full md:w-56 border-b md:border-b-0 md:border-r border-slate-200/80 bg-slate-50/50 shrink-0">
-            {/* Mobile: horizontal scroll of main categories */}
-            <nav
-              className="flex md:hidden gap-1.5 overflow-x-auto p-3 scrollbar-none"
-              aria-label="Settings Categories"
-            >
-              {SETTINGS_MAIN_GROUPS.map((group) => {
-                const sections = sectionGroups[group.name] || [];
-                if (sections.length === 0) return null;
-                const isGroupActive = currentGroup === group.name;
-                const firstPath = sections[0]?.path || '#';
-                const GroupIcon = group.icon;
+        {/* Categories */}
+        <nav
+          role="tablist"
+          aria-label="Settings Categories"
+          className="flex gap-1.5 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          {groups.map((group) => {
+            const active = currentGroup === group.name;
+            const GroupIcon = group.icon;
+            const count = sectionGroups[group.name].length;
+            return (
+              <NavLink
+                key={group.id}
+                to={sectionGroups[group.name][0].path}
+                id={`settings-group-${group.id.toLowerCase()}`}
+                role="tab"
+                aria-selected={active}
+                aria-label={group.name}
+                title={group.name}
+                className={`group flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-3 py-2.5 text-[13.5px] font-semibold transition-all duration-200 min-[1830px]:px-3.5 ${
+                  active
+                    ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/30'
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                }`}
+              >
+                <GroupIcon className={`h-4 w-4 ${active ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'}`} />
+                {/* Narrow screens keep the label only on the open tab; the rest are icons */}
+                <span className={active ? '' : 'hidden min-[1450px]:inline'}>{group.name}</span>
+                <span className={`hidden rounded-full px-1.5 py-0.5 text-[10.5px] font-bold leading-none min-[1830px]:inline-block ${active ? 'bg-white/25 text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-white'}`}>
+                  {count}
+                </span>
+              </NavLink>
+            );
+          })}
+        </nav>
 
-                return (
-                  <NavLink
-                    key={group.id}
-                    to={firstPath}
-                    id={`mobile-settings-group-${group.id.toLowerCase()}`}
-                    className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
-                      isGroupActive
-                        ? 'bg-blue-600 text-white shadow-sm'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                    }`}
-                  >
-                    <GroupIcon className={`w-3.5 h-3.5 shrink-0 ${isGroupActive ? 'text-white' : 'text-slate-400'}`} />
-                    <span>{group.name}</span>
-                  </NavLink>
-                );
-              })}
-            </nav>
-
-            {/* Desktop: vertical list of main fields */}
-            <nav className="hidden md:flex flex-col p-3 gap-1" aria-label="Settings Categories">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 px-3 py-2">
-                Categories
-              </p>
-              {SETTINGS_MAIN_GROUPS.map((group) => {
-                const sections = sectionGroups[group.name] || [];
-                if (sections.length === 0) return null;
-                const isGroupActive = currentGroup === group.name;
-                const firstPath = sections[0]?.path || '#';
-                const GroupIcon = group.icon;
-
-                return (
-                  <NavLink
-                    key={group.id}
-                    to={firstPath}
-                    id={`settings-group-${group.id.toLowerCase()}`}
-                    className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                      isGroupActive
-                        ? 'bg-blue-600 text-white shadow-sm'
-                        : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100/90'
-                    }`}
-                  >
-                    <GroupIcon
-                      className={`w-4 h-4 shrink-0 ${isGroupActive ? 'text-white' : 'text-slate-500'}`}
-                    />
-                    <span>{group.name}</span>
-                  </NavLink>
-                );
-              })}
-            </nav>
-          </div>
-
-          {/* Main Content Area */}
-          <div className="flex-1 p-6 sm:p-8 overflow-y-auto">
-            {/* Top row of sub-tabs for the selected main field */}
-            {currentGroupSections.length > 0 && (
-              <div className="flex items-center gap-2 pb-4 mb-6 border-b border-slate-200 overflow-x-auto scrollbar-none">
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          {/* Pages of the chosen category */}
+          {currentGroupSections.length > 1 && (
+            <div className="border-b border-slate-200 px-4 sm:px-6">
+              <div role="tablist" aria-label={`${currentGroup} settings`} className="-mb-px flex gap-6 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {currentGroupSections.map((subSection) => {
                   const SubIcon = subSection.icon;
-                  const isSubActive = currentSection?.id === subSection.id;
+                  const active = currentSection?.id === subSection.id;
                   return (
                     <NavLink
                       key={subSection.id}
                       to={subSection.path}
                       id={`settings-subtab-${subSection.id}`}
-                      className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
-                        isSubActive
-                          ? 'bg-slate-900 text-white shadow-xs'
-                          : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200/70'
+                      role="tab"
+                      aria-selected={active}
+                      className={`flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 py-3.5 text-[13.5px] font-semibold transition ${
+                        active ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-800'
                       }`}
                     >
-                      <SubIcon
-                        className={`w-3.5 h-3.5 ${isSubActive ? 'text-blue-400' : 'text-slate-500'}`}
-                      />
-                      <span>{subSection.label}</span>
+                      <SubIcon className={`h-4 w-4 ${active ? 'text-blue-600' : 'text-slate-400'}`} />
+                      {subSection.label}
                     </NavLink>
                   );
                 })}
               </div>
-            )}
+            </div>
+          )}
 
+          <div className="min-h-[480px] p-4 sm:p-6 lg:p-8">
             <React.Suspense
               fallback={
-                <div className="flex items-center justify-center py-12">
-                  <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                <div className="flex items-center justify-center py-16">
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
                 </div>
               }
             >

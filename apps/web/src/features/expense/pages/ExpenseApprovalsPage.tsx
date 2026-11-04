@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Receipt,
@@ -16,6 +16,10 @@ import {
   AlertCircle,
   BarChart3,
   Settings,
+  ChevronRight,
+  Inbox,
+  Wallet,
+  Flag,
 } from 'lucide-react';
 import {
   useApprovalsQueue,
@@ -30,6 +34,10 @@ import {
   RejectionReason,
   PaymentMode,
 } from '../hooks/use-expenses';
+
+import { Pagination } from '@/shared/ui/Pagination';
+import { RowActionsMenu, type RowAction } from '@/shared/ui/RowActionsMenu';
+import { ClaimStatusBadge, FlagChips, StatCard, initials, inr, fmtDate } from '../components/expense-ui';
 
 const REJECTION_REASONS: RejectionReason[] = [
   'Receipt missing or unclear',
@@ -200,200 +208,218 @@ export const ExpenseApprovalsPage: React.FC = (): React.ReactElement => {
     );
   });
 
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  useEffect(() => setPage(1), [activeTab, searchQuery, payoutFilter, pageSize]);
+  const activeList = activeTab === 'reimbursements' ? filteredReimbursements : filteredApprovals;
+  const safePage = Math.min(page, Math.max(1, Math.ceil(activeList.length / pageSize)));
+  const pageOf = <T,>(list: T[]) => list.slice((safePage - 1) * pageSize, safePage * pageSize);
+
+  const allApprovals = approvals as ExpenseClaimSummary[];
+  const pendingAmount = allApprovals.reduce((n, cl) => n + cl.amount, 0);
+  const flaggedCount = allApprovals.filter((cl) => cl.is_above_limit || cl.is_possible_duplicate || cl.is_late).length;
+  const payoutReady = (reimbursements as ExpenseClaimSummary[]).filter((r) => r.status === 'APPROVED');
+
+  const openPayout = (claim: ExpenseClaimSummary) => {
+    setPayoutClaim(claim);
+    setPaymentMode('Bank Transfer');
+    setPaymentRefNo('');
+    setPaymentDate(new Date().toISOString().split('T')[0]);
+    setPayoutError('');
+  };
+  const openReopen = (claim: ExpenseClaimSummary) => {
+    setReopeningClaim(claim);
+    setReopenTargetStatus('SUBMITTED');
+    setReopenRemarks('');
+    setReopenError('');
+  };
+
+  const payoutMenu = (claim: ExpenseClaimSummary): RowAction[] => {
+    const list: RowAction[] = [];
+    if (claim.status === 'APPROVED') {
+      list.push(
+        claim.reimbursement_method !== 'PAYROLL'
+          ? { label: 'Queue for payroll', icon: Wallet, disabled: addToPayrollMut.isPending, onClick: () => addToPayrollMut.mutate({ id: claim.claim_id }) }
+          : { label: 'Remove from payroll', icon: XCircle, danger: true, disabled: removeFromPayrollMut.isPending, onClick: () => removeFromPayrollMut.mutate(claim.claim_id) },
+      );
+    }
+    list.push({ label: 'Reopen claim', icon: RotateCcw, danger: true, onClick: () => openReopen(claim) });
+    return list;
+  };
+
+  const searchBox = (
+    <div className="relative w-full sm:w-72">
+      <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+      <input
+        type="text"
+        placeholder="Search claims or employees..."
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-10 pr-4 text-sm text-slate-800 placeholder:text-slate-400 transition focus:border-blue-500 focus:bg-white focus:outline-hidden focus:ring-4 focus:ring-blue-500/10"
+      />
+    </div>
+  );
+
+  const employeeCell = (name?: string | null, dept?: string | null) => (
+    <div className="flex items-center gap-2.5">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[11px] font-bold text-indigo-600">{initials(name)}</span>
+      <div className="min-w-0">
+        <div className="truncate font-semibold text-slate-800">{name}</div>
+        <div className="truncate text-xs text-slate-400">{dept || 'General Department'}</div>
+      </div>
+    </div>
+  );
+
+  const th = 'whitespace-nowrap px-5 py-3';
+  const headRow = 'border-b border-slate-200 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500';
+  const loadingBox = (text: string) => (
+    <div className="flex flex-col items-center justify-center gap-3 py-24">
+      <Loader2 className="h-7 w-7 animate-spin text-indigo-600" />
+      <p className="text-sm font-medium text-slate-500">{text}</p>
+    </div>
+  );
+
+  const pill = (on: boolean, tone: string) =>
+    `cursor-pointer whitespace-nowrap rounded-lg px-3.5 py-2 text-[13px] font-semibold transition ${on ? `bg-white shadow-sm ${tone}` : 'text-slate-500 hover:text-slate-800'}`;
+
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="w-full space-y-5">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <Receipt className="w-7 h-7 text-indigo-600" />
-            Expense Approvals & Reimbursements
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Review submitted employee expense claims, policy compliance, and manage payouts
-          </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3.5">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-600/25">
+            <Receipt className="h-6 w-6" />
+          </span>
+          <div className="min-w-0">
+            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-[28px]">Expense Approvals</h1>
+            <p className="mt-0.5 text-sm text-slate-500">Review employee claims, check policy flags and manage payouts.</p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Link
-            to="/expense?tab=reports"
-            className="px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 flex items-center gap-1.5 transition cursor-pointer shadow-sm"
-          >
-            <BarChart3 className="w-4 h-4 text-indigo-600" />
-            Expense Reports
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Link to="/expense?tab=reports" className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-[13px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
+            <BarChart3 className="h-4 w-4 text-indigo-600" />
+            Reports
           </Link>
-          <Link
-            to="/admin/settings/expense"
-            className="px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 flex items-center gap-1.5 transition cursor-pointer shadow-sm"
-          >
-            <Settings className="w-4 h-4 text-slate-500" />
+          <Link to="/admin/settings/expense" className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-[13px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
+            <Settings className="h-4 w-4 text-slate-500" />
             Settings
           </Link>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-slate-200 gap-6">
-        <button
-          onClick={() => setActiveTab('approvals')}
-          className={`pb-3 text-sm font-semibold transition border-b-2 cursor-pointer flex items-center gap-2 ${
-            activeTab === 'approvals'
-              ? 'border-indigo-600 text-indigo-600'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <Clock className="w-4 h-4" />
-          Approvals Queue
-          <span className="px-2 py-0.5 rounded-full text-xs bg-amber-100 text-amber-800 font-bold">
-            {approvals.length}
-          </span>
-        </button>
+      {/* Summary */}
+      <div className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 lg:grid-cols-4 lg:gap-4">
+        <StatCard label="Awaiting review" value={allApprovals.length} hint="Claims in the approvals queue" icon={Clock} tone="text-amber-600" tile="bg-amber-50 text-amber-600 ring-amber-100" bar="from-amber-400 to-orange-400" onClick={() => setActiveTab('approvals')} />
+        <StatCard label="Pending amount" value={inr(pendingAmount)} hint="Total of the claims awaiting review" icon={Receipt} tone="text-slate-900" tile="bg-slate-50 text-slate-600 ring-slate-100" bar="from-slate-400 to-slate-500" />
+        <StatCard label="With policy flags" value={flaggedCount} hint="Above limit, duplicate or late" icon={Flag} tone="text-rose-600" tile="bg-rose-50 text-rose-600 ring-rose-100" bar="from-rose-500 to-pink-500" />
+        <StatCard label="Ready for payout" value={payoutReady.length} hint="Approved, not yet paid" icon={Wallet} tone="text-emerald-600" tile="bg-emerald-50 text-emerald-600 ring-emerald-100" bar="from-emerald-400 to-teal-400" onClick={() => setActiveTab('reimbursements')} />
+      </div>
 
-        <button
-          onClick={() => setActiveTab('reimbursements')}
-          className={`pb-3 text-sm font-semibold transition border-b-2 cursor-pointer flex items-center gap-2 ${
-            activeTab === 'reimbursements'
-              ? 'border-indigo-600 text-indigo-600'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <CreditCard className="w-4 h-4" />
-          Reimbursement Payouts
-          <span className="px-2 py-0.5 rounded-full text-xs bg-emerald-100 text-emerald-800 font-bold">
-            {(reimbursements as ExpenseClaimSummary[]).filter((r: ExpenseClaimSummary) => r.status === 'APPROVED').length}
-          </span>
-        </button>
+      {/* Tabs */}
+      <div className="-mx-1 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div role="tablist" aria-label="Expense claims" className="inline-flex gap-1 rounded-xl bg-slate-100 p-1">
+          <button type="button" role="tab" aria-selected={activeTab === 'approvals'} onClick={() => setActiveTab('approvals')} className={`inline-flex items-center gap-2 ${pill(activeTab === 'approvals', 'text-indigo-700')}`}>
+            <Clock className="h-4 w-4" />
+            Approvals queue
+            <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10.5px] font-bold leading-none text-amber-800">{approvals.length}</span>
+          </button>
+          <button type="button" role="tab" aria-selected={activeTab === 'reimbursements'} onClick={() => setActiveTab('reimbursements')} className={`inline-flex items-center gap-2 ${pill(activeTab === 'reimbursements', 'text-indigo-700')}`}>
+            <CreditCard className="h-4 w-4" />
+            Reimbursement payouts
+            <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10.5px] font-bold leading-none text-emerald-800">{payoutReady.length}</span>
+          </button>
+        </div>
       </div>
 
       {/* =========================================================================
           TAB 1: APPROVALS QUEUE
          ========================================================================= */}
       {activeTab === 'approvals' && (
-        <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="text-xs text-slate-500">
-              Showing pending claims requiring authorized department approval
-            </div>
-            <div className="relative w-full sm:w-64">
-              <input
-                type="text"
-                placeholder="Search claims or employees..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-3 py-1.5 pl-8 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:bg-white transition"
-              />
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
-            </div>
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex flex-col gap-3 border-b border-slate-100 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
+            <p className="text-sm text-slate-500">Pending claims that need department approval</p>
+            {searchBox}
           </div>
 
-          <div className="overflow-x-auto">
-            {isLoadingApprovals ? (
-              <div className="p-12 flex items-center justify-center text-slate-400 gap-2">
-                <Loader2 className="w-5 h-5 animate-spin" />
-                <span>Loading approvals queue...</span>
-              </div>
-            ) : filteredApprovals.length === 0 ? (
-              <div className="p-12 text-center text-slate-400">
-                <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto mb-2" />
-                <h3 className="text-sm font-semibold text-slate-700">Approvals Queue is Clear</h3>
-                <p className="text-xs text-slate-500 mt-1">There are no pending claims awaiting your review.</p>
-              </div>
-            ) : (
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50/75 border-b border-slate-200 text-slate-500 text-[11px] font-semibold uppercase tracking-wider">
-                    <th className="py-3 px-4">Claim #</th>
-                    <th className="py-3 px-4">Employee & Dept</th>
-                    <th className="py-3 px-4">Expense Date</th>
-                    <th className="py-3 px-4">Category & Purpose</th>
-                    <th className="py-3 px-4 text-right">Amount (₹)</th>
-                    <th className="py-3 px-4 text-center">Policy Flags</th>
-                    <th className="py-3 px-4 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-xs">
-                  {filteredApprovals.map((claim: ExpenseClaimSummary) => {
-                    const hasFlags = claim.is_above_limit || claim.is_possible_duplicate || claim.is_late;
-                    return (
-                      <tr key={claim.claim_id} className="hover:bg-slate-50/60 transition-colors">
-                        <td className="py-3.5 px-4 font-mono font-medium text-slate-900">
-                          {claim.claim_no}
-                        </td>
+          {isLoadingApprovals ? (
+            loadingBox('Loading approvals queue...')
+          ) : filteredApprovals.length === 0 ? (
+            <div className="px-4 py-16 text-center">
+              <span className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-500 ring-1 ring-emerald-100">
+                <CheckCircle2 className="h-7 w-7" />
+              </span>
+              <h3 className="text-base font-semibold text-slate-800">{searchQuery ? 'No claims match your search' : 'Approvals queue is clear'}</h3>
+              <p className="mx-auto mt-1 max-w-sm text-sm text-slate-500">{searchQuery ? 'Try a different claim number or employee.' : 'There are no pending claims awaiting your review.'}</p>
+            </div>
+          ) : (
+            <>
+              <ul className="divide-y divide-slate-100 md:hidden">
+                {pageOf(filteredApprovals).map((claim: ExpenseClaimSummary) => (
+                  <li key={claim.claim_id} className="space-y-3 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="rounded-lg bg-indigo-50 px-2.5 py-1 font-mono text-xs font-semibold text-indigo-700">{claim.claim_no}</span>
+                      <FlagChips claim={claim} clean="Clean" limitLabel="Above limit" />
+                    </div>
+                    {employeeCell(claim.employee_name, claim.department_name)}
+                    <div className="flex items-end justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-slate-900">{claim.category_name}</p>
+                        <p className="mt-0.5 truncate text-sm text-slate-500">{claim.description}</p>
+                        <p className="mt-1 text-xs text-slate-400">{fmtDate(claim.expense_date)}</p>
+                      </div>
+                      <p className="shrink-0 text-lg font-extrabold text-slate-900">{inr(claim.amount)}</p>
+                    </div>
+                    <button type="button" onClick={() => openReviewModal(claim.claim_id)} className="inline-flex h-9 w-full cursor-pointer items-center justify-center gap-1 rounded-xl bg-indigo-600 text-[13px] font-semibold text-white shadow-sm shadow-indigo-600/25 transition hover:bg-indigo-700">
+                      Review claim <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
 
-                        <td className="py-3.5 px-4">
-                          <div className="font-semibold text-slate-800">{claim.employee_name}</div>
-                          <div className="text-[11px] text-slate-400">
-                            {claim.department_name || 'General Department'}
-                          </div>
+              <div className="hidden overflow-x-auto md:block">
+                <table className="w-full min-w-[860px] text-left text-sm">
+                  <thead className="bg-slate-50/95">
+                    <tr className={headRow}>
+                      <th className={th}>Claim #</th>
+                      <th className={th}>Employee</th>
+                      <th className={th}>Expense date</th>
+                      <th className={th}>Category &amp; purpose</th>
+                      <th className={`${th} text-right`}>Amount</th>
+                      <th className={th}>Policy flags</th>
+                      <th className={`${th} text-right`}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {pageOf(filteredApprovals).map((claim: ExpenseClaimSummary) => (
+                      <tr key={claim.claim_id} className="transition-colors hover:bg-blue-50/30">
+                        <td className="px-5 py-3.5">
+                          <span className="whitespace-nowrap rounded-lg bg-indigo-50 px-2.5 py-1 font-mono text-xs font-semibold text-indigo-700">{claim.claim_no}</span>
                         </td>
-
-                        <td className="py-3.5 px-4 text-slate-600">
-                          {new Date(claim.expense_date).toLocaleDateString('en-GB', {
-                            day: '2-digit',
-                            month: 'short',
-                            year: 'numeric',
-                          })}
+                        <td className="px-5 py-3.5">{employeeCell(claim.employee_name, claim.department_name)}</td>
+                        <td className="whitespace-nowrap px-5 py-3.5 text-slate-600">{fmtDate(claim.expense_date)}</td>
+                        <td className="max-w-[18rem] px-5 py-3.5">
+                          <span className="block truncate font-medium text-slate-800">{claim.category_name}</span>
+                          <span className="block truncate text-slate-500">{claim.description}</span>
                         </td>
-
-                        <td className="py-3.5 px-4 max-w-xs">
-                          <span className="font-medium text-slate-800 block truncate">
-                            {claim.category_name}
-                          </span>
-                          <span className="text-slate-500 truncate block">{claim.description}</span>
+                        <td className="whitespace-nowrap px-5 py-3.5 text-right font-bold text-slate-900">{inr(claim.amount)}</td>
+                        <td className="px-5 py-3.5">
+                          <FlagChips claim={claim} clean="Clean" limitLabel="Above limit" />
                         </td>
-
-                        <td className="py-3.5 px-4 text-right font-bold text-slate-900">
-                          ₹{claim.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                        </td>
-
-                        <td className="py-3.5 px-4 text-center">
-                          {hasFlags ? (
-                            <div className="flex items-center justify-center gap-1">
-                              {claim.is_above_limit && (
-                                <span
-                                  className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800"
-                                  title="Above Category Limit"
-                                >
-                                  Above Limit
-                                </span>
-                              )}
-                              {claim.is_possible_duplicate && (
-                                <span
-                                  className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-800"
-                                  title="Possible Duplicate"
-                                >
-                                  Duplicate
-                                </span>
-                              )}
-                              {claim.is_late && (
-                                <span
-                                  className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-orange-100 text-orange-800"
-                                  title="Submitted Late"
-                                >
-                                  Late
-                                </span>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-slate-400 text-[11px]">Clean</span>
-                          )}
-                        </td>
-
-                        <td className="py-3.5 px-4 text-right">
-                          <button
-                            onClick={() => openReviewModal(claim.claim_id)}
-                            className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold transition cursor-pointer"
-                          >
-                            Review Claim
+                        <td className="px-5 py-3.5 text-right">
+                          <button type="button" onClick={() => openReviewModal(claim.claim_id)} className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-lg bg-indigo-600 px-3.5 text-[13px] font-semibold text-white shadow-sm shadow-indigo-600/25 transition hover:bg-indigo-700">
+                            Review <ChevronRight className="h-4 w-4" />
                           </button>
                         </td>
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-          </div>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <Pagination page={safePage} pageSize={pageSize} total={filteredApprovals.length} onPageChange={setPage} onPageSizeChange={setPageSize} />
+            </>
+          )}
         </div>
       )}
 
@@ -401,176 +427,104 @@ export const ExpenseApprovalsPage: React.FC = (): React.ReactElement => {
           TAB 2: REIMBURSEMENT PAYOUTS
          ========================================================================= */}
       {activeTab === 'reimbursements' && (
-        <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setPayoutFilter('APPROVED')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
-                  payoutFilter === 'APPROVED'
-                    ? 'bg-emerald-50 text-emerald-700 font-semibold'
-                    : 'text-slate-600 hover:bg-slate-50'
-                }`}
-              >
-                Pending Payouts
-              </button>
-              <button
-                onClick={() => setPayoutFilter('REIMBURSED')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
-                  payoutFilter === 'REIMBURSED'
-                    ? 'bg-indigo-50 text-indigo-700 font-semibold'
-                    : 'text-slate-600 hover:bg-slate-50'
-                }`}
-              >
-                Completed Reimbursements
-              </button>
-              <button
-                onClick={() => setPayoutFilter('ALL')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
-                  payoutFilter === 'ALL'
-                    ? 'bg-slate-100 text-slate-700 font-semibold'
-                    : 'text-slate-600 hover:bg-slate-50'
-                }`}
-              >
-                All
-              </button>
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex flex-col gap-3 border-b border-slate-100 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
+            <div className="-mx-1 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="inline-flex gap-1 rounded-xl bg-slate-100 p-1">
+                <button type="button" onClick={() => setPayoutFilter('APPROVED')} className={pill(payoutFilter === 'APPROVED', 'text-emerald-700')}>Pending payouts</button>
+                <button type="button" onClick={() => setPayoutFilter('REIMBURSED')} className={pill(payoutFilter === 'REIMBURSED', 'text-indigo-700')}>Completed</button>
+                <button type="button" onClick={() => setPayoutFilter('ALL')} className={pill(payoutFilter === 'ALL', 'text-slate-800')}>All</button>
+              </div>
             </div>
-
-            <div className="relative w-full sm:w-64">
-              <input
-                type="text"
-                placeholder="Search claims or employees..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-3 py-1.5 pl-8 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:bg-white transition"
-              />
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
-            </div>
+            {searchBox}
           </div>
 
-          <div className="overflow-x-auto">
-            {isLoadingReimbursements ? (
-              <div className="p-12 flex items-center justify-center text-slate-400 gap-2">
-                <Loader2 className="w-5 h-5 animate-spin" />
-                <span>Loading reimbursements...</span>
-              </div>
-            ) : filteredReimbursements.length === 0 ? (
-              <div className="p-12 text-center text-slate-400">
-                <Receipt className="w-12 h-12 text-slate-300 mx-auto mb-2" />
-                <h3 className="text-sm font-semibold text-slate-700">No Claims in Queue</h3>
-                <p className="text-xs text-slate-500 mt-1">
-                  There are no approved expense claims matching this filter.
-                </p>
-              </div>
-            ) : (
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50/75 border-b border-slate-200 text-slate-500 text-[11px] font-semibold uppercase tracking-wider">
-                    <th className="py-3 px-4">Claim #</th>
-                    <th className="py-3 px-4">Employee</th>
-                    <th className="py-3 px-4">Category</th>
-                    <th className="py-3 px-4 text-right">Amount (₹)</th>
-                    <th className="py-3 px-4 text-center">Payout Method</th>
-                    <th className="py-3 px-4 text-center">Status</th>
-                    <th className="py-3 px-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-xs">
-                  {filteredReimbursements.map((claim: ExpenseClaimSummary) => (
-                    <tr key={claim.claim_id} className="hover:bg-slate-50/60 transition-colors">
-                      <td className="py-3.5 px-4 font-mono font-medium text-slate-900">
-                        {claim.claim_no}
-                      </td>
+          {isLoadingReimbursements ? (
+            loadingBox('Loading reimbursements...')
+          ) : filteredReimbursements.length === 0 ? (
+            <div className="px-4 py-16 text-center">
+              <span className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50 text-slate-300 ring-1 ring-slate-100">
+                <Inbox className="h-7 w-7" />
+              </span>
+              <h3 className="text-base font-semibold text-slate-800">No claims in this queue</h3>
+              <p className="mx-auto mt-1 max-w-sm text-sm text-slate-500">There are no approved expense claims matching this filter.</p>
+            </div>
+          ) : (
+            <>
+              <ul className="divide-y divide-slate-100 md:hidden">
+                {pageOf(filteredReimbursements).map((claim: ExpenseClaimSummary) => (
+                  <li key={claim.claim_id} className="space-y-3 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="rounded-lg bg-indigo-50 px-2.5 py-1 font-mono text-xs font-semibold text-indigo-700">{claim.claim_no}</span>
+                      <ClaimStatusBadge status={claim.status} label={claim.status === 'APPROVED' ? 'Ready for payout' : 'Paid'} />
+                    </div>
+                    {employeeCell(claim.employee_name, claim.department_name)}
+                    <div className="flex items-end justify-between gap-3">
+                      <div className="min-w-0 text-sm text-slate-500">
+                        <p className="font-semibold text-slate-900">{claim.category_name}</p>
+                        <p className="mt-0.5">{claim.reimbursement_method || 'DIRECT'}</p>
+                      </div>
+                      <p className="shrink-0 text-lg font-extrabold text-slate-900">{inr(claim.amount)}</p>
+                    </div>
+                    <div className="flex items-center justify-end gap-1">
+                      {claim.status === 'APPROVED' && (
+                        <button type="button" onClick={() => openPayout(claim)} className="inline-flex h-9 flex-1 cursor-pointer items-center justify-center rounded-xl bg-emerald-600 text-[13px] font-semibold text-white shadow-sm shadow-emerald-600/25 transition hover:bg-emerald-700">
+                          Direct payout
+                        </button>
+                      )}
+                      <RowActionsMenu label={`More actions for ${claim.claim_no}`} actions={payoutMenu(claim)} />
+                    </div>
+                  </li>
+                ))}
+              </ul>
 
-                      <td className="py-3.5 px-4">
-                        <div className="font-semibold text-slate-800">{claim.employee_name}</div>
-                        <div className="text-[11px] text-slate-400">{claim.department_name}</div>
-                      </td>
-
-                      <td className="py-3.5 px-4 text-slate-600">{claim.category_name}</td>
-
-                      <td className="py-3.5 px-4 text-right font-bold text-slate-900">
-                        ₹{claim.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </td>
-
-                      <td className="py-3.5 px-4 text-center">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-700">
-                          {claim.reimbursement_method || 'DIRECT'}
-                        </span>
-                      </td>
-
-                      <td className="py-3.5 px-4 text-center">
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold ${
-                            claim.status === 'APPROVED'
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : 'bg-indigo-100 text-indigo-800'
-                          }`}
-                        >
-                          {claim.status === 'APPROVED' ? 'Ready for Payout' : 'Paid / Reimbursed'}
-                        </span>
-                      </td>
-
-                      <td className="py-3.5 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {claim.status === 'APPROVED' && (
-                            <>
-                              <button
-                                onClick={() => {
-                                  setPayoutClaim(claim);
-                                  setPaymentMode('Bank Transfer');
-                                  setPaymentRefNo('');
-                                  setPaymentDate(new Date().toISOString().split('T')[0]);
-                                  setPayoutError('');
-                                }}
-                                className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-semibold transition cursor-pointer"
-                              >
-                                Direct Payout
-                              </button>
-
-                              {claim.reimbursement_method !== 'PAYROLL' ? (
-                                <button
-                                  onClick={() => addToPayrollMut.mutate({ id: claim.claim_id })}
-                                  disabled={addToPayrollMut.isPending}
-                                  className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-xs font-medium transition cursor-pointer"
-                                  title="Queue for next payroll run"
-                                >
-                                  + Payroll
-                                </button>
-                              ) : (
-                                <button
-                                  onClick={() => removeFromPayrollMut.mutate(claim.claim_id)}
-                                  disabled={removeFromPayrollMut.isPending}
-                                  className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded text-xs font-medium transition cursor-pointer"
-                                  title="Remove from payroll"
-                                >
-                                  - Payroll
-                                </button>
-                              )}
-                            </>
-                          )}
-
-                          {/* Reopen Action for Decided / Completed claims */}
-                          <button
-                            onClick={() => {
-                              setReopeningClaim(claim);
-                              setReopenTargetStatus('SUBMITTED');
-                              setReopenRemarks('');
-                              setReopenError('');
-                            }}
-                            className="p-1 rounded text-slate-400 hover:text-indigo-600 hover:bg-slate-100 transition cursor-pointer"
-                            title="Admin Reopen Claim"
-                          >
-                            <RotateCcw className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
+              <div className="hidden overflow-x-auto md:block">
+                <table className="w-full min-w-[860px] text-left text-sm">
+                  <thead className="bg-slate-50/95">
+                    <tr className={headRow}>
+                      <th className={th}>Claim #</th>
+                      <th className={th}>Employee</th>
+                      <th className={th}>Category</th>
+                      <th className={`${th} text-right`}>Amount</th>
+                      <th className={th}>Payout method</th>
+                      <th className={th}>Status</th>
+                      <th className={`${th} text-right`}>Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {pageOf(filteredReimbursements).map((claim: ExpenseClaimSummary) => (
+                      <tr key={claim.claim_id} className="transition-colors hover:bg-blue-50/30">
+                        <td className="px-5 py-3.5">
+                          <span className="whitespace-nowrap rounded-lg bg-indigo-50 px-2.5 py-1 font-mono text-xs font-semibold text-indigo-700">{claim.claim_no}</span>
+                        </td>
+                        <td className="px-5 py-3.5">{employeeCell(claim.employee_name, claim.department_name)}</td>
+                        <td className="px-5 py-3.5 text-slate-600">{claim.category_name}</td>
+                        <td className="whitespace-nowrap px-5 py-3.5 text-right font-bold text-slate-900">{inr(claim.amount)}</td>
+                        <td className="px-5 py-3.5">
+                          <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600 ring-1 ring-slate-200">{claim.reimbursement_method || 'DIRECT'}</span>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <ClaimStatusBadge status={claim.status} label={claim.status === 'APPROVED' ? 'Ready for payout' : 'Paid / reimbursed'} />
+                        </td>
+                        <td className="px-5 py-3.5 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            {claim.status === 'APPROVED' && (
+                              <button type="button" onClick={() => openPayout(claim)} className="inline-flex h-8 cursor-pointer items-center rounded-lg bg-emerald-600 px-3.5 text-[13px] font-semibold text-white shadow-sm shadow-emerald-600/25 transition hover:bg-emerald-700">
+                                Direct payout
+                              </button>
+                            )}
+                            <RowActionsMenu label={`More actions for ${claim.claim_no}`} actions={payoutMenu(claim)} />
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <Pagination page={safePage} pageSize={pageSize} total={filteredReimbursements.length} onPageChange={setPage} onPageSizeChange={setPageSize} />
+            </>
+          )}
         </div>
       )}
 

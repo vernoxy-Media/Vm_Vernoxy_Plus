@@ -32,6 +32,10 @@ import {
   Laptop,
   BookOpen,
   Award,
+  MapPin,
+  Compass,
+  Map as MapIcon,
+  PhoneOff,
   LucideIcon,
 } from 'lucide-react';
 import type { MeResponseDto } from '@vernoxy-pulse/api-client';
@@ -130,6 +134,36 @@ const SettingsRejectionReasonsSection = React.lazy(() =>
   import('./sections/SettingsRejectionReasonsSection').then((m) => ({ default: m.SettingsRejectionReasonsSection }))
 );
 
+const SettingsServiceFitSection = React.lazy(() =>
+  import('./sections/SettingsServiceFitSection').then((m) => ({ default: m.SettingsServiceFitSection }))
+);
+const SettingsContactDesignationSection = React.lazy(() =>
+  import('./sections/SettingsContactDesignationSection').then((m) => ({ default: m.SettingsContactDesignationSection }))
+);
+const SettingsNatureOfBusinessSection = React.lazy(() =>
+  import('./sections/SettingsNatureOfBusinessSection').then((m) => ({ default: m.SettingsNatureOfBusinessSection }))
+);
+const SettingsGidcNamesSection = React.lazy(() =>
+  import('./sections/SettingsGidcNamesSection').then((m) => ({ default: m.SettingsGidcNamesSection }))
+);
+const SettingsGidcAreasSection = React.lazy(() =>
+  import('./sections/SettingsGidcAreasSection').then((m) => ({ default: m.SettingsGidcAreasSection }))
+);
+
+const SettingsCitiesSection = React.lazy(() =>
+  import('./sections/SettingsCitiesSection').then((m) => ({ default: m.SettingsCitiesSection }))
+);
+const SettingsStatesSection = React.lazy(() =>
+  import('./sections/SettingsStatesSection').then((m) => ({ default: m.SettingsStatesSection }))
+);
+const SettingsCountriesSection = React.lazy(() =>
+  import('./sections/SettingsCountriesSection').then((m) => ({ default: m.SettingsCountriesSection }))
+);
+
+const SettingsCallNotReceivedReasonsSection = React.lazy(() =>
+  import('./sections/SettingsCallNotReceivedReasonsSection').then((m) => ({ default: m.SettingsCallNotReceivedReasonsSection }))
+);
+
 export interface SettingsSectionConfig {
   id: string;
   label: string;
@@ -215,6 +249,87 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     path: '/admin/settings/customer-types',
     icon: Users,
     component: SettingsCustomerTypesSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'CRM',
+  },
+  {
+    id: 'service-fit',
+    label: 'Service Fits',
+    path: '/admin/settings/service-fit',
+    icon: Briefcase,
+    component: SettingsServiceFitSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'CRM',
+  },
+  {
+    id: 'designation',
+    label: 'Contact Designations',
+    path: '/admin/settings/designation',
+    icon: UserSquare,
+    component: SettingsContactDesignationSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'CRM',
+  },
+  {
+    id: 'nature-of-business',
+    label: 'Nature of Business',
+    path: '/admin/settings/nature-of-business',
+    icon: Building2,
+    component: SettingsNatureOfBusinessSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'CRM',
+  },
+  {
+    id: 'gidc-name',
+    label: 'GIDC Names',
+    path: '/admin/settings/gidc-name',
+    icon: MapPin,
+    component: SettingsGidcNamesSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'CRM',
+  },
+  {
+    id: 'gidc-phase',
+    label: 'GIDC Areas / Phases',
+    path: '/admin/settings/gidc-phase',
+    icon: Compass,
+    component: SettingsGidcAreasSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'CRM',
+  },
+  {
+    id: 'city',
+    label: 'Cities',
+    path: '/admin/settings/city',
+    icon: MapPin,
+    component: SettingsCitiesSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'CRM',
+  },
+  {
+    id: 'state',
+    label: 'States',
+    path: '/admin/settings/state',
+    icon: MapIcon,
+    component: SettingsStatesSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'CRM',
+  },
+  {
+    id: 'country',
+    label: 'Countries',
+    path: '/admin/settings/country',
+    icon: Globe,
+    component: SettingsCountriesSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'CRM',
+  },
+  {
+    id: 'call-not-received-reasons',
+    label: 'Call Not Received Reasons',
+    path: '/admin/settings/call-not-received-reasons',
+    icon: PhoneOff,
+    component: SettingsCallNotReceivedReasonsSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
     group: 'CRM',
   },

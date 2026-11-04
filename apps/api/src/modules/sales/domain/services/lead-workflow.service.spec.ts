@@ -2,26 +2,40 @@ import {
   allowedActions,
   canApplyAction,
   canEditEntry,
+  canMoveTo,
   canWorkOnLead,
   evaluateQualification,
   reopenTarget,
+  resolveAssignee,
   statusAfterConversation,
 } from './lead-workflow.service';
-import { validateContact, validateConversation, validateNote } from './activity-validator.service';
+import { isNotReceivedCall, validateContact, validateConversation, validateNote } from './activity-validator.service';
 
 const NOW = new Date('2026-10-30T10:00:00Z');
 
 describe('lead status actions', () => {
-  it('follows the BFD status diagram', () => {
+  it('lets a lead move to any stage with no condition', () => {
     expect(canApplyAction('qualify', 'Contacted')).toBe(true);
-    expect(canApplyAction('qualify', 'New')).toBe(false); // needs a conversation first
+    expect(canApplyAction('qualify', 'New')).toBe(true); // no conversation needed first
+    expect(canApplyAction('qualify', 'Lost')).toBe(true);
     expect(canApplyAction('hold', 'Qualified')).toBe(true);
-    expect(canApplyAction('hold', 'New')).toBe(false);
+    expect(canApplyAction('hold', 'New')).toBe(true);
     expect(canApplyAction('lost', 'New')).toBe(true);
-    expect(canApplyAction('lost', 'On Hold')).toBe(false);
+    expect(canApplyAction('lost', 'On Hold')).toBe(true);
     expect(canApplyAction('reopen', 'Lost')).toBe(true);
     expect(canApplyAction('reopen', 'On Hold')).toBe(true);
     expect(canApplyAction('reopen', 'Contacted')).toBe(false);
+  });
+
+  it('can move between any two of the five stages, but never out of Converted or to the same stage', () => {
+    const stages = ['New', 'Contacted', 'Qualified', 'On Hold', 'Lost'] as const;
+    for (const from of stages) {
+      for (const to of stages) expect(canMoveTo(from, to)).toBe(from !== to);
+    }
+    expect(canMoveTo('Converted', 'New')).toBe(false);
+    // Converted is reached with Mark as Won, not by moving
+    expect(canMoveTo('Qualified', 'Converted')).toBe(false);
+    expect(canMoveTo('New', 'Nowhere')).toBe(false);
   });
 
   it('a Converted lead is locked: no action applies', () => {
@@ -29,9 +43,10 @@ describe('lead status actions', () => {
   });
 
   it('lists what a status can do', () => {
-    expect(allowedActions('New')).toEqual(['lost']);
+    expect(allowedActions('New')).toEqual(['qualify', 'hold', 'lost']);
     expect(allowedActions('Contacted')).toEqual(['qualify', 'hold', 'lost']);
-    expect(allowedActions('Lost')).toEqual(['reopen']);
+    expect(allowedActions('On Hold')).toEqual(['qualify', 'lost', 'reopen']);
+    expect(allowedActions('Lost')).toEqual(['qualify', 'hold', 'reopen']);
   });
 
   it('Reopen: Lost goes back to Contacted, On Hold goes back to where it was', () => {
@@ -117,5 +132,64 @@ describe('conversation, note and contact validation', () => {
     expect(validateContact({ name: 'A', designation: null, mobile: null, email: 'a@b.in' })).toEqual([]);
     expect(validateContact({ name: null, designation: null, mobile: null, email: null }).map((e) => e.field)).toEqual(['name', 'mobile']);
     expect(validateContact({ name: 'A', designation: null, mobile: '12', email: 'x' }).map((e) => e.field)).toEqual(['mobile', 'email']);
+  });
+});
+
+describe('logging a call (received / not received)', () => {
+  const base = {
+    type: 'Call',
+    contact_id: 5,
+    communication_date: new Date('2026-10-30T09:00:00Z'),
+    what_discussed: null as string | null,
+    outcome: null as string | null,
+    call_status: null as string | null,
+    not_received_reason: null as string | null,
+  };
+  const fields = (errs: { field: string }[]) => errs.map((e) => e.field);
+
+  it('a received call needs the call time and what was discussed', () => {
+    const ok = validateConversation({ ...base, call_status: 'Received', what_discussed: 'Asked for a quote', outcome: 'Interested' }, NOW, { requireOutcome: true });
+    expect(ok).toEqual([]);
+
+    const noTalk = validateConversation({ ...base, call_status: 'Received', outcome: 'Interested' }, NOW, { requireOutcome: true });
+    expect(fields(noTalk)).toContain('what_discussed');
+
+    const noTime = validateConversation({ ...base, call_status: 'Received', communication_date: null, what_discussed: 'Hi', outcome: 'Interested' }, NOW, { requireOutcome: true });
+    expect(fields(noTime)).toContain('communication_date');
+  });
+
+  it('a call with no status counts as received, so older callers still work', () => {
+    expect(validateConversation({ ...base, what_discussed: 'Quick call', outcome: 'Interested' }, NOW, { requireOutcome: true })).toEqual([]);
+    expect(fields(validateConversation({ ...base, outcome: 'Interested' }, NOW, { requireOutcome: true }))).toContain('what_discussed');
+  });
+
+  it('a call that was not received needs a reason and nothing else', () => {
+    const noReason = validateConversation({ ...base, call_status: 'Not received' }, NOW, { requireOutcome: true });
+    expect(fields(noReason)).toEqual(['not_received_reason']);
+
+    const ok = validateConversation({ ...base, call_status: 'Not received', not_received_reason: 'Busy' }, NOW, { requireOutcome: true });
+    expect(ok).toEqual([]);
+    expect(isNotReceivedCall({ type: 'Call', call_status: 'Not received' })).toBe(true);
+  });
+
+  it('only a call has a status, and a reason belongs only to a call that was not received', () => {
+    expect(fields(validateConversation({ ...base, type: 'Email', call_status: 'Received', what_discussed: 'x', outcome: 'Interested' }, NOW, { requireOutcome: true }))).toContain('call_status');
+    expect(fields(validateConversation({ ...base, call_status: 'Received', not_received_reason: 'Busy', what_discussed: 'x', outcome: 'Interested' }, NOW, { requireOutcome: true }))).toContain('not_received_reason');
+    expect(fields(validateConversation({ ...base, call_status: 'Maybe', what_discussed: 'x', outcome: 'Interested' }, NOW, { requireOutcome: true }))).toContain('call_status');
+  });
+});
+
+describe('who a follow-up is assigned to', () => {
+  const sales = { emp_id: 5, is_admin: false };
+  const admin = { emp_id: 1, is_admin: true };
+
+  it('starts as the person adding it', () => {
+    expect(resolveAssignee(undefined, sales)).toBe(5);
+    expect(resolveAssignee(null, admin)).toBe(1);
+  });
+
+  it('only the Admin can give it to someone else', () => {
+    expect(resolveAssignee(9, admin)).toBe(9);
+    expect(resolveAssignee(9, sales)).toBe(5); // a Sales User cannot hand it to anyone, whatever is sent
   });
 });

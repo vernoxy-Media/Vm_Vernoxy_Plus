@@ -4,6 +4,7 @@ import { MSG } from './company-validator.service';
 export const CONVERSATION_TYPES = ['Call', 'Email', 'WhatsApp', 'Meeting', 'Site Visit'] as const;
 export const OUTCOMES = ['Interested', 'Not interested', 'Call back later', 'Needs more information', 'No response'] as const;
 export const NOTE_TYPES = ['General', 'Requirement', 'Budget', 'Readiness'] as const; // Win and Lost notes are made by the system
+export const CALL_STATUSES = ['Received', 'Not received'] as const;
 export const WHAT_DISCUSSED_MAX = 5000;
 export const NOTE_MAX = 5000;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -16,7 +17,15 @@ export interface ConversationInput {
   communication_date: Date | null;
   what_discussed: string | null;
   outcome: string | null;
+  /** Calls only: was the call picked up. A call with no status counts as Received. */
+  call_status?: string | null;
+  /** Calls that were not received: why. */
+  not_received_reason?: string | null;
 }
+
+/** A call that nobody picked up: there was no conversation. */
+export const isNotReceivedCall = (i: Pick<ConversationInput, 'type' | 'call_status'>): boolean =>
+  i.type === 'Call' && i.call_status === 'Not received';
 
 /** BFD section 7, Part 1/2. Quick log leaves the outcome empty, the full popup requires it. */
 export function validateConversation(i: ConversationInput, now: Date, opts: { requireOutcome: boolean }): FieldError[] {
@@ -27,19 +36,34 @@ export function validateConversation(i: ConversationInput, now: Date, opts: { re
   }
   if (i.contact_id === null || !Number.isInteger(i.contact_id)) errors.push({ field: 'contact_id', message: MSG.required });
 
+  // Received / Not received belongs to calls only.
+  const notReceived = isNotReceivedCall(i);
+  if (i.call_status) {
+    if (i.type !== 'Call') errors.push({ field: 'call_status', message: 'Only a call can be marked received or not received.' });
+    else if (!(CALL_STATUSES as readonly string[]).includes(i.call_status)) {
+      errors.push({ field: 'call_status', message: `Choose one of: ${CALL_STATUSES.join(', ')}.` });
+    }
+  }
+  if (notReceived && !i.not_received_reason) errors.push({ field: 'not_received_reason', message: MSG.required });
+  if (!notReceived && i.not_received_reason) {
+    errors.push({ field: 'not_received_reason', message: 'A reason is only for a call that was not received.' });
+  }
+
   if (i.communication_date === null || Number.isNaN(i.communication_date.getTime())) {
     errors.push({ field: 'communication_date', message: MSG.required });
   } else if (i.communication_date.getTime() > now.getTime() + FUTURE_TOLERANCE_MS) {
     errors.push({ field: 'communication_date', message: 'The date and time cannot be in the future.' });
   }
 
-  if (!i.what_discussed) errors.push({ field: 'what_discussed', message: MSG.required });
-  else if (i.what_discussed.length > WHAT_DISCUSSED_MAX) {
+  // A call that was not received has no conversation to write down.
+  if (!i.what_discussed) {
+    if (!notReceived) errors.push({ field: 'what_discussed', message: MSG.required });
+  } else if (i.what_discussed.length > WHAT_DISCUSSED_MAX) {
     errors.push({ field: 'what_discussed', message: `Please keep it under ${WHAT_DISCUSSED_MAX} characters.` });
   }
 
   if (!i.outcome) {
-    if (opts.requireOutcome) errors.push({ field: 'outcome', message: MSG.required });
+    if (opts.requireOutcome && !notReceived) errors.push({ field: 'outcome', message: MSG.required });
   } else if (!(OUTCOMES as readonly string[]).includes(i.outcome)) {
     errors.push({ field: 'outcome', message: `Choose one of: ${OUTCOMES.join(', ')}.` });
   }

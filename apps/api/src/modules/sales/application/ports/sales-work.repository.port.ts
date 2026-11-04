@@ -28,6 +28,11 @@ export interface CreateCommunicationData {
   communication_date: Date;
   what_discussed: string;
   outcome: string | null;
+  /** Calls only. */
+  call_status?: string | null;
+  not_received_reason?: string | null;
+  /** False for a call nobody picked up: it does not make a New lead Contacted. Default true. */
+  counts_as_conversation?: boolean;
   actor_emp_id: number;
   /** Optional "Schedule next follow-up" part of the Log Conversation popup, saved together with it. */
   next_follow_up: FollowUpInput | null;
@@ -42,6 +47,8 @@ export interface CommunicationRecord {
   communication_date: Date;
   what_discussed: string;
   outcome: string | null;
+  call_status: string | null;
+  not_received_reason: string | null;
   logged_by: { emp_id: number; name: string } | null;
   created_by: number | null;
   created_at: Date;
@@ -54,6 +61,8 @@ export interface UpdateCommunicationData {
   communication_date?: Date;
   what_discussed?: string;
   outcome?: string | null;
+  call_status?: string | null;
+  not_received_reason?: string | null;
 }
 
 export interface NoteRecord {
@@ -127,13 +136,16 @@ export interface SalesWorkRepositoryPort {
   // ---- status actions ----
   getQualificationFacts(leadId: number, tx?: unknown): Promise<QualificationFacts>;
   qualify(data: { lead_id: number; service_fit: string | null; actor_emp_id: number }, tx?: unknown): Promise<TransitionResult>;
-  putOnHold(data: { lead_id: number; follow_up: FollowUpInput; reason: string | null; contact_id: number | null; actor_emp_id: number }, tx?: unknown): Promise<TransitionResult>;
+  putOnHold(data: { lead_id: number; follow_up: FollowUpInput | null; reason: string | null; contact_id: number | null; actor_emp_id: number }, tx?: unknown): Promise<TransitionResult>;
   markLost(data: { lead_id: number; reason: string; reason_lookup_id: number | null; note: string | null; actor_emp_id: number }, tx?: unknown): Promise<TransitionResult>;
   /** The status the lead had before it was last put On Hold, or null. */
   getStatusBeforeHold(leadId: number): Promise<LeadStatus | null>;
   reopen(data: { lead_id: number; to: LeadStatus; actor_emp_id: number }): Promise<TransitionResult>;
   changeLeadBy(data: { lead_id: number; new_lead_by_id: number; actor_emp_id: number }): Promise<{ previous: number | null }>;
   resolveLostReason(label: string): Promise<{ label: string; lookup_id: number } | null>;
+  /** Moves a lead to New or Contacted (Qualified, On Hold and Lost have their own steps). */
+  moveStage(data: { lead_id: number; to: LeadStatus; actor_emp_id: number }): Promise<TransitionResult>;
+  resolveCallNotReceivedReason(label: string): Promise<{ label: string } | null>;
 
   // ---- reading ----
   timeline(leadId: number, page: number, limit: number): Promise<Paged<TimelineEntry>>;

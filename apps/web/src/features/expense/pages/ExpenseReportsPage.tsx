@@ -9,7 +9,6 @@ import {
   Building2,
   AlertCircle,
   CheckCircle2,
-  XCircle,
 } from 'lucide-react';
 import {
   useExpenseReports,
@@ -26,6 +25,7 @@ import {
   useDepartmentOptionsQuery,
   useEmployeeOptionsQuery,
 } from '@/features/organization/hooks/use-organization';
+import { Field, StatCard, inputCls, inr } from '../components/expense-ui';
 
 type ReportTab =
   | 'monthly'
@@ -345,164 +345,131 @@ export const ExpenseReportsPage: React.FC = (): React.ReactElement => {
     return Math.max(...data.trend.map((t) => t.total_amount), 1);
   }, [data?.trend]);
 
+  const reportTabs: Array<{ key: ReportTab; label: string }> = [
+    { key: 'monthly', label: 'Monthly' },
+    { key: 'date_range', label: 'Date range' },
+    { key: 'employee', label: 'Employee-wise' },
+    { key: 'category', label: 'Category-wise' },
+    { key: 'approvals', label: 'Approvals' },
+    { key: 'rejected', label: 'Rejected claims' },
+    { key: 'reimbursement', label: 'Reimbursement' },
+  ];
+  const quickPicks: Array<{ key: Parameters<typeof handleQuickPick>[0]; label: string }> = [
+    { key: 'this_month', label: 'This month' },
+    { key: 'last_month', label: 'Last month' },
+    { key: 'this_quarter', label: 'This quarter' },
+    { key: 'last_quarter', label: 'Last quarter' },
+    { key: 'this_fy', label: 'This FY' },
+  ];
+  const selectCls = `${inputCls} cursor-pointer`;
+  const pct = (part: number) => (totals.total_amount > 0 ? Math.round((part / totals.total_amount) * 100) : 0);
+
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <BarChart3 className="w-7 h-7 text-indigo-600" />
-            Expense Reports
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Analyze company expenditure, monthly spending trends, policy compliance, and approval turnaround
-          </p>
+    <div className="w-full space-y-5">
+      {/* Header */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex min-w-0 items-center gap-3.5">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-600/25">
+            <BarChart3 className="h-6 w-6" />
+          </span>
+          <div className="min-w-0">
+            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-[28px]">Expense Reports</h1>
+            <p className="mt-0.5 text-sm text-slate-500">Spending trends, policy compliance and approval turnaround.</p>
+          </div>
         </div>
 
-        {/* Export & Reset Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2.5">
           <button
+            type="button"
             onClick={handleClearFilters}
-            className="px-3 py-2 text-xs font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 flex items-center gap-1.5 transition cursor-pointer shadow-sm"
             title="Reset filters"
+            className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-[13px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
           >
-            <RotateCcw className="w-3.5 h-3.5" />
-            Clear Filters
+            <RotateCcw className="h-4 w-4 text-slate-500" />
+            Clear filters
           </button>
-
           <button
+            type="button"
             onClick={handleExportCSV}
-            className="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg flex items-center gap-1.5 transition cursor-pointer shadow-sm"
+            className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-xl bg-indigo-600 px-4 text-[13px] font-semibold text-white shadow-sm shadow-indigo-600/25 transition hover:bg-indigo-700"
           >
-            <Download className="w-4 h-4" />
-            Export CSV / Excel
+            <Download className="h-4 w-4" />
+            Export CSV
           </button>
         </div>
       </div>
 
-      {/* Report Tabs (BFD Section 11 Part 2) */}
-      <div className="border-b border-slate-200 flex flex-wrap gap-2 text-sm font-medium">
-        {[
-          { key: 'monthly', label: 'Monthly Expense Report' },
-          { key: 'date_range', label: 'Date-Range Report' },
-          { key: 'employee', label: 'Employee-wise Claims' },
-          { key: 'category', label: 'Category-wise Summary' },
-          { key: 'approvals', label: 'Approvals Report' },
-          { key: 'rejected', label: 'Rejected Claims Report' },
-          { key: 'reimbursement', label: 'Reimbursement Report' },
-        ].map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key as ReportTab)}
-            className={`pb-3 px-3 transition cursor-pointer border-b-2 flex items-center gap-2 ${
-              activeTab === tab.key
-                ? 'border-indigo-600 text-indigo-600 font-semibold'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      {/* Report type */}
+      <div className="-mx-1 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div role="tablist" aria-label="Report type" className="inline-flex gap-1 rounded-xl bg-slate-100 p-1">
+          {reportTabs.map((tab) => {
+            const on = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                role="tab"
+                aria-selected={on}
+                onClick={() => setActiveTab(tab.key)}
+                className={`cursor-pointer whitespace-nowrap rounded-lg px-4 py-2 text-[13px] font-semibold transition ${on ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Filter Toolbar (BFD Section 11 Part 1 Marker 4 & Part 3) */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-          <div className="text-xs font-semibold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-            <Filter className="w-3.5 h-3.5" /> Filter Parameters
+      {/* Filters */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2 text-[13px] font-bold text-slate-800">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+              <Filter className="h-3.5 w-3.5" />
+            </span>
+            Filters
           </div>
-          <div className="flex items-center gap-1 text-xs">
-            <span className="text-slate-400 mr-1">Quick picks:</span>
-            <button
-              onClick={() => handleQuickPick('this_month')}
-              className="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer transition"
-            >
-              This Month
-            </button>
-            <button
-              onClick={() => handleQuickPick('last_month')}
-              className="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer transition"
-            >
-              Last Month
-            </button>
-            <button
-              onClick={() => handleQuickPick('this_quarter')}
-              className="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer transition"
-            >
-              This Quarter
-            </button>
-            <button
-              onClick={() => handleQuickPick('last_quarter')}
-              className="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer transition"
-            >
-              Last Quarter
-            </button>
-            <button
-              onClick={() => handleQuickPick('this_fy')}
-              className="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer transition"
-            >
-              This FY (Apr-Mar)
-            </button>
+          <div className="-mx-1 flex items-center gap-1.5 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <span className="shrink-0 text-xs font-medium text-slate-400">Quick picks</span>
+            {quickPicks.map((q) => (
+              <button
+                key={q.key}
+                type="button"
+                onClick={() => handleQuickPick(q.key)}
+                className="shrink-0 cursor-pointer rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:bg-indigo-50 hover:text-indigo-700"
+              >
+                {q.label}
+              </button>
+            ))}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
-          {/* Month / Date Range */}
+        <div className="grid grid-cols-1 gap-x-4 gap-y-4 min-[480px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           {activeTab === 'monthly' ? (
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Calendar Month</label>
-              <input
-                type="month"
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:bg-white"
-              />
-            </div>
+            <Field label="Calendar month">
+              <input type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className={inputCls} />
+            </Field>
           ) : (
             <>
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">From Date</label>
-                <input
-                  type="date"
-                  value={fromDate}
-                  onChange={(e) => setFromDate(e.target.value)}
-                  className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:bg-white"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">To Date</label>
-                <input
-                  type="date"
-                  value={toDate}
-                  onChange={(e) => setToDate(e.target.value)}
-                  className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:bg-white"
-                />
-              </div>
+              <Field label="From date">
+                <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className={inputCls} />
+              </Field>
+              <Field label="To date">
+                <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className={inputCls} />
+              </Field>
             </>
           )}
 
-          {/* Date Basis */}
-          <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Date Basis</label>
-            <select
-              value={dateBasis}
-              onChange={(e) => setDateBasis(e.target.value as any)}
-              className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:bg-white"
-            >
+          <Field label="Date basis">
+            <select value={dateBasis} onChange={(e) => setDateBasis(e.target.value as any)} className={selectCls}>
               <option value="EXPENSE_DATE">Expense Date</option>
               <option value="APPROVAL_DATE">Approval Date</option>
               <option value="REIMBURSEMENT_DATE">Reimbursement Date</option>
             </select>
-          </div>
+          </Field>
 
-          {/* Department Filter */}
-          <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Department</label>
-            <select
-              value={selectedDeptId || ''}
-              onChange={(e) => setSelectedDeptId(e.target.value ? Number(e.target.value) : undefined)}
-              className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:bg-white"
-            >
+          <Field label="Department">
+            <select value={selectedDeptId || ''} onChange={(e) => setSelectedDeptId(e.target.value ? Number(e.target.value) : undefined)} className={selectCls}>
               <option value="">All Departments</option>
               {deptOptions.map((d: any) => (
                 <option key={d.dep_id || d.id} value={d.dep_id || d.id}>
@@ -510,16 +477,10 @@ export const ExpenseReportsPage: React.FC = (): React.ReactElement => {
                 </option>
               ))}
             </select>
-          </div>
+          </Field>
 
-          {/* Employee Filter */}
-          <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Employee</label>
-            <select
-              value={selectedEmpId || ''}
-              onChange={(e) => setSelectedEmpId(e.target.value ? Number(e.target.value) : undefined)}
-              className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:bg-white"
-            >
+          <Field label="Employee">
+            <select value={selectedEmpId || ''} onChange={(e) => setSelectedEmpId(e.target.value ? Number(e.target.value) : undefined)} className={selectCls}>
               <option value="">All Employees</option>
               {empOptions.map((emp: any) => (
                 <option key={emp.emp_id || emp.id} value={emp.emp_id || emp.id}>
@@ -527,16 +488,10 @@ export const ExpenseReportsPage: React.FC = (): React.ReactElement => {
                 </option>
               ))}
             </select>
-          </div>
+          </Field>
 
-          {/* Category Filter */}
-          <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Category</label>
-            <select
-              value={selectedCategoryId || ''}
-              onChange={(e) => setSelectedCategoryId(e.target.value ? Number(e.target.value) : undefined)}
-              className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:bg-white"
-            >
+          <Field label="Category">
+            <select value={selectedCategoryId || ''} onChange={(e) => setSelectedCategoryId(e.target.value ? Number(e.target.value) : undefined)} className={selectCls}>
               <option value="">All Categories</option>
               {categoryOptions.map((c: any) => (
                 <option key={c.category_id} value={c.category_id}>
@@ -544,16 +499,10 @@ export const ExpenseReportsPage: React.FC = (): React.ReactElement => {
                 </option>
               ))}
             </select>
-          </div>
+          </Field>
 
-          {/* Expense Type Filter */}
-          <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Expense Type</label>
-            <select
-              value={selectedExpenseType}
-              onChange={(e) => setSelectedExpenseType(e.target.value)}
-              className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:bg-white"
-            >
+          <Field label="Expense type">
+            <select value={selectedExpenseType} onChange={(e) => setSelectedExpenseType(e.target.value)} className={selectCls}>
               <option value="">All Types</option>
               {typeOptions.map((t) => (
                 <option key={t.type_id} value={t.name}>
@@ -561,182 +510,93 @@ export const ExpenseReportsPage: React.FC = (): React.ReactElement => {
                 </option>
               ))}
             </select>
-          </div>
+          </Field>
         </div>
       </div>
 
-      {/* Totals Metric Cards (BFD Section 11 Marker 5) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Total Period Spend */}
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Period Spend</span>
-            <div className="text-2xl font-bold text-slate-900 mt-1">
-              ₹{totals.total_amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-            </div>
-            <div className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-              <span>{totals.total_claims} claims approved / reimbursed</span>
-            </div>
-          </div>
-          <div className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
-            ₹
-          </div>
-        </div>
-
-        {/* Card 2: Office Expense Split */}
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Office Expenses</span>
-            <div className="text-2xl font-bold text-emerald-700 mt-1">
-              ₹{totals.office_amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-            </div>
-            <div className="text-xs text-slate-500 mt-1">
-              {totals.office_count} claims (
-              {totals.total_amount > 0 ? Math.round((totals.office_amount / totals.total_amount) * 100) : 0}%)
-            </div>
-          </div>
-          <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-            <Building2 className="w-5 h-5" />
-          </div>
-        </div>
-
-        {/* Card 3: Personal Expense Split */}
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Personal Expenses</span>
-            <div className="text-2xl font-bold text-blue-700 mt-1">
-              ₹{totals.personal_amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-            </div>
-            <div className="text-xs text-slate-500 mt-1">
-              {totals.personal_count} claims (
-              {totals.total_amount > 0 ? Math.round((totals.personal_amount / totals.total_amount) * 100) : 0}%)
-            </div>
-          </div>
-          <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-            <Users className="w-5 h-5" />
-          </div>
-        </div>
-
-        {/* Card 4: Rejected Claims */}
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Rejected Claims</span>
-            <div className="text-2xl font-bold text-rose-600 mt-1">
-              ₹{totals.rejected_amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-            </div>
-            <div className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-              <XCircle className="w-3.5 h-3.5 text-rose-500" />
-              <span>{totals.rejected_count} claims rejected in period</span>
-            </div>
-          </div>
-          <div className="w-10 h-10 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
-            <AlertCircle className="w-5 h-5" />
-          </div>
-        </div>
+      {/* Totals */}
+      <div className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 lg:grid-cols-4 lg:gap-4">
+        <StatCard label="Total period spend" value={inr(totals.total_amount)} hint={`${totals.total_claims} claims approved / reimbursed`} icon={Receipt} tone="text-slate-900" tile="bg-indigo-50 text-indigo-600 ring-indigo-100" bar="from-indigo-500 to-violet-500" />
+        <StatCard label="Office expenses" value={inr(totals.office_amount)} hint={`${totals.office_count} claims (${pct(totals.office_amount)}%)`} icon={Building2} tone="text-emerald-600" tile="bg-emerald-50 text-emerald-600 ring-emerald-100" bar="from-emerald-400 to-teal-400" />
+        <StatCard label="Personal expenses" value={inr(totals.personal_amount)} hint={`${totals.personal_count} claims (${pct(totals.personal_amount)}%)`} icon={Users} tone="text-blue-600" tile="bg-blue-50 text-blue-600 ring-blue-100" bar="from-blue-500 to-sky-500" />
+        <StatCard label="Rejected claims" value={inr(totals.rejected_amount)} hint={`${totals.rejected_count} claims rejected in period`} icon={AlertCircle} tone="text-rose-600" tile="bg-rose-50 text-rose-600 ring-rose-100" bar="from-rose-500 to-pink-500" />
       </div>
 
-      {/* 6-Month Spending Trend (BFD Section 11 Marker 6) */}
-      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-sm font-semibold text-slate-900 flex items-center gap-1.5">
-              <BarChart3 className="w-4 h-4 text-indigo-600" />
-              6-Month Spending Trend (Historical up to selected month)
-            </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Click on any monthly bar to switch the active report filter to that month
-            </p>
-          </div>
+      {/* 6-month trend */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <div className="mb-4">
+          <h2 className="flex items-center gap-2 text-[15px] font-bold text-slate-900">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+              <BarChart3 className="h-3.5 w-3.5" />
+            </span>
+            6-month spending trend
+          </h2>
+          <p className="mt-1 text-xs text-slate-500">Click a bar to switch the report to that month.</p>
         </div>
 
-        <div className="grid grid-cols-6 gap-3 items-end pt-6 pb-2 border-b border-slate-100 h-44">
+        <div className="grid grid-cols-6 gap-2 sm:gap-4">
           {(data?.trend || []).map((t) => {
-            const heightPercent = Math.max(12, Math.round((t.total_amount / maxTrendAmount) * 100));
+            const heightPercent = Math.max(t.total_amount > 0 ? 8 : 3, Math.round((t.total_amount / maxTrendAmount) * 100));
             return (
-              <div
+              <button
                 key={t.month}
+                type="button"
                 onClick={() => {
                   setSelectedMonth(t.month);
                   setActiveTab('monthly');
                 }}
-                className={`flex flex-col items-center justify-end h-full cursor-pointer group transition p-2 rounded-lg ${
-                  t.is_selected ? 'bg-indigo-50/70 border border-indigo-200' : 'hover:bg-slate-50'
-                }`}
-                title={`Click to view ${t.label}: ₹${t.total_amount.toLocaleString('en-IN')} (${t.claim_count} claims)`}
+                title={`${t.label}: ${inr(t.total_amount)} (${t.claim_count} claims)`}
+                className={`group flex cursor-pointer flex-col items-center rounded-xl px-1 pb-3 pt-3 transition ${t.is_selected ? 'bg-indigo-50/70 ring-1 ring-indigo-200' : 'hover:bg-slate-50'}`}
               >
-                <div className="text-[11px] font-semibold text-slate-600 mb-1 group-hover:text-indigo-600">
+                <span className="mb-1 text-[11px] font-bold text-slate-600 group-hover:text-indigo-600">
                   ₹{t.total_amount >= 1000 ? `${(t.total_amount / 1000).toFixed(1)}k` : t.total_amount}
-                </div>
-                <div className="w-full bg-slate-100 rounded-t-md overflow-hidden flex flex-col justify-end h-28">
+                </span>
+                <div className="flex h-32 w-full max-w-[3.5rem] items-end overflow-hidden rounded-lg bg-slate-100/80">
                   <div
                     style={{ height: `${heightPercent}%` }}
-                    className={`w-full rounded-t-md transition-all ${
-                      t.is_selected
-                        ? 'bg-indigo-600 shadow-sm'
-                        : 'bg-indigo-300 group-hover:bg-indigo-400'
-                    }`}
+                    className={`w-full rounded-t-md transition-all ${t.is_selected ? 'bg-gradient-to-t from-indigo-600 to-indigo-400' : 'bg-gradient-to-t from-indigo-300 to-indigo-200 group-hover:from-indigo-400 group-hover:to-indigo-300'}`}
                   />
                 </div>
-                <div
-                  className={`mt-2 text-xs font-medium text-center ${
-                    t.is_selected ? 'text-indigo-700 font-bold' : 'text-slate-500'
-                  }`}
-                >
-                  {t.label}
-                </div>
-              </div>
+                <span className={`mt-2 text-center text-[11px] font-semibold leading-tight sm:text-xs ${t.is_selected ? 'text-indigo-700' : 'text-slate-500'}`}>{t.label}</span>
+              </button>
             );
           })}
         </div>
       </div>
 
-      {/* Main Breakdown / Report Details Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        {/* Table Header Controls */}
-        <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      {/* Report details */}
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-col gap-3 border-b border-slate-100 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h3 className="text-sm font-semibold text-slate-900">
-              {activeTab === 'monthly' && 'Monthly Spending Breakdown'}
-              {activeTab === 'date_range' && 'Date-Range Spending Breakdown'}
-              {activeTab === 'employee' && 'Employee-wise Claims Report'}
-              {activeTab === 'category' && 'Category-wise Performance Summary'}
-              {activeTab === 'approvals' && 'Approvals Turnaround & Queue Report'}
-              {activeTab === 'rejected' && 'Rejected Claims Report (Audit)'}
-              {activeTab === 'reimbursement' && 'Reimbursement Payouts Report'}
+            <h3 className="text-[15px] font-bold text-slate-900">
+              {activeTab === 'monthly' && 'Monthly spending breakdown'}
+              {activeTab === 'date_range' && 'Date-range spending breakdown'}
+              {activeTab === 'employee' && 'Employee-wise claims'}
+              {activeTab === 'category' && 'Category-wise summary'}
+              {activeTab === 'approvals' && 'Approvals turnaround & queue'}
+              {activeTab === 'rejected' && 'Rejected claims (audit)'}
+              {activeTab === 'reimbursement' && 'Reimbursement payouts'}
             </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Period: {data?.period?.from_date} to {data?.period?.to_date} • Basis: {data?.period?.date_basis}
+            <p className="mt-0.5 text-xs text-slate-500">
+              {data?.period?.from_date} to {data?.period?.to_date} · Basis: {data?.period?.date_basis}
             </p>
           </div>
 
           {(activeTab === 'monthly' || activeTab === 'date_range') && (
-            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg text-xs font-medium">
-              <span className="text-slate-500 px-2">Group by:</span>
-              <button
-                onClick={() => setGroupBy('category')}
-                className={`px-2.5 py-1 rounded-md transition cursor-pointer ${
-                  groupBy === 'category' ? 'bg-white shadow-xs text-indigo-600 font-semibold' : 'text-slate-600'
-                }`}
-              >
-                Category
-              </button>
-              <button
-                onClick={() => setGroupBy('department')}
-                className={`px-2.5 py-1 rounded-md transition cursor-pointer ${
-                  groupBy === 'department' ? 'bg-white shadow-xs text-indigo-600 font-semibold' : 'text-slate-600'
-                }`}
-              >
-                Department
-              </button>
-              <button
-                onClick={() => setGroupBy('employee')}
-                className={`px-2.5 py-1 rounded-md transition cursor-pointer ${
-                  groupBy === 'employee' ? 'bg-white shadow-xs text-indigo-600 font-semibold' : 'text-slate-600'
-                }`}
-              >
-                Employee
-              </button>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-slate-400">Group by</span>
+              <div className="inline-flex gap-1 rounded-xl bg-slate-100 p-1 text-[13px] font-semibold">
+                {(['category', 'department', 'employee'] as const).map((g) => (
+                  <button
+                    key={g}
+                    type="button"
+                    onClick={() => setGroupBy(g)}
+                    className={`cursor-pointer rounded-lg px-3 py-1.5 capitalize transition ${groupBy === g ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                  >
+                    {g}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>

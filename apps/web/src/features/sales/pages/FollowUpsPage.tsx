@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Calendar,
   
@@ -48,7 +49,9 @@ export const FollowUpsPage: React.FC = () => {
   const { canExport } = useSalesRights();
 
   // Tab: today | overdue | upcoming | completed | cancelled
-  const [activeTab, setActiveTab] = useState<FollowUpTabType>('today');
+  const [searchParams] = useSearchParams();
+  const linkedTab = searchParams.get('tab') as FollowUpTabType | null;
+  const [activeTab, setActiveTab] = useState<FollowUpTabType>(linkedTab && ['today', 'overdue', 'upcoming', 'completed', 'cancelled'].includes(linkedTab) ? linkedTab : 'today');
 
   // Search
   const [searchInput, setSearchInput] = useState('');

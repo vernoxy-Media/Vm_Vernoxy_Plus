@@ -131,13 +131,16 @@ export class PrismaSalesWorkRepository implements SalesWorkRepositoryPort {
           communication_date: d.communication_date,
           what_discussed: d.what_discussed,
           outcome: d.outcome,
+          call_status: d.call_status ?? null,
+          not_received_reason: d.not_received_reason ?? null,
           created_by: d.actor_emp_id,
         },
         select: { communication_id: true },
       });
 
       let statusChange: TransitionResult | null = null;
-      if (d.lead_id !== null) {
+      // A call nobody picked up is not a conversation, so it does not make the lead Contacted.
+      if (d.lead_id !== null && d.counts_as_conversation !== false) {
         // "First conversation: status moves from New to Contacted automatically."
         const lead = await tx.leads.findUnique({ where: { lead_id: d.lead_id }, select: { lead_stage: true } });
         const from = asStatus(lead?.lead_stage ?? null);
@@ -158,9 +161,9 @@ export class PrismaSalesWorkRepository implements SalesWorkRepositoryPort {
         d.lead_id !== null ? 'LEAD' : 'COMPANY',
         d.lead_id ?? d.company_id,
         'CONVERSATION_LOGGED',
-        `${d.type} logged${contact ? ` with ${contact.name}` : ''}`,
+        d.call_status === 'Not received' ? `Call not received${contact ? ` (${contact.name})` : ''}` : `${d.type} logged${contact ? ` with ${contact.name}` : ''}`,
         d.actor_emp_id,
-        { communication_id: comm.communication_id, type: d.type, outcome: d.outcome },
+        { communication_id: comm.communication_id, type: d.type, outcome: d.outcome, call_status: d.call_status ?? null, not_received_reason: d.not_received_reason ?? null },
       );
 
       let followUpId: number | null = null;
@@ -208,6 +211,8 @@ export class PrismaSalesWorkRepository implements SalesWorkRepositoryPort {
       communication_date: r.communication_date,
       what_discussed: r.what_discussed,
       outcome: r.outcome,
+      call_status: r.call_status,
+      not_received_reason: r.not_received_reason,
       logged_by: person(r.employees),
       created_by: r.created_by,
       created_at: r.created_at,
@@ -230,6 +235,8 @@ export class PrismaSalesWorkRepository implements SalesWorkRepositoryPort {
         ...(patch.contact_id !== undefined ? { contact_id: patch.contact_id, contact_person_name: contact?.name ?? before.contact_person_name } : {}),
         ...(patch.communication_date !== undefined ? { communication_date: patch.communication_date } : {}),
         ...(patch.what_discussed !== undefined ? { what_discussed: patch.what_discussed } : {}),
+        ...(patch.call_status !== undefined ? { call_status: patch.call_status } : {}),
+        ...(patch.not_received_reason !== undefined ? { not_received_reason: patch.not_received_reason } : {}),
         ...(patch.outcome !== undefined ? { outcome: patch.outcome } : {}),
         updated_at: new Date(),
       };
@@ -317,7 +324,7 @@ export class PrismaSalesWorkRepository implements SalesWorkRepositoryPort {
     const db = (outer as Tx | undefined) ?? this.prisma;
     const [lead, conversations, notes] = await Promise.all([
       db.leads.findUnique({ where: { lead_id: leadId }, select: { service_fit: true } }),
-      db.crm_communications.count({ where: { lead_id: leadId, deleted_at: null } }),
+      db.crm_communications.count({ where: { lead_id: leadId, deleted_at: null, NOT: { call_status: 'Not received' } } }),
       db.crm_lead_notes.findMany({ where: { lead_id: leadId, deleted_at: null }, distinct: ['note_type'], select: { note_type: true } }),
     ]);
     return {
@@ -340,7 +347,12 @@ export class PrismaSalesWorkRepository implements SalesWorkRepositoryPort {
   ): Promise<TransitionResult> {
     const current = await tx.leads.findUnique({ where: { lead_id: leadId }, select: { lead_stage: true } });
     const from = asStatus(current?.lead_stage ?? null);
-    const res = await tx.leads.updateMany({ where: { lead_id: leadId, lead_stage: { in: expected } }, data: { ...extra, lead_stage: to, updated_by: actor } });
+    // Whatever belongs to the stage the lead is leaving is cleared, so a Lost reason never stays on a live lead.
+    const clears: Prisma.leadsUncheckedUpdateManyInput = {
+      ...(from === 'Lost' && to !== 'Lost' ? { lost_reason: null, lost_reason_id: null, lost_note: null, closed_at: null } : {}),
+      ...(from === 'On Hold' && to !== 'On Hold' ? { on_hold_reason: null, on_hold_follow_up_date: null } : {}),
+    };
+    const res = await tx.leads.updateMany({ where: { lead_id: leadId, lead_stage: { in: expected } }, data: { ...clears, ...extra, lead_stage: to, updated_by: actor } });
     if (res.count !== 1) throw new InvalidTransitionError(`This lead is ${from} now; the action no longer applies.`);
     await this.log(tx, 'LEAD', leadId, 'STATUS_CHANGED', `Status changed ${from} -> ${to}`, actor, { from, to, action, ...details });
     return { from, to };
@@ -348,7 +360,7 @@ export class PrismaSalesWorkRepository implements SalesWorkRepositoryPort {
 
   async qualify(d: { lead_id: number; service_fit: string | null; actor_emp_id: number }, outer?: unknown): Promise<TransitionResult> {
     return this.inTx(outer, (tx) =>
-      this.move(tx, d.lead_id, ['Contacted'], 'Qualified', d.service_fit !== null ? { service_fit: d.service_fit } : {}, d.actor_emp_id, 'qualify'),
+      this.move(tx, d.lead_id, ['New', 'Contacted', 'On Hold', 'Lost'], 'Qualified', d.service_fit !== null ? { service_fit: d.service_fit } : {}, d.actor_emp_id, 'qualify'),
     );
   }
 
@@ -358,11 +370,14 @@ export class PrismaSalesWorkRepository implements SalesWorkRepositoryPort {
   ): Promise<TransitionResult> {
     return this.inTx(outer, async (tx) => {
       const lead = await tx.leads.findUniqueOrThrow({ where: { lead_id: d.lead_id }, select: { company_id: true } });
-      const result = await this.move(tx, d.lead_id, ['Contacted', 'Qualified'], 'On Hold',
-        { on_hold_reason: d.reason, on_hold_follow_up_date: d.follow_up.follow_up_on }, d.actor_emp_id, 'hold',
-        { follow_up_on: d.follow_up.follow_up_on.toISOString(), reason: d.reason });
-      const contact = d.contact_id ? await tx.persons.findUnique({ where: { person_id: d.contact_id }, select: { name: true } }) : null;
-      await this.insertFollowUp(tx, { company_id: lead.company_id as number, lead_id: d.lead_id, contact_id: d.contact_id, contact_name: contact?.name ?? null, fu: d.follow_up, actor: d.actor_emp_id });
+      const result = await this.move(tx, d.lead_id, ['New', 'Contacted', 'Qualified', 'Lost'], 'On Hold',
+        { on_hold_reason: d.reason, on_hold_follow_up_date: d.follow_up?.follow_up_on ?? null }, d.actor_emp_id, 'hold',
+        { follow_up_on: d.follow_up?.follow_up_on.toISOString() ?? null, reason: d.reason });
+      // The check-back follow-up is optional.
+      if (d.follow_up) {
+        const contact = d.contact_id ? await tx.persons.findUnique({ where: { person_id: d.contact_id }, select: { name: true } }) : null;
+        await this.insertFollowUp(tx, { company_id: lead.company_id as number, lead_id: d.lead_id, contact_id: d.contact_id, contact_name: contact?.name ?? null, fu: d.follow_up, actor: d.actor_emp_id });
+      }
       return result;
     });
   }
@@ -382,7 +397,7 @@ export class PrismaSalesWorkRepository implements SalesWorkRepositoryPort {
     return this.inTx(outer, async (tx) => {
       const lead = await tx.leads.findUniqueOrThrow({ where: { lead_id: d.lead_id }, select: { company_id: true } });
       const now = new Date();
-      const result = await this.move(tx, d.lead_id, ['New', 'Contacted', 'Qualified'], 'Lost',
+      const result = await this.move(tx, d.lead_id, ['New', 'Contacted', 'Qualified', 'On Hold'], 'Lost',
         { lost_reason: d.reason, lost_reason_id: d.reason_lookup_id, lost_note: d.note, closed_at: now }, d.actor_emp_id, 'lost',
         { reason: d.reason, note: d.note });
       // The Lost note is made by the system and used in reports.
@@ -396,6 +411,33 @@ export class PrismaSalesWorkRepository implements SalesWorkRepositoryPort {
       });
       return result;
     });
+  }
+
+  /** A plain move to New or Contacted, from any stage but Converted. */
+  async moveStage(d: { lead_id: number; to: LeadStatus; actor_emp_id: number }): Promise<TransitionResult> {
+    try {
+      return await this.prisma.$transaction((tx) =>
+        this.move(tx, d.lead_id, ['New', 'Contacted', 'Qualified', 'On Hold', 'Lost'], d.to, {}, d.actor_emp_id, 'move'),
+      );
+    } catch (err) {
+      // Leaving Lost can give the company a second open lead, which is not allowed.
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        const lead = await this.prisma.leads.findUnique({ where: { lead_id: d.lead_id }, select: { company_id: true } });
+        const open = lead?.company_id
+          ? await this.prisma.leads.findFirst({ where: { company_id: lead.company_id, deleted_at: null, lead_stage: { in: OPEN } }, select: { lead_id: true, lead_code: true, lead_stage: true } })
+          : null;
+        if (open) throw new OpenLeadExistsError({ lead_id: open.lead_id, lead_code: open.lead_code, stage: open.lead_stage ?? 'New' });
+      }
+      throw err;
+    }
+  }
+
+  async resolveCallNotReceivedReason(label: string) {
+    const hit = await this.prisma.master_lookup.findFirst({
+      where: { lookup_type: 'call_not_received_reason', deleted_at: null, is_active: true, label: { equals: label, mode: 'insensitive' } },
+      select: { label: true },
+    });
+    return hit ? { label: hit.label } : null;
   }
 
   async getStatusBeforeHold(leadId: number): Promise<LeadStatus | null> {
@@ -468,7 +510,7 @@ export class PrismaSalesWorkRepository implements SalesWorkRepositoryPort {
     const rest: TimelineEntry[] = [];
     for (const c of comms) {
       const r = this.toComm(c);
-      rest.push({ kind: 'conversation', at: r.communication_date, title: `${r.type}${r.contact ? ` with ${r.contact.name}` : ''}`, body: r.what_discussed, by: r.logged_by, pinned: false, ref_id: r.communication_id, meta: { outcome: r.outcome } });
+      rest.push({ kind: 'conversation', at: r.communication_date, title: r.call_status === 'Not received' ? `Call not received${r.contact ? ` (${r.contact.name})` : ''}` : `${r.type}${r.contact ? ` with ${r.contact.name}` : ''}`, body: r.what_discussed, by: r.logged_by, pinned: false, ref_id: r.communication_id, meta: { outcome: r.outcome, call_status: r.call_status, not_received_reason: r.not_received_reason } });
     }
     for (const n of notes) {
       const r = this.toNote(n);

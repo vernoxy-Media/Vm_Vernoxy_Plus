@@ -38,6 +38,7 @@ import {
   validateSchedule,
 } from '../../domain/services/follow-up-validator.service';
 import { cleanText } from '../../domain/services/sales-normalization.service';
+import { resolveAssignee } from '../../domain/services/lead-workflow.service';
 import { MSG } from '../../domain/services/company-validator.service';
 
 export interface FollowUpView {
@@ -171,7 +172,8 @@ export class FollowUpUseCases {
   async schedule(input: ScheduleInput, actor: SalesActor, now = new Date()): Promise<FollowUpView> {
     const target = await this.resolveTarget(input, actor);
     const contactId = input.contact_id ?? target.default_contact_id;
-    const assignee = input.assigned_to ?? target.default_assignee ?? actor.emp_id;
+    // It starts as the person scheduling; only the Admin can give it to someone else.
+    const assignee = resolveAssignee(input.assigned_to, actor);
     const fields = {
       follow_up_on: input.follow_up_on ?? null,
       type: cleanText(input.type),
@@ -342,7 +344,7 @@ export class FollowUpUseCases {
     // Schedule-next fields are validated up front so the user sees every problem at once.
     let nextAssignee = 0;
     if (action === 'schedule') {
-      nextAssignee = next.assigned_to ?? rec.lead?.lead_by_id ?? actor.emp_id;
+      nextAssignee = resolveAssignee(next.assigned_to, actor);
       errors.push(
         ...validateSchedule(
           { follow_up_on: next.follow_up_on ?? null, type: cleanText(next.type) ?? rec.type, contact_id: contactId, purpose: cleanText(next.purpose) },

@@ -271,6 +271,7 @@ export const LeadFollowUpsList: React.FC<LeadFollowUpsListProps> = ({
         leadCode={leadCode}
         companyName={companyName}
         contacts={contacts}
+        addContactHref={`/sales/leads/${leadId}?tab=contacts`}
         onSuccess={() => refetch()}
       />
 

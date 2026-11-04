@@ -2,6 +2,8 @@ export interface LookupOption {
   id: number;
   code: string;
   label: string;
+  /** The row this one belongs to (a GIDC Area belongs to a GIDC Name). */
+  parent_id: number | null;
 }
 
 export interface MasterLookupItem {
@@ -12,6 +14,8 @@ export interface MasterLookupItem {
   sort_order: number;
   is_active: boolean;
   created_at: string;
+  parent_id: number | null;
+  parent_label: string | null;
 }
 
 export interface CreateMasterLookupInput {
@@ -20,6 +24,7 @@ export interface CreateMasterLookupInput {
   label: string;
   sort_order?: number;
   is_active?: boolean;
+  parent_id?: number | null;
   actor_id?: number;
 }
 
@@ -29,6 +34,7 @@ export interface UpdateMasterLookupInput {
   label?: string;
   sort_order?: number;
   is_active?: boolean;
+  parent_id?: number | null;
   actor_id?: number;
 }
 

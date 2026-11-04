@@ -29,8 +29,6 @@ import { LeadKanbanBoard } from '../components/leads/LeadKanbanBoard';
 import { LeadSummaryStrip } from '../components/leads/LeadSummaryStrip';
 import { LeadToolbar } from '../components/leads/LeadToolbar';
 import { useMediaQuery } from '../hooks/useMediaQuery';
-import { QualifyModal } from '../components/leads/QualifyModal';
-import { PutOnHoldModal } from '../components/leads/PutOnHoldModal';
 import { MarkLostModal } from '../components/leads/MarkLostModal';
 import { ExportModal } from '../components/export/ExportModal';
 import { Pagination } from '../components/common/Pagination';
@@ -49,6 +47,33 @@ import type {
   SalesLeadControllerBoardParams,
   LeadBoardResponse,
 } from '../types/sales.types';
+import { usePersistentState } from '../hooks/usePersistentState';
+import { useMoveLeadStage } from '../hooks/useMoveLeadStage';
+
+/**
+ * The board data with one card moved to another column: the counts and the status counters follow.
+ * The board answers either as the plain object or wrapped in { data }, so both are handled.
+ */
+function moveCardInBoard(old: unknown, leadId: number, from: LeadStatusType, to: LeadStatusType): unknown {
+  const wrapped = old as { data?: LeadBoardResponse } | undefined;
+  const board = (wrapped?.data ?? (old as LeadBoardResponse | undefined)) as LeadBoardResponse | undefined;
+  if (!board?.columns) return old;
+  const card = board.columns.flatMap((c) => c.cards).find((c) => c.lead_id === leadId);
+  if (!card) return old;
+  const moved = { ...card, status: to };
+  const next: LeadBoardResponse = {
+    ...board,
+    columns: board.columns.map((col) => {
+      if (col.status === from) return { ...col, count: Math.max(0, col.count - 1), cards: col.cards.filter((c) => c.lead_id !== leadId) };
+      if (col.status === to) return { ...col, count: col.count + 1, cards: [moved, ...col.cards] };
+      return col;
+    }),
+    counters: board.counters
+      ? { ...board.counters, by_status: { ...board.counters.by_status, [from]: Math.max(0, (board.counters.by_status[from] ?? 0) - 1), [to]: (board.counters.by_status[to] ?? 0) + 1 } }
+      : board.counters,
+  };
+  return wrapped?.data ? { ...wrapped, data: next } : next;
+}
 
 export const LeadsListPage: React.FC = () => {
   const navigate = useNavigate();
@@ -68,7 +93,7 @@ export const LeadsListPage: React.FC = () => {
   };
 
   // View mode (List vs Kanban)
-  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('kanban');
+  const [viewMode, setViewMode] = usePersistentState<'list' | 'kanban'>('leads:view', 'kanban');
 
   // Search
   const [searchInput, setSearchInput] = useState('');
@@ -87,7 +112,7 @@ export const LeadsListPage: React.FC = () => {
 
   // Filter Drawer State
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [filters, setFilters] = useState<LeadFilterState>({
+  const [filters, setFilters] = usePersistentState<LeadFilterState>('leads:filters', {
     lead_by: '',
     source: '',
     service_fit: '',
@@ -104,8 +129,7 @@ export const LeadsListPage: React.FC = () => {
 
   // Modals for status moves
   const [exportModalOpen, setExportModalOpen] = useState(false);
-  const [qualifyTarget, setQualifyTarget] = useState<LeadListItem | null>(null);
-  const [holdTarget, setHoldTarget] = useState<LeadListItem | null>(null);
+  const moveStage = useMoveLeadStage();
   const [lostTarget, setLostTarget] = useState<LeadListItem | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   /** New -> Contacted is automatic: guide the user to log the first conversation instead. */
@@ -256,38 +280,36 @@ export const LeadsListPage: React.FC = () => {
   const isAllCurrentPageSelected =
     leads.length > 0 && leads.every((l) => selectedIds.includes(l.lead_id));
 
-  // Handle status drag move from Kanban
-  const handleMoveLead = async (lead: LeadListItem, targetStatus: LeadStatusType) => {
+  /** Moves a lead to a stage with nothing to fill in. Only Lost asks for a reason, so it opens its pop-up. */
+  const moveTo = async (lead: LeadListItem, target: LeadStatusType) => {
     setActionError(null);
     setLogHint(null);
-
     if (lead.status === 'Converted') {
       setActionError('A converted lead is locked. It is now a client.');
-    } else if (targetStatus === 'New') {
-      setActionError('A lead cannot go back to New.');
-    } else if (targetStatus === 'Contacted' && lead.status === 'New') {
-      setLogHint(lead);
-    } else if (targetStatus === 'Qualified' && lead.status === 'New') {
-      setActionError('Log a conversation first. A lead has to be Contacted before it can be Qualified.');
-    } else if (targetStatus === 'Qualified' && lead.status !== 'Contacted') {
-      setActionError('Only a Contacted lead can be Qualified.');
-    } else if (targetStatus === 'Qualified') {
-      setQualifyTarget(lead);
-    } else if (targetStatus === 'On Hold') {
-      if (lead.status === 'Contacted' || lead.status === 'Qualified') setHoldTarget(lead);
-      else setActionError('Only a Contacted or Qualified lead can be put on hold.');
-    } else if (targetStatus === 'Lost') {
-      if (lead.status === 'Lost') return;
+    } else if (target === lead.status) {
+      return;
+    } else if (target === 'Lost') {
       setLostTarget(lead);
-    } else if (targetStatus === 'Converted') {
-      if (lead.status === 'Qualified') navigate(`/sales/leads/${lead.lead_id}?action=won`);
-      else setActionError('Only a Qualified lead can be marked as Won.');
-    } else if ((lead.status === 'Lost' || lead.status === 'On Hold') && targetStatus === 'Contacted') {
-      await reopenMutation.mutateAsync({ id: lead.lead_id });
+    } else if (target === 'Converted') {
+      if (lead.status === 'Lost') setActionError('This lead is Lost. Move it to another stage first, then mark it as Won.');
+      else navigate(`/sales/leads/${lead.lead_id}?action=won`);
     } else {
-      setActionError(`A lead cannot move from ${lead.status} to ${targetStatus}.`);
+      // Show the card in its new column straight away; if the server says no, put it back.
+      const boardKey = ['/api/v1/sales/leads', 'board', boardParams];
+      const before = queryClient.getQueryData(boardKey);
+      if (showBoard) queryClient.setQueryData(boardKey, (old: unknown) => moveCardInBoard(old, lead.lead_id, lead.status, target));
+      try {
+        await moveStage.mutateAsync({ leadId: lead.lead_id, to: target as 'New' | 'Contacted' | 'Qualified' | 'On Hold' });
+        showToast(`Lead moved to ${target}`);
+      } catch (err) {
+        if (showBoard) queryClient.setQueryData(boardKey, before);
+        setActionError(parseApiError(err).message || 'Could not move this lead.');
+      }
     }
   };
+
+  // Drag and drop on the Kanban board
+  const handleMoveLead = (lead: LeadListItem, targetStatus: LeadStatusType) => moveTo(lead, targetStatus);
 
   const handleCardAction = async (lead: LeadListItem, action: LeadCardAction) => {
     setActionError(null);
@@ -295,8 +317,8 @@ export const LeadsListPage: React.FC = () => {
     if (action === 'open') navigate(`/sales/leads/${lead.lead_id}`);
     else if (action === 'log') navigate(`/sales/leads/${lead.lead_id}?action=log`);
     else if (action === 'won') navigate(`/sales/leads/${lead.lead_id}?action=won`);
-    else if (action === 'qualify') setQualifyTarget(lead);
-    else if (action === 'hold') setHoldTarget(lead);
+    else if (action === 'qualify') await moveTo(lead, 'Qualified');
+    else if (action === 'hold') await moveTo(lead, 'On Hold');
     else if (action === 'lost') setLostTarget(lead);
     else if (action === 'reopen') await reopenMutation.mutateAsync({ id: lead.lead_id });
   };
@@ -613,39 +635,6 @@ export const LeadsListPage: React.FC = () => {
         selectedIds={selectedIds}
         currentFilters={queryParams as Record<string, unknown>}
       />
-
-      {/* Qualify Modal */}
-      {qualifyTarget && (
-        <QualifyModal
-          isOpen={Boolean(qualifyTarget)}
-          onClose={() => setQualifyTarget(null)}
-          leadId={qualifyTarget.lead_id}
-          leadCode={qualifyTarget.lead_code || undefined}
-          companyName={qualifyTarget.company?.name}
-          initialServiceFit={qualifyTarget.service_fit}
-          onSuccess={() => {
-            setQualifyTarget(null);
-            refreshAll();
-            showToast('Lead moved to Qualified');
-          }}
-        />
-      )}
-
-      {/* Put on Hold Modal */}
-      {holdTarget && (
-        <PutOnHoldModal
-          isOpen={Boolean(holdTarget)}
-          onClose={() => setHoldTarget(null)}
-          leadId={holdTarget.lead_id}
-          leadCode={holdTarget.lead_code || undefined}
-          companyName={holdTarget.company?.name}
-          onSuccess={() => {
-            setHoldTarget(null);
-            refreshAll();
-            showToast('Lead put on hold');
-          }}
-        />
-      )}
 
       {/* Mark Lost Modal */}
       {lostTarget && (

@@ -8,18 +8,20 @@ import {
   FieldValidationError,
   ForbiddenSalesError,
   InvalidTransitionError,
-  QualificationIncompleteError,
 } from '../../domain/errors/sales.errors';
 import {
   LOST_REASON_OTHER,
   allowedActions,
   canApplyAction,
+  canMoveTo,
   evaluateQualification,
+  MOVABLE_STAGES,
+  resolveAssignee,
   reopenTarget,
   StatusAction,
 } from '../../domain/services/lead-workflow.service';
 import { normalizeServiceFit } from '../../domain/services/lead-validator.service';
-import { joinServiceFit, splitServiceFit } from '../../domain/entities/sales-lead';
+import { joinServiceFit, LeadStatus, splitServiceFit } from '../../domain/entities/sales-lead';
 import { CONVERSATION_TYPES } from '../../domain/services/activity-validator.service';
 import { cleanText } from '../../domain/services/sales-normalization.service';
 import { MSG } from '../../domain/services/company-validator.service';
@@ -53,7 +55,8 @@ export class LeadStatusUseCases {
       status: lead.stage,
       items: checklist.items,
       complete: checklist.complete,
-      can_qualify: !locked && mine && canApplyAction('qualify', lead.stage) && checklist.complete,
+      // The checklist is a guide: nothing has to be done before a lead is moved to Qualified.
+      can_qualify: !locked && mine && canApplyAction('qualify', lead.stage),
       allowed_actions: locked || !mine ? [] : allowedActions(lead.stage),
     };
   }
@@ -62,7 +65,7 @@ export class LeadStatusUseCases {
     const lead = assertLeadFound(await this.work.getLeadForWork(leadId, tx));
     assertCanWork(lead, actor);
     assertNotLocked(lead);
-    this.assertAllowed('qualify', lead.stage, 'Only a Contacted lead can be qualified');
+    this.assertAllowed('qualify', lead.stage, 'This lead is already qualified');
 
     // The Qualify popup may correct the Service Fit.
     let serviceFit: string | null = lead.service_fit;
@@ -77,15 +80,10 @@ export class LeadStatusUseCases {
       }
     }
 
-    const facts = await this.work.getQualificationFacts(leadId, tx);
-    const checklist = evaluateQualification({ ...facts, service_fit_chosen: splitServiceFit(serviceFit).length > 0 });
-    if (!checklist.complete) {
-      throw new QualificationIncompleteError(checklist.items.filter((i) => !i.done).map((i) => ({ key: i.key, label: i.label })));
-    }
     return this.work.qualify({ lead_id: leadId, service_fit: serviceFit === lead.service_fit ? null : serviceFit, actor_emp_id: actor.emp_id }, tx);
   }
 
-  /** "Putting a lead On Hold needs one pending follow-up: the date to check back." */
+  /** Puts a lead On Hold. A check-back follow-up can be planned, but it is not required. */
   async putOnHold(
     leadId: number,
     input: { follow_up_on?: Date | null; type?: string | null; assigned_to?: number | null; purpose?: string | null; reason?: string | null },
@@ -96,28 +94,29 @@ export class LeadStatusUseCases {
     const lead = assertLeadFound(await this.work.getLeadForWork(leadId, tx));
     assertCanWork(lead, actor);
     assertNotLocked(lead);
-    this.assertAllowed('hold', lead.stage, 'Only a Contacted or Qualified lead can be put on hold');
+    this.assertAllowed('hold', lead.stage, 'This lead is already on hold');
 
     const errors: FieldError[] = [];
-    const at = input.follow_up_on ?? null;
-    if (!at || Number.isNaN(at.getTime())) errors.push({ field: 'follow_up_on', message: MSG.required });
-    else if (at.getTime() < now.getTime() - SLACK_MS) errors.push({ field: 'follow_up_on', message: 'The check-back date must be today or later.' });
-    const type = cleanText(input.type) ?? 'Call';
-    if (!(CONVERSATION_TYPES as readonly string[]).includes(type)) {
-      errors.push({ field: 'type', message: `Choose one of: ${CONVERSATION_TYPES.join(', ')}.` });
-    }
-    const assignee = input.assigned_to ?? lead.lead_by_id ?? actor.emp_id;
-    if (!(await this.work.isEligibleAssignee(assignee))) errors.push({ field: 'assigned_to', message: 'Choose an active Sales user or Admin.' });
     const reason = cleanText(input.reason);
     if (reason && reason.length > NOTE_MAX) errors.push({ field: 'reason', message: `Please keep it under ${NOTE_MAX} characters.` });
+
+    let followUp: FollowUpInput | null = null;
+    const at = input.follow_up_on ?? null;
+    if (at) {
+      if (Number.isNaN(at.getTime())) errors.push({ field: 'follow_up_on', message: MSG.required });
+      else if (at.getTime() < now.getTime() - SLACK_MS) errors.push({ field: 'follow_up_on', message: 'The check-back date must be today or later.' });
+      const type = cleanText(input.type) ?? 'Call';
+      if (!(CONVERSATION_TYPES as readonly string[]).includes(type)) {
+        errors.push({ field: 'type', message: `Choose one of: ${CONVERSATION_TYPES.join(', ')}.` });
+      }
+      const assignee = resolveAssignee(input.assigned_to, actor);
+      if (!(await this.work.isEligibleAssignee(assignee))) errors.push({ field: 'assigned_to', message: 'Choose an active Sales user or Admin.' });
+      if (errors.length === 0) {
+        followUp = { follow_up_on: at, type, assigned_to: assignee, purpose: cleanText(input.purpose) ?? 'Check back (lead on hold)' };
+      }
+    }
     if (errors.length > 0) throw new FieldValidationError(errors);
 
-    const followUp: FollowUpInput = {
-      follow_up_on: at as Date,
-      type,
-      assigned_to: assignee,
-      purpose: cleanText(input.purpose) ?? 'Check back (lead on hold)',
-    };
     return this.work.putOnHold(
       {
         lead_id: leadId,
@@ -135,7 +134,7 @@ export class LeadStatusUseCases {
     const lead = assertLeadFound(await this.work.getLeadForWork(leadId, tx));
     assertCanWork(lead, actor);
     assertNotLocked(lead);
-    this.assertAllowed('lost', lead.stage, 'Only a New, Contacted or Qualified lead can be marked as lost');
+    this.assertAllowed('lost', lead.stage, 'This lead is already lost');
 
     const errors: FieldError[] = [];
     const wanted = cleanText(input.reason);
@@ -172,6 +171,32 @@ export class LeadStatusUseCases {
     this.assertAllowed('reopen', lead.stage, 'Only a Lost or On Hold lead can be reopened');
     const previous = lead.stage === 'On Hold' ? await this.work.getStatusBeforeHold(leadId) : null;
     return this.work.reopen({ lead_id: leadId, to: reopenTarget(lead.stage, previous), actor_emp_id: actor.emp_id });
+  }
+
+  /**
+   * Moves a lead to any stage, from any stage, with nothing to fill in first. The one rule: Lost asks for a
+   * reason (and a note when the reason is "Other"). Converted is not reachable here; it needs Mark as Won.
+   */
+  async moveToStage(leadId: number, input: { to?: string | null; reason?: string | null; note?: string | null }, actor: SalesActor): Promise<TransitionResult> {
+    const to = cleanText(input.to);
+    if (!to || !(MOVABLE_STAGES as readonly string[]).includes(to)) {
+      throw new FieldValidationError([{ field: 'to', message: `Choose one of: ${MOVABLE_STAGES.join(', ')}.` }]);
+    }
+    const lead = assertLeadFound(await this.work.getLeadForWork(leadId));
+    assertCanWork(lead, actor);
+    assertNotLocked(lead);
+    if (!canMoveTo(lead.stage, to)) throw new InvalidTransitionError(`This lead is already ${lead.stage}.`);
+
+    switch (to) {
+      case 'Lost':
+        return this.markLost(leadId, { reason: input.reason, note: input.note }, actor);
+      case 'Qualified':
+        return this.qualify(leadId, {}, actor);
+      case 'On Hold':
+        return this.putOnHold(leadId, {}, actor);
+      default:
+        return this.work.moveStage({ lead_id: leadId, to: to as LeadStatus, actor_emp_id: actor.emp_id });
+    }
   }
 
   /** Admin only. The new Lead By user is told. */

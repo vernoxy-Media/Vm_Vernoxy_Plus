@@ -68,6 +68,10 @@ import { ContactUseCases } from './application/use-cases/contact.use-cases';
 import { FollowUpUseCases } from './application/use-cases/follow-up.use-cases';
 import { FollowUpJobs } from './application/use-cases/follow-up-jobs.use-case';
 import { ClientUseCases } from './application/use-cases/client.use-cases';
+import { SALES_REPORT_REPOSITORY_PORT_TOKEN, SalesReportRepositoryPort } from './application/ports/sales-report.repository.port';
+import { PrismaSalesReportRepository } from './infrastructure/persistence/prisma-sales-report.repository';
+import { SalesReportUseCases } from './application/use-cases/sales-report.use-cases';
+import { SalesReportController } from './presentation/controllers/sales-report.controller';
 import { ImportUseCases } from './application/use-cases/import.use-cases';
 import { ExportUseCases } from './application/use-cases/export.use-cases';
 import { SalesRightsUseCases } from './application/use-cases/rights.use-cases';
@@ -106,12 +110,19 @@ const leadUseCase = <T>(cls: new (repo: SalesLeadRepositoryPort) => T) => ({
     SalesFollowUpController,
     SalesJobsController,
     SalesClientController,
+    SalesReportController,
     SalesImportExportController,
   ],
   providers: [
     { provide: SALES_COMPANY_REPOSITORY_PORT_TOKEN, useClass: PrismaSalesCompanyRepository },
     { provide: SALES_ACCESS_POLICY_PORT_TOKEN, useClass: PrismaSalesAccessPolicyAdapter },
     { provide: SALES_LEAD_REPOSITORY_PORT_TOKEN, useClass: PrismaSalesLeadRepository },
+    { provide: SALES_REPORT_REPOSITORY_PORT_TOKEN, useClass: PrismaSalesReportRepository },
+    {
+      provide: SalesReportUseCases,
+      inject: [SALES_REPORT_REPOSITORY_PORT_TOKEN],
+      useFactory: (repo: SalesReportRepositoryPort) => new SalesReportUseCases(repo),
+    },
     {
       provide: SALES_NOTIFIER_PORT_TOKEN,
       inject: [CreateNotificationUseCase, PrismaService],

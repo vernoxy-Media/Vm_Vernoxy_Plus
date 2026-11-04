@@ -1,5 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
 // Shape only; the rules and their BFD messages live in the domain validators.
 
@@ -14,4 +15,21 @@ export class ConvertToClientBodyDto {
 export class ReverseConversionBodyDto {
   @ApiPropertyOptional({ description: 'Why the conversion is reversed (required)' })
   @IsOptional() @IsString() reason?: string;
+}
+
+export class ListClientsQueryDto {
+  @ApiPropertyOptional({ description: 'Search the client or company name, Client ID, company ID or city' })
+  @IsOptional() @IsString() q?: string;
+
+  @ApiPropertyOptional({ enum: ['won_on', 'name', 'created_at'], default: 'won_on' })
+  @IsOptional() @IsIn(['won_on', 'name', 'created_at']) sort?: 'won_on' | 'name' | 'created_at';
+
+  @ApiPropertyOptional({ enum: ['asc', 'desc'], default: 'desc' })
+  @IsOptional() @IsIn(['asc', 'desc']) order?: 'asc' | 'desc';
+
+  @ApiPropertyOptional({ default: 1 })
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) page?: number;
+
+  @ApiPropertyOptional({ default: 12 })
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit?: number;
 }

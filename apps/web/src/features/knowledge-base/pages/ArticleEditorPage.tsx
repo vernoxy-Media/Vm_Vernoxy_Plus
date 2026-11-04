@@ -19,7 +19,7 @@ import {
   ArrowLeft,
   Save,
   Send,
-  Sparkles,
+  Rocket,
   FileText,
   Video,
   Paperclip,
@@ -412,45 +412,47 @@ export const ArticleEditorPage: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-16">
-      {/* Top Sticky Header */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 p-4 sm:p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
+      {/* Header */}
+      <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex min-w-0 items-center gap-3 sm:gap-3.5">
           <button
             type="button"
             onClick={() => navigate('/knowledge-base')}
-            className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors"
+            className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 hover:text-slate-800"
             title="Back to Knowledge Base"
+            aria-label="Back to Knowledge Base"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="h-5 w-5" />
           </button>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-base sm:text-lg font-bold text-slate-900">
-                {isEdit ? `Edit Article` : 'Create New Article'}
-              </h1>
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
-                <Lock className="w-3 h-3 text-slate-400" />
+          <span className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-600/25 sm:flex">
+            <FileText className="h-6 w-6" />
+          </span>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+              <h1 className="text-lg font-extrabold tracking-tight text-slate-900 sm:text-xl">{isEdit ? 'Edit Article' : 'Create New Article'}</h1>
+              <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200">
+                <Lock className="h-3 w-3 text-slate-400" />
                 {existingArticle?.article_code || 'KB-Auto'}
               </span>
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="mt-0.5 text-sm text-slate-500">
               {isEdit
-                ? 'Editing draft version. Live version remains visible to readers until published.'
-                : 'Articles are drafted, reviewed through governance, and then published to readers.'}
+                ? 'Editing draft version. Live version stays visible to readers until published.'
+                : 'Articles are drafted, reviewed through governance, then published to readers.'}
             </p>
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center gap-2.5 flex-wrap">
+        {/* Actions */}
+        <div className="grid grid-cols-1 gap-2.5 min-[520px]:flex min-[520px]:flex-wrap lg:justify-end">
           <button
             type="button"
             disabled={isSubmitting}
             onClick={handleSaveDraft}
-            className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs disabled:opacity-50"
+            className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <Save className="w-4 h-4 text-slate-500" />
-            <span>{createMutation.isPending ? 'Saving...' : 'Save Draft'}</span>
+            <Save className="h-4 w-4 text-slate-500" />
+            <span>{createMutation.isPending ? 'Saving...' : 'Save draft'}</span>
           </button>
 
           {isAdmin && (
@@ -460,9 +462,9 @@ export const ArticleEditorPage: React.FC = () => {
               onClick={() => {
                 if (validateForm()) setDirectPublishModalOpen(true);
               }}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs disabled:opacity-50"
+              className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-[13px] font-semibold text-white shadow-sm shadow-emerald-600/25 transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <Sparkles className="w-4 h-4" />
+              <Rocket className="h-4 w-4" />
               <span>Publish without review</span>
             </button>
           )}
@@ -473,10 +475,10 @@ export const ArticleEditorPage: React.FC = () => {
             onClick={() => {
               if (validateForm()) setSubmitModalOpen(true);
             }}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs disabled:opacity-50"
+            className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-[13px] font-semibold text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <Send className="w-4 h-4" />
-            <span>Submit for Approval</span>
+            <Send className="h-4 w-4" />
+            <span>Submit for approval</span>
           </button>
         </div>
       </div>
@@ -494,7 +496,7 @@ export const ArticleEditorPage: React.FC = () => {
         {/* Left Column: Canvas & Content Studio (Col 8) */}
         <div className="xl:col-span-8 space-y-6">
           {/* Card A: Title & Executive Summary */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs space-y-4">
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm sm:p-6 space-y-4">
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-700">
@@ -524,14 +526,14 @@ export const ArticleEditorPage: React.FC = () => {
                 value={summary}
                 onChange={(e) => setSummary(e.target.value)}
                 placeholder="A concise, high-level overview displayed in article directories, reader search results, and notification previews..."
-                className="w-full text-xs text-slate-700 p-3 rounded-xl border border-slate-200 bg-slate-50/60 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 transition-all leading-relaxed"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-sm leading-relaxed text-slate-700 transition focus:border-blue-500 focus:bg-white focus:outline-hidden focus:ring-4 focus:ring-blue-500/10"
                 maxLength={500}
               />
             </div>
           </div>
 
           {/* Card B: Article Editor Studio */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             {/* Studio Navigation & Formatting Bar */}
             <div className="border-b border-slate-200 bg-slate-50/80 px-4 py-2.5 flex items-center justify-between flex-wrap gap-2">
               {/* Left: Rich Markdown / HTML Formatting Controls */}
@@ -688,13 +690,13 @@ export const ArticleEditorPage: React.FC = () => {
               )}
 
               {/* Right: Write vs Preview Toggle Pills */}
-              <div className="flex items-center bg-slate-200/60 p-0.5 rounded-xl border border-slate-200">
+              <div className="flex items-center gap-1 rounded-xl bg-slate-100 p-1">
                 <button
                   type="button"
                   onClick={() => setActiveTab('write')}
                   className={`px-3 py-1.5 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-all ${
                     activeTab === 'write'
-                      ? 'bg-white text-blue-700 shadow-2xs font-bold'
+                      ? 'bg-white text-blue-700 shadow-sm font-bold'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
@@ -706,7 +708,7 @@ export const ArticleEditorPage: React.FC = () => {
                   onClick={() => setActiveTab('preview')}
                   className={`px-3 py-1.5 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-all ${
                     activeTab === 'preview'
-                      ? 'bg-white text-blue-700 shadow-2xs font-bold'
+                      ? 'bg-white text-blue-700 shadow-sm font-bold'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
@@ -734,7 +736,7 @@ export const ArticleEditorPage: React.FC = () => {
               </div>
             ) : (
               /* Reader Preview Tab */
-              <div className="p-8 min-h-[460px] bg-white">
+              <div className="min-h-[460px] bg-white p-4 sm:p-8">
                 <div className="max-w-3xl mx-auto space-y-6">
                   {/* Preview Banner */}
                   <div className="p-3 bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-xl flex items-center justify-between">
@@ -770,7 +772,7 @@ export const ArticleEditorPage: React.FC = () => {
 
           {/* Card C: Video Guide Embed (Conditional on VIDEO type) */}
           {contentType === 'VIDEO' && (
-            <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs space-y-4">
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm sm:p-6 space-y-4">
               <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
                 <Video className="w-4 h-4 text-purple-600" />
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
@@ -808,7 +810,7 @@ export const ArticleEditorPage: React.FC = () => {
           )}
 
           {/* Card D: Document Attachments (BFD Part 3) */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs space-y-4">
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm sm:p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
                 <Paperclip className="w-4 h-4 text-blue-600" />
@@ -876,9 +878,10 @@ export const ArticleEditorPage: React.FC = () => {
         {/* Right Column: Metadata & Side Panel (Col 4, BFD Screen 4) */}
         <div className="xl:col-span-4 space-y-6">
           {/* Panel Card 1: Placement & Space */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs space-y-4">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-100 pb-2">
-              1. Space & Placement
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm sm:p-6 space-y-4">
+            <h3 className="flex items-center gap-2.5 border-b border-slate-100 pb-3 text-[13px] font-bold text-slate-900">
+              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-600 text-[11px] font-bold text-white">1</span>
+              Space & Placement
             </h3>
 
             {/* Space Segmented Switch */}
@@ -1006,9 +1009,10 @@ export const ArticleEditorPage: React.FC = () => {
           </div>
 
           {/* Panel Card 2: Governance & Schedule */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs space-y-4">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-100 pb-2">
-              2. Governance & Review
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm sm:p-6 space-y-4">
+            <h3 className="flex items-center gap-2.5 border-b border-slate-100 pb-3 text-[13px] font-bold text-slate-900">
+              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-600 text-[11px] font-bold text-white">2</span>
+              Governance & Review
             </h3>
 
             <div>
@@ -1020,7 +1024,7 @@ export const ArticleEditorPage: React.FC = () => {
                   type="date"
                   value={effectiveFrom}
                   onChange={(e) => setEffectiveFrom(e.target.value)}
-                  className="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500 bg-white"
+                  className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 transition hover:border-slate-300 focus:border-blue-500 focus:outline-hidden focus:ring-4 focus:ring-blue-500/10"
                 />
               </div>
               <span className="text-[10px] text-slate-400 mt-1 block">
@@ -1049,9 +1053,10 @@ export const ArticleEditorPage: React.FC = () => {
           </div>
 
           {/* Panel Card 3: Audience & Policy Acknowledgement */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs space-y-4">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-100 pb-2">
-              3. Audience & Compliance
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm sm:p-6 space-y-4">
+            <h3 className="flex items-center gap-2.5 border-b border-slate-100 pb-3 text-[13px] font-bold text-slate-900">
+              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-600 text-[11px] font-bold text-white">3</span>
+              Audience & Compliance
             </h3>
 
             <div>
@@ -1156,9 +1161,10 @@ export const ArticleEditorPage: React.FC = () => {
           </div>
 
           {/* Panel Card 4: Tags & Keywords */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-100 pb-2">
-              4. Search Tags & Keywords
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm sm:p-6 space-y-3">
+            <h3 className="flex items-center gap-2.5 border-b border-slate-100 pb-3 text-[13px] font-bold text-slate-900">
+              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-600 text-[11px] font-bold text-white">4</span>
+              Search Tags & Keywords
             </h3>
 
             <div className="flex gap-2">
@@ -1206,7 +1212,7 @@ export const ArticleEditorPage: React.FC = () => {
           </div>
 
           {/* Panel Card 5: Pre-Flight Publication Checks (BFD Part 5) */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs space-y-3">
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm sm:p-6 space-y-3">
             <div className="flex items-center justify-between border-b border-slate-100 pb-2">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
                 Pre-Flight Checks

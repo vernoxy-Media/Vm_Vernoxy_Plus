@@ -63,6 +63,8 @@ describe('messages (BFD section 7, Part 6)', () => {
   it('matches the examples of the document', () => {
     expect(messages.assigned('Kishan Patel', facts).body).toBe('Kishan Patel gave you a follow-up: Patel Precision Engineering, 28 Oct, 11:00, Call.');
     expect(messages.reminder(facts).body).toBe('Follow-up in 1 hour: Call Kunal Shah, Patel Precision Engineering.');
+    expect(messages.reminder(facts, new Date(facts.at.getTime() - 20 * 60000)).title).toContain('in 20 minutes');
+    expect(messages.reminder(facts, new Date(facts.at.getTime() + 60000)).title).toContain('due now');
     expect(messages.overdue(facts).body).toBe('Follow-up with Patel Precision Engineering is overdue since 28 Oct, 11:00.');
     expect(messages.rescheduledThrice('Gujarat Agro Exports', 3).body).toBe('The follow-up with Gujarat Agro Exports has been moved 3 times.');
     expect(messages.dailySummary(3, 1).body).toBe('You have 3 follow-ups today and 1 overdue.');

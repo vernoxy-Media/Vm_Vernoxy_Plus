@@ -3,6 +3,10 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../../core/prisma/prisma.service';
 import {
   ClientDetail,
+  ClientListItem,
+  ClientListQuery,
+  CompanyProjectItem,
+  ClientListResult,
   ConversionContext,
   ConvertToClientData,
   ConvertToClientResult,
@@ -84,11 +88,13 @@ export class PrismaSalesClientRepository implements SalesClientRepositoryPort {
       const companyId = lead.company_id as number;
 
       // Only one person wins: the status guard makes a second, simultaneous click fail cleanly.
+      const before = await tx.leads.findUnique({ where: { lead_id: d.lead_id }, select: { lead_stage: true } });
+      const fromStage = before?.lead_stage ?? 'Qualified';
       const moved = await tx.leads.updateMany({
-        where: { lead_id: d.lead_id, lead_stage: 'Qualified', deleted_at: null },
-        data: { lead_stage: 'Converted', won_on: d.won_on, win_note: d.win_note, closed_at: now, updated_by: d.actor_emp_id },
+        where: { lead_id: d.lead_id, lead_stage: { in: OPEN }, deleted_at: null },
+        data: { lead_stage: 'Converted', won_on: d.won_on, win_note: d.win_note, closed_at: now, on_hold_reason: null, on_hold_follow_up_date: null, updated_by: d.actor_emp_id },
       });
-      if (moved.count !== 1) throw new InvalidTransitionError('This lead is no longer Qualified, so it cannot be marked as won.');
+      if (moved.count !== 1) throw new InvalidTransitionError('This lead has changed stage in the meantime, so it cannot be marked as won.');
 
       // A company that is already a client keeps its Client ID (one active client per company).
       let client = await tx.clients.findFirst({ where: { company_id: companyId, deleted_at: null }, select: { client_id: true, client_code: true } });
@@ -125,7 +131,7 @@ export class PrismaSalesClientRepository implements SalesClientRepositoryPort {
       const details = { client_id: client.client_id, client_code: clientCode, lead_code: lead.lead_code, won_on: d.won_on.toISOString().slice(0, 10), reused_existing_client: reused };
       await tx.activity_logs.createMany({
         data: [
-          { entity_type: 'LEAD', entity_id: d.lead_id, event: 'STATUS_CHANGED', summary: 'Status changed Qualified -> Converted', details: { from: 'Qualified', to: 'Converted', action: 'won', ...details }, performed_by: d.actor_emp_id },
+          { entity_type: 'LEAD', entity_id: d.lead_id, event: 'STATUS_CHANGED', summary: `Status changed ${fromStage} -> Converted`, details: { from: fromStage, to: 'Converted', action: 'won', ...details }, performed_by: d.actor_emp_id },
           { entity_type: 'LEAD', entity_id: d.lead_id, event: 'CONVERTED_TO_CLIENT', summary: `Won and converted to ${clientCode}`, details, performed_by: d.actor_emp_id },
           { entity_type: 'COMPANY', entity_id: companyId, event: reused ? 'LEAD_WON' : 'CLIENT_CREATED', summary: reused ? `${lead.lead_code} won for existing client ${clientCode}` : `Became client ${clientCode} (from ${lead.lead_code})`, details, performed_by: d.actor_emp_id },
           ...(reused ? [] : [{ entity_type: 'CLIENT', entity_id: client.client_id, event: 'CREATED', summary: `Client ${clientCode} created from ${lead.lead_code}`, details, performed_by: d.actor_emp_id }]),
@@ -190,6 +196,120 @@ export class PrismaSalesClientRepository implements SalesClientRepositoryPort {
       })),
       carried_forward: { contacts: contacts.length, communications, notes },
     };
+  }
+
+  async listClients(q: ClientListQuery, now: Date): Promise<ClientListResult> {
+    const term = q.q?.trim();
+    const where: Prisma.clientsWhereInput = { deleted_at: null };
+    if (term) {
+      where.OR = [
+        { client_code: { contains: term, mode: 'insensitive' } },
+        { companies: { name: { contains: term, mode: 'insensitive' } } },
+        { companies: { company_code: { contains: term, mode: 'insensitive' } } },
+        { companies: { city: { contains: term, mode: 'insensitive' } } },
+      ];
+    }
+    const orderBy: Prisma.clientsOrderByWithRelationInput =
+      q.sort === 'name' ? { companies: { name: q.order } } : q.sort === 'created_at' ? { created_at: q.order } : { won_on: q.order };
+
+    const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const yearStart = new Date(Date.UTC(now.getUTCFullYear(), 0, 1));
+    const base = { deleted_at: null };
+
+    const [total, rows, all, month, year] = await Promise.all([
+      this.prisma.clients.count({ where }),
+      this.prisma.clients.findMany({
+        where,
+        orderBy: [orderBy, { client_id: 'desc' }],
+        skip: (q.page - 1) * q.limit,
+        take: q.limit,
+        include: {
+          employees_clients_owner_idToemployees: { select: { emp_id: true, name: true } },
+          companies: {
+            select: {
+              company_id: true, company_code: true, name: true, city: true, state: true, website: true,
+              industries_companies_industry_idToindustries: { select: { name: true } },
+            },
+          },
+          _count: { select: { leads_leads_converted_client_idToclients: { where: { deleted_at: null } } } },
+        },
+      }),
+      this.prisma.clients.count({ where: base }),
+      this.prisma.clients.count({ where: { ...base, won_on: { gte: monthStart } } }),
+      this.prisma.clients.count({ where: { ...base, won_on: { gte: yearStart } } }),
+    ]);
+
+    const people = await this.prisma.company_persons.findMany({
+      where: { company_id: { in: rows.map((r) => r.company_id) }, is_active: true, deleted_at: null },
+      orderBy: [{ is_primary: 'desc' }, { company_person_id: 'asc' }],
+      select: { company_id: true, designation: true, persons: { select: { name: true, mobile: true, email: true } } },
+    });
+    const firstContact = new Map<number, ClientListItem['contact']>();
+    for (const p of people) {
+      if (!firstContact.has(p.company_id)) firstContact.set(p.company_id, { name: p.persons.name, designation: p.designation, mobile: p.persons.mobile, email: p.persons.email });
+    }
+
+    return {
+      items: rows.map((c) => ({
+        client_id: c.client_id,
+        client_code: c.client_code as string,
+        won_on: c.won_on,
+        win_note: c.win_note,
+        owner: c.employees_clients_owner_idToemployees,
+        company: {
+          company_id: c.companies.company_id,
+          company_code: c.companies.company_code,
+          name: c.companies.name,
+          city: c.companies.city,
+          state: c.companies.state,
+          industry: c.companies.industries_companies_industry_idToindustries?.name ?? null,
+          website: c.companies.website,
+        },
+        contact: firstContact.get(c.company_id) ?? null,
+        leads_count: c._count.leads_leads_converted_client_idToclients,
+      })),
+      total,
+      page: q.page,
+      limit: q.limit,
+      total_pages: Math.max(1, Math.ceil(total / q.limit)),
+      counters: { total: all, this_month: month, this_year: year },
+    };
+  }
+
+  async listCompanyProjects(companyId: number, actor: { emp_id: number; is_admin: boolean }): Promise<CompanyProjectItem[]> {
+    const company = await this.prisma.companies.findFirst({
+      where: { company_id: companyId, deleted_at: null },
+      select: { name: true, clients: { where: { deleted_at: null }, select: { client_code: true } } },
+    });
+    if (!company) return [];
+    const names = [company.name, ...company.clients.map((c) => c.client_code)].filter((v): v is string => !!v);
+    const rows = await this.prisma.projects.findMany({
+      where: {
+        deleted_at: null,
+        OR: names.map((n) => ({ client_name: { equals: n, mode: 'insensitive' as const } })),
+        ...(actor.is_admin
+          ? {}
+          : { AND: [{ OR: [{ project_manager_id: actor.emp_id }, { project_members: { some: { employee_id: actor.emp_id, deleted_at: null } } }] }] }),
+      },
+      orderBy: { project_id: 'desc' },
+      take: 50,
+      select: {
+        project_id: true, project_no: true, project_name: true, project_status: true, category: true, start_date: true, deadline: true,
+        employees_projects_project_manager_idToemployees: { select: { emp_id: true, name: true } },
+        _count: { select: { project_members: { where: { deleted_at: null } } } },
+      },
+    });
+    return rows.map((r) => ({
+      project_id: r.project_id,
+      project_no: r.project_no,
+      project_name: r.project_name,
+      project_status: String(r.project_status),
+      category: String(r.category),
+      start_date: r.start_date,
+      deadline: r.deadline,
+      manager: r.employees_projects_project_manager_idToemployees,
+      members_count: r._count.project_members,
+    }));
   }
 
   async getClientOfLead(leadId: number) {

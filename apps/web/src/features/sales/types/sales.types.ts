@@ -172,6 +172,10 @@ export interface SalesMastersResponse {
   designation: string[];
   gidc_names: string[];
   gidc_areas: string[];
+  /** GIDC name -> the areas that belong to it. */
+  gidc_area_map?: Record<string, string[]>;
+  /** Areas not tied to one GIDC; offered for every GIDC. */
+  gidc_common_areas?: string[];
   website_quality: string[];
   lead_source: string[];
   service_fit: string[];
@@ -375,6 +379,9 @@ export interface ConversationItem {
   communication_date: string;
   what_discussed: string;
   outcome: string | null;
+  /** Calls only. */
+  call_status?: 'Received' | 'Not received' | null;
+  not_received_reason?: string | null;
   logged_by: { emp_id: number; name: string } | null;
   created_by: number | null;
   created_at: string;
@@ -630,3 +637,35 @@ export const EMPTY_LEAD_MASTERS: LeadMastersResponse = {
   lost_reasons: [],
   lead_by_users: [],
 };
+
+// ---- Sales Reports ----
+
+export interface SalesReportCountRow {
+  name: string;
+  total: number;
+  converted: number;
+  lost: number;
+  conversion_rate: number;
+}
+
+export interface SalesReportResponse {
+  period: { from: string | null; to: string | null };
+  totals: {
+    companies: number;
+    companies_in_period: number;
+    leads: number;
+    open: number;
+    converted: number;
+    lost: number;
+    on_hold: number;
+    conversion_rate: number;
+    avg_days_to_convert: number | null;
+    overdue_follow_ups: number;
+  };
+  by_stage: Array<{ stage: string; count: number }>;
+  by_source: SalesReportCountRow[];
+  by_user: Array<SalesReportCountRow & { emp_id: number | null; open: number }>;
+  by_service_fit: SalesReportCountRow[];
+  lost_reasons: Array<{ reason: string; count: number; percent: number }>;
+  trend: Array<{ month: string; label: string; created: number; converted: number }>;
+}

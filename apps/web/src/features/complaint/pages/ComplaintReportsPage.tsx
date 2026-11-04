@@ -5,9 +5,15 @@ import {
   ArrowLeft,
   Download,
   Filter,
+  FilterX,
   Loader2,
-  AlertCircle,
   TrendingUp,
+  Inbox,
+  CheckCircle2,
+  AlertTriangle,
+  RotateCcw,
+  Timer,
+  SearchX,
 } from 'lucide-react';
 import { useComplaintReportsQuery } from '../hooks/use-complaints';
 import { SearchableSelect } from '@/shared/ui/SearchableSelect';
@@ -16,6 +22,7 @@ import {
   useDepartmentOptionsQuery,
   useEmployeeOptionsQuery,
 } from '@/features/organization/hooks/use-organization';
+import { Badge, Field, PRIORITY_TONE, STATUS_TONE, StatCard, initials, inputCls } from '../components/complaint-ui';
 
 export const ComplaintReportsPage: React.FC = (): React.ReactElement => {
   const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
@@ -117,64 +124,100 @@ export const ComplaintReportsPage: React.FC = (): React.ReactElement => {
     { id: 'closed_without_action', label: 'Closed Without Action' },
   ];
 
+  const filtersChanged =
+    month !== currentMonth || Boolean(fromDate || toDate || deptId || handlerId || typeId || priority || status) || dateBasis !== 'SUBMITTED';
+  const resetFilters = () => {
+    setMonth(currentMonth);
+    setFromDate('');
+    setToDate('');
+    setDateBasis('SUBMITTED');
+    setDeptId(undefined);
+    setHandlerId(undefined);
+    setTypeId(undefined);
+    setPriority('');
+    setStatus('');
+  };
+
+  const trend = data?.trend ?? [];
+  const trendMax = Math.max(1, ...trend.map((m) => Math.max(m.received, m.closed)));
+  const th = 'whitespace-nowrap px-5 py-3';
+  const headRow = 'border-b border-slate-200 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500';
+
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="w-full space-y-5">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Link
-              to="/complaints?tab=manage"
-              className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 cursor-pointer"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" /> Back to Complaints
-            </Link>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <Link
+            to="/complaints?tab=manage"
+            className="mb-2 inline-flex items-center gap-1 rounded-lg text-xs font-semibold text-slate-500 transition hover:text-indigo-600"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" /> Back to complaints
+          </Link>
+          <div className="flex items-center gap-3.5">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-600/25">
+              <BarChart3 className="h-6 w-6" />
+            </span>
+            <div className="min-w-0">
+              <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-[28px]">Reports & Analytics</h1>
+              <p className="mt-0.5 text-sm text-slate-500">Trends, handler performance, SLA compliance and audit registers.</p>
+            </div>
           </div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <BarChart3 className="w-7 h-7 text-indigo-600" />
-            Complaint Reports & Analytics
-          </h1>
-          <p className="text-sm text-slate-500 mt-0.5">
-            Analyze trends, handler performance, SLA compliance, and export complaint audit registers.
-          </p>
         </div>
 
         <button
+          type="button"
           onClick={exportCsv}
           disabled={isLoading || !data}
-          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-xs flex items-center gap-2 transition disabled:opacity-50 cursor-pointer self-start sm:self-auto"
+          className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 self-start rounded-xl bg-indigo-600 px-4 text-[13px] font-semibold text-white shadow-sm shadow-indigo-600/25 transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50 sm:self-auto"
         >
-          <Download className="w-4 h-4" />
+          <Download className="h-4 w-4" />
           Export CSV
         </button>
       </div>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-1 border-b border-slate-200 overflow-x-auto pb-px">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setReportType(tab.id)}
-            className={`px-4 py-2 text-xs font-semibold whitespace-nowrap border-b-2 transition-colors cursor-pointer ${
-              reportType === tab.id
-                ? 'border-indigo-600 text-indigo-600'
-                : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      {/* Report type */}
+      <div className="-mx-1 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div role="tablist" aria-label="Report type" className="inline-flex gap-1 rounded-xl bg-slate-100 p-1">
+          {tabs.map((tab) => {
+            const on = reportType === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={on}
+                onClick={() => setReportType(tab.id)}
+                className={`cursor-pointer whitespace-nowrap rounded-lg px-4 py-2 text-[13px] font-semibold transition ${
+                  on ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Filters Bar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-3">
-        <div className="flex items-center gap-2 text-xs font-bold text-slate-700 uppercase tracking-wider">
-          <Filter className="w-3.5 h-3.5 text-indigo-600" /> Report Filters
+      {/* Filters */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-[13px] font-bold text-slate-800">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+              <Filter className="h-3.5 w-3.5" />
+            </span>
+            Report filters
+          </div>
+          {filtersChanged && (
+            <button type="button" onClick={resetFilters} className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-800">
+              <FilterX className="h-3.5 w-3.5" />
+              Reset
+            </button>
+          )}
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 text-xs">
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1">Month</label>
+        <div className="grid grid-cols-1 gap-x-4 gap-y-4 min-[480px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <Field label="Month">
             <input
               type="month"
               value={month}
@@ -183,12 +226,11 @@ export const ComplaintReportsPage: React.FC = (): React.ReactElement => {
                 setFromDate('');
                 setToDate('');
               }}
-              className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500"
+              className={inputCls}
             />
-          </div>
+          </Field>
 
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1">From Date</label>
+          <Field label="From date">
             <input
               type="date"
               value={fromDate}
@@ -196,12 +238,11 @@ export const ComplaintReportsPage: React.FC = (): React.ReactElement => {
                 setFromDate(e.target.value);
                 setMonth('');
               }}
-              className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500"
+              className={inputCls}
             />
-          </div>
+          </Field>
 
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1">To Date</label>
+          <Field label="To date">
             <input
               type="date"
               value={toDate}
@@ -209,12 +250,11 @@ export const ComplaintReportsPage: React.FC = (): React.ReactElement => {
                 setToDate(e.target.value);
                 setMonth('');
               }}
-              className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500"
+              className={inputCls}
             />
-          </div>
+          </Field>
 
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1">Date Basis</label>
+          <Field label="Date basis">
             <SearchableSelect
               value={dateBasis}
               onChange={(v) => v && setDateBasis(v as 'SUBMITTED' | 'RESOLVED' | 'CLOSED')}
@@ -224,10 +264,9 @@ export const ComplaintReportsPage: React.FC = (): React.ReactElement => {
                 { value: 'CLOSED', label: 'Closure Date' },
               ]}
             />
-          </div>
+          </Field>
 
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1">Complaint Type</label>
+          <Field label="Complaint type">
             <SearchableSelect
               placeholder="All Types"
               value={typeId ?? null}
@@ -235,10 +274,9 @@ export const ComplaintReportsPage: React.FC = (): React.ReactElement => {
               options={types.map((t: ComplaintTypeItem) => ({ value: t.type_id, label: t.name }))}
               clearable
             />
-          </div>
+          </Field>
 
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1">Department</label>
+          <Field label="Department">
             <SearchableSelect
               placeholder="All Departments"
               value={deptId ?? null}
@@ -246,10 +284,9 @@ export const ComplaintReportsPage: React.FC = (): React.ReactElement => {
               options={deptOptions.map((d: any) => ({ value: d.dep_id || d.id, label: d.name }))}
               clearable
             />
-          </div>
+          </Field>
 
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1">Handler</label>
+          <Field label="Handler">
             <SearchableSelect
               placeholder="All Handlers"
               value={handlerId ?? null}
@@ -257,10 +294,9 @@ export const ComplaintReportsPage: React.FC = (): React.ReactElement => {
               options={empOptions.map((emp: any) => ({ value: emp.emp_id || emp.id, label: emp.name }))}
               clearable
             />
-          </div>
+          </Field>
 
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1">Priority</label>
+          <Field label="Priority">
             <SearchableSelect
               placeholder="All Priorities"
               value={priority || null}
@@ -273,10 +309,9 @@ export const ComplaintReportsPage: React.FC = (): React.ReactElement => {
               ]}
               clearable
             />
-          </div>
+          </Field>
 
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1">Status</label>
+          <Field label="Status">
             <SearchableSelect
               placeholder="All Statuses"
               value={status || null}
@@ -290,63 +325,59 @@ export const ComplaintReportsPage: React.FC = (): React.ReactElement => {
               ]}
               clearable
             />
-          </div>
+          </Field>
         </div>
       </div>
 
-      {/* Main Content Area */}
+      {/* Content */}
       {isLoading ? (
-        <div className="p-16 text-center text-slate-400 bg-white rounded-xl border border-slate-200">
-          <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-indigo-600" />
-          <p className="text-xs">Generating report data...</p>
+        <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white py-24">
+          <Loader2 className="h-7 w-7 animate-spin text-indigo-600" />
+          <p className="text-sm font-medium text-slate-500">Generating report data...</p>
         </div>
       ) : reportType === 'summary' ? (
-        <div className="space-y-6">
-          {/* Summary Metric Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-              <span className="text-slate-400 font-bold uppercase text-[10px]">Total Received</span>
-              <p className="text-2xl font-bold text-slate-900 mt-1">{data?.totals?.received || 0}</p>
-            </div>
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-              <span className="text-teal-600 font-bold uppercase text-[10px]">Total Closed</span>
-              <p className="text-2xl font-bold text-teal-600 mt-1">{data?.totals?.closed || 0}</p>
-            </div>
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-              <span className="text-rose-600 font-bold uppercase text-[10px]">Overdue Now</span>
-              <p className="text-2xl font-bold text-rose-600 mt-1">{data?.totals?.overdue_now || 0}</p>
-            </div>
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-              <span className="text-amber-600 font-bold uppercase text-[10px]">Reopened</span>
-              <p className="text-2xl font-bold text-amber-600 mt-1">{data?.totals?.reopened || 0}</p>
-            </div>
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-              <span className="text-indigo-600 font-bold uppercase text-[10px]">Avg Days to Resolve</span>
-              <p className="text-2xl font-bold text-indigo-600 mt-1">
-                {data?.totals?.avg_time_to_resolve_days || 0} <span className="text-xs font-normal">days</span>
-              </p>
-            </div>
+        <div className="space-y-5">
+          <div className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 lg:gap-4">
+            <StatCard label="Total received" value={data?.totals?.received || 0} icon={Inbox} tone="text-slate-900" tile="bg-slate-50 text-slate-600 ring-slate-100" bar="from-slate-400 to-slate-500" />
+            <StatCard label="Total closed" value={data?.totals?.closed || 0} icon={CheckCircle2} tone="text-teal-600" tile="bg-teal-50 text-teal-600 ring-teal-100" bar="from-teal-400 to-emerald-400" />
+            <StatCard label="Overdue now" value={data?.totals?.overdue_now || 0} icon={AlertTriangle} tone="text-rose-600" tile="bg-rose-50 text-rose-600 ring-rose-100" bar="from-rose-500 to-pink-500" />
+            <StatCard label="Reopened" value={data?.totals?.reopened || 0} icon={RotateCcw} tone="text-amber-600" tile="bg-amber-50 text-amber-600 ring-amber-100" bar="from-amber-400 to-orange-400" />
+            <StatCard label="Avg days to resolve" value={data?.totals?.avg_time_to_resolve_days || 0} unit="days" icon={Timer} tone="text-indigo-600" tile="bg-indigo-50 text-indigo-600 ring-indigo-100" bar="from-indigo-500 to-violet-500" />
           </div>
 
-          {/* Historical 6-Month Trend */}
-          {data?.trend && data.trend.length > 0 && (
-            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-4">
-              <h3 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                <TrendingUp className="w-4 h-4 text-indigo-600" /> 6-Month Volume & Resolution Trend
-              </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-                {data.trend.map((m, i) => (
-                  <div
-                    key={i}
-                    className={`p-3 rounded-lg border text-center ${
-                      m.is_selected
-                        ? 'bg-indigo-50/60 border-indigo-300'
-                        : 'bg-slate-50 border-slate-200'
-                    }`}
-                  >
-                    <span className="text-xs font-semibold text-slate-600">{m.label}</span>
-                    <div className="text-lg font-bold text-slate-900 mt-1">{m.received}</div>
-                    <span className="text-[10px] text-slate-400 block">rcvd • {m.closed} closed</span>
+          {trend.length > 0 && (
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+              <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+                <h3 className="flex items-center gap-2 text-[15px] font-bold text-slate-900">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+                    <TrendingUp className="h-3.5 w-3.5" />
+                  </span>
+                  6-month volume & resolution trend
+                </h3>
+                <div className="flex items-center gap-4 text-xs font-medium text-slate-500">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="h-2.5 w-2.5 rounded-sm bg-indigo-500" /> Received
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="h-2.5 w-2.5 rounded-sm bg-teal-400" /> Closed
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-6 gap-2 sm:gap-4">
+                {trend.map((m, i) => (
+                  <div key={i} className={`flex flex-col items-center rounded-xl px-1 pb-3 pt-3 transition ${m.is_selected ? 'bg-indigo-50/70 ring-1 ring-indigo-200' : ''}`}>
+                    <div className="flex h-36 w-full items-end justify-center gap-1 sm:gap-2" title={`${m.label}: ${m.received} received, ${m.closed} closed`}>
+                      <div className="flex h-full w-3.5 flex-col justify-end sm:w-6">
+                        <span className="mb-1 text-center text-[11px] font-bold text-slate-700">{m.received}</span>
+                        <div className="rounded-t-md bg-gradient-to-t from-indigo-600 to-indigo-400 transition-all" style={{ height: `${Math.max((m.received / trendMax) * 100, m.received > 0 ? 6 : 2)}%` }} />
+                      </div>
+                      <div className="flex h-full w-3.5 flex-col justify-end sm:w-6">
+                        <span className="mb-1 text-center text-[11px] font-bold text-slate-500">{m.closed}</span>
+                        <div className="rounded-t-md bg-gradient-to-t from-teal-500 to-teal-300 transition-all" style={{ height: `${Math.max((m.closed / trendMax) * 100, m.closed > 0 ? 6 : 2)}%` }} />
+                      </div>
+                    </div>
+                    <span className={`mt-2 text-center text-[11px] font-semibold leading-tight sm:text-xs ${m.is_selected ? 'text-indigo-700' : 'text-slate-500'}`}>{m.label}</span>
                   </div>
                 ))}
               </div>
@@ -354,19 +385,19 @@ export const ComplaintReportsPage: React.FC = (): React.ReactElement => {
           )}
         </div>
       ) : data?.breakdown && data.breakdown.length > 0 ? (
-        /* Breakdown Table for By Type / By Department / Handler Performance */
-        <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+        /* By Type / By Department / Handler Performance */
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
-                <tr>
-                  <th className="py-3 px-4">Group / Entity</th>
-                  <th className="py-3 px-4 text-center">Total Received</th>
-                  <th className="py-3 px-4 text-center">Active</th>
-                  <th className="py-3 px-4 text-center">Closed</th>
-                  <th className="py-3 px-4 text-center">Overdue</th>
-                  <th className="py-3 px-4 text-center">Avg Days to Resolve</th>
-                  <th className="py-3 px-4 text-right">Share of Total</th>
+            <table className="w-full min-w-[760px] text-left text-sm">
+              <thead className="bg-slate-50/95">
+                <tr className={headRow}>
+                  <th className={th}>Group / Entity</th>
+                  <th className={`${th} text-center`}>Received</th>
+                  <th className={`${th} text-center`}>Active</th>
+                  <th className={`${th} text-center`}>Closed</th>
+                  <th className={`${th} text-center`}>Overdue</th>
+                  <th className={`${th} text-center`}>Avg days</th>
+                  <th className={th}>Share of total</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -374,33 +405,31 @@ export const ComplaintReportsPage: React.FC = (): React.ReactElement => {
                   const total = data.totals?.received || 1;
                   const pct = Math.round((row.received / total) * 100);
                   return (
-                    <tr key={idx} className="hover:bg-slate-50/70">
-                      <td className="py-3 px-4 font-semibold text-slate-800">
-                        {row.name || 'Unknown'}
+                    <tr key={idx} className="transition-colors hover:bg-blue-50/30">
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-2.5">
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[11px] font-bold text-indigo-600">{initials(row.name)}</span>
+                          <span className="font-semibold text-slate-800">{row.name || 'Unknown'}</span>
+                        </div>
                       </td>
-                      <td className="py-3 px-4 text-center font-bold text-slate-900">
-                        {row.received}
+                      <td className="px-5 py-3.5 text-center font-bold text-slate-900">{row.received}</td>
+                      <td className="px-5 py-3.5 text-center">
+                        <span className="inline-flex min-w-8 justify-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-700 ring-1 ring-amber-100">{row.active}</span>
                       </td>
-                      <td className="py-3 px-4 text-center text-amber-600 font-semibold">
-                        {row.active}
+                      <td className="px-5 py-3.5 text-center">
+                        <span className="inline-flex min-w-8 justify-center rounded-full bg-teal-50 px-2 py-0.5 text-xs font-bold text-teal-700 ring-1 ring-teal-100">{row.closed}</span>
                       </td>
-                      <td className="py-3 px-4 text-center text-teal-600 font-semibold">
-                        {row.closed}
+                      <td className="px-5 py-3.5 text-center">
+                        <span className={`inline-flex min-w-8 justify-center rounded-full px-2 py-0.5 text-xs font-bold ring-1 ${row.overdue > 0 ? 'bg-rose-50 text-rose-700 ring-rose-100' : 'bg-slate-50 text-slate-400 ring-slate-100'}`}>{row.overdue}</span>
                       </td>
-                      <td className="py-3 px-4 text-center text-rose-600 font-semibold">
-                        {row.overdue}
-                      </td>
-                      <td className="py-3 px-4 text-center text-slate-700">
-                        {row.avg_days} days
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <span className="inline-flex items-center gap-1 font-bold text-slate-700">
-                          {pct}%
-                          <span
-                            className="inline-block h-2 bg-indigo-500 rounded-full"
-                            style={{ width: `${Math.max(pct, 5)}px` }}
-                          />
-                        </span>
+                      <td className="px-5 py-3.5 text-center text-slate-600">{row.avg_days}d</td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-3">
+                          <div className="h-2 w-28 overflow-hidden rounded-full bg-slate-100">
+                            <div className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500" style={{ width: `${Math.max(pct, 3)}%` }} />
+                          </div>
+                          <span className="w-9 text-xs font-bold text-slate-700">{pct}%</span>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -410,65 +439,62 @@ export const ComplaintReportsPage: React.FC = (): React.ReactElement => {
           </div>
         </div>
       ) : data?.complaints && data.complaints.length > 0 ? (
-        /* Detailed Complaints Table (Register, Overdue, Reopened, Closed Without Action) */
-        <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+        /* Register, Overdue, Reopened, Closed Without Action */
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
-                <tr>
-                  <th className="py-3 px-4">Complaint No</th>
-                  <th className="py-3 px-4">Date</th>
-                  <th className="py-3 px-4">Type</th>
-                  <th className="py-3 px-4">Complainant</th>
-                  <th className="py-3 px-4">Department</th>
-                  <th className="py-3 px-4">Handler</th>
-                  <th className="py-3 px-4">Priority</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4">Target Date</th>
+            <table className="w-full min-w-[960px] text-left text-sm">
+              <thead className="bg-slate-50/95">
+                <tr className={headRow}>
+                  <th className={th}>Complaint No</th>
+                  <th className={th}>Date</th>
+                  <th className={th}>Type</th>
+                  <th className={th}>Complainant</th>
+                  <th className={th}>Department</th>
+                  <th className={th}>Handler</th>
+                  <th className={th}>Priority</th>
+                  <th className={th}>Status</th>
+                  <th className={th}>Target</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {data.complaints.map((c) => (
-                  <tr key={c.complaint_id} className="hover:bg-slate-50/70">
-                    <td className="py-3 px-4 font-mono font-bold text-indigo-700">
-                      {c.complaint_no}
+                  <tr key={c.complaint_id} className="transition-colors hover:bg-blue-50/30">
+                    <td className="px-5 py-3.5">
+                      <span className="whitespace-nowrap rounded-lg bg-indigo-50 px-2.5 py-1 font-mono text-xs font-semibold text-indigo-700">{c.complaint_no}</span>
                     </td>
-                    <td className="py-3 px-4 text-slate-600">
-                      {c.complaint_date?.slice(0, 10)}
+                    <td className="whitespace-nowrap px-5 py-3.5 text-slate-600">{c.complaint_date?.slice(0, 10)}</td>
+                    <td className="px-5 py-3.5 font-medium text-slate-800">{c.type_name}</td>
+                    <td className="px-5 py-3.5 text-slate-700">{c.complainant_name || 'Anonymous'}</td>
+                    <td className="px-5 py-3.5 text-slate-600">{c.department_name}</td>
+                    <td className="px-5 py-3.5">
+                      {c.handler_name ? <span className="text-slate-700">{c.handler_name}</span> : <span className="rounded-full border border-dashed border-slate-300 px-2.5 py-0.5 text-xs text-slate-400">Unassigned</span>}
                     </td>
-                    <td className="py-3 px-4 font-medium text-slate-800">
-                      {c.type_name}
+                    <td className="px-5 py-3.5">{c.priority && c.priority !== '—' ? <Badge label={c.priority} tone={PRIORITY_TONE[c.priority]} /> : <span className="text-slate-300">—</span>}</td>
+                    <td className="px-5 py-3.5">
+                      <Badge label={c.status} tone={STATUS_TONE[c.status]} />
                     </td>
-                    <td className="py-3 px-4 text-slate-700">
-                      {c.complainant_name || 'Anonymous'}
-                    </td>
-                    <td className="py-3 px-4 text-slate-600">
-                      {c.department_name}
-                    </td>
-                    <td className="py-3 px-4 text-slate-700">
-                      {c.handler_name || 'Unassigned'}
-                    </td>
-                    <td className="py-3 px-4 font-semibold text-slate-700">
-                      {c.priority}
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700">
-                        {c.status}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-slate-600">
-                      {c.target_date?.slice(0, 10) || '-'}
-                    </td>
+                    <td className="whitespace-nowrap px-5 py-3.5 text-slate-600">{c.target_date?.slice(0, 10) || '—'}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+          <div className="border-t border-slate-100 bg-slate-50/60 px-5 py-3 text-xs text-slate-500">
+            <b className="font-semibold text-slate-800">{data.complaints.length}</b> {data.complaints.length === 1 ? 'complaint' : 'complaints'}
+          </div>
         </div>
       ) : (
-        <div className="p-16 text-center text-slate-400 bg-white rounded-xl border border-slate-200">
-          <AlertCircle className="w-10 h-10 mx-auto mb-2 text-slate-300" />
-          <p className="text-sm font-semibold text-slate-700">No data found for this report period and filters</p>
+        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-16 text-center">
+          <span className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50 text-slate-300 ring-1 ring-slate-100">
+            <SearchX className="h-7 w-7" />
+          </span>
+          <p className="text-base font-semibold text-slate-800">No data for this period and filters</p>
+          <p className="mx-auto mt-1 max-w-sm text-sm text-slate-500">Try a different month or date range, or reset the filters.</p>
+          {filtersChanged && (
+            <button type="button" onClick={resetFilters} className="mt-4 inline-flex h-9 cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
+              <FilterX className="h-4 w-4" /> Reset filters
+            </button>
+          )}
         </div>
       )}
     </div>

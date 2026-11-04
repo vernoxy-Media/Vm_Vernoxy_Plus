@@ -6,6 +6,8 @@ import { SalesCalendarPort } from '../ports/sales-calendar.port';
 import { SalesNotifierPort } from '../ports/sales-notifier.port';
 import {
   ClientDetail,
+  ClientListQuery,
+  ClientListResult,
   ConversionContext,
   SalesClientRepositoryPort,
 } from '../ports/sales-client.repository.port';
@@ -115,8 +117,8 @@ export class ClientUseCases {
         'ALREADY_CONVERTED',
       );
     }
-    if (lead.stage !== 'Qualified') {
-      throw new InvalidTransitionError(`Only a Qualified lead can be marked as Won (this lead is ${lead.stage}). Qualify it first.`);
+    if (lead.stage === 'Lost') {
+      throw new InvalidTransitionError('This lead is Lost. Move it to another stage first, then mark it as Won.');
     }
 
     const fields = { won_on: cleanText(input.won_on), win_note: cleanText(input.win_note) };
@@ -135,6 +137,14 @@ export class ClientUseCases {
     const [client, detail] = await Promise.all([this.repo.getClient(result.client_id), this.leads.getDetail(leadId, now)]);
     if (!client || !detail) throw new Error('The client was created but could not be read back');
     return { client, lead: detail, reused_existing_client: result.reused_existing_client };
+  }
+
+  list(query: ClientListQuery, now: Date = new Date()): Promise<ClientListResult> {
+    return this.repo.listClients(query, now);
+  }
+
+  projectsOfCompany(companyId: number, actor: SalesActor) {
+    return this.repo.listCompanyProjects(companyId, actor);
   }
 
   async get(clientId: number): Promise<ClientDetail> {
@@ -180,7 +190,7 @@ export class ClientUseCases {
 
   private blockedReason(stage: string, clientCode: string | null): string | null {
     if (stage === 'Converted') return `This lead was already converted to ${clientCode ?? 'a client'}.`;
-    if (stage !== 'Qualified') return `Only a Qualified lead can be marked as Won (this lead is ${stage}).`;
+    if (stage === 'Lost') return 'This lead is Lost. Move it to another stage first, then mark it as Won.';
     return null;
   }
 

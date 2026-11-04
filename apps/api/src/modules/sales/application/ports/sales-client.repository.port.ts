@@ -56,6 +56,49 @@ export interface ClientDetail {
   carried_forward: { contacts: number; communications: number; notes: number };
 }
 
+export interface ClientListQuery {
+  q?: string;
+  sort: 'won_on' | 'name' | 'created_at';
+  order: 'asc' | 'desc';
+  page: number;
+  limit: number;
+}
+
+export interface ClientListItem {
+  client_id: number;
+  client_code: string;
+  won_on: Date;
+  win_note: string;
+  owner: { emp_id: number; name: string } | null;
+  company: { company_id: number; company_code: string | null; name: string; city: string | null; state: string | null; industry: string | null; website: string | null };
+  /** The primary contact of the company. */
+  contact: { name: string; designation: string | null; mobile: string | null; email: string | null } | null;
+  /** Leads that were converted to this client. */
+  leads_count: number;
+}
+
+export interface ClientListResult {
+  items: ClientListItem[];
+  total: number;
+  page: number;
+  limit: number;
+  total_pages: number;
+  counters: { total: number; this_month: number; this_year: number };
+}
+
+/** A project of this company (matched on the company name or its Client ID, as the projects only carry the client name). */
+export interface CompanyProjectItem {
+  project_id: number;
+  project_no: string;
+  project_name: string;
+  project_status: string;
+  category: string;
+  start_date: Date;
+  deadline: Date;
+  manager: { emp_id: number; name: string } | null;
+  members_count: number;
+}
+
 export interface ReversalResult {
   lead_id: number;
   client_code: string;
@@ -68,6 +111,9 @@ export interface SalesClientRepositoryPort {
   getNextClientCode(): Promise<string>;
   convert(data: ConvertToClientData): Promise<ConvertToClientResult>;
   getClient(clientId: number): Promise<ClientDetail | null>;
+  listClients(query: ClientListQuery, now: Date): Promise<ClientListResult>;
+  /** The Admin sees every project of the company; anyone else only those they manage or are a member of. */
+  listCompanyProjects(companyId: number, actor: { emp_id: number; is_admin: boolean }): Promise<CompanyProjectItem[]>;
   /** The lead's client, to check "no project yet" before a reversal. */
   getClientOfLead(leadId: number): Promise<{ client_id: number; client_code: string; company_name: string } | null>;
   /** Projects only carry the client name for now, so this matches on the company name and the Client ID. */

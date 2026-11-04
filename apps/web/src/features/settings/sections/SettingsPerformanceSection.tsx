@@ -14,6 +14,7 @@ import {
   Info,
   ChevronDown,
   Building2,
+  CalendarRange,
 } from 'lucide-react';
 import {
   usePerfCyclesQuery,
@@ -30,6 +31,7 @@ import {
   PerfQuestionItem,
 } from '@/features/performance/hooks/use-performance';
 import { useDepartmentOptionsQuery } from '@/features/organization/hooks/use-organization';
+import { RowActionsMenu } from '@/shared/ui/RowActionsMenu';
 
 const FIXED_QUESTIONS: PerfQuestionItem[] = [
   { id: 'q_comm', title: 'Communication', description: 'Evaluates clarity, responsiveness, and stakeholder interaction', type: 'STAR_RATING', is_fixed: true, required: true },
@@ -38,6 +40,10 @@ const FIXED_QUESTIONS: PerfQuestionItem[] = [
   { id: 'q_teamw', title: 'Teamwork', description: 'Evaluates collaboration, peer support, and team contribution', type: 'STAR_RATING', is_fixed: true, required: true },
   { id: 'q_qualw', title: 'Quality of Work', description: 'Evaluates accuracy, diligence, and work output quality', type: 'STAR_RATING', is_fixed: true, required: true },
 ];
+
+const FIELD_LABEL = 'mb-1.5 block text-xs font-semibold text-slate-700';
+const FIELD_INPUT =
+  'h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-800 transition hover:border-slate-300 focus:border-blue-500 focus:outline-hidden focus:ring-4 focus:ring-blue-500/10 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -517,19 +523,19 @@ export const SettingsPerformanceSection: React.FC = () => {
 
       {/* TAB 1: CYCLE MASTER */}
       {activeTab === 'CYCLES' && (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
+            <table className="w-full min-w-[920px] border-collapse text-left text-sm">
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50/75 text-slate-600 font-semibold">
-                  <th className="py-3 px-4">Cycle Name</th>
-                  <th className="py-3 px-4">Type</th>
-                  <th className="py-3 px-4">Period Dates</th>
-                  <th className="py-3 px-4">Review Window</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4 text-center">Forms</th>
-                  <th className="py-3 px-4 text-center">Reviews</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                <tr className="border-b border-slate-200 bg-slate-50/95 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+                  <th className="whitespace-nowrap px-5 py-3">Cycle Name</th>
+                  <th className="whitespace-nowrap px-5 py-3">Type</th>
+                  <th className="whitespace-nowrap px-5 py-3">Period Dates</th>
+                  <th className="whitespace-nowrap px-5 py-3">Review Window</th>
+                  <th className="whitespace-nowrap px-5 py-3">Status</th>
+                  <th className="whitespace-nowrap px-5 py-3 text-center">Forms</th>
+                  <th className="whitespace-nowrap px-5 py-3 text-center">Reviews</th>
+                  <th className="whitespace-nowrap px-5 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -546,59 +552,65 @@ export const SettingsPerformanceSection: React.FC = () => {
                     const cName = c.cycle_name || c.name || `Cycle #${c.cycle_id}`;
                     const statusBadgeClass =
                       c.status === 'REVIEW_OPEN'
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        ? 'bg-emerald-50 text-emerald-700 ring-emerald-100'
                         : c.status === 'UPCOMING'
-                          ? 'bg-blue-50 text-blue-700 border-blue-200'
-                          : 'bg-slate-100 text-slate-700 border-slate-200';
+                          ? 'bg-blue-50 text-blue-700 ring-blue-100'
+                          : 'bg-slate-100 text-slate-600 ring-slate-200';
+                    const statusDot = c.status === 'REVIEW_OPEN' ? 'bg-emerald-500' : c.status === 'UPCOMING' ? 'bg-blue-500' : 'bg-slate-400';
+                    const statusLabel = c.status.replace(/_/g, ' ').toLowerCase().replace(/^\w/, (ch: string) => ch.toUpperCase());
 
                     return (
-                      <tr key={c.cycle_id} className="hover:bg-slate-50/60 transition-colors">
-                        <td className="py-3.5 px-4 font-semibold text-slate-900 flex items-center gap-2">
-                          <Award className="w-4 h-4 text-blue-600 shrink-0" />
-                          <span>{cName}</span>
+                      <tr key={c.cycle_id} className="transition-colors hover:bg-blue-50/30">
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-3">
+                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 ring-1 ring-blue-100">
+                              <Award className="h-4 w-4" />
+                            </span>
+                            <span className="font-semibold text-slate-900">{cName}</span>
+                          </div>
                         </td>
-                        <td className="py-3.5 px-4 text-slate-600">{c.cycle_type}</td>
-                        <td className="py-3.5 px-4 text-slate-600 whitespace-nowrap">
+                        <td className="px-5 py-3.5">
+                          <span className="inline-flex whitespace-nowrap rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold capitalize text-slate-600">{String(c.cycle_type).toLowerCase()}</span>
+                        </td>
+                        <td className="whitespace-nowrap px-5 py-3.5 text-slate-600">
                           {c.start_date?.split('T')[0] ?? c.start_date} <span className="text-slate-400">&rarr;</span> {c.end_date?.split('T')[0] ?? c.end_date}
                         </td>
-                        <td className="py-3.5 px-4 text-slate-600 whitespace-nowrap">
+                        <td className="whitespace-nowrap px-5 py-3.5 text-slate-600">
                           <span className="font-medium text-slate-800">{c.review_start_date?.split('T')[0] ?? c.review_start_date}</span>
                           <span className="text-slate-400"> to </span>
                           <span className="font-medium text-slate-800">{c.review_end_date?.split('T')[0] ?? c.review_end_date}</span>
                         </td>
-                        <td className="py-3.5 px-4">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${statusBadgeClass}`}>
-                            {c.status.replace('_', ' ')}
+                        <td className="px-5 py-3.5">
+                          <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${statusBadgeClass}`}>
+                            <span className={`h-1.5 w-1.5 rounded-full ${statusDot}`} />
+                            {statusLabel}
                           </span>
                         </td>
-                        <td className="py-3.5 px-4 text-center font-mono text-slate-700">
+                        <td className="px-5 py-3.5 text-center font-semibold text-slate-700">
                           {c._count?.perf_forms ?? (c as any).forms_count ?? 0}
                         </td>
-                        <td className="py-3.5 px-4 text-center font-mono text-slate-700">
+                        <td className="px-5 py-3.5 text-center font-semibold text-slate-700">
                           {c._count?.perf_reviews ?? (c as any).reviews_count ?? 0}
                         </td>
-                        <td className="py-3.5 px-4 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <button
-                              type="button"
-                              onClick={() => openEditCycleModal(c)}
-                              className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                              title="Edit Cycle"
-                            >
-                              <Pencil className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setItemToDelete({ type: 'CYCLE', id: c.cycle_id, name: cName });
-                                setDeleteError('');
-                                setDeleteModalOpen(true);
-                              }}
-                              className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                              title="Delete Cycle"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                        <td className="px-5 py-3.5 text-right">
+                          <div className="flex items-center justify-end">
+                            <RowActionsMenu
+                              id={`perf-cycle-actions-${c.cycle_id}`}
+                              label={`Actions for ${cName}`}
+                              actions={[
+                                { label: 'Edit cycle', icon: Pencil, onClick: () => openEditCycleModal(c) },
+                                {
+                                  label: 'Delete cycle',
+                                  icon: Trash2,
+                                  danger: true,
+                                  onClick: () => {
+                                    setItemToDelete({ type: 'CYCLE', id: c.cycle_id, name: cName });
+                                    setDeleteError('');
+                                    setDeleteModalOpen(true);
+                                  },
+                                },
+                              ]}
+                            />
                           </div>
                         </td>
                       </tr>
@@ -695,26 +707,23 @@ export const SettingsPerformanceSection: React.FC = () => {
                                 Publish
                               </button>
                             )}
-                            <button
-                              type="button"
-                              onClick={() => openEditFormModal(f)}
-                              className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                              title="Edit Form"
-                            >
-                              <Pencil className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setItemToDelete({ type: 'FORM', id: f.form_id, name: f.form_name });
-                                setDeleteError('');
-                                setDeleteModalOpen(true);
-                              }}
-                              className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                              title="Delete Form"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            <RowActionsMenu
+                              id={`perf-form-actions-${f.form_id}`}
+                              label={`Actions for ${f.form_name}`}
+                              actions={[
+                                { label: 'Edit form', icon: Pencil, onClick: () => openEditFormModal(f) },
+                                {
+                                  label: 'Delete form',
+                                  icon: Trash2,
+                                  danger: true,
+                                  onClick: () => {
+                                    setItemToDelete({ type: 'FORM', id: f.form_id, name: f.form_name });
+                                    setDeleteError('');
+                                    setDeleteModalOpen(true);
+                                  },
+                                },
+                              ]}
+                            />
                           </div>
                         </td>
                       </tr>
@@ -731,238 +740,229 @@ export const SettingsPerformanceSection: React.FC = () => {
       {/* MODAL: ADD / EDIT CYCLE (Screen 2: Add Cycle)                       */}
       {/* ------------------------------------------------------------------ */}
       {cycleModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in">
-          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden">
-            <div className="flex items-center justify-between p-5 border-b border-slate-100">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-blue-50 rounded-xl text-blue-600">
-                  <Award className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-slate-900 text-sm">
-                    {editingCycle ? 'Edit Performance Cycle' : 'Add Performance Cycle'}
-                  </h3>
-                  <p className="text-[11px] text-slate-500">Pick cycle type and period; dates are computed automatically</p>
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 backdrop-blur-sm sm:items-center sm:p-4">
+          <div className="flex max-h-[94vh] w-full flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl ring-1 ring-slate-200 sm:max-h-[90vh] sm:max-w-xl sm:rounded-2xl">
+            {/* Header */}
+            <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-100 px-5 py-4 sm:px-6">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/25">
+                  <Award className="h-5 w-5" />
+                </span>
+                <div className="min-w-0">
+                  <h3 className="text-base font-bold text-slate-900">{editingCycle ? 'Edit performance cycle' : 'Add performance cycle'}</h3>
+                  <p className="text-xs text-slate-500">Pick the cycle type and period. Dates are filled in automatically.</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setCycleModalOpen(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                aria-label="Close"
+                className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
               >
-                <X className="w-4 h-4" />
+                <X className="h-5 w-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveCycle} className="p-5 space-y-4">
-              {cycleError && (
-                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 shrink-0" />
-                  <span>{cycleError}</span>
-                </div>
-              )}
-
-              {/* 1. Cycle Type (Yearly, Quarterly, Monthly) */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Cycle Type <span className="text-rose-500">*</span>
-                </label>
-                <select
-                  disabled={Boolean(editingCycle)}
-                  value={cycleType}
-                  onChange={(e) => {
-                    const newType = e.target.value as any;
-                    setCycleType(newType);
-                    const p = computeCyclePreview(newType, cycleYear, cycleQuarter, cycleMonth);
-                    setCycleNameInput(p.defName);
-                    setCycleReviewStart(p.defReviewStart);
-                    setCycleReviewEnd(p.defReviewEnd);
-                  }}
-                  className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-800 disabled:bg-slate-50 disabled:text-slate-500 font-medium"
-                >
-                  <option value="YEARLY">Yearly</option>
-                  <option value="QUARTERLY">Quarterly</option>
-                  <option value="MONTHLY">Monthly</option>
-                </select>
-              </div>
-
-              {/* 2. Year */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Year <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  disabled={Boolean(editingCycle)}
-                  value={cycleYear}
-                  onChange={(e) => {
-                    const newY = Number(e.target.value);
-                    setCycleYear(newY);
-                    const p = computeCyclePreview(cycleType, newY, cycleQuarter, cycleMonth);
-                    setCycleNameInput(p.defName);
-                    setCycleReviewStart(p.defReviewStart);
-                    setCycleReviewEnd(p.defReviewEnd);
-                  }}
-                  min={2020}
-                  max={2035}
-                  className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-800 disabled:bg-slate-50 disabled:text-slate-500 font-medium"
-                />
-              </div>
-
-              {/* 3. Quarter (if Quarterly) */}
-              {cycleType === 'QUARTERLY' && (
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Quarter <span className="text-rose-500">*</span>
-                  </label>
-                  <select
-                    disabled={Boolean(editingCycle)}
-                    value={cycleQuarter}
-                    onChange={(e) => {
-                      const newQ = Number(e.target.value);
-                      setCycleQuarter(newQ);
-                      const p = computeCyclePreview(cycleType, cycleYear, newQ, cycleMonth);
-                      setCycleNameInput(p.defName);
-                      setCycleReviewStart(p.defReviewStart);
-                      setCycleReviewEnd(p.defReviewEnd);
-                    }}
-                    className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-800 disabled:bg-slate-50 disabled:text-slate-500 font-medium"
-                  >
-                    <option value={1}>Q1 (January – March)</option>
-                    <option value={2}>Q2 (April – June)</option>
-                    <option value={3}>Q3 (July – September)</option>
-                    <option value={4}>Q4 (October – December)</option>
-                  </select>
-                </div>
-              )}
-
-              {/* 4. Month (if Monthly) */}
-              {cycleType === 'MONTHLY' && (
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Month <span className="text-rose-500">*</span>
-                  </label>
-                  <select
-                    disabled={Boolean(editingCycle)}
-                    value={cycleMonth}
-                    onChange={(e) => {
-                      const newM = Number(e.target.value);
-                      setCycleMonth(newM);
-                      const p = computeCyclePreview(cycleType, cycleYear, cycleQuarter, newM);
-                      setCycleNameInput(p.defName);
-                      setCycleReviewStart(p.defReviewStart);
-                      setCycleReviewEnd(p.defReviewEnd);
-                    }}
-                    className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-800 disabled:bg-slate-50 disabled:text-slate-500 font-medium"
-                  >
-                    {MONTH_NAMES.map((mName, idx) => (
-                      <option key={idx + 1} value={idx + 1}>
-                        {mName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {/* 5. Cycle Name (editable, pre-filled) */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Cycle Name <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={cycleNameInput}
-                  onChange={(e) => setCycleNameInput(e.target.value)}
-                  placeholder="e.g., October 2026 Review"
-                  className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-800 font-medium"
-                />
-              </div>
-
-              {/* 6. Period Reviewed (Reference) */}
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 flex items-center justify-between text-xs">
-                <span className="text-slate-500 font-medium">Period Reviewed:</span>
-                <span className="font-bold text-slate-800">{preview.periodStr}</span>
-              </div>
-
-              {/* 7. Review Window (Editable by Admin, defaults to 1st-10th) */}
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-semibold text-slate-700">
-                    Review Window <span className="text-rose-500">*</span>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCycleReviewStart(preview.defReviewStart);
-                      setCycleReviewEnd(preview.defReviewEnd);
-                    }}
-                    className="text-[11px] font-semibold text-blue-600 hover:text-blue-800 transition-colors"
-                  >
-                    Reset to Default (1st–10th)
-                  </button>
-                </div>
-                <div className="grid grid-cols-2 gap-2.5">
-                  <div>
-                    <span className="text-[10px] text-slate-400 font-medium block mb-1">Window Opens</span>
-                    <input
-                      type="date"
-                      value={cycleReviewStart}
-                      onChange={(e) => setCycleReviewStart(e.target.value)}
-                      className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-800 font-medium focus:ring-2 focus:ring-blue-500"
-                    />
+            <form onSubmit={handleSaveCycle} className="flex min-h-0 flex-1 flex-col">
+              <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5 sm:px-6">
+                {cycleError && (
+                  <div className="flex items-center gap-2.5 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-medium text-rose-700">
+                    <AlertTriangle className="h-4 w-4 shrink-0" />
+                    <span>{cycleError}</span>
                   </div>
+                )}
+
+                {/* Cycle type + year */}
+                <div className="grid grid-cols-1 gap-4 min-[480px]:grid-cols-2">
                   <div>
-                    <span className="text-[10px] text-slate-400 font-medium block mb-1">Window Closes</span>
+                    <label className={FIELD_LABEL}>
+                      Cycle type <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                      disabled={Boolean(editingCycle)}
+                      value={cycleType}
+                      onChange={(e) => {
+                        const newType = e.target.value as any;
+                        setCycleType(newType);
+                        const p = computeCyclePreview(newType, cycleYear, cycleQuarter, cycleMonth);
+                        setCycleNameInput(p.defName);
+                        setCycleReviewStart(p.defReviewStart);
+                        setCycleReviewEnd(p.defReviewEnd);
+                      }}
+                      className={FIELD_INPUT}
+                    >
+                      <option value="YEARLY">Yearly</option>
+                      <option value="QUARTERLY">Quarterly</option>
+                      <option value="MONTHLY">Monthly</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className={FIELD_LABEL}>
+                      Year <span className="text-rose-500">*</span>
+                    </label>
                     <input
-                      type="date"
-                      value={cycleReviewEnd}
-                      onChange={(e) => setCycleReviewEnd(e.target.value)}
-                      className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-800 font-medium focus:ring-2 focus:ring-blue-500"
+                      type="number"
+                      disabled={Boolean(editingCycle)}
+                      value={cycleYear}
+                      onChange={(e) => {
+                        const newY = Number(e.target.value);
+                        setCycleYear(newY);
+                        const p = computeCyclePreview(cycleType, newY, cycleQuarter, cycleMonth);
+                        setCycleNameInput(p.defName);
+                        setCycleReviewStart(p.defReviewStart);
+                        setCycleReviewEnd(p.defReviewEnd);
+                      }}
+                      min={2020}
+                      max={2035}
+                      className={FIELD_INPUT}
                     />
                   </div>
                 </div>
-                <p className="text-[11px] text-slate-400 mt-1">
-                  By default set to the 1st–10th of following month. Admins can adjust the review period as needed.
-                </p>
-              </div>
 
-              {/* 8. Cycle Status (editable if existing) */}
-              {editingCycle && (
+                {/* Quarter (Quarterly only) */}
+                {cycleType === 'QUARTERLY' && (
+                  <div>
+                    <label className={FIELD_LABEL}>
+                      Quarter <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                      disabled={Boolean(editingCycle)}
+                      value={cycleQuarter}
+                      onChange={(e) => {
+                        const newQ = Number(e.target.value);
+                        setCycleQuarter(newQ);
+                        const p = computeCyclePreview(cycleType, cycleYear, newQ, cycleMonth);
+                        setCycleNameInput(p.defName);
+                        setCycleReviewStart(p.defReviewStart);
+                        setCycleReviewEnd(p.defReviewEnd);
+                      }}
+                      className={FIELD_INPUT}
+                    >
+                      <option value={1}>Q1 (January – March)</option>
+                      <option value={2}>Q2 (April – June)</option>
+                      <option value={3}>Q3 (July – September)</option>
+                      <option value={4}>Q4 (October – December)</option>
+                    </select>
+                  </div>
+                )}
+
+                {/* Month (Monthly only) */}
+                {cycleType === 'MONTHLY' && (
+                  <div>
+                    <label className={FIELD_LABEL}>
+                      Month <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                      disabled={Boolean(editingCycle)}
+                      value={cycleMonth}
+                      onChange={(e) => {
+                        const newM = Number(e.target.value);
+                        setCycleMonth(newM);
+                        const p = computeCyclePreview(cycleType, cycleYear, cycleQuarter, newM);
+                        setCycleNameInput(p.defName);
+                        setCycleReviewStart(p.defReviewStart);
+                        setCycleReviewEnd(p.defReviewEnd);
+                      }}
+                      className={FIELD_INPUT}
+                    >
+                      {MONTH_NAMES.map((mName, idx) => (
+                        <option key={idx + 1} value={idx + 1}>
+                          {mName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Cycle name */}
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Cycle Status</label>
-                  <select
-                    value={cycleStatus}
-                    onChange={(e) => setCycleStatus(e.target.value as any)}
-                    className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-800"
-                  >
-                    <option value="UPCOMING">Upcoming</option>
-                    <option value="REVIEW_OPEN">Review Open</option>
-                    <option value="CLOSED">Closed</option>
-                  </select>
+                  <label className={FIELD_LABEL}>
+                    Cycle name <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={cycleNameInput}
+                    onChange={(e) => setCycleNameInput(e.target.value)}
+                    placeholder="e.g., October 2026 Review"
+                    className={FIELD_INPUT}
+                  />
                 </div>
-              )}
 
-              <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-100 text-[11px] text-blue-800 flex items-start gap-2">
-                <Info className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-                <span>
-                  The Review Window defaults to the <strong>1st to 10th of the next month</strong> following the period end. Admins can update the window dates above to extend or adjust the review period.
-                </span>
+                {/* Period reviewed (reference) */}
+                <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3.5 min-[480px]:flex-row min-[480px]:items-center min-[480px]:justify-between">
+                  <span className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+                    <CalendarRange className="h-4 w-4 text-slate-400" />
+                    Period reviewed
+                  </span>
+                  <span className="text-sm font-bold text-slate-900">{preview.periodStr}</span>
+                </div>
+
+                {/* Review window */}
+                <div>
+                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                    <label className="text-xs font-semibold text-slate-700">
+                      Review window <span className="text-rose-500">*</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCycleReviewStart(preview.defReviewStart);
+                        setCycleReviewEnd(preview.defReviewEnd);
+                      }}
+                      className="cursor-pointer rounded-md px-1.5 py-0.5 text-xs font-semibold text-blue-600 transition hover:bg-blue-50 hover:text-blue-800"
+                    >
+                      Reset to default (1st–10th)
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2">
+                    <div>
+                      <span className="mb-1 block text-[11px] font-medium text-slate-400">Window opens</span>
+                      <input type="date" value={cycleReviewStart} onChange={(e) => setCycleReviewStart(e.target.value)} className={FIELD_INPUT} />
+                    </div>
+                    <div>
+                      <span className="mb-1 block text-[11px] font-medium text-slate-400">Window closes</span>
+                      <input type="date" value={cycleReviewEnd} onChange={(e) => setCycleReviewEnd(e.target.value)} className={FIELD_INPUT} />
+                    </div>
+                  </div>
+                  <p className="mt-2 text-xs text-slate-400">By default the 1st–10th of the following month. Admins can adjust the review period as needed.</p>
+                </div>
+
+                {/* Cycle status (existing cycles only) */}
+                {editingCycle && (
+                  <div>
+                    <label className={FIELD_LABEL}>Cycle status</label>
+                    <select value={cycleStatus} onChange={(e) => setCycleStatus(e.target.value as any)} className={FIELD_INPUT}>
+                      <option value="UPCOMING">Upcoming</option>
+                      <option value="REVIEW_OPEN">Review Open</option>
+                      <option value="CLOSED">Closed</option>
+                    </select>
+                  </div>
+                )}
+
+                <div className="flex items-start gap-2.5 rounded-xl border border-blue-100 bg-blue-50/60 p-3.5 text-xs leading-relaxed text-blue-900">
+                  <Info className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
+                  <span>
+                    The review window defaults to the <strong>1st to 10th of the next month</strong> after the period ends. Change the dates above to extend or adjust it.
+                  </span>
+                </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+              {/* Footer */}
+              <div className="flex shrink-0 flex-col-reverse gap-2.5 border-t border-slate-100 bg-slate-50/60 px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
                 <button
                   type="button"
                   onClick={() => setCycleModalOpen(false)}
-                  className="px-4 py-2 text-xs font-semibold rounded-xl text-slate-600 hover:bg-slate-100 transition-colors"
+                  className="inline-flex h-10 cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={createCycleMut.isPending || updateCycleMut.isPending}
-                  className="px-4 py-2 text-xs font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-colors"
+                  className="inline-flex h-10 cursor-pointer items-center justify-center rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {createCycleMut.isPending || updateCycleMut.isPending ? 'Saving...' : 'Save Cycle'}
+                  {createCycleMut.isPending || updateCycleMut.isPending ? 'Saving...' : editingCycle ? 'Save changes' : 'Save cycle'}
                 </button>
               </div>
             </form>

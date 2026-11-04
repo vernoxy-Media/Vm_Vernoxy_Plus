@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
+  Phone,
   Building2,
   MapPin,
   Calendar,
@@ -29,6 +30,7 @@ import {
 } from '@vernoxy-pulse/api-client';
 
 import { ContactsManager } from '../components/companies/ContactsManager';
+import { CompanyCommunications } from '../components/companies/CompanyCommunications';
 import { ConvertToLeadModal } from '../components/companies/ConvertToLeadModal';
 import { ScheduleFollowUpModal } from '../components/follow-ups/ScheduleFollowUpModal';
 import { WebsiteQualityBadge } from '../components/common/WebsiteQualityBadge';
@@ -62,6 +64,7 @@ export const CompanyDetailPage: React.FC = () => {
 
   // Modals
   const [convertToLeadOpen, setConvertToLeadOpen] = useState(false);
+  const [logCommunicationOpen, setLogCommunicationOpen] = useState(false);
   const [scheduleFollowUpOpen, setScheduleFollowUpOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -252,6 +255,16 @@ export const CompanyDetailPage: React.FC = () => {
             >
               <UserPlus className="w-4 h-4" />
               <span>{isClient ? 'New lead for more work' : 'Convert to Lead'}</span>
+            </button>
+
+            {/* Log Communication Button */}
+            <button
+              type="button"
+              onClick={() => setLogCommunicationOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 shadow-2xs transition-colors min-h-[40px]"
+            >
+              <Phone className="w-4 h-4 text-gray-500" />
+              <span>Log Communication</span>
             </button>
 
             {/* Schedule Follow-up Button */}
@@ -477,6 +490,14 @@ export const CompanyDetailPage: React.FC = () => {
           <ContactsManager
             companyId={companyId}
             contacts={company.contacts || []}
+          />
+
+          {/* Calls, emails and visits */}
+          <CompanyCommunications
+            companyId={companyId}
+            contacts={company.contacts || []}
+            logOpen={logCommunicationOpen}
+            onLogOpenChange={setLogCommunicationOpen}
           />
         </div>
 

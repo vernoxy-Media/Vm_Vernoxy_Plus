@@ -91,10 +91,14 @@ export const messages = {
     body: `${by} gave you a follow-up: ${f.company_name}, ${formatIst(f.at)}, ${f.type}.`,
   }),
   /** "Follow-up in 1 hour: Call Kunal Shah, Patel Precision Engineering." */
-  reminder: (f: FollowUpFacts) => ({
-    title: `Follow-up in 1 hour: ${f.company_name}`,
-    body: `Follow-up in 1 hour: ${f.type}${f.contact_name ? ` ${f.contact_name}` : ''}, ${f.company_name}.`,
-  }),
+  reminder: (f: FollowUpFacts, now?: Date) => {
+    const mins = now ? Math.round((f.at.getTime() - now.getTime()) / 60000) : 60;
+    const when = mins <= 0 ? 'due now' : mins >= 55 ? 'in 1 hour' : `in ${mins} minute${mins === 1 ? '' : 's'}`;
+    return {
+      title: `Follow-up ${when}: ${f.company_name}`,
+      body: `Follow-up ${when}: ${f.type}${f.contact_name ? ` ${f.contact_name}` : ''}, ${f.company_name}.`,
+    };
+  },
   /** "Follow-up with Patel Precision Engineering is overdue since 28 Oct, 11:00." */
   overdue: (f: FollowUpFacts) => ({
     title: `Overdue follow-up: ${f.company_name}`,

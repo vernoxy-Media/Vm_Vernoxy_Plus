@@ -1,5 +1,5 @@
 import React from 'react';
-import { Download, RefreshCw, Search, SlidersHorizontal, X } from 'lucide-react';
+import { Download, LayoutGrid, List, RefreshCw, Search, SlidersHorizontal, X } from 'lucide-react';
 import { SortMenu } from '../leads/SortMenu';
 
 export interface CompanyToolbarProps {
@@ -15,6 +15,8 @@ export interface CompanyToolbarProps {
   onClearSelection: () => void;
   onExportSelected: () => void;
   canExport: boolean;
+  view: 'table' | 'cards';
+  onViewChange: (view: 'table' | 'cards') => void;
 }
 
 const SORTS = [
@@ -60,6 +62,22 @@ export const CompanyToolbar: React.FC<CompanyToolbarProps> = (p) => (
         </button>
 
         <SortMenu className="min-w-0 flex-1 sm:w-48 sm:flex-none" value={p.sort} onChange={p.onSort} options={SORTS} />
+
+        <div role="group" aria-label="View" className="hidden shrink-0 items-center gap-0.5 rounded-xl bg-gray-100 p-1 sm:inline-flex">
+          {([['table', List, 'Table'], ['cards', LayoutGrid, 'Cards']] as const).map(([key, Icon, label]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => p.onViewChange(key)}
+              aria-pressed={p.view === key}
+              title={`${label} view`}
+              className={`inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[13px] font-semibold transition ${p.view === key ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}
+            >
+              <Icon className="h-4 w-4" />
+              <span className="hidden md:inline">{label}</span>
+            </button>
+          ))}
+        </div>
 
         <button
           type="button"

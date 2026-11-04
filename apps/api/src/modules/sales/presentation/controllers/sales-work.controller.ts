@@ -10,6 +10,7 @@ import {
   ConversationBodyDto,
   HoldBodyDto,
   LostBodyDto,
+  MoveStageBodyDto,
   NoteBodyDto,
   PageQueryDto,
   QualifyBodyDto,
@@ -152,6 +153,17 @@ export class SalesLeadStatusController {
   @ApiOperation({ summary: 'Mark as Lost (New / Contacted / Qualified). A reason is needed; pending follow-ups are cancelled.' })
   lost(@Param('id', ParseIntPipe) id: number, @Body() body: LostBodyDto, @CurrentSalesActor() actor: SalesActor) {
     return run(async () => this.withLead(id, await this.status.markLost(id, body, actor)));
+  }
+
+  @Post(':id/move')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      'Move a lead to any stage (New, Contacted, Qualified, On Hold, Lost) with nothing to fill in first. Only Lost needs a reason. Converted is reached with Mark as Won.',
+  })
+  move(@Param('id', ParseIntPipe) id: number, @Body() body: MoveStageBodyDto, @CurrentSalesActor() actor: SalesActor) {
+    // Just the transition: the board already shows the card, so rebuilding the whole lead here would only slow it down.
+    return run(() => this.status.moveToStage(id, body, actor));
   }
 
   @Post(':id/reopen')

@@ -8,7 +8,7 @@ import {
   useUpdateRoleMutation,
   useDeleteRoleMutation,
 } from '@/features/organization/hooks/use-organization';
-import { SearchableSelect } from '@/shared/ui';
+import { SearchableSelect, RowActionsMenu, CursorPager, type RowAction } from '@/shared/ui';
 import {
   ShieldCheck,
   Plus,
@@ -18,8 +18,6 @@ import {
   Loader2,
   AlertCircle,
   X,
-  ChevronLeft,
-  ChevronRight,
   Shield,
   Building2,
 } from 'lucide-react';
@@ -37,6 +35,7 @@ export const SettingsRolesSection: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<boolean | undefined>(undefined);
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [cursorHistory, setCursorHistory] = useState<string[]>([]);
+  const [limit, setLimit] = useState(10);
 
   // Modals state
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -77,7 +76,7 @@ export const SettingsRolesSection: React.FC = () => {
     dep_id: selectedDepId,
     q: search || undefined,
     is_active: statusFilter,
-    limit: 20,
+    limit,
     cursor,
   });
 
@@ -175,20 +174,41 @@ export const SettingsRolesSection: React.FC = () => {
     }
   };
 
+  const roleActions = (role: RoleResponseDto): RowAction[] => [
+    { label: 'Edit designation', icon: Edit2, onClick: () => handleOpenEdit(role) },
+    {
+      label: 'Delete designation',
+      icon: Trash2,
+      danger: true,
+      disabled: role.is_admin,
+      hint: 'Admin roles cannot be deleted',
+      onClick: () => {
+        setDeletingRole(role);
+        setFormError(null);
+      },
+    },
+  ];
+
   return (
     <div className="space-y-6">
       {/* Section Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-200">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">Designations</h2>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3.5">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 ring-1 ring-blue-100">
+            <ShieldCheck className="h-5 w-5" />
+          </span>
+          <div className="min-w-0">
+            <h2 className="truncate text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">Designations</h2>
+            <p className="mt-0.5 text-sm text-slate-500">Job titles and the department each one belongs to.</p>
+          </div>
         </div>
         <button
           type="button"
           id="add-role-button"
           onClick={handleOpenCreate}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-xs font-bold text-white shadow-xs hover:bg-blue-700 transition-colors focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 shrink-0 cursor-pointer"
+          className="inline-flex h-10 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-[13px] font-semibold text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700 focus:outline-hidden focus:ring-4 focus:ring-blue-600/20 active:scale-[0.98]"
         >
-          <Plus className="w-4 h-4 stroke-[2.5]" />
+          <Plus className="h-4 w-4" strokeWidth={2.5} />
           Add Designation
         </button>
       </div>
@@ -204,12 +224,11 @@ export const SettingsRolesSection: React.FC = () => {
         </div>
       )}
 
-      {/* Filters and Search Bar (stitched / sticky to top) */}
-      <div className="sticky top-16 lg:top-0 z-20 bg-[#f4f6fa]/95 backdrop-blur-xs py-1">
-        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-white p-3 rounded-xl border border-slate-300 shadow-xs">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1">
+      {/* Search and filters */}
+      <div className="flex flex-col items-stretch gap-3 md:flex-row md:items-center">
+        <div className="flex flex-1 flex-col items-stretch gap-2.5 sm:flex-row sm:items-center">
           <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               id="roles-search-input"
@@ -220,7 +239,7 @@ export const SettingsRolesSection: React.FC = () => {
                 setCursorHistory([]);
               }}
               placeholder="Search designations by title..."
-              className="w-full pl-10 pr-4 py-2 rounded-lg text-sm border border-slate-300 bg-white text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all shadow-2xs"
+              className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-10 pr-4 text-sm text-slate-800 placeholder:text-slate-400 transition focus:border-blue-500 focus:bg-white focus:outline-hidden focus:ring-4 focus:ring-blue-500/10"
             />
           </div>
 
@@ -237,66 +256,36 @@ export const SettingsRolesSection: React.FC = () => {
               }}
               placeholder="All Departments"
               searchPlaceholder="Search department..."
-              className="!rounded-lg !border-slate-300 !py-2 !text-sm !font-bold !text-slate-800 shadow-2xs"
+              className="!rounded-xl !border-slate-200 !py-2 !text-sm !font-medium !text-slate-800"
             />
           </div>
         </div>
 
-        <div className="flex items-center gap-1 p-1 bg-white rounded-lg border border-slate-300 text-xs font-bold self-start md:self-auto shadow-2xs">
-          <button
-            type="button"
-            id="filter-role-all"
-            onClick={() => {
-              setStatusFilter(undefined);
-              setCursor(undefined);
-              setCursorHistory([]);
-            }}
-            className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-              statusFilter === undefined
-                ? 'bg-blue-600 text-white font-bold'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-            }`}
-          >
-            All
-          </button>
-          <button
-            type="button"
-            id="filter-role-active"
-            onClick={() => {
-              setStatusFilter(true);
-              setCursor(undefined);
-              setCursorHistory([]);
-            }}
-            className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-              statusFilter === true
-                ? 'bg-emerald-600 text-white font-bold'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-            }`}
-          >
-            Active
-          </button>
-          <button
-            type="button"
-            id="filter-role-inactive"
-            onClick={() => {
-              setStatusFilter(false);
-              setCursor(undefined);
-              setCursorHistory([]);
-            }}
-            className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-              statusFilter === false
-                ? 'bg-slate-700 text-white font-bold'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-            }`}
-          >
-            Inactive
-          </button>
+        <div role="group" aria-label="Status" className="inline-flex self-start rounded-xl bg-slate-100 p-1 text-[13px] font-semibold md:self-auto">
+          {([
+            ['filter-role-all', 'All', undefined, 'text-blue-700'],
+            ['filter-role-active', 'Active', true, 'text-emerald-700'],
+            ['filter-role-inactive', 'Inactive', false, 'text-slate-800'],
+          ] as const).map(([id, label, value, on]) => (
+            <button
+              key={id}
+              type="button"
+              id={id}
+              onClick={() => {
+                setStatusFilter(value);
+                setCursor(undefined);
+                setCursorHistory([]);
+              }}
+              className={`cursor-pointer rounded-lg px-3.5 py-1.5 transition ${statusFilter === value ? `bg-white shadow-sm ${on}` : 'text-slate-500 hover:text-slate-800'}`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
       </div>
-    </div>
 
       {/* Roles Table */}
-      <div className="rounded-xl border border-slate-300 overflow-hidden bg-white shadow-xs">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
         {isLoading ? (
           <div className="py-16 flex flex-col items-center justify-center gap-3">
             <Loader2 className="w-7 h-7 text-blue-600 animate-spin" />
@@ -319,16 +308,52 @@ export const SettingsRolesSection: React.FC = () => {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-360px)] min-h-[350px] custom-scrollbar">
-            <table className="w-full text-left text-xs relative" id="roles-table">
-              <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-300 text-xs sm:text-[13px] font-extrabold text-slate-900 uppercase tracking-wide shadow-2xs">
-                <tr>
-                  <th className="py-3 px-5">ID</th>
-                  <th className="py-3 px-5">Designation</th>
-                  <th className="py-3 px-5">Department</th>
-                  <th className="py-3 px-5">Description</th>
-                  <th className="py-3 px-5">Type & Status</th>
-                  <th className="py-3 px-5 text-right">Actions</th>
+          <>
+          <ul className="divide-y divide-slate-100 md:hidden">
+            {data?.items.map((role) => {
+              const deptName = deptOptions?.find((d) => d.dep_id === role.dep_id)?.name || `Dep #${role.dep_id}`;
+              return (
+                <li key={role.role_id} className="flex items-start gap-3 p-4">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 text-sm font-bold text-blue-600 ring-1 ring-blue-100">
+                    {role.role_name.charAt(0).toUpperCase()}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <p className="font-semibold text-slate-900">{role.role_name}</p>
+                      {role.is_admin && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700 ring-1 ring-blue-100">
+                          <Shield className="h-3 w-3" />
+                          System
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                      <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
+                        <Building2 className="h-3 w-3 text-slate-400" />
+                        {deptName}
+                      </span>
+                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${role.is_active ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100' : 'bg-slate-100 text-slate-600'}`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${role.is_active ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                        {role.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+                    {role.description && <p className="mt-2 text-sm text-slate-500">{role.description}</p>}
+                  </div>
+                  <RowActionsMenu label={`Actions for ${role.role_name}`} actions={roleActions(role)} />
+                </li>
+              );
+            })}
+          </ul>
+          <div className="custom-scrollbar hidden max-h-[calc(100vh-400px)] min-h-[320px] overflow-auto md:block">
+            <table className="relative w-full min-w-[720px] text-left text-sm" id="roles-table">
+              <thead className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur-xs">
+                <tr className="border-b border-slate-200 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+                  <th className="whitespace-nowrap px-5 py-3">ID</th>
+                  <th className="whitespace-nowrap px-5 py-3">Designation</th>
+                  <th className="whitespace-nowrap px-5 py-3">Department</th>
+                  <th className="whitespace-nowrap px-5 py-3">Description</th>
+                  <th className="whitespace-nowrap px-5 py-3">Type & Status</th>
+                  <th className="whitespace-nowrap px-5 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -341,16 +366,19 @@ export const SettingsRolesSection: React.FC = () => {
                     <tr
                       key={role.role_id}
                       id={`role-row-${role.role_id}`}
-                      className="hover:bg-slate-50/60 transition-colors"
+                      className="transition-colors hover:bg-blue-50/30"
                     >
-                      <td className="py-3.5 px-5 text-slate-400 font-mono text-xs">#{role.role_id}</td>
-                      <td className="py-3.5 px-5 font-semibold text-slate-900">
-                        <div className="flex items-center gap-2">
+                      <td className="px-5 py-3.5 font-mono text-xs text-slate-400">#{role.role_id}</td>
+                      <td className="px-5 py-3.5 font-semibold text-slate-900">
+                        <div className="flex items-center gap-3">
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-50 to-indigo-50 text-[12px] font-bold text-blue-600 ring-1 ring-blue-100">
+                            {role.role_name.charAt(0).toUpperCase()}
+                          </span>
                           <span>{role.role_name}</span>
                           {role.is_admin && (
                             <span
                               id={`role-admin-badge-${role.role_id}`}
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200/60 text-xs font-semibold"
+                              className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700 ring-1 ring-blue-100"
                               title="System Protected Role"
                             >
                               <Shield className="w-3 h-3" />
@@ -359,16 +387,16 @@ export const SettingsRolesSection: React.FC = () => {
                           )}
                         </div>
                       </td>
-                      <td className="py-3.5 px-5 text-slate-600 font-medium">
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-xs">
+                      <td className="px-5 py-3.5 font-medium text-slate-600">
+                        <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
                           <Building2 className="w-3 h-3 text-slate-400" />
                           {deptName}
                         </span>
                       </td>
-                      <td className="py-3.5 px-5 text-slate-500 max-w-xs truncate">
+                      <td className="max-w-xs truncate px-5 py-3.5 text-slate-500">
                         {role.description || <span className="text-slate-300 italic">None</span>}
                       </td>
-                      <td className="py-3.5 px-5">
+                      <td className="px-5 py-3.5">
                         <span
                           className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${
                             role.is_active
@@ -384,38 +412,9 @@ export const SettingsRolesSection: React.FC = () => {
                           {role.is_active ? 'Active' : 'Inactive'}
                         </span>
                       </td>
-                      <td className="py-3.5 px-5 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <button
-                            type="button"
-                            id={`edit-role-${role.role_id}`}
-                            onClick={() => handleOpenEdit(role)}
-                            className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="Edit Designation"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-                          {!role.is_admin ? (
-                            <button
-                              type="button"
-                              id={`delete-role-${role.role_id}`}
-                              onClick={() => {
-                                setDeletingRole(role);
-                                setFormError(null);
-                              }}
-                              className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                              title="Delete Designation"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          ) : (
-                            <span
-                              className="p-1.5 text-slate-300 cursor-not-allowed"
-                              title="Admin roles cannot be deleted"
-                            >
-                              <Trash2 className="w-3.5 h-3.5 opacity-30" />
-                            </span>
-                          )}
+                      <td className="px-5 py-3.5 text-right">
+                        <div className="flex items-center justify-end">
+                          <RowActionsMenu id={`role-actions-${role.role_id}`} label={`Actions for ${role.role_name}`} actions={roleActions(role)} />
                         </div>
                       </td>
                     </tr>
@@ -424,49 +423,37 @@ export const SettingsRolesSection: React.FC = () => {
               </tbody>
             </table>
           </div>
+          </>
         )}
 
-        {/* Pagination Bar with Previous and Next Page navigation */}
         {(cursorHistory.length > 0 || Boolean(data?.next_cursor)) && (
-          <div className="p-3 border-t border-slate-200 bg-slate-50/70 flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500">
-              Page {cursorHistory.length + 1}
-            </span>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                id="roles-prev-page-button"
-                disabled={cursorHistory.length === 0}
-                onClick={() => {
-                  if (cursorHistory.length > 0) {
-                    const prevCursor = cursorHistory[cursorHistory.length - 1];
-                    setCursorHistory((prev) => prev.slice(0, -1));
-                    setCursor(prevCursor || undefined);
-                  }
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-slate-300 text-slate-700 shadow-2xs hover:bg-slate-100 disabled:opacity-40 disabled:pointer-events-none transition-colors cursor-pointer"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" />
-                Previous Page
-              </button>
-
-              <button
-                type="button"
-                id="roles-next-page-button"
-                disabled={!data?.next_cursor}
-                onClick={() => {
-                  if (data?.next_cursor) {
-                    setCursorHistory((prev) => [...prev, cursor || '']);
-                    setCursor(data.next_cursor);
-                  }
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-slate-300 text-slate-700 shadow-2xs hover:bg-slate-100 disabled:opacity-40 disabled:pointer-events-none transition-colors cursor-pointer"
-              >
-                Next Page
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
+          <CursorPager
+            page={cursorHistory.length + 1}
+            shown={data?.items.length ?? 0}
+            hasPrev={cursorHistory.length > 0}
+            hasNext={Boolean(data?.next_cursor)}
+            pageSize={limit}
+            onPageSizeChange={(n) => {
+              setLimit(n);
+              setCursor(undefined);
+              setCursorHistory([]);
+            }}
+            prevId="roles-prev-page-button"
+            nextId="roles-next-page-button"
+            onPrev={() => {
+              if (cursorHistory.length > 0) {
+                const prevCursor = cursorHistory[cursorHistory.length - 1];
+                setCursorHistory((prev) => prev.slice(0, -1));
+                setCursor(prevCursor || undefined);
+              }
+            }}
+            onNext={() => {
+              if (data?.next_cursor) {
+                setCursorHistory((prev) => [...prev, cursor || '']);
+                setCursor(data.next_cursor);
+              }
+            }}
+          />
         )}
       </div>
 

@@ -305,7 +305,7 @@ export class PrismaSalesFollowUpRepository implements SalesFollowUpRepositoryPor
     return this.claimedDetails(rows.map((r) => r.follow_up_id));
   }
 
-  /** Reminder 1 hour before: sent once per follow-up and date (rescheduling resets it). */
+  /** Reminder up to 1 hour before (or right away when it is already due but not yet overdue): sent once per follow-up and date (rescheduling resets it). */
   async claimDueReminders(now: Date): Promise<ClaimedFollowUp[]> {
     const horizon = new Date(now.getTime() + REMINDER_LEAD_MS);
     const rows = await this.prisma.$queryRaw<Array<{ follow_up_id: number }>>(Prisma.sql`
@@ -314,7 +314,7 @@ export class PrismaSalesFollowUpRepository implements SalesFollowUpRepositoryPor
       WHERE f.follow_up_id IN (
         SELECT follow_up_id FROM crm_follow_ups
         WHERE deleted_at IS NULL AND status = 'Pending' AND reminder_sent_at IS NULL
-          AND follow_up_on > ${now} AND follow_up_on <= ${horizon}
+          AND follow_up_on >= ${overdueBefore(now)} AND follow_up_on <= ${horizon}
         ORDER BY follow_up_on
         LIMIT ${CLAIM_BATCH}
         FOR UPDATE SKIP LOCKED

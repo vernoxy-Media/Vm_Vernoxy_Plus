@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { History, Upload, Download, RotateCcw, AlertCircle, Loader2, RefreshCw, Eye, FileSpreadsheet, FileText, CheckCircle2, ChevronUp } from 'lucide-react';
+import { History, Upload, Download, RotateCcw, AlertCircle, Loader2, RefreshCw, Eye, FileSpreadsheet, FileText, CheckCircle2, ChevronUp, Layers } from 'lucide-react';
 import { useSalesImportExportControllerHistory, useSalesImportExportControllerUndo, useSalesImportExportControllerGetImport } from '@vernoxy-pulse/api-client';
 
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
@@ -95,6 +96,7 @@ const ResultCell: React.FC<{ item: HistoryItem }> = ({ item }) => {
 
 export const HistoryPage: React.FC = () => {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { isAdmin } = useSalesRights();
 
   const [directionFilter, setDirectionFilter] = useState<'all' | 'import' | 'export'>('all');
@@ -112,6 +114,9 @@ export const HistoryPage: React.FC = () => {
 
   const allItems = unwrapList<HistoryItem>(rawData);
   const countOf = (id: 'all' | 'import' | 'export') => (id === 'all' ? allItems.length : allItems.filter((h) => h.kind === id).length);
+  const importCount = countOf('import');
+  const exportCount = countOf('export');
+  const rowsProcessed = allItems.reduce((n, h) => n + (h.rows ?? 0), 0);
   const filteredItems = allItems.filter((h) => directionFilter === 'all' || h.kind === directionFilter);
   const totalItems = filteredItems.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
@@ -180,11 +185,16 @@ export const HistoryPage: React.FC = () => {
   };
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 pb-16">
+    <div className="mx-auto w-full max-w-[1400px] space-y-5 pb-16">
       <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Import &amp; Export History</h1>
-          <p className="mt-0.5 text-sm text-slate-500">Your imports and exports, with the option to undo a recent import.</p>
+        <div className="flex min-w-0 items-center gap-3.5">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-600/25">
+            <History className="h-6 w-6" />
+          </span>
+          <div className="min-w-0">
+            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-[28px]">Import &amp; Export History</h1>
+            <p className="mt-0.5 text-sm text-slate-500">Your imports and exports, with the option to undo a recent import.</p>
+          </div>
         </div>
         <button
           type="button"
@@ -192,34 +202,66 @@ export const HistoryPage: React.FC = () => {
           disabled={isFetching}
           aria-label="Refresh"
           title="Refresh"
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-2xs transition hover:bg-slate-50 hover:text-slate-800 disabled:opacity-50"
+          className="flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-[13px] font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900 disabled:opacity-60"
         >
           <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+          <span className="hidden sm:inline">Refresh</span>
         </button>
       </div>
 
-      {/* Pill tabs with counts */}
-      <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1">
-        {TABS.map((tab) => {
-          const on = directionFilter === tab.id;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => {
-                setDirectionFilter(tab.id);
-                setPage(1);
-              }}
-              aria-pressed={on}
-              className={`inline-flex h-10 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition ${
-                on ? 'border-slate-900 bg-slate-900 text-white shadow-sm' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
-              }`}
-            >
-              {tab.label}
-              <span className={`rounded-full px-2 py-px text-xs ${on ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>{countOf(tab.id)}</span>
-            </button>
-          );
-        })}
+      {/* Summary */}
+      {!isLoading && !isError && allItems.length > 0 && (
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+          {[
+            { label: 'Operations', value: allItems.length, icon: History, tile: 'bg-slate-50 text-slate-600 ring-slate-100', bar: 'from-slate-400 to-slate-500' },
+            { label: 'Imports', value: importCount, icon: Upload, tile: 'bg-blue-50 text-blue-600 ring-blue-100', bar: 'from-blue-500 to-indigo-500' },
+            { label: 'Exports', value: exportCount, icon: Download, tile: 'bg-violet-50 text-violet-600 ring-violet-100', bar: 'from-violet-500 to-fuchsia-500' },
+            { label: 'Rows processed', value: rowsProcessed.toLocaleString(), icon: Layers, tile: 'bg-emerald-50 text-emerald-600 ring-emerald-100', bar: 'from-emerald-400 to-teal-400' },
+          ].map((c) => {
+            const Icon = c.icon;
+            return (
+              <div key={c.label} className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <span className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${c.bar}`} aria-hidden />
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">{c.label}</p>
+                    <p className="mt-2 text-3xl font-extrabold leading-none tracking-tight text-slate-900">{c.value}</p>
+                  </div>
+                  <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ring-1 ${c.tile}`}>
+                    <Icon className="h-5 w-5" />
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Tabs with counts */}
+      <div className="no-scrollbar -mx-1 overflow-x-auto px-1">
+        <div role="tablist" aria-label="Operation type" className="inline-flex gap-1 rounded-xl bg-slate-100 p-1">
+          {TABS.map((tab) => {
+            const on = directionFilter === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={on}
+                onClick={() => {
+                  setDirectionFilter(tab.id);
+                  setPage(1);
+                }}
+                className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 text-[13px] font-semibold transition ${
+                  on ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                {tab.label}
+                <span className={`rounded-full px-2 py-px text-[11px] font-bold ${on ? 'bg-blue-50 text-blue-700' : 'bg-white/70 text-slate-500'}`}>{countOf(tab.id)}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {isLoading ? (
@@ -234,7 +276,25 @@ export const HistoryPage: React.FC = () => {
           </button>
         </div>
       ) : items.length === 0 ? (
-        <EmptyState icon={History} title="No history recorded yet" description="Spreadsheet import jobs and list export operations will be logged here automatically." />
+        allItems.length > 0 ? (
+          <EmptyState
+            icon={History}
+            title={directionFilter === 'import' ? 'No imports yet' : 'No exports yet'}
+            description={directionFilter === 'import' ? 'Spreadsheet imports will be listed here once you run one.' : 'Exports from the company, lead and client lists will be listed here.'}
+            actionLabel="Show all operations"
+            onAction={() => setDirectionFilter('all')}
+          />
+        ) : (
+          <EmptyState
+            icon={History}
+            title="No history recorded yet"
+            description="Spreadsheet import jobs and list export operations will be logged here automatically."
+            actionLabel="Import companies"
+            onAction={() => navigate('/sales/import')}
+            secondaryActionLabel="Go to company database"
+            onSecondaryAction={() => navigate('/sales/companies')}
+          />
+        )
       ) : (
         <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
           {/* Desktop table */}
