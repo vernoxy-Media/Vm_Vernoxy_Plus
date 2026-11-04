@@ -115,6 +115,11 @@ export class CloudinaryStorageAdapter implements FileStoragePort {
     }
   }
 
+  getSignedUrlIfExists(key: string, ttlSeconds: number = 3600): string | null {
+    // Cloudinary serves what was uploaded to it; only the local fallback can be missing a file.
+    return this.isConfigured ? this.getSignedUrl(key, ttlSeconds) : this.localFallback.getSignedUrlIfExists(key, ttlSeconds);
+  }
+
   getSignedUrl(key: string, ttlSeconds: number = 3600): string {
     if (!this.isConfigured) {
       return this.localFallback.getSignedUrl(key, ttlSeconds);

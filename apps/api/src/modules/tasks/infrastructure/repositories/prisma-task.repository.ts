@@ -1415,7 +1415,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
     if (key.startsWith('http')) return key;
     if (this.fileStorage) {
       try {
-        return this.fileStorage.getSignedUrl(key);
+        return this.fileStorage.getSignedUrlIfExists(key);
       } catch {
         return key;
       }

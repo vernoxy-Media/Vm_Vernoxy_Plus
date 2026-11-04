@@ -1,14 +1,19 @@
+import type { Layers } from './CalendarRail';
 import React from 'react';
-import { Check, Send, Video, Users } from 'lucide-react';
-import type { CalendarMonthTaskItem, CalendarHolidayItem, CalendarEvent } from '../types';
+import { CalendarHeart, Check, Flag, PhoneCall, Plus, Send, StickyNote, Target, Video, Users, X } from 'lucide-react';
+import { followUpLabel, isFollowUp } from '../follow-up';
+import type { CalendarMonthTaskItem, CalendarHolidayItem, CalendarEvent, CalendarDueItem } from '../types';
 import type { LeaveCalendarItem } from '@/features/leave/hooks/use-leave';
 import type { DayRecord } from '../../attendance/types/attendance.types';
 import { CalendarStatusLegend } from './CalendarStatusLegend';
+import { WEEKDAY_LABELS, weekdayIndex } from '../date-utils';
 
 interface TaskMonthGridProps {
   currentMonth: Date;
   selectedDate: Date;
   onSelectDate: (date: Date) => void;
+  /** Clicking an empty part of a day (tablet and up) starts a new event on that day. */
+  onCreateOnDate?: (date: Date) => void;
   tasks: CalendarMonthTaskItem[];
   holidays: CalendarHolidayItem[];
   events: CalendarEvent[]; // for meetings, notes & reminders
@@ -18,12 +23,18 @@ interface TaskMonthGridProps {
   onSelectEvent?: (event: CalendarEvent) => void;
   onSelectTask?: (taskId: number) => void;
   displayMode?: 'attendance' | 'tasks' | 'leaves';
+  /** Tasks due and project deadlines, shown on their day when the Due dates layer is on. */
+  dueItems?: CalendarDueItem[];
+  onSelectProject?: (projectId: number) => void;
+  /** When given, each layer is shown or hidden on its own instead of following displayMode. */
+  layers?: Layers;
 }
 
 export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
   currentMonth,
   selectedDate,
   onSelectDate,
+  onCreateOnDate,
   tasks,
   holidays,
   events,
@@ -33,6 +44,9 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
   onSelectEvent,
   onSelectTask,
   displayMode = 'attendance',
+  layers,
+  dueItems = [],
+  onSelectProject,
 }) => {
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
@@ -40,8 +54,7 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
   const firstDayOfMonth = new Date(year, month, 1);
   const lastDayOfMonth = new Date(year, month + 1, 0);
 
-  // Monday start
-  const startDayOfWeek = (firstDayOfMonth.getDay() + 6) % 7;
+  const startDayOfWeek = weekdayIndex(firstDayOfMonth);
   const daysInMonth = lastDayOfMonth.getDate();
   const prevMonthLastDay = new Date(year, month, 0).getDate();
 
@@ -72,14 +85,60 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
   const todayStr = toLocalYMD(new Date());
+  const [openDay, setOpenDay] = React.useState<string | null>(null);
+
+  /** Everything on one day, for the "+N more" list. Follows the same calendar checkboxes as the cells. */
+  const agendaFor = (dateStr: string) => {
+    const meetings = layers ? layers.meetings : displayMode === 'tasks';
+    const followUps = layers ? layers.followups : displayMode === 'tasks';
+    const taskItems = layers ? layers.tasks : displayMode === 'tasks';
+    const due = layers ? layers.deadlines : false;
+    const sameDay = (iso: string) => toLocalYMD(new Date(iso)) === dateStr;
+    const clock = (iso: string) => new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    const rows: Array<{ key: string; when: string; sort: string; icon: React.ReactNode; tone: string; title: string; sub?: string; open?: () => void }> = [];
+
+    const holiday = holidays.find((h) => h.holiday_date === dateStr);
+    if (holiday) rows.push({ key: 'h', when: 'All day', sort: '0', icon: <CalendarHeart className="h-4 w-4" />, tone: 'bg-green-700 text-white', title: holiday.name, sub: holiday.type });
+    if (due) {
+      for (const d of dueItems.filter((x) => x.due_date === dateStr)) {
+        rows.push({
+          key: `d-${d.kind}-${d.id}`,
+          when: 'Due',
+          sort: d.kind === 'project' ? '0a' : '0b',
+          icon: d.kind === 'project' ? <Target className="h-4 w-4" /> : <Flag className="h-4 w-4" />,
+          tone: d.kind === 'project' ? 'bg-violet-600 text-white' : 'bg-violet-100 text-violet-700',
+          title: d.kind === 'project' ? `Deadline: ${d.title}` : d.title,
+          sub: d.kind === 'project' ? d.code : [d.code, d.project_name, d.priority].filter(Boolean).join(' · '),
+          open: () => (d.kind === 'project' ? onSelectProject?.(d.id) : onSelectTask?.(d.id)),
+        });
+      }
+    }
+    for (const e of events.filter((x) => sameDay(x.start_time))) {
+      const own = !currentUserId || e.organizer_id === currentUserId;
+      if (isFollowUp(e)) {
+        if (followUps) rows.push({ key: `e-${e.event_id}`, when: clock(e.start_time), sort: `1${e.start_time}`, icon: <PhoneCall className="h-4 w-4" />, tone: 'bg-rose-100 text-rose-700', title: followUpLabel(e.title), sub: 'Sales follow-up', open: () => onSelectEvent?.(e) });
+      } else if (e.event_type === 'meeting') {
+        if (meetings) rows.push({ key: `e-${e.event_id}`, when: e.is_all_day ? 'All day' : clock(e.start_time), sort: e.is_all_day ? '0c' : `1${e.start_time}`, icon: <Video className="h-4 w-4" />, tone: 'bg-blue-100 text-blue-700', title: e.title, sub: e.attendees.length ? `${e.attendees.length} guest${e.attendees.length > 1 ? 's' : ''}` : undefined, open: () => onSelectEvent?.(e) });
+      } else if (meetings && own && (e.event_type === 'appointment' || e.event_type === 'reminder' || (e.event_type === 'task_block' && !e.task_id))) {
+        rows.push({ key: `e-${e.event_id}`, when: clock(e.start_time), sort: `1${e.start_time}`, icon: <StickyNote className="h-4 w-4" />, tone: 'bg-amber-100 text-amber-700', title: e.title, sub: e.event_type === 'reminder' ? 'Reminder' : 'Note', open: () => onSelectEvent?.(e) });
+      }
+    }
+    if (taskItems) {
+      for (const t of tasks.filter((x) => x.submission_date === dateStr)) {
+        const submitted = t.stage === 'requested';
+        rows.push({ key: `t-${t.task_id}`, when: submitted ? 'Submitted' : 'Approved', sort: '2', icon: submitted ? <Send className="h-4 w-4" /> : <Check className="h-4 w-4" />, tone: submitted ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700', title: t.title, sub: [t.task_code, t.project_name].filter(Boolean).join(' · '), open: () => onSelectTask?.(t.task_id) });
+      }
+    }
+    return rows.sort((a, b) => a.sort.localeCompare(b.sort));
+  };
   const selectedStr = toLocalYMD(selectedDate);
 
   return (
-    <div className="flex flex-1 select-none flex-col overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm sm:rounded-3xl">
+    <div className="flex flex-1 select-none flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white">
       {/* Weekday headers */}
-      <div className="grid grid-cols-7 gap-1 border-b border-slate-100 bg-gradient-to-r from-slate-50 via-white to-slate-50 px-1.5 py-2 sm:gap-1.5 sm:px-3 sm:py-3">
-        {['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map((day, i) => (
-          <div key={day} className={`text-center text-[10px] font-bold tracking-wider sm:text-[11px] ${i >= 5 ? 'text-rose-400' : 'text-slate-500'}`}>
+      <div className="grid grid-cols-7 border-b border-slate-200 bg-white py-2">
+        {WEEKDAY_LABELS.map((day) => (
+          <div key={day} className={`text-center text-[10px] font-bold tracking-wider sm:text-[11px] text-slate-500`}>
             <span className="sm:hidden">{day[0]}</span>
             <span className="hidden sm:inline">{day}</span>
           </div>
@@ -87,7 +146,7 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
       </div>
 
       {/* Days */}
-      <div className="grid flex-1 auto-rows-fr grid-cols-7 gap-1 p-1.5 sm:gap-1.5 sm:p-3">
+      <div className="grid flex-1 auto-rows-fr grid-cols-7 gap-px bg-slate-200">
         {cells.map(({ date, isCurrentMonth }, idx) => {
           const dateStr = toLocalYMD(date);
           const isToday = dateStr === todayStr;
@@ -95,9 +154,12 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
 
           // Holiday on this day
           const dayHoliday = holidays.find((h) => h.holiday_date === dateStr);
-          const showAttendance = displayMode === 'attendance';
-          const showOperations = displayMode === 'tasks';
-          const showLeaves = displayMode === 'leaves';
+          const showAttendance = layers ? layers.attendance : displayMode === 'attendance';
+          const showMeetings = layers ? layers.meetings : displayMode === 'tasks';
+          const showTaskItems = layers ? layers.tasks : displayMode === 'tasks';
+          const showDue = layers ? layers.deadlines : false;
+          const showFollowUps = layers ? layers.followups : displayMode === 'tasks';
+          const showLeaves = layers ? layers.leaves : displayMode === 'leaves';
           const dayLeaves = leaves.filter((l) => {
             const fromStr = l.from_date.slice(0, 10);
             const toStr = l.to_date.slice(0, 10);
@@ -106,8 +168,16 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
 
           // Meetings scheduled or attended on this day
           const dayMeetings = events.filter(
-            (e) => e.event_type === 'meeting' && e.start_time.slice(0, 10) === dateStr
+            (e) => e.event_type === 'meeting' && toLocalYMD(new Date(e.start_time)) === dateStr
           );
+
+          // Tasks due and project deadlines on this day
+          const dayDue = showDue ? dueItems.filter((d) => d.due_date === dateStr) : [];
+
+          // Sales follow-ups booked for this day
+          const dayFollowUps = events
+            .filter((e) => isFollowUp(e) && toLocalYMD(new Date(e.start_time)) === dateStr)
+            .sort((a, b) => a.start_time.localeCompare(b.start_time));
 
           // Tasks submitted or approved on this day
           const dayTasks = tasks.filter((t) => t.submission_date === dateStr);
@@ -115,14 +185,15 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
           // Notes and reminders (private: only user's own notes/reminders)
           const dayNotes = events.filter(
             (e) =>
+              !isFollowUp(e) &&
               (e.event_type === 'appointment' || (e.event_type === 'task_block' && !e.task_id)) &&
-              e.start_time.slice(0, 10) === dateStr &&
+              toLocalYMD(new Date(e.start_time)) === dateStr &&
               (!currentUserId || e.organizer_id === currentUserId)
           );
           const dayReminders = events.filter(
             (e) =>
               e.event_type === 'reminder' &&
-              e.start_time.slice(0, 10) === dateStr &&
+              toLocalYMD(new Date(e.start_time)) === dateStr &&
               (!currentUserId || e.organizer_id === currentUserId)
           );
 
@@ -174,7 +245,10 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
             }
           }
 
-          const totalItems = dayMeetings.length + dayTasks.length;
+          const shownTasks = showTaskItems ? Math.min(dayTasks.length, Math.max(1, 3 - Math.min(dayMeetings.length, 2))) : 0;
+          const shownItems =
+            (showMeetings ? Math.min(2, dayMeetings.length) : 0) + (showFollowUps ? Math.min(2, dayFollowUps.length) : 0) + Math.min(2, dayDue.length) + shownTasks;
+          const totalItems = (showMeetings ? dayMeetings.length : 0) + (showFollowUps ? dayFollowUps.length : 0) + dayDue.length + (showTaskItems ? dayTasks.length : 0);
 
           const showLate = badge?.code === 'P' && isLate;
 
@@ -183,24 +257,29 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
               key={idx}
               role="button"
               tabIndex={0}
-              onClick={() => onSelectDate(date)}
+              onClick={() => (onCreateOnDate && window.innerWidth >= 640 ? onCreateOnDate(date) : onSelectDate(date))}
               onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelectDate(date)}
               aria-label={date.toDateString()}
-              className={`group relative flex min-h-[64px] cursor-pointer flex-col rounded-lg border p-1 transition-all duration-150 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 sm:min-h-[104px] sm:rounded-xl sm:p-2 ${
+              className={`group relative flex min-h-[64px] cursor-pointer flex-col p-1 transition-colors duration-150 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 sm:min-h-[110px] sm:p-1.5 ${
                 !isCurrentMonth
-                  ? 'border-transparent bg-slate-50/40 text-slate-300'
+                  ? 'bg-slate-50 text-slate-300'
                   : isSelected
-                    ? 'border-blue-400 bg-blue-50/60 shadow-md ring-2 ring-blue-500/25'
-                    : `${badge?.tint ?? (isWeekend ? 'bg-slate-50/70' : 'bg-white')} border-slate-200/70 hover:-translate-y-px hover:border-slate-300 hover:shadow-md`
+                    ? 'bg-blue-50/50 ring-1 ring-inset ring-blue-300'
+                    : 'bg-white hover:bg-slate-50'
               }`}
             >
               {/* Day number, holiday name and attendance status */}
-              <div className="flex flex-col items-start gap-0.5 sm:flex-row sm:items-start sm:justify-between sm:gap-1">
+              <div className="relative flex items-start justify-center">
                 <div className="flex min-w-0 items-center gap-1.5">
                   <span
-                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all sm:h-7 sm:w-7 sm:text-[13px] ${
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSelectDate(date);
+                    }}
+                    title="Open this day"
+                    className={`flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full px-1 text-xs font-medium transition-all hover:ring-4 hover:ring-slate-200 sm:h-7 sm:min-w-7 sm:text-[13px] ${
                       isToday
-                        ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md shadow-blue-500/40'
+                        ? 'bg-blue-600 text-white'
                         : isSelected
                           ? 'bg-blue-100 font-extrabold text-blue-800'
                           : isCurrentMonth
@@ -210,10 +289,10 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
                             : 'text-slate-300'
                     }`}
                   >
-                    {date.getDate()}
+                    {date.getDate() === 1 ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : date.getDate()}
                   </span>
 
-                  {showAttendance && isCurrentMonth && dayHoliday && (
+                  {showAttendance && !layers && isCurrentMonth && dayHoliday && (
                     <span
                       title={`${dayHoliday.name} (${dayHoliday.type})`}
                       className="hidden max-w-[88px] truncate rounded-full border border-purple-200 bg-purple-100 px-2 py-0.5 text-[10px] font-semibold text-purple-800 xl:inline"
@@ -238,28 +317,29 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
                   )}
                 </div>
 
-                <div className="flex items-center gap-1">
-                  {badge && (
-                    <span
-                      title={badge.title}
-                      className={`inline-flex h-[18px] min-w-[18px] items-center justify-center gap-1 rounded-full px-1 text-[9px] font-bold text-white shadow-sm sm:h-5 sm:px-2 sm:text-[10px] ${badge.chip}`}
-                    >
-                      {badge.code}
-                      <span className="hidden font-semibold 2xl:inline">{badge.label}</span>
-                    </span>
-                  )}
-                  {showLate && (
-                    <span title="Late mark" className="hidden rounded-full bg-orange-100 px-1.5 py-0.5 text-[9px] font-bold text-orange-700 sm:inline">
-                      LM
-                    </span>
-                  )}
-                  {showOperations && dayNotes.length > 0 && <span title={`${dayNotes.length} Note(s)`} className="hidden h-2 w-2 rounded-full bg-amber-400 sm:block" />}
-                  {showOperations && dayReminders.length > 0 && <span title={`${dayReminders.length} Reminder(s)`} className="hidden h-2 w-2 rounded-full bg-blue-500 sm:block" />}
+                <div className="absolute right-0 top-0 flex items-center gap-1">
+                  {showMeetings && dayNotes.length > 0 && <span title={`${dayNotes.length} Note(s)`} className="hidden h-2 w-2 rounded-full bg-amber-400 sm:block" />}
+                  {showMeetings && dayReminders.length > 0 && <span title={`${dayReminders.length} Reminder(s)`} className="hidden h-2 w-2 rounded-full bg-blue-500 sm:block" />}
                 </div>
               </div>
 
               {/* Meetings and tasks as chips (tablets and up) */}
               <div className="mt-1.5 hidden flex-1 space-y-1 overflow-hidden sm:block">
+                {badge && (
+                  <div title={badge.title} className="flex items-center gap-1.5 truncate text-[11px] text-slate-600">
+                    <span className={`h-2 w-2 shrink-0 rounded-full ${badge.chip}`} aria-hidden />
+                    <span className="truncate">
+                      <span className="font-semibold">{badge.code}</span>
+                      <span className="hidden lg:inline"> · {badge.label}</span>
+                      {showLate && <span className="text-orange-600"> · Late</span>}
+                    </span>
+                  </div>
+                )}
+                {layers && isCurrentMonth && dayHoliday && (
+                  <div title={`${dayHoliday.name} (${dayHoliday.type})`} className="truncate rounded-md bg-green-700 px-1.5 py-0.5 text-[11px] font-semibold text-white">
+                    {dayHoliday.name}
+                  </div>
+                )}
                 {/* Team leaves on this day */}
                 {showLeaves &&
                   dayLeaves.slice(0, 3).map((l, lIdx) => (
@@ -279,9 +359,9 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
                     </div>
                   ))}
                 {showLeaves && dayLeaves.length > 3 && <span className="block px-1 text-[9px] font-bold text-slate-500">+{dayLeaves.length - 3} more</span>}
-                {showOperations &&
+                {showMeetings &&
                   dayMeetings.slice(0, 2).map((meeting) => {
-                    const mTime = new Date(meeting.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                    const mTime = meeting.is_all_day ? '' : new Date(meeting.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
                     return (
                       <div
                         key={`m-${meeting.event_id}`}
@@ -301,7 +381,51 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
                     );
                   })}
 
-                {showOperations &&
+                {dayDue
+                  .sort((a, b) => (a.kind === b.kind ? 0 : a.kind === 'project' ? -1 : 1))
+                  .slice(0, 2)
+                  .map((d) => (
+                    <div
+                      key={`due-${d.kind}-${d.id}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (d.kind === 'task') onSelectTask?.(d.id);
+                        else onSelectProject?.(d.id);
+                      }}
+                      title={d.kind === 'project' ? `Project deadline: ${d.title} (${d.code})` : `Due: ${d.code} ${d.title}${d.project_name ? ` · ${d.project_name}` : ''} (${d.priority})`}
+                      className={`flex cursor-pointer items-center gap-1 truncate rounded-md border-l-[3px] px-1.5 py-0.5 text-[10px] font-semibold transition-colors ${
+                        d.kind === 'project' ? 'border-violet-700 bg-violet-600 text-white hover:bg-violet-700' : 'border-violet-500 bg-violet-50 text-violet-900 hover:bg-violet-100'
+                      }`}
+                    >
+                      {d.kind === 'project' ? <Target className="h-2.5 w-2.5 shrink-0" /> : <Flag className="h-2.5 w-2.5 shrink-0 text-violet-600" />}
+                      <span className="truncate">
+                        {d.kind === 'project' ? 'Deadline: ' : <span className="mr-0.5 font-mono text-[9px] opacity-70">{d.code}</span>}
+                        {d.title}
+                      </span>
+                    </div>
+                  ))}
+                {showFollowUps &&
+                  dayFollowUps.slice(0, 2).map((f) => {
+                    const t = new Date(f.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                    return (
+                      <div
+                        key={`f-${f.event_id}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSelectEvent?.(f);
+                        }}
+                        title={`Follow-up: ${followUpLabel(f.title)} (${t})`}
+                        className="flex cursor-pointer items-center gap-1 truncate rounded-md border-l-[3px] border-rose-500 bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold text-rose-900 transition-colors hover:bg-rose-100"
+                      >
+                        <PhoneCall className="h-2.5 w-2.5 shrink-0 text-rose-600" />
+                        <span className="truncate">
+                          <span className="mr-1 text-[9px] font-medium text-rose-700">{t}</span>
+                          {followUpLabel(f.title)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                {showTaskItems &&
                   dayTasks.slice(0, Math.max(1, 3 - Math.min(dayMeetings.length, 2))).map((task) => {
                     const isSubmitted = task.stage === 'requested';
                     return (
@@ -325,22 +449,31 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
                     );
                   })}
 
-                {showOperations && totalItems > 3 && <span className="block px-1 text-[10px] font-bold text-slate-500">+{totalItems - 3} more</span>}
+                {totalItems > shownItems && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOpenDay(dateStr);
+                    }}
+                    className="block rounded px-1 text-left text-[10px] font-bold text-slate-600 hover:bg-slate-200/70 hover:text-slate-900"
+                  >
+                    +{totalItems - shownItems} more
+                  </button>
+                )}
               </div>
 
               {/* On phones the same things are small coloured dots */}
-              {showOperations && (
-                <div className="mt-auto flex flex-wrap items-center gap-0.5 pt-1 sm:hidden">
-                  {dayMeetings.slice(0, 3).map((m) => (
-                    <span key={`dm-${m.event_id}`} className="h-1.5 w-1.5 rounded-full bg-blue-500" />
-                  ))}
-                  {dayTasks.slice(0, 3).map((t) => (
-                    <span key={`dt-${t.task_id}`} className={`h-1.5 w-1.5 rounded-full ${t.stage === 'requested' ? 'bg-amber-500' : 'bg-emerald-500'}`} />
-                  ))}
-                  {dayNotes.length > 0 && <span className="h-1.5 w-1.5 rounded-full bg-amber-300" />}
-                  {dayReminders.length > 0 && <span className="h-1.5 w-1.5 rounded-full bg-indigo-400" />}
-                </div>
-              )}
+              <div className="mt-auto flex flex-wrap items-center gap-0.5 pt-1 sm:hidden">
+                {badge && <span className={`h-1.5 w-1.5 rounded-full ${badge.chip}`} />}
+                {dayDue.slice(0, 3).map((d) => <span key={`dd-${d.kind}-${d.id}`} className="h-1.5 w-1.5 rounded-full bg-violet-600" />)}
+                {layers && isCurrentMonth && dayHoliday && <span className="h-1.5 w-1.5 rounded-full bg-green-700" />}
+                {showMeetings && dayMeetings.slice(0, 3).map((m) => <span key={`dm-${m.event_id}`} className="h-1.5 w-1.5 rounded-full bg-blue-500" />)}
+                {showFollowUps && dayFollowUps.slice(0, 3).map((f) => <span key={`df-${f.event_id}`} className="h-1.5 w-1.5 rounded-full bg-rose-500" />)}
+                {showTaskItems && dayTasks.slice(0, 3).map((t) => <span key={`dt-${t.task_id}`} className={`h-1.5 w-1.5 rounded-full ${t.stage === 'requested' ? 'bg-amber-500' : 'bg-emerald-500'}`} />)}
+                {showMeetings && dayNotes.length > 0 && <span className="h-1.5 w-1.5 rounded-full bg-amber-300" />}
+                {showMeetings && dayReminders.length > 0 && <span className="h-1.5 w-1.5 rounded-full bg-indigo-400" />}
+              </div>
             </div>
           );
         })}
@@ -350,6 +483,64 @@ export const TaskMonthGrid: React.FC<TaskMonthGridProps> = ({
       <div className="border-t border-slate-100 bg-slate-50/60 p-2 sm:p-3">
         <CalendarStatusLegend mode={displayMode} />
       </div>
+
+      {openDay && (() => {
+        const day = new Date(`${openDay}T00:00:00`);
+        const rows = agendaFor(openDay);
+        return (
+          <div className="msg-fade fixed inset-0 z-[70] flex items-end justify-center bg-slate-900/30 sm:items-center sm:p-4" onMouseDown={(e) => e.target === e.currentTarget && setOpenDay(null)}>
+            <div role="dialog" aria-modal="true" aria-label={day.toDateString()} className="msg-modal flex max-h-[85dvh] w-full flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl ring-1 ring-black/5 sm:max-w-sm sm:rounded-3xl">
+              <div className="flex items-start justify-between gap-3 px-5 pb-2 pt-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{day.toLocaleDateString('en-US', { weekday: 'long' })}</p>
+                  <p className="text-2xl font-normal text-slate-900">{day.toLocaleDateString('en-US', { day: 'numeric', month: 'long' })}</p>
+                </div>
+                <button type="button" aria-label="Close" onClick={() => setOpenDay(null)} className="rounded-full p-2 text-slate-500 hover:bg-slate-100">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 pb-2">
+                {rows.length === 0 && <li className="px-2 py-6 text-center text-sm text-slate-500">Nothing on this day.</li>}
+                {rows.map((r) => (
+                  <li key={r.key}>
+                    <button
+                      type="button"
+                      disabled={!r.open}
+                      onClick={() => {
+                        setOpenDay(null);
+                        r.open?.();
+                      }}
+                      className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition hover:bg-slate-50 disabled:cursor-default disabled:hover:bg-transparent"
+                    >
+                      <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${r.tone}`}>{r.icon}</span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-medium text-slate-900">{r.title}</span>
+                        {r.sub && <span className="block truncate text-xs text-slate-500">{r.sub}</span>}
+                      </span>
+                      <span className="shrink-0 text-xs font-medium text-slate-500">{r.when}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {onCreateOnDate && (
+                <div className="border-t border-slate-100 p-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const d = day;
+                      setOpenDay(null);
+                      onCreateOnDate(d);
+                    }}
+                    className="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-slate-300 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                  >
+                    <Plus className="h-4 w-4 text-blue-600" /> Create event on this day
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };

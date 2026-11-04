@@ -10,3 +10,9 @@ export class RespondRsvpDto {
   @IsEnum(['accepted', 'declined', 'tentative'])
   response_status!: CalendarRsvpStatus;
 }
+
+export class MeetingReminderDto {
+  @ApiProperty({ enum: ['before', 'start'], example: 'before' })
+  @IsEnum(['before', 'start'])
+  kind!: 'before' | 'start';
+}

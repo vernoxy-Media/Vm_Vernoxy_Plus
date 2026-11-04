@@ -164,6 +164,11 @@ function mapApiDashboardToUiModel(apiData: any): AttendanceDashboardResponse {
   };
 }
 
+function currentMonthKey(): string {
+  const n = new Date();
+  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`;
+}
+
 export function useAttendanceDashboard(month: string) {
   return useQuery<AttendanceDashboardResponse>({
     queryKey: [ATTENDANCE_QUERY_KEY, month],
@@ -171,6 +176,8 @@ export function useAttendanceDashboard(month: string) {
       const res = await attendanceControllerGetDashboard({ month });
       return mapApiDashboardToUiModel(res);
     },
+    // The API refuses months that have not started yet, so do not ask for them.
+    enabled: month <= currentMonthKey(),
     staleTime: 60 * 1000,
     gcTime: 5 * 60 * 1000,
     refetchInterval: 60 * 1000,

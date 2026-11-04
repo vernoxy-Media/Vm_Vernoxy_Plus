@@ -1,4 +1,5 @@
 import { Injectable, Inject } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../../core/prisma/prisma.service';
 import {
   CalendarAttendeeEntity,
@@ -15,7 +16,10 @@ import {
   CalendarRepositoryPort,
   CalendarSummaryQuery,
   CalendarSummaryResult,
+  CalendarDueItem,
+  CalendarDueQuery,
   CreateCalendarEventRepoInput,
+  MeetingConflictQuery,
   RespondRsvpRepoInput,
   UpdateCalendarEventRepoInput,
 } from '../../domain/ports/calendar.repository.port';
@@ -65,6 +69,120 @@ export class PrismaCalendarRepository implements CalendarRepositoryPort {
       created_at: e.created_at.toISOString(),
       row_version: e.row_version,
     };
+  }
+
+  async getDueItems(q: CalendarDueQuery): Promise<CalendarDueItem[]> {
+    const range = { gte: new Date(q.start_date), lte: new Date(q.end_date) };
+
+    const taskWhere: any = {
+      deleted_at: null,
+      stage: { in: ['assigned', 'in_progress', 'hold'] },
+      due_date: range,
+    };
+    if (!q.is_admin) {
+      taskWhere.OR = [
+        { task_assignees: { some: { employee_id: q.requesting_emp_id, deleted_at: null } } },
+        { created_by: q.requesting_emp_id },
+      ];
+    } else if (q.employee_ids?.length) {
+      taskWhere.task_assignees = { some: { employee_id: { in: q.employee_ids }, deleted_at: null } };
+    }
+
+    const projectWhere: any = {
+      deleted_at: null,
+      project_status: { in: ['new', 'planning', 'in_progress', 'pending', 'review', 'on_hold'] },
+      deadline: range,
+    };
+    if (!q.is_admin) {
+      projectWhere.OR = [
+        { project_manager_id: q.requesting_emp_id },
+        { project_members: { some: { employee_id: q.requesting_emp_id, deleted_at: null } } },
+      ];
+    }
+
+    const [tasks, projects] = await Promise.all([
+      this.prisma.tasks.findMany({
+        where: taskWhere,
+        select: { task_id: true, task_code: true, title: true, priority: true, stage: true, due_date: true, project_id: true },
+        orderBy: [{ due_date: 'asc' }, { task_id: 'asc' }],
+        take: 500,
+      }),
+      this.prisma.projects.findMany({
+        where: projectWhere,
+        select: { project_id: true, project_no: true, project_name: true, deadline: true, project_status: true },
+        orderBy: [{ deadline: 'asc' }, { project_id: 'asc' }],
+        take: 200,
+      }),
+    ]);
+
+    const projectIds = [...new Set(tasks.map((t) => t.project_id).filter((id): id is number => id != null))];
+    const names = projectIds.length
+      ? new Map((await this.prisma.projects.findMany({ where: { project_id: { in: projectIds } }, select: { project_id: true, project_name: true } })).map((p) => [p.project_id, p.project_name]))
+      : new Map<number, string>();
+
+    return [
+      ...projects.map((p) => ({
+        kind: 'project' as const,
+        id: p.project_id,
+        code: p.project_no,
+        title: p.project_name,
+        due_date: p.deadline.toISOString().slice(0, 10),
+        status: String(p.project_status),
+      })),
+      ...tasks.map((t) => ({
+        kind: 'task' as const,
+        id: t.task_id,
+        code: t.task_code,
+        title: t.title,
+        due_date: (t.due_date as Date).toISOString().slice(0, 10),
+        priority: String(t.priority),
+        stage: String(t.stage),
+        project_name: t.project_id != null ? (names.get(t.project_id) ?? null) : null,
+      })),
+    ];
+  }
+
+  async claimMeetingReminder(eventId: number, empId: number, kind: 'before' | 'start') {
+    const rows = await this.prisma.$queryRaw<Array<{ title: string; start_time: Date; meeting_link: string | null }>>`
+      WITH ev AS (
+        SELECT e.event_id, e.title, e.start_time, e.meeting_link
+        FROM calendar_events e
+        WHERE e.event_id = ${eventId} AND e.deleted_at IS NULL AND e.event_type = 'meeting'
+          AND e.status <> 'cancelled' AND e.is_all_day = false
+          AND (e.organizer_id = ${empId} OR EXISTS (
+            SELECT 1 FROM calendar_event_attendees a
+            WHERE a.event_id = e.event_id AND a.employee_id = ${empId} AND a.deleted_at IS NULL AND a.response_status <> 'declined'))
+      ), ins AS (
+        INSERT INTO calendar_event_reminders (event_id, emp_id, kind)
+        SELECT event_id, ${empId}, ${kind} FROM ev
+        ON CONFLICT DO NOTHING
+        RETURNING 1
+      )
+      SELECT ev.title, ev.start_time, ev.meeting_link FROM ev WHERE EXISTS (SELECT 1 FROM ins)`;
+    return rows[0] ?? null;
+  }
+
+  async findMeetingConflicts(q: MeetingConflictQuery) {
+    const ids = [...new Set(q.employee_ids)];
+    if (ids.length === 0) return [];
+    return this.prisma.$queryRaw<
+      Array<{ employee_id: number; employee_name: string; event_id: number; title: string; start_time: Date; end_time: Date }>
+    >`
+      SELECT p.emp_id AS employee_id, e.name AS employee_name, ev.event_id, ev.title, ev.start_time, ev.end_time
+      FROM calendar_events ev
+      JOIN LATERAL (
+        SELECT ev.organizer_id AS emp_id
+        UNION
+        SELECT a.employee_id FROM calendar_event_attendees a
+        WHERE a.event_id = ev.event_id AND a.deleted_at IS NULL AND a.response_status <> 'declined'
+      ) p ON true
+      JOIN employees e ON e.emp_id = p.emp_id
+      WHERE ev.deleted_at IS NULL
+        AND ev.event_type = 'meeting' AND ev.is_all_day = false AND ev.status <> 'cancelled'
+        AND p.emp_id IN (${Prisma.join(ids)})
+        AND ev.start_time < ${q.end} AND ev.end_time > ${q.start}
+        AND (${q.exclude_event_id ?? null}::int IS NULL OR ev.event_id <> ${q.exclude_event_id ?? null}::int)
+      ORDER BY ev.start_time, e.name`;
   }
 
   async getEvents(query: CalendarEventsQuery): Promise<CalendarEventEntity[]> {

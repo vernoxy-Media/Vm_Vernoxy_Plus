@@ -119,3 +119,16 @@ export interface CalendarSummaryParams {
   project_id?: number;
 }
 
+
+/** A task that is due (not done yet) or a project deadline, on one day. */
+export interface CalendarDueItem {
+  kind: 'task' | 'project';
+  id: number;
+  code: string;
+  title: string;
+  due_date: string; // YYYY-MM-DD
+  priority?: string;
+  stage?: string;
+  project_name?: string | null;
+  status?: string;
+}

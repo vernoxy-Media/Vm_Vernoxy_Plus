@@ -18,3 +18,27 @@ export class InvalidEventTimeError extends Error {
     this.name = 'InvalidEventTimeError';
   }
 }
+
+export class InvalidMeetingLinkError extends Error {
+  constructor(message = 'Use a Google Meet link, like https://meet.google.com/abc-defg-hij') {
+    super(message);
+    this.name = 'InvalidMeetingLinkError';
+  }
+}
+
+export interface MeetingConflict {
+  employee_id: number;
+  employee_name: string;
+  event_id: number;
+  title: string;
+  start_time: Date;
+  end_time: Date;
+}
+
+/** Someone invited to a meeting is already in another meeting at that time. */
+export class CalendarConflictError extends Error {
+  constructor(public readonly conflicts: MeetingConflict[]) {
+    super('Someone is already booked in another meeting at this time.');
+    this.name = 'CalendarConflictError';
+  }
+}

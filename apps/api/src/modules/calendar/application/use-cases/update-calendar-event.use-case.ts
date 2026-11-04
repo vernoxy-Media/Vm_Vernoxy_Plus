@@ -2,8 +2,11 @@ import { CalendarEventEntity } from '../../domain/entities/calendar-event.entity
 import {
   CalendarEventNotFoundError,
   CalendarPermissionDeniedError,
+  CalendarConflictError,
   InvalidEventTimeError,
+  InvalidMeetingLinkError,
 } from '../../domain/errors/calendar.errors';
+import { normaliseMeetLink } from '../../domain/meeting-link';
 import { CalendarRepositoryPort } from '../../domain/ports/calendar.repository.port';
 
 export interface UpdateCalendarEventUseCaseInput {
@@ -58,6 +61,27 @@ export class UpdateCalendarEventUseCase {
       throw new InvalidEventTimeError('Event end time must be after start time');
     }
 
+    // Only when the time, the guests or the all-day flag change: a title edit never fails on an old overlap.
+    const reschedules = input.start_time !== undefined || input.end_time !== undefined || input.attendee_ids !== undefined || input.is_all_day !== undefined;
+    const isTimedMeeting = existing.event_type === 'meeting' && !(input.is_all_day ?? existing.is_all_day);
+    if (reschedules && isTimedMeeting && (input.status ?? existing.status) !== 'cancelled') {
+      const guests = input.attendee_ids ?? existing.attendees.map((a) => a.employee_id);
+      const conflicts = await this.calendarRepo.findMeetingConflicts({
+        employee_ids: [existing.organizer_id, ...guests],
+        start: effectiveStart,
+        end: effectiveEnd,
+        exclude_event_id: input.event_id,
+      });
+      if (conflicts.length > 0) throw new CalendarConflictError(conflicts);
+    }
+
+    let meetingLink: string | null | undefined;
+    if (input.meeting_link !== undefined) {
+      const rawLink = input.meeting_link?.trim();
+      meetingLink = rawLink ? normaliseMeetLink(rawLink) : null;
+      if (rawLink && !meetingLink) throw new InvalidMeetingLinkError();
+    }
+
     return this.calendarRepo.updateEvent({
       event_id: input.event_id,
       actor_id: input.actor_id,
@@ -67,7 +91,7 @@ export class UpdateCalendarEventUseCase {
       end_time: endDate,
       is_all_day: input.is_all_day,
       location: input.location !== undefined ? (input.location?.trim() ?? null) : undefined,
-      meeting_link: input.meeting_link !== undefined ? (input.meeting_link?.trim() ?? null) : undefined,
+      meeting_link: meetingLink,
       status: input.status,
       attendee_ids: input.attendee_ids,
     });

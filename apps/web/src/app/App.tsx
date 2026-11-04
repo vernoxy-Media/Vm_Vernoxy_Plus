@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/features/auth/context/AuthContext';
 import { SocketProvider } from '@/shared/socket/SocketContext';
+import { MessengerProvider } from '@/features/messenger/MessengerContext';
+import { MeetingReminders } from '@/features/calendar/components/MeetingReminders';
 import { ProtectedRoute } from '@/features/auth/components/ProtectedRoute';
 import { AdminRoute } from '@/features/auth/components/AdminRoute';
 import { LoginPage } from '@/features/auth/pages/LoginPage';
@@ -37,6 +39,7 @@ import { CompanyDetailPage } from '@/features/companies/pages/CompanyDetailPage'
 import { CompanyImportPage } from '@/features/companies/pages/CompanyImportPage';
 import { AttendancePage } from '@/features/attendance/pages/AttendancePage';
 import { CalendarPage } from '@/features/calendar/pages/CalendarPage';
+import { MessengerPage } from '@/features/messenger/pages/MessengerPage';
 import { PerformancePage } from '@/features/performance/pages/PerformancePage';
 import { ProjectsPage } from '@/features/projects/pages/ProjectsPage';
 import { MyTasksPage } from '@/features/tasks/pages/MyTasksPage';
@@ -46,6 +49,8 @@ import { AppLayout } from '@/shared/layouts/AppLayout';
 // Sales CRM Feature imports
 import { SalesRoute } from '@/features/sales/components/common/SalesRoute';
 import { CompaniesListPage as SalesCompaniesListPage } from '@/features/sales/pages/CompaniesListPage';
+import { ClientsListPage as SalesClientsListPage } from '@/features/sales/pages/ClientsListPage';
+import { SalesReportsPage } from '@/features/sales/pages/SalesReportsPage';
 import { CompanyFormPage as SalesCompanyFormPage } from '@/features/sales/pages/CompanyFormPage';
 import { CompanyDetailPage as SalesCompanyDetailPage } from '@/features/sales/pages/CompanyDetailPage';
 import { LeadsListPage } from '@/features/sales/pages/LeadsListPage';
@@ -72,6 +77,8 @@ export const App: React.FC = () => {
       <AuthProvider>
         <SocketProvider>
           <BrowserRouter>
+            <MessengerProvider>
+            <MeetingReminders />
             <Routes>
               {/* Public Routes */}
               <Route path="/login" element={<LoginPage />} />
@@ -232,6 +239,19 @@ export const App: React.FC = () => {
                   </ProtectedRoute>
                 }
               />
+              {['/messenger', '/messenger/:conversationId'].map((path) => (
+                <Route
+                  key={path}
+                  path={path}
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout fluid>
+                        <MessengerPage />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+              ))}
               <Route
                 path="/performance"
                 element={
@@ -573,7 +593,17 @@ export const App: React.FC = () => {
                 element={
                   <SalesRoute>
                     <AppLayout fluid>
-                      <SalesCompaniesListPage />
+                      <SalesCompaniesListPage key="companies" />
+                    </AppLayout>
+                  </SalesRoute>
+                }
+              />
+              <Route
+                path="/sales/clients"
+                element={
+                  <SalesRoute>
+                    <AppLayout fluid>
+                      <SalesClientsListPage />
                     </AppLayout>
                   </SalesRoute>
                 }
@@ -659,6 +689,16 @@ export const App: React.FC = () => {
                 }
               />
               <Route
+                path="/sales/reports"
+                element={
+                  <SalesRoute>
+                    <AppLayout fluid>
+                      <SalesReportsPage />
+                    </AppLayout>
+                  </SalesRoute>
+                }
+              />
+              <Route
                 path="/sales/rights"
                 element={
                   <SalesRoute requireAdmin>
@@ -683,6 +723,7 @@ export const App: React.FC = () => {
               <Route path="/404" element={<NotFoundPage />} />
               <Route path="*" element={<Navigate to="/404" replace />} />
             </Routes>
+            </MessengerProvider>
           </BrowserRouter>
         </SocketProvider>
       </AuthProvider>

@@ -192,3 +192,21 @@ export function formatMinutes(minutes?: number | null): string {
   return `${mins}m`;
 }
 
+
+/** First day of the week everywhere in the calendar: 0 = Sunday (like Google Calendar), 1 = Monday. */
+export const WEEK_START: 0 | 1 = 0;
+
+const DAY_NAMES = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+export const WEEKDAY_LABELS = [...DAY_NAMES.slice(WEEK_START), ...DAY_NAMES.slice(0, WEEK_START)];
+
+/** 0 for the first day of the week, 6 for the last. */
+export function weekdayIndex(d: Date): number {
+  return (d.getDay() - WEEK_START + 7) % 7;
+}
+
+/** The first day of the week containing d, at midnight. */
+export function startOfWeek(d: Date): Date {
+  const out = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  out.setDate(out.getDate() - weekdayIndex(out));
+  return out;
+}

@@ -1,5 +1,6 @@
 import { CalendarEventEntity, CalendarEventType } from '../../domain/entities/calendar-event.entity';
-import { InvalidEventTimeError } from '../../domain/errors/calendar.errors';
+import { CalendarConflictError, InvalidEventTimeError, InvalidMeetingLinkError } from '../../domain/errors/calendar.errors';
+import { normaliseMeetLink } from '../../domain/meeting-link';
 import { CalendarRepositoryPort } from '../../domain/ports/calendar.repository.port';
 
 export interface CreateCalendarEventUseCaseInput {
@@ -31,6 +32,20 @@ export class CreateCalendarEventUseCase {
       throw new InvalidEventTimeError('Event end time must be after start time');
     }
 
+    const rawLink = input.meeting_link?.trim();
+    const meetingLink = rawLink ? normaliseMeetLink(rawLink) : null;
+    if (rawLink && !meetingLink) throw new InvalidMeetingLinkError();
+
+    // One person cannot be in two timed meetings at once.
+    if (input.event_type === 'meeting' && !input.is_all_day) {
+      const conflicts = await this.calendarRepo.findMeetingConflicts({
+        employee_ids: [input.organizer_id, ...(input.attendee_ids ?? [])],
+        start: startDate,
+        end: endDate,
+      });
+      if (conflicts.length > 0) throw new CalendarConflictError(conflicts);
+    }
+
     return this.calendarRepo.createEvent({
       event_type: input.event_type,
       title: input.title.trim(),
@@ -39,7 +54,7 @@ export class CreateCalendarEventUseCase {
       end_time: endDate,
       is_all_day: input.is_all_day ?? false,
       location: input.location?.trim() ?? null,
-      meeting_link: input.meeting_link?.trim() ?? null,
+      meeting_link: meetingLink,
       task_id: input.task_id ?? null,
       organizer_id: input.organizer_id,
       attendee_ids: input.attendee_ids ?? [],

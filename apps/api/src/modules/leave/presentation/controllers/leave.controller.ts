@@ -176,6 +176,13 @@ export class LeaveController {
   // Employee: My Leave & Application Flow
   // ---------------------------------------------------------------------------
 
+  @Get('calendar')
+  @ApiOperation({ summary: 'Team leave calendar: approved leaves in a month' })
+  async getLeaveCalendar(@Query('month') month?: string, @Query('department_id') departmentId?: string) {
+    const dep = departmentId ? Number(departmentId) : undefined;
+    return this.leaveService.getLeaveCalendar(month, Number.isInteger(dep) ? dep : undefined);
+  }
+
   @Get('my')
   @ApiOperation({ summary: 'Get current employee balances, policy and recent requests' })
   async getMyLeave(@Req() req: any, @Query('year') year?: string) {

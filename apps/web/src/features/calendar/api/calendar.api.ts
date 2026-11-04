@@ -1,5 +1,6 @@
 import { customFetch } from '@vernoxy-pulse/api-client';
 import type {
+  CalendarDueItem,
   CalendarEvent,
   CalendarHolidayItem,
   CalendarMonthTaskItem,
@@ -140,3 +141,23 @@ export async function fetchCalendarHolidays(start: string, end: string): Promise
   }
 }
 
+
+export async function sendMeetingReminder(
+  eventId: number,
+  kind: 'before' | 'start',
+): Promise<{ created: boolean }> {
+  return customFetch<{ created: boolean }>(`${BASE_URL}/events/${eventId}/reminder`, {
+    method: 'POST',
+    body: JSON.stringify({ kind }),
+  });
+}
+
+export async function fetchCalendarDue(start: string, end: string, employeeIds?: number[]): Promise<CalendarDueItem[]> {
+  try {
+    const params = new URLSearchParams({ start, end });
+    if (employeeIds?.length) params.set('employee_ids', employeeIds.join(','));
+    return await customFetch<CalendarDueItem[]>(`${BASE_URL}/due?${params.toString()}`);
+  } catch {
+    return [];
+  }
+}

@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useRef, useState, useMemo, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ChevronLeft,
@@ -39,6 +39,13 @@ import { DateDetailSidebar } from '../components/DateDetailSidebar';
 import { DailyTimeGrid } from '../components/DailyTimeGrid';
 import { WeeklyTimeGrid } from '../components/WeeklyTimeGrid';
 import { EventModal } from '../components/EventModal';
+import { CalendarRail, type Layers } from '../components/CalendarRail';
+import { isFollowUp } from '../follow-up';
+import { ReminderPermissionBanner } from '../components/MeetingReminders';
+import { CalendarSearch } from '../components/CalendarSearch';
+import { startOfWeek } from '../date-utils';
+import { BarChart3 as SummaryIcon, ChevronDown as ChevronDownIcon, MoreVertical, Search as SearchIcon } from 'lucide-react';
+import { EventDraft, QuickCreatePopover } from '../components/QuickCreatePopover';
 import { EventDetailModal } from '../components/EventDetailModal';
 import { TaskDrawer } from '../../tasks/components/TaskDrawer';
 import { QuickTaskModal } from '../../tasks/components/QuickTaskModal';
@@ -52,6 +59,7 @@ import {
   fetchCalendarEvents,
   fetchCalendarHolidays,
   fetchCalendarMonthTasks,
+  fetchCalendarDue,
   fetchCalendarSummary,
   fetchAssignableEmployees,
   fetchUnscheduledTasks,
@@ -60,14 +68,28 @@ import {
   respondCalendarRsvp,
 } from '../api/calendar.api';
 
+const LAYERS_KEY = 'calendar-layers';
+const DEFAULT_LAYERS: Layers = { meetings: true, followups: true, tasks: true, deadlines: true, attendance: false, leaves: false, holidays: true };
+
+/** Which calendars were switched on last time; anything unknown falls back to the defaults. */
+function loadLayers(): Layers {
+  try {
+    const saved = JSON.parse(localStorage.getItem(LAYERS_KEY) ?? '{}');
+    return Object.fromEntries(Object.entries(DEFAULT_LAYERS).map(([k, v]) => [k, typeof saved[k] === 'boolean' ? saved[k] : v])) as unknown as Layers;
+  } catch {
+    return DEFAULT_LAYERS;
+  }
+}
+
 export const CalendarPage: React.FC = () => {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const isAdmin = user?.role?.role_name?.toLowerCase().includes('admin') ?? false;
 
   // View Mode: Month | Week | Day | List (HRMS Attendance Spec)
   const [viewMode, setViewMode] = useState<'month' | 'week' | 'day' | 'list'>('month');
-  const [kpiMode, setKpiMode] = useState<'attendance' | 'tasks' | 'leaves'>('attendance');
+  const [kpiMode, setKpiMode] = useState<'attendance' | 'tasks' | 'leaves'>('tasks');
 
   // Current viewing date (determines month, week, or day)
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
@@ -93,6 +115,38 @@ export const CalendarPage: React.FC = () => {
 
   // Meeting / Event modals state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isQuickOpen, setIsQuickOpen] = useState(false);
+  const [quickAllDay, setQuickAllDay] = useState(false);
+  const [railOpen, setRailOpen] = useState(false);
+  const [layers, setLayers] = useState<Layers>(loadLayers);
+  const [showSummary, setShowSummary] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  // "/" opens the search, like in Google Calendar, unless the person is typing somewhere.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      const typing = el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable);
+      if (e.key === '/' && !typing && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem(LAYERS_KEY, JSON.stringify(layers));
+    } catch {
+      /* private mode: the choice just is not remembered */
+    }
+  }, [layers]);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const swipe = useRef<{ x: number; y: number } | null>(null);
+  const [viewMenuOpen, setViewMenuOpen] = useState(false);
+  const showHolidays = layers.holidays;
+  const monthKey = currentDate.getFullYear() * 100 + currentDate.getMonth();
+  const [moreDraft, setMoreDraft] = useState<EventDraft | undefined>();
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [slotDate, setSlotDate] = useState<string | undefined>();
   const [slotTime, setSlotTime] = useState<string | undefined>();
@@ -135,11 +189,7 @@ export const CalendarPage: React.FC = () => {
         monthStr: monthString,
       };
     } else if (viewMode === 'week') {
-      const d = new Date(currentDate);
-      const day = d.getDay();
-      const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday start
-      const start = new Date(d.setDate(diff));
-      start.setHours(0, 0, 0, 0);
+      const start = startOfWeek(currentDate);
 
       const end = new Date(start);
       end.setDate(start.getDate() + 6);
@@ -235,6 +285,13 @@ export const CalendarPage: React.FC = () => {
         task_type_id: filters.taskTypeId === 'all' ? undefined : filters.taskTypeId,
         priority: filters.priority === 'all' ? undefined : filters.priority,
       }),
+  });
+
+  // Tasks that are due (not done yet) and project deadlines
+  const { data: dueItems = [] } = useQuery({
+    queryKey: ['calendar-due', queryStart, queryEnd, filters.selectedEmployeeIds],
+    queryFn: () => fetchCalendarDue(queryStart, queryEnd, filters.selectedEmployeeIds),
+    enabled: layers.deadlines,
   });
 
   // Holidays from company_holidays table
@@ -335,7 +392,9 @@ export const CalendarPage: React.FC = () => {
     setSlotDate(dateString);
     setSlotTime(timeString);
     setPreselectedTaskId(null);
-    setIsCreateModalOpen(true);
+    setMoreDraft(undefined);
+    setQuickAllDay(false);
+    setIsQuickOpen(true);
   };
 
   // Reset filters
@@ -393,9 +452,15 @@ export const CalendarPage: React.FC = () => {
     return [...events, ...syntheticEvents];
   }, [events, tasks]);
 
+  /** Week and day grids: meetings and task blocks follow their own calendar checkboxes. */
+  const visibleTimedEvents = useMemo(
+    () => mergedEvents.filter((e) => (isFollowUp(e) ? layers.followups : e.event_type === 'task_block' ? layers.tasks : layers.meetings)),
+    [mergedEvents, layers.meetings, layers.followups, layers.tasks],
+  );
+
   // Day's scheduled meetings and approved/submitted tasks for week/day views
   const scheduledItemsForActiveDay = useMemo(() => {
-    if (kpiMode !== 'tasks') return [];
+    if (!layers.meetings && !layers.tasks && !layers.followups) return [];
     return mergedEvents.filter((e) => {
       const eDate = toLocalYMD(new Date(e.start_time));
       if (eDate !== activeDateYMD) return false;
@@ -404,12 +469,13 @@ export const CalendarPage: React.FC = () => {
       }
       return true;
     });
-  }, [mergedEvents, activeDateYMD, kpiMode]);
+  }, [mergedEvents, activeDateYMD, layers.meetings, layers.tasks, layers.followups]);
 
   // Meeting creation & RSVP handlers
   const handleCreateMeeting = async (payload: CreateCalendarEventPayload) => {
     await createCalendarEvent(payload);
     setIsCreateModalOpen(false);
+    setIsQuickOpen(false);
     queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
   };
 
@@ -547,169 +613,234 @@ export const CalendarPage: React.FC = () => {
   ].filter(Boolean).length;
 
   return (
-    <div className="flex min-h-screen flex-col space-y-3 bg-gradient-to-b from-slate-50 via-slate-50 to-blue-50/30 p-3 sm:space-y-4 sm:p-6">
-      {/* Header: title, month navigator and the main actions */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm sm:rounded-3xl">
-        <div className="h-1 bg-gradient-to-r from-blue-500 via-violet-500 to-fuchsia-500" aria-hidden="true" />
+    <div className="flex min-h-screen bg-gradient-to-b from-slate-50 via-slate-50 to-blue-50/30 lg:gap-4 lg:p-6">
+      <CalendarRail
+        open={railOpen}
+        onClose={() => setRailOpen(false)}
+        onCreate={() => {
+          setSlotDate(undefined);
+          setSlotTime(undefined);
+          setMoreDraft(undefined);
+          setQuickAllDay(false);
+          setIsQuickOpen(true);
+        }}
+        onCreateTask={() => (isAdmin ? setIsTaskFormOpen(true) : setIsQuickTaskOpen(true))}
+        onCreateHoliday={
+          isAdmin
+            ? () => {
+                setSlotDate(toLocalYMD(selectedDate));
+                setIsAddHolidayOpen(true);
+              }
+            : undefined
+        }
+        currentDate={currentDate}
+        selectedDate={selectedDate}
+        onPick={(d) => {
+          setCurrentDate(d);
+          setSelectedDate(d);
+        }}
+        layers={layers}
+        onToggleLayer={(k) => setLayers((l) => ({ ...l, [k]: !l[k] }))}
+        onOnlyLayer={(k) => setLayers({ meetings: false, followups: false, tasks: false, deadlines: false, attendance: false, leaves: false, holidays: false, [k]: true })}
+        onShowAll={() => setLayers({ meetings: true, followups: true, tasks: true, deadlines: true, attendance: true, leaves: true, holidays: true })}
+      />
+      <div className="flex min-w-0 flex-1 flex-col space-y-3 p-3 pb-24 sm:space-y-4 sm:p-6 sm:pb-6 lg:p-0">
+      {/* Toolbar, Google-Calendar style. Phones: title and arrows on one line, the rest below. */}
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
+        <button type="button" onClick={() => setRailOpen(true)} aria-label="Open calendars" className="order-1 -ml-1 rounded-full p-2 text-slate-600 hover:bg-slate-100 sm:order-1 lg:hidden">
+          <CalendarDays className="h-5 w-5" />
+        </button>
+        <h1 className="order-2 min-w-0 flex-1 truncate text-xl font-normal text-slate-800 sm:order-4 sm:text-[22px]">
+          <span className="sm:hidden">{viewMode === 'month' ? currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : titleRange}</span>
+          <span className="hidden sm:inline">{titleRange}</span>
+        </h1>
+        <div className="order-3 flex items-center sm:order-3">
+          <button onClick={handlePrev} title="Previous" aria-label="Previous" className="rounded-full p-2 text-slate-600 transition hover:bg-slate-100 active:bg-slate-200">
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <button onClick={handleNext} title="Next" aria-label="Next" className="rounded-full p-2 text-slate-600 transition hover:bg-slate-100 active:bg-slate-200">
+            <ChevronRight className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="order-4 basis-full sm:hidden" aria-hidden />
+        <button onClick={handleToday} className="order-5 h-9 rounded-full border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50 active:bg-slate-100 sm:order-2 sm:h-10 sm:px-5">
+          Today
+        </button>
 
-        <div className="flex flex-col gap-3 p-3 sm:gap-4 sm:p-4">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-violet-600 text-white shadow-lg shadow-blue-500/30">
-                <CalendarIcon className="h-5 w-5" />
-              </div>
-              <div className="min-w-0">
-                <h1 className="text-lg font-extrabold leading-tight tracking-tight text-slate-900 sm:text-xl">Calendar</h1>
-                <p className="truncate text-xs font-medium text-slate-500">{titleRange}</p>
-              </div>
-            </div>
-
-            <div className="flex shrink-0 items-center gap-2">
-              {isAdmin && (
-                <button
-                  onClick={() => {
-                    setSlotDate(toLocalYMD(selectedDate));
-                    setIsAddHolidayOpen(true);
-                  }}
-                  className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-600 px-3 text-sm font-semibold text-white shadow-md shadow-purple-500/25 transition hover:brightness-110 active:scale-[0.98] sm:px-4"
-                  aria-label="Add holiday"
-                >
-                  <CalendarHeart className="h-4 w-4" />
-                  <span className="hidden sm:inline">Add Holiday</span>
-                </button>
-              )}
-              <button
-                onClick={() => (isAdmin ? setIsTaskFormOpen(true) : setIsQuickTaskOpen(true))}
-                className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-3 text-sm font-semibold text-white shadow-md shadow-blue-500/25 transition hover:brightness-110 active:scale-[0.98] sm:px-4"
-              >
-                <Plus className="h-4 w-4" />
-                <span>{isAdmin ? 'Add Task' : 'Quick Task'}</span>
-              </button>
-            </div>
+        <div className="order-6 ml-auto flex items-center gap-2 sm:order-5">
+          <button
+            type="button"
+            onClick={() => setSearchOpen(true)}
+            aria-label="Search calendar"
+            title="Search (/)"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-50 active:bg-slate-100 sm:h-10 sm:w-10"
+          >
+            <SearchIcon className="h-4 w-4" />
+          </button>
+          {/* On phones the extra actions live in one menu */}
+          <div className="relative sm:hidden">
+            <button
+              onClick={() => setMoreOpen((v) => !v)}
+              aria-haspopup="menu"
+              aria-expanded={moreOpen}
+              aria-label="More actions"
+              className="relative flex h-9 w-9 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-700 active:bg-slate-100"
+            >
+              <MoreVertical className="h-4 w-4" />
+              {activeFilterCount > 0 && <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-blue-600 ring-2 ring-white" />}
+            </button>
+            {moreOpen && (
+              <>
+                <div className="fixed inset-0 z-30" onMouseDown={() => setMoreOpen(false)} aria-hidden />
+                <div role="menu" className="absolute right-0 z-40 mt-1 w-52 overflow-hidden rounded-2xl border border-slate-200 bg-white py-1.5 shadow-xl">
+                  {[
+                    { label: isAdmin ? 'Add task' : 'Quick task', icon: Plus, run: () => (isAdmin ? setIsTaskFormOpen(true) : setIsQuickTaskOpen(true)) },
+                    ...(isAdmin ? [{ label: 'Add holiday', icon: CalendarHeart, run: () => { setSlotDate(toLocalYMD(selectedDate)); setIsAddHolidayOpen(true); } }] : []),
+                    ...(layers.tasks || layers.leaves ? [{ label: activeFilterCount ? `Filters (${activeFilterCount})` : 'Filters', icon: SlidersHorizontal, run: () => setIsFiltersOpen(!isFiltersOpen) }] : []),
+                    { label: showSummary ? 'Hide summary' : 'Summary', icon: SummaryIcon, run: () => setShowSummary((v) => !v) },
+                  ].map((m) => (
+                    <button key={m.label} role="menuitem" onClick={() => { setMoreOpen(false); m.run(); }} className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-slate-800 active:bg-slate-100">
+                      <m.icon className="h-4 w-4 text-slate-500" />
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
-          <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
-            {/* Month | Week | Day | List */}
-            <div role="tablist" aria-label="Calendar view" className="grid grid-cols-4 gap-1 rounded-2xl bg-slate-100 p-1 lg:inline-grid lg:w-auto">
+          <div className="hidden items-center gap-2 sm:flex">
+          {isAdmin && (
+            <button
+              onClick={() => {
+                setSlotDate(toLocalYMD(selectedDate));
+                setIsAddHolidayOpen(true);
+              }}
+              className="inline-flex h-10 items-center gap-2 rounded-full border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:px-4"
+              aria-label="Add holiday"
+            >
+              <CalendarHeart className="h-4 w-4 text-green-700" />
+              <span className="hidden sm:inline">Add holiday</span>
+            </button>
+          )}
+          <button
+            onClick={() => (isAdmin ? setIsTaskFormOpen(true) : setIsQuickTaskOpen(true))}
+            className="inline-flex h-10 items-center gap-2 rounded-full border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:px-4"
+          >
+            <Plus className="h-4 w-4 text-amber-500" />
+            <span className="hidden sm:inline">{isAdmin ? 'Add task' : 'Quick task'}</span>
+          </button>
+          {(layers.tasks || layers.leaves) && (
+            <button
+              onClick={() => setIsFiltersOpen(!isFiltersOpen)}
+              aria-label="Filters"
+              className={`relative inline-flex h-10 items-center gap-2 rounded-full border px-3 text-sm font-medium transition sm:px-4 ${
+                isFiltersOpen ? 'border-blue-300 bg-blue-50 text-blue-700' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              <span className="hidden sm:inline">Filters</span>
+              {activeFilterCount > 0 && <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] font-bold text-white">{activeFilterCount}</span>}
+            </button>
+          )}
+          <button
+            onClick={() => setShowSummary((v) => !v)}
+            aria-pressed={showSummary}
+            aria-label="Summary"
+            className={`inline-flex h-10 items-center gap-2 rounded-full border px-3 text-sm font-medium transition sm:px-4 ${
+              showSummary ? 'border-blue-300 bg-blue-50 text-blue-700' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+            }`}
+          >
+            <SummaryIcon className="h-4 w-4" />
+            <span className="hidden sm:inline">Summary</span>
+          </button>
+
+          </div>
+
+          {/* View: Month | Week | Day | List */}
+          <div className="relative">
+            <button
+              onClick={() => setViewMenuOpen((v) => !v)}
+              aria-haspopup="menu"
+              aria-expanded={viewMenuOpen}
+              className="inline-flex h-9 items-center gap-2 rounded-full border border-slate-300 bg-white pl-4 pr-3 text-sm font-medium capitalize text-slate-700 transition hover:bg-slate-50 active:bg-slate-100 sm:h-10"
+            >
+              {viewMode}
+              <ChevronDownIcon className="h-4 w-4 text-slate-500" />
+            </button>
+            {viewMenuOpen && (
+              <>
+                <div className="fixed inset-0 z-30" onMouseDown={() => setViewMenuOpen(false)} aria-hidden />
+                <div role="menu" className="absolute right-0 z-40 mt-1 w-44 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-xl">
+                  {([
+                    ['month', 'Month', LayoutGrid],
+                    ['week', 'Week', CalendarRange],
+                    ['day', 'Day', CalendarDays],
+                    ['list', 'List', ListIcon],
+                  ] as const).map(([mode, label, Icon]) => (
+                    <button
+                      key={mode}
+                      role="menuitemradio"
+                      aria-checked={viewMode === mode}
+                      onClick={() => {
+                        setViewMode(mode);
+                        setViewMenuOpen(false);
+                      }}
+                      className={`flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm hover:bg-slate-50 ${viewMode === mode ? 'font-semibold text-blue-700' : 'text-slate-700'}`}
+                    >
+                      <Icon className="h-4 w-4" />
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <ReminderPermissionBanner />
+
+      {/* Summary cards, on request */}
+      {showSummary && (
+        <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-3 sm:p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div role="tablist" aria-label="Summary of" className="grid grid-cols-3 gap-1 rounded-full bg-slate-100 p-1 sm:inline-grid sm:w-auto">
               {([
-                ['month', 'Month', LayoutGrid],
-                ['week', 'Week', CalendarRange],
-                ['day', 'Day', CalendarDays],
-                ['list', 'List', ListIcon],
+                ['attendance', 'Attendance', UserCheck],
+                ['tasks', 'Tasks', ListChecks],
+                ['leaves', 'Leaves', Users],
               ] as const).map(([mode, label, Icon]) => (
                 <button
                   key={mode}
                   role="tab"
-                  aria-selected={viewMode === mode}
-                  onClick={() => setViewMode(mode)}
-                  title={mode === 'list' ? 'Attendance List View' : label}
-                  className={`flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-xl px-3 text-[13px] font-semibold transition-all ${
-                    viewMode === mode ? 'bg-white text-blue-700 shadow-sm ring-1 ring-blue-100' : 'text-slate-500 hover:text-slate-800'
+                  aria-selected={kpiMode === mode}
+                  onClick={() => setKpiMode(mode)}
+                  className={`flex h-8 items-center justify-center gap-1.5 rounded-full px-4 text-[13px] font-semibold transition ${
+                    kpiMode === mode ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
                   <Icon className="h-4 w-4" />
-                  <span>{label}</span>
+                  {label}
                 </button>
               ))}
             </div>
-
-            <div className="flex items-center gap-2">
-              <div className="flex min-w-0 flex-1 items-center justify-between rounded-2xl bg-slate-100 p-1 lg:flex-none">
-                <button onClick={handlePrev} title="Previous" aria-label="Previous" className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl text-slate-600 transition hover:bg-white hover:shadow-sm">
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                <span className="min-w-0 flex-1 select-none truncate px-3 text-center text-sm font-bold text-slate-800 lg:min-w-[10.5rem] lg:flex-none">{titleRange}</span>
-                <button onClick={handleNext} title="Next" aria-label="Next" className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl text-slate-600 transition hover:bg-white hover:shadow-sm">
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </div>
-
-              <button onClick={handleToday} className="h-11 shrink-0 cursor-pointer rounded-2xl border border-blue-200 bg-blue-50 px-4 text-sm font-semibold text-blue-700 transition hover:bg-blue-100">
-                Today
-              </button>
-
-              {kpiMode === 'tasks' && (
-                <button
-                  onClick={() => setIsFiltersOpen(!isFiltersOpen)}
-                  aria-label="Filters"
-                  className={`relative flex h-11 shrink-0 cursor-pointer items-center gap-2 rounded-2xl border px-3.5 text-sm font-semibold transition ${
-                    isFiltersOpen ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  <SlidersHorizontal className="h-4 w-4" />
-                  <span className="hidden sm:inline">Filters</span>
-                  {activeFilterCount > 0 && <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] font-bold text-white">{activeFilterCount}</span>}
-                </button>
-              )}
-            </div>
+            <Link to="/leave?tab=calendar" className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-blue-600" title="Open the full Leave Management hub">
+              Leave Hub
+              <ExternalLink className="h-3.5 w-3.5" />
+            </Link>
           </div>
+          {kpiMode === 'attendance' ? (
+            <AttendanceMonthSummaryTiles records={attendanceDashboard?.records || []} />
+          ) : kpiMode === 'leaves' ? (
+            <CalendarKpiCards leaves={leaves} kpiMode="leaves" isLoading={isLeavesLoading} contextLabel={titleRange} selectedDate={selectedDate} />
+          ) : (
+            <CalendarKpiCards summary={activeSummary} isLoading={isKpiLoading} contextLabel={kpiContextLabel} />
+          )}
         </div>
-      </div>
+      )}
 
-      {/* Attendance | Operations switch and the summary cards */}
-      <div className="space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-        <div role="tablist" aria-label="Calendar data" className="grid grid-cols-3 gap-1 rounded-2xl bg-slate-100 p-1 sm:inline-grid sm:w-auto">
-          <button
-            role="tab"
-            aria-selected={kpiMode === 'attendance'}
-            onClick={() => setKpiMode('attendance')}
-            className={`flex h-9 cursor-pointer items-center justify-center gap-2 rounded-xl px-4 text-[13px] font-semibold transition-all ${
-              kpiMode === 'attendance' ? 'bg-gradient-to-r from-teal-500 to-emerald-500 text-white shadow-md shadow-teal-500/25' : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <UserCheck className="h-4 w-4" />
-            Attendance
-          </button>
-          <button
-            role="tab"
-            aria-selected={kpiMode === 'tasks'}
-            onClick={() => setKpiMode('tasks')}
-            className={`flex h-9 cursor-pointer items-center justify-center gap-2 rounded-xl px-4 text-[13px] font-semibold transition-all ${
-              kpiMode === 'tasks' ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md shadow-blue-500/25' : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <ListChecks className="h-4 w-4" />
-            Operations &amp; Tasks
-          </button>
-          <button
-            role="tab"
-            aria-selected={kpiMode === 'leaves'}
-            onClick={() => setKpiMode('leaves')}
-            className={`flex h-9 cursor-pointer items-center justify-center gap-2 rounded-xl px-4 text-[13px] font-semibold transition-all ${
-              kpiMode === 'leaves' ? 'bg-gradient-to-r from-indigo-500 to-violet-500 text-white shadow-md shadow-indigo-500/25' : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <Users className="h-4 w-4" />
-            Leaves
-          </button>
-        </div>
-        <Link
-          to="/leave?tab=calendar"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 transition-colors hover:text-blue-600"
-          title="Open the full Leave Management hub"
-        >
-          Leave Hub
-          <ExternalLink className="h-3.5 w-3.5" />
-        </Link>
-        </div>
-
-        {kpiMode === 'attendance' ? (
-          <AttendanceMonthSummaryTiles records={attendanceDashboard?.records || []} />
-        ) : kpiMode === 'leaves' ? (
-          <CalendarKpiCards
-            leaves={leaves}
-            kpiMode="leaves"
-            isLoading={isLeavesLoading}
-            contextLabel={titleRange}
-            selectedDate={selectedDate}
-          />
-        ) : (
-          <CalendarKpiCards summary={activeSummary} isLoading={isKpiLoading} contextLabel={kpiContextLabel} />
-        )}
-      </div>
-
-      {(kpiMode === 'tasks' || kpiMode === 'leaves') && (
+      {(layers.tasks || layers.leaves) && (
         <CalendarFilterBar
           filters={filters}
           onChange={setFilters}
@@ -723,15 +854,68 @@ export const CalendarPage: React.FC = () => {
         />
       )}
 
+      {searchOpen && (
+        <CalendarSearch
+          layers={layers}
+          onClose={() => setSearchOpen(false)}
+          onOpenEvent={(ev) => setSelectedEvent(ev)}
+          onOpenTask={(id) => setSelectedTaskId(id)}
+          onOpenProject={(id) => navigate(`/projects/${id}`)}
+          onGoToDate={(d) => {
+            setCurrentDate(d);
+            setSelectedDate(d);
+          }}
+        />
+      )}
+
+      {/* Create, on screens where the rail is tucked away */}
+      <button
+        type="button"
+        onClick={() => {
+          setSlotDate(undefined);
+          setSlotTime(undefined);
+          setMoreDraft(undefined);
+          setQuickAllDay(false);
+          setIsQuickOpen(true);
+        }}
+        aria-label="Create event"
+        className="fixed bottom-5 right-5 z-30 flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-blue-600 shadow-[0_2px_6px_rgba(60,64,67,.3),0_6px_12px_4px_rgba(60,64,67,.15)] transition hover:bg-slate-50 lg:hidden"
+      >
+        <Plus className="h-7 w-7" strokeWidth={2.5} />
+      </button>
+
       {/* MONTH VIEW: Calendar Grid */}
       {viewMode === 'month' && (
-        <div className="flex-1 flex flex-col">
+        <div
+          key={monthKey}
+          className="cal-fade flex flex-1 touch-pan-y flex-col"
+          onTouchStart={(e) => {
+            swipe.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+          }}
+          onTouchEnd={(e) => {
+            const start = swipe.current;
+            swipe.current = null;
+            if (!start) return;
+            const dx = e.changedTouches[0].clientX - start.x;
+            const dy = e.changedTouches[0].clientY - start.y;
+            if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.5) (dx < 0 ? handleNext : handlePrev)();
+          }}
+        >
           <TaskMonthGrid
             currentMonth={currentDate}
             selectedDate={selectedDate}
             onSelectDate={handleSelectDate}
+            onCreateOnDate={(d) => {
+              setSelectedDate(d);
+              setSlotDate(toLocalYMD(d));
+              setSlotTime(undefined);
+              setPreselectedTaskId(null);
+              setMoreDraft(undefined);
+              setQuickAllDay(true);
+              setIsQuickOpen(true);
+            }}
             tasks={tasks}
-            holidays={holidays}
+            holidays={showHolidays ? holidays : []}
             events={events}
             leaves={leaves}
             attendanceRecords={attendanceRecordsMap}
@@ -739,6 +923,9 @@ export const CalendarPage: React.FC = () => {
             onSelectEvent={(ev) => setSelectedEvent(ev)}
             onSelectTask={(taskId) => setSelectedTaskId(taskId)}
             displayMode={kpiMode}
+            layers={layers}
+            dueItems={dueItems}
+            onSelectProject={(id) => navigate(`/projects/${id}`)}
           />
         </div>
       )}
@@ -848,10 +1035,10 @@ export const CalendarPage: React.FC = () => {
             {viewMode === 'week' ? (
               <WeeklyTimeGrid
                 currentDate={currentDate}
-                events={kpiMode === 'tasks' ? mergedEvents : []}
-                holidays={kpiMode === 'attendance' ? formattedHolidays : []}
+                events={visibleTimedEvents}
+                holidays={showHolidays ? formattedHolidays : []}
                 leaves={leaves}
-                attendanceRecords={kpiMode === 'attendance' ? attendanceRecordsMap : {}}
+                attendanceRecords={layers.attendance ? attendanceRecordsMap : {}}
                 onSelectEvent={(ev) => setSelectedEvent(ev)}
                 onSlotClick={handleSlotClick}
                 onDayClick={(d) => {
@@ -863,17 +1050,17 @@ export const CalendarPage: React.FC = () => {
             ) : (
               <DailyTimeGrid
                 currentDate={currentDate}
-                events={kpiMode === 'tasks' ? mergedEvents : []}
-                holidays={kpiMode === 'attendance' ? formattedHolidays : []}
+                events={visibleTimedEvents}
+                holidays={showHolidays ? formattedHolidays : []}
                 leaves={leaves}
-                attendanceRecords={kpiMode === 'attendance' ? attendanceRecordsMap : {}}
+                attendanceRecords={layers.attendance ? attendanceRecordsMap : {}}
                 onSelectEvent={(ev) => setSelectedEvent(ev)}
                 onSlotClick={handleSlotClick}
               />
             )}
           </div>
 
-          {kpiMode === 'tasks' && (
+          {(layers.meetings || layers.tasks || layers.followups) && (
           <div className="w-80 bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex flex-col space-y-3 shrink-0">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
@@ -1041,6 +1228,27 @@ export const CalendarPage: React.FC = () => {
         onDeleteReminder={handleDeleteReminder}
       />
 
+      {/* Google-style quick add */}
+      {isQuickOpen && (
+        <QuickCreatePopover
+          defaultDate={slotDate}
+          defaultStartTime={slotTime}
+          allDay={quickAllDay}
+          onTask={() => {
+            setIsQuickOpen(false);
+            if (isAdmin) setIsTaskFormOpen(true);
+            else setIsQuickTaskOpen(true);
+          }}
+          onClose={() => setIsQuickOpen(false)}
+          onSave={handleCreateMeeting}
+          onMoreOptions={(d) => {
+            setMoreDraft(d);
+            setIsQuickOpen(false);
+            setIsCreateModalOpen(true);
+          }}
+        />
+      )}
+
       {/* Meeting Creation Modal */}
       {isCreateModalOpen && (
         <EventModal
@@ -1051,6 +1259,7 @@ export const CalendarPage: React.FC = () => {
           defaultStartTime={slotTime}
           unscheduledTasks={unscheduledTasks}
           preselectedTaskId={preselectedTaskId}
+          draft={moreDraft}
         />
       )}
 
@@ -1123,6 +1332,7 @@ export const CalendarPage: React.FC = () => {
           defaultDate={toLocalYMD(selectedDate)}
         />
       )}
+      </div>
     </div>
   );
 };

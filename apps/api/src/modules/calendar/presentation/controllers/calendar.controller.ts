@@ -19,6 +19,7 @@ import { JwtAuthGuard } from '../../../auth/public-api';
 import { CreateCalendarEventUseCase } from '../../application/use-cases/create-calendar-event.use-case';
 import { DeleteCalendarEventUseCase } from '../../application/use-cases/delete-calendar-event.use-case';
 import { GetCalendarEventsUseCase } from '../../application/use-cases/get-calendar-events.use-case';
+import { GetCalendarDueItemsUseCase } from '../../application/use-cases/get-calendar-due-items.use-case';
 import { GetCalendarHolidaysUseCase } from '../../application/use-cases/get-calendar-holidays.use-case';
 import { GetCalendarMonthTasksUseCase } from '../../application/use-cases/get-calendar-month-tasks.use-case';
 import { GetCalendarSummaryUseCase } from '../../application/use-cases/get-calendar-summary.use-case';
@@ -32,8 +33,10 @@ import {
   UnscheduledTaskDto,
 } from '../dto/calendar-event.dto';
 import { CreateCalendarEventDto } from '../dto/create-calendar-event.dto';
-import { RespondRsvpDto } from '../dto/rsvp.dto';
+import { MeetingReminderDto, RespondRsvpDto } from '../dto/rsvp.dto';
 import { UpdateCalendarEventDto } from '../dto/update-calendar-event.dto';
+
+import { SendMeetingReminderUseCase, MeetingReminderResult } from '../../application/use-cases/send-meeting-reminder.use-case';
 
 @ApiTags('Calendar')
 @ApiBearerAuth()
@@ -50,6 +53,8 @@ export class CalendarController {
     private readonly getCalendarMonthTasksUseCase: GetCalendarMonthTasksUseCase,
     private readonly getCalendarSummaryUseCase: GetCalendarSummaryUseCase,
     private readonly getCalendarHolidaysUseCase: GetCalendarHolidaysUseCase,
+    private readonly sendMeetingReminderUseCase: SendMeetingReminderUseCase,
+    private readonly getCalendarDueItemsUseCase: GetCalendarDueItemsUseCase,
   ) {}
 
   @Get('events')
@@ -136,6 +141,21 @@ export class CalendarController {
     }
   }
 
+  @Post('events/:id/reminder')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'A meeting is about to start: records the reminder once for this person and puts it in their bell' })
+  async meetingReminder(
+    @Req() req: Request,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: MeetingReminderDto,
+  ): Promise<MeetingReminderResult> {
+    try {
+      return await this.sendMeetingReminderUseCase.execute({ event_id: id, employee_id: req.user!.emp_id, kind: dto.kind });
+    } catch (err) {
+      throw mapCalendarErrorToHttp(err);
+    }
+  }
+
   @Post('events/:id/rsvp')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Respond to a meeting invitation (accept, decline, tentative)' })
@@ -199,6 +219,32 @@ export class CalendarController {
         stage,
         task_type_id: isNaN(taskTypeId as number) ? undefined : taskTypeId,
         priority,
+        is_admin: isAdmin,
+        requesting_emp_id: user.emp_id,
+      });
+    } catch (err) {
+      throw mapCalendarErrorToHttp(err);
+    }
+  }
+
+  @Get('due')
+  @ApiOperation({ summary: 'Tasks that are due (not done yet) and project deadlines in a date range' })
+  async getDue(
+    @Req() req: Request,
+    @Query('start') start: string,
+    @Query('end') end: string,
+    @Query('employee_ids') employeeIdsStr?: string,
+  ) {
+    try {
+      const user = req.user!;
+      const isAdmin = user.role_name?.toLowerCase().includes('admin') ?? false;
+      const employeeIds = employeeIdsStr
+        ? employeeIdsStr.split(',').map((id) => parseInt(id.trim(), 10)).filter((n) => !isNaN(n))
+        : undefined;
+      return await this.getCalendarDueItemsUseCase.execute({
+        start_date: start,
+        end_date: end,
+        employee_ids: employeeIds,
         is_admin: isAdmin,
         requesting_emp_id: user.emp_id,
       });

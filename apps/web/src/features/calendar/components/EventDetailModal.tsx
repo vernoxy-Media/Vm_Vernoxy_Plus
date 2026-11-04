@@ -14,6 +14,7 @@ import {
   MapPin,
 } from 'lucide-react';
 import type { CalendarEvent } from '../types';
+import { buildInviteText, meetingProvider } from '../meeting';
 import { useAuth } from '@/features/auth/context/AuthContext';
 
 interface EventDetailModalProps {
@@ -32,7 +33,6 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
   onRsvp,
 }) => {
   const { user } = useAuth();
-  const [copied, setCopied] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [rsvpLoading, setRsvpLoading] = useState(false);
 
@@ -65,12 +65,24 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
     hour12: true,
   })}`;
 
-  const copyMeetLink = () => {
-    if (event.meeting_link) {
-      navigator.clipboard.writeText(event.meeting_link);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
+  const [copiedInfo, setCopiedInfo] = useState(false);
+  const copyInvite = () => {
+    void navigator.clipboard
+      .writeText(
+        buildInviteText({
+          title: event.title,
+          start: new Date(event.start_time),
+          end: new Date(event.end_time),
+          link: event.meeting_link,
+          location: event.location,
+          description: event.description,
+          guests: event.attendees.map((a) => a.name),
+        }),
+      )
+      .then(() => {
+        setCopiedInfo(true);
+        setTimeout(() => setCopiedInfo(false), 2000);
+      });
   };
 
   const handleDelete = async () => {
@@ -165,18 +177,18 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
                   <Video className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs font-bold text-blue-900">Google Meet Video Call</p>
+                  <p className="text-xs font-bold text-blue-900">{meetingProvider(event.meeting_link)}</p>
                   <p className="text-[11px] text-blue-600 truncate">{event.meeting_link}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   type="button"
-                  onClick={copyMeetLink}
-                  title="Copy link"
+                  onClick={copyInvite}
+                  title="Copy joining info"
                   className="p-2 rounded-xl bg-white text-blue-600 hover:bg-blue-100 transition-colors border border-blue-200"
                 >
-                  {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copiedInfo ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                 </button>
                 <a
                   href={event.meeting_link}
@@ -190,6 +202,15 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
               </div>
             </div>
           )}
+
+          <button
+            type="button"
+            onClick={copyInvite}
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-50"
+          >
+            {copiedInfo ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+            {copiedInfo ? 'Copied' : 'Copy invite details'}
+          </button>
 
           {/* Location */}
           {event.location && (

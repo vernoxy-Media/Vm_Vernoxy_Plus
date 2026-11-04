@@ -15,6 +15,9 @@ import type {
 } from '../types';
 import { fetchAssignableEmployees, AssignableEmployee } from '../api/calendar.api';
 import { getLocalToday } from '../date-utils';
+import { MeetLinkField } from './MeetLinkField';
+import { describeSaveError } from '../meeting';
+import type { EventDraft } from './QuickCreatePopover';
 
 interface EventModalProps {
   isOpen: boolean;
@@ -24,6 +27,8 @@ interface EventModalProps {
   defaultStartTime?: string; // HH:mm
   unscheduledTasks: UnscheduledTask[];
   preselectedTaskId?: number | null;
+  /** Values carried over from the quick-create popover. */
+  draft?: EventDraft;
 }
 
 export const EventModal: React.FC<EventModalProps> = ({
@@ -34,6 +39,7 @@ export const EventModal: React.FC<EventModalProps> = ({
   defaultStartTime,
   unscheduledTasks,
   preselectedTaskId,
+  draft,
 }) => {
   const [eventType, setEventType] = useState<CalendarEventType>(
     preselectedTaskId ? 'task_block' : 'meeting'
@@ -70,9 +76,19 @@ export const EventModal: React.FC<EventModalProps> = ({
       } else {
         setEventType('meeting');
       }
+      if (draft) {
+        setTitle(draft.title);
+        setDate(draft.date);
+        setStartTime(draft.start);
+        setEndTime(draft.end);
+        setMeetingLink(draft.link);
+        setLocation(draft.location);
+        setDescription(draft.description);
+        setSelectedAttendees(draft.guestIds);
+      }
       fetchAssignableEmployees().then(setEmployees);
     }
-  }, [isOpen, defaultDate, defaultStartTime, preselectedTaskId, unscheduledTasks]);
+  }, [isOpen, draft, defaultDate, defaultStartTime, preselectedTaskId, unscheduledTasks]);
 
   // Handle task selection change
   const handleTaskSelect = (tIdStr: string) => {
@@ -86,13 +102,6 @@ export const EventModal: React.FC<EventModalProps> = ({
     if (task) {
       setTitle(`[${task.task_code}] ${task.title}`);
     }
-  };
-
-  const generateGoogleMeetLink = () => {
-    const chars = 'abcdefghijklmnopqrstuvwxyz';
-    const randPart = (len: number) =>
-      Array.from({ length: len }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-    setMeetingLink(`https://meet.google.com/${randPart(3)}-${randPart(4)}-${randPart(3)}`);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -126,7 +135,7 @@ export const EventModal: React.FC<EventModalProps> = ({
       });
       onClose();
     } catch (err: any) {
-      setError(err?.message || 'Failed to create calendar event');
+      setError(describeSaveError(err, 'Failed to create calendar event'));
     } finally {
       setIsSubmitting(false);
     }
@@ -164,7 +173,7 @@ export const EventModal: React.FC<EventModalProps> = ({
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
           {error && (
-            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-medium text-rose-700">
+            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-medium text-rose-700 whitespace-pre-line">
               {error}
             </div>
           )}
@@ -280,26 +289,11 @@ export const EventModal: React.FC<EventModalProps> = ({
           {/* Google Meet / Video Link */}
           {eventType === 'meeting' && (
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-bold text-slate-700 flex items-center gap-1">
-                  <Video className="w-3.5 h-3.5 text-blue-500" />
-                  Video Meeting Link
-                </label>
-                <button
-                  type="button"
-                  onClick={generateGoogleMeetLink}
-                  className="text-[11px] font-bold text-blue-600 hover:text-blue-700 hover:underline"
-                >
-                  + Generate Google Meet link
-                </button>
-              </div>
-              <input
-                type="url"
-                value={meetingLink}
-                onChange={(e) => setMeetingLink(e.target.value)}
-                placeholder="https://meet.google.com/abc-defg-hij"
-                className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
-              />
+              <label className="mb-1.5 flex items-center gap-1 text-xs font-bold text-slate-700">
+                <Video className="h-3.5 w-3.5 text-blue-500" />
+                Google Meet
+              </label>
+              <MeetLinkField value={meetingLink} onChange={setMeetingLink} />
             </div>
           )}
 
