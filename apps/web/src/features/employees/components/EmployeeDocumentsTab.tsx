@@ -13,6 +13,7 @@ import {
   X,
   Mail,
   Send,
+  ChevronDown,
 } from 'lucide-react';
 import { getAccessToken } from '@vernoxy-pulse/api-client';
 import {
@@ -92,26 +93,73 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({
   const [selectedDocForUpload, setSelectedDocForUpload] = useState<string | null>(null);
   const [untickDocConfirm, setUntickDocConfirm] = useState<EmployeeDocumentItem | null>(null);
   const [viewingDoc, setViewingDoc] = useState<EmployeeDocumentItem | null>(null);
+  const [viewVariant, setViewVariant] = useState<'issued' | 'signed'>('issued');
+  const [issuedHtml, setIssuedHtml] = useState<string | null>(null);
+  const [isLoadingIssued, setIsLoadingIssued] = useState(false);
+  const [openViewMenuDocType, setOpenViewMenuDocType] = useState<string | null>(null);
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [isLoadingFile, setIsLoadingFile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
-    if (!viewingDoc || !viewingDoc.file_url) {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest('.view-menu-container')) {
+        setOpenViewMenuDocType(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (!viewingDoc) {
       setBlobUrl(null);
-      return;
-    }
-    // If it's an HTML draft letter, no need to fetch file
-    if (viewingDoc.draft_content && viewingDoc.draft_content.trim().startsWith('<')) {
-      setBlobUrl(null);
+      setIssuedHtml(null);
       return;
     }
 
-    setIsLoadingFile(true);
     const token = getAccessToken();
     let isCancelled = false;
 
-    fetch(`${viewingDoc.file_url}?inline=true`, {
+    if (viewVariant === 'issued') {
+      setBlobUrl(null);
+      if (viewingDoc.draft_content && viewingDoc.draft_content.trim().startsWith('<')) {
+        setIssuedHtml(viewingDoc.draft_content);
+      } else {
+        setIsLoadingIssued(true);
+        fetch(`/api/v1/employees/${employee.emp_id}/documents/${viewingDoc.document_type}/issued`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        })
+          .then((res) => {
+            if (!res.ok) throw new Error('Failed to load issued document');
+            return res.json();
+          })
+          .then((data) => {
+            if (!isCancelled) {
+              setIssuedHtml(data.html || '<p>No content available.</p>');
+            }
+          })
+          .catch((err) => {
+            console.error('Error fetching issued document:', err);
+            if (!isCancelled) {
+              setIssuedHtml('<p className="text-rose-500">Failed to load issued document content.</p>');
+            }
+          })
+          .finally(() => {
+            if (!isCancelled) setIsLoadingIssued(false);
+          });
+      }
+      return;
+    }
+
+    // viewVariant === 'signed'
+    setIssuedHtml(null);
+    const fileUrl =
+      viewingDoc.file_url ||
+      `/api/v1/employees/${employee.emp_id}/documents/${viewingDoc.document_type}/download?type=signed&inline=true`;
+    setIsLoadingFile(true);
+
+    fetch(fileUrl.includes('inline=true') ? fileUrl : `${fileUrl}?inline=true`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
       .then((res) => {
@@ -137,7 +185,22 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({
         URL.revokeObjectURL(blobUrl);
       }
     };
-  }, [viewingDoc]);
+  }, [viewingDoc, viewVariant, employee.emp_id]);
+
+  const handleOpenDocViewer = (doc: EmployeeDocumentItem, variant?: 'issued' | 'signed') => {
+    const isDualDoc = doc.document_type === 'offer_letter' || doc.document_type === 'nda_signed';
+    const chosenVariant =
+      variant ||
+      (isDualDoc
+        ? doc.status === 'accepted' || doc.status === 'signed' || doc.status === 'uploaded' || Boolean(doc.file_url)
+          ? 'signed'
+          : 'issued'
+        : doc.draft_content
+          ? 'issued'
+          : 'signed');
+    setViewVariant(chosenVariant);
+    setViewingDoc(doc);
+  };
 
   if (isLoading) {
     return (
@@ -418,6 +481,67 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({
     );
   };
 
+  const renderViewAction = (doc: EmployeeDocumentItem) => {
+    const isDualDoc = doc.document_type === 'offer_letter' || doc.document_type === 'nda_signed';
+    const hasSignedFile = Boolean(doc.file_url) || doc.status === 'accepted' || doc.status === 'signed' || doc.status === 'uploaded';
+
+    if (isDualDoc && hasSignedFile) {
+      const isMenuOpen = openViewMenuDocType === doc.document_type;
+      const docLabel = doc.document_type === 'offer_letter' ? 'Offer Letter' : 'NDA';
+      return (
+        <div className="relative inline-block text-left view-menu-container">
+          <button
+            type="button"
+            onClick={() => setOpenViewMenuDocType(isMenuOpen ? null : doc.document_type)}
+            className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 hover:underline px-1.5 py-1 rounded cursor-pointer font-semibold"
+          >
+            <span>View</span>
+            <ChevronDown className="w-3 h-3 text-blue-600" />
+          </button>
+          {isMenuOpen && (
+            <div className="absolute right-0 top-full mt-1 w-56 bg-white rounded-2xl shadow-xl border border-slate-200 py-1.5 z-50 animate-in fade-in">
+              <div className="px-3 py-1 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-left">
+                Select View
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setOpenViewMenuDocType(null);
+                  handleOpenDocViewer(doc, 'issued');
+                }}
+                className="w-full text-left px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 flex items-center gap-2 cursor-pointer transition"
+              >
+                <FileText className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                <span>View Issued {docLabel}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setOpenViewMenuDocType(null);
+                  handleOpenDocViewer(doc, 'signed');
+                }}
+                className="w-full text-left px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 flex items-center gap-2 cursor-pointer transition border-t border-slate-50"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span>View Signed Copy</span>
+              </button>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <button
+        type="button"
+        onClick={() => handleOpenDocViewer(doc)}
+        className="text-blue-600 hover:text-blue-800 hover:underline px-1.5 py-1 rounded cursor-pointer font-semibold"
+      >
+        View
+      </button>
+    );
+  };
+
   const renderDocRow = (doc: EmployeeDocumentItem) => {
     const isLocked = doc.status === 'locked';
     const s = (doc.status || '').toLowerCase();
@@ -457,10 +581,10 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({
                   {doc.document_type === 'offer_letter'
                     ? 'Template: Offer Letter - Standard'
                     : doc.document_type === 'joining_letter'
-                    ? 'Template: Joining Letter v1'
-                    : doc.document_type === 'nda_signed'
-                    ? 'Template: NDA - Employee'
-                    : 'Official Template'}
+                      ? 'Template: Joining Letter v1'
+                      : doc.document_type === 'nda_signed'
+                        ? 'Template: NDA - Employee'
+                        : 'Official Template'}
                 </span>
               )}
             </div>
@@ -474,7 +598,7 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({
         <td className="py-3.5 px-4 text-xs">
           {doc.file_name ? (
             <span
-              onClick={() => setViewingDoc(doc)}
+              onClick={() => handleOpenDocViewer(doc)}
               className="font-mono text-slate-700 bg-slate-100 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded-lg border border-slate-200 inline-block max-w-[220px] truncate cursor-pointer transition"
               title={doc.file_name}
             >
@@ -535,8 +659,8 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({
                   <>
                     <button
                       type="button"
-                      onClick={() => setViewingDoc(doc)}
-                      className="text-blue-600 hover:text-blue-800 hover:underline px-1.5 py-1 rounded cursor-pointer"
+                      onClick={() => handleOpenDocViewer(doc, 'issued')}
+                      className="text-blue-600 hover:text-blue-800 hover:underline px-1.5 py-1 rounded cursor-pointer font-semibold"
                     >
                       View
                     </button>
@@ -566,13 +690,7 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({
 
                 {s === 'accepted' && (
                   <>
-                    <button
-                      type="button"
-                      onClick={() => setViewingDoc(doc)}
-                      className="text-blue-600 hover:text-blue-800 hover:underline px-1.5 py-1 rounded cursor-pointer"
-                    >
-                      View
-                    </button>
+                    {renderViewAction(doc)}
                     <span className="text-slate-300">•</span>
                     <a
                       href={`/api/v1/employees/${employee.emp_id}/documents/${doc.document_type}/download`}
@@ -676,8 +794,8 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({
                       <>
                         <button
                           type="button"
-                          onClick={() => setViewingDoc(doc)}
-                          className="text-blue-600 hover:text-blue-800 hover:underline px-1.5 py-1 rounded cursor-pointer"
+                          onClick={() => handleOpenDocViewer(doc)}
+                          className="text-blue-600 hover:text-blue-800 hover:underline px-1.5 py-1 rounded cursor-pointer font-semibold"
                         >
                           View
                         </button>
@@ -729,7 +847,7 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({
                   <>
                     <button
                       type="button"
-                      onClick={() => setViewingDoc(doc)}
+                      onClick={() => handleOpenDocViewer(doc, 'issued')}
                       className="text-blue-600 hover:text-blue-800 hover:underline px-1.5 py-1 rounded cursor-pointer"
                     >
                       Review
@@ -750,8 +868,8 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({
                   <>
                     <button
                       type="button"
-                      onClick={() => setViewingDoc(doc)}
-                      className="text-blue-600 hover:text-blue-800 hover:underline px-1.5 py-1 rounded cursor-pointer"
+                      onClick={() => handleOpenDocViewer(doc, 'issued')}
+                      className="text-blue-600 hover:text-blue-800 hover:underline px-1.5 py-1 rounded cursor-pointer font-semibold"
                     >
                       View
                     </button>
@@ -780,13 +898,7 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({
                 {/* For other uploaded documents, or NDA after being accepted/uploaded */}
                 {!(isIssued && doc.document_type === 'nda_signed') && (isUploaded || Boolean(doc.file_url)) && (
                   <>
-                    <button
-                      type="button"
-                      onClick={() => setViewingDoc(doc)}
-                      className="text-blue-600 hover:text-blue-800 hover:underline px-1.5 py-1 rounded cursor-pointer"
-                    >
-                      View
-                    </button>
+                    {renderViewAction(doc)}
                     <span className="text-slate-300">•</span>
                     <a
                       href={`/api/v1/employees/${employee.emp_id}/documents/${doc.document_type}/download`}
@@ -1106,32 +1218,92 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({
 
       {/* Document View / Preview Modal */}
       {viewingDoc && (() => {
-        const isHtmlDraft = Boolean(viewingDoc.draft_content && viewingDoc.draft_content.trim().startsWith('<'));
+        const isDualDoc = viewingDoc.document_type === 'offer_letter' || viewingDoc.document_type === 'nda_signed';
+        const hasBothCopies =
+          isDualDoc &&
+          (Boolean(viewingDoc.file_url) ||
+            viewingDoc.status === 'accepted' ||
+            viewingDoc.status === 'signed' ||
+            viewingDoc.status === 'uploaded');
+        const isHtmlDraft = viewVariant === 'issued';
         const fileNameLower = (viewingDoc.file_name || '').toLowerCase();
-        const isImage = !isHtmlDraft && (
-          viewingDoc.mime_type?.startsWith('image/') ||
-          /\.(png|jpe?g|webp|gif|bmp)$/i.test(fileNameLower)
-        );
-        const isPdf = !isHtmlDraft && (
-          viewingDoc.mime_type === 'application/pdf' ||
-          /\.pdf$/i.test(fileNameLower)
-        );
+        const isImage =
+          !isHtmlDraft &&
+          (viewingDoc.mime_type?.startsWith('image/') || /\.(png|jpe?g|webp|gif|bmp)$/i.test(fileNameLower));
+        const isPdf =
+          !isHtmlDraft &&
+          (viewingDoc.mime_type === 'application/pdf' || /\.pdf$/i.test(fileNameLower));
 
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
             <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden">
               <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
-                <div className="flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-blue-600" />
-                  <h4 className="font-bold text-slate-900 text-sm">{viewingDoc.title}</h4>
-                  {viewingDoc.file_name && (
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-blue-600" />
+                    <h4 className="font-bold text-slate-900 text-sm">{viewingDoc.title}</h4>
+                  </div>
+
+                  {hasBothCopies && (
+                    <div className="flex items-center bg-slate-200/80 p-0.5 rounded-xl border border-slate-200">
+                      <button
+                        type="button"
+                        onClick={() => setViewVariant('issued')}
+                        className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                          viewVariant === 'issued'
+                            ? 'bg-white text-blue-700 shadow-2xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        <span>Issued Letter</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setViewVariant('signed')}
+                        className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                          viewVariant === 'signed'
+                            ? 'bg-white text-emerald-700 shadow-2xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Signed Copy</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {viewVariant === 'signed' && viewingDoc.file_name && (
                     <span className="text-2xs font-mono text-slate-400 bg-white px-2 py-0.5 rounded border border-slate-200">
                       {viewingDoc.file_name}
                     </span>
                   )}
                 </div>
+
                 <div className="flex items-center gap-3">
-                  {blobUrl && (
+                  {viewVariant === 'issued' ? (
+                    <>
+                      <a
+                        href={`/api/v1/employees/${employee.emp_id}/documents/${viewingDoc.document_type}/download?type=issued&inline=true`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-semibold px-2 py-1 rounded hover:bg-slate-100"
+                        title="Open in new window"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        <span>Open Window</span>
+                      </a>
+                      <a
+                        href={`/api/v1/employees/${employee.emp_id}/documents/${viewingDoc.document_type}/download?type=issued`}
+                        download={`${viewingDoc.document_type}_issued.html`}
+                        className="inline-flex items-center gap-1 text-xs text-slate-700 hover:text-slate-900 font-semibold px-2 py-1 rounded hover:bg-slate-100"
+                        title="Download issued document"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Download</span>
+                      </a>
+                    </>
+                  ) : blobUrl ? (
                     <>
                       <a
                         href={blobUrl}
@@ -1153,11 +1325,13 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({
                         <span>Download</span>
                       </a>
                     </>
-                  )}
+                  ) : null}
+
                   <button
                     onClick={() => {
                       setViewingDoc(null);
                       setBlobUrl(null);
+                      setIssuedHtml(null);
                     }}
                     className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 text-sm font-bold ml-2"
                   >
@@ -1167,16 +1341,25 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({
               </div>
 
               <div className="p-6 overflow-y-auto flex-1 flex flex-col items-center justify-center min-h-[300px]">
-                {isLoadingFile ? (
+                {viewVariant === 'issued' ? (
+                  isLoadingIssued ? (
+                    <div className="text-center py-12 space-y-3">
+                      <Loader2 className="w-8 h-8 text-blue-600 animate-spin mx-auto" />
+                      <p className="text-xs text-slate-500 font-medium">Loading issued document...</p>
+                    </div>
+                  ) : (
+                    <div
+                      className="prose prose-sm max-w-none p-6 rounded-2xl border border-slate-200 bg-white shadow-inner w-full"
+                      dangerouslySetInnerHTML={{
+                        __html: issuedHtml || viewingDoc.draft_content || '<p>No content available</p>',
+                      }}
+                    />
+                  )
+                ) : isLoadingFile ? (
                   <div className="text-center py-12 space-y-3">
                     <Loader2 className="w-8 h-8 text-blue-600 animate-spin mx-auto" />
                     <p className="text-xs text-slate-500 font-medium">Loading document preview...</p>
                   </div>
-                ) : isHtmlDraft ? (
-                  <div
-                    className="prose prose-sm max-w-none p-6 rounded-2xl border border-slate-200 bg-white shadow-inner w-full"
-                    dangerouslySetInnerHTML={{ __html: viewingDoc.draft_content! }}
-                  />
                 ) : isImage && blobUrl ? (
                   <div className="w-full flex justify-center p-3 bg-slate-50/60 rounded-2xl border border-slate-100">
                     <img
@@ -1293,7 +1476,7 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({
           </div>
         </div>
       )}
-    
+
       {/* Send Document Request to Candidate Modal (BFD Reference Screen 8 Marker 3) */}
       {isSendRequestModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-200">
@@ -1376,11 +1559,10 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({
                         <div key={idx} className="p-2.5 text-xs flex items-center justify-between">
                           <span className="font-semibold text-slate-700">{doc.title}</span>
                           <span
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                              doc.is_required_for_activation
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${doc.is_required_for_activation
                                 ? 'bg-amber-100 text-amber-800 border border-amber-200'
                                 : 'bg-slate-200 text-slate-700'
-                            }`}
+                              }`}
                           >
                             {doc.is_required_for_activation ? 'Required' : 'Pending File'}
                           </span>

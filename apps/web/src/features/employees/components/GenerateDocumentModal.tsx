@@ -75,6 +75,13 @@ export const GenerateDocumentModal: React.FC<GenerateDocumentModalProps> = ({
   const [proposedJoiningDate, setProposedJoiningDate] = useState<string>(
     employee.joining_date ? new Date(employee.joining_date).toISOString().split('T')[0] : todayStr,
   );
+  const minOfferValidTillDate = (() => {
+    const baseDateStr = proposedJoiningDate || todayStr;
+    const base = new Date(baseDateStr);
+    if (isNaN(base.getTime())) return todayStr;
+    base.setDate(base.getDate() + 1);
+    return base.toISOString().split('T')[0];
+  })();
   const [offerValidTillDate, setOfferValidTillDate] = useState<string>('');
   const [customSalary, setCustomSalary] = useState<number>(employee.salary ? Number(employee.salary) : 0);
 
@@ -132,6 +139,12 @@ export const GenerateDocumentModal: React.FC<GenerateDocumentModalProps> = ({
 
   const handleGenerateDraft = async () => {
     setErrorMessage(null);
+    if (docType === 'offer_letter' && offerValidTillDate) {
+      if (offerValidTillDate <= (proposedJoiningDate || todayStr)) {
+        setErrorMessage('Offer valid-till date must be after the expected joining date.');
+        return;
+      }
+    }
     try {
       const result = await generateDraftMutation.mutateAsync({
         empId: employee.emp_id,
@@ -464,6 +477,7 @@ export const GenerateDocumentModal: React.FC<GenerateDocumentModalProps> = ({
                       <label className="text-xs font-semibold text-slate-700 block">Offer Valid-Till Date</label>
                       <input
                         type="date"
+                        min={minOfferValidTillDate}
                         value={offerValidTillDate}
                         onChange={(e) => setOfferValidTillDate(e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-600"

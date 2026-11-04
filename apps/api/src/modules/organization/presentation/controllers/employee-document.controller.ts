@@ -225,15 +225,26 @@ export class EmployeeDocumentController {
     return this.documentService.declineDocument(id, documentType, reason || 'Candidate declined', adminId);
   }
 
+  @Get('employees/:id/documents/:documentType/issued')
+  @ApiOperation({ summary: 'Get issued draft HTML content for letter / NDA' })
+  async getIssuedDocument(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('documentType') documentType: string,
+  ) {
+    return this.documentService.getIssuedDocument(id, documentType);
+  }
+
   @Get('employees/:id/documents/:documentType/download')
   @ApiOperation({ summary: 'Download or view issued employee document file' })
   async downloadDocument(
     @Param('id', ParseIntPipe) id: number,
     @Param('documentType') documentType: string,
     @Query('inline') inline: string | undefined,
+    @Query('type') variantType: string | undefined,
     @Res() res: Response,
   ): Promise<void> {
-    const fileData = await this.documentService.getDocumentForDownload(id, documentType);
+    const variant = variantType === 'issued' ? 'issued' : 'signed';
+    const fileData = await this.documentService.getDocumentForDownload(id, documentType, variant);
     const isInline =
       inline === 'true' ||
       fileData.mimeType.startsWith('image/') ||

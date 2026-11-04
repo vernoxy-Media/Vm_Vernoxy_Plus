@@ -716,6 +716,7 @@ export class EmployeeDocumentService implements OnModuleInit, OnModuleDestroy {
   async getDocumentForDownload(
     empId: number,
     documentType: string,
+    variant: 'signed' | 'issued' = 'signed',
   ): Promise<{ content: string | Buffer; fileName: string; mimeType: string }> {
     const docs = await this.getEmployeeDocuments(empId);
     const doc = docs.find((d) => d.document_type === documentType);
@@ -723,7 +724,49 @@ export class EmployeeDocumentService implements OnModuleInit, OnModuleDestroy {
       throw new NotFoundException(`Document ${documentType} not found`);
     }
 
-    // 1. Check if an uploaded file exists in storage/employee-docs/<empId>/
+    // If 'issued' is explicitly requested
+    if (variant === 'issued') {
+      let issuedHtml = doc.draft_content;
+      if (!issuedHtml && ['offer_letter', 'joining_letter', 'nda_signed'].includes(documentType)) {
+        try {
+          const draft = await this.generateDraft(empId, { document_type: documentType }, 1);
+          issuedHtml = draft.draft_content;
+          await this.prisma.$executeRaw`
+            UPDATE employee_documents
+            SET draft_content = ${issuedHtml}
+            WHERE emp_id = ${empId} AND document_type = ${documentType}
+          `;
+        } catch (e) {}
+      }
+
+      if (issuedHtml) {
+        const docHtml = `
+          <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+          <head>
+            <meta charset="utf-8">
+            <title>${doc.title} (Issued)</title>
+            <style>
+              body { font-family: 'Calibri', 'Arial', sans-serif; font-size: 11pt; line-height: 1.5; color: #1e293b; padding: 40px; }
+              h2 { color: #0f172a; border-bottom: 2px solid #2563eb; padding-bottom: 8px; }
+              table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+              th, td { border: 1px solid #cbd5e1; padding: 8px; text-align: left; }
+              th { background-color: #f1f5f9; }
+            </style>
+          </head>
+          <body>
+            ${issuedHtml}
+          </body>
+          </html>
+        `;
+        return {
+          content: docHtml,
+          fileName: `issued_${doc.file_name || `${documentType}.doc`}`,
+          mimeType: 'application/msword',
+        };
+      }
+    }
+
+    // Default or signed: Check if an uploaded file exists in storage/employee-docs/<empId>/
     const repoRoot = path.resolve(__dirname, '../../../../../../..');
     const storageDir = path.resolve(repoRoot, 'storage', 'employee-docs', String(empId));
     if (fs.existsSync(storageDir)) {
@@ -767,6 +810,41 @@ export class EmployeeDocumentService implements OnModuleInit, OnModuleDestroy {
     }
 
     throw new NotFoundException(`Document file content not available`);
+  }
+
+  async getIssuedDocument(
+    empId: number,
+    documentType: string,
+  ): Promise<{ title: string; document_type: string; draft_content: string; issued_at: string | null }> {
+    const docs = await this.getEmployeeDocuments(empId);
+    const doc = docs.find((d) => d.document_type === documentType);
+    if (!doc) {
+      throw new NotFoundException(`Document ${documentType} not found`);
+    }
+
+    let issuedContent = doc.draft_content;
+    if (!issuedContent && ['offer_letter', 'joining_letter', 'nda_signed'].includes(documentType)) {
+      try {
+        const draft = await this.generateDraft(empId, { document_type: documentType }, 1);
+        issuedContent = draft.draft_content;
+        await this.prisma.$executeRaw`
+          UPDATE employee_documents
+          SET draft_content = ${issuedContent}
+          WHERE emp_id = ${empId} AND document_type = ${documentType}
+        `;
+      } catch (e) {}
+    }
+
+    if (!issuedContent) {
+      throw new NotFoundException(`Issued content for ${documentType} is not available.`);
+    }
+
+    return {
+      title: doc.title,
+      document_type: documentType,
+      draft_content: issuedContent,
+      issued_at: doc.issued_at || null,
+    };
   }
 
   async getActivationEligibility(empId: number): Promise<EmployeeActivationStatusDto> {
