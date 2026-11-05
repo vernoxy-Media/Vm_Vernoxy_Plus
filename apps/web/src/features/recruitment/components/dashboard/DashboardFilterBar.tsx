@@ -145,7 +145,7 @@ export const DashboardFilterBar: React.FC<DashboardFilterBarProps> = ({
             value={filters.searchQuery}
             onChange={(e) => onChangeFilters({ ...filters, searchQuery: e.target.value })}
             placeholder="Search candidate name, ID, phone, email, position, dept, source..."
-            className="w-full pl-10 pr-9 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-[13px] text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+            className="w-full pl-10 pr-9 py-2 bg-white border border-slate-300 rounded-xl text-xs sm:text-[13px] text-slate-900 placeholder:text-slate-400 shadow-2xs hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition"
           />
           {filters.searchQuery && (
             <button
@@ -207,7 +207,7 @@ export const DashboardFilterBar: React.FC<DashboardFilterBarProps> = ({
               <select
                 value={filters.stage}
                 onChange={(e) => onChangeFilters({ ...filters, stage: e.target.value })}
-                className="w-full appearance-none pl-3 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
+                className="w-full appearance-none pl-3 pr-8 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 shadow-2xs hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-colors cursor-pointer"
               >
                 <option value="Open">Open (Default)</option>
                 <option value="new">New</option>
@@ -235,7 +235,7 @@ export const DashboardFilterBar: React.FC<DashboardFilterBarProps> = ({
               <select
                 value={filters.position}
                 onChange={(e) => onChangeFilters({ ...filters, position: e.target.value })}
-                className="w-full appearance-none pl-3 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
+                className="w-full appearance-none pl-3 pr-8 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 shadow-2xs hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-colors cursor-pointer"
               >
                 <option value="All">All Positions</option>
                 {roles.map((r) => (
@@ -258,7 +258,7 @@ export const DashboardFilterBar: React.FC<DashboardFilterBarProps> = ({
               <select
                 value={filters.department}
                 onChange={(e) => onChangeFilters({ ...filters, department: e.target.value })}
-                className="w-full appearance-none pl-3 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
+                className="w-full appearance-none pl-3 pr-8 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 shadow-2xs hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-colors cursor-pointer"
               >
                 <option value="All">All Departments</option>
                 {departments.map((d) => (
@@ -281,7 +281,7 @@ export const DashboardFilterBar: React.FC<DashboardFilterBarProps> = ({
               <select
                 value={filters.source}
                 onChange={(e) => onChangeFilters({ ...filters, source: e.target.value })}
-                className="w-full appearance-none pl-3 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
+                className="w-full appearance-none pl-3 pr-8 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 shadow-2xs hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-colors cursor-pointer"
               >
                 <option value="All">All Sources</option>
                 {STANDARD_SOURCES.map((s) => (
@@ -304,7 +304,7 @@ export const DashboardFilterBar: React.FC<DashboardFilterBarProps> = ({
               <select
                 value={filters.experienceType}
                 onChange={(e) => onChangeFilters({ ...filters, experienceType: e.target.value })}
-                className="w-full appearance-none pl-3 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
+                className="w-full appearance-none pl-3 pr-8 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 shadow-2xs hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-colors cursor-pointer"
               >
                 <option value="All">All Experience</option>
                 <option value="Fresher">Fresher</option>
@@ -324,7 +324,7 @@ export const DashboardFilterBar: React.FC<DashboardFilterBarProps> = ({
               <select
                 value={filters.dateRange.preset}
                 onChange={(e) => handlePresetChange(e.target.value)}
-                className="w-full appearance-none pl-3 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
+                className="w-full appearance-none pl-3 pr-8 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 shadow-2xs hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-colors cursor-pointer"
               >
                 <option value="all">All Time</option>
                 <option value="last_30_days">Last 30 Days</option>
@@ -347,14 +347,14 @@ export const DashboardFilterBar: React.FC<DashboardFilterBarProps> = ({
                 type="date"
                 value={filters.dateRange.startDate}
                 onChange={(e) => handleStartDateChange(e.target.value)}
-                className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                className="px-2.5 py-1.5 bg-white border border-slate-300 rounded-xl text-xs font-medium text-slate-800 shadow-2xs hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition"
               />
               <span className="text-xs text-slate-400">to</span>
               <input
                 type="date"
                 value={filters.dateRange.endDate}
                 onChange={(e) => handleEndDateChange(e.target.value)}
-                className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                className="px-2.5 py-1.5 bg-white border border-slate-300 rounded-xl text-xs font-medium text-slate-800 shadow-2xs hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition"
               />
             </div>
             {dateError && <span className="text-xs font-semibold text-rose-500">{dateError}</span>}
