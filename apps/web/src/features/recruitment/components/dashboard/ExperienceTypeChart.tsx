@@ -35,8 +35,8 @@ export const ExperienceTypeChart: React.FC<ExperienceTypeChartProps> = ({ candid
   const fresherOffset = 0;
   const expOffset = -fresherStroke;
 
-  const FRESHER_COLOR = '#06b6d4'; // Cyan-500
-  const EXPERIENCED_COLOR = '#4f46e5'; // Indigo-600
+  const FRESHER_COLOR = '#3b82f6'; // Blue-500 (matching BRD illustration)
+  const EXPERIENCED_COLOR = '#8b5cf6'; // Purple-500 (matching BRD illustration)
 
   return (
     <div className="relative flex flex-col rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs h-full">
@@ -65,120 +65,108 @@ export const ExperienceTypeChart: React.FC<ExperienceTypeChartProps> = ({ candid
           <p className="text-xs text-slate-400 mt-1">Try adjusting or clearing your filters to view data.</p>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col items-center justify-center pt-2 pb-2">
-          {/* Tooltip Badge */}
-          <div className="h-7 mb-2 flex items-center justify-center">
-            {hoveredType ? (
-              <div className="px-3 py-1 bg-slate-900 text-white text-xs rounded-xl shadow-md flex items-center gap-2.5">
-                <span className="font-semibold text-slate-200">{hoveredType}:</span>
-                <span className="font-bold text-white">
-                  {hoveredType === 'Fresher' ? fresherCount : experiencedCount} candidates
-                </span>
-                <span className="font-bold text-cyan-400">
-                  ({hoveredType === 'Fresher' ? fresherPct : experiencedPct}%)
-                </span>
-              </div>
-            ) : (
-              <span className="text-[11px] font-medium text-slate-400">Hover a segment for details</span>
-            )}
-          </div>
-
-          {/* Donut Chart with Center Total Value */}
-          <div className="relative flex items-center justify-center">
-            <svg
-              width={size}
-              height={size}
-              className="transform -rotate-90 origin-center"
-            >
-              {/* Background circle track */}
-              <circle
-                cx={size / 2}
-                cy={size / 2}
-                r={radius}
-                fill="none"
-                stroke="#f1f5f9"
-                strokeWidth={strokeWidth}
-              />
-
-              {/* Fresher Segment - Stroke width remains constant to prevent layout shaking */}
-              {fresherCount > 0 && (
+        <div className="flex-1 flex flex-col justify-center">
+          {/* Main Content Area: Donut Chart on Left, Legend on Right with comfortable spacing */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-12 sm:gap-16 py-2">
+            {/* Donut Chart with Center Total Value */}
+            <div className="relative flex items-center justify-center shrink-0">
+              <svg
+                width={size}
+                height={size}
+                className="transform -rotate-90 origin-center"
+              >
+                {/* Background circle track */}
                 <circle
                   cx={size / 2}
                   cy={size / 2}
                   r={radius}
                   fill="none"
-                  stroke={FRESHER_COLOR}
+                  stroke="#f1f5f9"
                   strokeWidth={strokeWidth}
-                  strokeDasharray={`${fresherStroke} ${circumference}`}
-                  strokeDashoffset={fresherOffset}
-                  className="cursor-pointer transition-opacity duration-150"
-                  style={{ opacity: hoveredType === 'Experienced' ? 0.45 : 1 }}
-                  onMouseEnter={() => setHoveredType('Fresher')}
-                  onMouseLeave={() => setHoveredType(null)}
                 />
-              )}
 
-              {/* Experienced Segment - Stroke width remains constant to prevent layout shaking */}
-              {experiencedCount > 0 && (
-                <circle
-                  cx={size / 2}
-                  cy={size / 2}
-                  r={radius}
-                  fill="none"
-                  stroke={EXPERIENCED_COLOR}
-                  strokeWidth={strokeWidth}
-                  strokeDasharray={`${expStroke} ${circumference}`}
-                  strokeDashoffset={expOffset}
-                  className="cursor-pointer transition-opacity duration-150"
-                  style={{ opacity: hoveredType === 'Fresher' ? 0.45 : 1 }}
-                  onMouseEnter={() => setHoveredType('Experienced')}
-                  onMouseLeave={() => setHoveredType(null)}
-                />
-              )}
-            </svg>
+                {/* Fresher Segment */}
+                {fresherCount > 0 && (
+                  <circle
+                    cx={size / 2}
+                    cy={size / 2}
+                    r={radius}
+                    fill="none"
+                    stroke={FRESHER_COLOR}
+                    strokeWidth={strokeWidth}
+                    strokeDasharray={`${fresherStroke} ${circumference}`}
+                    strokeDashoffset={fresherOffset}
+                    className="cursor-pointer transition-opacity duration-150"
+                    style={{ opacity: hoveredType === 'Experienced' ? 0.45 : 1 }}
+                    onMouseEnter={() => setHoveredType('Fresher')}
+                    onMouseLeave={() => setHoveredType(null)}
+                  />
+                )}
 
-            {/* Centre Value: Total candidates count */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none">
-              <span className="text-3xl font-extrabold text-slate-900 tracking-tight leading-none">
-                {totalFiltered}
-              </span>
-              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mt-1">
-                Total Candidates
-              </span>
-            </div>
-          </div>
+                {/* Experienced Segment */}
+                {experiencedCount > 0 && (
+                  <circle
+                    cx={size / 2}
+                    cy={size / 2}
+                    r={radius}
+                    fill="none"
+                    stroke={EXPERIENCED_COLOR}
+                    strokeWidth={strokeWidth}
+                    strokeDasharray={`${expStroke} ${circumference}`}
+                    strokeDashoffset={expOffset}
+                    className="cursor-pointer transition-opacity duration-150"
+                    style={{ opacity: hoveredType === 'Fresher' ? 0.45 : 1 }}
+                    onMouseEnter={() => setHoveredType('Experienced')}
+                    onMouseLeave={() => setHoveredType(null)}
+                  />
+                )}
+              </svg>
 
-          {/* Legend with Category Names, Colors, Counts, and Percentages */}
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-6 w-full pt-3 border-t border-slate-100">
-            {/* Fresher legend item */}
-            <div
-              className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl cursor-pointer transition-colors ${
-                hoveredType === 'Fresher' ? 'bg-cyan-50 ring-1 ring-cyan-200' : 'hover:bg-slate-50'
-              }`}
-              onMouseEnter={() => setHoveredType('Fresher')}
-              onMouseLeave={() => setHoveredType(null)}
-            >
-              <span className="w-3.5 h-3.5 rounded-md bg-cyan-500 shrink-0"></span>
-              <div className="text-xs">
-                <span className="font-bold text-slate-800">Fresher:</span>{' '}
-                <span className="font-semibold text-slate-600">{fresherCount}</span>{' '}
-                <span className="text-cyan-700 font-bold">({fresherPct}%)</span>
+              {/* Centre Value: Total candidates count (as shown in BRD image: number and Total) */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none">
+                <span className="text-3xl font-extrabold text-slate-900 tracking-tight leading-none">
+                  {totalFiltered}
+                </span>
+                <span className="text-xs font-semibold text-slate-500 mt-1">
+                  Total
+                </span>
               </div>
             </div>
 
-            {/* Experienced legend item */}
-            <div
-              className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl cursor-pointer transition-colors ${
-                hoveredType === 'Experienced' ? 'bg-indigo-50 ring-1 ring-indigo-200' : 'hover:bg-slate-50'
-              }`}
-              onMouseEnter={() => setHoveredType('Experienced')}
-              onMouseLeave={() => setHoveredType(null)}
-            >
-              <span className="w-3.5 h-3.5 rounded-md bg-indigo-600 shrink-0"></span>
-              <div className="text-xs">
-                <span className="font-bold text-slate-800">Experienced:</span>{' '}
-                <span className="font-semibold text-slate-600">{experiencedCount}</span>{' '}
-                <span className="text-indigo-700 font-bold">({experiencedPct}%)</span>
+            {/* Right Side Stacked Legend (Matches BRD reference layout exactly) */}
+            <div className="flex flex-col justify-center gap-5 min-w-[140px]">
+              {/* Fresher item */}
+              <div
+                className={`flex items-start gap-3 p-2 rounded-xl cursor-pointer transition-colors ${
+                  hoveredType === 'Fresher' ? 'bg-blue-50 ring-1 ring-blue-200' : 'hover:bg-slate-50'
+                }`}
+                onMouseEnter={() => setHoveredType('Fresher')}
+                onMouseLeave={() => setHoveredType(null)}
+              >
+                <span className="w-3.5 h-3.5 rounded-full bg-blue-500 shrink-0 mt-1"></span>
+                <div>
+                  <div className="text-sm font-bold text-slate-800">Fresher</div>
+                  <div className="text-xs font-semibold text-slate-600 mt-0.5">
+                    {fresherCount} ({fresherPct}%)
+                  </div>
+                </div>
+              </div>
+
+              {/* Experienced item */}
+              <div
+                className={`flex items-start gap-3 p-2 rounded-xl cursor-pointer transition-colors ${
+                  hoveredType === 'Experienced' ? 'bg-purple-50 ring-1 ring-purple-200' : 'hover:bg-slate-50'
+                }`}
+                onMouseEnter={() => setHoveredType('Experienced')}
+                onMouseLeave={() => setHoveredType(null)}
+              >
+                <span className="w-3.5 h-3.5 rounded-full bg-purple-500 shrink-0 mt-1"></span>
+                <div>
+                  <div className="text-sm font-bold text-slate-800">Experienced</div>
+                  <div className="text-xs font-semibold text-slate-600 mt-0.5">
+                    {experiencedCount} ({experiencedPct}%)
+                  </div>
+                </div>
               </div>
             </div>
           </div>
