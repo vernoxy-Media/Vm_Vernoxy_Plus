@@ -6,6 +6,8 @@ export interface ProjectDashboardFilters {
   status: string; // 'All' or ProjectStatus
   projectType: string; // 'All' or ProjectType
   projectManager: string; // 'All' or emp_id
+  client: string; // 'All' or client name (Page 4 wireframe)
+  dateRangePreset: string; // 'all_time' | 'this_month' | 'this_year' | 'last_30_days' | 'last_90_days' | 'custom'
   dateRange: {
     startDate: string;
     endDate: string;
@@ -19,6 +21,8 @@ export const INITIAL_PROJECT_DASHBOARD_FILTERS: ProjectDashboardFilters = {
   status: 'All',
   projectType: 'All',
   projectManager: 'All',
+  client: 'All',
+  dateRangePreset: 'all_time',
   dateRange: {
     startDate: '',
     endDate: '',

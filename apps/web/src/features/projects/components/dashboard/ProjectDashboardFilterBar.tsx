@@ -42,7 +42,14 @@ export const ProjectDashboardFilterBar: React.FC<ProjectDashboardFilterBarProps>
     if (filters.status !== 'All') count++;
     if (filters.projectType !== 'All') count++;
     if (filters.projectManager !== 'All') count++;
-    if (filters.dateRange.startDate || filters.dateRange.endDate) count++;
+    if (filters.client !== 'All') count++;
+    if (
+      filters.dateRangePreset !== 'all_time' ||
+      filters.dateRange.startDate ||
+      filters.dateRange.endDate
+    ) {
+      count++;
+    }
     return count;
   }, [filters]);
 
@@ -64,6 +71,17 @@ export const ProjectDashboardFilterBar: React.FC<ProjectDashboardFilterBarProps>
     }
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
   }, [projects, employees]);
+
+  // Unique Clients (BRD Page 4 Wireframe)
+  const clientOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of projects) {
+      if (p.client_name && p.client_name.trim()) {
+        set.add(p.client_name.trim());
+      }
+    }
+    return Array.from(set).sort();
+  }, [projects]);
 
   return (
     <div className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-2xs space-y-4">
@@ -109,8 +127,8 @@ export const ProjectDashboardFilterBar: React.FC<ProjectDashboardFilterBarProps>
         </div>
       </div>
 
-      {/* 6 Global Filters + Search Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      {/* All Global Filters + Search Grid (Covering BRD Page 1 & Page 4) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
         {/* 1. Project */}
         <div className="space-y-1">
           <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
@@ -220,7 +238,61 @@ export const ProjectDashboardFilterBar: React.FC<ProjectDashboardFilterBarProps>
           </div>
         </div>
 
-        {/* 6. Search Projects */}
+        {/* 6. Client (BRD Page 4 Wireframe) */}
+        <div className="space-y-1">
+          <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+            Client
+          </label>
+          <div className="relative">
+            <select
+              value={filters.client}
+              onChange={(e) => onChangeFilters({ ...filters, client: e.target.value })}
+              className="w-full h-[38px] appearance-none rounded-xl border border-slate-200 bg-slate-50/50 px-3 text-xs font-medium text-slate-800 pr-8 hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition cursor-pointer shadow-2xs"
+            >
+              <option value="All">All Clients</option>
+              {clientOptions.map((cli) => (
+                <option key={cli} value={cli}>
+                  {cli}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+          </div>
+        </div>
+
+        {/* 7. Date Range (BRD Page 4 Wireframe: 'Date Range: All Time') */}
+        <div className="space-y-1">
+          <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+            Date Range
+          </label>
+          <div className="relative">
+            <select
+              value={filters.dateRangePreset}
+              onChange={(e) =>
+                onChangeFilters({
+                  ...filters,
+                  dateRangePreset: e.target.value,
+                  dateRange:
+                    e.target.value !== 'custom'
+                      ? { startDate: '', endDate: '' }
+                      : filters.dateRange,
+                })
+              }
+              className="w-full h-[38px] appearance-none rounded-xl border border-slate-200 bg-slate-50/50 px-3 text-xs font-medium text-slate-800 pr-8 hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition cursor-pointer shadow-2xs"
+            >
+              <option value="all_time">All Time</option>
+              <option value="today">Today</option>
+              <option value="this_month">This Month</option>
+              <option value="this_year">This Year</option>
+              <option value="last_30_days">Last 30 Days</option>
+              <option value="last_90_days">Last 90 Days</option>
+              <option value="custom">Custom Range...</option>
+            </select>
+            <Calendar className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+          </div>
+        </div>
+
+        {/* 8. Search Projects */}
         <div className="space-y-1">
           <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center justify-between">
             <span>Search</span>
@@ -234,7 +306,7 @@ export const ProjectDashboardFilterBar: React.FC<ProjectDashboardFilterBarProps>
               type="text"
               value={filters.search}
               onChange={(e) => onChangeFilters({ ...filters, search: e.target.value })}
-              placeholder="Search projects, clients..."
+              placeholder="Search projects..."
               className="w-full h-[38px] rounded-xl border border-slate-200 bg-slate-50/50 pl-10 pr-8 text-xs font-medium text-slate-800 placeholder:text-slate-400 hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition shadow-2xs"
             />
             {filters.search && (
@@ -251,53 +323,55 @@ export const ProjectDashboardFilterBar: React.FC<ProjectDashboardFilterBarProps>
         </div>
       </div>
 
-      {/* Date Range Selection Row (Start Date & End Date) */}
-      <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center gap-3 text-xs text-slate-600">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-          <Calendar className="w-3.5 h-3.5 text-blue-600" />
-          Project Start Date Range:
-        </span>
-        <div className="flex items-center gap-2">
-          <input
-            type="date"
-            value={filters.dateRange.startDate}
-            onChange={(e) =>
-              onChangeFilters({
-                ...filters,
-                dateRange: { ...filters.dateRange, startDate: e.target.value },
-              })
-            }
-            className="h-8 rounded-lg border border-slate-200 bg-slate-50/50 px-2.5 text-xs text-slate-800 focus:border-blue-500 focus:bg-white focus:outline-none"
-          />
-          <span className="text-slate-400">to</span>
-          <input
-            type="date"
-            value={filters.dateRange.endDate}
-            min={filters.dateRange.startDate || undefined}
-            onChange={(e) =>
-              onChangeFilters({
-                ...filters,
-                dateRange: { ...filters.dateRange, endDate: e.target.value },
-              })
-            }
-            className="h-8 rounded-lg border border-slate-200 bg-slate-50/50 px-2.5 text-xs text-slate-800 focus:border-blue-500 focus:bg-white focus:outline-none"
-          />
-          {(filters.dateRange.startDate || filters.dateRange.endDate) && (
-            <button
-              type="button"
-              onClick={() =>
+      {/* Custom Date Range Popdown Inputs (Only visible when Custom Range is selected) */}
+      {filters.dateRangePreset === 'custom' && (
+        <div className="pt-2.5 border-t border-slate-100 flex flex-wrap items-center gap-3 text-xs text-slate-600 bg-blue-50/40 p-2.5 rounded-xl border border-blue-100/60 animate-in fade-in">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+            <Calendar className="w-3.5 h-3.5 text-blue-600" />
+            Custom Date Range:
+          </span>
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={filters.dateRange.startDate}
+              onChange={(e) =>
                 onChangeFilters({
                   ...filters,
-                  dateRange: { startDate: '', endDate: '' },
+                  dateRange: { ...filters.dateRange, startDate: e.target.value },
                 })
               }
-              className="text-[11px] font-semibold text-rose-500 hover:text-rose-700 ml-1"
-            >
-              Reset Dates
-            </button>
-          )}
+              className="h-8 rounded-lg border border-slate-200 bg-white px-2.5 text-xs text-slate-800 focus:border-blue-500 focus:outline-none"
+            />
+            <span className="text-slate-400">to</span>
+            <input
+              type="date"
+              value={filters.dateRange.endDate}
+              min={filters.dateRange.startDate || undefined}
+              onChange={(e) =>
+                onChangeFilters({
+                  ...filters,
+                  dateRange: { ...filters.dateRange, endDate: e.target.value },
+                })
+              }
+              className="h-8 rounded-lg border border-slate-200 bg-white px-2.5 text-xs text-slate-800 focus:border-blue-500 focus:outline-none"
+            />
+            {(filters.dateRange.startDate || filters.dateRange.endDate) && (
+              <button
+                type="button"
+                onClick={() =>
+                  onChangeFilters({
+                    ...filters,
+                    dateRange: { startDate: '', endDate: '' },
+                  })
+                }
+                className="text-[11px] font-semibold text-rose-500 hover:text-rose-700 ml-1"
+              >
+                Clear Range
+              </button>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

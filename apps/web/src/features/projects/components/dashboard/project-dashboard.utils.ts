@@ -42,7 +42,37 @@ export function filterProjects(
       return false;
     }
 
-    // 6. Date Range Filter (Applied to Project Start Date)
+    // 6. Client Filter (BRD Page 4 Wireframe)
+    if (filters.client !== 'All' && proj.client_name !== filters.client) {
+      return false;
+    }
+
+    // 7. Date Range Filter (Applied to Project Start Date)
+    if (filters.dateRangePreset && filters.dateRangePreset !== 'all_time') {
+      const projStart = new Date(proj.start_date);
+      if (!isNaN(projStart.getTime())) {
+        const now = new Date();
+        if (filters.dateRangePreset === 'today') {
+          if (projStart.toDateString() !== now.toDateString()) return false;
+        } else if (filters.dateRangePreset === 'this_month') {
+          if (
+            projStart.getMonth() !== now.getMonth() ||
+            projStart.getFullYear() !== now.getFullYear()
+          ) {
+            return false;
+          }
+        } else if (filters.dateRangePreset === 'this_year') {
+          if (projStart.getFullYear() !== now.getFullYear()) return false;
+        } else if (filters.dateRangePreset === 'last_30_days') {
+          const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          if (projStart < thirtyDaysAgo || projStart > now) return false;
+        } else if (filters.dateRangePreset === 'last_90_days') {
+          const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+          if (projStart < ninetyDaysAgo || projStart > now) return false;
+        }
+      }
+    }
+
     if (filters.dateRange.startDate) {
       const projStart = new Date(proj.start_date).getTime();
       const filterStart = new Date(filters.dateRange.startDate).getTime();
@@ -58,16 +88,17 @@ export function filterProjects(
       }
     }
 
-    // 7. Global Search (Project No, Name, Manager, Category, Team Member Name)
+    // 8. Global Search (Project No, Name, Manager, Category, Client, Team Member Name)
     if (filters.search && filters.search.trim()) {
       const q = filters.search.trim().toLowerCase();
       const matchNo = proj.project_no?.toLowerCase().includes(q);
       const matchName = proj.project_name?.toLowerCase().includes(q);
       const matchPM = proj.project_manager_name?.toLowerCase().includes(q);
       const matchCat = proj.category?.toLowerCase().includes(q);
+      const matchClient = proj.client_name?.toLowerCase().includes(q);
       const matchMembers = proj.members?.some((m) => m.name?.toLowerCase().includes(q));
 
-      if (!matchNo && !matchName && !matchPM && !matchCat && !matchMembers) {
+      if (!matchNo && !matchName && !matchPM && !matchCat && !matchClient && !matchMembers) {
         return false;
       }
     }
