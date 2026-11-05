@@ -8,7 +8,7 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "lint": "tsc --noEmit",
-    "test": "node --import tsx --test src/features/projects/components/dashboard/project-dashboard.spec.ts src/features/employees/components/dashboard/dashboard.spec.ts src/features/recruitment/components/dashboard/dashboard.spec.ts",
+    "test": "node --import tsx --test src/features/attendance/components/analytics/attendance-analytics.spec.ts src/features/projects/components/dashboard/project-dashboard.spec.ts src/features/employees/components/dashboard/dashboard.spec.ts src/features/recruitment/components/dashboard/dashboard.spec.ts",
     "test:e2e": "playwright test"
   },
   "dependencies": {

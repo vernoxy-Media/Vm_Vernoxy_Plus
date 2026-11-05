@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import { Settings, ClipboardCheck, RefreshCw, Download, Clock, FileText, CheckCircle2, X } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { ClipboardCheck, Download, Clock, FileText, CheckCircle2, BarChart3, X } from 'lucide-react';
 import { getAccessToken } from '@vernoxy-pulse/api-client';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useAttendanceDashboard, usePunchActions } from '../hooks/use-attendance';
@@ -9,6 +9,7 @@ import { AttendanceDashboardCards } from '../components/AttendanceDashboardCards
 import { AddRegularizationModal } from '../components/AddRegularizationModal';
 import { MyRegularizationsPanel } from '../components/MyRegularizationsPanel';
 import { ApprovalsPanel } from '../components/ApprovalsPanel';
+import { AttendanceAnalyticsDashboardTab } from '../components/analytics/AttendanceAnalyticsDashboardTab';
 
 const MONTH_OPTIONS = [
   { value: '01', label: 'January' },
@@ -41,7 +42,20 @@ export const AttendancePage: React.FC = () => {
   const [announcement, setAnnouncement] = useState<string>('');
   const [infoToast, setInfoToast] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [attendanceTab, setAttendanceTab] = useState<'timesheet' | 'regularization' | 'approvals'>('timesheet');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab');
+  const [attendanceTab, setAttendanceTab] = useState<'timesheet' | 'analytics' | 'regularization' | 'approvals'>(
+    initialTab === 'analytics' || initialTab === 'dashboard' ? 'analytics' : 'timesheet'
+  );
+
+  const handleTabChange = (newTab: 'timesheet' | 'analytics' | 'regularization' | 'approvals') => {
+    setAttendanceTab(newTab);
+    if (newTab === 'analytics') {
+      setSearchParams({ tab: 'analytics' });
+    } else {
+      setSearchParams({});
+    }
+  };
   const [correctionModalDate, setCorrectionModalDate] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -53,7 +67,7 @@ export const AttendancePage: React.FC = () => {
     return [curYear + 1, curYear, curYear - 1, curYear - 2].map(String);
   }, []);
 
-  const { data, isLoading, error, refetch } = useAttendanceDashboard(selectedMonth);
+  const { data, isLoading, error } = useAttendanceDashboard(selectedMonth);
 
   const {
     punchInMutation,
@@ -189,49 +203,10 @@ export const AttendancePage: React.FC = () => {
         <div className="flex items-center gap-2.5 shrink-0">
           <button
             type="button"
-            onClick={() => setIsExportModalOpen(true)}
-            disabled={isExporting}
-            className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 bg-white border border-[#E2E8F0] hover:border-slate-300 hover:bg-slate-50 text-[#1E293B] rounded-[14px] text-xs font-semibold shadow-2xs btn-hover-lift transition cursor-pointer disabled:opacity-50"
-            title="Export Monthly Attendance Report (CSV)"
-          >
-            <Download className="w-3.5 h-3.5 text-slate-500 stroke-[1.75]" />
-            <span>{isExporting ? 'Exporting...' : 'Export'}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => refetch()}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white border border-[#E2E8F0] hover:border-slate-300 hover:bg-slate-50 text-[#1E293B] rounded-[14px] text-xs font-semibold shadow-2xs btn-hover-lift transition cursor-pointer"
-          >
-            <RefreshCw className="w-3.5 h-3.5 text-slate-500 stroke-[1.75]" />
-            <span>Refresh</span>
-          </button>
-
-          {canManageAttendance && (
-            <Link
-              to="/admin/attendance-settings"
-              className="inline-flex items-center justify-center w-10 h-10 bg-white border border-[#E2E8F0] hover:border-slate-300 hover:bg-slate-50 text-slate-700 rounded-[14px] text-xs font-semibold shadow-2xs btn-hover-lift transition cursor-pointer"
-              title="Attendance Settings"
-            >
-              <Settings className="w-4 h-4 text-slate-600 stroke-[1.75]" />
-            </Link>
-          )}
-        </div>
-      </div>
-
-      {/* Top Module Tabs: Timesheet & Dashboard, My Regularizations, Approvals */}
-      <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
-        <div
-          className="inline-flex items-center gap-1.5 p-1 bg-slate-100/80 border border-slate-200/80 rounded-2xl shadow-2xs"
-          role="tablist"
-          aria-label="Attendance Sections"
-        >
-          <button
-            type="button"
             id="attendance-tab-timesheet"
             role="tab"
             aria-selected={attendanceTab === 'timesheet'}
-            onClick={() => setAttendanceTab('timesheet')}
+            onClick={() => handleTabChange('timesheet')}
             className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               attendanceTab === 'timesheet'
                 ? 'bg-white text-indigo-600 shadow-xs'
@@ -239,7 +214,23 @@ export const AttendancePage: React.FC = () => {
             }`}
           >
             <Clock className="w-3.5 h-3.5" />
-            <span>Timesheet &amp; Dashboard</span>
+            <span>Timesheet &amp; Clock-in</span>
+          </button>
+
+          <button
+            type="button"
+            id="attendance-tab-analytics"
+            role="tab"
+            aria-selected={attendanceTab === 'analytics'}
+            onClick={() => handleTabChange('analytics')}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              attendanceTab === 'analytics'
+                ? 'bg-white text-indigo-600 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+            }`}
+          >
+            <BarChart3 className="w-3.5 h-3.5" />
+            <span>Analytics Dashboard</span>
           </button>
 
           <button
@@ -247,7 +238,7 @@ export const AttendancePage: React.FC = () => {
             id="attendance-tab-regularizations"
             role="tab"
             aria-selected={attendanceTab === 'regularization'}
-            onClick={() => setAttendanceTab('regularization')}
+            onClick={() => handleTabChange('regularization')}
             className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               attendanceTab === 'regularization'
                 ? 'bg-white text-indigo-600 shadow-xs'
@@ -264,7 +255,7 @@ export const AttendancePage: React.FC = () => {
               id="attendance-tab-approvals"
               role="tab"
               aria-selected={attendanceTab === 'approvals'}
-              onClick={() => setAttendanceTab('approvals')}
+              onClick={() => handleTabChange('approvals')}
               className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 attendanceTab === 'approvals'
                   ? 'bg-white text-indigo-600 shadow-xs'
@@ -277,6 +268,10 @@ export const AttendancePage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {attendanceTab === 'analytics' && (
+        <AttendanceAnalyticsDashboardTab />
+      )}
 
       {attendanceTab === 'timesheet' && (
         <AttendanceDashboardCards
