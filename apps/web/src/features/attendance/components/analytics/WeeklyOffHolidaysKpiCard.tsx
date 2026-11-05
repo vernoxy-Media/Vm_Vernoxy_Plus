@@ -50,17 +50,17 @@ export const WeeklyOffHolidaysKpiCard: React.FC<WeeklyOffHolidaysKpiCardProps> =
         </div>
       </div>
 
-      {/* KPI Display */}
-      <div className="my-6 flex items-center gap-5 px-3">
+      {/* KPI Display Centered */}
+      <div className="flex-1 flex items-center justify-center gap-5 my-auto py-8">
         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 border border-indigo-100/80 shadow-2xs">
           <Users className="h-7 w-7 stroke-[1.75]" />
         </div>
 
         <div>
-          <div className="text-4xl font-black text-slate-900 tracking-tight">
+          <div className="text-5xl font-black text-slate-900 tracking-tight leading-none">
             {summary.distinctEmployeeCount.toLocaleString()}
           </div>
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-0.5">
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1.5">
             Employees
           </p>
         </div>
