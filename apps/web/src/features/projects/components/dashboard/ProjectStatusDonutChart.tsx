@@ -73,6 +73,16 @@ export const ProjectStatusDonutChart: React.FC<ProjectStatusDonutChartProps> = (
       <div className="my-3 flex flex-col sm:flex-row items-center justify-center gap-6">
         {/* SVG Donut */}
         <div className="relative flex items-center justify-center">
+          {/* Hover Status Floating Tooltip */}
+          {hoveredStatus && (
+            <div className="absolute -top-7 left-1/2 -translate-x-1/2 z-30 pointer-events-none whitespace-nowrap">
+              <div className="rounded-xl bg-slate-900/95 backdrop-blur-md px-2.5 py-1 text-white shadow-xl border border-slate-700/60 text-center text-[10px]">
+                <span className="font-bold">{hoveredStatus.label}:</span>{' '}
+                <span className="text-blue-300 font-bold">{hoveredStatus.count} projects</span>{' '}
+                <span className="text-slate-400">({hoveredStatus.percentage}%)</span>
+              </div>
+            </div>
+          )}
           <svg width={size} height={size} className="transform -rotate-90">
             <circle
               cx={size / 2}

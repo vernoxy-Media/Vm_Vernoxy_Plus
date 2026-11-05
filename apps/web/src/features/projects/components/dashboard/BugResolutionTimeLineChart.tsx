@@ -192,8 +192,18 @@ export const BugResolutionTimeLineChart: React.FC<BugResolutionTimeLineChartProp
 
         {/* Hover Tooltip Overlay */}
         {hoveredMonth && (
-          <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap rounded-lg bg-slate-900 px-2.5 py-1 text-[10px] font-medium text-white shadow-lg pointer-events-none">
-            {hoveredMonth.monthLabel}: Dev {hoveredMonth.avgDevHours}h | QA {hoveredMonth.avgQaHours}h &bull; {hoveredMonth.completedBugsCount} bugs done
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 z-40 whitespace-nowrap pointer-events-none">
+            <div className="rounded-xl bg-slate-900/95 backdrop-blur-md px-3 py-1.5 text-white shadow-2xl border border-slate-700/60 text-center">
+              <p className="text-[11px] font-bold text-slate-100">{hoveredMonth.monthLabel}</p>
+              <div className="flex items-center justify-center gap-2 mt-0.5 text-[9px] text-slate-300">
+                <span className="text-blue-300 font-semibold">Dev (fixing): {hoveredMonth.avgDevHours}h</span>
+                <span>•</span>
+                <span className="text-amber-300 font-semibold">QA (testing): {hoveredMonth.avgQaHours}h</span>
+              </div>
+              <p className="text-[9px] text-slate-400 mt-0.5">
+                {hoveredMonth.completedBugsCount} bugs completed
+              </p>
+            </div>
           </div>
         )}
       </div>

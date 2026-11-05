@@ -86,10 +86,20 @@ export const EstimatedVsActualHoursChart: React.FC<EstimatedVsActualHoursChartPr
               >
                 {/* Floating Tooltip */}
                 {isHovered && (
-                  <div className="absolute -top-10 z-20 whitespace-nowrap rounded-lg bg-slate-900 px-2 py-1 text-[10px] font-medium text-white shadow-md pointer-events-none text-center">
-                    {d.projectName}
-                    <br />
-                    Est: {d.estimatedHours}h | Act: {d.actualHours}h ({d.variancePercentage})
+                  <div className="absolute -top-14 z-40 whitespace-nowrap pointer-events-none">
+                    <div className="rounded-xl bg-slate-900/95 backdrop-blur-md px-2.5 py-1.5 text-white shadow-2xl border border-slate-700/60 text-center min-w-[150px]">
+                      <p className="text-[11px] font-bold text-slate-100 truncate max-w-[140px] mx-auto">
+                        {d.projectName}
+                      </p>
+                      <div className="flex items-center justify-center gap-2 mt-0.5 text-[9px] text-slate-300">
+                        <span>Est: <strong className="text-white">{d.estimatedHours}h</strong></span>
+                        <span>•</span>
+                        <span>Act: <strong className="text-white">{d.actualHours}h</strong></span>
+                      </div>
+                      <p className={`text-[9px] font-bold mt-0.5 ${d.varianceHours > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                        {d.variancePercentage}
+                      </p>
+                    </div>
                   </div>
                 )}
 

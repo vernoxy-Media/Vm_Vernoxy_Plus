@@ -65,19 +65,20 @@ export const ActualExpensesLollipopChart: React.FC<ActualExpensesLollipopChartPr
       </div>
 
       {/* Lollipop Chart Visual */}
-      <div className="my-3 space-y-2 max-h-[220px] overflow-y-auto pr-1">
+      <div className="my-3 space-y-2.5 overflow-visible">
         {displayed.length === 0 ? (
           <div className="flex items-center justify-center py-10 text-xs text-slate-400">
             No expense records found
           </div>
         ) : (
-          displayed.map((item) => {
+          displayed.map((item, idx) => {
             const widthPercent = (item.actualExpense / maxExpense) * 75;
+            const isHovered = hoveredExpense?.projectId === item.projectId;
 
             return (
               <div
                 key={item.projectId}
-                className="space-y-1 relative group cursor-pointer"
+                className="space-y-1 relative group cursor-pointer p-1.5 -mx-1.5 rounded-xl hover:bg-slate-50/80 transition-colors"
                 onMouseEnter={() => setHoveredExpense(item)}
                 onMouseLeave={() => setHoveredExpense(null)}
               >
@@ -105,10 +106,37 @@ export const ActualExpensesLollipopChart: React.FC<ActualExpensesLollipopChartPr
                   ></div>
                 </div>
 
-                {/* Tooltip */}
-                {hoveredExpense?.projectId === item.projectId && (
-                  <div className="absolute left-1/2 -top-8 -translate-x-1/2 z-20 whitespace-nowrap rounded-lg bg-slate-900 px-2 py-0.5 text-[10px] font-medium text-white shadow-md pointer-events-none">
-                    {item.projectName}: {item.expenseInLakh} (₹{item.actualExpense.toLocaleString('en-IN')}) &bull; {item.shareOfTotal}% of total
+                {/* Tooltip - Smart Positioned */}
+                {isHovered && (
+                  <div
+                    className={`absolute left-1/2 -translate-x-1/2 z-40 pointer-events-none transition-all duration-150 ${
+                      idx <= 1 ? 'top-full mt-1.5' : 'bottom-full mb-1.5'
+                    }`}
+                  >
+                    <div className="rounded-xl bg-slate-900/95 backdrop-blur-md px-3 py-2 text-white shadow-2xl border border-slate-700/60 text-left min-w-[210px]">
+                      <div className="flex items-center justify-between gap-3 border-b border-slate-800 pb-1.5 mb-1.5">
+                        <span className="text-xs font-bold text-slate-100 truncate max-w-[130px]">
+                          {item.projectName}
+                        </span>
+                        <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                          {item.expenseInLakh}
+                        </span>
+                      </div>
+                      <div className="space-y-1 text-[10px]">
+                        <div className="flex items-center justify-between text-slate-300">
+                          <span>Actual Expense:</span>
+                          <strong className="text-white font-semibold">
+                            ₹{item.actualExpense.toLocaleString('en-IN')}
+                          </strong>
+                        </div>
+                        <div className="flex items-center justify-between pt-1 border-t border-slate-800/80 text-slate-400">
+                          <span>Portfolio Share:</span>
+                          <strong className="text-indigo-300 font-bold">
+                            {item.shareOfTotal}% of total
+                          </strong>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>

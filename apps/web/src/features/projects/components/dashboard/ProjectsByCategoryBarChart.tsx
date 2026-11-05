@@ -76,8 +76,11 @@ export const ProjectsByCategoryBarChart: React.FC<ProjectsByCategoryBarChartProp
             >
               {/* Tooltip */}
               {isHovered && (
-                <div className="absolute -top-7 z-20 whitespace-nowrap rounded-lg bg-slate-900 px-2 py-0.5 text-[10px] font-medium text-white shadow-md pointer-events-none">
-                  {cat.label}: {cat.count} ({cat.percentage}%)
+                <div className="absolute -top-12 z-40 whitespace-nowrap pointer-events-none">
+                  <div className="rounded-xl bg-slate-900/95 backdrop-blur-md px-2.5 py-1 text-white shadow-xl border border-slate-700/60 text-center">
+                    <p className="text-[11px] font-bold text-slate-100">{cat.label}</p>
+                    <p className="text-[10px] text-blue-300 font-semibold">{cat.count} projects ({cat.percentage}%)</p>
+                  </div>
                 </div>
               )}
 

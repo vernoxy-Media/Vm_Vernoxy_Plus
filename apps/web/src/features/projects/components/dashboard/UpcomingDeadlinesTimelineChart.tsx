@@ -74,59 +74,94 @@ export const UpcomingDeadlinesTimelineChart: React.FC<UpcomingDeadlinesTimelineC
       </div>
 
       {/* Timeline List */}
-      <div className="my-3 space-y-2 max-h-[220px] overflow-y-auto pr-1">
+      <div className="my-3 space-y-2 overflow-visible">
         {displayed.length === 0 ? (
           <div className="flex items-center justify-center py-10 text-xs text-slate-400">
             No deadlines in this period
           </div>
         ) : (
-          displayed.map((d) => (
-            <div
-              key={d.projectId}
-              className="flex items-center justify-between p-2 rounded-xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50/50 transition relative group cursor-pointer"
-              onMouseEnter={() => setHoveredItem(d)}
-              onMouseLeave={() => setHoveredItem(null)}
-            >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <span
-                  className="w-2.5 h-2.5 rounded-full shrink-0"
-                  style={{ backgroundColor: d.color }}
-                ></span>
-                <div className="truncate">
-                  <p className="text-xs font-semibold text-slate-800 truncate" title={d.projectName}>
-                    {d.projectName}
-                  </p>
-                  <p className="text-[10px] text-slate-400">
-                    {d.deliveryDateFormatted}
-                  </p>
-                </div>
-              </div>
+          displayed.map((d, idx) => {
+            const isHovered = hoveredItem?.projectId === d.projectId;
 
-              {/* Status / Days badge */}
-              <div className="text-right shrink-0">
-                <span
-                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                    d.isOverdue
-                      ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                      : d.daysRemaining <= 7
-                      ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                      : d.daysRemaining <= 30
-                      ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                      : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                  }`}
-                >
-                  {d.isOverdue ? `Overdue ${Math.abs(d.daysRemaining)}d` : `${d.daysRemaining}d left`}
-                </span>
-              </div>
-
-              {/* Tooltip */}
-              {hoveredItem?.projectId === d.projectId && (
-                <div className="absolute left-1/2 -top-9 -translate-x-1/2 z-20 whitespace-nowrap rounded-lg bg-slate-900 px-2.5 py-1 text-[11px] font-medium text-white shadow-lg pointer-events-none">
-                  {d.projectName} &bull; {d.deliveryDateFormatted} ({d.progressPercentage}% progress)
+            return (
+              <div
+                key={d.projectId}
+                className="flex items-center justify-between p-2 rounded-xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50/70 transition relative group cursor-pointer"
+                onMouseEnter={() => setHoveredItem(d)}
+                onMouseLeave={() => setHoveredItem(null)}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span
+                    className="w-2.5 h-2.5 rounded-full shrink-0"
+                    style={{ backgroundColor: d.color }}
+                  ></span>
+                  <div className="truncate">
+                    <p className="text-xs font-semibold text-slate-800 truncate" title={d.projectName}>
+                      {d.projectName}
+                    </p>
+                    <p className="text-[10px] text-slate-400">
+                      {d.deliveryDateFormatted}
+                    </p>
+                  </div>
                 </div>
-              )}
-            </div>
-          ))
+
+                {/* Status / Days badge */}
+                <div className="text-right shrink-0">
+                  <span
+                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      d.isOverdue
+                        ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                        : d.daysRemaining <= 7
+                        ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                        : d.daysRemaining <= 30
+                        ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                        : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    }`}
+                  >
+                    {d.isOverdue ? `Overdue ${Math.abs(d.daysRemaining)}d` : `${d.daysRemaining}d left`}
+                  </span>
+                </div>
+
+                {/* Tooltip - Smart Positioned */}
+                {isHovered && (
+                  <div
+                    className={`absolute left-1/2 -translate-x-1/2 z-40 pointer-events-none transition-all duration-150 ${
+                      idx <= 1 ? 'top-full mt-1.5' : 'bottom-full mb-1.5'
+                    }`}
+                  >
+                    <div className="rounded-xl bg-slate-900/95 backdrop-blur-md px-3 py-2 text-white shadow-2xl border border-slate-700/60 text-left min-w-[210px]">
+                      <div className="flex items-center justify-between gap-3 border-b border-slate-800 pb-1.5 mb-1.5">
+                        <span className="text-xs font-bold text-slate-100 truncate max-w-[130px]">
+                          {d.projectName}
+                        </span>
+                        <span
+                          className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded ${
+                            d.isOverdue || d.daysRemaining <= 7
+                              ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                              : d.daysRemaining <= 30
+                              ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                              : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                          }`}
+                        >
+                          {d.isOverdue ? `${Math.abs(d.daysRemaining)}d overdue` : `${d.daysRemaining}d left`}
+                        </span>
+                      </div>
+                      <div className="space-y-1 text-[10px]">
+                        <div className="flex items-center justify-between text-slate-300">
+                          <span>Target Delivery Date:</span>
+                          <strong className="text-white font-semibold">{d.deliveryDateFormatted}</strong>
+                        </div>
+                        <div className="flex items-center justify-between pt-1 border-t border-slate-800/80 text-slate-400">
+                          <span>Current Progress:</span>
+                          <strong className="text-blue-300 font-bold">{d.progressPercentage}% completed</strong>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })
         )}
       </div>
 

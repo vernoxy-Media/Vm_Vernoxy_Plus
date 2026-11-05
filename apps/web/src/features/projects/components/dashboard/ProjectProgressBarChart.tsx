@@ -63,47 +63,81 @@ export const ProjectProgressBarChart: React.FC<ProjectProgressBarChartProps> = (
       </div>
 
       {/* Progress Bars List */}
-      <div className="my-3 space-y-2.5 overflow-y-auto max-h-[220px] pr-1">
+      <div className="my-3 space-y-2.5 overflow-visible">
         {displayedProjects.length === 0 ? (
           <div className="flex items-center justify-center py-10 text-xs text-slate-400">
             No projects available
           </div>
         ) : (
-          displayedProjects.map((p) => (
-            <div
-              key={p.projectId}
-              className="space-y-1 relative"
-              onMouseEnter={() => setHoveredProject(p)}
-              onMouseLeave={() => setHoveredProject(null)}
-            >
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-slate-700 truncate max-w-[170px]" title={p.projectName}>
-                  {p.projectName}
-                </span>
-                <span className="font-bold text-slate-900 text-xs">
-                  {p.progressPercentage}%
-                </span>
-              </div>
+          displayedProjects.map((p, idx) => {
+            const isHovered = hoveredProject?.projectId === p.projectId;
 
-              {/* Progress Track */}
-              <div className="h-2.5 w-full rounded-full bg-slate-100 overflow-hidden relative">
-                <div
-                  className="h-full rounded-full transition-all duration-500"
-                  style={{
-                    width: `${Math.max(p.progressPercentage, 2)}%`,
-                    backgroundColor: p.color,
-                  }}
-                ></div>
-              </div>
-
-              {/* Floating Tooltip */}
-              {hoveredProject?.projectId === p.projectId && (
-                <div className="absolute left-1/2 -top-8 -translate-x-1/2 z-20 whitespace-nowrap rounded-lg bg-slate-900 px-2.5 py-1 text-[11px] font-medium text-white shadow-lg pointer-events-none">
-                  {p.tooltipText}
+            return (
+              <div
+                key={p.projectId}
+                className="space-y-1 relative group cursor-pointer p-1.5 -mx-1.5 rounded-xl hover:bg-slate-50/80 transition-colors"
+                onMouseEnter={() => setHoveredProject(p)}
+                onMouseLeave={() => setHoveredProject(null)}
+              >
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-semibold text-slate-700 truncate max-w-[170px]" title={p.projectName}>
+                    {p.projectName}
+                  </span>
+                  <span className="font-bold text-slate-900 text-xs">
+                    {p.progressPercentage}%
+                  </span>
                 </div>
-              )}
-            </div>
-          ))
+
+                {/* Progress Track */}
+                <div className="h-2.5 w-full rounded-full bg-slate-100 overflow-hidden relative">
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: `${Math.max(p.progressPercentage, 2)}%`,
+                      backgroundColor: p.color,
+                    }}
+                  ></div>
+                </div>
+
+                {/* Floating Tooltip - Smart Positioned */}
+                {isHovered && (
+                  <div
+                    className={`absolute left-1/2 -translate-x-1/2 z-40 pointer-events-none transition-all duration-150 ${
+                      idx <= 1 ? 'top-full mt-1.5' : 'bottom-full mb-1.5'
+                    }`}
+                  >
+                    <div className="rounded-xl bg-slate-900/95 backdrop-blur-md px-3 py-2 text-white shadow-2xl border border-slate-700/60 text-left min-w-[200px]">
+                      <div className="flex items-center justify-between gap-3 border-b border-slate-800 pb-1.5 mb-1.5">
+                        <span className="text-xs font-bold text-slate-100 truncate max-w-[130px]">
+                          {p.projectName}
+                        </span>
+                        <span
+                          className="text-[10px] font-extrabold px-1.5 py-0.5 rounded text-white"
+                          style={{ backgroundColor: p.color }}
+                        >
+                          {p.progressPercentage}%
+                        </span>
+                      </div>
+                      <div className="space-y-1 text-[10px]">
+                        <div className="flex items-center justify-between text-slate-300">
+                          <span>Completed Tasks:</span>
+                          <strong className="text-white font-semibold">
+                            {p.completedTasks} / {p.totalTasks}
+                          </strong>
+                        </div>
+                        <div className="flex items-center justify-between pt-1 border-t border-slate-800/80 text-slate-400">
+                          <span>Status:</span>
+                          <span className="text-slate-300 font-medium">
+                            {p.totalTasks === 0 ? 'No tasks added' : `${p.progressPercentage}% completed`}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })
         )}
       </div>
 

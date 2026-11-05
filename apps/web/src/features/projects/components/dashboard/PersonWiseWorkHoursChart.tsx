@@ -83,22 +83,23 @@ export const PersonWiseWorkHoursChart: React.FC<PersonWiseWorkHoursChartProps> =
       </div>
 
       {/* Dumbbell Chart Visual */}
-      <div className="my-3 space-y-3 max-h-[220px] overflow-y-auto pr-1">
+      <div className="my-3 space-y-3 overflow-visible">
         {displayed.length === 0 ? (
           <div className="flex items-center justify-center py-10 text-xs text-slate-400">
             No person work hours found
           </div>
         ) : (
-          displayed.map((p) => {
+          displayed.map((p, idx) => {
             const estPos = (p.estimatedHours / maxVal) * 80;
             const actPos = (p.actualHours / maxVal) * 80;
             const minPos = Math.min(estPos, actPos);
             const maxPos = Math.max(estPos, actPos);
+            const isHovered = hoveredPerson?.employeeId === p.employeeId;
 
             return (
               <div
                 key={p.employeeId}
-                className="space-y-1 relative group cursor-pointer"
+                className="space-y-1 relative group cursor-pointer p-1.5 -mx-1.5 rounded-xl hover:bg-slate-50/80 transition-colors"
                 onMouseEnter={() => setHoveredPerson(p)}
                 onMouseLeave={() => setHoveredPerson(null)}
               >
@@ -145,10 +146,49 @@ export const PersonWiseWorkHoursChart: React.FC<PersonWiseWorkHoursChartProps> =
                   ></div>
                 </div>
 
-                {/* Tooltip */}
-                {hoveredPerson?.employeeId === p.employeeId && (
-                  <div className="absolute left-1/2 -top-8 -translate-x-1/2 z-20 whitespace-nowrap rounded-lg bg-slate-900 px-2 py-0.5 text-[10px] font-medium text-white shadow-md pointer-events-none">
-                    {p.employeeName}: Est {p.estimatedHours}h &bull; Act {p.actualHours}h ({p.diffLabel})
+                {/* Tooltip - Smart Positioned */}
+                {isHovered && (
+                  <div
+                    className={`absolute left-1/2 -translate-x-1/2 z-40 pointer-events-none transition-all duration-150 ${
+                      idx <= 1 ? 'top-full mt-1.5' : 'bottom-full mb-1.5'
+                    }`}
+                  >
+                    <div className="rounded-xl bg-slate-900/95 backdrop-blur-md px-3 py-2 text-white shadow-2xl border border-slate-700/60 text-left min-w-[200px]">
+                      <div className="flex items-center justify-between gap-3 border-b border-slate-800 pb-1.5 mb-1.5">
+                        <span className="text-xs font-bold text-slate-100 truncate max-w-[130px]">
+                          {p.employeeName}
+                        </span>
+                        <span
+                          className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded ${
+                            p.isOverEstimate
+                              ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                              : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                          }`}
+                        >
+                          {p.diffLabel}
+                        </span>
+                      </div>
+                      <div className="space-y-1 text-[10px]">
+                        <div className="flex items-center justify-between text-slate-300">
+                          <span>Estimated Effort:</span>
+                          <strong className="text-white font-semibold">{p.estimatedHours}h</strong>
+                        </div>
+                        <div className="flex items-center justify-between text-slate-300">
+                          <span>Actual Worked:</span>
+                          <strong className="text-white font-semibold">{p.actualHours}h</strong>
+                        </div>
+                        <div className="flex items-center justify-between pt-1 border-t border-slate-800/80 text-slate-400">
+                          <span>Effort Variance:</span>
+                          <strong
+                            className={`font-bold ${
+                              p.isOverEstimate ? 'text-rose-400' : 'text-emerald-400'
+                            }`}
+                          >
+                            {p.differenceHours > 0 ? `+${p.differenceHours}h overrun` : `${p.differenceHours}h within`}
+                          </strong>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
