@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   FolderKanban,
   CheckCircle2,
   RotateCw,
   AlertCircle,
   Plus,
+  BarChart3,
 } from 'lucide-react';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useSocket } from '@/shared/socket/SocketContext';
@@ -27,11 +28,24 @@ import { ProjectKanbanView } from '../components/ProjectKanbanView';
 import { ProjectFilterBar, ViewMode } from '../components/ProjectFilterBar';
 import { CreateProjectModal } from '../components/CreateProjectModal';
 import { ProjectDetailsDrawer } from '../components/ProjectDetailsDrawer';
+import { ProjectDashboardTab } from '../components/dashboard/ProjectDashboardTab';
 
 export const ProjectsPage: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id?: string }>();
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentTab = searchParams.get('tab') === 'dashboard' ? 'dashboard' : 'projects';
+
+  const setTab = (tab: 'projects' | 'dashboard') => {
+    const next = new URLSearchParams(searchParams);
+    if (tab === 'dashboard') {
+      next.set('tab', 'dashboard');
+    } else {
+      next.delete('tab');
+    }
+    setSearchParams(next, { replace: true });
+  };
   const [projects, setProjects] = useState<ProjectItem[]>([]);
   const [employees, setEmployees] = useState<AssignableEmployee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -179,29 +193,53 @@ export const ProjectsPage: React.FC = () => {
 
   return (
     <div className="space-y-3.5 w-full min-w-0 max-w-full">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 mb-1">
-            <span>Workspace</span>
-            <span>/</span>
-            <span className="text-blue-600">Projects</span>
-          </div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-            Projects
-          </h1>
+      {/* Tab Switcher & Header (Matching Recruitment & Employees style) */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="inline-flex items-center p-1 bg-white rounded-xl border border-slate-300 shadow-xs">
+          <button
+            type="button"
+            id="tab-projects-btn"
+            onClick={() => setTab('projects')}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-extrabold transition cursor-pointer ${
+              currentTab === 'projects'
+                ? 'bg-gradient-to-r from-[#5B4CF8] to-[#6C63FF] text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+            }`}
+          >
+            <FolderKanban className="w-4 h-4 stroke-[2]" />
+            <span>Projects</span>
+          </button>
+
+          <button
+            type="button"
+            id="tab-dashboard-btn"
+            onClick={() => setTab('dashboard')}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-extrabold transition cursor-pointer ${
+              currentTab === 'dashboard'
+                ? 'bg-gradient-to-r from-[#5B4CF8] to-[#6C63FF] text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+            }`}
+          >
+            <BarChart3 className="w-4 h-4 stroke-[2]" />
+            <span>Dashboard</span>
+          </button>
         </div>
 
-        {canCreate && (
+        {canCreate && currentTab === 'projects' && (
           <button
             onClick={() => setIsCreateOpen(true)}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-md shadow-blue-500/20 transition shrink-0"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-md shadow-blue-500/20 transition shrink-0 cursor-pointer"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
             Create Project
           </button>
         )}
       </div>
+
+      {currentTab === 'dashboard' ? (
+        <ProjectDashboardTab />
+      ) : (
+        <>
 
       {/* KPI Stats Strip matching Image 3 */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -343,6 +381,9 @@ export const ProjectsPage: React.FC = () => {
           onStatusChange={handleUpdateStatus}
           activeStatus={statusFilter}
         />
+      )}
+
+        </>
       )}
 
       {/* Create Project Modal */}
