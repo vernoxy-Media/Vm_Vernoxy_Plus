@@ -203,10 +203,11 @@ model employees {
   deactivated_at                                                                             DateTime?                         @db.Timestamptz(6)
   deactivated_by                                                                             Int?
   leave_policy_id                                                                            Int?
-  probation_period                                                                           String?                           @db.VarChar(100)
-  notice_period                                                                              String?                           @db.VarChar(100)
   probation_end_date                                                                         DateTime?                         @db.Date
   leave_approver_id                                                                          Int?
+  probation_period                                                                           String?                           @db.VarChar(100)
+  notice_period                                                                              String?                           @db.VarChar(100)
+  leave_policy_assigned_at                                                                   DateTime?                         @db.Date
   activity_logs                                                                              activity_logs[]
   app_settings_app_settings_created_byToemployees                                            app_settings[]                    @relation("app_settings_created_byToemployees")
   app_settings_app_settings_deleted_byToemployees                                            app_settings[]                    @relation("app_settings_deleted_byToemployees")
@@ -229,6 +230,7 @@ model employees {
   attendance_days_attendance_days_deleted_byToemployees                                      attendance_days[]                 @relation("attendance_days_deleted_byToemployees")
   attendance_days_attendance_days_emp_idToemployees                                          attendance_days[]                 @relation("attendance_days_emp_idToemployees")
   attendance_days_attendance_days_updated_byToemployees                                      attendance_days[]                 @relation("attendance_days_updated_byToemployees")
+  attendance_punch_locations                                                                 attendance_punch_locations[]
   auth_events_auth_events_actor_emp_idToemployees                                            auth_events[]                     @relation("auth_events_actor_emp_idToemployees")
   auth_events_auth_events_emp_idToemployees                                                  auth_events[]                     @relation("auth_events_emp_idToemployees")
   auth_sessions_auth_sessions_created_byToemployees                                          auth_sessions[]                   @relation("auth_sessions_created_byToemployees")
@@ -240,6 +242,7 @@ model employees {
   calendar_event_attendees_calendar_event_attendees_deleted_byToemployees                    calendar_event_attendees[]        @relation("calendar_event_attendees_deleted_byToemployees")
   calendar_event_attendees_calendar_event_attendees_employee_idToemployees                   calendar_event_attendees[]        @relation("calendar_event_attendees_employee_idToemployees")
   calendar_event_attendees_calendar_event_attendees_updated_byToemployees                    calendar_event_attendees[]        @relation("calendar_event_attendees_updated_byToemployees")
+  calendar_event_reminders                                                                   calendar_event_reminders[]
   calendar_events_calendar_events_created_byToemployees                                      calendar_events[]                 @relation("calendar_events_created_byToemployees")
   calendar_events_calendar_events_deleted_byToemployees                                      calendar_events[]                 @relation("calendar_events_deleted_byToemployees")
   calendar_events_calendar_events_organizer_idToemployees                                    calendar_events[]                 @relation("calendar_events_organizer_idToemployees")
@@ -374,11 +377,13 @@ model employees {
   leads_leads_lead_by_idToemployees                                                          leads[]                           @relation("leads_lead_by_idToemployees")
   leave_balances                                                                             leave_balances[]
   leave_comp_off_grants                                                                      leave_comp_off_grants[]
+  leave_credit_runs                                                                          leave_credit_runs[]
   leave_general_settings                                                                     leave_general_settings[]
   leave_ledger_leave_ledger_emp_idToemployees                                                leave_ledger[]                    @relation("leave_ledger_emp_idToemployees")
   leave_ledger_leave_ledger_performed_byToemployees                                          leave_ledger[]                    @relation("leave_ledger_performed_byToemployees")
   leave_policies_leave_policies_created_byToemployees                                        leave_policies[]                  @relation("leave_policies_created_byToemployees")
   leave_policies_leave_policies_updated_byToemployees                                        leave_policies[]                  @relation("leave_policies_updated_byToemployees")
+  leave_request_days                                                                         leave_request_days[]
   leave_requests_leave_requests_applied_byToemployees                                        leave_requests[]                  @relation("leave_requests_applied_byToemployees")
   leave_requests_leave_requests_cancellation_decided_byToemployees                           leave_requests[]                  @relation("leave_requests_cancellation_decided_byToemployees")
   leave_requests_leave_requests_decided_byToemployees                                        leave_requests[]                  @relation("leave_requests_decided_byToemployees")
@@ -388,6 +393,16 @@ model employees {
   master_lookup_master_lookup_created_byToemployees                                          master_lookup[]                   @relation("master_lookup_created_byToemployees")
   master_lookup_master_lookup_deleted_byToemployees                                          master_lookup[]                   @relation("master_lookup_deleted_byToemployees")
   master_lookup_master_lookup_updated_byToemployees                                          master_lookup[]                   @relation("master_lookup_updated_byToemployees")
+  msg_conversation                                                                           msg_conversation[]
+  msg_hidden                                                                                 msg_hidden[]
+  msg_member                                                                                 msg_member[]
+  msg_message_msg_message_deleted_byToemployees                                              msg_message[]                     @relation("msg_message_deleted_byToemployees")
+  msg_message_msg_message_sender_idToemployees                                               msg_message[]                     @relation("msg_message_sender_idToemployees")
+  msg_message_audit                                                                          msg_message_audit[]
+  msg_pin                                                                                    msg_pin[]
+  msg_reaction                                                                               msg_reaction[]
+  msg_star                                                                                   msg_star[]
+  msg_user_state                                                                             msg_user_state?
   notifications_notifications_created_byToemployees                                          notifications[]                   @relation("notifications_created_byToemployees")
   notifications_notifications_deleted_byToemployees                                          notifications[]                   @relation("notifications_deleted_byToemployees")
   notifications_notifications_recipient_idToemployees                                        notifications[]                   @relation("notifications_recipient_idToemployees")
@@ -592,9 +607,6 @@ model master_lookup {
   code                                                  String                         @db.VarChar(50)
   label                                                 String                         @db.VarChar(150)
   sort_order                                            Int                            @default(0)
-  parent_id                                             Int?
-  parent                                                master_lookup?                 @relation("master_lookup_parent", fields: [parent_id], references: [lookup_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_master_lookup_parent")
-  children                                              master_lookup[]                @relation("master_lookup_parent")
   is_active                                             Boolean                        @default(true)
   created_at                                            DateTime                       @default(now()) @db.Timestamptz(6)
   created_by                                            Int?
@@ -602,6 +614,7 @@ model master_lookup {
   updated_by                                            Int?
   deleted_at                                            DateTime?                      @db.Timestamptz(6)
   deleted_by                                            Int?
+  parent_id                                             Int?
   candidates                                            candidates[]
   company_persons                                       company_persons[]
   employees_employees_employment_type_idTomaster_lookup employees[]                    @relation("employees_employment_type_idTomaster_lookup")
@@ -610,6 +623,8 @@ model master_lookup {
   leads_leads_source_idTomaster_lookup                  leads[]                        @relation("leads_source_idTomaster_lookup")
   employees_master_lookup_created_byToemployees         employees?                     @relation("master_lookup_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_master_lookup_created_by")
   employees_master_lookup_deleted_byToemployees         employees?                     @relation("master_lookup_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_master_lookup_deleted_by")
+  parent                                                master_lookup?                 @relation("master_lookup_parent", fields: [parent_id], references: [lookup_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_master_lookup_parent")
+  children                                              master_lookup[]                @relation("master_lookup_parent")
   employees_master_lookup_updated_byToemployees         employees?                     @relation("master_lookup_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_master_lookup_updated_by")
   payroll_adjustments                                   payroll_adjustments[]
   software_license_assignments                          software_license_assignments[]
@@ -1104,6 +1119,7 @@ model calendar_events {
   deleted_at                                        DateTime?                  @db.Timestamptz(6)
   deleted_by                                        Int?
   calendar_event_attendees                          calendar_event_attendees[]
+  calendar_event_reminders                          calendar_event_reminders[]
   employees_calendar_events_created_byToemployees   employees?                 @relation("calendar_events_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_calendar_events_created_by")
   employees_calendar_events_deleted_byToemployees   employees?                 @relation("calendar_events_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_calendar_events_deleted_by")
   employees_calendar_events_organizer_idToemployees employees                  @relation("calendar_events_organizer_idToemployees", fields: [organizer_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_calendar_events_organizer")
@@ -1299,7 +1315,6 @@ model projects {
   tech_frontend                                    String?
   tech_backend                                     String?
   tech_cloud                                       String?
-  description                                      String?
   row_version                                      Int                    @default(1)
   created_at                                       DateTime               @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
   created_by                                       Int?
@@ -1307,6 +1322,7 @@ model projects {
   updated_by                                       Int?
   deleted_at                                       DateTime?              @db.Timestamptz(6)
   deleted_by                                       Int?
+  description                                      String?
   complaints                                       complaints[]
   kb_feedback                                      kb_feedback[]
   perf_project_ratings                             perf_project_ratings[]
@@ -1769,12 +1785,12 @@ model crm_communications {
   what_discussed      String
   outcome             String?          @db.VarChar(100)
   attachment_url      String?
-  call_status         String?          @db.VarChar(20)
-  not_received_reason String?          @db.VarChar(150)
   created_by          Int?
   created_at          DateTime         @default(now()) @db.Timestamptz(6)
   updated_at          DateTime?        @db.Timestamptz(6)
   deleted_at          DateTime?        @db.Timestamptz(6)
+  call_status         String?          @db.VarChar(20)
+  not_received_reason String?          @db.VarChar(150)
   companies           companies?       @relation(fields: [company_id], references: [company_id], onDelete: Cascade, onUpdate: NoAction)
   persons             persons?         @relation(fields: [contact_id], references: [person_id], onUpdate: NoAction)
   employees           employees?       @relation(fields: [created_by], references: [emp_id], onUpdate: NoAction)
@@ -1862,15 +1878,18 @@ model leave_balances {
   emp_id               Int
   leave_type_id        Int
   leave_year           Int
-  opening_balance      Decimal     @default(0.0) @db.Decimal(4, 1)
-  credited_days        Decimal     @default(0.0) @db.Decimal(4, 1)
-  carried_forward_days Decimal     @default(0.0) @db.Decimal(4, 1)
-  days_taken           Decimal     @default(0.0) @db.Decimal(4, 1)
-  days_booked          Decimal     @default(0.0) @db.Decimal(4, 1)
-  lapsed_days          Decimal     @default(0.0) @db.Decimal(4, 1)
+  opening_balance      Decimal     @default(0.0) @db.Decimal(7, 2)
+  credited_days        Decimal     @default(0.0) @db.Decimal(7, 2)
+  carried_forward_days Decimal     @default(0.0) @db.Decimal(7, 2)
+  days_taken           Decimal     @default(0.0) @db.Decimal(7, 2)
+  days_booked          Decimal     @default(0.0) @db.Decimal(7, 2)
+  lapsed_days          Decimal     @default(0.0) @db.Decimal(7, 2)
   is_frozen            Boolean     @default(false)
   created_at           DateTime    @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
   updated_at           DateTime?   @db.Timestamptz(6)
+  adjusted_days        Decimal     @default(0.0) @db.Decimal(7, 2)
+  carried_out_days     Decimal     @default(0.0) @db.Decimal(7, 2)
+  opening_set_at       DateTime?   @db.Timestamptz(6)
   employees            employees   @relation(fields: [emp_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
   leave_types          leave_types @relation(fields: [leave_type_id], references: [leave_type_id], onDelete: NoAction, onUpdate: NoAction)
 
@@ -1879,16 +1898,19 @@ model leave_balances {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model leave_comp_off_grants {
-  grant_id      Int       @id(map: "pk_leave_comp_off_grants") @default(autoincrement())
-  emp_id        Int
-  ot_date       DateTime  @db.Date
-  ot_hours      Decimal   @db.Decimal(4, 2)
-  days_credited Decimal   @db.Decimal(3, 1)
-  days_used     Decimal   @default(0.0) @db.Decimal(3, 1)
-  expiry_date   DateTime  @db.Date
-  is_lapsed     Boolean   @default(false)
-  created_at    DateTime  @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
-  employees     employees @relation(fields: [emp_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+  grant_id           Int       @id(map: "pk_leave_comp_off_grants") @default(autoincrement())
+  emp_id             Int
+  ot_date            DateTime  @db.Date
+  ot_hours           Decimal   @db.Decimal(4, 2)
+  days_credited      Decimal   @db.Decimal(4, 1)
+  days_used          Decimal   @default(0.0) @db.Decimal(4, 1)
+  expiry_date        DateTime  @db.Date
+  is_lapsed          Boolean   @default(false)
+  created_at         DateTime  @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  source_ot_entry_id Int?
+  leave_year         Int?
+  lapsed_at          DateTime? @db.Timestamptz(6)
+  employees          employees @relation(fields: [emp_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -1911,16 +1933,21 @@ model leave_ledger {
   emp_id                                         Int
   leave_type_id                                  Int
   entry_type                                     String          @db.VarChar(30)
-  days                                           Decimal         @db.Decimal(4, 1)
-  balance_after                                  Decimal         @db.Decimal(4, 1)
+  days                                           Decimal         @db.Decimal(7, 2)
+  balance_after                                  Decimal         @db.Decimal(7, 2)
   note                                           String          @db.VarChar(500)
   reference_request_id                           Int?
   performed_by                                   Int?
   performed_at                                   DateTime        @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  leave_year                                     Int?
+  expiry_date                                    DateTime?       @db.Date
+  credit_key                                     String?         @db.VarChar(80)
   employees_leave_ledger_emp_idToemployees       employees       @relation("leave_ledger_emp_idToemployees", fields: [emp_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
   leave_types                                    leave_types     @relation(fields: [leave_type_id], references: [leave_type_id], onDelete: NoAction, onUpdate: NoAction)
   employees_leave_ledger_performed_byToemployees employees?      @relation("leave_ledger_performed_byToemployees", fields: [performed_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
   leave_requests                                 leave_requests? @relation(fields: [reference_request_id], references: [request_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([emp_id, leave_type_id, performed_at(sort: Desc)], map: "ix_leave_ledger_emp_type")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -1963,39 +1990,49 @@ model leave_policy_rules {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model leave_requests {
-  request_id                                                  Int               @id(map: "pk_leave_requests") @default(autoincrement())
-  request_no                                                  String            @unique(map: "uq_leave_requests_request_no") @db.VarChar(30)
+  request_id                                                  Int                  @id(map: "pk_leave_requests") @default(autoincrement())
+  request_no                                                  String               @unique(map: "uq_leave_requests_request_no") @db.VarChar(30)
   emp_id                                                      Int
   leave_type_id                                               Int
   is_paid                                                     Boolean
-  duration                                                    String            @default("FULL_DAY") @db.VarChar(20)
-  from_date                                                   DateTime          @db.Date
-  to_date                                                     DateTime          @db.Date
-  leave_days                                                  Decimal           @db.Decimal(4, 1)
-  reason                                                      String            @db.VarChar(500)
-  attachment_url                                              String?           @db.VarChar(500)
-  is_short_notice                                             Boolean           @default(false)
-  status                                                      String            @default("PENDING") @db.VarChar(30)
-  applied_at                                                  DateTime          @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  duration                                                    String               @default("FULL_DAY") @db.VarChar(20)
+  from_date                                                   DateTime             @db.Date
+  to_date                                                     DateTime             @db.Date
+  leave_days                                                  Decimal              @db.Decimal(4, 1)
+  reason                                                      String               @db.VarChar(500)
+  attachment_url                                              String?              @db.VarChar(500)
+  is_short_notice                                             Boolean              @default(false)
+  status                                                      String               @default("PENDING") @db.VarChar(30)
+  applied_at                                                  DateTime             @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
   applied_by                                                  Int
-  decided_at                                                  DateTime?         @db.Timestamptz(6)
+  decided_at                                                  DateTime?            @db.Timestamptz(6)
   decided_by                                                  Int?
-  decision_remarks                                            String?           @db.VarChar(500)
-  is_self_approved                                            Boolean           @default(false)
-  cancellation_reason                                         String?           @db.VarChar(500)
-  cancellation_requested_at                                   DateTime?         @db.Timestamptz(6)
+  decision_remarks                                            String?              @db.VarChar(500)
+  is_self_approved                                            Boolean              @default(false)
+  cancellation_reason                                         String?              @db.VarChar(500)
+  cancellation_requested_at                                   DateTime?            @db.Timestamptz(6)
   cancellation_decided_by                                     Int?
-  cancellation_decided_at                                     DateTime?         @db.Timestamptz(6)
-  cancellation_remarks                                        String?           @db.VarChar(500)
-  created_at                                                  DateTime          @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
-  updated_at                                                  DateTime?         @db.Timestamptz(6)
+  cancellation_decided_at                                     DateTime?            @db.Timestamptz(6)
+  cancellation_remarks                                        String?              @db.VarChar(500)
+  created_at                                                  DateTime             @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at                                                  DateTime?            @db.Timestamptz(6)
+  leave_year                                                  Int?
+  added_by_admin                                              Boolean              @default(false)
+  withdrawn_at                                                DateTime?            @db.Timestamptz(6)
+  withdraw_reason                                             String?              @db.VarChar(500)
+  is_system_action                                            Boolean              @default(false)
+  comp_off_allocation                                         Json?
   attendance_days                                             attendance_days[]
   leave_ledger                                                leave_ledger[]
-  employees_leave_requests_applied_byToemployees              employees         @relation("leave_requests_applied_byToemployees", fields: [applied_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
-  employees_leave_requests_cancellation_decided_byToemployees employees?        @relation("leave_requests_cancellation_decided_byToemployees", fields: [cancellation_decided_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
-  employees_leave_requests_decided_byToemployees              employees?        @relation("leave_requests_decided_byToemployees", fields: [decided_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
-  employees_leave_requests_emp_idToemployees                  employees         @relation("leave_requests_emp_idToemployees", fields: [emp_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
-  leave_types                                                 leave_types       @relation(fields: [leave_type_id], references: [leave_type_id], onDelete: NoAction, onUpdate: NoAction)
+  leave_request_days                                          leave_request_days[]
+  employees_leave_requests_applied_byToemployees              employees            @relation("leave_requests_applied_byToemployees", fields: [applied_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+  employees_leave_requests_cancellation_decided_byToemployees employees?           @relation("leave_requests_cancellation_decided_byToemployees", fields: [cancellation_decided_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+  employees_leave_requests_decided_byToemployees              employees?           @relation("leave_requests_decided_byToemployees", fields: [decided_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+  employees_leave_requests_emp_idToemployees                  employees            @relation("leave_requests_emp_idToemployees", fields: [emp_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+  leave_types                                                 leave_types          @relation(fields: [leave_type_id], references: [leave_type_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([emp_id, from_date, to_date], map: "ix_leave_requests_emp_dates")
+  @@index([status, from_date], map: "ix_leave_requests_status_from")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -2070,11 +2107,11 @@ model expense_claims {
   claim_no                                                                         String?              @db.VarChar(30)
   emp_id                                                                           Int
   expense_date                                                                     DateTime             @db.Date
-  category_id                                                                      Int
-  expense_type                                                                     String               @db.VarChar(20)
-  amount                                                                           Decimal              @db.Decimal(12, 2)
+  category_id                                                                      Int?
+  expense_type                                                                     String?              @db.VarChar(20)
+  amount                                                                           Decimal?             @db.Decimal(12, 2)
   merchant_name                                                                    String?              @db.VarChar(100)
-  description                                                                      String               @db.VarChar(500)
+  description                                                                      String?              @db.VarChar(500)
   status                                                                           String               @default("DRAFT") @db.VarChar(20)
   is_above_limit                                                                   Boolean              @default(false)
   is_possible_duplicate                                                            Boolean              @default(false)
@@ -2105,7 +2142,7 @@ model expense_claims {
   deleted_at                                                                       DateTime?            @db.Timestamptz(6)
   deleted_by                                                                       Int?
   employees_expense_claims_approver_emp_idToemployees                              employees?           @relation("expense_claims_approver_emp_idToemployees", fields: [approver_emp_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
-  expense_categories                                                               expense_categories   @relation(fields: [category_id], references: [category_id], onDelete: NoAction, onUpdate: NoAction)
+  expense_categories                                                               expense_categories?  @relation(fields: [category_id], references: [category_id], onDelete: NoAction, onUpdate: NoAction)
   expense_claims_expense_claims_copied_from_claim_idToexpense_claims               expense_claims?      @relation("expense_claims_copied_from_claim_idToexpense_claims", fields: [copied_from_claim_id], references: [claim_id], onDelete: NoAction, onUpdate: NoAction)
   other_expense_claims_expense_claims_copied_from_claim_idToexpense_claims         expense_claims[]     @relation("expense_claims_copied_from_claim_idToexpense_claims")
   employees_expense_claims_created_byToemployees                                   employees            @relation("expense_claims_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
@@ -2132,6 +2169,7 @@ model expense_general_settings {
   created_at                   DateTime   @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
   updated_at                   DateTime?  @db.Timestamptz(6)
   updated_by                   Int?
+  accounts_emp_ids             Int[]      @default([])
   employees                    employees? @relation(fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
 }
 
@@ -2768,9 +2806,10 @@ model perf_project_ratings {
   project_manager_id                                           Int
   rating                                                       Int         @db.SmallInt
   comment                                                      String?
-  submitted_at                                                 DateTime    @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  submitted_at                                                 DateTime?   @db.Timestamptz(6)
   created_at                                                   DateTime    @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
   updated_at                                                   DateTime?   @db.Timestamptz(6)
+  status                                                       String      @default("SUBMITTED") @db.VarChar(20)
   perf_cycles                                                  perf_cycles @relation(fields: [cycle_id], references: [cycle_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_perf_proj_ratings_cycle")
   employees_perf_project_ratings_emp_idToemployees             employees   @relation("perf_project_ratings_emp_idToemployees", fields: [emp_id], references: [emp_id], onUpdate: NoAction, map: "fk_perf_proj_ratings_emp")
   employees_perf_project_ratings_project_manager_idToemployees employees   @relation("perf_project_ratings_project_manager_idToemployees", fields: [project_manager_id], references: [emp_id], onUpdate: NoAction, map: "fk_perf_proj_ratings_pm")
@@ -2826,6 +2865,191 @@ model perf_reviews {
   @@index([cycle_id, self_status, manager_status, admin_status], map: "ix_perf_reviews_cycle_status")
   @@index([emp_id, cycle_id], map: "ix_perf_reviews_emp")
   @@index([manager_emp_id, cycle_id], map: "ix_perf_reviews_manager")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model attendance_punch_locations {
+  emp_id      Int
+  work_date   DateTime  @db.Date
+  kind        String    @db.VarChar(3)
+  latitude    Float
+  longitude   Float
+  accuracy_m  Int?
+  captured_at DateTime  @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  employees   employees @relation(fields: [emp_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([emp_id, work_date, kind])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model calendar_event_reminders {
+  event_id        Int
+  emp_id          Int
+  kind            String          @db.VarChar(10)
+  sent_at         DateTime        @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  employees       employees       @relation(fields: [emp_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+  calendar_events calendar_events @relation(fields: [event_id], references: [event_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([event_id, emp_id, kind])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model leave_credit_runs {
+  run_key    String     @id(map: "pk_leave_credit_runs") @db.VarChar(80)
+  run_type   String     @db.VarChar(30)
+  started_by Int?
+  run_at     DateTime   @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  details    Json?
+  employees  employees? @relation(fields: [started_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model leave_request_days {
+  request_day_id Int            @id(map: "pk_leave_request_days") @default(autoincrement())
+  request_id     Int
+  emp_id         Int
+  leave_date     DateTime       @db.Date
+  day_part       String         @default("FULL_DAY") @db.VarChar(20)
+  day_fraction   Decimal        @default(1.0) @db.Decimal(2, 1)
+  created_at     DateTime       @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  employees      employees      @relation(fields: [emp_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+  leave_requests leave_requests @relation(fields: [request_id], references: [request_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([request_id, leave_date], map: "uq_leave_request_days")
+  @@index([leave_date], map: "ix_leave_request_days_date")
+  @@index([emp_id, leave_date], map: "ix_leave_request_days_emp_date")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model msg_conversation {
+  conversation_id  BigInt        @id @default(autoincrement())
+  kind             String        @db.VarChar(10)
+  direct_key       String?       @db.VarChar(40)
+  name             String?       @db.VarChar(60)
+  description      String?       @db.VarChar(500)
+  only_admins_post Boolean       @default(false)
+  is_closed        Boolean       @default(false)
+  created_by       Int?
+  created_at       DateTime      @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  last_message_at  DateTime      @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  employees        employees?    @relation(fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+  msg_member       msg_member[]
+  msg_message      msg_message[]
+  msg_pin          msg_pin[]
+}
+
+model msg_hidden {
+  message_id  BigInt
+  emp_id      Int
+  employees   employees   @relation(fields: [emp_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+  msg_message msg_message @relation(fields: [message_id], references: [message_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([message_id, emp_id])
+}
+
+model msg_member {
+  conversation_id           BigInt
+  emp_id                    Int
+  is_admin                  Boolean          @default(false)
+  joined_at                 DateTime         @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  left_at                   DateTime?        @db.Timestamptz(6)
+  last_read_message_id      BigInt           @default(0)
+  last_delivered_message_id BigInt           @default(0)
+  muted_until               DateTime?        @db.Timestamptz(6)
+  is_archived               Boolean          @default(false)
+  pinned_at                 DateTime?        @db.Timestamptz(6)
+  marked_unread             Boolean          @default(false)
+  msg_conversation          msg_conversation @relation(fields: [conversation_id], references: [conversation_id], onDelete: Cascade, onUpdate: NoAction)
+  employees                 employees        @relation(fields: [emp_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([conversation_id, emp_id])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model msg_message {
+  message_id                                  BigInt              @id @default(autoincrement())
+  conversation_id                             BigInt
+  sender_id                                   Int?
+  kind                                        String              @db.VarChar(10)
+  body                                        String?
+  reply_to_id                                 BigInt?
+  is_forwarded                                Boolean             @default(false)
+  file_name                                   String?             @db.VarChar(255)
+  file_path                                   String?             @db.VarChar(500)
+  file_size                                   BigInt?
+  mime_type                                   String?             @db.VarChar(150)
+  edited_at                                   DateTime?           @db.Timestamptz(6)
+  deleted_at                                  DateTime?           @db.Timestamptz(6)
+  deleted_by                                  Int?
+  deleted_mode                                String?             @db.VarChar(10)
+  created_at                                  DateTime            @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  msg_hidden                                  msg_hidden[]
+  msg_conversation                            msg_conversation    @relation(fields: [conversation_id], references: [conversation_id], onDelete: Cascade, onUpdate: NoAction)
+  employees_msg_message_deleted_byToemployees employees?          @relation("msg_message_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+  msg_message                                 msg_message?        @relation("msg_messageTomsg_message", fields: [reply_to_id], references: [message_id], onDelete: NoAction, onUpdate: NoAction)
+  other_msg_message                           msg_message[]       @relation("msg_messageTomsg_message")
+  employees_msg_message_sender_idToemployees  employees?          @relation("msg_message_sender_idToemployees", fields: [sender_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+  msg_message_audit                           msg_message_audit[]
+  msg_pin                                     msg_pin[]
+  msg_reaction                                msg_reaction[]
+  msg_star                                    msg_star[]
+
+  @@index([conversation_id, message_id(sort: Desc)], map: "ix_msg_message_conv")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model msg_message_audit {
+  audit_id    BigInt      @id @default(autoincrement())
+  message_id  BigInt
+  action      String      @db.VarChar(10)
+  old_body    String?
+  actor_id    Int?
+  created_at  DateTime    @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  employees   employees?  @relation(fields: [actor_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+  msg_message msg_message @relation(fields: [message_id], references: [message_id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model msg_pin {
+  conversation_id  BigInt
+  message_id       BigInt
+  pinned_by        Int
+  pinned_at        DateTime         @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  msg_conversation msg_conversation @relation(fields: [conversation_id], references: [conversation_id], onDelete: Cascade, onUpdate: NoAction)
+  msg_message      msg_message      @relation(fields: [message_id], references: [message_id], onDelete: Cascade, onUpdate: NoAction)
+  employees        employees        @relation(fields: [pinned_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([conversation_id, message_id])
+}
+
+model msg_reaction {
+  message_id  BigInt
+  emp_id      Int
+  emoji       String      @db.VarChar(16)
+  created_at  DateTime    @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  employees   employees   @relation(fields: [emp_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+  msg_message msg_message @relation(fields: [message_id], references: [message_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([message_id, emp_id, emoji])
+}
+
+model msg_star {
+  emp_id      Int
+  message_id  BigInt
+  created_at  DateTime    @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  employees   employees   @relation(fields: [emp_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+  msg_message msg_message @relation(fields: [message_id], references: [message_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([emp_id, message_id])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model msg_user_state {
+  emp_id       Int       @id
+  status       String    @default("auto") @db.VarChar(10)
+  status_text  String?   @db.VarChar(100)
+  status_until DateTime? @db.Timestamptz(6)
+  last_seen_at DateTime? @db.Timestamptz(6)
+  employees    employees @relation(fields: [emp_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 enum channel_type {

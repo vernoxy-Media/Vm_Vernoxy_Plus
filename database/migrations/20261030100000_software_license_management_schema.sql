@@ -349,3 +349,16 @@ ON CONFLICT DO NOTHING;
 -- =============================================================================
 -- Migration End
 -- =============================================================================
+
+-- migrate:down
+DROP TABLE IF EXISTS software_license_assignments CASCADE;
+DROP TABLE IF EXISTS software_license_terms CASCADE;
+DROP TABLE IF EXISTS software_licenses CASCADE;
+DROP TABLE IF EXISTS software_license_settings_change_log CASCADE;
+DROP TABLE IF EXISTS software_license_settings CASCADE;
+DROP TABLE IF EXISTS software_license_managers CASCADE;
+DROP TABLE IF EXISTS software_license_discontinue_reasons CASCADE;
+DROP TABLE IF EXISTS software_license_revoke_reasons CASCADE;
+DROP TABLE IF EXISTS software_license_vendors CASCADE;
+DROP TABLE IF EXISTS software_license_categories CASCADE;
+DROP TABLE IF EXISTS activity_logs CASCADE;

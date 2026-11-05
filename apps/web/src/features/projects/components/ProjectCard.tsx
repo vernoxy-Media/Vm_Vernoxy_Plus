@@ -1,5 +1,5 @@
 import React from 'react';
-import { ExternalLink } from 'lucide-react';
+import { CalendarDays, ExternalLink } from 'lucide-react';
 import type { ProjectItem, ProjectStatus } from '../types';
 
 interface ProjectCardProps {
@@ -10,7 +10,7 @@ interface ProjectCardProps {
 
 const statusConfig: Record<
   ProjectStatus,
-  { label: string; bg: string; text: string; dot: string; bar: string }
+  { label: string; bg: string; text: string; dot: string; bar: string; accent: string }
 > = {
   new: {
     label: 'New',
@@ -18,6 +18,7 @@ const statusConfig: Record<
     text: 'text-slate-700',
     dot: 'bg-slate-400',
     bar: 'from-slate-400 to-slate-500',
+    accent: 'bg-slate-400',
   },
   planning: {
     label: 'Planning',
@@ -25,6 +26,7 @@ const statusConfig: Record<
     text: 'text-purple-700',
     dot: 'bg-purple-500',
     bar: 'from-purple-500 to-indigo-500',
+    accent: 'bg-purple-500',
   },
   in_progress: {
     label: 'In Progress',
@@ -32,6 +34,7 @@ const statusConfig: Record<
     text: 'text-blue-700',
     dot: 'bg-blue-500',
     bar: 'from-blue-500 to-cyan-500',
+    accent: 'bg-blue-500',
   },
   pending: {
     label: 'Pending',
@@ -39,6 +42,7 @@ const statusConfig: Record<
     text: 'text-amber-700',
     dot: 'bg-amber-500',
     bar: 'from-amber-400 to-yellow-500',
+    accent: 'bg-amber-500',
   },
   review: {
     label: 'Review',
@@ -46,6 +50,7 @@ const statusConfig: Record<
     text: 'text-indigo-700',
     dot: 'bg-indigo-500',
     bar: 'from-indigo-400 to-violet-500',
+    accent: 'bg-indigo-500',
   },
   delivered: {
     label: 'Delivered',
@@ -53,6 +58,7 @@ const statusConfig: Record<
     text: 'text-emerald-700',
     dot: 'bg-emerald-500',
     bar: 'from-emerald-400 to-teal-500',
+    accent: 'bg-emerald-500',
   },
   on_hold: {
     label: 'On Hold',
@@ -60,6 +66,7 @@ const statusConfig: Record<
     text: 'text-orange-700',
     dot: 'bg-orange-500',
     bar: 'from-orange-400 to-red-500',
+    accent: 'bg-orange-500',
   },
   cancelled: {
     label: 'Cancelled',
@@ -67,6 +74,7 @@ const statusConfig: Record<
     text: 'text-rose-700',
     dot: 'bg-rose-500',
     bar: 'from-rose-400 to-red-600',
+    accent: 'bg-rose-500',
   },
 };
 
@@ -86,6 +94,19 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick }) =>
   const categoryTitle =
     categoryLabels[project.category] || project.other_category || 'General';
 
+  const initials = (project.project_manager_name || '?')
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase())
+    .join('');
+  const today = new Date().toISOString().slice(0, 10);
+  const isOverdue = Boolean(
+    project.deadline &&
+      project.deadline.slice(0, 10) < today &&
+      !['delivered', 'cancelled'].includes(project.project_status),
+  );
+
   const formatDate = (dateStr?: string | null) => {
     if (!dateStr) return 'N/A';
     try {
@@ -103,8 +124,9 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick }) =>
   return (
     <div
       onClick={() => onClick(project)}
-      className="group relative bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-xl hover:border-blue-200 transition-all duration-200 cursor-pointer flex flex-col justify-between"
+      className="group relative overflow-hidden bg-white rounded-2xl p-5 pt-6 border border-slate-200/80 shadow-sm hover:shadow-lg hover:-translate-y-0.5 hover:border-slate-300 transition-all duration-200 cursor-pointer flex flex-col justify-between"
     >
+      <span className={`absolute inset-x-0 top-0 h-1 ${status.accent}`} aria-hidden />
       <div>
         {/* Top Header: Title & Status Badge */}
         <div className="flex items-start justify-between gap-3 mb-3">
@@ -148,20 +170,21 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick }) =>
         {/* Project Manager & Dates */}
         <div className="space-y-2 py-2 border-y border-slate-100/80 text-xs text-slate-600">
           <div className="flex items-center gap-2">
-            <span className="text-slate-400">Project Manager:</span>
-            <span className="font-semibold text-slate-800">
-              {project.project_manager_name}
+            <span className="w-6 h-6 rounded-full bg-slate-800 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
+              {initials}
             </span>
+            <span className="text-slate-400">Project Manager</span>
+            <span className="font-semibold text-slate-800 truncate">{project.project_manager_name}</span>
           </div>
 
           <div className="flex items-center justify-between text-[11px] text-slate-500 pt-0.5">
-            <span>
-              <strong className="text-slate-700">Start:</strong>{' '}
-              {formatDate(project.start_date)}
+            <span className="inline-flex items-center gap-1">
+              <CalendarDays className="w-3.5 h-3.5 text-slate-400" />
+              <strong className="text-slate-700">Start</strong> {formatDate(project.start_date)}
             </span>
-            <span>
-              <strong className="text-slate-700">End:</strong>{' '}
-              {formatDate(project.deadline)}
+            <span className={`inline-flex items-center gap-1 ${isOverdue ? 'text-rose-600 font-semibold' : ''}`}>
+              <strong className={isOverdue ? 'text-rose-700' : 'text-slate-700'}>End</strong> {formatDate(project.deadline)}
+              {isOverdue && <span className="ml-1 rounded-full bg-rose-50 border border-rose-200 px-1.5 text-[10px]">Overdue</span>}
             </span>
           </div>
         </div>
@@ -173,9 +196,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick }) =>
           <span className="text-slate-500">
             Progress ({project.completed_tasks_count}/{project.total_tasks_count || 0} tasks)
           </span>
-          <span className="font-bold text-slate-800">
-            {project.progress_percentage}%
-          </span>
+          <span className={`font-bold ${status.text}`}>{project.progress_percentage}%</span>
         </div>
 
         {/* Progress Bar */}

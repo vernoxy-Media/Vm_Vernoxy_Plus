@@ -126,6 +126,7 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       emergency_contact_name: record.emergency_contact_name ?? null,
       emergency_contact_number: record.emergency_contact_number ?? null,
       emergency_contact_relation: record.emergency_contact_relation ?? null,
+      leave_policy_id: record.leave_policy_id ?? null,
       employment_type_id: record.employment_type_id ?? null,
       employment_type: record.master_lookup_employees_employment_type_idTomaster_lookup
         ? {

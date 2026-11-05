@@ -27,6 +27,9 @@ export interface ExpenseGeneralSettings {
   default_reimbursement_method: 'DIRECT' | 'PAYROLL';
   approver_reminder_days: number;
   currency: string;
+  /** Accounts users: pay claims back and see all reports (BFD 1). */
+  accounts_emp_ids?: number[];
+  accounts_users?: Array<{ emp_id: number; name: string }>;
   created_at: string;
   updated_at?: string | null;
 }

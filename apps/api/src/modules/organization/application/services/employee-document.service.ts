@@ -850,6 +850,7 @@ export class EmployeeDocumentService implements OnModuleInit, OnModuleDestroy {
   async getActivationEligibility(empId: number): Promise<EmployeeActivationStatusDto> {
     const empResult = await this.prisma.$queryRaw<Array<any>>`
       SELECT e.emp_id, e.status, e.address, e.emergency_contact_name, e.emergency_contact_number, e.birth_date,
+             e.leave_policy_id,
              p.emp_id AS pay_policy_emp_id, p.bank_name, p.account_number, p.pf_applicable, p.ot_eligible
       FROM employees e
       LEFT JOIN employee_pay_policies p ON p.emp_id = e.emp_id
@@ -912,7 +913,11 @@ export class EmployeeDocumentService implements OnModuleInit, OnModuleDestroy {
       }
     }
 
-    const canActivate = isDocsComplete && isDetailsCompleted;
+    // Leave BFD 3.2: a Leave Policy is required before the employee is activated.
+    if (!emp.leave_policy_id) {
+      missingDetails.push('Leave Policy (Pay & Policies > Leave)');
+    }
+    const canActivate = isDocsComplete && isDetailsCompleted && Boolean(emp.leave_policy_id);
 
     return {
       can_activate: canActivate,
@@ -920,7 +925,7 @@ export class EmployeeDocumentService implements OnModuleInit, OnModuleDestroy {
       missing_documents: missingDocs,
       total_required: totalRequired,
       completed_required: completedRequired,
-      is_details_completed: isDetailsCompleted,
+      is_details_completed: isDetailsCompleted && Boolean(emp.leave_policy_id),
       missing_details: missingDetails,
     };
   }
@@ -936,7 +941,11 @@ export class EmployeeDocumentService implements OnModuleInit, OnModuleDestroy {
         reasons.push(`Mandatory documents missing: ${eligibility.missing_documents.join(', ')}`);
       }
       if (!eligibility.is_details_completed) {
-        reasons.push('Employee details (PF, OT, Bank, Emergency Contact) must be filled before activating account.');
+        reasons.push(
+          eligibility.missing_details?.length
+            ? `Please complete: ${(eligibility.missing_details || []).join(', ')}.`
+            : 'Employee details (PF, OT, Bank, Emergency Contact) must be filled before activating account.',
+        );
       }
       throw new BadRequestException(`Cannot activate account. ${reasons.join(' ')}`);
     }

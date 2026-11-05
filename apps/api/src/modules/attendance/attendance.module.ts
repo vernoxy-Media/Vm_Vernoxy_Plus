@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../core/prisma/prisma.module';
 import { AuthModule } from '../auth/auth.module';
+import { TasksModule } from '../tasks/public-api';
 import { ATTENDANCE_TOKENS } from './domain/ports/tokens';
 import { PrismaAttendanceRepository } from './infrastructure/repositories/prisma-attendance.repository';
 import { PrismaAppSettingsRepository } from './infrastructure/repositories/prisma-app-settings.repository';
@@ -22,7 +23,7 @@ import { AttendanceController } from './presentation/attendance.controller';
 import { AttendanceAdminGuard } from './presentation/guards/attendance-admin.guard';
 
 @Module({
-  imports: [PrismaModule, AuthModule],
+  imports: [PrismaModule, AuthModule, TasksModule],
   controllers: [AttendanceController],
   providers: [
     PrismaAttendanceRepository,

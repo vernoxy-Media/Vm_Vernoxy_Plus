@@ -38,6 +38,7 @@ import { CompanyFormPage } from '@/features/companies/pages/CompanyFormPage';
 import { CompanyDetailPage } from '@/features/companies/pages/CompanyDetailPage';
 import { CompanyImportPage } from '@/features/companies/pages/CompanyImportPage';
 import { AttendancePage } from '@/features/attendance/pages/AttendancePage';
+import { AttendanceRegisterPage } from '@/features/attendance/pages/AttendanceRegisterPage';
 import { CalendarPage } from '@/features/calendar/pages/CalendarPage';
 import { MessengerPage } from '@/features/messenger/pages/MessengerPage';
 import { PerformancePage } from '@/features/performance/pages/PerformancePage';
@@ -111,6 +112,26 @@ export const App: React.FC = () => {
                       <AttendancePage />
                     </AppLayout>
                   </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/attendance/register"
+                element={
+                  <AdminRoute>
+                    <AppLayout fluid>
+                      <AttendanceRegisterPage />
+                    </AppLayout>
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/attendance/reports"
+                element={
+                  <AdminRoute>
+                    <AppLayout fluid>
+                      <AttendanceRegisterPage defaultView="reports" />
+                    </AppLayout>
+                  </AdminRoute>
                 }
               />
               <Route
@@ -227,7 +248,11 @@ export const App: React.FC = () => {
               />
               <Route
                 path="/attendance/calendar"
-                element={<Navigate to="/calendar" replace />}
+                element={<Navigate to="/attendance?tab=calendar" replace />}
+              />
+              <Route
+                path="/attendance/my-attendance"
+                element={<Navigate to="/attendance?tab=calendar" replace />}
               />
               <Route
                 path="/calendar"
@@ -332,7 +357,7 @@ export const App: React.FC = () => {
               {/* Settings & Master Data */}
               <Route
                 path="/admin/settings"
-                element={<Navigate to="/admin/settings/roles" replace />}
+                element={<Navigate to="/admin/settings/employment-types" replace />}
               />
               <Route
                 path="/admin/settings/knowledge-base"

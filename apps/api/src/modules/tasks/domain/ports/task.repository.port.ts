@@ -87,6 +87,10 @@ export interface TaskBoardFilters {
 
 export interface CreateSubTaskRepoInput {
   title: string;
+  description?: string | null;
+  priority?: TaskPriority;
+  task_type_id?: number | null;
+  other_task_type?: string | null;
   allocated_minutes?: number | null;
   assignee_ids: number[];
 }
@@ -107,6 +111,9 @@ export interface CreateTaskRepoInput {
   has_sub_tasks?: boolean;
   other_task_type?: string | null;
   sub_tasks?: CreateSubTaskRepoInput[];
+  /** Project Task (Project Management BFD 2.7). */
+  project_id?: number | null;
+  sprint_id?: number | null;
 }
 
 export interface UpdateTaskRepoInput {
@@ -144,6 +151,12 @@ export interface TaskRepositoryPort {
   findByCode(taskCode: string): Promise<TaskEntity | null>;
   updateTask(taskId: number, input: UpdateTaskRepoInput): Promise<TaskEntity>;
   moveStage(taskId: number, input: MoveStageRepoInput): Promise<TaskEntity>;
+  /** Project Manager of the task's project (own or parent task), for Project Task approval. */
+  getTaskProjectManagerId(taskId: number): Promise<number | null>;
+  /** master_lookup code of a task type (e.g. 'other'), or null if it is not an active task type. */
+  getTaskTypeCode(taskTypeId: number): Promise<string | null>;
+  /** Pauses the employee's running task timer (break, clock-out). Returns the paused task ids. */
+  pauseRunningTasks(empId: number, reason: string): Promise<number[]>;
   trackWorkSession(taskId: number, input: TrackWorkSessionRepoInput): Promise<TaskEntity>;
   getBoard(filters?: TaskBoardFilters): Promise<TaskBoardResult>;
   getMyBoard(empId: number, filters?: TaskBoardFilters): Promise<TaskBoardResult>;

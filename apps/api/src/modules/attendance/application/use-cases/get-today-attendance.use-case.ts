@@ -5,6 +5,7 @@ import {
   buildTodayBlock,
   TodayAttendanceBlock,
 } from '../../domain/services/today-block-builder';
+import { loadLeaveForToday } from './leave-for-today';
 
 export class GetTodayAttendanceUseCase {
   constructor(
@@ -17,6 +18,7 @@ export class GetTodayAttendanceUseCase {
     const workDate = formatWorkDate(now, timezone);
 
     const existingDay = await this.attendanceRepo.findDayByEmpAndDate(empId, workDate);
+    const { leave, pendingLeave } = await loadLeaveForToday(this.attendanceRepo, empId, workDate);
     const dayDate = new Date(workDate);
     const isWeeklyOff = dayDate.getUTCDay() === 0 || dayDate.getUTCDay() === 6;
 
@@ -35,6 +37,8 @@ export class GetTodayAttendanceUseCase {
       breaks,
       openBreak,
       isWeeklyOff,
+      leave,
+      pendingLeave,
     });
   }
 }

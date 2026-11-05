@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../../core/prisma/prisma.service';
 import {
   AssignableEmployee,
@@ -248,7 +248,7 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
           },
           project_deployments: true,
           project_credentials: { where: { deleted_at: null } },
-          tasks: { where: { deleted_at: null }, select: { task_id: true, stage: true } },
+          tasks: { where: { deleted_at: null, parent_task_id: null }, select: { task_id: true, stage: true } },
         },
       });
 
@@ -334,7 +334,7 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
           },
         },
         project_credentials: { where: { deleted_at: null } },
-        tasks: { where: { deleted_at: null }, select: { task_id: true, stage: true } },
+        tasks: { where: { deleted_at: null, parent_task_id: null }, select: { task_id: true, stage: true } },
       },
       orderBy: { created_at: 'desc' },
     });
@@ -370,7 +370,7 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
         },
         project_credentials: { where: { deleted_at: null } },
         tasks: {
-          where: { deleted_at: null },
+          where: { deleted_at: null, parent_task_id: null },
           select: { task_id: true, stage: true, allocated_minutes: true, actual_minutes: true },
         },
       },
@@ -382,7 +382,7 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
     const isMember = project.project_members.some((m) => m.employee_id === requestingEmpId);
     const isPM = project.project_manager_id === requestingEmpId;
     if (!isAdmin && !isPM && !isMember) {
-      throw new Error('Access denied to this project');
+      throw new ForbiddenException('You are not a member of this project.');
     }
 
     return this.mapProject(project, requestingEmpId, isAdmin);
@@ -398,7 +398,7 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
       where: { project_id: projectId },
     });
     if (!existing || existing.deleted_at) {
-      throw new Error('Project not found');
+      throw new NotFoundException('Project not found.');
     }
 
     const data: any = {
@@ -429,7 +429,7 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
         },
         project_deployments: true,
         project_credentials: { where: { deleted_at: null } },
-        tasks: { where: { deleted_at: null }, select: { task_id: true, stage: true } },
+        tasks: { where: { deleted_at: null, parent_task_id: null }, select: { task_id: true, stage: true } },
       },
     });
 
@@ -482,7 +482,7 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
       where: { project_id: input.project_id },
     });
     if (!project || project.deleted_at) {
-      throw new Error('Project not found');
+      throw new NotFoundException('Project not found.');
     }
 
     const sprint = await this.prisma.project_sprints.create({
@@ -592,7 +592,7 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
         where: { project_id: input.project_id },
       });
       if (!project || project.deleted_at) {
-        throw new Error('Project not found');
+        throw new NotFoundException('Project not found.');
       }
 
       // Generate task code using task_counters
@@ -760,7 +760,7 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
       where: { project_id: projectId },
     });
     if (!existing || existing.deleted_at) {
-      throw new Error(`Project #${projectId} not found`);
+      throw new NotFoundException('Project not found.');
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -891,6 +891,7 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
           },
           project_credentials: true,
           tasks: {
+            where: { deleted_at: null, parent_task_id: null },
             select: { task_id: true, stage: true, allocated_minutes: true, actual_minutes: true },
           },
         },
@@ -1044,7 +1045,7 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
     });
 
     if (!bug || bug.deleted_at) {
-      throw new Error('Bug not found');
+      throw new NotFoundException('Bug not found.');
     }
 
     return {
@@ -1213,7 +1214,7 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
       where: { bug_id: bugId },
     });
     if (!bug || bug.deleted_at) {
-      throw new Error('Bug not found');
+      throw new NotFoundException('Bug not found.');
     }
 
     const now = new Date();

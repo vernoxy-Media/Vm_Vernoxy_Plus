@@ -16,7 +16,14 @@ export const AttendanceStatsSummaryCard: React.FC<{
   records: DayRecord[];
   monthSummary?: MonthSummary;
   statistics?: AttendanceStatistics;
-}> = ({ todayWorkedSeconds, todayBreakSeconds, records }) => {
+  shift?: {
+    shift_name?: string;
+    start_time?: string;
+    end_time?: string;
+    late_arrival_grace_minutes?: number;
+    early_exit_grace_minutes?: number;
+  };
+}> = ({ todayWorkedSeconds, todayBreakSeconds, records, shift }) => {
   const formatShortHM = (sec: number) => {
     if (!sec || sec <= 0) return '0m';
     const h = Math.floor(sec / 3600);
@@ -27,6 +34,16 @@ export const AttendanceStatsSummaryCard: React.FC<{
 
   const todayWorkedText = formatShortHM(todayWorkedSeconds);
   const todayBreakText = formatShortHM(todayBreakSeconds);
+
+  const shiftStartMins = useMemo(() => {
+    if (shift?.start_time) {
+      const m = shift.start_time.match(/(\d{1,2}):(\d{2})/);
+      if (m) return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+    }
+    return 570; // 09:30 AM
+  }, [shift?.start_time]);
+
+  const lateGraceMins = shift?.late_arrival_grace_minutes ?? 15;
 
   // Overall Performance calculations from records/monthSummary
   const completedPresentDays = records.filter(
@@ -45,20 +62,23 @@ export const AttendanceStatsSummaryCard: React.FC<{
 
   const avgWorkedText = formatShortHM(avgWorkedSec);
 
-  // Calculate On-Time Percentage
+  // Calculate On-Time Percentage with shift start and grace period
   const onTimePercentage = useMemo(() => {
     const presentRecords = records.filter((r) => r.status === 'present');
     if (presentRecords.length === 0) return 0;
     const onTimeRecords = presentRecords.filter((r) => {
       if ((r as any)?.is_late !== undefined) return !(r as any).is_late;
-      const match = r.punch_in?.match(/^(\d{1,2}):(\d{2})/);
+      const match = r.punch_in?.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
       if (!match) return true;
-      const h = parseInt(match[1], 10);
+      let h = parseInt(match[1], 10);
       const m = parseInt(match[2], 10);
-      return h * 60 + m <= 540; // 09:00 AM or earlier
+      const ampm = match[3]?.toUpperCase();
+      if (ampm === 'PM' && h < 12) h += 12;
+      if (ampm === 'AM' && h === 12) h = 0;
+      return h * 60 + m <= shiftStartMins + lateGraceMins;
     });
     return Math.round((onTimeRecords.length / presentRecords.length) * 100);
-  }, [records]);
+  }, [records, shiftStartMins, lateGraceMins]);
 
   return (
     <div
@@ -142,31 +162,63 @@ export const AttendanceBreakdownRow: React.FC<{
   monthSummary: MonthSummary;
   records: DayRecord[];
   statistics?: AttendanceStatistics;
-}> = ({ monthSummary, records, statistics }) => {
-  // 1. Calculate Exceptions
+  shift?: {
+    shift_name?: string;
+    start_time?: string;
+    end_time?: string;
+    late_arrival_grace_minutes?: number;
+    early_exit_grace_minutes?: number;
+  };
+}> = ({ monthSummary, records, statistics, shift }) => {
+  const shiftStartMins = useMemo(() => {
+    if (shift?.start_time) {
+      const m = shift.start_time.match(/(\d{1,2}):(\d{2})/);
+      if (m) return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+    }
+    return 570; // 09:30 AM
+  }, [shift?.start_time]);
+
+  const shiftEndMins = useMemo(() => {
+    if (shift?.end_time) {
+      const m = shift.end_time.match(/(\d{1,2}):(\d{2})/);
+      if (m) return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+    }
+    return 1110; // 06:30 PM (18:30)
+  }, [shift?.end_time]);
+
+  const lateGraceMins = shift?.late_arrival_grace_minutes ?? 15;
+  const earlyGraceMins = shift?.early_exit_grace_minutes ?? 15;
+
+  // 1. Calculate Exceptions with shift times & grace periods
   const lateCount = useMemo(() => {
     return records.filter((r) => {
       if ((r as any)?.is_late !== undefined) return Boolean((r as any).is_late);
       if (!r.punch_in) return false;
-      const match = r.punch_in.match(/^(\d{1,2}):(\d{2})/);
+      const match = r.punch_in.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
       if (!match) return false;
-      const h = parseInt(match[1], 10);
+      let h = parseInt(match[1], 10);
       const m = parseInt(match[2], 10);
-      return h * 60 + m > 540; // After 09:00 AM
+      const ampm = match[3]?.toUpperCase();
+      if (ampm === 'PM' && h < 12) h += 12;
+      if (ampm === 'AM' && h === 12) h = 0;
+      return h * 60 + m > shiftStartMins + lateGraceMins;
     }).length;
-  }, [records]);
+  }, [records, shiftStartMins, lateGraceMins]);
 
   const earlyExitCount = useMemo(() => {
     return records.filter((r) => {
       if ((r as any)?.is_early_exit !== undefined) return Boolean((r as any).is_early_exit);
       if (!r.punch_out) return false;
-      const match = r.punch_out.match(/^(\d{1,2}):(\d{2})/);
+      const match = r.punch_out.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
       if (!match) return false;
-      const h = parseInt(match[1], 10);
+      let h = parseInt(match[1], 10);
       const m = parseInt(match[2], 10);
-      return h * 60 + m < 1050; // Before 05:30 PM
+      const ampm = match[3]?.toUpperCase();
+      if (ampm === 'PM' && h < 12) h += 12;
+      if (ampm === 'AM' && h === 12) h = 0;
+      return h * 60 + m < shiftEndMins - earlyGraceMins;
     }).length;
-  }, [records]);
+  }, [records, shiftEndMins, earlyGraceMins]);
 
   const missingClockoutCount = useMemo(() => {
     return records.filter((r) => {

@@ -10,7 +10,8 @@ import {
   buildTodayBlock,
   TodayAttendanceBlock,
 } from '../../domain/services/today-block-builder';
-import { AlreadyPunchedInError } from '../../domain/errors/attendance.errors';
+import { AlreadyPunchedInError, FullDayLeaveBlockedError } from '../../domain/errors/attendance.errors';
+import { loadLeaveForToday } from './leave-for-today';
 
 export class PunchInUseCase {
   constructor(
@@ -22,9 +23,28 @@ export class PunchInUseCase {
     const now = this.clock.now();
     const workDate = formatWorkDate(now, timezone);
 
+    // Leave lives in leave_request_days; any attendance row for today is a real check-in
+    // (the old placeholder rows were removed by migration 20261105100000).
     const existingDay = await this.attendanceRepo.findDayByEmpAndDate(empId, workDate);
     const dayDate = new Date(workDate);
     const isWeeklyOff = dayDate.getUTCDay() === 0 || dayDate.getUTCDay() === 6;
+    const { leave, pendingLeave } = await loadLeaveForToday(this.attendanceRepo, empId, workDate);
+
+    // BFD Leave 8: a Full Day of approved leave blocks check-in; a First Half
+    // leave allows check-in from the start of the second half of the shift.
+    if (leave?.part === 'full') {
+      throw new FullDayLeaveBlockedError(
+        `You are on approved leave today (${leave.typeName}). Check-in is not available.`,
+      );
+    }
+    if (leave?.half === 'FIRST_HALF' && leave.secondHalfStartsAt && now < leave.secondHalfStartsAt) {
+      const at = leave.secondHalfStartsAt.toLocaleTimeString('en-IN', {
+        timeZone: timezone, hour: '2-digit', minute: '2-digit', hour12: true,
+      });
+      throw new FullDayLeaveBlockedError(
+        `You are on leave for the first half today (${leave.typeName}). Check-in opens at ${at}.`,
+      );
+    }
 
     if (existingDay && existingDay.checkInAt) {
       const breaks = await this.attendanceRepo.findBreaksByAttendanceId(existingDay.attendanceId);
@@ -36,6 +56,8 @@ export class PunchInUseCase {
         breaks,
         openBreak,
         isWeeklyOff,
+        leave,
+        pendingLeave,
       });
       throw new AlreadyPunchedInError('Already punched in today', { today: todayBlock });
     }
@@ -45,7 +67,7 @@ export class PunchInUseCase {
       checkOutAt: existingDay?.checkOutAt || null,
       activeBreakStartedAt: null,
       isFullDayLeave: false,
-      isHalfDayLeave: false,
+      isHalfDayLeave: Boolean(leave),
       isHoliday: false,
       isWeeklyOff,
     });
@@ -75,6 +97,8 @@ export class PunchInUseCase {
       breaks: [],
       openBreak: null,
       isWeeklyOff,
+      leave,
+      pendingLeave,
     });
   }
 }

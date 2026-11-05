@@ -22,6 +22,14 @@ import { Avatar } from '@/shared/ui/Avatar';
 import { formatMinutesToHuman } from './DurationField';
 import { StageDecisionDialog } from './StageDecisionDialog';
 import { HoldReasonModal } from './HoldReasonModal';
+import { useLookupsQuery } from '@/features/organization/hooks/use-master-data';
+
+/** Moves the employee can make from the Stage dropdown (Task BFD 3.3). */
+const EMPLOYEE_MOVES: Partial<Record<TaskStage, TaskStage[]>> = {
+  assigned: ['in_progress', 'hold'],
+  in_progress: ['hold', 'requested'],
+  hold: ['assigned', 'in_progress'],
+};
 
 export interface TaskListViewProps {
   board: TaskBoardResultDto;
@@ -51,6 +59,10 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
   onCardClick,
   onMoveStage,
 }) => {
+  const { data: sourceLookups = [] } = useLookupsQuery('task_source');
+  const { data: stageLookups = [] } = useLookupsQuery('task_stage');
+  const sourceLabel = (code?: string | null) => sourceLookups.find((l) => l.code === code)?.label || code || '-';
+  const stageLabel = (code: string) => stageLookups.find((l) => l.code === code)?.label || STAGE_LABELS[code as TaskStage]?.label || code;
   const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
   const [subtasksMap, setSubtasksMap] = useState<Record<number, TaskDetailDto[]>>({});
   const [loadingSubtasks, setLoadingSubtasks] = useState<Record<number, boolean>>({});
@@ -136,10 +148,11 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
               <th className="py-3 px-3 w-10 text-center"></th>
               <th className="py-3 px-3">Task ID</th>
               <th className="py-3 px-3 min-w-[200px]">Task Name</th>
-              <th className="py-3 px-3 min-w-[150px]">Assigned To</th>
+              {isAdmin && <th className="py-3 px-3 min-w-[150px]">Assigned To</th>}
               <th className="py-3 px-3">Task Type</th>
               <th className="py-3 px-3">Priority</th>
               <th className="py-3 px-3">Allocated Time</th>
+              {!isAdmin && <th className="py-3 px-3">Source</th>}
               <th className="py-3 px-3">Stage</th>
               <th className="py-3 px-3 text-right">Actions</th>
             </tr>
@@ -215,6 +228,7 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
                       </td>
 
                       {/* Assigned To (Lead + employee count for tasks with subtasks per BFD Section 2.2) */}
+                      {isAdmin && (
                       <td className="py-3 px-3">
                         <div className="flex items-center gap-2">
                           <AvatarStack assignees={task.assignees} size={22} max={2} />
@@ -237,6 +251,7 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
                           </div>
                         </div>
                       </td>
+                      )}
 
                       {/* Task Type */}
                       <td className="py-3 px-3 whitespace-nowrap">
@@ -268,12 +283,36 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
                         )}
                       </td>
 
-                      {/* Stage */}
+                      {/* Source (employee view, BFD 3.2) */}
+                      {!isAdmin && <td className="py-3 px-3 whitespace-nowrap text-slate-600">{sourceLabel((task as any).source)}</td>}
+
+                      {/* Stage — the employee changes it from a dropdown, same rules as Kanban (BFD 3.2) */}
                       <td className="py-3 px-3 whitespace-nowrap">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold border ${stageConfig.badge}`}>
-                          {isCompleted && <Lock className="w-2.5 h-2.5" />}
-                          {stageConfig.label}
-                        </span>
+                        {!isAdmin && EMPLOYEE_MOVES[task.stage as TaskStage] ? (
+                          <select
+                            value={task.stage}
+                            onChange={(e) => {
+                              const target = e.target.value as TaskStage;
+                              if (target === task.stage) return;
+                              if (target === 'hold') handleHoldPrompt(task.task_id);
+                              else onMoveStage(task.task_id, target);
+                            }}
+                            className={`rounded-md border px-1.5 py-0.5 text-[11px] font-semibold ${stageConfig.badge}`}
+                            aria-label="Change stage"
+                          >
+                            <option value={task.stage}>{stageLabel(task.stage)}</option>
+                            {(EMPLOYEE_MOVES[task.stage as TaskStage] || []).map((st) => (
+                              <option key={st} value={st}>
+                                {stageLabel(st)}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold border ${stageConfig.badge}`}>
+                            {isCompleted && <Lock className="w-2.5 h-2.5" />}
+                            {stageLabel(task.stage)}
+                          </span>
+                        )}
                       </td>
 
                       {/* Actions */}
@@ -340,7 +379,7 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
                             </>
                           )}
 
-                          {task.stage === 'hold' && (
+                          {!isAdmin && task.stage === 'hold' && (
                             <button
                               type="button"
                               onClick={() => onMoveStage(task.task_id, 'in_progress')}

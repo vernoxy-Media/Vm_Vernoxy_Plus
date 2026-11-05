@@ -3,12 +3,18 @@
  */
 
 /**
- * Calculates late minutes based on General Shift (starts at 09:30 AM = 570 mins)
- * Grace period is 10 minutes (up to 09:40 AM = 580 mins).
- * Shown only when check-in is after the grace period, else 0 min.
- * Example from spec: Check-in 09:48 AM -> 18 min
+ * Calculates late minutes based on Shift start time and late grace period.
+ * Default: Shift start 09:30 AM (570 mins), Grace period 15 mins (up to 09:45 AM = 585 mins).
+ * Shown only when check-in is after the grace period cutoff, else 0 min.
+ * Example: Check-in 09:11 AM -> 0 min (on time)
+ * Example: Check-in 09:40 AM -> 0 min (within 15m grace)
+ * Example: Check-in 09:48 AM -> 18 min
  */
-export function calculateLateByMinutes(checkInTimeStr?: string | null): number {
+export function calculateLateByMinutes(
+  checkInTimeStr?: string | null,
+  shiftStartMinutes = 570, // 09:30 AM
+  lateGraceMinutes = 15,   // 15 min grace
+): number {
   if (!checkInTimeStr || checkInTimeStr === '--') return 0;
   const timeMatch = checkInTimeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
   if (!timeMatch) return 0;
@@ -18,16 +24,23 @@ export function calculateLateByMinutes(checkInTimeStr?: string | null): number {
   if (ampm === 'PM' && hr < 12) hr += 12;
   if (ampm === 'AM' && hr === 12) hr = 0;
   const totalMin = hr * 60 + min;
-  // Shift start 09:30 AM (570 min). Grace 10 min -> 580 min (09:40 AM)
-  return totalMin > 580 ? totalMin - 570 : 0;
+  const cutoff = shiftStartMinutes + lateGraceMinutes;
+  return totalMin > cutoff ? totalMin - shiftStartMinutes : 0;
 }
 
 /**
- * Calculates early exit minutes based on General Shift (ends at 18:30 / 06:30 PM = 1110 mins).
- * 0 min when not early.
- * Example from spec: Check-out 07:05 PM -> 0 min
+ * Calculates early exit minutes based on Shift end time and early exit grace period.
+ * Default: Shift end 18:30 / 06:30 PM (1110 mins), Early exit grace period 15 mins (cutoff 18:15 = 1095 mins).
+ * 0 min when check-out is on/after cutoff.
+ * Example: Check-out 06:36 PM -> 0 min
+ * Example: Check-out 06:20 PM -> 0 min (within 15m grace)
+ * Example: Check-out 05:30 PM -> 60 min early exit
  */
-export function calculateEarlyExitMinutes(checkOutTimeStr?: string | null): number {
+export function calculateEarlyExitMinutes(
+  checkOutTimeStr?: string | null,
+  shiftEndMinutes = 1110, // 18:30 / 06:30 PM
+  earlyGraceMinutes = 15,  // 15 min grace
+): number {
   if (!checkOutTimeStr || checkOutTimeStr === '--') return 0;
   const timeMatch = checkOutTimeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
   if (!timeMatch) return 0;
@@ -37,6 +50,6 @@ export function calculateEarlyExitMinutes(checkOutTimeStr?: string | null): numb
   if (ampm === 'PM' && hr < 12) hr += 12;
   if (ampm === 'AM' && hr === 12) hr = 0;
   const totalMin = hr * 60 + min;
-  // Shift end 18:30 (1110 min)
-  return totalMin < 1110 ? 1110 - totalMin : 0;
+  const cutoff = shiftEndMinutes - earlyGraceMinutes;
+  return totalMin < cutoff ? shiftEndMinutes - totalMin : 0;
 }

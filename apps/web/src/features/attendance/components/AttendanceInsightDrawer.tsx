@@ -25,6 +25,13 @@ export interface AttendanceInsightDrawerProps {
   isOpen: boolean;
   date: string | null; // "YYYY-MM-DD"
   record?: DayRecord | null;
+  shift?: {
+    shift_name?: string;
+    start_time?: string;
+    end_time?: string;
+    late_arrival_grace_minutes?: number;
+    early_exit_grace_minutes?: number;
+  };
   initialMode?: 'insight' | 'regularize';
   onClose: () => void;
   onSuccessRegularization?: (message: string) => void;
@@ -52,6 +59,7 @@ export const AttendanceInsightDrawer: React.FC<AttendanceInsightDrawerProps> = (
   isOpen,
   date,
   record,
+  shift,
   initialMode = 'insight',
   onClose,
   onSuccessRegularization,
@@ -225,8 +233,11 @@ export const AttendanceInsightDrawer: React.FC<AttendanceInsightDrawerProps> = (
   const arrivalDisplay = formatTimeDisplay(punchInTime);
   const departureDisplay = formatTimeDisplay(punchOutTime);
 
-  // Shift Timing (reference screenshot shows: SHIFT ● 09:00 AM — 05:30 PM)
-  const shiftDisplay = '09:00 AM — 05:30 PM';
+  // Shift Timing (e.g. 09:30 AM — 06:30 PM)
+  const shiftDisplay =
+    shift?.start_time && shift?.end_time
+      ? `${formatTimeDisplay(shift.start_time)} — ${formatTimeDisplay(shift.end_time)}`
+      : '09:30 AM — 06:30 PM';
 
   // Submission handler for Regularization Form
   const handleSubmitRegularization = async (e: React.FormEvent) => {

@@ -12,9 +12,20 @@ import {
   TodayAttendanceBlock,
 } from '../../domain/services/today-block-builder';
 import { AttendanceNotFoundError } from '../../domain/errors/attendance.errors';
+import { loadLeaveForToday } from './leave-for-today';
 
 export interface DashboardResponseDto {
   today: TodayAttendanceBlock;
+  shift?: {
+    shift_id?: number;
+    shift_name: string;
+    start_time: string;
+    end_time: string;
+    late_arrival_grace_minutes: number;
+    early_exit_grace_minutes: number;
+    full_day_hours?: number;
+    half_day_hours?: number;
+  };
   stats: {
     today: { worked: number; target: number };
     week: { start: string; end: string; worked: number; target: number };
@@ -152,8 +163,13 @@ export class GetDashboardUseCase {
     const todayHoliday = settings.holidays.find((h) => h.date === todayDateStr);
     const isTodayHoliday = !!todayHoliday;
     let todayBlock: TodayAttendanceBlock;
+    const { leave: todayLeave, pendingLeave: todayPendingLeave } = await loadLeaveForToday(
+      this.attendanceRepo,
+      empId,
+      todayDateStr,
+    );
 
-    if (todayRawDay && todayRawDay.check_in_at) {
+    if (todayRawDay && todayRawDay.check_in_at && todayRawDay.day_status !== 'leave') {
       const openBreak = todayRawDay.breaks.find((b) => b.ended_at === null);
       todayBlock = buildTodayBlock({
         now,
@@ -192,6 +208,8 @@ export class GetDashboardUseCase {
         isWeeklyOff: todayRawDay.state === 'weekly_off',
         isHoliday: todayRawDay.state === 'holiday',
         holidayName: todayRawDay.holiday_name,
+        leave: todayLeave,
+        pendingLeave: todayPendingLeave,
         fullDayMinutes: empHours.fullDayMinutes,
         halfDayMinutes: empHours.halfDayMinutes,
       });
@@ -205,6 +223,8 @@ export class GetDashboardUseCase {
         isWeeklyOff: isTodayWeeklyOff,
         isHoliday: isTodayHoliday,
         holidayName: todayHoliday?.name || null,
+        leave: todayLeave,
+        pendingLeave: todayPendingLeave,
         fullDayMinutes: empHours.fullDayMinutes,
         halfDayMinutes: empHours.halfDayMinutes,
       });
@@ -249,8 +269,47 @@ export class GetDashboardUseCase {
     const joiningMonthStr = joiningDate.slice(0, 7);
     const canGoPrev = prevMonthStr >= joiningMonthStr;
 
+    const assignedShiftId = settings.employee_shifts?.[String(empId)];
+    const employeeShift = (assignedShiftId ? settings.shifts.find((s) => s.shift_id === assignedShiftId) : null)
+      || settings.default_shift
+      || settings.shifts[0];
+
+    const formatTimeToHHMM = (val: any, fallback: string): string => {
+      if (!val) return fallback;
+      if (typeof val === 'string') {
+        const m = val.match(/(\d{1,2}):(\d{2})/);
+        if (m) return `${m[1].padStart(2, '0')}:${m[2]}`;
+      }
+      if (val instanceof Date) {
+        const h = String(val.getUTCHours()).padStart(2, '0');
+        const m = String(val.getUTCMinutes()).padStart(2, '0');
+        return `${h}:${m}`;
+      }
+      return fallback;
+    };
+
+    const shiftDto = employeeShift ? {
+      shift_id: employeeShift.shift_id,
+      shift_name: employeeShift.shift_name,
+      start_time: formatTimeToHHMM(employeeShift.start_time, '09:30'),
+      end_time: formatTimeToHHMM(employeeShift.end_time, '18:30'),
+      late_arrival_grace_minutes: Number(employeeShift.late_arrival_grace_minutes ?? 15),
+      early_exit_grace_minutes: Number(employeeShift.early_exit_grace_minutes ?? 15),
+      full_day_hours: Number(employeeShift.full_day_hours ?? 8),
+      half_day_hours: Number(employeeShift.half_day_hours ?? 4),
+    } : {
+      shift_name: 'General Shift',
+      start_time: '09:30',
+      end_time: '18:30',
+      late_arrival_grace_minutes: 15,
+      early_exit_grace_minutes: 15,
+      full_day_hours: 8,
+      half_day_hours: 4,
+    };
+
     return {
       today: todayBlock,
+      shift: shiftDto,
       stats: {
         today: {
           worked: todayBlock.worked_minutes_so_far,

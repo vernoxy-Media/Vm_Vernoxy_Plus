@@ -157,6 +157,7 @@ export const MyTasksView: React.FC = () => {
       count: summary?.total ?? 0,
       icon: CheckSquare,
       colorClass: 'bg-slate-100 text-slate-700',
+      borderClass: 'border-slate-200 hover:border-slate-300 bg-gradient-to-br from-slate-50/60 via-white to-white',
     },
     {
       id: 'in_progress',
@@ -164,6 +165,7 @@ export const MyTasksView: React.FC = () => {
       count: todoOrInProgress,
       icon: Clock,
       colorClass: 'bg-blue-50 text-blue-700',
+      borderClass: 'border-blue-200 hover:border-blue-300 bg-gradient-to-br from-blue-50/40 via-white to-white',
     },
     {
       id: 'hold',
@@ -171,6 +173,7 @@ export const MyTasksView: React.FC = () => {
       count: onHoldCount,
       icon: AlertTriangle,
       colorClass: 'bg-amber-50 text-amber-700',
+      borderClass: 'border-amber-200 hover:border-amber-300 bg-gradient-to-br from-amber-50/40 via-white to-white',
     },
     {
       id: 'submitted',
@@ -178,6 +181,7 @@ export const MyTasksView: React.FC = () => {
       count: submittedCount,
       icon: Send,
       colorClass: 'bg-purple-50 text-purple-700',
+      borderClass: 'border-purple-200 hover:border-purple-300 bg-gradient-to-br from-purple-50/40 via-white to-white',
     },
     {
       id: 'approved',
@@ -185,6 +189,7 @@ export const MyTasksView: React.FC = () => {
       count: approvedCount,
       icon: CheckCircle2,
       colorClass: 'bg-emerald-50 text-emerald-700',
+      borderClass: 'border-emerald-200 hover:border-emerald-300 bg-gradient-to-br from-emerald-50/40 via-white to-white',
     },
   ];
 
@@ -245,6 +250,7 @@ export const MyTasksView: React.FC = () => {
         filters={filters}
         onChange={setFilters}
         taskTypeOptions={taskTypeLookups.map((l) => ({ id: l.id, label: l.label }))}
+        showSource
       />
 
       {/* Main View: Kanban or List */}
@@ -291,11 +297,8 @@ export const MyTasksView: React.FC = () => {
 
 export const MyTasksPage: React.FC = () => {
   const { user } = useAuth();
-  const isAdmin = Boolean(
-    user?.access?.can_manage_organization ||
-    user?.role?.role_name?.toLowerCase().includes('admin') ||
-    user?.role?.role_name?.toLowerCase().includes('manager')
-  );
+  // Admin = role marked is_admin (same rule as the API).
+  const isAdmin = Boolean(user?.access?.can_manage_organization);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const currentTab = searchParams.get('tab');

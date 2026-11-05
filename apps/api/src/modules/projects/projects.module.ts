@@ -1,3 +1,5 @@
+import { TasksModule } from '../tasks/public-api';
+import { ProjectAccessService } from './application/services/project-access.service';
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../core/prisma/prisma.module';
 import { AuthModule } from '../auth/auth.module';
@@ -23,9 +25,10 @@ import { EventsService } from '../websockets/events.service';
 import { NotificationsModule } from '../notifications/public-api';
 
 @Module({
-  imports: [PrismaModule, AuthModule, NotificationsModule],
+  imports: [PrismaModule, AuthModule, NotificationsModule, TasksModule],
   controllers: [ProjectsController],
   providers: [
+    ProjectAccessService,
     {
       provide: PROJECT_TOKENS.ProjectRepository,
       useClass: PrismaProjectRepository,

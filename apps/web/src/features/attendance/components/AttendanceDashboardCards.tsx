@@ -36,6 +36,15 @@ export interface AttendanceDashboardCardsProps {
   monthLabel?: string;
   statusLabel?: string;
   onOpenMyRequests?: () => void;
+  shift?: {
+    shift_name?: string;
+    start_time?: string;
+    end_time?: string;
+    late_arrival_grace_minutes?: number;
+    early_exit_grace_minutes?: number;
+    full_day_hours?: number;
+    half_day_hours?: number;
+  };
 }
 
 export const AttendanceDashboardCards: React.FC<AttendanceDashboardCardsProps> = ({
@@ -43,6 +52,7 @@ export const AttendanceDashboardCards: React.FC<AttendanceDashboardCardsProps> =
   statistics,
   monthSummary,
   records,
+  shift,
   isPending,
   onPunchIn,
   onPunchOut,
@@ -91,6 +101,19 @@ export const AttendanceDashboardCards: React.FC<AttendanceDashboardCardsProps> =
     break_seconds: liveBreakSeconds,
   };
 
+  const formatShiftTimeDisplay = (timeStr?: string, fallback = '09:30 AM') => {
+    if (!timeStr) return fallback;
+    const m = timeStr.match(/^(\d{1,2}):(\d{2})/);
+    if (!m) return fallback;
+    const h = parseInt(m[1], 10);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const dispH = h % 12 || 12;
+    return `${String(dispH).padStart(2, '0')}:${m[2]} ${ampm}`;
+  };
+
+  const shiftStartDisplay = formatShiftTimeDisplay(shift?.start_time, '09:30 AM');
+  const shiftEndDisplay = formatShiftTimeDisplay(shift?.end_time, '06:30 PM');
+
   return (
     <div className="space-y-6 w-full">
       {/* Row 1: Attendance Stats (Last 30 Days) + Timings + Actions */}
@@ -102,14 +125,15 @@ export const AttendanceDashboardCards: React.FC<AttendanceDashboardCardsProps> =
           records={records}
           monthSummary={monthSummary}
           statistics={statistics}
+          shift={shift}
         />
 
         {/* Card 2 (Middle): TIMINGS */}
         <AttendanceTimingsCard
           todayWorkedSeconds={liveWorkedSeconds}
           todayTargetSeconds={today.target_seconds || 28800}
-          shiftStart="09:00 AM"
-          shiftEnd="05:30 PM"
+          shiftStart={shiftStartDisplay}
+          shiftEnd={shiftEndDisplay}
           isOnBreak={liveToday.state === 'on_break'}
         />
 
@@ -132,11 +156,13 @@ export const AttendanceDashboardCards: React.FC<AttendanceDashboardCardsProps> =
         monthSummary={monthSummary}
         records={records}
         statistics={statistics}
+        shift={shift}
       />
 
       {/* Section 3: Activity Logs */}
       <RecentAttendanceRecordsCard
         records={records}
+        shift={shift}
         selectedDate={selectedDate}
         onRequestCorrection={onRequestCorrection}
         onSelectDate={onSelectDate}

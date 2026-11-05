@@ -160,6 +160,7 @@ export const TaskManagementPage: React.FC = () => {
       count: summary?.total ?? 0,
       icon: CheckSquare,
       colorClass: 'bg-slate-100 text-slate-700',
+      borderClass: 'border-slate-200 hover:border-slate-300 bg-gradient-to-br from-slate-50/60 via-white to-white',
     },
     {
       id: 'in_progress',
@@ -167,6 +168,7 @@ export const TaskManagementPage: React.FC = () => {
       count: todoOrInProgress,
       icon: Clock,
       colorClass: 'bg-blue-50 text-blue-700',
+      borderClass: 'border-blue-200 hover:border-blue-300 bg-gradient-to-br from-blue-50/40 via-white to-white',
     },
     {
       id: 'hold',
@@ -174,6 +176,7 @@ export const TaskManagementPage: React.FC = () => {
       count: onHoldCount,
       icon: AlertTriangle,
       colorClass: 'bg-amber-50 text-amber-700',
+      borderClass: 'border-amber-200 hover:border-amber-300 bg-gradient-to-br from-amber-50/40 via-white to-white',
     },
     {
       id: 'submitted',
@@ -182,6 +185,7 @@ export const TaskManagementPage: React.FC = () => {
       icon: Send,
       colorClass: 'bg-purple-50 text-purple-700',
       badge: submittedCount > 0 ? `${submittedCount} pending` : undefined,
+      borderClass: 'border-purple-200 hover:border-purple-300 bg-gradient-to-br from-purple-50/40 via-white to-white',
     },
     {
       id: 'approved',
@@ -189,6 +193,7 @@ export const TaskManagementPage: React.FC = () => {
       count: approvedCount,
       icon: CheckCircle2,
       colorClass: 'bg-emerald-50 text-emerald-700',
+      borderClass: 'border-emerald-200 hover:border-emerald-300 bg-gradient-to-br from-emerald-50/40 via-white to-white',
     },
   ];
 

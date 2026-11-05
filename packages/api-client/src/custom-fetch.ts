@@ -116,7 +116,7 @@ export async function customFetch<T>(
         throw errorData;
       }
 
-      return (await retryResponse.json()) as T;
+      return (await readBody(retryResponse)) as T;
     } else {
       broadcastLogout();
     }
@@ -136,5 +136,16 @@ export async function customFetch<T>(
     throw errorData;
   }
 
-  return (await response.json()) as T;
+  return (await readBody(response)) as T;
+}
+
+/** Success responses with an empty body (e.g. 200 from a DELETE) resolve to undefined instead of a JSON error. */
+async function readBody(res: Response): Promise<unknown> {
+  const text = await res.text();
+  if (!text.trim()) return undefined;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
 }

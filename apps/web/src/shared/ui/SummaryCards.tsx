@@ -10,6 +10,7 @@ export interface SummaryCardItem {
   badge?: string;
   subtitle?: string;
   isActive?: boolean;
+  borderClass?: string;
 }
 
 export interface SummaryCardsProps {
@@ -50,12 +51,12 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({
                 onSelect(item.id);
               }
             }}
-            className={`group relative rounded-2xl border p-4 bg-white shadow-xs transition-all duration-200 ${
+            className={`group relative rounded-2xl border p-4 shadow-xs transition-all duration-200 ${
+              item.borderClass ? item.borderClass : 'bg-white border-slate-200/80 hover:border-slate-300'
+            } ${
               onSelect ? 'cursor-pointer hover:shadow-md hover:-translate-y-0.5' : ''
             } ${
-              isSelected
-                ? 'border-blue-500 ring-2 ring-blue-100'
-                : 'border-slate-200/80 hover:border-slate-300'
+              isSelected ? 'border-blue-500 ring-2 ring-blue-100' : ''
             }`}
           >
             <div className="flex items-center justify-between mb-3">

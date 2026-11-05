@@ -64,13 +64,19 @@ export const TimesheetActionButtons: React.FC<TimesheetActionButtonsProps> = ({
     };
   }, [isDropdownOpen]);
 
-  const isFullDayLeave = today.special_status === 'on_leave';
+  // Leave BFD 8: full day of approved leave blocks check-in; a First Half leave
+  // allows check-in from the start of the second half of the shift.
+  const isFullDayLeave = today.special_status === 'on_leave' || today.leave_info?.part === 'full';
+  const firstHalfLocked =
+    today.leave_info?.half === 'FIRST_HALF' &&
+    Boolean(today.leave_info?.check_in_allowed_from) &&
+    new Date(today.server_now).getTime() < new Date(today.leave_info!.check_in_allowed_from!).getTime();
 
   let primaryBtnLabel = 'Punch In';
   let PrimaryBtnIcon = LogIn;
   let primaryBtnClass =
     'bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-sm shadow-emerald-500/25 active:scale-[0.98] border border-emerald-400/30';
-  let primaryDisabled = isPending || (isFullDayLeave && today.state === 'not_started');
+  let primaryDisabled = isPending || ((isFullDayLeave || firstHalfLocked) && today.state === 'not_started');
 
   if (today.state === 'working' || today.state === 'on_break') {
     primaryBtnLabel = 'Punch Out';

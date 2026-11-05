@@ -79,6 +79,7 @@ import {
   employeeEditSchema,
   type EmployeeFormValues,
 } from '../schemas/employee-form.schema';
+import { SetPasswordLinkField } from '../components/SetPasswordLinkField';
 
 export { employeeCreateSchema, employeeEditSchema, type EmployeeFormValues };
 
@@ -1539,31 +1540,23 @@ const EmployeeEditInner: React.FC<{ id: string }> = ({ id }) => {
                     </div>
                     <div>
                       <h4 className="text-xs font-bold text-slate-800 tracking-tight flex items-center gap-1.5">
-                        System Temporary Password
+                        Set Password Link
                         <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
                           Automated & Secure
                         </span>
                       </h4>
                       <p className="text-[11px] text-slate-500">
-                        Cryptographically generated for one-time employee activation
+                        Share this link with the employee. It opens the Set Password page; after setting a password they sign in with access as per their role. The same link is emailed to them.
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-200/80">
-                    <div className="font-mono text-xs text-slate-400 tracking-widest pl-1 select-none">
-                      ••••••••••••••••
-                    </div>
-                    <span className="text-[10px] font-medium text-slate-500 flex items-center gap-1">
-                      <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
-                      Zero-Knowledge Protection
-                    </span>
-                  </div>
+                  <SetPasswordLinkField officeEmail={watch('office_email') || watch('email')} />
 
                   <div className="p-2.5 rounded-xl bg-blue-50/60 border border-blue-100 text-[11px] text-blue-900 leading-relaxed flex items-start gap-1.5">
                     <span className="font-bold text-blue-700 shrink-0">•</span>
                     <span>
-                      <strong>BFD Compliance (Page 23, Marker 5):</strong> The system creates a one-time temporary password. Nobody types it, and the Admin never sees it. Credentials will be securely emailed directly to the employee.
+                      The system creates a one-time temporary password that nobody sees. The employee replaces it with their own password through this link.
                     </span>
                   </div>
                 </div>

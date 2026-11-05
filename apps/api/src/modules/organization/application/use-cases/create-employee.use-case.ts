@@ -253,18 +253,19 @@ export class CreateEmployeeUseCase {
     });
 
     if (this.mailPort) {
-      try {
-        const targetOfficeEmail = (command.office_email || command.email).trim().toLowerCase();
-        await this.mailPort.sendWelcomeCredentials({
+      const targetOfficeEmail = (command.office_email || command.email).trim().toLowerCase();
+      // Send welcome credentials email asynchronously in the background so employee creation is instant
+      this.mailPort
+        .sendWelcomeCredentials({
           officeEmail: targetOfficeEmail,
           personalEmail: command.personal_email?.trim().toLowerCase() || undefined,
           employeeName: command.name,
           temporaryPassword: command.password,
           loginUrl: process.env.WEB_ORIGIN || 'http://localhost:5173',
+        })
+        .catch((mailErr: any) => {
+          this.logger.warn(`Failed to dispatch welcome email: ${mailErr.message}`);
         });
-      } catch (mailErr: any) {
-        this.logger.warn(`Failed to dispatch welcome email: ${mailErr.message}`);
-      }
     }
 
     return createdEmployee;

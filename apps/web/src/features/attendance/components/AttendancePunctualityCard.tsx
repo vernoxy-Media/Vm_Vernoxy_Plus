@@ -11,13 +11,32 @@ export interface AttendancePunctualityCardProps {
   records: DayRecord[];
   monthSummary: MonthSummary;
   statistics?: AttendanceStatistics;
+  shift?: {
+    shift_name?: string;
+    start_time?: string;
+    end_time?: string;
+    late_arrival_grace_minutes?: number;
+    early_exit_grace_minutes?: number;
+  };
 }
 
 export const AttendancePunctualityCard: React.FC<AttendancePunctualityCardProps> = ({
   records,
   monthSummary,
   statistics,
+  shift,
 }) => {
+  const shiftStartMins = useMemo(() => {
+    if (shift?.start_time) {
+      const m = shift.start_time.match(/(\d{1,2}):(\d{2})/);
+      if (m) return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+    }
+    return 570; // 09:30 AM
+  }, [shift?.start_time]);
+
+  const lateGraceMins = shift?.late_arrival_grace_minutes ?? 15;
+  const cutoffMins = shiftStartMins + lateGraceMins; // 585 mins = 09:45 AM
+
   // 1. Calculate Punctuality & Average In/Out Times from records
   const { punctualityScore, avgInTimeText, avgOutTimeText, grade } = useMemo(() => {
     const presentRecords = records.filter((r) => Boolean(r.punch_in));
@@ -25,7 +44,7 @@ export const AttendancePunctualityCard: React.FC<AttendancePunctualityCardProps>
       return {
         punctualityScore: 94,
         avgInTimeText: '09:12 AM',
-        avgOutTimeText: '05:38 PM',
+        avgOutTimeText: '06:30 PM',
         grade: 'Grade A+',
       };
     }
@@ -38,25 +57,31 @@ export const AttendancePunctualityCard: React.FC<AttendancePunctualityCardProps>
 
     presentRecords.forEach((r) => {
       if (r.punch_in) {
-        const match = r.punch_in.match(/^(\d{1,2}):(\d{2})/);
+        const match = r.punch_in.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
         if (match) {
-          const h = parseInt(match[1], 10);
+          let h = parseInt(match[1], 10);
           const m = parseInt(match[2], 10);
+          const ampm = match[3]?.toUpperCase();
+          if (ampm === 'PM' && h < 12) h += 12;
+          if (ampm === 'AM' && h === 12) h = 0;
           const totalMins = h * 60 + m;
           inMinutesSum += totalMins;
           inCount += 1;
-          // Grace window cutoff: 09:15 AM = 555 mins (Shift start 09:00 AM + 15m grace)
-          if (totalMins <= 555) {
+          // Grace window cutoff: Shift start (e.g. 09:30) + grace (e.g. 15m) = 585 mins
+          if (totalMins <= cutoffMins) {
             onTimeCount += 1;
           }
         }
       }
 
       if (r.punch_out) {
-        const match = r.punch_out.match(/^(\d{1,2}):(\d{2})/);
+        const match = r.punch_out.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
         if (match) {
-          const h = parseInt(match[1], 10);
+          let h = parseInt(match[1], 10);
           const m = parseInt(match[2], 10);
+          const ampm = match[3]?.toUpperCase();
+          if (ampm === 'PM' && h < 12) h += 12;
+          if (ampm === 'AM' && h === 12) h = 0;
           outMinutesSum += h * 60 + m;
           outCount += 1;
         }
@@ -175,7 +200,7 @@ export const AttendancePunctualityCard: React.FC<AttendancePunctualityCardProps>
           <div className="font-mono text-sm font-extrabold text-slate-900">
             {avgInTimeText}
           </div>
-          <div className="text-[10px] text-slate-400 font-medium">Within 15-min grace</div>
+          <div className="text-[10px] text-slate-400 font-medium">Within {lateGraceMins}-min grace</div>
         </div>
 
         {/* Metric 2: Average Out-Time */}

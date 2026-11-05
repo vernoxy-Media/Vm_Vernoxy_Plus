@@ -18,6 +18,7 @@ export interface UpdateTaskCommand {
   due_date?: string | null;
   allocated_minutes?: number | null;
   assignee_ids?: number[];
+  other_task_type?: string | null;
   actor_emp_id: number;
 }
 
@@ -36,6 +37,36 @@ export class UpdateTaskUseCase {
 
     if (existing.stage === 'completed') {
       throw new TaskCompletedLockedError(command.taskId);
+    }
+
+    // Same mandatory rules as Create Task (BFD 2.3).
+    if (command.title !== undefined) {
+      const t = command.title?.trim();
+      if (!t) throw new AssigneeValidationError('Please enter the Task Name.');
+      if (t.length > 150) throw new AssigneeValidationError('Task Name cannot be longer than 150 characters.');
+    }
+    if (command.allocated_minutes !== undefined) {
+      const m = Number(command.allocated_minutes || 0);
+      if (!Number.isInteger(m) || m <= 0) throw new AssigneeValidationError('Allocated Time is mandatory and must be greater than zero.');
+    }
+    if (command.priority !== undefined && !['high', 'medium', 'low'].includes(command.priority)) {
+      throw new AssigneeValidationError('Please select the Priority: High, Medium or Low.');
+    }
+    let otherText: string | null | undefined;
+    if (command.task_type_id !== undefined) {
+      if (!command.task_type_id) throw new AssigneeValidationError('Please select the Task Type.');
+      const code = await this.taskRepo.getTaskTypeCode(Number(command.task_type_id));
+      if (!code) throw new AssigneeValidationError('Please select a valid Task Type.');
+      if (code === 'other') {
+        otherText = (command.other_task_type || '').trim();
+        if (!otherText) throw new AssigneeValidationError('Please enter the Other Task Type.');
+        if (otherText.length > 100) throw new AssigneeValidationError('Other Task Type cannot be longer than 100 characters.');
+      } else {
+        otherText = null;
+      }
+    }
+    if (command.assignee_ids !== undefined && !existing.has_sub_tasks && new Set(command.assignee_ids).size !== 1) {
+      throw new AssigneeValidationError('Only one employee can be selected in Assigned To for a task without sub tasks.');
     }
 
     let cleanAssigneeIds: number[] | undefined;
@@ -59,6 +90,7 @@ export class UpdateTaskUseCase {
       due_date: command.due_date,
       allocated_minutes: command.allocated_minutes,
       assignee_ids: cleanAssigneeIds,
+      ...(otherText !== undefined ? { other_task_type: otherText } : {}),
       updated_by: command.actor_emp_id,
     });
 

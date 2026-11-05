@@ -89,10 +89,8 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
   onProjectUpdated,
 }) => {
   const { user } = useAuth();
-  const isAdmin = Boolean(
-    user?.access?.can_manage_organization ||
-    user?.role?.role_name?.toLowerCase().includes('admin')
-  );
+  // Admin = role marked is_admin (same rule as the API).
+  const isAdmin = Boolean(user?.access?.can_manage_organization);
 
   const { socket, joinProject, leaveProject } = useSocket();
 
@@ -429,8 +427,8 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
 
     try {
       const url = isAdmin
-        ? `/api/v1/admin/tasks/${taskId}/move-stage`
-        : `/api/v1/my-tasks/${taskId}/move-stage`;
+        ? `/api/v1/admin/tasks/${taskId}/move`
+        : `/api/v1/my-tasks/${taskId}/move`;
 
       await customFetch(url, {
         method: 'POST',
@@ -561,7 +559,7 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
                   </div>
 
                   <div className="flex items-center gap-1.5">
-                    {isManagerOrAdmin && (
+                    {isAdmin && (
                       <button
                         type="button"
                         onClick={() => setIsEditProjectModalOpen(true)}
@@ -997,7 +995,7 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
                           <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">Project Details</h3>
                           <p className="text-[11px] text-slate-400 mt-0.5">Core project configuration and metadata</p>
                         </div>
-                        {isManagerOrAdmin && (
+                        {isAdmin && (
                           <button
                             type="button"
                             onClick={() => setIsEditProjectModalOpen(true)}

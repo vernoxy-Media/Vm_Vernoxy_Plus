@@ -49,6 +49,18 @@ export class CreateCorrectionUseCase {
       throw new AttendanceDomainError('BLANK_REASON', 'Reason cannot be blank', 422);
     }
 
+    // BFD Leave 8: an attendance correction cannot change a day of approved full-day leave.
+    if (this.attendanceRepo.findLeaveForDate) {
+      const leave = await this.attendanceRepo.findLeaveForDate(cmd.empId, cmd.workDate);
+      if (leave.approved?.day_part === 'FULL_DAY') {
+        throw new AttendanceDomainError(
+          'DAY_ON_LEAVE',
+          `This day is approved leave (${leave.approved.leave_type_name}, ${leave.approved.request_no}). The leave must be cancelled before the attendance can be corrected.`,
+          422,
+        );
+      }
+    }
+
     const existingDay = await this.attendanceRepo.findDayByEmpAndDate(cmd.empId, cmd.workDate);
 
     return this.attendanceRepo.createCorrection({

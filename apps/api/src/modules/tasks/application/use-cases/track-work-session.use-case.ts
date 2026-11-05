@@ -29,12 +29,10 @@ export class TrackWorkSessionUseCase {
       throw new TaskNotFoundError(command.taskId);
     }
 
-    if (!command.isAdmin) {
-      const isAssignee = existing.assignees.some((a) => a.employee_id === command.actorEmpId);
-      const isLead = existing.lead_employee_id === command.actorEmpId;
-      if (!isAssignee && !isLead) {
-        throw new TaskPermissionDeniedError('Only assigned employees or administrators can track work on this task');
-      }
+    const isAssignee = existing.assignees.some((a) => a.employee_id === command.actorEmpId);
+    const isLead = existing.lead_employee_id === command.actorEmpId;
+    if (!isAssignee && !isLead) {
+      throw new TaskPermissionDeniedError('Only assigned employees can start, pause, or finish work on this task');
     }
 
     const updated = await this.taskRepo.trackWorkSession(command.taskId, {

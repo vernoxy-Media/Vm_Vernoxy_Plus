@@ -700,6 +700,9 @@ export class EmployeeResponseDto {
   @ApiPropertyOptional({ type: String, nullable: true })
   emergency_contact_relation?: string | null;
 
+  @ApiPropertyOptional({ type: Number, nullable: true, description: 'Assigned Leave Policy' })
+  leave_policy_id?: number | null;
+
   @ApiPropertyOptional({ type: Number, nullable: true })
   employment_type_id?: number | null;
 

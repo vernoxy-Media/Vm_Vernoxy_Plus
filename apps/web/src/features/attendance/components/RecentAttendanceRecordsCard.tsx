@@ -16,20 +16,30 @@ import { fetchRegularizations } from '../api/attendance.api';
 
 export interface RecentAttendanceRecordsCardProps {
   records: DayRecord[];
+  shift?: {
+    shift_name?: string;
+    start_time?: string;
+    end_time?: string;
+    late_arrival_grace_minutes?: number;
+    early_exit_grace_minutes?: number;
+  };
   selectedDate?: string;
   onViewAll?: () => void;
   onRequestCorrection?: (date: string) => void;
   onSelectDate?: (date: string) => void;
   onSuccessCorrection?: (msg: string) => void;
   onOpenMyRequests?: () => void;
+  hideActionButtons?: boolean;
 }
 
 export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardProps> = ({
   records,
+  shift,
   selectedDate,
   onSelectDate: _onSelectDate,
   onSuccessCorrection,
   onOpenMyRequests,
+  hideActionButtons = false,
 }) => {
   // Drawer states: date, record, and mode
   const [insightDrawerDate, setInsightDrawerDate] = useState<string | null>(null);
@@ -54,8 +64,10 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
   };
 
   useEffect(() => {
-    loadPendingCount();
-  }, []);
+    if (!hideActionButtons) {
+      loadPendingCount();
+    }
+  }, [hideActionButtons]);
 
   // Date Range filter states defaulting to full month (matching reference image)
   const baseDateStr = selectedDate || todayStr;
@@ -152,19 +164,35 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
     if (!record.punch_in) return { text: '—', lateMinutes: 0 };
     // Format punch in: e.g. 09:14 AM
     let formatted = record.punch_in;
-    const match = record.punch_in.match(/^(\d{1,2}):(\d{2})/);
+    const match = record.punch_in.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
     let lateMins = 0;
     if (match) {
       let h = parseInt(match[1], 10);
       const min = parseInt(match[2], 10);
-      const ampm = h >= 12 ? 'PM' : 'AM';
+      const ampm = match[3]?.toUpperCase();
+      if (ampm === 'PM' && h < 12) h += 12;
+      if (ampm === 'AM' && h === 12) h = 0;
       const dispH = h % 12 || 12;
-      formatted = `${String(dispH).padStart(2, '0')}:${match[2]} ${ampm}`;
+      formatted = `${String(dispH).padStart(2, '0')}:${match[2]} ${h >= 12 ? 'PM' : 'AM'}`;
 
-      // Check if after 09:00 AM (shift start in reference image)
+      // Resolve shift start and grace period
+      // Default: 09:30 AM (570 mins), grace: 15 mins -> Cutoff is 09:45 AM (585 mins)
+      let shiftStartMins = 570; // 09:30 AM
+      let lateGrace = 15;
+      if (shift?.start_time) {
+        const timePart = shift.start_time.match(/(\d{1,2}):(\d{2})/);
+        if (timePart) {
+          shiftStartMins = parseInt(timePart[1], 10) * 60 + parseInt(timePart[2], 10);
+        }
+      }
+      if (shift?.late_arrival_grace_minutes !== undefined) {
+        lateGrace = Number(shift.late_arrival_grace_minutes);
+      }
+
       const totalMins = h * 60 + min;
-      if (totalMins > 540) {
-        lateMins = totalMins - 540;
+      const cutoffMins = shiftStartMins + lateGrace;
+      if (totalMins > cutoffMins) {
+        lateMins = totalMins - shiftStartMins;
       }
     }
     return { text: formatted, lateMinutes: lateMins };
@@ -213,7 +241,15 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
     if (record.status === 'leave') {
       return { label: 'ON LEAVE', className: 'bg-[#FEF3C7] text-[#92400E] px-3 py-0.5 rounded-full font-bold' };
     }
-    if (record.status === 'incomplete' || (record.punch_in && !record.punch_out && !isToday)) {
+    if (record.leave_part === 'half') {
+      const base = getBaseStatusBadge(record, isToday);
+      return { ...base, label: `${base.label} · HALF DAY LEAVE` };
+    }
+    return getBaseStatusBadge(record, isToday);
+  };
+
+  const getBaseStatusBadge = (record: DayRecord, isToday: boolean) => {
+    if (!isToday && (record.status === 'incomplete' || (record.punch_in && !record.punch_out))) {
       return { label: 'MISSING CLOCK OUT', className: 'bg-[#FEE2E2] text-[#991B1B] px-3 py-0.5 rounded-full font-bold' };
     }
     if (record.status === 'half_day') {
@@ -279,31 +315,33 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
         </div>
 
         {/* Top-Right Action Buttons matching reference image */}
-        <div className="flex items-center gap-2.5 shrink-0">
-          <button
-            type="button"
-            onClick={() => {
-              setIsMyRequestsDrawerOpen(true);
-              onOpenMyRequests?.();
-            }}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[14px] border border-[#E2E8F0] bg-white hover:bg-slate-50 text-[#1E293B] font-semibold text-xs shadow-2xs btn-hover-lift transition cursor-pointer"
-          >
-            <History className="w-3.5 h-3.5 text-slate-500 stroke-[1.75]" />
-            <span>My Requests</span>
-            <span className="w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center">
-              {pendingRequestsCount}
-            </span>
-          </button>
+        {!hideActionButtons && (
+          <div className="flex items-center gap-2.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                setIsMyRequestsDrawerOpen(true);
+                onOpenMyRequests?.();
+              }}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[14px] border border-[#E2E8F0] bg-white hover:bg-slate-50 text-[#1E293B] font-semibold text-xs shadow-2xs btn-hover-lift transition cursor-pointer"
+            >
+              <History className="w-3.5 h-3.5 text-slate-500 stroke-[1.75]" />
+              <span>My Requests</span>
+              <span className="w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center">
+                {pendingRequestsCount}
+              </span>
+            </button>
 
-          <button
-            type="button"
-            onClick={handleOpenMissingDayRequest}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[14px] border border-[#E2E8F0] hover:border-slate-300 hover:bg-slate-50 text-[#1E293B] font-semibold text-xs shadow-2xs btn-hover-lift transition cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5 stroke-[2] text-[#1E293B]" />
-            <span>Request for Missing Day</span>
-          </button>
-        </div>
+            <button
+              type="button"
+              onClick={handleOpenMissingDayRequest}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[14px] border border-[#E2E8F0] hover:border-slate-300 hover:bg-slate-50 text-[#1E293B] font-semibold text-xs shadow-2xs btn-hover-lift transition cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5 stroke-[2] text-[#1E293B]" />
+              <span>Request for Missing Day</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Table with sticky header, rounded corners, soft hover, increased row height h-[68px] */}
@@ -479,6 +517,7 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
           isOpen={Boolean(insightDrawerDate)}
           date={insightDrawerDate}
           record={selectedRecordForDrawer}
+          shift={shift}
           initialMode={insightDrawerMode}
           onClose={() => {
             setInsightDrawerDate(null);

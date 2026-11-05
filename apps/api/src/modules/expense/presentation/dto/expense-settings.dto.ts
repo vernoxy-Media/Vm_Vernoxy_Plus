@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsArray,
   IsInt,
   IsString,
   IsNumber,
@@ -175,6 +176,13 @@ export class UpdateExpenseGeneralSettingsDto {
   @IsString()
   @Length(1, 10)
   currency?: string;
+
+  @ApiPropertyOptional({ description: 'Accounts users: pay claims back and see all reports (BFD 1)', example: [4, 9] })
+  @IsOptional()
+  @IsArray()
+  @IsInt({ each: true })
+  @Type(() => Number)
+  accounts_emp_ids?: number[];
 }
 
 // -----------------------------------------------------------------------------

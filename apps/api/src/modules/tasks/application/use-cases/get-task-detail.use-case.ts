@@ -27,6 +27,12 @@ export class GetTaskDetailUseCase {
         st.assignees.some((a) => a.employee_id === requestingEmpId)
       );
 
+      // The Project Manager reviews and approves Project Tasks (Task BFD 3.4).
+      const pmId = await this.taskRepo.getTaskProjectManagerId(taskId);
+      if (pmId !== null && pmId === requestingEmpId) {
+        const history = await this.taskRepo.getHistory(taskId);
+        return { task, history };
+      }
       if (!isAssignee && !isLead && !isSubTaskAssignee) {
         throw new TaskPermissionDeniedError('You do not have access to view this task');
       }

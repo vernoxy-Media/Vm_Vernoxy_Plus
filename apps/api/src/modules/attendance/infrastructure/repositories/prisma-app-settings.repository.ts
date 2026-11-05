@@ -331,7 +331,7 @@ export class PrismaAppSettingsRepository implements AppSettingsRepository {
           halfDayHours,
           fullDayMinutes: Math.round(fullDayHours * 60),
           halfDayMinutes: Math.round(halfDayHours * 60),
-          graceMinutes: defaultGrace,
+          graceMinutes: shift.late_arrival_grace_minutes ?? defaultGrace,
         };
       }
     }
@@ -360,7 +360,7 @@ export class PrismaAppSettingsRepository implements AppSettingsRepository {
       halfDayHours,
       fullDayMinutes: Math.round(fullDayHours * 60),
       halfDayMinutes: Math.round(halfDayHours * 60),
-      graceMinutes: defaultGrace,
+      graceMinutes: defShift?.late_arrival_grace_minutes ?? defaultGrace,
     };
   }
 

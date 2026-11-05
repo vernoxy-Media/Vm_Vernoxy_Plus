@@ -247,14 +247,6 @@ export const BugDetailsModal: React.FC<BugDetailsModalProps> = ({
                       >
                         Accept Bug (Open) <ArrowRight className="w-3.5 h-3.5" />
                       </button>
-                      <button
-                        type="button"
-                        disabled={isUpdatingStatus}
-                        onClick={() => handleStatusTransition('not_a_bug')}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-semibold disabled:opacity-50"
-                      >
-                        Mark as Not a Bug
-                      </button>
                     </>
                   )}
 
@@ -337,27 +329,8 @@ export const BugDetailsModal: React.FC<BugDetailsModalProps> = ({
                     </>
                   )}
 
-                  {bug.status === 'done' && (
-                    <button
-                      type="button"
-                      disabled={isUpdatingStatus}
-                      onClick={() => handleStatusTransition('ready_for_dev', 'Reopened by user')}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold disabled:opacity-50"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                      Reopen Bug
-                    </button>
-                  )}
-
-                  {bug.status === 'not_a_bug' && (
-                    <button
-                      type="button"
-                      disabled={isUpdatingStatus}
-                      onClick={() => handleStatusTransition('new', 'Re-evaluating')}
-                      className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold"
-                    >
-                      Reopen as New Bug
-                    </button>
+                  {(bug.status === 'done' || bug.status === 'not_a_bug') && (
+                    <span className="text-[11px] text-slate-500">This bug is closed.</span>
                   )}
                 </div>
               </div>

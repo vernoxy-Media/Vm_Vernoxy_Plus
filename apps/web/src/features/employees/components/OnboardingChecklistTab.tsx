@@ -182,8 +182,12 @@ export const OnboardingChecklistTab: React.FC<OnboardingChecklistTabProps> = ({
     : employee.emergency_contact_name || employee.address
     ? 'in_progress'
     : 'pending';
+  // Show exactly what the server says is missing (personal details, pay policy and/or Leave Policy).
+  const missingDetails = activationStatus?.missing_details ?? [];
   const personalDetails = isPersonalDetailsDone
     ? 'All required fields filled'
+    : missingDetails.length
+    ? `Missing: ${missingDetails.join(', ')}`
     : !employee.emergency_contact_name
     ? 'Missing: Emergency contact, bank details'
     : 'Missing: Salary, PF & OT policies';

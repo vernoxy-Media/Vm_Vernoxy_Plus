@@ -56,11 +56,8 @@ export const ProjectsPage: React.FC = () => {
     }
   }, [id]);
 
-  const canCreate = Boolean(
-    user?.access?.can_manage_organization ||
-      user?.role?.role_name?.toLowerCase().includes('admin') ||
-      user?.role?.role_name?.toLowerCase().includes('manager')
-  );
+  // Only the Admin can create a project (Project BFD 2.8).
+  const canCreate = Boolean(user?.access?.can_manage_organization);
 
   const loadData = async () => {
     try {
@@ -203,51 +200,35 @@ export const ProjectsPage: React.FC = () => {
         )}
       </div>
 
-      {/* KPI Stats Strip matching Image 3 */}
+      {/* KPI cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {/* Total */}
-        <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3.5">
-          <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
-            <FolderKanban className="w-4 h-4" />
-          </div>
-          <div>
-            <h3 className="text-xl font-bold text-slate-900 leading-tight">{stats.total}</h3>
-            <span className="text-[11px] font-medium text-slate-400">Total</span>
-          </div>
-        </div>
-
-        {/* In Progress */}
-        <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3.5">
-          <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-            <RotateCw className="w-4 h-4" />
-          </div>
-          <div>
-            <h3 className="text-xl font-bold text-slate-900 leading-tight">{stats.inProgress}</h3>
-            <span className="text-[11px] font-medium text-slate-400">In Progress</span>
-          </div>
-        </div>
-
-        {/* Delivered */}
-        <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3.5">
-          <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-            <CheckCircle2 className="w-4 h-4" />
-          </div>
-          <div>
-            <h3 className="text-xl font-bold text-slate-900 leading-tight">{stats.delivered}</h3>
-            <span className="text-[11px] font-medium text-slate-400">Delivered</span>
-          </div>
-        </div>
-
-        {/* On Hold */}
-        <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3.5">
-          <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-            <AlertCircle className="w-4 h-4" />
-          </div>
-          <div>
-            <h3 className="text-xl font-bold text-slate-900 leading-tight">{stats.onHold}</h3>
-            <span className="text-[11px] font-medium text-slate-400">On Hold</span>
-          </div>
-        </div>
+        {[
+          { label: 'Total Projects', value: stats.total, icon: FolderKanban, card: 'from-slate-50 to-white border-slate-200', tile: 'bg-slate-800 text-white', value_cls: 'text-slate-900', bar: 'bg-slate-700' },
+          { label: 'In Progress', value: stats.inProgress, icon: RotateCw, card: 'from-blue-50 to-white border-blue-100', tile: 'bg-blue-600 text-white', value_cls: 'text-blue-700', bar: 'bg-blue-500' },
+          { label: 'Delivered', value: stats.delivered, icon: CheckCircle2, card: 'from-emerald-50 to-white border-emerald-100', tile: 'bg-emerald-600 text-white', value_cls: 'text-emerald-700', bar: 'bg-emerald-500' },
+          { label: 'On Hold', value: stats.onHold, icon: AlertCircle, card: 'from-amber-50 to-white border-amber-100', tile: 'bg-amber-500 text-white', value_cls: 'text-amber-700', bar: 'bg-amber-500' },
+        ].map((k, i) => {
+          const share = stats.total > 0 ? Math.round((k.value / stats.total) * 100) : 0;
+          return (
+            <div key={k.label} className={`relative overflow-hidden rounded-2xl border bg-gradient-to-br ${k.card} p-4 shadow-2xs`}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{k.label}</p>
+                  <p className={`mt-1 text-2xl font-extrabold leading-none ${k.value_cls}`}>{k.value}</p>
+                </div>
+                <div className={`w-10 h-10 rounded-xl ${k.tile} flex items-center justify-center shrink-0 shadow-xs`}>
+                  <k.icon className="w-5 h-5" />
+                </div>
+              </div>
+              <div className="mt-3">
+                <div className="h-1.5 w-full rounded-full bg-slate-200/70 overflow-hidden">
+                  <div className={`h-full rounded-full ${k.bar}`} style={{ width: `${i === 0 ? (stats.total ? 100 : 0) : share}%` }} />
+                </div>
+                <p className="mt-1.5 text-[11px] text-slate-500">{i === 0 ? 'All projects you can see' : `${share}% of total`}</p>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Filter and View Mode Switcher */}
