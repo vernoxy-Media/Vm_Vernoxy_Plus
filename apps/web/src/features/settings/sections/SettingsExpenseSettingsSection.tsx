@@ -314,11 +314,12 @@ export const SettingsExpenseSettingsSection: React.FC = () => {
         default_reimbursement_method: generalForm.default_reimbursement_method,
         approver_reminder_days: Number(generalForm.approver_reminder_days),
         currency: generalForm.currency || 'INR',
+        accounts_emp_ids: generalForm.accounts_emp_ids ?? [],
       });
       setGeneralSuccess(true);
       setTimeout(() => setGeneralSuccess(false), 3000);
     } catch (err: any) {
-      setGeneralError(err.message || 'Failed to update general settings');
+      setGeneralError(err?.detail || err?.message || 'Failed to update general settings');
     }
   };
 
@@ -877,6 +878,54 @@ export const SettingsExpenseSettingsSection: React.FC = () => {
               />
               <p className="text-2xs text-slate-400 mt-1">
                 Days after submission before notifying approvers of pending expense claims.
+              </p>
+            </div>
+
+            {/* Accounts users (BFD 1: pay claims back and see all reports) */}
+            <div className="pt-2 border-t border-slate-100">
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Accounts</label>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {(generalForm.accounts_emp_ids ?? []).map((id) => {
+                  const person = (activeEmployees as any[]).find((e) => (e.emp_id ?? e.id) === id);
+                  return (
+                    <span key={id} className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-1 text-2xs font-semibold text-indigo-700 ring-1 ring-indigo-100">
+                      {person?.name ?? generalForm.accounts_users?.find((u) => u.emp_id === id)?.name ?? `#${id}`}
+                      <button
+                        type="button"
+                        aria-label="Remove"
+                        className="text-indigo-400 hover:text-rose-600"
+                        onClick={() =>
+                          setGeneralForm({ ...generalForm, accounts_emp_ids: (generalForm.accounts_emp_ids ?? []).filter((x) => x !== id) })
+                        }
+                      >
+                        ×
+                      </button>
+                    </span>
+                  );
+                })}
+                {!(generalForm.accounts_emp_ids ?? []).length && <span className="text-2xs text-slate-400">No one yet. Only the Admin can pay claims.</span>}
+              </div>
+              <select
+                value=""
+                onChange={(e) => {
+                  const id = Number(e.target.value);
+                  if (!id) return;
+                  const cur = generalForm.accounts_emp_ids ?? [];
+                  if (!cur.includes(id)) setGeneralForm({ ...generalForm, accounts_emp_ids: [...cur, id] });
+                }}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                <option value="">Add an employee…</option>
+                {(activeEmployees as any[])
+                  .filter((e) => !(generalForm.accounts_emp_ids ?? []).includes(e.emp_id ?? e.id))
+                  .map((e) => (
+                    <option key={e.emp_id ?? e.id} value={e.emp_id ?? e.id}>
+                      {e.name}
+                    </option>
+                  ))}
+              </select>
+              <p className="text-2xs text-slate-400 mt-1">
+                Accounts users pay approved claims back and see every expense report.
               </p>
             </div>
 

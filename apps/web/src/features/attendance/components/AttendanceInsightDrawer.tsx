@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useDayDetail } from '../hooks/use-attendance';
+import { resolveShift } from '../utils/attendance-metrics';
 import { createRegularizationRequest } from '../api/attendance.api';
 import { useLookupsQuery } from '@/features/organization/hooks/use-master-data';
 import type { DayRecord, CreateRegularizationPayload } from '../types/attendance.types';
@@ -25,6 +26,13 @@ export interface AttendanceInsightDrawerProps {
   isOpen: boolean;
   date: string | null; // "YYYY-MM-DD"
   record?: DayRecord | null;
+  shift?: {
+    shift_name?: string;
+    start_time?: string;
+    end_time?: string;
+    late_arrival_grace_minutes?: number;
+    early_exit_grace_minutes?: number;
+  };
   initialMode?: 'insight' | 'regularize';
   /** Administrators looking at another employee: the day and any request are theirs */
   empId?: number | null;
@@ -54,6 +62,7 @@ export const AttendanceInsightDrawer: React.FC<AttendanceInsightDrawerProps> = (
   isOpen,
   date,
   record,
+  shift,
   initialMode = 'insight',
   empId,
   onClose,
@@ -220,8 +229,11 @@ export const AttendanceInsightDrawer: React.FC<AttendanceInsightDrawerProps> = (
   const arrivalDisplay = formatTimeDisplay(punchInTime);
   const departureDisplay = formatTimeDisplay(punchOutTime);
 
-  // Shift Timing (reference screenshot shows: SHIFT ● 09:00 AM — 05:30 PM)
-  const shiftDisplay = '09:00 AM — 05:30 PM';
+  // Shift Timing (e.g. 09:30 AM — 06:30 PM)
+  const shiftDisplay =
+    shift?.start_time && shift?.end_time
+      ? `${formatTimeDisplay(shift.start_time)} — ${formatTimeDisplay(shift.end_time)}`
+      : '09:30 AM — 06:30 PM';
 
   // Submission handler for Regularization Form
   const handleSubmitRegularization = async (e: React.FormEvent) => {
@@ -322,7 +334,8 @@ export const AttendanceInsightDrawer: React.FC<AttendanceInsightDrawerProps> = (
     : record?.status === 'leave'
     ? `Leave${record.leave_type ? ` · ${record.leave_type}` : ''}`
     : null;
-  const leaveWindow = record?.leave_half === 'FIRST_HALF' ? [540, 795] : record?.leave_half === 'SECOND_HALF' ? [795, 1050] : null;
+  const sh = resolveShift(shift);
+  const leaveWindow = record?.leave_half === 'FIRST_HALF' ? [sh.start, sh.split] : record?.leave_half === 'SECOND_HALF' ? [sh.split, sh.end] : null;
   const gapsMin = (record?.breaks || [])
     .map((b) => ({ s: clockMinutes(b.started_at), e: clockMinutes(b.ended_at) }))
     .filter((g): g is { s: number; e: number } => g.s !== null && g.e !== null && g.e > g.s);

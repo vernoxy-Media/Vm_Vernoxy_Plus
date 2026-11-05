@@ -19,11 +19,18 @@ import type { DayRecord } from '../types/attendance.types';
 import { AttendanceInsightDrawer } from './AttendanceInsightDrawer';
 import { MyRegularizationsDrawer } from './MyRegularizationsDrawer';
 import { fetchRegularizations } from '../api/attendance.api';
-import { arrivalOf, describeMinutes, overtimeMinutes } from '../utils/attendance-metrics';
+import { arrivalOf, describeMinutes, formatClock, overtimeMinutes, resolveShift } from '../utils/attendance-metrics';
 import { Pagination } from '@/shared/ui/Pagination';
 
 export interface RecentAttendanceRecordsCardProps {
   records: DayRecord[];
+  shift?: {
+    shift_name?: string;
+    start_time?: string;
+    end_time?: string;
+    late_arrival_grace_minutes?: number;
+    early_exit_grace_minutes?: number;
+  };
   selectedDate?: string;
   onViewAll?: () => void;
   onRequestCorrection?: (date: string) => void;
@@ -32,15 +39,18 @@ export interface RecentAttendanceRecordsCardProps {
   onOpenMyRequests?: () => void;
   /** Set when an administrator is looking at another employee */
   viewingEmpId?: number | null;
+  hideActionButtons?: boolean;
 }
 
 export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardProps> = ({
   records,
+  shift,
   selectedDate,
   onSelectDate: _onSelectDate,
   onSuccessCorrection,
   onOpenMyRequests,
   viewingEmpId,
+  hideActionButtons = false,
 }) => {
   // Drawer states: date, record, and mode
   const [insightDrawerDate, setInsightDrawerDate] = useState<string | null>(null);
@@ -65,8 +75,10 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
   };
 
   useEffect(() => {
-    loadPendingCount();
-  }, []);
+    if (!hideActionButtons) {
+      loadPendingCount();
+    }
+  }, [hideActionButtons]);
 
   // Date Range filter states defaulting to full month (matching reference image)
   const baseDateStr = selectedDate || todayStr;
@@ -230,7 +242,7 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
   };
 
   const getArrivalInfo = (record: DayRecord) => {
-    const a = arrivalOf(record);
+    const a = arrivalOf(record, shift);
     return a
       ? { text: a.text, lateMinutes: a.lateMinutes, earlyMinutes: a.earlyMinutes, expected: a.expected }
       : { text: '—', lateMinutes: 0, earlyMinutes: 0, expected: '' };
@@ -273,7 +285,15 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
     if (record.status === 'leave') {
       return { label: 'ON LEAVE', className: 'bg-[#FEF3C7] text-[#92400E] px-3 py-0.5 rounded-full font-bold' };
     }
-    if (record.status === 'incomplete' || (record.punch_in && !record.punch_out && !isToday)) {
+    if (record.leave_part === 'half') {
+      const base = getBaseStatusBadge(record, isToday);
+      return { ...base, label: `${base.label} · HALF DAY LEAVE` };
+    }
+    return getBaseStatusBadge(record, isToday);
+  };
+
+  const getBaseStatusBadge = (record: DayRecord, isToday: boolean) => {
+    if (!isToday && (record.status === 'incomplete' || (record.punch_in && !record.punch_out))) {
       return { label: 'MISSING CLOCK OUT', className: 'bg-[#FEE2E2] text-[#991B1B] px-3 py-0.5 rounded-full font-bold' };
     }
     if (record.status === 'half_day') {
@@ -341,7 +361,7 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
           >
             Reset
           </button>
-          {!viewingEmpId && (
+          {!hideActionButtons && !viewingEmpId && (
           <button
             type="button"
             onClick={() => {
@@ -357,6 +377,7 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
             </span>
           </button>
           )}
+          {!hideActionButtons && (
           <button
             type="button"
             onClick={handleOpenMissingDayRequest}
@@ -365,6 +386,7 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
             <Plus className="h-3.5 w-3.5" />
             Request for Missing Day
           </button>
+          )}
         </div>
       </div>
 
@@ -422,7 +444,8 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
                   .map((b) => ({ s: localMin(b.started_at), e: b.ended_at ? localMin(b.ended_at) : outM }))
                   .filter((g): g is { s: number; e: number } => g.e !== null && g.e > g.s);
                 // The half of the shift that is on leave (shift 09:00 – 17:30, split at 13:15)
-                const leaveWindow = record.leave_half === 'FIRST_HALF' ? [540, 795] : record.leave_half === 'SECOND_HALF' ? [795, 1050] : null;
+                const sh = resolveShift(shift);
+                const leaveWindow = record.leave_half === 'FIRST_HALF' ? [sh.start, sh.split] : record.leave_half === 'SECOND_HALF' ? [sh.split, sh.end] : null;
 
                 if (off && !record.punch_in) {
                   const note = record.status === 'holiday' ? record.holiday_name : record.status === 'leave' ? record.leave_type : null;
@@ -542,13 +565,13 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
                             style={{ background: `conic-gradient(#38BDF8 ${effectivePct * 3.6}deg, #F1F5F9 0deg)` }}
                           />
                           <span className="text-[13px] text-slate-800">{formatHrs(record.production_seconds)}</span>
-                          {overtimeMinutes(record) > 0 && (
+                          {overtimeMinutes(record, shift) > 0 && (
                             <span
                               title="Overtime: time worked beyond the day's target"
                               className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-1.5 py-0.5 text-[10px] font-semibold text-orange-600 ring-1 ring-orange-100"
                             >
                               <TrendingUp className="h-3 w-3" />
-                              {hm(overtimeMinutes(record))} OT
+                              {hm(overtimeMinutes(record, shift))} OT
                             </span>
                           )}
                         </div>
@@ -622,7 +645,7 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
             className="fixed z-50 rounded-lg border border-[#E4E8EF] bg-white p-3.5 text-xs shadow-xl animate-in fade-in"
           >
             <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">General shift</p>
-            <p className="mt-0.5 text-[13px] text-slate-800">9:00 am – 5:30 pm</p>
+            <p className="mt-0.5 text-[13px] text-slate-800">{formatClock(resolveShift(shift).start)} – {formatClock(resolveShift(shift).end)}</p>
             <button
               type="button"
               onClick={() => {
@@ -708,8 +731,8 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
                         {arrival.lateMinutes === 0 && arrival.earlyMinutes > 0 && (
                           <span className="block text-[10px] font-bold uppercase text-emerald-600">{describeMinutes(arrival.earlyMinutes)} early</span>
                         )}
-                        {overtimeMinutes(record) > 0 && (
-                          <span className="block text-[10px] font-bold uppercase text-orange-600">{hm(overtimeMinutes(record))} OT</span>
+                        {overtimeMinutes(record, shift) > 0 && (
+                          <span className="block text-[10px] font-bold uppercase text-orange-600">{hm(overtimeMinutes(record, shift))} OT</span>
                         )}
                       </dd>
                     </div>
@@ -740,6 +763,7 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
           isOpen={Boolean(insightDrawerDate)}
           date={insightDrawerDate}
           record={selectedRecordForDrawer}
+          shift={shift}
           initialMode={insightDrawerMode}
           empId={viewingEmpId}
           onClose={() => {

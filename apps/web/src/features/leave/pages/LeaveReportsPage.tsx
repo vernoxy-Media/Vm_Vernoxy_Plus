@@ -1,607 +1,355 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useMemo, useState } from 'react';
+import { Download, Printer, ChevronDown } from 'lucide-react';
 import {
-  BarChart3,
-  ArrowLeft,
-  Download,
-  Filter,
-  Loader2,
-  TrendingUp,
-  Calendar,
-} from 'lucide-react';
-import { useLeaveReportsQuery, useLeaveTypesQuery } from '../hooks/use-leave';
-import {
-  useDepartmentOptionsQuery,
-  useEmployeeOptionsQuery,
-} from '@/features/organization/hooks/use-organization';
+  LeaveReportsFilters,
+  leaveExportUrl,
+  useLeaveLookupsQuery,
+  useLeaveReportsQuery,
+  useLeaveTypesQuery,
+} from '../hooks/use-leave';
+import { useDepartmentOptionsQuery, useEmployeeOptionsQuery } from '@/features/organization/hooks/use-organization';
+import { useAuthenticatedDownload } from '@/shared/hooks/use-authenticated-download';
 import { SearchableSelect } from '@/shared/ui/SearchableSelect';
+import { LeaveRequestDetailsModal } from '../components/LeaveRequestDetailsModal';
+import { PaidTag, errMessage, fmtDays, printTable, todayYmd } from '../components/leave-ui';
 
-export const LeaveReportsPage: React.FC = (): React.ReactElement => {
-  const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
-  const [reportType, setReportType] = useState<string>('summary');
-  const [month, setMonth] = useState<string>(currentMonth);
-  const [fromDate, setFromDate] = useState<string>('');
-  const [toDate, setToDate] = useState<string>('');
-  const [deptId, setDeptId] = useState<number | undefined>(undefined);
-  const [empId, setEmpId] = useState<number | undefined>(undefined);
-  const [typeId, setTypeId] = useState<number | undefined>(undefined);
-  const [status, setStatus] = useState<string>('');
-  const [groupBy, setGroupBy] = useState<'type' | 'department' | 'employee'>('type');
+const REPORTS = [
+  { id: 'summary', label: 'Summary' },
+  { id: 'register', label: 'Leave Register' },
+  { id: 'balances', label: 'Balances' },
+  { id: 'lop', label: 'Unpaid Leave (LOP)' },
+  { id: 'on_leave_today', label: 'On Leave Today' },
+  { id: 'pending', label: 'Pending' },
+  { id: 'calendar', label: 'Leave Calendar' },
+];
 
-  // Queries
-  const { data: types = [] } = useLeaveTypesQuery();
-  const { data: deptOptions = [] } = useDepartmentOptionsQuery();
-  const { data: rawEmployees = [] } = useEmployeeOptionsQuery();
-  const empOptions = React.useMemo(() => {
-    if (Array.isArray(rawEmployees)) return rawEmployees;
-    return (rawEmployees as any)?.items || (rawEmployees as any)?.data || [];
-  }, [rawEmployees]);
+const GROUPS = [
+  { id: 'type', label: 'Leave Type' },
+  { id: 'department', label: 'Department' },
+  { id: 'employee', label: 'Employee' },
+];
 
-  const { data, isLoading } = useLeaveReportsQuery({
-    report_type: reportType,
-    month: month || undefined,
-    from_date: fromDate || undefined,
-    to_date: toDate || undefined,
-    department_id: deptId,
-    employee_id: empId,
+export const LeaveReportsPage: React.FC = () => {
+  const [report, setReport] = useState('summary');
+  const [periodMode, setPeriodMode] = useState<'month' | 'range'>('month');
+  const [month, setMonth] = useState(todayYmd().slice(0, 7));
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [onDate, setOnDate] = useState(todayYmd());
+  const [typeId, setTypeId] = useState<number | undefined>();
+  const [paid, setPaid] = useState('');
+  const [depId, setDepId] = useState<number | undefined>();
+  const [empId, setEmpId] = useState<number | undefined>();
+  const [status, setStatus] = useState('');
+  const [groupBy, setGroupBy] = useState('type');
+  const [exportOpen, setExportOpen] = useState(false);
+  const [viewId, setViewId] = useState<number | null>(null);
+  const [exportError, setExportError] = useState('');
+
+  const usesPeriod = ['summary', 'register', 'lop', 'calendar'].includes(report);
+  const usesOnDate = ['balances', 'on_leave_today'].includes(report);
+  const filters: LeaveReportsFilters = {
+    report_type: report,
+    ...(usesPeriod && periodMode === 'month' ? { month } : {}),
+    ...(usesPeriod && periodMode === 'range' && fromDate && toDate ? { from_date: fromDate, to_date: toDate } : {}),
+    ...(usesOnDate ? { on_date: onDate } : {}),
     leave_type_id: typeId,
+    paid_unpaid: paid || undefined,
+    department_id: depId,
+    employee_id: empId,
     status: status || undefined,
-    group_by: groupBy,
-  });
-
-  const exportCsv = () => {
-    if (!data) return;
-    const csvRows: string[][] = [];
-
-    if (reportType === 'summary') {
-      csvRows.push(['Metric', 'Value']);
-      csvRows.push(['Total Leave Days Taken', String(data.totals?.received || 0)]);
-      csvRows.push(['Paid Leave Days', String(data.totals?.paid || 0)]);
-      csvRows.push(['Unpaid Leave Days (LOP)', String(data.totals?.unpaid || 0)]);
-      csvRows.push(['Pending Requests', String(data.totals?.pending || 0)]);
-      if (data.breakdown && data.breakdown.length > 0) {
-        csvRows.push([]);
-        csvRows.push(['Group / Entity', 'Type', 'Total Days', 'Employees', 'Avg Days']);
-        data.breakdown.forEach((b) => {
-          csvRows.push([
-            b.name,
-            b.paid_unpaid || '',
-            String(b.days),
-            String(b.employees),
-            String(b.avg_days),
-          ]);
-        });
-      }
-    } else if (data.requests && data.requests.length > 0) {
-      csvRows.push([
-        'Request No',
-        'Employee',
-        'Department',
-        'Leave Type',
-        'Paid/Unpaid',
-        'From Date',
-        'To Date',
-        'Duration',
-        'Days',
-        'Status',
-        'Applied At',
-        'Decided By',
-      ]);
-      data.requests.forEach((r) => {
-        csvRows.push([
-          r.request_no,
-          r.employee_name || '',
-          r.department_name || '',
-          r.leave_type_name || '',
-          r.is_paid ? 'Paid' : 'Unpaid',
-          r.from_date?.slice(0, 10) || '',
-          r.to_date?.slice(0, 10) || '',
-          r.duration || '',
-          String(r.leave_days),
-          r.status,
-          r.applied_at?.slice(0, 10) || '',
-          r.decided_by_name || '',
-        ]);
-      });
-    } else if (data.on_leave_today && data.on_leave_today.length > 0) {
-      csvRows.push(['Request No', 'Employee', 'Department', 'Leave Type', 'Duration', 'From', 'To', 'Days', 'Back On']);
-      data.on_leave_today.forEach((o) => {
-        csvRows.push([
-          o.request_no,
-          o.employee_name || '',
-          o.department_name || '',
-          o.leave_type_name || '',
-          o.duration || '',
-          o.from_date?.slice(0, 10) || '',
-          o.to_date?.slice(0, 10) || '',
-          String(o.leave_days),
-          o.back_on?.slice(0, 10) || '',
-        ]);
-      });
-    }
-
-    const csvContent = 'data:text/csv;charset=utf-8,' + csvRows.map((e) => e.join(',')).join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `leave_report_${reportType}_${month || 'custom'}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    group_by: report === 'summary' ? groupBy : undefined,
   };
 
-  const tabs = [
-    { id: 'summary', label: 'Summary' },
-    { id: 'register', label: 'Leave Register' },
-    { id: 'balances', label: 'Balances' },
-    { id: 'lop', label: 'Unpaid Leave (LOP)' },
-    { id: 'on_leave_today', label: 'On Leave Today' },
-    { id: 'pending', label: 'Pending' },
-  ];
+  const { data, isLoading, error } = useLeaveReportsQuery(filters);
+  const { data: lookups } = useLeaveLookupsQuery();
+  const { data: types = [] } = useLeaveTypesQuery();
+  const { data: departments = [] } = useDepartmentOptionsQuery();
+  const { data: employees = [] } = useEmployeeOptionsQuery();
+  const { download, isDownloading } = useAuthenticatedDownload();
+
+  const maxTrend = useMemo(() => Math.max(1, ...(data?.trend || []).map((t) => t.paid + t.unpaid)), [data]);
+
+  const doExport = async (format: 'xlsx' | 'csv' | 'pdf') => {
+    setExportOpen(false);
+    setExportError('');
+    if (!data) return;
+    if (format === 'pdf') {
+      const t = { ...data.table };
+      if (report !== 'register') t.columns = t.columns.filter((c) => c.key !== 'reason');
+      printTable(t, data.period_label);
+      return;
+    }
+    try {
+      await download(leaveExportUrl('reports/export', { ...filters, format }), `leave-${report}.${format}`);
+    } catch (e: any) {
+      setExportError(errMessage(e));
+    }
+  };
+
+  const clearFilters = () => {
+    setTypeId(undefined);
+    setPaid('');
+    setDepId(undefined);
+    setEmpId(undefined);
+    setStatus('');
+  };
+
+  const sel = 'px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700';
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="w-full space-y-4">
+      {/* 1 Title · 2 Export */}
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Link
-              to="/leave?tab=requests"
-              className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 cursor-pointer"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" /> Back to Leave Requests
-            </Link>
-          </div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <BarChart3 className="w-7 h-7 text-blue-600" />
-            Leave Reports & Analytics
-          </h1>
-          <p className="text-sm text-slate-500 mt-0.5">
-            Analyze leave trends, departmental breakdown, SLA compliance, unpaid leaves, and export audit registers.
-          </p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Leave Reports</h1>
+          <p className="text-xs text-slate-500 mt-0.5">Approved leave only, unless the Status filter says otherwise</p>
         </div>
-
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          <Link
-            to="/leave?tab=calendar"
-            className="px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
-          >
-            <Calendar className="w-4 h-4 text-slate-500" />
-            Leave Calendar
-          </Link>
+        <div className="relative">
           <button
-            onClick={exportCsv}
-            disabled={isLoading || !data}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-xs flex items-center gap-2 transition disabled:opacity-50 cursor-pointer"
+            type="button"
+            onClick={() => setExportOpen(!exportOpen)}
+            disabled={isDownloading || !data}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer disabled:opacity-50"
           >
-            <Download className="w-4 h-4" />
-            Export CSV
+            <Download className="w-3.5 h-3.5" /> Export <ChevronDown className="w-3.5 h-3.5" />
           </button>
+          {exportOpen && (
+            <div className="absolute right-0 mt-1 w-36 bg-white border border-slate-200 rounded-xl shadow-lg z-20 py-1 text-xs">
+              <button type="button" onClick={() => doExport('xlsx')} className="block w-full text-left px-3 py-2 hover:bg-slate-50 cursor-pointer">Excel</button>
+              <button type="button" onClick={() => doExport('pdf')} className="flex items-center gap-1.5 w-full text-left px-3 py-2 hover:bg-slate-50 cursor-pointer"><Printer className="w-3 h-3" /> PDF</button>
+              <button type="button" onClick={() => doExport('csv')} className="block w-full text-left px-3 py-2 hover:bg-slate-50 cursor-pointer">CSV</button>
+            </div>
+          )}
         </div>
       </div>
+      {exportError && <p className="text-xs text-rose-600">{exportError}</p>}
 
-      {/* Tabs */}
-      <div className="flex items-center gap-1 border-b border-slate-200 overflow-x-auto pb-px">
-        {tabs.map((tab) => (
+      {/* 3 Report tabs */}
+      <div className="flex flex-wrap gap-1.5">
+        {REPORTS.map((r) => (
           <button
-            key={tab.id}
-            onClick={() => setReportType(tab.id)}
-            className={`px-4 py-2 text-xs font-semibold whitespace-nowrap border-b-2 transition-colors cursor-pointer ${
-              reportType === tab.id
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
+            key={r.id}
+            type="button"
+            onClick={() => setReport(r.id)}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold border cursor-pointer ${
+              report === r.id ? 'bg-blue-50 border-blue-300 text-blue-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
             }`}
           >
-            {tab.label}
+            {r.label}
           </button>
         ))}
       </div>
 
-      {/* Filters Bar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs space-y-3">
-        <div className="flex items-center gap-2 text-xs font-bold text-slate-700 uppercase tracking-wider">
-          <Filter className="w-3.5 h-3.5 text-blue-600" /> Report Filters
+      {/* 4 Filters */}
+      <div className="flex flex-wrap items-center gap-2">
+        {usesPeriod && (
+          <>
+            <select value={periodMode} onChange={(e) => setPeriodMode(e.target.value as any)} className={sel}>
+              <option value="month">Month</option>
+              <option value="range">From – To</option>
+            </select>
+            {periodMode === 'month' ? (
+              <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className={sel} />
+            ) : (
+              <>
+                <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className={sel} />
+                <input type="date" value={toDate} min={fromDate || undefined} onChange={(e) => setToDate(e.target.value)} className={sel} />
+              </>
+            )}
+          </>
+        )}
+        {usesOnDate && <input type="date" value={onDate} onChange={(e) => setOnDate(e.target.value)} className={sel} title="On date" />}
+        <select value={typeId ?? ''} onChange={(e) => setTypeId(e.target.value ? Number(e.target.value) : undefined)} className={sel}>
+          <option value="">Leave Type: All</option>
+          {types.map((t) => (
+            <option key={t.leave_type_id} value={t.leave_type_id}>{t.name}</option>
+          ))}
+        </select>
+        {report !== 'balances' && report !== 'lop' && (
+          <select value={paid} onChange={(e) => setPaid(e.target.value)} className={sel}>
+            <option value="">Paid or Unpaid: All</option>
+            <option value="PAID">Paid</option>
+            <option value="UNPAID">Unpaid</option>
+          </select>
+        )}
+        <select value={depId ?? ''} onChange={(e) => setDepId(e.target.value ? Number(e.target.value) : undefined)} className={sel}>
+          <option value="">Department: All</option>
+          {(departments as any[]).map((d) => (
+            <option key={d.dep_id ?? d.id} value={d.dep_id ?? d.id}>{d.name}</option>
+          ))}
+        </select>
+        <div className="w-48">
+          <SearchableSelect
+            options={(employees as any[]).map((e) => ({ value: e.emp_id, label: e.name }))}
+            value={empId ?? null}
+            onChange={(v) => setEmpId(v ? Number(v) : undefined)}
+            placeholder="Employee: All"
+            clearable
+          />
         </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 text-xs">
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1">Month</label>
-            <input
-              type="month"
-              value={month}
-              onChange={(e) => {
-                setMonth(e.target.value);
-                setFromDate('');
-                setToDate('');
-              }}
-              className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1">From Date</label>
-            <input
-              type="date"
-              value={fromDate}
-              onChange={(e) => {
-                setFromDate(e.target.value);
-                setMonth('');
-              }}
-              className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1">To Date</label>
-            <input
-              type="date"
-              value={toDate}
-              onChange={(e) => {
-                setToDate(e.target.value);
-                setMonth('');
-              }}
-              className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1">Leave Type</label>
-            <SearchableSelect
-              placeholder="All Types"
-              value={typeId ?? null}
-              onChange={(v) => setTypeId(v ? Number(v) : undefined)}
-              options={types.map((t) => ({ value: t.leave_type_id, label: t.name }))}
-              clearable
-            />
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1">Department</label>
-            <SearchableSelect
-              placeholder="All Departments"
-              value={deptId ?? null}
-              onChange={(v) => setDeptId(v ? Number(v) : undefined)}
-              options={deptOptions.map((d: any) => ({ value: d.dep_id || d.id, label: d.name }))}
-              clearable
-            />
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1">Status</label>
-            <SearchableSelect
-              placeholder="All Statuses"
-              value={status || null}
-              onChange={(v) => setStatus(v ? String(v) : '')}
-              options={[
-                { value: 'APPROVED', label: 'Approved' },
-                { value: 'PENDING', label: 'Pending' },
-                { value: 'REJECTED', label: 'Rejected' },
-                { value: 'CANCELLED', label: 'Cancelled' },
-                { value: 'WITHDRAWN', label: 'Withdrawn' },
-              ]}
-              clearable
-            />
-          </div>
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1">Employee</label>
-            <SearchableSelect
-              placeholder="All Employees"
-              value={empId ?? null}
-              onChange={(v) => setEmpId(v ? Number(v) : undefined)}
-              options={empOptions.map((e: any) => ({ value: e.emp_id || e.id, label: e.name }))}
-              clearable
-            />
-          </div>
-        </div>
+        {['summary', 'register', 'calendar'].includes(report) && (
+          <select value={status} onChange={(e) => setStatus(e.target.value)} className={sel}>
+            <option value="">Status: Approved</option>
+            <option value="ALL">Status: All</option>
+            {(lookups?.leave_request_status || []).filter((s) => s.value !== 'APPROVED').map((s) => (
+              <option key={s.value} value={s.value}>Status: {s.label}</option>
+            ))}
+          </select>
+        )}
       </div>
 
-      {/* Main Content Area */}
-      {isLoading ? (
-        <div className="p-16 text-center text-slate-400 bg-white rounded-xl border border-slate-200">
-          <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-blue-600" />
-          <p className="text-xs">Generating report data...</p>
-        </div>
-      ) : reportType === 'summary' ? (
-        <div className="space-y-6">
-          {/* Summary Metric Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-              <span className="text-slate-400 font-bold uppercase text-[10px]">Total Leave Days Taken</span>
-              <p className="text-2xl font-bold text-slate-900 mt-1">{data?.totals?.received || 0}</p>
-            </div>
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-              <span className="text-emerald-600 font-bold uppercase text-[10px]">Paid Leave Days</span>
-              <p className="text-2xl font-bold text-emerald-600 mt-1">{data?.totals?.paid || 0}</p>
-            </div>
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-              <span className="text-rose-600 font-bold uppercase text-[10px]">Unpaid Leave Days (LOP)</span>
-              <p className="text-2xl font-bold text-rose-600 mt-1">{data?.totals?.unpaid || 0}</p>
-            </div>
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-              <span className="text-amber-600 font-bold uppercase text-[10px]">Pending Requests</span>
-              <p className="text-2xl font-bold text-amber-600 mt-1">{data?.totals?.pending || 0}</p>
-            </div>
-          </div>
+      {error && <p className="text-xs text-rose-600">{errMessage(error)}</p>}
+      {isLoading && !data && <div className="py-10 text-center text-slate-400 text-xs">Loading…</div>}
 
-          {/* Historical 6-Month Trend */}
-          {data?.trend && data.trend.length > 0 && (
-            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs space-y-4">
-              <h3 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                <TrendingUp className="w-4 h-4 text-blue-600" /> 6-Month Volume Trend
-              </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-                {data.trend.map((m, i) => (
-                  <div
-                    key={i}
-                    className={`p-3 rounded-lg border text-center transition ${
-                      m.is_selected ? 'bg-blue-50/60 border-blue-300 ring-1 ring-blue-200' : 'bg-slate-50 border-slate-200'
-                    }`}
-                  >
-                    <span className="text-xs font-semibold text-slate-600">{m.label}</span>
-                    <div className="text-lg font-bold text-slate-900 mt-1">{m.received} <span className="text-[10px] font-normal text-slate-400">days</span></div>
-                    <span className="text-[10px] text-slate-500 block">
-                      {m.paid} paid • {m.unpaid} unpaid
-                    </span>
+      {data && (
+        <>
+          <p className="text-[11px] text-slate-500">{data.period_label}</p>
+
+          {report === 'summary' && data.totals && (
+            <>
+              {/* 5 Totals */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                {[
+                  ['Leave days taken', fmtDays(data.totals.taken)],
+                  ['Paid leave days', fmtDays(data.totals.paid)],
+                  ['Unpaid leave days (LOP)', fmtDays(data.totals.unpaid)],
+                  ['Pending requests', String(data.totals.pending_requests ?? 0)],
+                ].map(([l, v]) => (
+                  <div key={l} className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-2xs">
+                    <div className="text-2xl font-extrabold text-slate-900">{v}</div>
+                    <div className="text-xs text-slate-500 mt-0.5">{l}</div>
                   </div>
                 ))}
               </div>
-            </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* 6 Trend */}
+                <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-2xs">
+                  <h3 className="text-xs font-bold text-slate-800 mb-3">Leave days, last 6 months</h3>
+                  <div className="flex items-end gap-4 h-40 px-2">
+                    {(data.trend || []).map((t) => (
+                      <button
+                        key={t.month}
+                        type="button"
+                        title={`${t.label}: ${fmtDays(t.paid)} paid · ${fmtDays(t.unpaid)} unpaid`}
+                        onClick={() => {
+                          setPeriodMode('month');
+                          setMonth(t.month);
+                        }}
+                        className="flex-1 flex flex-col items-center justify-end h-full gap-1 cursor-pointer group"
+                      >
+                        <div className="w-full flex items-end justify-center gap-1 h-full">
+                          <div className="w-1/3 bg-blue-500 rounded-t group-hover:bg-blue-600" style={{ height: `${(t.paid / maxTrend) * 100}%` }} />
+                          <div className="w-1/3 bg-orange-500 rounded-t group-hover:bg-orange-600" style={{ height: `${(t.unpaid / maxTrend) * 100}%` }} />
+                        </div>
+                        <span className={`text-[10px] ${t.month === month ? 'font-bold text-slate-800' : 'text-slate-500'}`}>{t.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex gap-3 mt-2 text-[10px] text-slate-500">
+                    <span className="inline-flex items-center gap-1"><span className="w-2 h-2 bg-blue-500 rounded-sm" /> Paid</span>
+                    <span className="inline-flex items-center gap-1"><span className="w-2 h-2 bg-orange-500 rounded-sm" /> Unpaid</span>
+                  </div>
+                </div>
+
+                {/* 7 Breakdown */}
+                <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-2xs">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-xs font-bold text-slate-800">By {GROUPS.find((g) => g.id === groupBy)?.label.toLowerCase()}</h3>
+                    <select value={groupBy} onChange={(e) => setGroupBy(e.target.value)} className={sel}>
+                      {GROUPS.map((g) => (
+                        <option key={g.id} value={g.id}>Group by: {g.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="text-[10px] uppercase text-slate-400 border-b border-slate-100">
+                        <th className="text-left py-2">{GROUPS.find((g) => g.id === groupBy)?.label}</th>
+                        {groupBy === 'type' && <th className="text-left py-2">Paid</th>}
+                        <th className="text-right py-2">Days</th>
+                        <th className="text-right py-2">Employees</th>
+                        <th className="text-right py-2">Avg days</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {(data.breakdown || []).length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="py-6 text-center text-slate-500">
+                            No leave matches your filters.{' '}
+                            <button type="button" onClick={clearFilters} className="text-blue-600 font-semibold hover:underline cursor-pointer">Clear filters</button>
+                          </td>
+                        </tr>
+                      ) : (
+                        (data.breakdown || []).map((b) => (
+                          <tr
+                            key={b.key}
+                            className="hover:bg-slate-50 cursor-pointer"
+                            onClick={() => {
+                              if (groupBy === 'type') setTypeId(Number(b.key));
+                              if (groupBy === 'department') setDepId(Number(b.key) || undefined);
+                              if (groupBy === 'employee') setEmpId(Number(b.key));
+                              setReport('register');
+                            }}
+                          >
+                            <td className="py-2 font-semibold text-slate-800">{b.label}</td>
+                            {groupBy === 'type' && <td className="py-2">{b.is_paid !== undefined && <PaidTag paid={Boolean(b.is_paid)} />}</td>}
+                            <td className="py-2 text-right">{fmtDays(b.days)}</td>
+                            <td className="py-2 text-right">{b.employees}</td>
+                            <td className="py-2 text-right">{fmtDays(b.average_days)}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
           )}
 
-          {/* Breakdown Section */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="text-sm font-bold text-slate-800">Leave Breakdown</h3>
-              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg text-xs font-semibold">
-                {(['type', 'department', 'employee'] as const).map((g) => (
-                  <button
-                    key={g}
-                    onClick={() => setGroupBy(g)}
-                    className={`px-3 py-1 rounded-md capitalize transition cursor-pointer ${
-                      groupBy === g ? 'bg-white text-blue-600 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    By {g}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="overflow-x-auto">
+          {report !== 'summary' && (
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
-                  <tr>
-                    <th className="py-3 px-4">Group / Entity</th>
-                    {groupBy === 'type' && <th className="py-3 px-4">Type</th>}
-                    <th className="py-3 px-4 text-center">Total Leave Days</th>
-                    <th className="py-3 px-4 text-center">Employees</th>
-                    <th className="py-3 px-4 text-center">Avg Days / Employee</th>
-                    <th className="py-3 px-4 text-right">Share of Total</th>
+                <thead className="border-b border-slate-100 bg-slate-50">
+                  <tr className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                    {data.table.columns.map((c) => (
+                      <th key={c.key} className="py-2.5 px-3 whitespace-nowrap">{c.label}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {(!data?.breakdown || data.breakdown.length === 0) ? (
+                  {data.table.rows.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="py-8 text-center text-slate-400">
-                        No leave records found for this period.
+                      <td colSpan={data.table.columns.length} className="py-10 text-center text-slate-500">
+                        No leave matches your filters.{' '}
+                        <button type="button" onClick={clearFilters} className="text-blue-600 font-semibold hover:underline cursor-pointer">Clear filters</button>
                       </td>
                     </tr>
                   ) : (
-                    data.breakdown.map((row, idx) => {
-                      const total = data.totals?.received || 1;
-                      const pct = Math.round((row.days / total) * 100);
-                      return (
-                        <tr key={idx} className="hover:bg-slate-50/70">
-                          <td className="py-3 px-4 font-semibold text-slate-800">{row.name}</td>
-                          {groupBy === 'type' && (
-                            <td className="py-3 px-4">
-                              <span
-                                className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                                  row.paid_unpaid === 'Paid'
-                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                    : 'bg-rose-50 text-rose-700 border border-rose-200'
-                                }`}
-                              >
-                                {row.paid_unpaid}
-                              </span>
-                            </td>
-                          )}
-                          <td className="py-3 px-4 text-center font-bold text-slate-900">{row.days}</td>
-                          <td className="py-3 px-4 text-center text-slate-600">{row.employees}</td>
-                          <td className="py-3 px-4 text-center text-slate-600">{row.avg_days}</td>
-                          <td className="py-3 px-4 text-right">
-                            <span className="inline-flex items-center gap-1 font-bold text-slate-700">
-                              {pct}%
-                              <span
-                                className="inline-block h-2 bg-blue-500 rounded-full"
-                                style={{ width: `${Math.max(pct, 5)}px` }}
-                              />
-                            </span>
+                    data.table.rows.map((row, i) => (
+                      <tr
+                        key={i}
+                        className={row.request_id ? 'hover:bg-slate-50 cursor-pointer' : ''}
+                        onClick={() => row.request_id && setViewId(row.request_id)}
+                      >
+                        {data.table.columns.map((c) => (
+                          <td key={c.key} className={`py-2 px-3 ${c.key === 'reason' ? 'max-w-[240px] truncate' : 'whitespace-nowrap'} text-slate-700`} title={c.key === 'reason' ? String(row[c.key] ?? '') : undefined}>
+                            {c.key === 'request_no' && row.self_approved ? `${row[c.key]} ●` : String(row[c.key] ?? '')}
                           </td>
-                        </tr>
-                      );
-                    })
+                        ))}
+                      </tr>
+                    ))
                   )}
                 </tbody>
               </table>
+              {report === 'register' && <p className="px-3 py-2 text-[10px] text-slate-400">● Self-approved (one-Admin case)</p>}
             </div>
-          </div>
-        </div>
-      ) : reportType === 'balances' ? (
-        /* Balances Table */
-        <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
-                <tr>
-                  <th className="py-3 px-4">Employee</th>
-                  <th className="py-3 px-4">Department</th>
-                  <th className="py-3 px-4">Policy</th>
-                  <th className="py-3 px-4">Leave Balances (Available / Credited)</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {(!data?.balances || data.balances.length === 0) ? (
-                  <tr>
-                    <td colSpan={4} className="py-8 text-center text-slate-400">
-                      No balance data available.
-                    </td>
-                  </tr>
-                ) : (
-                  data.balances.map((b: any) => (
-                    <tr key={b.emp_id} className="hover:bg-slate-50/70">
-                      <td className="py-3 px-4 font-semibold text-slate-800">{b.employee_name}</td>
-                      <td className="py-3 px-4 text-slate-600">{b.department_name || '—'}</td>
-                      <td className="py-3 px-4 text-slate-600">{b.policy_name || 'Standard'}</td>
-                      <td className="py-3 px-4">
-                        <div className="flex flex-wrap gap-2">
-                          {(b.balances || []).map((bal: any) => (
-                            <div
-                              key={bal.leave_type_id}
-                              className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-[11px]"
-                            >
-                              <span className="font-bold text-slate-800">{bal.code}: </span>
-                              <span className="font-semibold text-blue-600">{bal.available_balance}</span>
-                              <span className="text-slate-400"> / {bal.credited_days} credited</span>
-                            </div>
-                          ))}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      ) : reportType === 'on_leave_today' ? (
-        /* On Leave Today Table */
-        <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
-                <tr>
-                  <th className="py-3 px-4">Request No</th>
-                  <th className="py-3 px-4">Employee</th>
-                  <th className="py-3 px-4">Department</th>
-                  <th className="py-3 px-4">Leave Type</th>
-                  <th className="py-3 px-4">Duration</th>
-                  <th className="py-3 px-4">Dates</th>
-                  <th className="py-3 px-4">Leave Days</th>
-                  <th className="py-3 px-4">Back On</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {(!data?.on_leave_today || data.on_leave_today.length === 0) ? (
-                  <tr>
-                    <td colSpan={8} className="py-8 text-center text-slate-400">
-                      No employees are on leave today.
-                    </td>
-                  </tr>
-                ) : (
-                  data.on_leave_today.map((o: any) => (
-                    <tr key={o.request_id} className="hover:bg-slate-50/70">
-                      <td className="py-3 px-4 font-mono font-bold text-blue-600">{o.request_no}</td>
-                      <td className="py-3 px-4 font-semibold text-slate-800">{o.employee_name}</td>
-                      <td className="py-3 px-4 text-slate-600">{o.department_name || '—'}</td>
-                      <td className="py-3 px-4">
-                        <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
-                          {o.leave_type_name}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-slate-600">{o.duration?.replace('_', ' ')}</td>
-                      <td className="py-3 px-4 text-slate-600">
-                        {o.from_date?.slice(0, 10)} to {o.to_date?.slice(0, 10)}
-                      </td>
-                      <td className="py-3 px-4 font-bold text-slate-800">{o.leave_days}</td>
-                      <td className="py-3 px-4 font-semibold text-emerald-600">{o.back_on?.slice(0, 10)}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      ) : (
-        /* Requests Table (Register, LOP, Pending) */
-        <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
-                <tr>
-                  <th className="py-3 px-4">Request No</th>
-                  <th className="py-3 px-4">Employee</th>
-                  <th className="py-3 px-4">Department</th>
-                  <th className="py-3 px-4">Leave Type</th>
-                  <th className="py-3 px-4">Dates</th>
-                  <th className="py-3 px-4">Duration</th>
-                  <th className="py-3 px-4">Days</th>
-                  <th className="py-3 px-4">Status</th>
-                  {reportType === 'pending' ? (
-                    <th className="py-3 px-4">Waiting For</th>
-                  ) : (
-                    <th className="py-3 px-4">Decided By</th>
-                  )}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {(!data?.requests || data.requests.length === 0) ? (
-                  <tr>
-                    <td colSpan={9} className="py-8 text-center text-slate-400">
-                      No leave requests found for this filter.
-                    </td>
-                  </tr>
-                ) : (
-                  data.requests.map((r: any) => (
-                    <tr key={r.request_id} className="hover:bg-slate-50/70">
-                      <td className="py-3 px-4 font-mono font-bold text-blue-600">{r.request_no}</td>
-                      <td className="py-3 px-4 font-semibold text-slate-800">{r.employee_name}</td>
-                      <td className="py-3 px-4 text-slate-600">{r.department_name || '—'}</td>
-                      <td className="py-3 px-4">
-                        <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-slate-700">
-                          {r.leave_type_name}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-slate-600">
-                        {r.from_date?.slice(0, 10)} to {r.to_date?.slice(0, 10)}
-                      </td>
-                      <td className="py-3 px-4 text-slate-600">{r.duration?.replace('_', ' ')}</td>
-                      <td className="py-3 px-4 font-bold text-slate-900">{r.leave_days}</td>
-                      <td className="py-3 px-4">
-                        <span
-                          className={`px-2 py-0.5 rounded text-[11px] font-semibold ${
-                            r.status === 'APPROVED'
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                              : r.status === 'PENDING'
-                              ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                              : r.status === 'REJECTED'
-                              ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                              : 'bg-slate-100 text-slate-700 border border-slate-200'
-                          }`}
-                        >
-                          {r.status}
-                        </span>
-                      </td>
-                      {reportType === 'pending' ? (
-                        <td className="py-3 px-4">
-                          <span className="font-semibold text-amber-600">{r.pending_hours || 0} hrs</span>
-                          {r.is_short_notice && (
-                            <span className="ml-1.5 px-1.5 py-0.2 rounded text-[10px] font-bold bg-rose-100 text-rose-700">
-                              Short notice
-                            </span>
-                          )}
-                        </td>
-                      ) : (
-                        <td className="py-3 px-4 text-slate-600">{r.decided_by_name || '—'}</td>
-                      )}
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+          )}
+        </>
       )}
+
+      <LeaveRequestDetailsModal requestId={viewId} onClose={() => setViewId(null)} />
     </div>
   );
 };

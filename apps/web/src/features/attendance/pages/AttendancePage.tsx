@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import { Settings, ClipboardCheck, RefreshCw, Download, Clock, FileText, CheckCircle2, X } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { Settings, ClipboardCheck, RefreshCw, Download, Clock, FileText, CheckCircle2, X, Calendar } from 'lucide-react';
 import { getAccessToken } from '@vernoxy-pulse/api-client';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useAttendanceDashboard, usePunchActions } from '../hooks/use-attendance';
@@ -10,6 +10,7 @@ import { AttendanceDashboardCards } from '../components/AttendanceDashboardCards
 import { AddRegularizationModal } from '../components/AddRegularizationModal';
 import { MyRegularizationsPanel } from '../components/MyRegularizationsPanel';
 import { ApprovalsPanel } from '../components/ApprovalsPanel';
+import { MyAttendanceCalendarSection } from '../components/MyAttendanceCalendarSection';
 
 const MONTH_OPTIONS = [
   { value: '01', label: 'January' },
@@ -34,12 +35,22 @@ export const AttendancePage: React.FC = () => {
   const todayDateStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const currentMonthStr = useMemo(() => todayDateStr.slice(0, 7), [todayDateStr]);
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlTab = searchParams.get('tab');
+  const validTabs: Array<'timesheet' | 'calendar' | 'regularization' | 'approvals'> = [
+    'timesheet',
+    'calendar',
+    'regularization',
+    'approvals',
+  ];
+  const initialTab = validTabs.includes(urlTab as any) ? (urlTab as any) : 'timesheet';
+
   const [selectedDate, setSelectedDate] = useState<string>(todayDateStr);
   const [selectedMonth, setSelectedMonth] = useState<string>(currentMonthStr);
   const [announcement, setAnnouncement] = useState<string>('');
   const [infoToast, setInfoToast] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [attendanceTab, setAttendanceTab] = useState<'timesheet' | 'regularization' | 'approvals'>('timesheet');
+  const [attendanceTab, setAttendanceTab] = useState<'timesheet' | 'calendar' | 'regularization' | 'approvals'>(initialTab);
   const [correctionModalDate, setCorrectionModalDate] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -243,7 +254,10 @@ export const AttendancePage: React.FC = () => {
             id="attendance-tab-timesheet"
             role="tab"
             aria-selected={attendanceTab === 'timesheet'}
-            onClick={() => setAttendanceTab('timesheet')}
+            onClick={() => {
+              setAttendanceTab('timesheet');
+              setSearchParams({});
+            }}
             className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-3.5 py-3 text-[13px] font-semibold transition-colors cursor-pointer ${
               attendanceTab === 'timesheet'
                 ? 'border-[#5B4CF8] text-[#5B4CF8]'
@@ -256,10 +270,32 @@ export const AttendancePage: React.FC = () => {
 
           <button
             type="button"
+            id="attendance-tab-calendar"
+            role="tab"
+            aria-selected={attendanceTab === 'calendar'}
+            onClick={() => {
+              setAttendanceTab('calendar');
+              setSearchParams({ tab: 'calendar' });
+            }}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              attendanceTab === 'calendar'
+                ? 'bg-white text-indigo-600 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+            }`}
+          >
+            <Calendar className="w-3.5 h-3.5" />
+            <span>My Attendance &amp; Calendar</span>
+          </button>
+
+          <button
+            type="button"
             id="attendance-tab-regularizations"
             role="tab"
             aria-selected={attendanceTab === 'regularization'}
-            onClick={() => setAttendanceTab('regularization')}
+            onClick={() => {
+              setAttendanceTab('regularization');
+              setSearchParams({ tab: 'regularization' });
+            }}
             className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-3.5 py-3 text-[13px] font-semibold transition-colors cursor-pointer ${
               attendanceTab === 'regularization'
                 ? 'border-[#5B4CF8] text-[#5B4CF8]'
@@ -276,7 +312,10 @@ export const AttendancePage: React.FC = () => {
               id="attendance-tab-approvals"
               role="tab"
               aria-selected={attendanceTab === 'approvals'}
-              onClick={() => setAttendanceTab('approvals')}
+              onClick={() => {
+                setAttendanceTab('approvals');
+                setSearchParams({ tab: 'approvals' });
+              }}
               className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-3.5 py-3 text-[13px] font-semibold transition-colors cursor-pointer ${
                 attendanceTab === 'approvals'
                   ? 'border-[#5B4CF8] text-[#5B4CF8]'
@@ -288,6 +327,16 @@ export const AttendancePage: React.FC = () => {
             </button>
           )}
         </div>
+
+        {canManageAttendance && (
+          <Link
+            to="/attendance/register"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-[14px] text-xs font-bold shadow-2xs transition cursor-pointer border border-indigo-200"
+          >
+            <ClipboardCheck className="w-3.5 h-3.5" />
+            <span>Attendance Register</span>
+          </Link>
+        )}
       </div>
 
       {attendanceTab === 'timesheet' && (
@@ -296,6 +345,7 @@ export const AttendancePage: React.FC = () => {
           statistics={statistics}
           monthSummary={month_summary}
           records={records}
+          shift={data?.shift}
           isPending={isPending}
           onPunchIn={handlePunchIn}
           onPunchOut={handlePunchOut}
@@ -319,6 +369,10 @@ export const AttendancePage: React.FC = () => {
           onOpenMyRequests={() => setAttendanceTab('regularization')}
           viewing={viewing ? { emp_id: viewing.emp_id, name: viewing.name, onExit: () => setViewEmp(null) } : null}
         />
+      )}
+
+      {attendanceTab === 'calendar' && (
+        <MyAttendanceCalendarSection />
       )}
 
       {attendanceTab === 'regularization' && (

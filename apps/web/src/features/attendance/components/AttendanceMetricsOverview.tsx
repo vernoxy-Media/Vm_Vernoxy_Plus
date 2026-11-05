@@ -17,7 +17,7 @@ import {
   Hourglass,
 } from 'lucide-react';
 import type { MonthSummary, DayRecord, AttendanceStatistics } from '../types/attendance.types';
-import { describeMinutes, summarize } from '../utils/attendance-metrics';
+import { describeMinutes, summarize, type ShiftConfig } from '../utils/attendance-metrics';
 
 export interface AttendanceMetricsOverviewProps {
   todayWorkedSeconds: number;
@@ -89,7 +89,8 @@ export const AttendanceStatsSummaryCard: React.FC<{
   records: DayRecord[];
   monthSummary?: MonthSummary;
   statistics?: AttendanceStatistics;
-}> = ({ todayWorkedSeconds, todayBreakSeconds, records: allRecords }) => {
+  shift?: ShiftConfig;
+}> = ({ todayWorkedSeconds, todayBreakSeconds, records: allRecords, shift }) => {
   const [range, setRange] = useState<'week' | 'month'>('week');
 
   const stats = useMemo(() => {
@@ -100,8 +101,8 @@ export const AttendanceStatsSummaryCard: React.FC<{
       const fromStr = from.toISOString().slice(0, 10);
       rows = allRecords.filter((r) => r.date >= fromStr);
     }
-    return summarize(rows);
-  }, [allRecords, range]);
+    return summarize(rows, shift);
+  }, [allRecords, range, shift]);
 
   const avg = stats.avgWorkedSeconds || todayWorkedSeconds;
 
@@ -238,8 +239,9 @@ export const AttendanceBreakdownRow: React.FC<{
   monthSummary: MonthSummary;
   records: DayRecord[];
   statistics?: AttendanceStatistics;
-}> = ({ monthSummary, records }) => {
-  const s = useMemo(() => summarize(records), [records]);
+  shift?: ShiftConfig;
+}> = ({ monthSummary, records, shift }) => {
+  const s = useMemo(() => summarize(records, shift), [records, shift]);
 
   const productiveSec = monthSummary.total_working_seconds || records.reduce((a, r) => a + (r.production_seconds || 0), 0);
   const breakSec = monthSummary.total_break_seconds || records.reduce((a, r) => a + (r.break_seconds || 0), 0);

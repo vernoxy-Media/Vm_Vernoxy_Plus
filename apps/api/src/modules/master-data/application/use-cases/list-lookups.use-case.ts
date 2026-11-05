@@ -3,6 +3,12 @@ import { ValidationDomainError } from '../../domain/errors/master-data.errors';
 
 export const ALLOWED_LOOKUP_TYPES = [
   'task_type',
+  'task_priority',
+  'task_stage',
+  'task_source',
+  'bug_type',
+  'bug_priority',
+  'bug_status',
   'break_type',
   'project_category',
   'project_status',

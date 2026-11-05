@@ -1,5 +1,7 @@
 export { TasksModule } from './tasks.module';
 export { TASK_TOKENS } from './domain/ports/tokens';
+export { CreateTaskUseCase } from './application/use-cases/create-task.use-case';
+export type { CreateTaskCommand } from './application/use-cases/create-task.use-case';
 export type {
   TaskEntity,
   TaskStage,

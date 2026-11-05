@@ -1,3 +1,5 @@
+import { TASK_TOKENS } from '../../tasks/public-api';
+import type { TaskRepositoryPort } from '../../tasks/public-api';
 import {
   Controller,
   Get,
@@ -51,7 +53,7 @@ import type { BirthdayRepository } from '../domain/ports/birthday.repository.por
 import { AttendanceNotFoundError } from '../domain/errors/attendance.errors';
 import { ATTENDANCE_TOKENS } from '../domain/ports/tokens';
 import { ACCESS_POLICY_TOKEN, AccessPolicy } from '../../auth/public-api';
-import { Inject } from '@nestjs/common';
+import { Inject, Logger, Optional } from '@nestjs/common';
 import { mapAttendanceErrorToHttp } from './attendance-error.mapper';
 import {
   TodayAttendanceBlockDto,
@@ -69,6 +71,7 @@ import {
   BulkApproveRegularizationDto,
   RegularizationQueryDto,
   PunchLocationDto,
+  AttendanceReportsQueryDto,
 } from './dto/attendance.dto';
 
 @ApiTags('Attendance')
@@ -100,7 +103,20 @@ export class AttendanceController {
     private readonly accessPolicy: AccessPolicy,
     @Inject(ATTENDANCE_TOKENS.BIRTHDAY_REPOSITORY)
     private readonly birthdays: BirthdayRepository,
+    @Optional() @Inject(TASK_TOKENS.TaskRepository)
+    private readonly taskRepo?: TaskRepositoryPort,
   ) {}
+
+  private readonly logger = new Logger('AttendanceController');
+
+  /** Project BFD 3.4: Break and Clock-out pause the running task (it stays In Progress, timer stopped). */
+  private async pauseRunningTask(empId: number, reason: string) {
+    try {
+      await this.taskRepo?.pauseRunningTasks(empId, reason);
+    } catch (err: any) {
+      this.logger.warn(`Could not pause the running task for emp #${empId}: ${err?.message}`);
+    }
+  }
 
   /** Whose attendance is being read: always your own, unless an administrator asks for somebody else's. */
   private async resolveTarget(req: Request, empIdParam?: string): Promise<number> {
@@ -140,7 +156,9 @@ export class AttendanceController {
   async punchOut(@Req() req: Request): Promise<TodayAttendanceBlockDto> {
     try {
       const empId = req.user!.emp_id;
-      return await this.punchOutUseCase.execute(empId);
+      const res = await this.punchOutUseCase.execute(empId);
+      await this.pauseRunningTask(empId, 'Paused automatically at clock-out');
+      return res;
     } catch (err) {
       throw mapAttendanceErrorToHttp(err);
     }
@@ -179,7 +197,9 @@ export class AttendanceController {
   ): Promise<TodayAttendanceBlockDto> {
     try {
       const empId = req.user!.emp_id;
-      return await this.startBreakUseCase.execute(empId, dto?.break_type, dto?.reason);
+      const res = await this.startBreakUseCase.execute(empId, dto?.break_type, dto?.reason);
+      await this.pauseRunningTask(empId, 'Paused automatically for a break');
+      return res;
     } catch (err) {
       throw mapAttendanceErrorToHttp(err);
     }
@@ -240,6 +260,22 @@ export class AttendanceController {
     }
   }
 
+  @Get('employees/:id/dashboard')
+  @ApiOperation({ summary: 'Get full attendance dashboard for a specific employee and month' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiQuery({ name: 'month', required: false, example: '2026-10' })
+  @ApiResponse({ status: 200, type: DashboardResponseDto })
+  async getEmployeeDashboard(
+    @Param('id', ParseIntPipe) id: number,
+    @Query('month') month?: string,
+  ): Promise<DashboardResponseDto> {
+    try {
+      return await this.getDashboardUseCase.execute(id, month);
+    } catch (err) {
+      throw mapAttendanceErrorToHttp(err);
+    }
+  }
+
   @Get('me')
   @ApiOperation({ summary: 'Get month attendance data for current employee' })
   @ApiQuery({ name: 'month', required: false, example: '2026-10' })
@@ -269,6 +305,22 @@ export class AttendanceController {
     try {
       const empId = await this.resolveTarget(req, empIdParam);
       return await this.getDayDetailUseCase.execute(empId, date);
+    } catch (err) {
+      throw mapAttendanceErrorToHttp(err);
+    }
+  }
+
+  @Get('employees/:id/days/:date')
+  @ApiOperation({ summary: 'Get attendance day details by date for a specific employee' })
+  @ApiParam({ name: 'id', type: Number, description: 'Employee ID' })
+  @ApiParam({ name: 'date', type: String, description: 'Date in YYYY-MM-DD format', required: true })
+  @ApiResponse({ status: 200, type: DayDetailDto })
+  async getEmployeeDayDetail(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('date') date: string,
+  ): Promise<DayDetailDto> {
+    try {
+      return await this.getDayDetailUseCase.execute(id, date);
     } catch (err) {
       throw mapAttendanceErrorToHttp(err);
     }
@@ -513,6 +565,30 @@ export class AttendanceController {
     }
   }
 
+  @Get('register')
+  @UseGuards(AttendanceAdminGuard)
+  @ApiOperation({ summary: 'Get daily attendance register for all employees' })
+  @ApiResponse({ status: 200 })
+  async getRegister(
+    @Query('date') date?: string,
+    @Query('departmentId') departmentId?: string,
+    @Query('shiftId') shiftId?: string,
+    @Query('status') status?: string,
+    @Query('search') search?: string,
+  ) {
+    try {
+      return await this.attendanceRepo.getAttendanceRegister({
+        date,
+        departmentId: departmentId ? Number(departmentId) : undefined,
+        shiftId: shiftId ? Number(shiftId) : undefined,
+        status,
+        search,
+      });
+    } catch (err) {
+      throw mapAttendanceErrorToHttp(err);
+    }
+  }
+
   @Get('team')
   @UseGuards(AttendanceAdminGuard)
   @ApiOperation({ summary: 'Get team attendance records' })
@@ -537,6 +613,36 @@ export class AttendanceController {
     try {
       const csv = await this.getAttendanceReportUseCase.execute(month);
       res.send(csv);
+    } catch (err) {
+      throw mapAttendanceErrorToHttp(err);
+    }
+  }
+
+  // ----------------------------------------------------
+  // ATTENDANCE REPORTS ENDPOINT
+  // ----------------------------------------------------
+
+  @Get('reports')
+  @UseGuards(AttendanceAdminGuard)
+  @ApiOperation({ summary: 'Get attendance reports (Daily, Monthly Summary, Employee-wise, Department-wise, Late & Early Exit, Regularization)' })
+  @ApiQuery({ name: 'reportType', required: false, enum: ['daily', 'monthly_summary', 'employee', 'department', 'late_early', 'regularization'] })
+  @ApiQuery({ name: 'fromDate', required: false, type: String })
+  @ApiQuery({ name: 'toDate', required: false, type: String })
+  @ApiQuery({ name: 'departmentId', required: false, type: String })
+  @ApiQuery({ name: 'employeeId', required: false, type: Number })
+  @ApiQuery({ name: 'shiftId', required: false, type: Number })
+  @ApiQuery({ name: 'status', required: false, type: String })
+  async getAttendanceReports(@Query() query: AttendanceReportsQueryDto) {
+    try {
+      return await this.attendanceRepo.getAttendanceReports({
+        reportType: query.reportType || 'daily',
+        fromDate: query.fromDate || new Date().toISOString().slice(0, 10),
+        toDate: query.toDate || query.fromDate || new Date().toISOString().slice(0, 10),
+        departmentId: query.departmentId,
+        employeeId: query.employeeId ? Number(query.employeeId) : undefined,
+        shiftId: query.shiftId ? Number(query.shiftId) : undefined,
+        status: query.status,
+      });
     } catch (err) {
       throw mapAttendanceErrorToHttp(err);
     }

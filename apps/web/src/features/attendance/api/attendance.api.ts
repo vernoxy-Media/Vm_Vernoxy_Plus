@@ -337,7 +337,116 @@ export async function bulkApproveRegularizationRequests(
   );
 }
 
+// ── Attendance Register (Admin) ──────────────────────
 
+export interface AttendanceRegisterQuery {
+  date?: string;
+  departmentId?: number;
+  shiftId?: number;
+  status?: string;
+  search?: string;
+}
+
+export interface AttendanceRegisterRecord {
+  emp_id: number;
+  employee_code: string;
+  name: string;
+  department: string;
+  department_id: number;
+  shift_id: number | null;
+  shift_name: string;
+  in_time: string;
+  out_time: string;
+  working_hours: string;
+  production_minutes: number;
+  status: string;
+  is_late?: boolean;
+  date: string;
+  attendance_id: number | null;
+}
+
+export interface AttendanceRegisterResponse {
+  date: string;
+  formatted_date: string;
+  summary: {
+    total_employees: number;
+    present_count: number;
+    absent_count: number;
+    on_leave_count: number;
+    half_day_count: number;
+    missing_punch_count: number;
+  };
+  records: AttendanceRegisterRecord[];
+  departments: Array<{ id: number; name: string }>;
+  shifts: Array<{ id: number; name: string }>;
+  statuses?: string[];
+}
+
+export async function fetchAttendanceRegister(
+  params: AttendanceRegisterQuery,
+): Promise<AttendanceRegisterResponse> {
+  const query = new URLSearchParams();
+  if (params.date) query.append('date', params.date);
+  if (params.departmentId) query.append('departmentId', String(params.departmentId));
+  if (params.shiftId) query.append('shiftId', String(params.shiftId));
+  if (params.status) query.append('status', params.status);
+  if (params.search) query.append('search', params.search);
+
+  const qs = query.toString();
+  return await customFetch<AttendanceRegisterResponse>(
+    `${BASE_URL}/register${qs ? `?${qs}` : ''}`
+  );
+}
+
+export interface AttendanceReportsQuery {
+  reportType?: 'daily' | 'monthly_summary' | 'employee' | 'department' | 'late_early' | 'regularization';
+  fromDate?: string;
+  toDate?: string;
+  departmentId?: string;
+  employeeId?: number;
+  shiftId?: number;
+  status?: string;
+}
+
+export interface AttendanceReportsResponse {
+  report_type: string;
+  from_date: string;
+  to_date: string;
+  data: {
+    type: string;
+    columns?: string[];
+    date_columns?: string[];
+    employee?: {
+      emp_id: number;
+      employee_code: string;
+      name: string;
+      department: string;
+    } | null;
+    rows: any[];
+  };
+  departments: Array<{ id: number; name: string }>;
+  shifts: Array<{ id: number; name: string }>;
+  statuses: string[];
+  employees: Array<{ id: number; code: string; name: string; department: string }>;
+}
+
+export async function fetchAttendanceReports(
+  params: AttendanceReportsQuery,
+): Promise<AttendanceReportsResponse> {
+  const query = new URLSearchParams();
+  if (params.reportType) query.append('reportType', params.reportType);
+  if (params.fromDate) query.append('fromDate', params.fromDate);
+  if (params.toDate) query.append('toDate', params.toDate);
+  if (params.departmentId) query.append('departmentId', params.departmentId);
+  if (params.employeeId) query.append('employeeId', String(params.employeeId));
+  if (params.shiftId) query.append('shiftId', String(params.shiftId));
+  if (params.status) query.append('status', params.status);
+
+  const qs = query.toString();
+  return await customFetch<AttendanceReportsResponse>(
+    `${BASE_URL}/reports${qs ? `?${qs}` : ''}`
+  );
+}
 
 
 /** Current position from the browser, or null when it is denied, unavailable or slow. */

@@ -266,9 +266,11 @@ export function useUpdateEmployeeMutation() {
         method: 'PATCH',
         body: JSON.stringify(data),
       }),
-    onSuccess: () => {
+    onSuccess: (_data, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       queryClient.invalidateQueries({ queryKey: ['employee-options'] });
+      // The Onboarding checklist reads "Personal details" from the activation status.
+      queryClient.invalidateQueries({ queryKey: ['employee-activation-status', id] });
     },
   });
 }

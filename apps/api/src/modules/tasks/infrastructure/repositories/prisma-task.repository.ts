@@ -30,10 +30,10 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
 
   async getNextTaskCode(year: number): Promise<string> {
     const rows: any[] = await this.prisma.$queryRawUnsafe(
-      `INSERT INTO task_counters (counter_year, last_number)
-       VALUES ($1, 1)
-       ON CONFLICT (counter_year)
-       DO UPDATE SET last_number = task_counters.last_number + 1
+      `INSERT INTO entity_counters (entity_type, counter_key, last_number)
+       VALUES ('TASK', $1, 1)
+       ON CONFLICT (entity_type, counter_key)
+       DO UPDATE SET last_number = entity_counters.last_number + 1
        RETURNING last_number;`,
       String(year),
     );
@@ -58,6 +58,8 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
           lead_employee_id: input.lead_employee_id ?? null,
           has_sub_tasks: Boolean(input.has_sub_tasks),
           other_task_type: input.other_task_type ?? null,
+          project_id: input.project_id ?? null,
+          sprint_id: input.sprint_id ?? null,
         },
       });
 
@@ -104,12 +106,17 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
             data: {
               task_code: subCode,
               title: st.title,
-              priority: input.priority ?? 'medium',
-              task_type_id: input.task_type_id ?? null,
+              // A sub task has the same fields as the main task (BFD 2.4); missing ones follow the main task.
+              description: st.description ?? null,
+              priority: st.priority ?? input.priority ?? 'medium',
+              task_type_id: st.task_type_id ?? input.task_type_id ?? null,
+              other_task_type: st.task_type_id ? (st.other_task_type ?? null) : (input.other_task_type ?? null),
               allocated_minutes: st.allocated_minutes ?? null,
               created_by: input.created_by,
               source: input.source || 'personal',
               parent_task_id: created.task_id,
+              project_id: input.project_id ?? null,
+              sprint_id: input.sprint_id ?? null,
               stage: 'assigned',
             },
           });
@@ -152,6 +159,64 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
 
       return this.fetchTaskEntity(created.task_id, tx);
     });
+  }
+
+  async getTaskProjectManagerId(taskId: number): Promise<number | null> {
+    const rows: any[] = await this.prisma.$queryRaw`
+      SELECT p.project_manager_id
+      FROM tasks t
+      LEFT JOIN tasks pt ON pt.task_id = t.parent_task_id
+      JOIN projects p ON p.project_id = COALESCE(t.project_id, pt.project_id)
+      WHERE t.task_id = ${taskId} AND p.deleted_at IS NULL
+      LIMIT 1;
+    `;
+    return rows[0]?.project_manager_id ?? null;
+  }
+
+  async getTaskTypeCode(taskTypeId: number): Promise<string | null> {
+    const rows: any[] = await this.prisma.$queryRaw`
+      SELECT code FROM master_lookup
+      WHERE lookup_id = ${taskTypeId} AND lookup_type = 'task_type' AND is_active = true AND deleted_at IS NULL;
+    `;
+    return rows[0]?.code ?? null;
+  }
+
+  /** BFD Project 3.4: Break or Clock-out pauses the running task; it stays In Progress with the timer stopped. */
+  async pauseRunningTasks(empId: number, reason: string): Promise<number[]> {
+    const now = new Date();
+    const running = await this.prisma.tasks.findMany({
+      where: {
+        deleted_at: null,
+        is_timer_running: true,
+        task_assignees: { some: { employee_id: empId, deleted_at: null } },
+      },
+      select: { task_id: true, timer_started_at: true, actual_minutes: true, work_logs: true },
+    });
+    for (const t of running) {
+      const elapsed = t.timer_started_at ? Math.max(0, Math.floor((now.getTime() - new Date(t.timer_started_at).getTime()) / 1000)) : 0;
+      const addMins = elapsed > 0 ? Math.max(1, Math.round(elapsed / 60)) : 0;
+      const logs = Array.isArray(t.work_logs) ? [...(t.work_logs as any[])] : [];
+      logs.push({
+        log_id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        employee_id: empId,
+        action: 'pause',
+        timestamp: now.toISOString(),
+        duration_seconds: elapsed,
+        note: reason,
+      });
+      await this.prisma.tasks.update({
+        where: { task_id: t.task_id },
+        data: {
+          actual_minutes: (t.actual_minutes || 0) + addMins,
+          is_timer_running: false,
+          timer_started_at: null,
+          work_logs: logs,
+          updated_by: empId,
+          updated_at: now,
+        },
+      });
+    }
+    return running.map((t) => t.task_id);
   }
 
   async findById(taskId: number): Promise<TaskEntity | null> {

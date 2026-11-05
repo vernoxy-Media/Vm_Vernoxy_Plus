@@ -8,7 +8,11 @@ import {
   IsArray,
   MaxLength,
   ValidateNested,
+  IsBoolean,
+  Min,
+  Max,
 } from 'class-validator';
+import { CreateSubTaskDto } from '../../../tasks/presentation/dto/task.dto';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -501,42 +505,71 @@ export class UpdateSprintDto {
   status?: 'planned' | 'active' | 'completed';
 }
 
+/** Same fields and rules as Create Task in the Task Module, plus Sprint (Project BFD 2.7). */
 export class CreateProjectTaskDto {
   @ApiProperty({ example: 'Design Homepage UI' })
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(150)
+  @IsString({ message: 'Please enter the Task Name.' })
+  @IsNotEmpty({ message: 'Please enter the Task Name.' })
+  @MaxLength(150, { message: 'Task Name cannot be longer than 150 characters.' })
   title!: string;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
+  @MaxLength(10000)
   description?: string;
 
-  @ApiPropertyOptional({ enum: ['low', 'medium', 'high', 'critical'], default: 'medium' })
-  @IsOptional()
-  @IsEnum(['low', 'medium', 'high', 'critical'])
-  priority?: 'low' | 'medium' | 'high' | 'critical';
+  @ApiProperty({ example: 180 })
+  @Type(() => Number)
+  @IsInt({ message: 'Allocated Time is mandatory and must be greater than zero.' })
+  @Min(1, { message: 'Allocated Time is mandatory and must be greater than zero.' })
+  @Max(14400)
+  allocated_minutes!: number;
 
-  @ApiPropertyOptional({ example: 1 })
-  @IsOptional()
-  @IsInt()
-  sprint_id?: number;
-
-  @ApiPropertyOptional({ example: '2026-10-31' })
-  @IsOptional()
-  @IsDateString()
-  due_date?: string;
-
-  @ApiPropertyOptional({ example: 180 })
-  @IsOptional()
-  @IsInt()
-  allocated_minutes?: number;
-
-  @ApiProperty({ type: [Number], example: [1, 2] })
+  @ApiProperty({ type: [Number], example: [1] })
   @IsArray()
   @IsInt({ each: true })
   assignee_ids!: number[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  has_sub_tasks?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  lead_employee_id?: number;
+
+  @ApiPropertyOptional({ type: [CreateSubTaskDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateSubTaskDto)
+  sub_tasks?: CreateSubTaskDto[];
+
+  @ApiPropertyOptional({ enum: ['low', 'medium', 'high'], default: 'medium' })
+  @IsOptional()
+  @IsEnum(['low', 'medium', 'high'], { message: 'Please select the Priority: High, Medium or Low.' })
+  priority?: 'low' | 'medium' | 'high';
+
+  @ApiProperty({ example: 1 })
+  @Type(() => Number)
+  @IsInt({ message: 'Please select the Task Type.' })
+  task_type_id!: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(100, { message: 'Other Task Type cannot be longer than 100 characters.' })
+  other_task_type?: string;
+
+  @ApiPropertyOptional({ example: 1 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  sprint_id?: number;
 }
 
 export class CreateDiscussionDto {
@@ -556,86 +589,68 @@ export class CreateDiscussionDto {
   tagged_employee_ids?: number[];
 }
 
+/** Project BFD 3.5 Create Bug. Status is system-set (New). */
 export class CreateBugDto {
   @ApiPropertyOptional()
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   task_id?: number;
 
   @ApiProperty()
-  @IsString()
-  @IsNotEmpty()
+  @IsString({ message: 'Please enter the Title.' })
+  @IsNotEmpty({ message: 'Please enter the Title.' })
   @MaxLength(200)
   title!: string;
 
   @ApiProperty()
-  @IsString()
-  @IsNotEmpty()
+  @IsString({ message: 'Please enter the Description.' })
+  @IsNotEmpty({ message: 'Please enter the Description.' })
+  @MaxLength(5000)
   description!: string;
 
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  steps_to_reproduce?: string;
+  @ApiProperty()
+  @IsString({ message: 'Please enter the Steps to Reproduce.' })
+  @IsNotEmpty({ message: 'Please enter the Steps to Reproduce.' })
+  @MaxLength(5000)
+  steps_to_reproduce!: string;
 
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  expected_result?: string;
+  @ApiProperty()
+  @IsString({ message: 'Please enter the Expected Result.' })
+  @IsNotEmpty({ message: 'Please enter the Expected Result.' })
+  @MaxLength(5000)
+  expected_result!: string;
 
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  actual_result?: string;
+  @ApiProperty()
+  @IsString({ message: 'Please enter the Actual Result.' })
+  @IsNotEmpty({ message: 'Please enter the Actual Result.' })
+  @MaxLength(5000)
+  actual_result!: string;
 
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsInt()
-  assigned_to?: number;
+  @ApiProperty()
+  @Type(() => Number)
+  @IsInt({ message: 'Please select the employee in Assigned To.' })
+  assigned_to!: number;
 
   @ApiPropertyOptional({ enum: ['low', 'medium', 'high'], default: 'low' })
   @IsOptional()
-  @IsEnum(['low', 'medium', 'high'])
+  @IsEnum(['low', 'medium', 'high'], { message: 'Please select the Priority.' })
   priority?: 'low' | 'medium' | 'high';
 
-  @ApiPropertyOptional({
-    enum: [
-      'new',
-      'open',
-      'ready_for_dev',
-      'dev_in_progress',
-      'ready_for_qa',
-      'qa_in_progress',
-      'done',
-      'not_a_bug',
-    ],
-    default: 'new',
-  })
-  @IsOptional()
-  @IsEnum([
-    'new',
-    'open',
-    'ready_for_dev',
-    'dev_in_progress',
-    'ready_for_qa',
-    'qa_in_progress',
-    'done',
-    'not_a_bug',
-  ])
-  status?: string;
-
   @ApiProperty({ enum: ['frontend', 'backend', 'ui', 'database', 'other'] })
-  @IsEnum(['frontend', 'backend', 'ui', 'database', 'other'])
+  @IsEnum(['frontend', 'backend', 'ui', 'database', 'other'], { message: 'Please select the Bug Type.' })
   bug_type!: 'frontend' | 'backend' | 'ui' | 'database' | 'other';
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
+  @MaxLength(100)
   other_bug_type?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ description: 'Storage key or URL of the uploaded file (max 5 MB)' })
   @IsOptional()
   @IsString()
+  @MaxLength(1000)
   attachment_url?: string;
 }
 

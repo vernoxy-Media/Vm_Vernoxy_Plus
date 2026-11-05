@@ -142,7 +142,32 @@ export class PayrollCalculationService {
     `;
     const attendanceMap = new Map<string, any>();
     for (const rec of attendanceRecords) {
+      // Placeholder rows written by the earlier leave implementation are not check-ins.
+      if (String(rec.day_status || '') === 'leave') continue;
       attendanceMap.set(this.formatYMD(new Date(rec.work_date)), rec);
+    }
+
+    // 2b. Approved leave days from Leave Management. Each day is paid by the
+    // Paid/Unpaid value saved on the request (Leave BFD Section 9).
+    const leaveMap = new Map<string, Array<{ day_part: string; is_paid: boolean }>>();
+    try {
+      const leaveRows = await this.prisma.$queryRaw<any[]>`
+        SELECT d.leave_date, d.day_part, r.is_paid
+        FROM leave_request_days d
+        JOIN leave_requests r ON r.request_id = d.request_id
+        WHERE d.emp_id = ${emp.emp_id}
+          AND d.leave_date >= ${startDateStr}::date
+          AND d.leave_date <= ${endDateStr}::date
+          AND r.status IN ('APPROVED', 'CANCELLATION_REQUESTED')
+      `;
+      for (const l of leaveRows) {
+        const key = this.formatYMD(new Date(l.leave_date));
+        const list = leaveMap.get(key) || [];
+        list.push({ day_part: l.day_part, is_paid: Boolean(l.is_paid) });
+        leaveMap.set(key, list);
+      }
+    } catch {
+      /* leave tables not migrated yet */
     }
 
     // 3. Holiday map
@@ -228,6 +253,54 @@ export class PayrollCalculationService {
       const att = attendanceMap.get(dateStr);
       let code = 'A';
       let paidAs: 'FULL' | 'HALF' | 'UNPAID' = 'UNPAID';
+
+      const dayLeaves = leaveMap.get(dateStr);
+      if (dayLeaves && dayLeaves.length) {
+        const full = dayLeaves.find((l) => l.day_part === 'FULL_DAY');
+        if (full) {
+          // L -- Full Day: paid type = Full day; unpaid type = LOP
+          code = 'L';
+          paidAs = full.is_paid ? 'FULL' : 'UNPAID';
+          if (full.is_paid) paidLeaveDaysCount++;
+          else unpaidLeaveDaysCount++;
+        } else {
+          // Half-day leave: the other half comes from the check-ins.
+          let paidUnits = 0;
+          for (const l of dayLeaves) {
+            if (l.is_paid) {
+              paidUnits += 0.5;
+              paidLeaveDaysCount += 0.5;
+            } else {
+              unpaidLeaveDaysCount += 0.5;
+            }
+          }
+          const coveredByLeave = dayLeaves.length >= 2;
+          const status = String(att?.day_status || '').toLowerCase();
+          const workedOtherHalf =
+            !coveredByLeave && Boolean(att?.check_in_at) && Boolean(att?.check_out_at) &&
+            ['present', 'completed', 'half_day', 'short'].includes(status);
+          if (workedOtherHalf) {
+            paidUnits += 0.5;
+            presentDaysCount += 0.5;
+          } else if (!coveredByLeave) {
+            absentDaysCount += 0.5;
+          }
+          paidAs = paidUnits >= 1 ? 'FULL' : paidUnits >= 0.5 ? 'HALF' : 'UNPAID';
+          code = paidUnits >= 1 ? (workedOtherHalf ? 'L/P' : 'L') : workedOtherHalf ? 'HD' : 'L/A';
+        }
+        dayItems.push({
+          date: dateStr,
+          attendance_code: code,
+          day_type: 'WORKING_DAY',
+          is_working_day: true,
+          holiday_name: null,
+          paid_as: paidAs,
+          daily_rate: 0,
+          calculated_amount: 0,
+          is_adjusted: false,
+        });
+        continue;
+      }
 
       if (att) {
         const status = (att.day_status || '').toLowerCase();

@@ -191,13 +191,31 @@ export async function fetchProjectBugs(projectId: number): Promise<ProjectBugIte
   }
 }
 
+export const BUG_ATTACHMENT_MAX_BYTES = 5 * 1024 * 1024;
+
 export async function createProjectBug(
   projectId: number,
   payload: CreateProjectBugPayload
 ): Promise<ProjectBugItem> {
+  const { attachment_file, ...body } = payload;
+  if (attachment_file) {
+    // BFD 3.5: Attachment is optional, a screenshot or document of at most 5 MB.
+    if (attachment_file.size > BUG_ATTACHMENT_MAX_BYTES) {
+      throw new Error('The attachment cannot be larger than 5 MB.');
+    }
+    const form = new FormData();
+    form.append('file', attachment_file);
+    form.append('entity_type', 'project_bug');
+    form.append('entity_id', '0');
+    const uploaded = await customFetch<{ attachment_id: number; file_url?: string }>('/api/v1/attachments/upload', {
+      method: 'POST',
+      body: form,
+    });
+    body.attachment_url = `/api/v1/attachments/${uploaded.attachment_id}/download`;
+  }
   return customFetch<ProjectBugItem>(`${BASE_URL}/${projectId}/bugs`, {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: JSON.stringify(body),
     headers: { 'Content-Type': 'application/json' },
   });
 }

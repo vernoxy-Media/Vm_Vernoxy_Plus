@@ -54,10 +54,6 @@ describe('AttendanceUseCases with TestClock', () => {
         };
         return inMemoryDay;
       }),
-      startWorkOnLeaveDay: jest.fn().mockImplementation(async (attId, checkInAt) => {
-        inMemoryDay = { ...inMemoryDay, checkInAt, dayStatus: 'incomplete' };
-        return inMemoryDay;
-      }),
       closeAttendanceDayWithBreak: jest.fn().mockImplementation(async (attId, checkOutAt, breakMins, prodMins, dayStatus) => {
         inMemoryDay.checkOutAt = checkOutAt;
         inMemoryDay.breakMinutes = breakMins;
@@ -114,6 +110,8 @@ describe('AttendanceUseCases with TestClock', () => {
       findDayDetail: jest.fn(),
       getTeamAttendance: jest.fn(),
       getAttendanceCsvReport: jest.fn(),
+      getAttendanceRegister: jest.fn(),
+      getAttendanceReports: jest.fn(),
     };
   });
 
@@ -200,45 +198,5 @@ describe('AttendanceUseCases with TestClock', () => {
     await punchOutUseCase.execute(1);
 
     await expect(punchOutUseCase.execute(1)).rejects.toThrow('Already punched out today');
-  });
-
-  describe('half-day leave', () => {
-    // approving a leave stores a 09:00:00 UTC placeholder check-in with the leave marked on the row
-    const placeholder = () => ({
-      attendanceId: 7,
-      empId: 1,
-      workDate: '2026-10-16',
-      checkInAt: new Date('2026-10-16T09:00:00.000Z'),
-      checkOutAt: null,
-      breakMinutes: 0,
-      productionMinutes: 0,
-      dayStatus: 'leave',
-      source: 'web',
-      workedOnNonWorkingDay: false,
-      leaveRequestId: 3,
-      leaveHalf: 'SECOND_HALF',
-      createdAt: new Date(),
-    });
-
-    it('lets the employee clock in for the working half instead of reporting "already punched in"', async () => {
-      inMemoryDay = placeholder();
-      clock.advanceMinutes(30); // 09:30
-      const today = await new PunchInUseCase(repo, clock).execute(1);
-      expect(repo.startWorkOnLeaveDay).toHaveBeenCalledWith(7, new Date('2026-10-16T09:30:00.000Z'));
-      expect(today.state).toBe('working');
-    });
-
-    it('still refuses to clock in on a full-day leave', async () => {
-      inMemoryDay = { ...placeholder(), leaveHalf: null };
-      await expect(new PunchInUseCase(repo, clock).execute(1)).rejects.toThrow(AlreadyPunchedInError);
-    });
-
-    it('counts 4 worked hours as a full attendance on a half-day leave', async () => {
-      inMemoryDay = placeholder();
-      await new PunchInUseCase(repo, clock).execute(1);
-      clock.advanceMinutes(240);
-      await new PunchOutUseCase(repo, clock).execute(1);
-      expect(repo.closeAttendanceDayWithBreak).toHaveBeenCalledWith(7, expect.any(Date), 0, 240, 'present');
-    });
   });
 });

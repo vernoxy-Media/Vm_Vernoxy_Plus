@@ -338,6 +338,7 @@ export const HomePage: React.FC = () => {
           isOpen={isEditProfileOpen}
           onClose={() => setIsEditProfileOpen(false)}
           employee={activeEmployee}
+          isAdmin={Boolean(user?.access?.can_manage_organization)}
           onSuccess={async () => {
             refetchEmployee();
             await refreshProfile();

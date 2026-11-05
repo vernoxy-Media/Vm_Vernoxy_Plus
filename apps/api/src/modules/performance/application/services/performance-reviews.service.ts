@@ -1,1099 +1,815 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-  Optional,
-} from '@nestjs/common';
+import { HttpStatus, Injectable, Logger, Optional } from '@nestjs/common';
 import { PrismaService } from '../../../../core/prisma/prisma.service';
 import { CreateNotificationUseCase } from '../../../notifications/public-api';
 import {
   ReopenReviewDto,
+  ReviewPart,
   SubmitBulkProjectRatingsDto,
-  SubmitProjectRatingDto,
   SubmitReviewRatingsDto,
+  SummaryQueryDto,
+  TeamReviewsQueryDto,
 } from '../../presentation/dto/performance.dto';
+import {
+  PerfQuestion,
+  RuleError,
+  averageOf,
+  cycleStatus,
+  daysLeft,
+  finalRating,
+  fmtDate,
+  fmtDayMonth,
+  periodLabel,
+  round1,
+  toDateStr,
+  todayStr,
+  validateSubmission,
+} from '../../domain/perf-rules';
+import { PerformanceAccessService, perfError, requireEmpId } from './performance-access.service';
 
-interface RequestUser {
-  emp_id?: number;
-  sub?: number;
-  email: string;
-  role_name?: string;
-  access?: {
-    can_manage_organization?: boolean;
-    [key: string]: any;
-  };
-}
+const PART_COLS = {
+  SELF: { status: 'self_status', ratings: 'self_ratings', answers: 'self_answers', comment: 'self_comment', avg: 'self_avg_rating', at: 'self_submitted_at' },
+  MANAGER: { status: 'manager_status', ratings: 'manager_ratings', answers: 'manager_answers', comment: 'manager_comment', avg: 'manager_avg_rating', at: 'manager_submitted_at' },
+  ADMIN: { status: 'admin_status', ratings: 'admin_ratings', answers: 'admin_answers', comment: 'admin_comment', avg: 'admin_avg_rating', at: 'admin_submitted_at' },
+} as const;
 
+const PART_NAMES: Record<ReviewPart, string> = { SELF: 'Employee', MANAGER: 'Reporting Manager', ADMIN: 'Admin' };
+const ALREADY_SUBMITTED = 'This review is already submitted and cannot be changed.';
+const NO_MANAGER = 'This employee has no Reporting Manager. Please set one in Employee Details.';
+
+type Notice = { recipients: number[]; kind: string; title: string; body: string; entityType: string; entityId: number; createdBy?: number | null };
+
+/** Reviews, Rating Summary and Project Rating (BFD Sections 5, 6, 9–12). */
 @Injectable()
 export class PerformanceReviewsService {
+  private readonly logger = new Logger(PerformanceReviewsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
+    private readonly access: PerformanceAccessService,
     @Optional() private readonly createNotificationUseCase?: CreateNotificationUseCase,
   ) {}
 
-  private getEmpId(user: RequestUser): number {
-    return Number(user?.emp_id || user?.sub || 1);
+  // ===========================================================================
+  // Review records
+  // ===========================================================================
+
+  /** BFD 13: all active employees who joined on or before the last day of the cycle. */
+  async eligibleEmployees(cycle: any, filter: { managerId?: number; departmentId?: number } = {}) {
+    const end = toDateStr(cycle.end_date);
+    return this.prisma.$queryRaw<any[]>`
+      SELECT e.emp_id, e.name, e.dep_id, d.name AS department_name, e.reporting_manager, m.name AS manager_name
+      FROM employees e
+      LEFT JOIN departments d ON d.dep_id = e.dep_id
+      LEFT JOIN employees m ON m.emp_id = e.reporting_manager
+      WHERE e.status = 'Active' AND e.deleted_at IS NULL
+        AND (e.joining_date IS NULL OR e.joining_date <= ${end}::date)
+        AND (${filter.managerId ?? null}::int IS NULL OR (e.reporting_manager = ${filter.managerId ?? null}::int AND e.emp_id <> ${filter.managerId ?? null}::int))
+        AND (${filter.departmentId ?? null}::int IS NULL OR e.dep_id = ${filter.departmentId ?? null}::int)
+      ORDER BY e.name;
+    `;
   }
 
-  private isAdmin(user: RequestUser): boolean {
-    if (user?.role_name?.toLowerCase().includes('admin') || user?.emp_id === 1) return true;
-    return Boolean(user.access?.can_manage_organization);
-  }
-
-  /**
-   * Calculate average rating (1 decimal place) from ratings object
-   */
-  private calculateAverage(ratings: Record<string, number> = {}): number | null {
-    const values = Object.values(ratings).filter((v) => typeof v === 'number' && v >= 1 && v <= 5);
-    if (values.length === 0) return null;
-    const sum = values.reduce((a, b) => a + b, 0);
-    return Math.round((sum / values.length) * 10) / 10;
-  }
-
-  /**
-   * Find or auto-initialize a review record for an employee in a given cycle
-   */
-  async getOrCreateReview(cycleId: number, employeeId: number) {
-    let review = await this.prisma.perf_reviews.findUnique({
-      where: {
-        cycle_id_emp_id: {
-          cycle_id: cycleId,
-          emp_id: employeeId,
-        },
-      },
-      include: {
-        perf_cycles: true,
-        perf_forms: true,
-        employees_perf_reviews_emp_idToemployees: {
-          select: { emp_id: true, name: true, email: true, dep_id: true, reporting_manager: true },
-        },
-        employees_perf_reviews_manager_emp_idToemployees: {
-          select: { emp_id: true, name: true, email: true },
-        },
-        employees_perf_reviews_admin_emp_idToemployees: {
-          select: { emp_id: true, name: true, email: true },
-        },
-      },
-    });
-
-    if (review) {
-      return review;
-    }
-
-    // Lookup employee details
-    const emp = await this.prisma.employees.findUnique({
-      where: { emp_id: employeeId },
-      select: { emp_id: true, name: true, dep_id: true, reporting_manager: true },
-    });
-
-    if (!emp) {
-      throw new NotFoundException(`Employee #${employeeId} not found`);
-    }
-
-    // Determine form: Department specific form first, fallback to All departments form
-    const forms = await this.prisma.perf_forms.findMany({
-      where: { cycle_id: cycleId, is_published: true },
-      orderBy: { created_at: 'desc' },
-    });
-
-    let targetForm = forms.find(
-      (f) => Array.isArray(f.department_ids) && emp.dep_id && f.department_ids.includes(emp.dep_id),
+  /** Form for an employee: the selected-departments form, else the "All departments" form (BFD 4). */
+  private async formFor(cycleId: number, depId: number | null) {
+    const forms = await this.prisma.perf_forms.findMany({ where: { cycle_id: cycleId, is_published: true } });
+    return (
+      forms.find((f) => depId && ((f.department_ids || []) as number[]).includes(depId)) ||
+      forms.find((f) => ((f.department_ids || []) as number[]).length === 0) ||
+      null
     );
-    if (!targetForm) {
-      targetForm = forms.find((f) => !f.department_ids || f.department_ids.length === 0);
-    }
-    if (!targetForm && forms.length > 0) {
-      targetForm = forms[0];
-    }
+  }
 
-    if (!targetForm) {
-      throw new BadRequestException(
-        `No review form is published for department #${emp.dep_id || 0} in cycle #${cycleId}`,
+  /** Finds or creates the review record. Keeps the Reporting Manager in step until the manager submits. */
+  async ensureReview(cycle: any, emp: { emp_id: number; dep_id: number | null; reporting_manager: number | null; department_name?: string | null }) {
+    const existing = await this.prisma.perf_reviews.findUnique({
+      where: { cycle_id_emp_id: { cycle_id: cycle.cycle_id, emp_id: emp.emp_id } },
+    });
+    if (existing) {
+      if (existing.manager_status !== 'SUBMITTED' && existing.manager_emp_id !== (emp.reporting_manager ?? null)) {
+        return this.prisma.perf_reviews.update({
+          where: { review_id: existing.review_id },
+          data: { manager_emp_id: emp.reporting_manager ?? null, updated_at: new Date() },
+        });
+      }
+      return existing;
+    }
+    const form = await this.formFor(cycle.cycle_id, emp.dep_id);
+    if (!form) {
+      throw perfError(
+        `No form is available for these departments: ${emp.department_name || 'No department'}. Add a form or choose All departments.`,
+        'form',
+        HttpStatus.UNPROCESSABLE_ENTITY,
+        'NO_FORM',
       );
     }
-
-    const created = await this.prisma.perf_reviews.create({
-      data: {
-        cycle_id: cycleId,
-        form_id: targetForm.form_id,
-        emp_id: employeeId,
-        manager_emp_id: emp.reporting_manager || null,
-        self_status: 'PENDING',
-        manager_status: 'PENDING',
-        admin_status: 'PENDING',
-      },
-      include: {
-        perf_cycles: true,
-        perf_forms: true,
-        employees_perf_reviews_emp_idToemployees: {
-          select: { emp_id: true, name: true, email: true, dep_id: true, reporting_manager: true },
+    try {
+      return await this.prisma.perf_reviews.create({
+        data: {
+          cycle_id: cycle.cycle_id,
+          form_id: form.form_id,
+          emp_id: emp.emp_id,
+          manager_emp_id: emp.reporting_manager ?? null,
         },
-        employees_perf_reviews_manager_emp_idToemployees: {
-          select: { emp_id: true, name: true, email: true },
-        },
-        employees_perf_reviews_admin_emp_idToemployees: {
-          select: { emp_id: true, name: true, email: true },
-        },
-      },
-    });
-
-    return created;
+      });
+    } catch (e: any) {
+      if (e?.code === 'P2002') {
+        return this.prisma.perf_reviews.findUniqueOrThrow({
+          where: { cycle_id_emp_id: { cycle_id: cycle.cycle_id, emp_id: emp.emp_id } },
+        });
+      }
+      throw e;
+    }
   }
 
-  /**
-   * 1. Detailed Self Review for current logged in employee & active/specified cycle
-   */
-  async getMyReviewDetail(user: RequestUser, cycleId?: number) {
-    const empId = this.getEmpId(user);
-    const isAdmin = this.isAdmin(user);
+  /** Creates review records for everyone who must review (used when the window opens). */
+  async ensureReviewsForCycle(cycle: any, employees?: any[]) {
+    const list = employees ?? (await this.eligibleEmployees(cycle));
+    const noForm: string[] = [];
+    for (const emp of list) {
+      try {
+        await this.ensureReview(cycle, emp);
+      } catch (e: any) {
+        noForm.push(emp.department_name || 'No department');
+      }
+    }
+    return Array.from(new Set(noForm));
+  }
 
-    // 1. Determine cycle
-    let cycle: any = null;
-    if (cycleId) {
-      cycle = await this.prisma.perf_cycles.findUnique({
-        where: { cycle_id: Number(cycleId) },
-      });
-    }
-    if (!cycle) {
-      cycle = await this.prisma.perf_cycles.findFirst({
-        where: { status: 'REVIEW_OPEN' },
-        orderBy: { cycle_id: 'desc' },
-      });
-    }
-    if (!cycle) {
-      cycle = await this.prisma.perf_cycles.findFirst({
-        orderBy: { cycle_id: 'desc' },
-      });
+  // ===========================================================================
+  // Screen 5: Self Review
+  // ===========================================================================
+
+  async getMyReviewDetail(user: any, cycleId?: number) {
+    const empId = requireEmpId(user);
+    const today = todayStr();
+    const [isAdmin, roles] = await Promise.all([this.access.isAdmin(empId), this.roleFlags(empId)]);
+    const cycle = await this.pickCycle(cycleId, today);
+    const base = { is_admin: isAdmin, is_manager: roles.isManager, is_project_manager: roles.isProjectManager };
+    if (!cycle) return { ...base, cycle: null, form: null, review: null, message: 'No review cycle has been created yet.' };
+
+    const cyclePayload = this.cyclePayload(cycle, today);
+    const [emp] = await this.prisma.$queryRaw<any[]>`
+      SELECT e.emp_id, e.name, e.dep_id, e.reporting_manager, e.status, e.joining_date,
+             d.name AS department_name, m.name AS manager_name
+      FROM employees e
+      LEFT JOIN departments d ON d.dep_id = e.dep_id
+      LEFT JOIN employees m ON m.emp_id = e.reporting_manager
+      WHERE e.emp_id = ${empId};
+    `;
+    const details = {
+      employee_name: emp?.name,
+      emp_code: this.empCode(empId),
+      department_name: emp?.department_name || '—',
+      manager_name: emp?.manager_name || null,
+      cycle_type: cycle.cycle_type,
+    };
+    const eligible =
+      emp && emp.status === 'Active' && (!emp.joining_date || toDateStr(emp.joining_date) <= toDateStr(cycle.end_date));
+    if (!eligible) {
+      return { ...base, cycle: cyclePayload, form: null, review: null, details, message: 'You are not part of this review cycle.' };
     }
 
-    if (!cycle) {
+    let review: any;
+    try {
+      review = await this.ensureReview(cycle, emp);
+    } catch (e: any) {
+      const opened = cyclePayload.status !== 'UPCOMING';
       return {
-        cycle: null,
+        ...base,
+        cycle: cyclePayload,
         form: null,
         review: null,
-        is_window_open: false,
-        role: isAdmin ? 'ADMIN' : 'EMPLOYEE',
-        can_review_self: false,
-        can_review_team: false,
-        can_view_summary: false,
+        details,
+        message: opened ? 'No review form is available for your department yet. Please contact Admin.' : `This review opens on ${fmtDate(cycle.review_start_date)}.`,
       };
     }
+    const form = await this.prisma.perf_forms.findUnique({ where: { form_id: review.form_id } });
+    const questions = (form?.questions || []) as unknown as PerfQuestion[];
+    const projects = await this.projectRatingsFor(cycle.cycle_id, [empId]);
+    const mine = projects.get(empId) || [];
+    const allIn = this.allSubmitted(review);
+    const state = this.partState(review, 'SELF', cycle, today);
 
-    // 2. Window Open check (1st-10th or REVIEW_OPEN)
-    const now = new Date();
-    const isWindowOpen =
-      cycle.status === 'REVIEW_OPEN' ||
-      (cycle.review_start_date &&
-        cycle.review_end_date &&
-        now >= new Date(cycle.review_start_date) &&
-        now <= new Date(cycle.review_end_date));
-
-    // 3. Manager check: does anyone report to this employee?
-    const directReportsCount = await this.prisma.employees.count({
-      where: { reporting_manager: empId },
-    });
-    const isManager = directReportsCount > 0 || isAdmin;
-
-    // 3b. Project Manager check: does this user manage any projects?
-    const managedProjectsCount = await this.prisma.projects.count({
-      where: isAdmin ? {} : { project_manager_id: empId },
-    });
-    const isProjectManager = managedProjectsCount > 0 || isAdmin;
-
-    // 4. Get or auto-init review for current employee
-    let review: any = null;
-    try {
-      review = await this.getOrCreateReview(cycle.cycle_id, empId);
-    } catch {
-      review = null;
-    }
-
-    // 5. Query Project Ratings for current employee in this cycle (BFD Section 6 & 11)
-    const projectRatings = await this.prisma.perf_project_ratings.findMany({
-      where: {
-        cycle_id: cycle.cycle_id,
-        emp_id: empId,
-      },
-      include: {
-        projects: {
-          select: {
-            project_id: true,
-            project_name: true,
-            project_no: true,
-          },
-        },
-      },
-    });
-
-    const projectAvgRating =
-      projectRatings.length > 0
-        ? Math.round(
-            (projectRatings.reduce((acc, curr) => acc + Number(curr.rating), 0) / projectRatings.length) * 10,
-          ) / 10
-        : null;
-
-    const role = isAdmin ? 'ADMIN' : isManager ? 'MANAGER' : 'EMPLOYEE';
-
+    // Privacy (BFD 9, 15.2): the employee sees only his or her own review.
     return {
-      cycle,
-      form: review?.perf_forms || null,
-      review: review
-        ? {
-            ...review,
-            status: review.self_status === 'SUBMITTED' ? 'SELF_SUBMITTED' : 'PENDING',
-          }
-        : null,
-      project_avg_rating: projectAvgRating,
-      project_ratings: projectRatings.map((p) => ({
-        project_id: p.project_id,
-        project_name: p.projects?.project_name,
-        project_code: p.projects?.project_no,
-        rating: Number(p.rating),
-        feedback: p.comment,
-      })),
-      is_window_open: Boolean(isWindowOpen),
-      role,
-      is_admin: isAdmin,
-      is_manager: isManager,
-      is_project_manager: isProjectManager,
-      can_review_self: true,
-      can_review_team: isManager || isAdmin,
-      can_rate_projects: isProjectManager,
-      can_view_summary: isAdmin,
+      ...base,
+      cycle: cyclePayload,
+      form: form ? { form_id: form.form_id, form_name: form.form_name, questions } : null,
+      details,
+      review: {
+        review_id: review.review_id,
+        status: review.self_status,
+        ratings: review.self_ratings || {},
+        answers: review.self_answers || {},
+        comment: review.self_comment || '',
+        average: review.self_avg_rating !== null ? Number(review.self_avg_rating) : null,
+        submitted_at: review.self_submitted_at,
+        reopened: review.self_status === 'REOPENED',
+        reopened_reason: review.self_status === 'REOPENED' ? review.reopened_reason : null,
+        final_rating: allIn && review.final_rating !== null ? Number(review.final_rating) : null,
+        final_pending: !allIn,
+      },
+      can_edit: state.canEdit,
+      message: state.message,
+      project_ratings: mine.map((p) => ({ project_id: p.project_id, project_name: p.project_name, rating: p.rating })),
+      project_avg_rating: mine.length ? round1(mine.reduce((s, p) => s + p.rating, 0) / mine.length) : null,
     };
   }
 
-  /**
-   * 1b. Self Reviews List (all historical cycles for current logged in employee)
-   */
-  async getMyReviews(user: RequestUser) {
-    const empId = this.getEmpId(user);
-
-    const reviews = await this.prisma.perf_reviews.findMany({
+  async getMyReviews(user: any) {
+    const empId = requireEmpId(user);
+    const rows = await this.prisma.perf_reviews.findMany({
       where: { emp_id: empId },
-      include: {
-        perf_cycles: true,
-        perf_forms: true,
-      },
+      include: { perf_cycles: true },
       orderBy: { created_at: 'desc' },
     });
-
-    return reviews.map((r) => ({
+    const today = todayStr();
+    return rows.map((r) => ({
       review_id: r.review_id,
-      cycle: r.perf_cycles,
-      form_name: r.perf_forms.form_name,
+      cycle: this.cyclePayload(r.perf_cycles, today),
       self_status: r.self_status,
       self_submitted_at: r.self_submitted_at,
-      self_avg_rating: r.self_avg_rating,
-      final_rating: r.final_rating,
-      is_locked: r.is_locked,
+      self_avg_rating: r.self_avg_rating !== null ? Number(r.self_avg_rating) : null,
+      final_rating: this.allSubmitted(r) && r.final_rating !== null ? Number(r.final_rating) : null,
     }));
   }
 
-  /**
-   * 2. Team Reviews List (for Reporting Manager & Admin)
-   */
-  async getTeamReviews(user: RequestUser, cycleId?: number) {
-    const managerId = this.getEmpId(user);
-    const isAdmin = this.isAdmin(user);
+  // ===========================================================================
+  // Screen 6: Team Review (Reporting Manager, and Admin for all employees)
+  // ===========================================================================
 
-    // Identify team members
-    const teamEmployees = await this.prisma.employees.findMany({
-      where: isAdmin ? {} : { reporting_manager: managerId },
-      select: { emp_id: true, name: true, email: true, dep_id: true },
-    });
+  async getTeamReviews(user: any, query: TeamReviewsQueryDto) {
+    const empId = requireEmpId(user);
+    const isAdmin = await this.access.isAdmin(empId);
+    const roles = await this.roleFlags(empId);
+    const mode: 'MANAGER' | 'ADMIN' = query.as === 'ADMIN' ? 'ADMIN' : query.as === 'MANAGER' ? 'MANAGER' : roles.isManager ? 'MANAGER' : 'ADMIN';
+    if (mode === 'ADMIN' && !isAdmin) throw perfError('Only Admin can do this.', 'as', HttpStatus.FORBIDDEN, 'FORBIDDEN');
+    if (mode === 'MANAGER' && !roles.isManager) return { mode, cycle: null, items: [], is_admin: isAdmin, is_manager: false };
 
-    if (cycleId && teamEmployees.length > 0) {
-      // Ensure reviews are initialized for team members so manager/admin can review them
-      for (const emp of teamEmployees) {
-        try {
-          await this.getOrCreateReview(Number(cycleId), emp.emp_id);
-        } catch {}
-      }
+    const today = todayStr();
+    const cycle = await this.pickCycle(query.cycle_id, today);
+    if (!cycle) return { mode, cycle: null, items: [], is_admin: isAdmin, is_manager: roles.isManager };
+    const people = await this.eligibleEmployees(cycle, mode === 'MANAGER' ? { managerId: empId } : { departmentId: query.department_id });
+    if (cycleStatus(cycle.review_start_date, cycle.review_end_date, today) !== 'UPCOMING') {
+      await this.ensureReviewsForCycle(cycle, people);
     }
-
-    const where: any = {};
-    if (!isAdmin) {
-      where.employees_perf_reviews_emp_idToemployees = {
-        reporting_manager: managerId,
-      };
-    }
-
-    if (cycleId) {
-      where.cycle_id = Number(cycleId);
-    }
-
     const reviews = await this.prisma.perf_reviews.findMany({
-      where,
-      include: {
-        perf_cycles: true,
-        perf_forms: true,
-        employees_perf_reviews_emp_idToemployees: {
-          select: { emp_id: true, name: true, email: true, dep_id: true },
-        },
-      },
-      orderBy: { created_at: 'desc' },
+      where: { cycle_id: cycle.cycle_id, emp_id: { in: people.map((p) => p.emp_id) } },
+      include: { perf_forms: true },
     });
-
-    return reviews.map((r) => ({
-      review_id: r.review_id,
-      cycle_id: r.cycle_id,
-      emp_id: r.emp_id,
-      cycle: r.perf_cycles,
-      perf_forms: r.perf_forms,
-      employee: r.employees_perf_reviews_emp_idToemployees,
-      self_status: r.self_status,
-      self_ratings: r.self_ratings,
-      self_comment: r.self_comment,
-      self_avg_rating: r.self_avg_rating,
-      manager_status: r.manager_status,
-      manager_ratings: r.manager_ratings,
-      manager_comment: r.manager_comment,
-      manager_avg_rating: r.manager_avg_rating,
-      admin_status: r.admin_status,
-      admin_avg_rating: r.admin_avg_rating,
-      final_rating: r.final_rating,
-      status:
-        r.manager_status === 'SUBMITTED'
-          ? 'MANAGER_REVIEWED'
-          : r.self_status === 'SUBMITTED'
-          ? 'SELF_SUBMITTED'
-          : 'PENDING',
-      is_locked: r.is_locked,
-    }));
-  }
-
-  /**
-   * 3. Admin Rating Summary (Screen 7 - Admin sees all reviews and final ratings)
-   */
-  async getAdminReviewsSummary(user: RequestUser, cycleId?: number, departmentId?: number) {
-    if (!this.isAdmin(user)) {
-      throw new ForbiddenException('Only administrators can access the Rating Summary');
-    }
-
-    // Auto-initialize reviews for all active employees eligible in this cycle (BFD Section 11 & 13)
-    if (cycleId) {
-      const cycle = await this.prisma.perf_cycles.findUnique({
-        where: { cycle_id: Number(cycleId) },
-      });
-
-      if (cycle) {
-        const activeEmployees = await this.prisma.employees.findMany({
-          where: {
-            status: 'Active',
-            deleted_at: null,
-            OR: [
-              { joining_date: { lte: new Date(cycle.end_date) } },
-            ],
-          },
-          select: { emp_id: true },
-        });
-
-        const existingReviews = await this.prisma.perf_reviews.findMany({
-          where: { cycle_id: Number(cycleId) },
-          select: { emp_id: true },
-        });
-        const existingEmpIds = new Set(existingReviews.map((r) => r.emp_id));
-
-        for (const emp of activeEmployees) {
-          if (!existingEmpIds.has(emp.emp_id)) {
-            try {
-              await this.getOrCreateReview(cycle.cycle_id, emp.emp_id);
-            } catch {
-              // Ignore if no form is published yet for department
-            }
-          }
+    const byEmp = new Map(reviews.map((r) => [r.emp_id, r]));
+    const part: ReviewPart = mode;
+    const otherAdminExists = mode === 'ADMIN' && (await this.access.getAdminIds()).some((id) => id !== empId);
+    const items = people
+      .map((p) => {
+        const r = byEmp.get(p.emp_id);
+        const questions = ((r?.perf_forms?.questions || []) as unknown) as PerfQuestion[];
+        const state = r ? this.partState(r, part, cycle, today) : { canEdit: false, message: 'No review form is available for this department yet.' };
+        let canEdit = state.canEdit;
+        let message = state.message;
+        if (r && mode === 'MANAGER' && r.manager_emp_id !== empId) {
+          canEdit = false;
+          message = 'You are not the Reporting Manager for this review.';
         }
-      }
-    }
-
-    const where: any = {};
-    if (cycleId) {
-      where.cycle_id = Number(cycleId);
-    }
-    if (departmentId) {
-      where.employees_perf_reviews_emp_idToemployees = {
-        dep_id: Number(departmentId),
-      };
-    }
-
-    const reviews = await this.prisma.perf_reviews.findMany({
-      where,
-      include: {
-        perf_cycles: true,
-        perf_forms: true,
-        employees_perf_reviews_emp_idToemployees: {
-          select: {
-            emp_id: true,
-            name: true,
-            email: true,
-            dep_id: true,
-            reporting_manager: true,
-            departments_employees_dep_idTodepartments: { select: { name: true } },
+        if (r && mode === 'MANAGER' && !p.reporting_manager) {
+          canEdit = false;
+          message = NO_MANAGER;
+        }
+        if (r && mode === 'ADMIN' && p.emp_id === empId && otherAdminExists) {
+          canEdit = false;
+          message = 'Another Admin must give the Admin rating for your own review.';
+        }
+        const selfIn = r?.self_status === 'SUBMITTED';
+        const c = PART_COLS[part];
+        return {
+          review_id: r?.review_id ?? null,
+          employee: {
+            emp_id: p.emp_id,
+            name: p.name,
+            emp_code: this.empCode(p.emp_id),
+            department_name: p.department_name || '—',
+            manager_name: p.manager_name || null,
           },
-        },
-        employees_perf_reviews_manager_emp_idToemployees: {
-          select: { emp_id: true, name: true, email: true },
-        },
-      },
-      orderBy: [{ cycle_id: 'desc' }, { created_at: 'desc' }],
-    });
-
-    const projRatings = await this.prisma.perf_project_ratings.findMany({
-      where: cycleId ? { cycle_id: Number(cycleId) } : {},
-      select: { emp_id: true, rating: true },
-    });
-    const projRatingMap = new Map<number, number[]>();
-    for (const pr of projRatings) {
-      const list = projRatingMap.get(pr.emp_id) || [];
-      list.push(pr.rating);
-      projRatingMap.set(pr.emp_id, list);
-    }
-
-    // Query active employees missing an assigned Reporting Manager (BFD Section 10 & 14)
-    const missingManagerEmployees = await this.prisma.employees.findMany({
-      where: {
-        status: 'Active',
-        deleted_at: null,
-        reporting_manager: null,
-      },
-      select: {
-        emp_id: true,
-        name: true,
-        email: true,
-        departments_employees_dep_idTodepartments: {
-          select: { name: true },
-        },
-      },
-      orderBy: { name: 'asc' },
-    });
-
-    const mappedReviews = reviews.map((r) => {
-      const pList = projRatingMap.get(r.emp_id);
-      const projectAvg =
-        pList && pList.length > 0
-          ? Math.round((pList.reduce((a, b) => a + b, 0) / pList.length) * 10) / 10
-          : null;
-
-      const emp = r.employees_perf_reviews_emp_idToemployees;
-      const deptName = emp?.departments_employees_dep_idTodepartments?.name || 'Unassigned';
-
-      return {
-        review_id: r.review_id,
-        cycle: r.perf_cycles,
-        name: emp?.name || `Employee #${r.emp_id}`,
-        email: emp?.email || '',
-        department_name: deptName,
-        designation: '',
-        employee: {
-          emp_id: emp?.emp_id,
-          name: emp?.name,
-          email: emp?.email,
-          dep_id: emp?.dep_id,
-          department_name: deptName,
-        },
-        manager: r.employees_perf_reviews_manager_emp_idToemployees,
-        self_status: r.self_status,
-        self_avg: r.self_avg_rating,
-        self_avg_rating: r.self_avg_rating,
-        manager_status: r.manager_status,
-        manager_avg: r.manager_avg_rating,
-        manager_avg_rating: r.manager_avg_rating,
-        admin_status: r.admin_status,
-        admin_avg: r.admin_avg_rating,
-        admin_avg_rating: r.admin_avg_rating,
-        project_avg: projectAvg,
-        final_rating: r.final_rating,
-        status: r.final_rating
-          ? 'FINALIZED'
-          : r.manager_status === 'SUBMITTED'
-          ? 'MANAGER_REVIEWED'
-          : r.self_status === 'SUBMITTED'
-          ? 'SELF_SUBMITTED'
-          : 'PENDING',
-        is_locked: r.is_locked,
-        has_missing_manager: !emp?.reporting_manager,
-      };
-    });
-
-    const mappedMissingManagers = missingManagerEmployees.map((m) => ({
-      emp_id: m.emp_id,
-      name: m.name,
-      email: m.email,
-      department_name: m.departments_employees_dep_idTodepartments?.name || 'Unassigned',
-    }));
-
+          has_manager: Boolean(p.reporting_manager),
+          questions,
+          self: {
+            status: r?.self_status ?? 'PENDING',
+            submitted_at: selfIn ? r!.self_submitted_at : null,
+            // The employee's own rating and comment are shown once submitted (Screen 6).
+            ratings: selfIn ? r!.self_ratings : {},
+            answers: selfIn ? r!.self_answers : {},
+            comment: selfIn ? r!.self_comment : null,
+            average: selfIn && r!.self_avg_rating !== null ? Number(r!.self_avg_rating) : null,
+          },
+          mine: {
+            status: r ? (r as any)[c.status] : 'PENDING',
+            ratings: r ? (r as any)[c.ratings] || {} : {},
+            answers: r ? (r as any)[c.answers] || {} : {},
+            comment: r ? (r as any)[c.comment] || '' : '',
+            average: r && (r as any)[c.avg] !== null ? Number((r as any)[c.avg]) : null,
+            submitted_at: r ? (r as any)[c.at] : null,
+          },
+          done: r ? (r as any)[c.status] === 'SUBMITTED' : false,
+          can_edit: canEdit,
+          message,
+        };
+      });
     return {
-      data: mappedReviews,
-      items: mappedReviews,
-      missing_manager_employees: mappedMissingManagers,
+      mode,
+      cycle: this.cyclePayload(cycle, today),
+      is_admin: isAdmin,
+      is_manager: roles.isManager,
+      counts: { total: items.length, done: items.filter((i) => i.done).length },
+      items,
     };
   }
 
-  /**
-   * Get single review detail
-   */
-  async getReviewById(reviewId: number, user: RequestUser) {
-    const review = await this.prisma.perf_reviews.findUnique({
-      where: { review_id: reviewId },
-      include: {
-        perf_cycles: true,
-        perf_forms: true,
-        employees_perf_reviews_emp_idToemployees: {
-          select: { emp_id: true, name: true, email: true, dep_id: true, reporting_manager: true },
-        },
-        employees_perf_reviews_manager_emp_idToemployees: {
-          select: { emp_id: true, name: true, email: true },
-        },
-        employees_perf_reviews_admin_emp_idToemployees: {
-          select: { emp_id: true, name: true, email: true },
-        },
-      },
+  // ===========================================================================
+  // Screen 7: Rating Summary (Admin)
+  // ===========================================================================
+
+  async getAdminReviewsSummary(user: any, query: SummaryQueryDto) {
+    await this.access.assertAdmin(user);
+    const today = todayStr();
+    const cycle = await this.pickCycle(query.cycle_id, today);
+    if (!cycle) return { cycle: null, counts: { employees: 0, completed: 0, pending: 0 }, items: [], missing_manager_employees: [], departments_without_form: [] };
+    const people = await this.eligibleEmployees(cycle, { departmentId: query.department_id });
+    const opened = cycleStatus(cycle.review_start_date, cycle.review_end_date, today) !== 'UPCOMING';
+    const noForm = opened ? await this.ensureReviewsForCycle(cycle, people) : [];
+    const reviews = await this.prisma.perf_reviews.findMany({
+      where: { cycle_id: cycle.cycle_id, emp_id: { in: people.map((p) => p.emp_id) } },
     });
+    const byEmp = new Map(reviews.map((r) => [r.emp_id, r]));
+    const projects = await this.projectRatingsFor(cycle.cycle_id, people.map((p) => p.emp_id));
+    const num = (v: any) => (v === null || v === undefined ? null : Number(v));
 
-    if (!review) {
-      throw new NotFoundException(`Review #${reviewId} not found`);
-    }
-
-    const empId = this.getEmpId(user);
-    const isAdmin = this.isAdmin(user);
-    const isEmployee = review.emp_id === empId;
-    const isManager = review.manager_emp_id === empId;
-
-    if (!isAdmin && !isEmployee && !isManager) {
-      throw new ForbiddenException('You do not have permission to view this review');
-    }
-
-    // Privacy rule (BFD Section 9 & 15.2):
-    // Employee sees only their own ratings and comments. Manager and Admin ratings are hidden from employee.
-    if (isEmployee && !isAdmin && !isManager) {
+    const items = people.map((p) => {
+      const r = byEmp.get(p.emp_id);
+      const selfIn = r?.self_status === 'SUBMITTED';
+      const mgrIn = r?.manager_status === 'SUBMITTED';
+      const adminIn = r?.admin_status === 'SUBMITTED';
+      const complete = Boolean(r && selfIn && mgrIn && adminIn);
+      const pendingBy: string[] = [];
+      if (!selfIn) pendingBy.push(p.name);
+      if (!mgrIn) pendingBy.push(p.manager_name ? `${p.manager_name} (Reporting Manager)` : 'Reporting Manager (not set)');
+      if (!adminIn) pendingBy.push('Admin');
+      const pr = projects.get(p.emp_id) || [];
       return {
-        ...review,
-        manager_ratings: {},
-        manager_comment: null,
-        manager_avg_rating: null,
-        admin_ratings: {},
-        admin_comment: null,
-        admin_avg_rating: null,
-        final_rating: review.final_rating,
+        review_id: r?.review_id ?? null,
+        emp_id: p.emp_id,
+        name: p.name,
+        emp_code: this.empCode(p.emp_id),
+        department_name: p.department_name || '—',
+        manager_name: p.manager_name || null,
+        has_missing_manager: !p.reporting_manager,
+        self_status: r?.self_status ?? 'PENDING',
+        manager_status: r?.manager_status ?? 'PENDING',
+        admin_status: r?.admin_status ?? 'PENDING',
+        self_avg: selfIn ? num(r!.self_avg_rating) : null,
+        manager_avg: mgrIn ? num(r!.manager_avg_rating) : null,
+        admin_avg: adminIn ? num(r!.admin_avg_rating) : null,
+        final_rating: complete ? num(r!.final_rating) : null,
+        project_avg: pr.length ? round1(pr.reduce((s, x) => s + x.rating, 0) / pr.length) : null,
+        status: complete ? 'COMPLETE' : 'PENDING',
+        pending_by: complete ? [] : pendingBy,
+        has_form: Boolean(r),
       };
-    }
-
-    return review;
+    });
+    const completed = items.filter((i) => i.status === 'COMPLETE').length;
+    return {
+      cycle: this.cyclePayload(cycle, today),
+      counts: { employees: items.length, completed, pending: items.length - completed },
+      items,
+      missing_manager_employees: items
+        .filter((i) => i.has_missing_manager)
+        .map((i) => ({ emp_id: i.emp_id, name: i.name, department_name: i.department_name })),
+      departments_without_form: noForm,
+    };
   }
 
-  /**
-   * Submit Self Review (Employee)
-   */
-  async submitSelfReview(reviewId: number, dto: SubmitReviewRatingsDto, user: RequestUser) {
+  // ===========================================================================
+  // Single review (role-scoped)
+  // ===========================================================================
+
+  async getReviewById(reviewId: number, user: any) {
+    const empId = requireEmpId(user);
+    const r = await this.prisma.perf_reviews.findUnique({ where: { review_id: reviewId }, include: { perf_forms: true, perf_cycles: true } });
+    if (!r) throw perfError('Review not found.', 'review_id', HttpStatus.NOT_FOUND, 'NOT_FOUND');
+    const isAdmin = await this.access.isAdmin(empId);
+    const isEmployee = r.emp_id === empId;
+    const isManager = r.manager_emp_id === empId;
+    if (!isAdmin && !isEmployee && !isManager) {
+      throw perfError('You do not have access to this review.', 'review_id', HttpStatus.FORBIDDEN, 'FORBIDDEN');
+    }
+    const pick = (part: ReviewPart) => {
+      const c = PART_COLS[part];
+      return {
+        status: (r as any)[c.status],
+        ratings: (r as any)[c.ratings],
+        answers: (r as any)[c.answers],
+        comment: (r as any)[c.comment],
+        average: (r as any)[c.avg] !== null ? Number((r as any)[c.avg]) : null,
+        submitted_at: (r as any)[c.at],
+      };
+    };
+    const out: any = {
+      review_id: r.review_id,
+      cycle: this.cyclePayload(r.perf_cycles, todayStr()),
+      questions: r.perf_forms?.questions || [],
+      emp_id: r.emp_id,
+      self: isEmployee || r.self_status === 'SUBMITTED' || isAdmin ? pick('SELF') : null,
+    };
+    if (isAdmin) {
+      out.manager = pick('MANAGER');
+      out.admin = pick('ADMIN');
+      out.final_rating = this.allSubmitted(r) && r.final_rating !== null ? Number(r.final_rating) : null;
+    } else if (isManager && !isEmployee) {
+      out.manager = pick('MANAGER');
+    } else {
+      out.final_rating = this.allSubmitted(r) && r.final_rating !== null ? Number(r.final_rating) : null;
+    }
+    return out;
+  }
+
+  // ===========================================================================
+  // Submit (Save Draft / Submit) — BFD 5
+  // ===========================================================================
+
+  submitSelfReview(reviewId: number, dto: SubmitReviewRatingsDto, user: any) {
+    return this.submitPart('SELF', reviewId, dto, user);
+  }
+
+  submitManagerReview(reviewId: number, dto: SubmitReviewRatingsDto, user: any) {
+    return this.submitPart('MANAGER', reviewId, dto, user);
+  }
+
+  submitAdminReview(reviewId: number, dto: SubmitReviewRatingsDto, user: any) {
+    return this.submitPart('ADMIN', reviewId, dto, user);
+  }
+
+  private async submitPart(part: ReviewPart, reviewId: number, dto: SubmitReviewRatingsDto, user: any) {
+    const empId = requireEmpId(user);
     const review = await this.prisma.perf_reviews.findUnique({
       where: { review_id: reviewId },
-      include: { perf_cycles: true },
+      include: { perf_forms: true, perf_cycles: true },
     });
+    if (!review) throw perfError('Review not found.', 'review_id', HttpStatus.NOT_FOUND, 'NOT_FOUND');
+    const forbidden = (msg: string) => perfError(msg, 'review_id', HttpStatus.FORBIDDEN, 'FORBIDDEN');
 
-    if (!review) throw new NotFoundException('Review not found');
-
-    const empId = this.getEmpId(user);
-    if (review.emp_id !== empId && !this.isAdmin(user)) {
-      throw new ForbiddenException('You can only submit your own self-review');
+    if (part === 'SELF' && review.emp_id !== empId) throw forbidden('You can fill only your own self review.');
+    if (part === 'MANAGER') {
+      const [emp] = await this.prisma.$queryRaw<any[]>`SELECT reporting_manager FROM employees WHERE emp_id = ${review.emp_id}`;
+      if (!emp?.reporting_manager) throw perfError(NO_MANAGER, 'manager');
+      if (review.manager_status !== 'SUBMITTED' && review.manager_emp_id !== emp.reporting_manager) {
+        await this.prisma.perf_reviews.update({ where: { review_id: reviewId }, data: { manager_emp_id: emp.reporting_manager } });
+        review.manager_emp_id = emp.reporting_manager;
+      }
+      if (review.manager_emp_id !== empId) throw forbidden('Only the Reporting Manager of this employee can give this rating.');
+    }
+    if (part === 'ADMIN') {
+      if (!(await this.access.isAdmin(empId))) throw forbidden('Only Admin can do this.');
+      if (review.emp_id === empId) {
+        const admins = await this.access.getAdminIds();
+        if (admins.some((id) => id !== empId)) throw forbidden('Another Admin must give the Admin rating for your own review.');
+      }
     }
 
-    if (review.self_status === 'SUBMITTED' && review.is_locked && !this.isAdmin(user)) {
-      throw new BadRequestException('This review is already submitted and cannot be changed.');
-    }
+    const c = PART_COLS[part];
+    const status = (review as any)[c.status] as string;
+    if (status === 'SUBMITTED') throw perfError(ALREADY_SUBMITTED);
+    if (status !== 'REOPENED') this.assertWindowOpen(review.perf_cycles);
 
+    const questions = (review.perf_forms?.questions || []) as unknown as PerfQuestion[];
     const isDraft = Boolean(dto.is_draft);
-    const avgRating = this.calculateAverage(dto.ratings || {});
+    let clean: { ratings: Record<string, number>; answers: Record<string, any> };
+    try {
+      clean = validateSubmission(questions, dto.ratings || {}, dto.answers || {}, isDraft);
+    } catch (e) {
+      if (e instanceof RuleError) throw perfError(e.message, e.field || 'ratings');
+      throw e;
+    }
 
-    const updateData: any = {
-      self_ratings: dto.ratings || {},
-      self_answers: dto.answers || {},
-      self_comment: dto.comment?.trim() || null,
-      self_avg_rating: avgRating,
-      self_status: isDraft ? 'PENDING' : 'SUBMITTED',
-      self_submitted_at: isDraft ? null : new Date(),
-      is_locked: isDraft ? false : true,
+    const data: any = {
+      [c.ratings]: clean.ratings,
+      [c.answers]: clean.answers,
+      [c.comment]: dto.comment?.trim() || null,
+      [c.avg]: averageOf(questions, clean.ratings),
       updated_at: new Date(),
     };
-
-    const updated = await this.prisma.perf_reviews.update({
-      where: { review_id: reviewId },
-      data: updateData,
-    });
-
-    if (!isDraft && this.createNotificationUseCase) {
-      try {
-        const emp = await this.prisma.employees.findUnique({
-          where: { emp_id: review.emp_id },
-          select: { name: true, reporting_manager: true },
-        });
-
-        const admins = await this.prisma.employees.findMany({
-          where: {
-            OR: [
-              { emp_id: 1 },
-              { roles_employees_role_idToroles: { role_name: { contains: 'admin', mode: 'insensitive' } } },
-            ],
-          },
-          select: { emp_id: true },
-        });
-
-        const recipientIds = new Set<number>();
-        if (emp?.reporting_manager) recipientIds.add(emp.reporting_manager);
-        for (const a of admins) {
-          if (a.emp_id !== review.emp_id) recipientIds.add(a.emp_id);
-        }
-
-        const cycleName = review.perf_cycles?.cycle_name || 'Evaluation Cycle';
-        const notifs = Array.from(recipientIds).map((rid) => ({
-          recipient_id: rid,
-          kind: 'perf_review_submitted',
-          title: 'Self-Review Submitted',
-          body: `${emp?.name || 'An employee'} has submitted the self review for ${cycleName}.`,
-          entity_type: 'perf_review',
-          entity_id: reviewId,
-          created_by: empId,
-        }));
-
-        if (notifs.length > 0) {
-          await this.createNotificationUseCase.executeMany(notifs);
-        }
-      } catch {}
+    if (part === 'ADMIN') data.admin_emp_id = empId;
+    if (!isDraft) {
+      data[c.status] = 'SUBMITTED';
+      data[c.at] = new Date();
     }
+    const updated = await this.prisma.perf_reviews.update({ where: { review_id: reviewId }, data });
+    await this.refreshFinal(updated.review_id);
 
-    await this.tryComputeFinalRating(reviewId);
-    return updated;
-  }
-
-  /**
-   * Submit Manager Review (Reporting Manager)
-   */
-  async submitManagerReview(reviewId: number, dto: SubmitReviewRatingsDto, user: RequestUser) {
-    const review = await this.prisma.perf_reviews.findUnique({
-      where: { review_id: reviewId },
-      include: { perf_cycles: true },
-    });
-
-    if (!review) throw new NotFoundException('Review not found');
-
-    const empId = this.getEmpId(user);
-    if (review.manager_emp_id !== empId && !this.isAdmin(user)) {
-      throw new ForbiddenException('Only the assigned reporting manager or Admin can submit manager ratings');
-    }
-
-    const isDraft = Boolean(dto.is_draft);
-    const avgRating = this.calculateAverage(dto.ratings || {});
-
-    const updated = await this.prisma.perf_reviews.update({
-      where: { review_id: reviewId },
-      data: {
-        manager_ratings: dto.ratings || {},
-        manager_answers: dto.answers || {},
-        manager_comment: dto.comment?.trim() || null,
-        manager_avg_rating: avgRating,
-        manager_status: isDraft ? 'PENDING' : 'SUBMITTED',
-        manager_submitted_at: isDraft ? null : new Date(),
-        updated_at: new Date(),
-      },
-    });
-
-    if (!isDraft && this.createNotificationUseCase) {
-      try {
-        const mgr = await this.prisma.employees.findUnique({
-          where: { emp_id: empId },
-          select: { name: true },
-        });
-        const targetEmp = await this.prisma.employees.findUnique({
-          where: { emp_id: review.emp_id },
-          select: { name: true },
-        });
-        const admins = await this.prisma.employees.findMany({
-          where: {
-            OR: [
-              { emp_id: 1 },
-              { roles_employees_role_idToroles: { role_name: { contains: 'admin', mode: 'insensitive' } } },
-            ],
-          },
-          select: { emp_id: true },
-        });
-
-        const cycleName = review.perf_cycles?.cycle_name || 'Evaluation Cycle';
-        const notifs = admins
-          .filter((a) => a.emp_id !== empId)
-          .map((a) => ({
-            recipient_id: a.emp_id,
-            kind: 'perf_manager_review_submitted',
-            title: 'Manager Evaluation Submitted',
-            body: `${mgr?.name || 'Manager'} has submitted evaluation for ${targetEmp?.name || 'employee'} in ${cycleName}.`,
-            entity_type: 'perf_review',
-            entity_id: reviewId,
-            created_by: empId,
-          }));
-
-        if (notifs.length > 0) {
-          await this.createNotificationUseCase.executeMany(notifs);
-        }
-      } catch {}
-    }
-
-    await this.tryComputeFinalRating(reviewId);
-    return updated;
-  }
-
-  /**
-   * Submit Admin Review (Admin / HR)
-   */
-  async submitAdminReview(reviewId: number, dto: SubmitReviewRatingsDto, user: RequestUser) {
-    if (!this.isAdmin(user)) {
-      throw new ForbiddenException('Only administrators can submit admin reviews');
-    }
-
-    const review = await this.prisma.perf_reviews.findUnique({
-      where: { review_id: reviewId },
-      include: { perf_cycles: true },
-    });
-    if (!review) throw new NotFoundException('Review not found');
-
-    const avgRating = this.calculateAverage(dto.ratings || {});
-    const directFinalRating = dto.final_rating !== undefined && dto.final_rating !== null ? Number(dto.final_rating) : undefined;
-    const adminComments = dto.admin_comments || dto.comment?.trim() || null;
-
-    const updated = await this.prisma.perf_reviews.update({
-      where: { review_id: reviewId },
-      data: {
-        admin_emp_id: this.getEmpId(user),
-        admin_ratings: dto.ratings || {},
-        admin_answers: dto.answers || {},
-        admin_comment: adminComments,
-        admin_avg_rating: avgRating || directFinalRating || null,
-        final_rating: directFinalRating,
-        admin_status: 'SUBMITTED',
-        admin_submitted_at: new Date(),
-        is_locked: directFinalRating !== undefined ? true : review.is_locked,
-        updated_at: new Date(),
-      },
-    });
-
-    if (directFinalRating !== undefined && this.createNotificationUseCase) {
-      try {
-        const cycleName = review.perf_cycles?.cycle_name || 'Evaluation Cycle';
-        await this.createNotificationUseCase.execute({
-          recipient_id: review.emp_id,
-          kind: 'perf_review_completed',
-          title: 'Evaluation Completed',
-          body: `Your official performance review for ${cycleName} has been finalized. Final Rating: ${directFinalRating} ★.`,
-          entity_type: 'perf_review',
-          entity_id: reviewId,
-          created_by: this.getEmpId(user),
-        });
-      } catch {}
-    } else {
-      await this.tryComputeFinalRating(reviewId);
-    }
-
-    return updated;
-  }
-
-  /**
-   * Calculate and save Final Rating once Self, Manager and Admin reviews are all SUBMITTED (BFD Section 2)
-   */
-  private async tryComputeFinalRating(reviewId: number) {
-    const review = await this.prisma.perf_reviews.findUnique({
-      where: { review_id: reviewId },
-    });
-
-    if (
-      review &&
-      review.self_status === 'SUBMITTED' &&
-      review.manager_status === 'SUBMITTED' &&
-      review.admin_status === 'SUBMITTED' &&
-      review.self_avg_rating &&
-      review.manager_avg_rating &&
-      review.admin_avg_rating
-    ) {
-      const sum =
-        Number(review.self_avg_rating) +
-        Number(review.manager_avg_rating) +
-        Number(review.admin_avg_rating);
-      const finalRating = Math.round((sum / 3) * 10) / 10;
-
-      await this.prisma.perf_reviews.update({
-        where: { review_id: reviewId },
-        data: {
-          final_rating: finalRating,
-          is_locked: true,
-          updated_at: new Date(),
-        },
+    if (!isDraft && part === 'SELF') {
+      // BFD 12 (Required): self review submitted → Reporting Manager and Admin.
+      const [emp] = await this.prisma.$queryRaw<any[]>`SELECT name, reporting_manager FROM employees WHERE emp_id = ${review.emp_id}`;
+      const admins = await this.access.getAdminIds();
+      const recipients = new Set<number>(admins);
+      if (emp?.reporting_manager) recipients.add(Number(emp.reporting_manager));
+      recipients.delete(review.emp_id);
+      await this.notify({
+        recipients: Array.from(recipients),
+        kind: 'perf_self_review_submitted',
+        title: 'Self review submitted',
+        body: `${emp?.name || 'An employee'} has submitted the self review for ${periodLabel(review.perf_cycles)}.`,
+        entityType: 'perf_reviews',
+        entityId: review.review_id,
+        createdBy: empId,
       });
-
-      if (this.createNotificationUseCase) {
-        try {
-          const cycle = await this.prisma.perf_cycles.findUnique({
-            where: { cycle_id: review.cycle_id },
-            select: { cycle_name: true },
-          });
-
-          await this.createNotificationUseCase.execute({
-            recipient_id: review.emp_id,
-            kind: 'perf_review_completed',
-            title: 'Evaluation Completed',
-            body: `Your official performance review for ${cycle?.cycle_name || 'Evaluation Cycle'} has been finalized. Final Rating: ${finalRating} ★.`,
-            entity_type: 'perf_review',
-            entity_id: reviewId,
-          });
-        } catch {}
-      }
     }
+    return { success: true, review_id: reviewId, status: isDraft ? status : 'SUBMITTED' };
   }
 
-  /**
-   * Reopen Review (Admin only)
-   */
-  async reopenReview(reviewId: number, dto: ReopenReviewDto, user: RequestUser) {
-    if (!this.isAdmin(user)) {
-      throw new ForbiddenException('Only administrators can reopen a locked review');
-    }
-
-    const review = await this.prisma.perf_reviews.findUnique({
+  /** Final Rating only when all three are in (BFD 6). */
+  private async refreshFinal(reviewId: number) {
+    const r = await this.prisma.perf_reviews.findUnique({ where: { review_id: reviewId } });
+    if (!r) return;
+    const allIn = this.allSubmitted(r) && r.self_avg_rating !== null && r.manager_avg_rating !== null && r.admin_avg_rating !== null;
+    const final = allIn ? finalRating(Number(r.self_avg_rating), Number(r.manager_avg_rating), Number(r.admin_avg_rating)) : null;
+    await this.prisma.perf_reviews.update({
       where: { review_id: reviewId },
-      include: { perf_cycles: true },
+      data: { final_rating: final, is_locked: allIn, updated_at: new Date() },
     });
-    if (!review) throw new NotFoundException('Review not found');
+  }
 
-    const updated = await this.prisma.perf_reviews.update({
+  // ===========================================================================
+  // Reopen (Admin, one review for one person) — BFD 5, 15.3
+  // ===========================================================================
+
+  async reopenReview(reviewId: number, dto: ReopenReviewDto, user: any) {
+    const adminId = await this.access.assertAdmin(user);
+    const r = await this.prisma.perf_reviews.findUnique({ where: { review_id: reviewId }, include: { perf_cycles: true } });
+    if (!r) throw perfError('Review not found.', 'review_id', HttpStatus.NOT_FOUND, 'NOT_FOUND');
+    const c = PART_COLS[dto.part];
+    const status = (r as any)[c.status];
+    const closed = cycleStatus(r.perf_cycles.review_start_date, r.perf_cycles.review_end_date) === 'CLOSED';
+    if (status === 'REOPENED') throw perfError('This review is already open again.', 'part');
+    if (status !== 'SUBMITTED' && !closed) {
+      throw perfError('This review is not submitted yet and the review window is still open.', 'part');
+    }
+    await this.prisma.perf_reviews.update({
       where: { review_id: reviewId },
       data: {
+        [c.status]: 'REOPENED',
+        [c.at]: null,
+        final_rating: null,
         is_locked: false,
-        self_status: 'REOPENED',
-        reopened_reason: dto.reason.trim(),
+        reopened_reason: `${PART_NAMES[dto.part]}: ${dto.reason.trim()}`,
         reopened_at: new Date(),
-        reopened_by: this.getEmpId(user),
+        reopened_by: adminId,
         updated_at: new Date(),
       },
     });
-
-    if (this.createNotificationUseCase) {
-      try {
-        const cycleName = review.perf_cycles?.cycle_name || 'Evaluation Cycle';
-        await this.createNotificationUseCase.execute({
-          recipient_id: review.emp_id,
-          kind: 'perf_review_reopened',
-          title: 'Review Reopened',
-          body: `Your performance review for ${cycleName} has been reopened by Administrator. Reason: ${dto.reason.trim()}`,
-          entity_type: 'perf_review',
-          entity_id: reviewId,
-          created_by: this.getEmpId(user),
-        });
-      } catch {}
+    const recipient = dto.part === 'SELF' ? r.emp_id : dto.part === 'MANAGER' ? r.manager_emp_id : r.admin_emp_id;
+    if (recipient) {
+      await this.notify({
+        recipients: [recipient],
+        kind: 'perf_review_reopened',
+        title: 'Review opened again',
+        body: `Admin has opened the ${dto.part === 'SELF' ? 'self review' : 'review'} for ${periodLabel(r.perf_cycles)} again. Reason: ${dto.reason.trim()}`,
+        entityType: 'perf_reviews',
+        entityId: reviewId,
+        createdBy: adminId,
+      });
     }
-
-    return updated;
+    return { success: true };
   }
 
-  // ---------------------------------------------------------------------------
-  // PROJECT RATINGS (Screen 8 - Project Manager)
-  // ---------------------------------------------------------------------------
-  async listProjectRatings(cycleId: number, projectId?: number, user?: RequestUser) {
-    const where: any = { cycle_id: Number(cycleId) };
-    if (projectId) where.project_id = Number(projectId);
+  // ===========================================================================
+  // Screen 8: Project Rating (Project Manager)
+  // ===========================================================================
 
-    // If PM, restrict to projects they manage (unless Admin)
-    if (user && !this.isAdmin(user)) {
-      where.project_manager_id = this.getEmpId(user);
-    }
-
-    return this.prisma.perf_project_ratings.findMany({
-      where,
-      include: {
-        projects: { select: { project_id: true, project_name: true } },
-        employees_perf_project_ratings_emp_idToemployees: {
-          select: { emp_id: true, name: true, email: true },
-        },
-        employees_perf_project_ratings_project_manager_idToemployees: {
-          select: { emp_id: true, name: true },
-        },
-      },
-      orderBy: { submitted_at: 'desc' },
-    });
+  async getMyProjects(user: any) {
+    const empId = requireEmpId(user);
+    return this.prisma.$queryRaw<any[]>`
+      SELECT p.project_id, p.project_no, p.project_name, p.project_manager_id, m.name AS project_manager_name
+      FROM projects p LEFT JOIN employees m ON m.emp_id = p.project_manager_id
+      WHERE p.project_manager_id = ${empId} AND p.deleted_at IS NULL
+      ORDER BY p.project_name;
+    `;
   }
 
-  async submitProjectRating(dto: SubmitProjectRatingDto, user: RequestUser) {
-    const pmId = this.getEmpId(user);
-
-    // Verify project exists and caller is PM or Admin
-    const project = await this.prisma.projects.findUnique({
-      where: { project_id: dto.project_id },
-    });
-
-    if (!project) throw new NotFoundException('Project not found');
-
-    if (project.project_manager_id !== pmId && !this.isAdmin(user)) {
-      throw new ForbiddenException('Only the Project Manager of this project or Admin can submit project ratings');
-    }
-
-    return this.prisma.perf_project_ratings.upsert({
-      where: {
-        cycle_id_project_id_emp_id: {
-          cycle_id: dto.cycle_id,
-          project_id: dto.project_id,
-          emp_id: dto.emp_id,
-        },
-      },
-      create: {
-        cycle_id: dto.cycle_id,
-        project_id: dto.project_id,
-        emp_id: dto.emp_id,
-        project_manager_id: pmId,
-        rating: dto.rating,
-        comment: dto.comment?.trim() || null,
-      },
-      update: {
-        rating: dto.rating,
-        comment: dto.comment?.trim() || null,
-        submitted_at: new Date(),
-        updated_at: new Date(),
-      },
-    });
-  }
-
-  async getMyProjects(user: RequestUser) {
-    const empId = this.getEmpId(user);
-    const isAdmin = this.isAdmin(user);
-
-    return this.prisma.projects.findMany({
-      where: isAdmin ? {} : { project_manager_id: empId },
-      select: {
-        project_id: true,
-        project_no: true,
-        project_name: true,
-        project_manager_id: true,
-        employees_projects_project_manager_idToemployees: {
-          select: { emp_id: true, name: true },
-        },
-      },
-      orderBy: { project_name: 'asc' },
-    });
-  }
-
-  async getProjectMembersForRating(projectId: number, cycleId: number, user: RequestUser) {
-    const empId = this.getEmpId(user);
-    const isAdmin = this.isAdmin(user);
-
-    const project = await this.prisma.projects.findUnique({
-      where: { project_id: projectId },
-      include: {
-        employees_projects_project_manager_idToemployees: {
-          select: { emp_id: true, name: true },
-        },
-      },
-    });
-
-    if (!project) throw new NotFoundException('Project not found');
-    if (!isAdmin && project.project_manager_id !== empId) {
-      throw new ForbiddenException('Only the assigned Project Manager or Admin can rate project members');
-    }
-
-    const members = await this.prisma.project_members.findMany({
-      where: { project_id: projectId },
-      include: {
-        employees_project_members_employee_idToemployees: {
-          select: { emp_id: true, name: true, email: true },
-        },
-      },
-    });
-
-    const existingRatings = await this.prisma.perf_project_ratings.findMany({
-      where: { project_id: projectId, cycle_id: cycleId },
-    });
-
-    const ratingMap = new Map<number, any>();
-    for (const r of existingRatings) {
-      ratingMap.set(r.emp_id, r);
-    }
-
+  async getProjectMembersForRating(projectId: number, cycleId: number, user: any) {
+    const empId = requireEmpId(user);
+    const project = await this.loadOwnProject(projectId, empId);
+    const cycle = await this.prisma.perf_cycles.findUnique({ where: { cycle_id: cycleId } });
+    if (!cycle) throw perfError('Please select the Cycle.', 'cycle_id');
+    const members = await this.projectMembers(projectId, project.project_manager_id);
+    const ratings = await this.prisma.$queryRaw<any[]>`
+      SELECT emp_id, rating, comment, status, submitted_at
+      FROM perf_project_ratings WHERE project_id = ${projectId} AND cycle_id = ${cycleId};
+    `;
+    const byEmp = new Map(ratings.map((r) => [Number(r.emp_id), r]));
+    const submitted = ratings.length > 0 && ratings.every((r) => r.status === 'SUBMITTED') && members.every((m) => byEmp.has(m.emp_id));
+    const status = cycleStatus(cycle.review_start_date, cycle.review_end_date);
     return {
-      project: {
-        project_id: project.project_id,
-        project_name: project.project_name,
-        project_no: project.project_no,
-        project_manager: project.employees_projects_project_manager_idToemployees,
-      },
+      project: { project_id: project.project_id, project_name: project.project_name, project_manager_name: project.project_manager_name },
+      cycle: this.cyclePayload(cycle, todayStr()),
+      submitted,
+      can_edit: status === 'REVIEW_OPEN' && !submitted,
+      message:
+        status === 'UPCOMING'
+          ? `This review opens on ${fmtDate(cycle.review_start_date)}.`
+          : status === 'CLOSED' && !submitted
+            ? `The review window closed on ${fmtDate(cycle.review_end_date)}. Please contact Admin.`
+            : submitted
+              ? 'Ratings submitted.'
+              : null,
       members: members.map((m) => {
-        const er = ratingMap.get(m.employee_id);
+        const r = byEmp.get(m.emp_id);
         return {
-          member_id: m.member_id,
-          emp_id: m.employee_id,
-          name: m.employees_project_members_employee_idToemployees?.name || 'Member',
-          email: m.employees_project_members_employee_idToemployees?.email,
-          role_in_project: m.role_in_project || 'Member',
-          rating: er?.rating || 0,
-          comment: er?.comment || '',
-          submitted_at: er?.submitted_at || null,
+          emp_id: m.emp_id,
+          name: m.name,
+          role_in_project: m.role_in_project,
+          rating: r ? Number(r.rating) : 0,
+          comment: r?.comment || '',
+          status: r?.status || null,
         };
       }),
     };
   }
 
-  async submitBulkProjectRatings(dto: SubmitBulkProjectRatingsDto, user: RequestUser) {
-    const pmId = this.getEmpId(user);
-    const isAdmin = this.isAdmin(user);
-
-    const project = await this.prisma.projects.findUnique({
-      where: { project_id: dto.project_id },
-    });
-
-    if (!project) throw new NotFoundException('Project not found');
-    if (project.project_manager_id !== pmId && !isAdmin) {
-      throw new ForbiddenException('Only the Project Manager of this project or Admin can submit project ratings');
+  async submitBulkProjectRatings(dto: SubmitBulkProjectRatingsDto, user: any) {
+    const empId = requireEmpId(user);
+    const project = await this.loadOwnProject(dto.project_id, empId);
+    const cycle = await this.prisma.perf_cycles.findUnique({ where: { cycle_id: dto.cycle_id } });
+    if (!cycle) throw perfError('Please select the Cycle.', 'cycle_id');
+    this.assertWindowOpen(cycle);
+    const members = await this.projectMembers(dto.project_id, project.project_manager_id);
+    const memberIds = new Set(members.map((m) => m.emp_id));
+    const existing = await this.prisma.$queryRaw<any[]>`
+      SELECT status FROM perf_project_ratings WHERE project_id = ${dto.project_id} AND cycle_id = ${dto.cycle_id} AND status = 'SUBMITTED' LIMIT 1;
+    `;
+    if (existing.length) throw perfError('These ratings are already submitted and cannot be changed.');
+    for (const it of dto.ratings) {
+      if (!memberIds.has(Number(it.emp_id))) throw perfError('You can rate only the members of your own project.', 'ratings');
     }
-
-    const results: any[] = [];
-    for (const item of dto.ratings) {
-      if (item.rating >= 1 && item.rating <= 5) {
-        const upserted = await this.prisma.perf_project_ratings.upsert({
-          where: {
-            cycle_id_project_id_emp_id: {
-              cycle_id: dto.cycle_id,
-              project_id: dto.project_id,
-              emp_id: item.emp_id,
-            },
-          },
-          create: {
-            cycle_id: dto.cycle_id,
-            project_id: dto.project_id,
-            emp_id: item.emp_id,
-            project_manager_id: pmId,
-            rating: item.rating,
-            comment: item.comment?.trim() || null,
-          },
-          update: {
-            rating: item.rating,
-            comment: item.comment?.trim() || null,
-            submitted_at: new Date(),
-            updated_at: new Date(),
-          },
-        });
-        results.push(upserted);
+    const isDraft = Boolean(dto.is_draft);
+    const given = new Map(dto.ratings.filter((i) => i.rating && i.rating >= 1).map((i) => [Number(i.emp_id), i]));
+    if (!isDraft && members.some((m) => !given.has(m.emp_id))) {
+      throw perfError('Please give a star rating for every member before you submit.', 'ratings');
+    }
+    const status = isDraft ? 'DRAFT' : 'SUBMITTED';
+    await this.prisma.$transaction(async (tx) => {
+      for (const it of given.values()) {
+        await tx.$executeRaw`
+          INSERT INTO perf_project_ratings (cycle_id, project_id, emp_id, project_manager_id, rating, comment, status, submitted_at)
+          VALUES (${dto.cycle_id}, ${dto.project_id}, ${Number(it.emp_id)}, ${empId}, ${Number(it.rating)}, ${it.comment?.trim() || null},
+                  ${status}, ${isDraft ? null : new Date()})
+          ON CONFLICT (cycle_id, project_id, emp_id) DO UPDATE
+          SET rating = EXCLUDED.rating, comment = EXCLUDED.comment, status = EXCLUDED.status,
+              submitted_at = EXCLUDED.submitted_at, project_manager_id = EXCLUDED.project_manager_id, updated_at = clock_timestamp();
+        `;
       }
-    }
+      // A cleared star on a draft removes the saved draft rating.
+      const keep = Array.from(given.keys());
+      await tx.$executeRaw`
+        DELETE FROM perf_project_ratings
+        WHERE project_id = ${dto.project_id} AND cycle_id = ${dto.cycle_id} AND status = 'DRAFT'
+          AND NOT (emp_id = ANY(${keep}::int[]));
+      `;
+    });
+    return { success: true, status };
+  }
 
-    if (results.length > 0 && this.createNotificationUseCase) {
-      try {
-        const notifs = results.map((res) => ({
-          recipient_id: res.emp_id,
-          kind: 'perf_project_rated',
-          title: 'Project Performance Rated',
-          body: `You received a project performance rating (${res.rating} ★) for ${project.project_name || 'your project'}.`,
-          entity_type: 'project',
-          entity_id: dto.project_id,
-          created_by: pmId,
-        }));
-        await this.createNotificationUseCase.executeMany(notifs);
-      } catch {}
-    }
+  // ===========================================================================
+  // Helpers
+  // ===========================================================================
 
-    return results;
+  private async loadOwnProject(projectId: number, empId: number) {
+    const [p] = await this.prisma.$queryRaw<any[]>`
+      SELECT p.project_id, p.project_name, p.project_manager_id, m.name AS project_manager_name
+      FROM projects p LEFT JOIN employees m ON m.emp_id = p.project_manager_id
+      WHERE p.project_id = ${projectId} AND p.deleted_at IS NULL;
+    `;
+    if (!p) throw perfError('Please select the Project.', 'project_id', HttpStatus.NOT_FOUND, 'NOT_FOUND');
+    if (Number(p.project_manager_id) !== empId) {
+      throw perfError('Only the Project Manager of this project can rate its members.', 'project_id', HttpStatus.FORBIDDEN, 'FORBIDDEN');
+    }
+    return p;
+  }
+
+  private async projectMembers(projectId: number, pmId: number) {
+    const rows = await this.prisma.$queryRaw<any[]>`
+      SELECT DISTINCT ON (e.emp_id) e.emp_id, e.name, pm.role_in_project
+      FROM project_members pm JOIN employees e ON e.emp_id = pm.employee_id
+      WHERE pm.project_id = ${projectId} AND pm.deleted_at IS NULL
+        AND e.deleted_at IS NULL AND e.status = 'Active' AND e.emp_id <> ${pmId}
+      ORDER BY e.emp_id;
+    `;
+    return rows
+      .map((r) => ({ emp_id: Number(r.emp_id), name: r.name, role_in_project: this.titleCase(r.role_in_project || 'member') }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  /** Submitted project ratings only (drafts are not shown). */
+  private async projectRatingsFor(cycleId: number, empIds: number[]) {
+    const out = new Map<number, Array<{ project_id: number; project_name: string; rating: number }>>();
+    if (!empIds.length) return out;
+    const rows = await this.prisma.$queryRaw<any[]>`
+      SELECT r.emp_id, r.project_id, p.project_name, r.rating
+      FROM perf_project_ratings r JOIN projects p ON p.project_id = r.project_id
+      WHERE r.cycle_id = ${cycleId} AND r.status = 'SUBMITTED' AND r.emp_id = ANY(${empIds}::int[]);
+    `;
+    for (const r of rows) {
+      const list = out.get(Number(r.emp_id)) || [];
+      list.push({ project_id: Number(r.project_id), project_name: r.project_name, rating: Number(r.rating) });
+      out.set(Number(r.emp_id), list);
+    }
+    return out;
+  }
+
+  private async roleFlags(empId: number) {
+    const [row] = await this.prisma.$queryRaw<any[]>`
+      SELECT
+        EXISTS (SELECT 1 FROM employees WHERE reporting_manager = ${empId} AND emp_id <> ${empId}
+                AND status = 'Active' AND deleted_at IS NULL) AS is_manager,
+        EXISTS (SELECT 1 FROM projects WHERE project_manager_id = ${empId} AND deleted_at IS NULL) AS is_pm;
+    `;
+    return { isManager: Boolean(row?.is_manager), isProjectManager: Boolean(row?.is_pm) };
+  }
+
+  /** The cycle asked for, else the open one, else the most recent one that has started its window, else the next. */
+  private async pickCycle(cycleId: number | undefined, today: string) {
+    if (cycleId) {
+      const c = await this.prisma.perf_cycles.findUnique({ where: { cycle_id: Number(cycleId) } });
+      if (!c) throw perfError('Cycle not found.', 'cycle_id', HttpStatus.NOT_FOUND, 'NOT_FOUND');
+      return c;
+    }
+    const all = await this.prisma.perf_cycles.findMany({ orderBy: [{ review_start_date: 'desc' }, { cycle_type: 'desc' }] });
+    return (
+      all.find((c) => cycleStatus(c.review_start_date, c.review_end_date, today) === 'REVIEW_OPEN') ||
+      all.find((c) => cycleStatus(c.review_start_date, c.review_end_date, today) === 'CLOSED') ||
+      all[all.length - 1] ||
+      null
+    );
+  }
+
+  private cyclePayload(c: any, today: string) {
+    const status = cycleStatus(c.review_start_date, c.review_end_date, today);
+    return {
+      cycle_id: c.cycle_id,
+      cycle_name: c.cycle_name,
+      cycle_type: c.cycle_type,
+      period_label: periodLabel(c),
+      start_date: toDateStr(c.start_date),
+      end_date: toDateStr(c.end_date),
+      review_start_date: toDateStr(c.review_start_date),
+      review_end_date: toDateStr(c.review_end_date),
+      window_label: `${fmtDayMonth(c.review_start_date)} – ${fmtDate(c.review_end_date)}`,
+      status,
+      days_left: status === 'REVIEW_OPEN' ? daysLeft(c.review_end_date, today) : null,
+    };
+  }
+
+  private partState(r: any, part: ReviewPart, cycle: any, today: string): { canEdit: boolean; message: string | null } {
+    const status = r[PART_COLS[part].status];
+    if (status === 'SUBMITTED') return { canEdit: false, message: ALREADY_SUBMITTED };
+    if (status === 'REOPENED') return { canEdit: true, message: 'Admin has opened this review again. Please submit it.' };
+    const s = cycleStatus(cycle.review_start_date, cycle.review_end_date, today);
+    if (s === 'UPCOMING') return { canEdit: false, message: `This review opens on ${fmtDate(cycle.review_start_date)}.` };
+    if (s === 'CLOSED') return { canEdit: false, message: `The review window closed on ${fmtDate(cycle.review_end_date)}. Please contact Admin.` };
+    return { canEdit: true, message: null };
+  }
+
+  private assertWindowOpen(cycle: any) {
+    const s = cycleStatus(cycle.review_start_date, cycle.review_end_date);
+    if (s === 'UPCOMING') throw perfError(`This review opens on ${fmtDate(cycle.review_start_date)}.`, 'cycle');
+    if (s === 'CLOSED') throw perfError(`The review window closed on ${fmtDate(cycle.review_end_date)}. Please contact Admin.`, 'cycle');
+  }
+
+  private allSubmitted(r: any) {
+    return r.self_status === 'SUBMITTED' && r.manager_status === 'SUBMITTED' && r.admin_status === 'SUBMITTED';
+  }
+
+  private empCode(empId: number) {
+    return `EMP-${String(empId).padStart(4, '0')}`;
+  }
+
+  private titleCase(s: string) {
+    return s.replace(/[_-]+/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase());
+  }
+
+  private async notify(n: Notice) {
+    if (!this.createNotificationUseCase || !n.recipients.length) return;
+    try {
+      await this.createNotificationUseCase.executeMany(
+        n.recipients.map((id) => ({
+          recipient_id: id,
+          kind: n.kind,
+          title: n.title,
+          body: n.body,
+          entity_type: n.entityType,
+          entity_id: n.entityId,
+          created_by: n.createdBy ?? null,
+        })) as any,
+      );
+    } catch (e: any) {
+      this.logger.warn(`Performance notification failed: ${e?.message}`);
+    }
   }
 }
-

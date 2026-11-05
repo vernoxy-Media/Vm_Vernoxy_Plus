@@ -17,9 +17,18 @@ import type {
   CorrectionRequestPayload,
 } from '../types/attendance.types';
 import { startBreak, savePunchLocation } from '../api/attendance.api';
+import { fetchAttendanceRegister, fetchAttendanceReports } from '../api/attendance.api';
+import type {
+  AttendanceRegisterQuery,
+  AttendanceRegisterResponse,
+  AttendanceReportsQuery,
+  AttendanceReportsResponse,
+} from '../api/attendance.api';
 
 export const ATTENDANCE_QUERY_KEY = 'attendance_dashboard';
 export const ATTENDANCE_DAY_QUERY_KEY = 'attendance_day_detail';
+export const ATTENDANCE_REGISTER_QUERY_KEY = 'attendance_register';
+export const ATTENDANCE_REPORTS_QUERY_KEY = 'attendance_reports';
 
 function mapApiTodayBlock(t: any): TodayAttendanceData {
   if (!t) {
@@ -89,6 +98,8 @@ function mapApiTodayBlock(t: any): TodayAttendanceData {
     active_break_reason: t.current_break_reason || null,
     server_now: t.server_now || new Date().toISOString(),
     timeline,
+    leave_info: t.leave || null,
+    pending_leave_note: t.pending_leave_note || null,
   };
 }
 
@@ -152,20 +163,31 @@ function mapApiDashboardToUiModel(apiData: any): AttendanceDashboardResponse {
       status_label: (d.state || 'not_started').replace('_', ' ').toUpperCase(),
       holiday_name: d.holiday_name || null,
       leave_type: d.leave?.type_name || null,
-      leave_half: d.leave?.half || null,
+      // Leave Management reports FULL_DAY / FIRST_HALF / SECOND_HALF; only a half is drawn as a half
+      leave_half: d.leave?.half === 'FIRST_HALF' || d.leave?.half === 'SECOND_HALF' ? d.leave.half : null,
       breaks: d.breaks || [],
       latitude: (d.punch_location?.in ?? d.punch_location?.out)?.latitude ?? null,
       longitude: (d.punch_location?.in ?? d.punch_location?.out)?.longitude ?? null,
+      leave_part: (d.leave?.part as 'full' | 'half' | undefined) || null,
       can_request_correction: d.date <= today.date,
       is_today: d.date === today.date,
     };
   });
+
+  const shift = data.shift || {
+    shift_name: 'General Shift',
+    start_time: '09:30',
+    end_time: '18:30',
+    late_arrival_grace_minutes: 15,
+    early_exit_grace_minutes: 15,
+  };
 
   return {
     today,
     statistics,
     month_summary: monthSummary,
     records,
+    shift,
   };
 }
 
@@ -191,6 +213,24 @@ export function useAttendanceDashboard(month: string, empId?: number | null) {
     refetchInterval: 60 * 1000,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
+  });
+}
+
+export function useEmployeeAttendanceDashboard(empId?: number, month?: string) {
+  const currentMonth = month || new Date().toISOString().slice(0, 7);
+  return useQuery<AttendanceDashboardResponse>({
+    queryKey: ['employee_attendance_dashboard', empId, currentMonth],
+    queryFn: async () => {
+      if (!empId) throw new Error('Employee ID required');
+      const qs = currentMonth ? `?month=${currentMonth}` : '';
+      const res = await customFetch<any>(`/api/v1/attendance/employees/${empId}/dashboard${qs}`);
+      return mapApiDashboardToUiModel(res);
+    },
+    enabled: Boolean(empId),
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchInterval: 60 * 1000,
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -390,5 +430,33 @@ export function useSubmitCorrection(onSuccessCallback?: () => void) {
       queryClient.invalidateQueries({ queryKey: [ATTENDANCE_DAY_QUERY_KEY] });
       onSuccessCallback?.();
     },
+  });
+}
+
+
+export function useAttendanceRegister(params: AttendanceRegisterQuery) {
+  return useQuery<AttendanceRegisterResponse>({
+    queryKey: [ATTENDANCE_REGISTER_QUERY_KEY, params.date, params.departmentId, params.shiftId, params.status, params.search],
+    queryFn: () => fetchAttendanceRegister(params),
+    staleTime: 30 * 1000,
+    refetchOnWindowFocus: true,
+  });
+}
+
+export function useAttendanceReports(params: AttendanceReportsQuery) {
+  return useQuery<AttendanceReportsResponse>({
+    queryKey: [
+      ATTENDANCE_REPORTS_QUERY_KEY,
+      params.reportType,
+      params.fromDate,
+      params.toDate,
+      params.departmentId,
+      params.employeeId,
+      params.shiftId,
+      params.status,
+    ],
+    queryFn: () => fetchAttendanceReports(params),
+    staleTime: 30 * 1000,
+    refetchOnWindowFocus: true,
   });
 }

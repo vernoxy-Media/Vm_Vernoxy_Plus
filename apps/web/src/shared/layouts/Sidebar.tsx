@@ -38,6 +38,7 @@ import {
   BadgeCheck,
   UserPlus,
   FilePlus,
+  Award,
   type LucideIcon,
 } from 'lucide-react';
 import { useSalesRights } from '@/features/sales/hooks/useSalesRights';
@@ -147,6 +148,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggleC
     entry('Tasks', '/my-tasks', CheckSquare, own(starts('/my-tasks', '/tasks'), taskAdmin), 'my-tasks'),
     entry('Projects', '/projects', FolderKanban, starts('/projects')),
     entry('Leaves', '/leave', CalendarOff, own(starts('/leave'), leaveAdmin), 'leave'),
+    entry('Performance', '/performance', Award, starts('/performance'), 'performance'),
     entry('Calendar', '/calendar', Calendar, starts('/calendar')),
     entry('Messenger', '/messenger', MessageCircle, starts('/messenger'), 'messenger', messengerUnread > 0 ? messengerUnread : undefined),
     entry('Knowledge Base', '/knowledge-base', BookOpen, (p) => p.startsWith('/knowledge-base') && p !== '/knowledge-base/new'),
@@ -198,7 +200,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggleC
           child('Salary & Payroll', '/admin/payroll', starts('/admin/payroll'), 'payroll'),
         ]),
         entry('Complaint Management', '/admin/complaints', AlertCircle, (p, q) => p.startsWith('/admin/complaint') || complaintAdmin(p, q), 'complaint-management'),
-        entry('Settings', '/admin/settings/roles', Settings, (p) => p.startsWith('/admin/settings') && !p.startsWith('/admin/settings/knowledge-base'), 'settings'),
+        entry('Settings', '/admin/settings/employment-types', Settings, (p) => p.startsWith('/admin/settings') && !p.startsWith('/admin/settings/knowledge-base'), 'settings'),
       );
     }
     if (user.access?.can_manage_companies) admin.push(entry('Companies (legacy)', '/companies', Building2, starts('/companies'), 'companies'));

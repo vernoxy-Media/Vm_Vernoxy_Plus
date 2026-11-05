@@ -16,7 +16,6 @@ import {
 } from '../../domain/errors/attendance.errors';
 
 import { AppSettingsRepository } from '../../domain/ports/app-settings.repository.port';
-import { isLeavePlaceholderPunch } from '../../domain/services/leave-placeholder';
 
 export class PunchOutUseCase {
   constructor(
@@ -41,7 +40,8 @@ export class PunchOutUseCase {
       ? await this.appSettingsRepo.getEmployeeWorkingMinutes(empId)
       : { fullDayMinutes: 480, halfDayMinutes: 240, fullDayHours: 8, halfDayHours: 4, graceMinutes: 0 };
 
-    if (!existingDay || !existingDay.checkInAt || isLeavePlaceholderPunch(existingDay)) {
+    // Leave lives in leave_request_days; any row with a check-in is a real check-in.
+    if (!existingDay || !existingDay.checkInAt) {
       throw new NotWorkingError('Cannot punch out before punching in');
     }
 
@@ -81,13 +81,11 @@ export class PunchOutUseCase {
       intervals,
     );
 
-    // On a half-day leave only the other half has to be worked
-    const onHalfLeave = !!existingDay.leaveHalf;
     const dayStatus = determineDayStatus(
       now,
       productionMinutes,
-      onHalfLeave ? empHours.halfDayMinutes : empHours.fullDayMinutes,
-      onHalfLeave ? Math.floor(empHours.halfDayMinutes / 2) : empHours.halfDayMinutes,
+      empHours.fullDayMinutes,
+      empHours.halfDayMinutes,
       empHours.graceMinutes,
     );
 

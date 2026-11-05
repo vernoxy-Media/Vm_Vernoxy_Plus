@@ -15,6 +15,7 @@ import {
   Over,
 } from '@dnd-kit/core';
 import { TaskBoardCardDto, TaskBoardResultDto } from '@vernoxy-pulse/api-client';
+import { useAuth } from '@/features/auth/context/AuthContext';
 import type { TaskStage } from '../types';
 import { TaskColumn } from './TaskColumn';
 import { TaskCard } from './TaskCard';
@@ -54,6 +55,7 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
   onCardClick,
   onMoveStage,
 }) => {
+  const { user } = useAuth();
   const [localBoard, setLocalBoard] = useState<TaskBoardResultDto>(board);
   const [activeTask, setActiveTask] = useState<TaskBoardCardDto | null>(null);
   const [rejectDialogTask, setRejectDialogTask] = useState<number | null>(null);
@@ -165,6 +167,17 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
 
     // Non-admin cannot drop directly to completed
     if (targetStage === 'completed' && !isAdmin) {
+      return;
+    }
+
+    // BFD Section 3.3: Execution transitions belong strictly to assigned employees
+    const isAssignee = task.assignees?.some((a) => a.employee_id === user?.emp_id);
+    const isApproverMove =
+      isAdmin &&
+      ((task.stage === 'requested' && targetStage === 'completed') ||
+        (task.stage === 'requested' && targetStage === 'in_progress'));
+
+    if (!isApproverMove && !isAssignee) {
       return;
     }
 

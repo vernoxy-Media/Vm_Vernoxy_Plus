@@ -144,6 +144,6 @@ import { TaskAdminGuard } from './presentation/guards/task-admin.guard';
       inject: [TASK_TOKENS.EmployeeDirectory],
     },
   ],
-  exports: [TASK_TOKENS.TaskRepository],
+  exports: [TASK_TOKENS.TaskRepository, CreateTaskUseCase],
 })
 export class TasksModule {}

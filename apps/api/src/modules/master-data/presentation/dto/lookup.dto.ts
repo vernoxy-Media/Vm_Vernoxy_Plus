@@ -12,6 +12,13 @@ import { Type, Transform } from 'class-transformer';
 
 export const ALLOWED_LOOKUP_TYPES = [
   'task_type',
+  // Task Module and Project Management BFD dropdowns
+  'task_priority',
+  'task_stage',
+  'task_source',
+  'bug_type',
+  'bug_priority',
+  'bug_status',
   'break_type',
   'project_category',
   'project_status',

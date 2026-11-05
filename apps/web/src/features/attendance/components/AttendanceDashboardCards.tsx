@@ -40,6 +40,15 @@ export interface AttendanceDashboardCardsProps {
   onOpenMyRequests?: () => void;
   /** An administrator looking at somebody else: no clock-in / clock-out, requests are filed for them */
   viewing?: { emp_id: number; name: string; onExit: () => void } | null;
+  shift?: {
+    shift_name?: string;
+    start_time?: string;
+    end_time?: string;
+    late_arrival_grace_minutes?: number;
+    early_exit_grace_minutes?: number;
+    full_day_hours?: number;
+    half_day_hours?: number;
+  };
 }
 
 export const AttendanceDashboardCards: React.FC<AttendanceDashboardCardsProps> = ({
@@ -47,6 +56,7 @@ export const AttendanceDashboardCards: React.FC<AttendanceDashboardCardsProps> =
   statistics,
   monthSummary,
   records,
+  shift,
   isPending,
   onPunchIn,
   onPunchOut,
@@ -96,6 +106,19 @@ export const AttendanceDashboardCards: React.FC<AttendanceDashboardCardsProps> =
     break_seconds: liveBreakSeconds,
   };
 
+  const formatShiftTimeDisplay = (timeStr?: string, fallback = '09:30 AM') => {
+    if (!timeStr) return fallback;
+    const m = timeStr.match(/^(\d{1,2}):(\d{2})/);
+    if (!m) return fallback;
+    const h = parseInt(m[1], 10);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const dispH = h % 12 || 12;
+    return `${String(dispH).padStart(2, '0')}:${m[2]} ${ampm}`;
+  };
+
+  const shiftStartDisplay = formatShiftTimeDisplay(shift?.start_time, '09:30 AM');
+  const shiftEndDisplay = formatShiftTimeDisplay(shift?.end_time, '06:30 PM');
+
   return (
     <div className="space-y-4 sm:space-y-5 w-full">
       {/* Keka-style summary panel: Attendance Stats | Timings | Actions */}
@@ -110,6 +133,7 @@ export const AttendanceDashboardCards: React.FC<AttendanceDashboardCardsProps> =
           records={records}
           monthSummary={monthSummary}
           statistics={statistics}
+          shift={shift}
         />
         </div>
 
@@ -119,8 +143,8 @@ export const AttendanceDashboardCards: React.FC<AttendanceDashboardCardsProps> =
         <AttendanceTimingsCard
           todayWorkedSeconds={liveWorkedSeconds}
           todayTargetSeconds={today.target_seconds || 28800}
-          shiftStart="09:00 AM"
-          shiftEnd="05:30 PM"
+          shiftStart={shiftStartDisplay}
+          shiftEnd={shiftEndDisplay}
           isOnBreak={liveToday.state === 'on_break'}
           clockInAt={today.punched_in_at}
         />
@@ -167,6 +191,7 @@ export const AttendanceDashboardCards: React.FC<AttendanceDashboardCardsProps> =
         monthSummary={monthSummary}
         records={records}
         statistics={statistics}
+        shift={shift}
       />
 
       {/* Office holidays set by the administrator */}
@@ -177,6 +202,7 @@ export const AttendanceDashboardCards: React.FC<AttendanceDashboardCardsProps> =
       <h3 className="pt-1 text-[15px] font-medium text-slate-800">Logs</h3>
       <RecentAttendanceRecordsCard
         records={records}
+        shift={shift}
         selectedDate={selectedDate}
         onRequestCorrection={onRequestCorrection}
         onSelectDate={onSelectDate}

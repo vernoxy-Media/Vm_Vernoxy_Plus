@@ -1,4 +1,5 @@
 import React from 'react';
+import { clockToMinutes } from '../utils/attendance-metrics';
 
 export interface AttendanceTimingsCardProps {
   todayWorkedSeconds: number;
@@ -34,6 +35,8 @@ export const AttendanceTimingsCard: React.FC<AttendanceTimingsCardProps> = ({
   const T0 = 360;
   const SPAN = 960;
   const at = (m: number) => Math.min(100, Math.max(0, ((m - T0) / SPAN) * 100));
+  const shiftFrom = clockToMinutes(shiftStart) ?? 570;
+  const shiftTo = clockToMinutes(shiftEnd) ?? 1110;
   const nowD = new Date();
   const nowMin = nowD.getHours() * 60 + nowD.getMinutes();
   const inD = clockInAt ? new Date(clockInAt) : null;
@@ -78,7 +81,7 @@ export const AttendanceTimingsCard: React.FC<AttendanceTimingsCardProps> = ({
         <div className="relative h-3.5 rounded-full bg-slate-100">
           <span
             className="absolute inset-y-0 rounded-full bg-sky-100"
-            style={{ left: `${at(540)}%`, width: `${at(1050) - at(540)}%` }}
+            style={{ left: `${at(shiftFrom)}%`, width: `${at(shiftTo) - at(shiftFrom)}%` }}
             title="Shift hours"
           />
           {inMin !== null && nowMin > inMin && (

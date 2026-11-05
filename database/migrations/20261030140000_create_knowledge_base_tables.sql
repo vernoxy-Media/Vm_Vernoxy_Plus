@@ -1,3 +1,4 @@
+-- migrate:up
 -- Migration: 20261030140000_create_knowledge_base_tables.sql
 -- Description: Creates normalized Knowledge Base tables and seeds standard categories from BFD v1.1
 
@@ -174,3 +175,11 @@ VALUES
   ('CLIENT', 'User Manuals', 'The full manual of a delivered product, often as a PDF', 'BookMarked', 12, FALSE, 'CUSTOM', 4)
 ON CONFLICT (space, LOWER(name)) DO NOTHING;
 
+
+-- migrate:down
+DELETE FROM entity_counters WHERE entity_type LIKE 'KB%';
+DROP TABLE IF EXISTS kb_feedback CASCADE;
+DROP TABLE IF EXISTS kb_acknowledgements CASCADE;
+DROP TABLE IF EXISTS kb_article_versions CASCADE;
+DROP TABLE IF EXISTS kb_articles CASCADE;
+DROP TABLE IF EXISTS kb_categories CASCADE;

@@ -2,6 +2,12 @@ import React from 'react';
 import { Info, AlertCircle } from 'lucide-react';
 import type { TodayAttendanceData } from '../types/attendance.types';
 
+const LEAVE_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+function formatLeaveDate(s: string): string {
+  const [y, m, d] = s.slice(0, 10).split('-').map(Number);
+  return `${String(d).padStart(2, '0')} ${LEAVE_MONTHS[m - 1]} ${y}`;
+}
+
 export interface TimesheetStatusBannersProps {
   today: TodayAttendanceData;
   errorMessage?: string | null;
@@ -52,7 +58,44 @@ export const TimesheetStatusBanners: React.FC<TimesheetStatusBannersProps> = ({
         </div>
       )}
 
-      {today.special_status && (
+      {today.leave_info && (
+        <div className="mt-3 p-3 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-900 flex items-start gap-2">
+          <Info className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold">
+              {today.leave_info.part === 'full'
+                ? 'On Leave'
+                : today.leave_info.half === 'FIRST_HALF'
+                ? 'On Leave: First Half'
+                : 'On Leave: Second Half'}
+            </p>
+            <p className="mt-0.5">
+              You are on approved leave today: <strong>{today.leave_info.type_name}</strong>
+              {today.leave_info.from_date && today.leave_info.to_date
+                ? `, ${formatLeaveDate(today.leave_info.from_date)}${
+                    today.leave_info.to_date !== today.leave_info.from_date ? ` – ${formatLeaveDate(today.leave_info.to_date)}` : ''
+                  }`
+                : ''}
+              {today.leave_info.request_no ? ` (${today.leave_info.request_no})` : ''}
+              {today.leave_info.approved_by ? `, approved by ${today.leave_info.approved_by}` : ''}.
+            </p>
+            <p className="text-blue-700 mt-0.5">
+              {today.leave_info.part === 'full'
+                ? 'Check-in is not available on a full day of approved leave. If you need to work today, ask the Admin to cancel the leave first.'
+                : today.leave_info.check_in_message}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {today.pending_leave_note && (
+        <div className="mt-3 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-start gap-2">
+          <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+          <span>{today.pending_leave_note}</span>
+        </div>
+      )}
+
+      {today.special_status && !(isFullDayLeave && today.leave_info) && (
         <div className="mt-3 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-start gap-2">
           <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
           <div>

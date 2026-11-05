@@ -206,3 +206,41 @@ export class CreateCustomDocumentDto {
   @IsBoolean()
   is_required_for_activation?: boolean;
 }
+
+
+export class SendDocumentRequestDto {
+  @ApiPropertyOptional({ type: String, example: 'candidate@example.com' })
+  @IsOptional()
+  @IsString()
+  email?: string;
+
+  @ApiPropertyOptional({ type: String, example: 'Please upload these as soon as possible before your joining date.' })
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
+export class SendDocumentRequestResponseDto {
+  @ApiProperty()
+  success!: boolean;
+
+  @ApiProperty()
+  message!: string;
+
+  @ApiProperty()
+  sent_to!: string;
+
+  @ApiProperty()
+  candidate_name!: string;
+
+  @ApiProperty()
+  pending_count!: number;
+
+  @ApiProperty()
+  pending_documents!: Array<{
+    title: string;
+    category?: string;
+    isRequired?: boolean;
+    reason: 'ticked_pending' | 'required_unticked';
+  }>;
+}

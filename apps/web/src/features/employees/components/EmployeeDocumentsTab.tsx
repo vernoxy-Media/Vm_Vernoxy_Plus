@@ -11,6 +11,9 @@ import {
   ExternalLink,
   Trash2,
   X,
+  Mail,
+  Send,
+  ChevronDown,
 } from 'lucide-react';
 import { getAccessToken } from '@vernoxy-pulse/api-client';
 import {
@@ -20,6 +23,7 @@ import {
   useDeclineEmployeeDocumentMutation,
   useAddCustomDocumentMutation,
   useDeleteCustomDocumentMutation,
+  useSendDocumentRequestMutation,
   EmployeeDocumentItem,
 } from '../hooks/use-employee-documents';
 import { GenerateDocumentModal } from './GenerateDocumentModal';
@@ -61,6 +65,13 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({
   const declineMutation = useDeclineEmployeeDocumentMutation();
   const addCustomDocMutation = useAddCustomDocumentMutation();
   const deleteCustomDocMutation = useDeleteCustomDocumentMutation();
+  const sendDocRequestMutation = useSendDocumentRequestMutation();
+
+  const [isSendRequestModalOpen, setIsSendRequestModalOpen] = useState(false);
+  const [requestEmail, setRequestEmail] = useState('');
+  const [requestNotes, setRequestNotes] = useState('');
+  const [requestStatus, setRequestStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [requestFeedbackMsg, setRequestFeedbackMsg] = useState('');
 
   const [isAddDocModalOpen, setIsAddDocModalOpen] = useState(false);
   const [newDocTitle, setNewDocTitle] = useState('');
@@ -82,26 +93,73 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({
   const [selectedDocForUpload, setSelectedDocForUpload] = useState<string | null>(null);
   const [untickDocConfirm, setUntickDocConfirm] = useState<EmployeeDocumentItem | null>(null);
   const [viewingDoc, setViewingDoc] = useState<EmployeeDocumentItem | null>(null);
+  const [viewVariant, setViewVariant] = useState<'issued' | 'signed'>('issued');
+  const [issuedHtml, setIssuedHtml] = useState<string | null>(null);
+  const [isLoadingIssued, setIsLoadingIssued] = useState(false);
+  const [openViewMenuDocType, setOpenViewMenuDocType] = useState<string | null>(null);
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [isLoadingFile, setIsLoadingFile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
-    if (!viewingDoc || !viewingDoc.file_url) {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest('.view-menu-container')) {
+        setOpenViewMenuDocType(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (!viewingDoc) {
       setBlobUrl(null);
-      return;
-    }
-    // If it's an HTML draft letter, no need to fetch file
-    if (viewingDoc.draft_content && viewingDoc.draft_content.trim().startsWith('<')) {
-      setBlobUrl(null);
+      setIssuedHtml(null);
       return;
     }
 
-    setIsLoadingFile(true);
     const token = getAccessToken();
     let isCancelled = false;
 
-    fetch(`${viewingDoc.file_url}?inline=true`, {
+    if (viewVariant === 'issued') {
+      setBlobUrl(null);
+      if (viewingDoc.draft_content && viewingDoc.draft_content.trim().startsWith('<')) {
+        setIssuedHtml(viewingDoc.draft_content);
+      } else {
+        setIsLoadingIssued(true);
+        fetch(`/api/v1/employees/${employee.emp_id}/documents/${viewingDoc.document_type}/issued`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        })
+          .then((res) => {
+            if (!res.ok) throw new Error('Failed to load issued document');
+            return res.json();
+          })
+          .then((data) => {
+            if (!isCancelled) {
+              setIssuedHtml(data.html || '<p>No content available.</p>');
+            }
+          })
+          .catch((err) => {
+            console.error('Error fetching issued document:', err);
+            if (!isCancelled) {
+              setIssuedHtml('<p className="text-rose-500">Failed to load issued document content.</p>');
+            }
+          })
+          .finally(() => {
+            if (!isCancelled) setIsLoadingIssued(false);
+          });
+      }
+      return;
+    }
+
+    // viewVariant === 'signed'
+    setIssuedHtml(null);
+    const fileUrl =
+      viewingDoc.file_url ||
+      `/api/v1/employees/${employee.emp_id}/documents/${viewingDoc.document_type}/download?type=signed&inline=true`;
+    setIsLoadingFile(true);
+
+    fetch(fileUrl.includes('inline=true') ? fileUrl : `${fileUrl}?inline=true`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
       .then((res) => {
@@ -127,7 +185,45 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({
         URL.revokeObjectURL(blobUrl);
       }
     };
-  }, [viewingDoc]);
+  }, [viewingDoc, viewVariant, employee.emp_id]);
+
+  const handleDownloadDoc = async (doc: EmployeeDocumentItem) => {
+    try {
+      const token = getAccessToken();
+      const fileUrl = `/api/v1/employees/${employee.emp_id}/documents/${doc.document_type}/download?type=signed`;
+      const res = await fetch(fileUrl, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error('Failed to download document');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = doc.file_name || `${doc.document_type}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Download failed:', err);
+      window.open(`/api/v1/employees/${employee.emp_id}/documents/${doc.document_type}/download`, '_blank');
+    }
+  };
+
+  const handleOpenDocViewer = (doc: EmployeeDocumentItem, variant?: 'issued' | 'signed') => {
+    const isDualDoc = doc.document_type === 'offer_letter' || doc.document_type === 'nda_signed';
+    const chosenVariant =
+      variant ||
+      (isDualDoc
+        ? doc.status === 'accepted' || doc.status === 'signed' || doc.status === 'uploaded' || Boolean(doc.file_url)
+          ? 'signed'
+          : 'issued'
+        : doc.draft_content
+          ? 'issued'
+          : 'signed');
+    setViewVariant(chosenVariant);
+    setViewingDoc(doc);
+  };
 
   if (isLoading) {
     return (
@@ -163,6 +259,54 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({
       d.document_type !== 'joining_letter_old' &&
       (d.category === 'taken_from_employee' || d.category === 'other' || d.document_type.startsWith('custom_'))
   );
+
+  // BFD Marker 1: Progress counts only ticked rows: how many already have a file
+  const takenTickedCount = takenDocs.filter((d) => d.is_ticked).length;
+  const takenUploadedCount = takenDocs.filter((d) => d.is_ticked && (Boolean(d.file_url) || d.status === 'uploaded')).length;
+  const takenPercentage = takenTickedCount > 0 ? Math.round((takenUploadedCount / takenTickedCount) * 100) : 0;
+
+  // Pending documents list for candidate email request (BFD Reference Screen 8 Marker 3)
+  const pendingForRequest: EmployeeDocumentItem[] = [
+    ...agreementDocs,
+    ...takenDocs,
+  ].filter((doc) => {
+    const hasFile = Boolean(doc.file_url) || doc.status === 'uploaded' || doc.status === 'accepted' || doc.status === 'signed';
+    if (doc.is_ticked && !hasFile) return true;
+    if (doc.is_required_for_activation && !doc.is_ticked && !hasFile) return true;
+    return false;
+  });
+
+  const handleOpenSendRequestModal = () => {
+    const defaultEmail = (employee as any).personal_email || (employee as any).email || (employee as any).office_email || '';
+    setRequestEmail(defaultEmail);
+    setRequestNotes('');
+    setRequestStatus('idle');
+    setRequestFeedbackMsg('');
+    setIsSendRequestModalOpen(true);
+  };
+
+  const handleSendDocumentRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!requestEmail.trim()) {
+      setRequestStatus('error');
+      setRequestFeedbackMsg('Please enter a recipient email address.');
+      return;
+    }
+
+    try {
+      const res = await sendDocRequestMutation.mutateAsync({
+        empId: employee.emp_id,
+        email: requestEmail.trim(),
+        notes: requestNotes.trim() || undefined,
+      });
+
+      setRequestStatus('success');
+      setRequestFeedbackMsg(res.message || `Request email successfully sent to ${requestEmail}.`);
+    } catch (err: any) {
+      setRequestStatus('error');
+      setRequestFeedbackMsg(err.detail || err.message || 'Failed to send document request email.');
+    }
+  };
 
   const handleAddCustomDoc = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -360,16 +504,81 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({
     );
   };
 
+  const renderViewAction = (doc: EmployeeDocumentItem) => {
+    const isDualDoc = doc.document_type === 'offer_letter' || doc.document_type === 'nda_signed';
+    const hasSignedFile = Boolean(doc.file_url) || doc.status === 'accepted' || doc.status === 'signed' || doc.status === 'uploaded';
+
+    if (isDualDoc && hasSignedFile) {
+      const isMenuOpen = openViewMenuDocType === doc.document_type;
+      const docLabel = doc.document_type === 'offer_letter' ? 'Offer Letter' : 'NDA';
+      return (
+        <div className="relative inline-block text-left view-menu-container">
+          <button
+            type="button"
+            onClick={() => setOpenViewMenuDocType(isMenuOpen ? null : doc.document_type)}
+            className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 hover:underline px-1.5 py-1 rounded cursor-pointer font-semibold"
+          >
+            <span>View</span>
+            <ChevronDown className="w-3 h-3 text-blue-600" />
+          </button>
+          {isMenuOpen && (
+            <div className="absolute right-0 top-full mt-1 w-56 bg-white rounded-2xl shadow-xl border border-slate-200 py-1.5 z-50 animate-in fade-in">
+              <div className="px-3 py-1 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-left">
+                Select View
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setOpenViewMenuDocType(null);
+                  handleOpenDocViewer(doc, 'issued');
+                }}
+                className="w-full text-left px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 flex items-center gap-2 cursor-pointer transition"
+              >
+                <FileText className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                <span>View Issued {docLabel}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setOpenViewMenuDocType(null);
+                  handleOpenDocViewer(doc, 'signed');
+                }}
+                className="w-full text-left px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 flex items-center gap-2 cursor-pointer transition border-t border-slate-50"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span>View Signed Copy</span>
+              </button>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <button
+        type="button"
+        onClick={() => handleOpenDocViewer(doc)}
+        className="text-blue-600 hover:text-blue-800 hover:underline px-1.5 py-1 rounded cursor-pointer font-semibold"
+      >
+        View
+      </button>
+    );
+  };
+
   const renderDocRow = (doc: EmployeeDocumentItem) => {
     const isLocked = doc.status === 'locked';
     const s = (doc.status || '').toLowerCase();
     const isLetter = doc.category === 'given_to_employee' || doc.document_type === 'nda_signed';
     const isUploaded = s === 'uploaded' || s === 'final' || s === 'accepted' || s === 'signed';
+    const hasFile = Boolean(doc.file_name) || Boolean(doc.file_url) || isUploaded;
     const isDraft = s === 'draft';
-    const isIssued = s === 'issued';
     const isDeclined = s === 'declined';
     const isOfferAccepted = Boolean(
-      docs.some((d) => d.document_type === 'offer_letter' && d.status === 'accepted')
+      docs.some(
+        (d) =>
+          d.document_type === 'offer_letter' &&
+          (d.status === 'accepted' || d.status === 'uploaded' || d.status === 'signed' || Boolean(d.file_url) || Boolean(d.file_name))
+      )
     );
 
     return (
@@ -399,10 +608,10 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({
                   {doc.document_type === 'offer_letter'
                     ? 'Template: Offer Letter - Standard'
                     : doc.document_type === 'joining_letter'
-                    ? 'Template: Joining Letter v1'
-                    : doc.document_type === 'nda_signed'
-                    ? 'Template: NDA - Employee'
-                    : 'Official Template'}
+                      ? 'Template: Joining Letter v1'
+                      : doc.document_type === 'nda_signed'
+                        ? 'Template: NDA - Employee'
+                        : 'Official Template'}
                 </span>
               )}
             </div>
@@ -416,7 +625,7 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({
         <td className="py-3.5 px-4 text-xs">
           {doc.file_name ? (
             <span
-              onClick={() => setViewingDoc(doc)}
+              onClick={() => handleOpenDocViewer(doc)}
               className="font-mono text-slate-700 bg-slate-100 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded-lg border border-slate-200 inline-block max-w-[220px] truncate cursor-pointer transition"
               title={doc.file_name}
             >
@@ -443,10 +652,48 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({
 
         <td className="py-3.5 px-4 text-right whitespace-nowrap">
           <div className="flex items-center justify-end gap-2 text-xs font-semibold">
-            {/* OFFER LETTER SPECIAL ACTIONS (BFD Page 18 & Screen 9) */}
+            {/* 1. OFFER LETTER: Provide View, Download, Replace AND prominent Upload Signed Offer Letter */}
             {doc.document_type === 'offer_letter' && (
               <>
-                {isDraft && (
+                {hasFile && (
+                  <>
+                    {renderViewAction(doc)}
+                    <span className="text-slate-300">•</span>
+                    <button
+                      type="button"
+                      onClick={() => handleDownloadDoc(doc)}
+                      className="text-slate-600 hover:text-slate-800 px-1.5 py-1 rounded hover:bg-slate-100 cursor-pointer font-semibold"
+                    >
+                      Download
+                    </button>
+                    <span className="text-slate-300">•</span>
+                    <button
+                      type="button"
+                      onClick={() => handleTriggerUpload('offer_letter')}
+                      className="text-slate-600 hover:text-slate-800 px-1.5 py-1 rounded hover:bg-slate-100 cursor-pointer font-semibold"
+                    >
+                      {s === 'accepted' || s === 'signed' ? 'Replace Signed Copy' : 'Replace'}
+                    </button>
+                  </>
+                )}
+
+                {/* If signed copy is not uploaded yet, show dedicated Upload Signed Offer Letter button */}
+                {s !== 'accepted' && s !== 'signed' && (
+                  <>
+                    {hasFile && <span className="text-slate-300">•</span>}
+                    <button
+                      type="button"
+                      onClick={() => handleTriggerUpload('offer_letter')}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition shadow-2xs cursor-pointer"
+                      title="Upload candidate signed copy of offer letter"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Upload Signed Offer Letter</span>
+                    </button>
+                  </>
+                )}
+
+                {!hasFile && isDraft && (
                   <>
                     <button
                       type="button"
@@ -458,102 +705,35 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({
                           initialDraftContent: doc.draft_content || undefined,
                         })
                       }
-                      className="text-blue-600 hover:text-blue-800 hover:underline px-1.5 py-1 rounded cursor-pointer"
+                      className="text-blue-600 hover:text-blue-800 hover:underline px-1.5 py-1 rounded cursor-pointer font-semibold"
                     >
                       Review
                     </button>
-                    <span className="text-slate-300">•</span>
-                    <button
-                      type="button"
-                      onClick={() => handleTriggerUpload(doc.document_type)}
-                      className="text-slate-600 hover:text-slate-800 px-1.5 py-1 rounded hover:bg-slate-100 cursor-pointer"
-                    >
-                      Upload final
-                    </button>
                   </>
                 )}
 
-                {isIssued && (
+                {!hasFile && !isDraft && (
                   <>
                     <button
                       type="button"
-                      onClick={() => setViewingDoc(doc)}
-                      className="text-blue-600 hover:text-blue-800 hover:underline px-1.5 py-1 rounded cursor-pointer"
+                      onClick={() =>
+                        setGenerateModalState({
+                          isOpen: true,
+                          docType: 'offer_letter',
+                          startAtStep: 2,
+                        })
+                      }
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 shadow-2xs transition cursor-pointer"
                     >
-                      View
-                    </button>
-                    <span className="text-slate-300">•</span>
-                    <button
-                      type="button"
-                      onClick={() => handleTriggerUpload('offer_letter')}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition shadow-2xs cursor-pointer"
-                      title="Upload candidate signed copy"
-                    >
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>Upload Accepted Offer Letter</span>
-                    </button>
-                    <span className="text-slate-300">•</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setDeclineConfirmDoc(doc);
-                        setDeclineReason('');
-                      }}
-                      className="text-rose-600 hover:text-rose-800 px-1.5 py-1 rounded hover:bg-rose-50 cursor-pointer"
-                    >
-                      Mark declined
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Generate</span>
                     </button>
                   </>
-                )}
-
-                {s === 'accepted' && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => setViewingDoc(doc)}
-                      className="text-blue-600 hover:text-blue-800 hover:underline px-1.5 py-1 rounded cursor-pointer"
-                    >
-                      View
-                    </button>
-                    <span className="text-slate-300">•</span>
-                    <a
-                      href={`/api/v1/employees/${employee.emp_id}/documents/${doc.document_type}/download`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-slate-600 hover:text-slate-800 px-1.5 py-1 rounded hover:bg-slate-100 cursor-pointer"
-                    >
-                      Download
-                    </a>
-                    <span className="text-slate-300">•</span>
-                    <button
-                      type="button"
-                      onClick={() => handleTriggerUpload(doc.document_type)}
-                      className="text-slate-600 hover:text-slate-800 px-1.5 py-1 rounded hover:bg-slate-100 cursor-pointer"
-                    >
-                      Replace
-                    </button>
-                  </>
-                )}
-
-                {!isUploaded && !isDraft && !isIssued && !isDeclined && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setGenerateModalState({
-                        isOpen: true,
-                        docType: 'offer_letter',
-                        startAtStep: 2,
-                      })
-                    }
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 shadow-2xs transition cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Generate</span>
-                  </button>
                 )}
 
                 {isDeclined && (
                   <>
+                    <span className="text-slate-300">•</span>
                     <span className="text-2xs font-semibold text-rose-600 italic">Declined</span>
                     <span className="text-slate-300">•</span>
                     <button
@@ -574,83 +754,42 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({
               </>
             )}
 
-            {/* JOINING LETTER SPECIAL ACTIONS (BFD Page 18: Only after Offer Letter is Accepted) */}
-            {doc.document_type === 'joining_letter' && (
+            {/* 2. NDA SIGNED: Provide View, Download, Replace AND prominent Upload Signed NDA */}
+            {doc.document_type === 'nda_signed' && (
               <>
-                {!isOfferAccepted ? (
-                  <div
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-400 border border-slate-200 text-xs font-semibold cursor-not-allowed select-none"
-                    title="Joining Letter can only be generated after the Offer Letter is Accepted"
-                  >
-                    <Lock className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Requires Accepted Offer</span>
-                  </div>
-                ) : (
+                {hasFile && (
                   <>
-                    {isDraft && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setGenerateModalState({
-                              isOpen: true,
-                              docType: 'joining_letter',
-                              startAtStep: 3,
-                              initialDraftContent: doc.draft_content || undefined,
-                            })
-                          }
-                          className="text-blue-600 hover:text-blue-800 hover:underline px-1.5 py-1 rounded cursor-pointer"
-                        >
-                          Review
-                        </button>
-                        <span className="text-slate-300">•</span>
-                        <button
-                          type="button"
-                          onClick={() => handleTriggerUpload(doc.document_type)}
-                          className="text-slate-600 hover:text-slate-800 px-1.5 py-1 rounded hover:bg-slate-100 cursor-pointer"
-                        >
-                          Upload final
-                        </button>
-                      </>
-                    )}
+                    {renderViewAction(doc)}
+                    <span className="text-slate-300">•</span>
+                    <button
+                      type="button"
+                      onClick={() => handleDownloadDoc(doc)}
+                      className="text-slate-600 hover:text-slate-800 px-1.5 py-1 rounded hover:bg-slate-100 cursor-pointer font-semibold"
+                    >
+                      Download
+                    </button>
+                    <span className="text-slate-300">•</span>
+                    <button
+                      type="button"
+                      onClick={() => handleTriggerUpload('nda_signed')}
+                      className="text-slate-600 hover:text-slate-800 px-1.5 py-1 rounded hover:bg-slate-100 cursor-pointer font-semibold"
+                    >
+                      {s === 'signed' || s === 'accepted' ? 'Replace Signed NDA' : 'Replace'}
+                    </button>
+                  </>
+                )}
 
-                    {(isUploaded || isIssued || Boolean(doc.file_url)) && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => setViewingDoc(doc)}
-                          className="text-blue-600 hover:text-blue-800 hover:underline px-1.5 py-1 rounded cursor-pointer"
-                        >
-                          View
-                        </button>
-                        <span className="text-slate-300">•</span>
-                        <a
-                          href={`/api/v1/employees/${employee.emp_id}/documents/${doc.document_type}/download`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-slate-600 hover:text-slate-800 px-1.5 py-1 rounded hover:bg-slate-100 cursor-pointer"
-                        >
-                          Download
-                        </a>
-                        <span className="text-slate-300">•</span>
-                        <button
-                          type="button"
-                          onClick={() => handleTriggerUpload(doc.document_type)}
-                          className="text-slate-600 hover:text-slate-800 px-1.5 py-1 rounded hover:bg-slate-100 cursor-pointer"
-                        >
-                          Replace
-                        </button>
-                      </>
-                    )}
-
-                    {!isUploaded && !isIssued && !Boolean(doc.file_url) && !isDraft && (
+                {/* If signed NDA is not yet uploaded, show dedicated Upload Signed NDA button */}
+                {s !== 'signed' && s !== 'accepted' && (
+                  <>
+                    {!hasFile && (
                       <button
                         type="button"
                         onClick={() =>
                           setGenerateModalState({
                             isOpen: true,
-                            docType: 'joining_letter',
-                            startAtStep: 2,
+                            docType: 'nda_signed',
+                            startAtStep: 1,
                           })
                         }
                         className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 shadow-2xs transition cursor-pointer"
@@ -659,19 +798,65 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({
                         <span>Generate</span>
                       </button>
                     )}
+                    {!hasFile && <span className="text-slate-300">•</span>}
+                    {hasFile && <span className="text-slate-300">•</span>}
+                    <button
+                      type="button"
+                      onClick={() => handleTriggerUpload('nda_signed')}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition shadow-2xs cursor-pointer"
+                      title="Upload signed copy of NDA"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Upload Signed NDA</span>
+                    </button>
                   </>
                 )}
               </>
             )}
 
-            {/* ALL OTHER DOCUMENTS (NDA, Marksheets, etc.) */}
-            {doc.document_type !== 'offer_letter' && doc.document_type !== 'joining_letter' && (
+            {/* 3. JOINING LETTER */}
+            {doc.document_type === 'joining_letter' && (
               <>
-                {isDraft && (
+                {hasFile ? (
+                  <>
+                    {renderViewAction(doc)}
+                    <span className="text-slate-300">•</span>
+                    <button
+                      type="button"
+                      onClick={() => handleDownloadDoc(doc)}
+                      className="text-slate-600 hover:text-slate-800 px-1.5 py-1 rounded hover:bg-slate-100 cursor-pointer font-semibold"
+                    >
+                      Download
+                    </button>
+                    <span className="text-slate-300">•</span>
+                    <button
+                      type="button"
+                      onClick={() => handleTriggerUpload(doc.document_type)}
+                      className="text-slate-600 hover:text-slate-800 px-1.5 py-1 rounded hover:bg-slate-100 cursor-pointer font-semibold"
+                    >
+                      Replace
+                    </button>
+                  </>
+                ) : !isOfferAccepted ? (
+                  <div
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-400 border border-slate-200 text-xs font-semibold cursor-not-allowed select-none"
+                    title="Joining Letter can only be generated after the Offer Letter is Accepted"
+                  >
+                    <Lock className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Requires Accepted Offer</span>
+                  </div>
+                ) : isDraft ? (
                   <>
                     <button
                       type="button"
-                      onClick={() => setViewingDoc(doc)}
+                      onClick={() =>
+                        setGenerateModalState({
+                          isOpen: true,
+                          docType: 'joining_letter',
+                          startAtStep: 3,
+                          initialDraftContent: doc.draft_content || undefined,
+                        })
+                      }
                       className="text-blue-600 hover:text-blue-800 hover:underline px-1.5 py-1 rounded cursor-pointer"
                     >
                       Review
@@ -685,106 +870,102 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({
                       Upload final
                     </button>
                   </>
-                )}
-
-                {/* NDA Issued: Show View + Download + Upload Signed NDA */}
-                {isIssued && doc.document_type === 'nda_signed' && (
-                  <>
+                ) : (
+                  <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => setViewingDoc(doc)}
-                      className="text-blue-600 hover:text-blue-800 hover:underline px-1.5 py-1 rounded cursor-pointer"
+                      onClick={() =>
+                        setGenerateModalState({
+                          isOpen: true,
+                          docType: 'joining_letter',
+                          startAtStep: 2,
+                        })
+                      }
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 shadow-2xs transition cursor-pointer"
                     >
-                      View
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Generate</span>
                     </button>
-                    <span className="text-slate-300">•</span>
-                    <a
-                      href={`/api/v1/employees/${employee.emp_id}/documents/${doc.document_type}/download`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-slate-600 hover:text-slate-800 px-1.5 py-1 rounded hover:bg-slate-100 cursor-pointer"
-                    >
-                      Download
-                    </a>
                     <span className="text-slate-300">•</span>
                     <button
                       type="button"
                       onClick={() => handleTriggerUpload(doc.document_type)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition shadow-2xs cursor-pointer"
-                      title="Upload employee signed NDA copy"
+                      className="text-slate-600 hover:text-slate-800 px-1.5 py-1 rounded hover:bg-slate-100 cursor-pointer font-semibold"
                     >
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>Upload Signed NDA</span>
+                      Upload
                     </button>
-                  </>
-                )}
-
-                {/* For other uploaded documents, or NDA after being accepted/uploaded */}
-                {!(isIssued && doc.document_type === 'nda_signed') && (isUploaded || Boolean(doc.file_url)) && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => setViewingDoc(doc)}
-                      className="text-blue-600 hover:text-blue-800 hover:underline px-1.5 py-1 rounded cursor-pointer"
-                    >
-                      View
-                    </button>
-                    <span className="text-slate-300">•</span>
-                    <a
-                      href={`/api/v1/employees/${employee.emp_id}/documents/${doc.document_type}/download`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-slate-600 hover:text-slate-800 px-1.5 py-1 rounded hover:bg-slate-100 cursor-pointer"
-                    >
-                      Download
-                    </a>
-                    <span className="text-slate-300">•</span>
-                    <button
-                      type="button"
-                      onClick={() => handleTriggerUpload(doc.document_type)}
-                      className="text-slate-600 hover:text-slate-800 px-1.5 py-1 rounded hover:bg-slate-100 cursor-pointer"
-                    >
-                      Replace
-                    </button>
-                  </>
-                )}
-
-                {!isUploaded && !isDraft && !isIssued && isLetter && !isLocked && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setGenerateModalState({
-                        isOpen: true,
-                        docType: doc.document_type,
-                        startAtStep: 1,
-                      })
-                    }
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 shadow-2xs transition cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Generate</span>
-                  </button>
-                )}
-
-                {!isUploaded && !isDraft && !isLetter && !isLocked && (
-                  <button
-                    type="button"
-                    onClick={() => handleTriggerUpload(doc.document_type)}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition cursor-pointer"
-                  >
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>Upload</span>
-                  </button>
-                )}
-
-                {isLocked && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-500 text-xs font-semibold border border-slate-200">
-                    <Lock className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Locked (Post-deactivation)</span>
-                  </span>
+                  </div>
                 )}
               </>
             )}
+
+            {/* 4. ALL OTHER DOCUMENTS (Marksheets, ID proof, custom documents, post-deactivation letters) */}
+            {doc.document_type !== 'offer_letter' &&
+              doc.document_type !== 'joining_letter' &&
+              doc.document_type !== 'nda_signed' && (
+                <>
+                  {hasFile ? (
+                    <>
+                      {renderViewAction(doc)}
+                      <span className="text-slate-300">•</span>
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadDoc(doc)}
+                        className="text-slate-600 hover:text-slate-800 px-1.5 py-1 rounded hover:bg-slate-100 cursor-pointer font-semibold"
+                      >
+                        Download
+                      </button>
+                      <span className="text-slate-300">•</span>
+                      <button
+                        type="button"
+                        onClick={() => handleTriggerUpload(doc.document_type)}
+                        className="text-slate-600 hover:text-slate-800 px-1.5 py-1 rounded hover:bg-slate-100 cursor-pointer font-semibold"
+                      >
+                        Replace
+                      </button>
+                    </>
+                  ) : isLocked ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-500 text-xs font-semibold border border-slate-200">
+                      <Lock className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Locked (Post-deactivation)</span>
+                    </span>
+                  ) : isLetter ? (
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setGenerateModalState({
+                            isOpen: true,
+                            docType: doc.document_type,
+                            startAtStep: 1,
+                          })
+                        }
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 shadow-2xs transition cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Generate</span>
+                      </button>
+                      <span className="text-slate-300">•</span>
+                      <button
+                        type="button"
+                        onClick={() => handleTriggerUpload(doc.document_type)}
+                        className="text-slate-600 hover:text-slate-800 px-1.5 py-1 rounded hover:bg-slate-100 cursor-pointer font-semibold"
+                      >
+                        Upload
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleTriggerUpload(doc.document_type)}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition cursor-pointer font-semibold"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Upload</span>
+                    </button>
+                  )}
+                </>
+              )}
 
             {doc.document_type.startsWith('custom_') && (
               <>
@@ -856,27 +1037,6 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({
             </div>
           </div>
         </div>
-
-        {/* Action Buttons: Add Document & Generate Document */}
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setIsAddDocModalOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200/90 shadow-2xs transition cursor-pointer"
-          >
-            <Plus className="w-4 h-4 text-blue-600" />
-            <span>Add Document</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setGenerateModalState({ isOpen: true, docType: 'offer_letter', startAtStep: 1 })}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-sm transition cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Generate Document</span>
-          </button>
-        </div>
       </div>
 
       {/* Main Documents Table Card */}
@@ -916,35 +1076,67 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({
                 </>
               )}
 
-              {/* GROUP 3: TAKEN FROM THE EMPLOYEE */}
+              {/* GROUP 3: TAKEN FROM THE EMPLOYEE (BFD Reference Screen 8) */}
               <tr className="bg-slate-100/60 border-t border-b border-slate-200">
-                <td colSpan={4} className="py-2 px-4 text-2xs font-bold uppercase tracking-wider text-slate-600">
-                  <div className="flex items-center justify-between">
-                    <span>Taken from the employee</span>
-                    <button
-                      type="button"
-                      onClick={() => setIsAddDocModalOpen(true)}
-                      className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-800 transition normal-case cursor-pointer"
-                    >
-                      <Plus className="w-3 h-3" />
-                      <span>Add Document</span>
-                    </button>
+                <td colSpan={4} className="py-2.5 px-4 text-2xs font-bold uppercase tracking-wider text-slate-600">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span>Documents we take from the employee</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {/* Marker 1: Progress - Counts only ticked rows */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] font-semibold text-slate-500 normal-case font-mono">
+                          {takenUploadedCount} of {takenTickedCount} uploaded
+                        </span>
+                        <div className="w-20 sm:w-24 h-2 bg-slate-200 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                            style={{ width: `${takenPercentage}%` }}
+                          />
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsAddDocModalOpen(true)}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-800 transition normal-case cursor-pointer"
+                      >
+                        <Plus className="w-3 h-3" />
+                        <span>Add Document</span>
+                      </button>
+                    </div>
                   </div>
                 </td>
               </tr>
               {takenDocs.map(renderDocRow)}
 
-              {/* Inline row: Add other document */}
-              <tr className="border-b border-slate-100 hover:bg-blue-50/20 transition-colors">
+              {/* Marker 2: Add other document & Marker 3: Send document request to candidate */}
+              <tr className="border-b border-slate-100 bg-slate-50/40 hover:bg-slate-50/70 transition-colors">
                 <td colSpan={4} className="py-3 px-4">
-                  <button
-                    type="button"
-                    onClick={() => setIsAddDocModalOpen(true)}
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-800 transition cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>+ Add other document</span>
-                  </button>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setIsAddDocModalOpen(true)}
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-800 transition cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+ Add other document</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleOpenSendRequestModal}
+                      className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl border border-blue-200 bg-white hover:bg-blue-50 text-blue-700 text-xs font-bold shadow-2xs transition cursor-pointer"
+                    >
+                      <Mail className="w-3.5 h-3.5 text-blue-600" />
+                      <span>Send document request to candidate</span>
+                      {pendingForRequest.length > 0 && (
+                        <span className="px-1.5 py-0.5 rounded-md bg-blue-100 text-blue-800 text-[10px] font-black font-mono">
+                          {pendingForRequest.length}
+                        </span>
+                      )}
+                    </button>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -1037,32 +1229,92 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({
 
       {/* Document View / Preview Modal */}
       {viewingDoc && (() => {
-        const isHtmlDraft = Boolean(viewingDoc.draft_content && viewingDoc.draft_content.trim().startsWith('<'));
+        const isDualDoc = viewingDoc.document_type === 'offer_letter' || viewingDoc.document_type === 'nda_signed';
+        const hasBothCopies =
+          isDualDoc &&
+          (Boolean(viewingDoc.file_url) ||
+            viewingDoc.status === 'accepted' ||
+            viewingDoc.status === 'signed' ||
+            viewingDoc.status === 'uploaded');
+        const isHtmlDraft = viewVariant === 'issued';
         const fileNameLower = (viewingDoc.file_name || '').toLowerCase();
-        const isImage = !isHtmlDraft && (
-          viewingDoc.mime_type?.startsWith('image/') ||
-          /\.(png|jpe?g|webp|gif|bmp)$/i.test(fileNameLower)
-        );
-        const isPdf = !isHtmlDraft && (
-          viewingDoc.mime_type === 'application/pdf' ||
-          /\.pdf$/i.test(fileNameLower)
-        );
+        const isImage =
+          !isHtmlDraft &&
+          (viewingDoc.mime_type?.startsWith('image/') || /\.(png|jpe?g|webp|gif|bmp)$/i.test(fileNameLower));
+        const isPdf =
+          !isHtmlDraft &&
+          (viewingDoc.mime_type === 'application/pdf' || /\.pdf$/i.test(fileNameLower));
 
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
             <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden">
               <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
-                <div className="flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-blue-600" />
-                  <h4 className="font-bold text-slate-900 text-sm">{viewingDoc.title}</h4>
-                  {viewingDoc.file_name && (
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-blue-600" />
+                    <h4 className="font-bold text-slate-900 text-sm">{viewingDoc.title}</h4>
+                  </div>
+
+                  {hasBothCopies && (
+                    <div className="flex items-center bg-slate-200/80 p-0.5 rounded-xl border border-slate-200">
+                      <button
+                        type="button"
+                        onClick={() => setViewVariant('issued')}
+                        className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                          viewVariant === 'issued'
+                            ? 'bg-white text-blue-700 shadow-2xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        <span>Issued Letter</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setViewVariant('signed')}
+                        className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                          viewVariant === 'signed'
+                            ? 'bg-white text-emerald-700 shadow-2xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Signed Copy</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {viewVariant === 'signed' && viewingDoc.file_name && (
                     <span className="text-2xs font-mono text-slate-400 bg-white px-2 py-0.5 rounded border border-slate-200">
                       {viewingDoc.file_name}
                     </span>
                   )}
                 </div>
+
                 <div className="flex items-center gap-3">
-                  {blobUrl && (
+                  {viewVariant === 'issued' ? (
+                    <>
+                      <a
+                        href={`/api/v1/employees/${employee.emp_id}/documents/${viewingDoc.document_type}/download?type=issued&inline=true`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-semibold px-2 py-1 rounded hover:bg-slate-100"
+                        title="Open in new window"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        <span>Open Window</span>
+                      </a>
+                      <a
+                        href={`/api/v1/employees/${employee.emp_id}/documents/${viewingDoc.document_type}/download?type=issued`}
+                        download={`${viewingDoc.document_type}_issued.html`}
+                        className="inline-flex items-center gap-1 text-xs text-slate-700 hover:text-slate-900 font-semibold px-2 py-1 rounded hover:bg-slate-100"
+                        title="Download issued document"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Download</span>
+                      </a>
+                    </>
+                  ) : blobUrl ? (
                     <>
                       <a
                         href={blobUrl}
@@ -1084,11 +1336,13 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({
                         <span>Download</span>
                       </a>
                     </>
-                  )}
+                  ) : null}
+
                   <button
                     onClick={() => {
                       setViewingDoc(null);
                       setBlobUrl(null);
+                      setIssuedHtml(null);
                     }}
                     className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 text-sm font-bold ml-2"
                   >
@@ -1098,16 +1352,25 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({
               </div>
 
               <div className="p-6 overflow-y-auto flex-1 flex flex-col items-center justify-center min-h-[300px]">
-                {isLoadingFile ? (
+                {viewVariant === 'issued' ? (
+                  isLoadingIssued ? (
+                    <div className="text-center py-12 space-y-3">
+                      <Loader2 className="w-8 h-8 text-blue-600 animate-spin mx-auto" />
+                      <p className="text-xs text-slate-500 font-medium">Loading issued document...</p>
+                    </div>
+                  ) : (
+                    <div
+                      className="prose prose-sm max-w-none p-6 rounded-2xl border border-slate-200 bg-white shadow-inner w-full"
+                      dangerouslySetInnerHTML={{
+                        __html: issuedHtml || viewingDoc.draft_content || '<p>No content available</p>',
+                      }}
+                    />
+                  )
+                ) : isLoadingFile ? (
                   <div className="text-center py-12 space-y-3">
                     <Loader2 className="w-8 h-8 text-blue-600 animate-spin mx-auto" />
                     <p className="text-xs text-slate-500 font-medium">Loading document preview...</p>
                   </div>
-                ) : isHtmlDraft ? (
-                  <div
-                    className="prose prose-sm max-w-none p-6 rounded-2xl border border-slate-200 bg-white shadow-inner w-full"
-                    dangerouslySetInnerHTML={{ __html: viewingDoc.draft_content! }}
-                  />
                 ) : isImage && blobUrl ? (
                   <div className="w-full flex justify-center p-3 bg-slate-50/60 rounded-2xl border border-slate-100">
                     <img
@@ -1224,6 +1487,147 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({
           </div>
         </div>
       )}
+
+      {/* Send Document Request to Candidate Modal (BFD Reference Screen 8 Marker 3) */}
+      {isSendRequestModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-100 p-6 flex flex-col space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
+                  <Mail className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-800">Send Document Request</h3>
+                  <p className="text-xs text-slate-500">Email the candidate a checklist of pending documents</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsSendRequestModalOpen(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {requestStatus === 'success' ? (
+              <div className="py-6 space-y-4 text-center">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto">
+                  <CheckCircle2 className="w-6 h-6" />
+                </div>
+                <div>
+                  <h4 className="text-base font-bold text-slate-800">Request Email Sent!</h4>
+                  <p className="text-xs text-slate-600 mt-1 max-w-sm mx-auto">{requestFeedbackMsg}</p>
+                </div>
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsSendRequestModalOpen(false)}
+                    className="px-5 py-2.5 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition cursor-pointer"
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleSendDocumentRequest} className="space-y-4">
+                {requestStatus === 'error' && (
+                  <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-700 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
+                    <span>{requestFeedbackMsg}</span>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-2xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                    Candidate / Recipient Email <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={requestEmail}
+                    onChange={(e) => setRequestEmail(e.target.value)}
+                    placeholder="candidate@example.com"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Defaults to candidate's personal email on record. You can change this if needed.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-2xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                    Documents to Request ({pendingForRequest.length})
+                  </label>
+                  {pendingForRequest.length === 0 ? (
+                    <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 font-medium">
+                      All requested documents have already been uploaded.
+                    </div>
+                  ) : (
+                    <div className="max-h-40 overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100 bg-slate-50/50">
+                      {pendingForRequest.map((doc, idx) => (
+                        <div key={idx} className="p-2.5 text-xs flex items-center justify-between">
+                          <span className="font-semibold text-slate-700">{doc.title}</span>
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${doc.is_required_for_activation
+                                ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                                : 'bg-slate-200 text-slate-700'
+                              }`}
+                          >
+                            {doc.is_required_for_activation ? 'Required' : 'Pending File'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-2xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                    Optional Note for Candidate
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={requestNotes}
+                    onChange={(e) => setRequestNotes(e.target.value)}
+                    placeholder="e.g. Please bring original physical copies on your joining date as well."
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setIsSendRequestModalOpen(false)}
+                    className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={sendDocRequestMutation.isPending || pendingForRequest.length === 0}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-2xs cursor-pointer disabled:opacity-50"
+                  >
+                    {sendDocRequestMutation.isPending ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Sending...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-3.5 h-3.5" />
+                        <span>Send Request Email</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

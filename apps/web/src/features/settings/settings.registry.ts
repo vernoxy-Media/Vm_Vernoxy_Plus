@@ -4,7 +4,6 @@ import {
   ShieldCheck,
   Factory,
   Users,
-  CalendarDays,
   Tag,
   Coffee,
   LayoutGrid,
@@ -40,17 +39,11 @@ import {
 } from 'lucide-react';
 import type { MeResponseDto } from '@vernoxy-pulse/api-client';
 
-const SettingsRolesSection = React.lazy(() =>
-  import('./sections/SettingsRolesSection').then((m) => ({ default: m.SettingsRolesSection }))
-);
 const SettingsIndustriesSection = React.lazy(() =>
   import('./sections/SettingsIndustriesSection').then((m) => ({ default: m.SettingsIndustriesSection }))
 );
 const SettingsCustomerTypesSection = React.lazy(() =>
   import('./sections/SettingsCustomerTypesSection').then((m) => ({ default: m.SettingsCustomerTypesSection }))
-);
-const SettingsHrPolicySection = React.lazy(() =>
-  import('./sections/SettingsHrPolicySection').then((m) => ({ default: m.SettingsHrPolicySection }))
 );
 const SettingsTaskTypesSection = React.lazy(() =>
   import('./sections/SettingsTaskTypesSection').then((m) => ({ default: m.SettingsTaskTypesSection }))
@@ -175,26 +168,6 @@ export interface SettingsSectionConfig {
 }
 
 export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
-  // ── Organization ──────────────────────────────────
-    {
-    id: 'roles',
-    label: 'Roles',
-    path: '/admin/settings/roles',
-    icon: ShieldCheck,
-    component: SettingsRolesSection,
-    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
-    group: 'Organization',
-  },
-  {
-    id: 'hr-policy',
-    label: 'HR Policy',
-    path: '/admin/settings/hr-policy',
-    icon: CalendarDays,
-    component: SettingsHrPolicySection,
-    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
-    group: 'Organization',
-  },
-
   // ── Employee ──────────────────────────────────────
   {
     id: 'employment-types',
@@ -488,7 +461,7 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
   // ── Performance Management ─────────────────────────
   {
     id: 'performance-cycles',
-    label: 'Performance Cycles',
+    label: 'Cycle Master',
     path: '/admin/settings/performance-cycles',
     icon: Award,
     component: SettingsPerformanceSection,
@@ -497,7 +470,7 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
   },
   {
     id: 'performance-forms',
-    label: 'Performance Forms',
+    label: 'Question Master',
     path: '/admin/settings/performance-forms',
     icon: ClipboardCheck,
     component: SettingsPerformanceSection,
@@ -589,7 +562,6 @@ export interface SettingsMainGroup {
 }
 
 export const SETTINGS_MAIN_GROUPS: SettingsMainGroup[] = [
-  { id: 'Organization', name: 'Organization', icon: Building2 },
   { id: 'Employee', name: 'Employee', icon: UserCheck },
   { id: 'CRM', name: 'CRM', icon: Users },
   { id: 'Tasks', name: 'Tasks', icon: Tag },

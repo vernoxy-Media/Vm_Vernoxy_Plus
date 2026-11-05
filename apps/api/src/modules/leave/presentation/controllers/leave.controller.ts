@@ -1,43 +1,50 @@
 import {
+  Body,
   Controller,
+  Delete,
+  ForbiddenException,
   Get,
+  Param,
+  ParseIntPipe,
+  Patch,
   Post,
   Put,
-  Patch,
-  Delete,
-  Body,
-  Param,
   Query,
   Req,
-  ParseIntPipe,
+  Res,
   UseGuards,
   Inject,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Response } from 'express';
 import { JwtAuthGuard } from '../../../auth/presentation/guards/jwt-auth.guard';
 import { OrganizationAdminGuard } from '../../../organization/presentation/guards/organization-admin.guard';
+import { LeaveService, Viewer } from '../../application/services/leave.service';
+import { LeaveSettingsService } from '../../application/services/leave-settings.service';
+import { LeaveReportsService } from '../../application/services/leave-reports.service';
+import { LeaveCoreService } from '../../application/services/leave-core.service';
 import {
-  ACCESS_POLICY_PORT_TOKEN,
-  AccessPolicyPort,
-} from '../../../organization/application/ports/access-policy.port';
-import { LeaveService } from '../../application/services/leave.service';
-import {
-  CreateLeaveTypeDto,
-  UpdateLeaveTypeDto,
-  CreateLeavePolicyDto,
-  UpdateLeavePolicyDto,
-  CopyLeavePolicyDto,
-  UpdateGeneralSettingsDto,
-  CalculateLeaveDaysDto,
-  ApplyLeaveDto,
   AddLeaveForEmployeeDto,
-  ReviewLeaveRequestDto,
-  RequestCancellationDto,
-  DecideCancellationDto,
-  AdminCancelLeaveDto,
   AdjustBalanceDto,
-  BulkAdjustBalanceDto,
+  AdminCancelLeaveDto,
+  ApplyLeaveDto,
   AssignEmployeePolicyDto,
+  BulkAdjustBalanceDto,
+  CalculateLeaveDaysDto,
+  CopyLeavePolicyDto,
+  CreateLeavePolicyDto,
+  CreateLeaveTypeDto,
+  DecideCancellationDto,
+  LeaveReportsQueryDto,
+  LeaveRequestsQueryDto,
+  RequestCancellationDto,
+  ReviewLeaveRequestDto,
+  SetOpeningBalanceDto,
+  UpdateGeneralSettingsDto,
+  UpdateLeavePolicyDto,
+  UpdateLeaveTypeDto,
+  WithdrawLeaveDto,
+  YearEndDto,
 } from '../dto/leave.dto';
 
 @ApiTags('Leave')
@@ -46,309 +53,339 @@ import {
 @Controller('leave')
 export class LeaveController {
   constructor(
-    private readonly leaveService: LeaveService,
-    @Inject(ACCESS_POLICY_PORT_TOKEN)
-    private readonly accessPolicy: AccessPolicyPort,
+    private readonly leave: LeaveService,
+    private readonly settings: LeaveSettingsService,
+    private readonly reports: LeaveReportsService,
+    private readonly core: LeaveCoreService,
   ) {}
 
+  private empId(req: any): number {
+    const id = req.user?.emp_id;
+    if (!id) throw new ForbiddenException('Authentication required.');
+    return Number(id);
+  }
+
+  private async viewer(req: any): Promise<Viewer> {
+    const empId = this.empId(req);
+    return { empId, isAdmin: await this.core.isAdmin(empId) };
+  }
+
+  private send(res: Response, file: { buffer: Buffer; filename: string; mime: string }) {
+    res.setHeader('Content-Type', file.mime);
+    res.setHeader('Content-Disposition', `attachment; filename="${file.filename}"`);
+    res.send(file.buffer);
+  }
+
   // ---------------------------------------------------------------------------
-  // Master Data Settings: Leave Types (Admin)
+  // Leave Settings (Admin edits; types/policies/lookups readable by all users)
   // ---------------------------------------------------------------------------
 
+  @Get('settings/lookups')
+  @ApiOperation({ summary: 'Leave dropdown values from master data' })
+  getLookups() {
+    return this.settings.getLookups();
+  }
+
   @Get('settings/types')
-  @ApiOperation({ summary: 'Get all leave types' })
-  async getLeaveTypes() {
-    return this.leaveService.getLeaveTypes();
+  getLeaveTypes() {
+    return this.settings.getLeaveTypes();
   }
 
   @Get('settings/types/:id')
-  @ApiOperation({ summary: 'Get leave type by ID' })
-  async getLeaveType(@Param('id', ParseIntPipe) id: number) {
-    return this.leaveService.getLeaveTypeById(id);
+  getLeaveType(@Param('id', ParseIntPipe) id: number) {
+    return this.settings.getLeaveTypeById(id);
   }
 
   @UseGuards(OrganizationAdminGuard)
   @Post('settings/types')
-  @ApiOperation({ summary: 'Create new leave type' })
-  async createLeaveType(@Body() dto: CreateLeaveTypeDto, @Req() req: any) {
-    const adminId = req.user?.emp_id || 1;
-    return this.leaveService.createLeaveType(dto, adminId);
+  createLeaveType(@Body() dto: CreateLeaveTypeDto, @Req() req: any) {
+    return this.settings.createLeaveType(dto, this.empId(req));
   }
 
   @UseGuards(OrganizationAdminGuard)
   @Put('settings/types/:id')
-  @ApiOperation({ summary: 'Update leave type' })
-  async updateLeaveType(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: UpdateLeaveTypeDto,
-    @Req() req: any,
-  ) {
-    const adminId = req.user?.emp_id || 1;
-    return this.leaveService.updateLeaveType(id, dto, adminId);
+  updateLeaveType(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateLeaveTypeDto, @Req() req: any) {
+    return this.settings.updateLeaveType(id, dto, this.empId(req));
   }
 
   @UseGuards(OrganizationAdminGuard)
   @Patch('settings/types/:id/toggle')
-  @ApiOperation({ summary: 'Toggle leave type active/inactive status' })
-  async toggleLeaveTypeStatus(
-    @Param('id', ParseIntPipe) id: number,
-    @Req() req: any,
-  ) {
-    const adminId = req.user?.emp_id || 1;
-    return this.leaveService.toggleLeaveTypeStatus(id, adminId);
+  toggleLeaveType(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.settings.toggleLeaveTypeStatus(id, this.empId(req));
   }
 
   @UseGuards(OrganizationAdminGuard)
   @Delete('settings/types/:id')
-  @ApiOperation({ summary: 'Delete unused leave type' })
-  async deleteLeaveType(
-    @Param('id', ParseIntPipe) id: number,
-    @Req() req: any,
-  ) {
-    const adminId = req.user?.emp_id || 1;
-    return this.leaveService.deleteLeaveType(id, adminId);
+  deleteLeaveType(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.settings.deleteLeaveType(id, this.empId(req));
   }
 
-  // ---------------------------------------------------------------------------
-  // Master Data Settings: Leave Policies (Admin)
-  // ---------------------------------------------------------------------------
-
   @Get('settings/policies')
-  @ApiOperation({ summary: 'Get all leave policies with rules' })
-  async getLeavePolicies() {
-    return this.leaveService.getLeavePolicies();
+  getLeavePolicies() {
+    return this.settings.getLeavePolicies();
   }
 
   @Get('settings/policies/:id')
-  @ApiOperation({ summary: 'Get leave policy by ID' })
-  async getLeavePolicy(@Param('id', ParseIntPipe) id: number) {
-    return this.leaveService.getLeavePolicyById(id);
+  getLeavePolicy(@Param('id', ParseIntPipe) id: number) {
+    return this.settings.getLeavePolicyById(id);
   }
 
   @UseGuards(OrganizationAdminGuard)
   @Post('settings/policies')
-  @ApiOperation({ summary: 'Create new leave policy with rules' })
-  async createLeavePolicy(@Body() dto: CreateLeavePolicyDto, @Req() req: any) {
-    const adminId = req.user?.emp_id || 1;
-    return this.leaveService.createLeavePolicy(dto, adminId);
+  createLeavePolicy(@Body() dto: CreateLeavePolicyDto, @Req() req: any) {
+    return this.settings.createLeavePolicy(dto, this.empId(req));
   }
 
   @UseGuards(OrganizationAdminGuard)
   @Put('settings/policies/:id')
-  @ApiOperation({ summary: 'Update leave policy and rules' })
-  async updateLeavePolicy(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: UpdateLeavePolicyDto,
-    @Req() req: any,
-  ) {
-    const adminId = req.user?.emp_id || 1;
-    return this.leaveService.updateLeavePolicy(id, dto, adminId);
+  updateLeavePolicy(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateLeavePolicyDto, @Req() req: any) {
+    return this.settings.updateLeavePolicy(id, dto, this.empId(req));
   }
 
   @UseGuards(OrganizationAdminGuard)
   @Post('settings/policies/:id/copy')
-  @ApiOperation({ summary: 'Make a copy of an existing policy' })
-  async copyLeavePolicy(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: CopyLeavePolicyDto,
-    @Req() req: any,
-  ) {
-    const adminId = req.user?.emp_id || 1;
-    return this.leaveService.copyLeavePolicy(id, dto.new_name, adminId);
+  copyLeavePolicy(@Param('id', ParseIntPipe) id: number, @Body() dto: CopyLeavePolicyDto, @Req() req: any) {
+    return this.settings.copyLeavePolicy(id, dto.new_name, this.empId(req));
   }
 
-  // ---------------------------------------------------------------------------
-  // Master Data Settings: General Settings & Change Log
-  // ---------------------------------------------------------------------------
-
   @Get('settings/general')
-  @ApiOperation({ summary: 'Get general leave settings' })
-  async getGeneralSettings() {
-    return this.leaveService.getGeneralSettings();
+  getGeneralSettings() {
+    return this.settings.getGeneralSettings();
   }
 
   @UseGuards(OrganizationAdminGuard)
   @Put('settings/general')
-  @ApiOperation({ summary: 'Update general leave settings' })
-  async updateGeneralSettings(@Body() dto: UpdateGeneralSettingsDto, @Req() req: any) {
-    const adminId = req.user?.emp_id || 1;
-    return this.leaveService.updateGeneralSettings(dto, adminId);
+  updateGeneralSettings(@Body() dto: UpdateGeneralSettingsDto, @Req() req: any) {
+    return this.settings.updateGeneralSettings(dto, this.empId(req));
   }
 
+  @UseGuards(OrganizationAdminGuard)
   @Get('settings/change-log')
-  @ApiOperation({ summary: 'Get leave settings change log' })
-  async getSettingsChangeLog() {
-    return this.leaveService.getSettingsChangeLog();
+  getChangeLog() {
+    return this.settings.getSettingsChangeLog();
   }
 
   // ---------------------------------------------------------------------------
-  // Employee: My Leave & Application Flow
+  // Employee: My Leave
   // ---------------------------------------------------------------------------
-
-  @Get('calendar')
-  @ApiOperation({ summary: 'Team leave calendar: approved leaves in a month' })
-  async getLeaveCalendar(@Req() req: any, @Query('month') month?: string, @Query('department_id') departmentId?: string) {
-    const dep = departmentId ? Number(departmentId) : undefined;
-    const rows = await this.leaveService.getLeaveCalendar(month, Number.isInteger(dep) ? dep : undefined);
-    // only administrators see everybody's leave; everyone else sees their own
-    if (await this.accessPolicy.canManageOrganization(req.user.emp_id)) return rows;
-    return rows.filter((r: any) => r.emp_id === req.user.emp_id);
-  }
 
   @Get('my')
-  @ApiOperation({ summary: 'Get current employee balances, policy and recent requests' })
-  async getMyLeave(@Req() req: any, @Query('year') year?: string) {
-    const empId = req.user?.emp_id || 1;
-    const parsedYear = year ? parseInt(year, 10) : undefined;
-    return this.leaveService.getMyLeaveOverview(empId, parsedYear);
+  @ApiOperation({ summary: 'My Leave: header, balances, apply types and own requests' })
+  getMyLeave(@Req() req: any, @Query('year') year?: string) {
+    return this.leave.getMyLeaveOverview(this.empId(req), year ? parseInt(year, 10) : undefined);
+  }
+
+  @Get('dashboard')
+  @ApiOperation({ summary: 'Leave dashboard cards for the current user' })
+  async getDashboard(@Req() req: any) {
+    return this.leave.getDashboard(await this.viewer(req));
   }
 
   @Post('calculate')
-  @ApiOperation({ summary: 'Preview working days and breakdown before submitting leave' })
-  async calculateDays(@Body() dto: CalculateLeaveDaysDto, @Req() req: any) {
-    const empId = req.user?.emp_id || 1;
-    return this.leaveService.calculateLeaveDays(empId, dto);
+  @ApiOperation({ summary: 'Leave Days preview and checks for the Apply Leave form' })
+  async calculate(@Body() dto: CalculateLeaveDaysDto, @Req() req: any) {
+    return this.leave.preview(await this.viewer(req), dto);
   }
 
   @Post('apply')
-  @ApiOperation({ summary: 'Submit leave request' })
-  async applyLeave(@Body() dto: ApplyLeaveDto, @Req() req: any) {
-    const empId = req.user?.emp_id || 1;
-    return this.leaveService.applyLeave(empId, dto);
+  apply(@Body() dto: ApplyLeaveDto, @Req() req: any) {
+    return this.leave.applyLeave(this.empId(req), dto);
   }
 
   @Post('requests/:id/withdraw')
-  @ApiOperation({ summary: 'Withdraw pending leave request' })
-  async withdrawLeave(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
-    const empId = req.user?.emp_id || 1;
-    return this.leaveService.withdrawLeave(id, empId);
+  withdraw(@Param('id', ParseIntPipe) id: number, @Body() dto: WithdrawLeaveDto, @Req() req: any) {
+    return this.leave.withdrawLeave(id, this.empId(req), dto || {});
   }
 
   @Post('requests/:id/request-cancel')
-  @ApiOperation({ summary: 'Request cancellation for approved leave' })
-  async requestCancellation(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: RequestCancellationDto,
+  requestCancellation(@Param('id', ParseIntPipe) id: number, @Body() dto: RequestCancellationDto, @Req() req: any) {
+    return this.leave.requestCancellation(id, this.empId(req), dto);
+  }
+
+  @Get('ledger')
+  @ApiOperation({ summary: 'Leave Ledger: own, or any employee for the Admin' })
+  async getLedger(
     @Req() req: any,
+    @Query('empId') empIdParam?: string,
+    @Query('typeId') typeId?: string,
+    @Query('year') year?: string,
   ) {
-    const empId = req.user?.emp_id || 1;
-    return this.leaveService.requestCancellation(id, empId, dto);
+    const viewer = await this.viewer(req);
+    const target = empIdParam ? parseInt(empIdParam, 10) : viewer.empId;
+    if (target !== viewer.empId && !viewer.isAdmin) {
+      throw new ForbiddenException('You can see only your own Leave Ledger.');
+    }
+    return this.leave.getLeaveLedger(target, {
+      typeId: typeId ? parseInt(typeId, 10) : undefined,
+      year: year ? parseInt(year, 10) : undefined,
+    });
+  }
+
+  @Get('ledger/export')
+  async exportLedger(
+    @Req() req: any,
+    @Res() res: Response,
+    @Query('empId') empIdParam?: string,
+    @Query('year') year?: string,
+    @Query('format') format?: string,
+  ) {
+    const viewer = await this.viewer(req);
+    const target = empIdParam ? parseInt(empIdParam, 10) : viewer.empId;
+    if (target !== viewer.empId && !viewer.isAdmin) {
+      throw new ForbiddenException('You can see only your own Leave Ledger.');
+    }
+    const emp = await this.core.getEmployee(target);
+    const rows = await this.leave.getLeaveLedger(target, { year: year ? parseInt(year, 10) : undefined });
+    this.send(res, await this.reports.exportLedger(rows, emp.name, format));
+  }
+
+  @Get('calendar')
+  @ApiOperation({ summary: 'Approved leave in a month (Admin: all, others: own and team)' })
+  async calendar(@Req() req: any, @Query('month') month?: string, @Query('department_id') dep?: string) {
+    return this.reports.calendar(await this.viewer(req), month, dep ? parseInt(dep, 10) : undefined);
   }
 
   // ---------------------------------------------------------------------------
-  // Admin: Request Approval & Management
+  // Reporting Manager: team
+  // ---------------------------------------------------------------------------
+
+  @Get('team/requests')
+  @ApiOperation({ summary: 'Leave requests of the Reporting Manager\'s team (read only)' })
+  getTeamRequests(@Req() req: any, @Query() q: LeaveRequestsQueryDto) {
+    return this.leave.getTeamLeaveRequests(this.empId(req), q);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Leave Requests (Admin)
   // ---------------------------------------------------------------------------
 
   @UseGuards(OrganizationAdminGuard)
   @Get('requests')
-  @ApiOperation({ summary: 'List leave requests with counter badges' })
-  async getAdminRequests(
-    @Query('tab') tab?: string,
-    @Query('search') search?: string,
-  ) {
-    return this.leaveService.getAdminLeaveRequests(tab || 'Pending', search);
+  getRequests(@Query() q: LeaveRequestsQueryDto) {
+    return this.leave.getAdminLeaveRequests(q);
   }
 
   @UseGuards(OrganizationAdminGuard)
+  @Get('requests/export')
+  async exportRequests(@Query() q: LeaveRequestsQueryDto, @Query('format') format: string, @Res() res: Response) {
+    this.send(res, await this.reports.exportRequests(q, format));
+  }
+
   @Get('requests/:id')
-  @ApiOperation({ summary: 'Get detailed leave request with policy checks and collision info' })
-  async getRequestDetails(@Param('id', ParseIntPipe) id: number) {
-    return this.leaveService.getLeaveRequestDetails(id);
+  @ApiOperation({ summary: 'Leave Request Details (Admin, the employee, or their Reporting Manager)' })
+  async getRequestDetails(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.leave.getLeaveRequestDetails(id, await this.viewer(req));
   }
 
   @UseGuards(OrganizationAdminGuard)
   @Post('requests/:id/approve')
-  @ApiOperation({ summary: 'Approve pending leave request' })
-  async approveRequest(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: ReviewLeaveRequestDto,
-    @Req() req: any,
-  ) {
-    const adminId = req.user?.emp_id || 1;
-    return this.leaveService.approveLeaveRequest(id, adminId, dto);
+  approve(@Param('id', ParseIntPipe) id: number, @Body() dto: ReviewLeaveRequestDto, @Req() req: any) {
+    return this.leave.approveLeaveRequest(id, this.empId(req), dto);
   }
 
   @UseGuards(OrganizationAdminGuard)
   @Post('requests/:id/reject')
-  @ApiOperation({ summary: 'Reject pending leave request' })
-  async rejectRequest(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: ReviewLeaveRequestDto,
-    @Req() req: any,
-  ) {
-    const adminId = req.user?.emp_id || 1;
-    return this.leaveService.rejectLeaveRequest(id, adminId, dto);
+  reject(@Param('id', ParseIntPipe) id: number, @Body() dto: ReviewLeaveRequestDto, @Req() req: any) {
+    return this.leave.rejectLeaveRequest(id, this.empId(req), dto);
   }
 
   @UseGuards(OrganizationAdminGuard)
   @Post('requests/:id/decide-cancellation')
-  @ApiOperation({ summary: 'Agree to cancel or keep leave' })
-  async decideCancellation(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: DecideCancellationDto,
-    @Req() req: any,
-  ) {
-    const adminId = req.user?.emp_id || 1;
-    return this.leaveService.decideCancellation(id, adminId, dto);
+  decideCancellation(@Param('id', ParseIntPipe) id: number, @Body() dto: DecideCancellationDto, @Req() req: any) {
+    return this.leave.decideCancellation(id, this.empId(req), dto);
   }
 
   @UseGuards(OrganizationAdminGuard)
   @Post('requests/:id/admin-cancel')
-  @ApiOperation({ summary: 'Admin directly cancels approved leave' })
-  async adminCancelLeave(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: AdminCancelLeaveDto,
-    @Req() req: any,
-  ) {
-    const adminId = req.user?.emp_id || 1;
-    return this.leaveService.adminCancelLeave(id, adminId, dto);
+  adminCancel(@Param('id', ParseIntPipe) id: number, @Body() dto: AdminCancelLeaveDto, @Req() req: any) {
+    return this.leave.adminCancelLeave(id, this.empId(req), dto);
   }
 
   @UseGuards(OrganizationAdminGuard)
   @Post('admin/add-for-employee')
-  @ApiOperation({ summary: 'Admin adds and approves leave for an employee directly' })
-  async addLeaveForEmployee(
-    @Body() dto: AddLeaveForEmployeeDto,
-    @Req() req: any,
+  addForEmployee(@Body() dto: AddLeaveForEmployeeDto, @Req() req: any) {
+    return this.leave.addLeaveForEmployee(this.empId(req), dto);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Balances (Admin)
+  // ---------------------------------------------------------------------------
+
+  @UseGuards(OrganizationAdminGuard)
+  @Get('balances')
+  getBalances(
+    @Query('year') year?: string,
+    @Query('search') search?: string,
+    @Query('department_id') dep?: string,
   ) {
-    const adminId = req.user?.emp_id || 1;
-    return this.leaveService.addLeaveForEmployee(adminId, dto);
+    return this.leave.getAllEmployeeBalances({
+      year: year ? parseInt(year, 10) : undefined,
+      search,
+      department_id: dep ? parseInt(dep, 10) : undefined,
+    });
+  }
+
+  @Get('employees/:empId/summary')
+  @ApiOperation({ summary: 'Leave policy and balances of an employee (Employee Profile)' })
+  async getEmployeeSummary(@Param('empId', ParseIntPipe) empId: number, @Req() req: any) {
+    const viewer = await this.viewer(req);
+    if (empId !== viewer.empId && !viewer.isAdmin) {
+      throw new ForbiddenException('You can see only your own leave balances.');
+    }
+    return this.leave.getEmployeeLeaveSummary(empId);
   }
 
   @UseGuards(OrganizationAdminGuard)
   @Post('admin/adjust-balance')
-  @ApiOperation({ summary: 'Admin adjusts employee leave balance with a mandatory note' })
-  async adjustBalance(
-    @Body() dto: AdjustBalanceDto,
-    @Req() req: any,
-  ) {
-    const adminId = req.user?.emp_id || 1;
-    return this.leaveService.adjustBalance(adminId, dto);
-  }
-
-  // ---------------------------------------------------------------------------
-  // Ledger & Balances
-  // ---------------------------------------------------------------------------
-
-  @Get('ledger')
-  @ApiOperation({ summary: 'Get leave ledger transactions' })
-  async getLedger(
-    @Req() req: any,
-    @Query('empId') empIdParam?: string,
-    @Query('typeId') typeIdParam?: string,
-  ) {
-    const currentEmpId = req.user?.emp_id || 1;
-    const isAdmin = await this.accessPolicy.canManageOrganization(currentEmpId);
-    const targetEmpId = isAdmin && empIdParam ? parseInt(empIdParam, 10) : currentEmpId;
-    const typeId = typeIdParam ? parseInt(typeIdParam, 10) : undefined;
-    return this.leaveService.getLeaveLedger(targetEmpId, typeId);
+  adjust(@Body() dto: AdjustBalanceDto, @Req() req: any) {
+    return this.leave.adjustBalance(this.empId(req), dto);
   }
 
   @UseGuards(OrganizationAdminGuard)
-  @Get('balances')
-  @ApiOperation({ summary: 'List all employee leave balances' })
-  async getAllBalances(@Query('year') year?: string) {
-    const parsedYear = year ? parseInt(year, 10) : undefined;
-    return this.leaveService.getAllEmployeeBalances(parsedYear);
+  @Post('admin/bulk-adjust-balance')
+  bulkCredit(@Body() dto: BulkAdjustBalanceDto, @Req() req: any) {
+    return this.leave.bulkCredit(this.empId(req), dto);
+  }
+
+  @UseGuards(OrganizationAdminGuard)
+  @Put('admin/opening-balance')
+  setOpeningBalance(@Body() dto: SetOpeningBalanceDto, @Req() req: any) {
+    return this.leave.setOpeningBalance(this.empId(req), dto);
+  }
+
+  @UseGuards(OrganizationAdminGuard)
+  @Put('admin/employee-policy/:empId')
+  assignPolicy(@Param('empId', ParseIntPipe) empId: number, @Body() dto: AssignEmployeePolicyDto, @Req() req: any) {
+    return this.leave.assignEmployeePolicy(this.empId(req), empId, dto.policy_id);
+  }
+
+  @UseGuards(OrganizationAdminGuard)
+  @Post('admin/year-end')
+  @ApiOperation({ summary: 'Run year-end processing for a leave year (manual setting)' })
+  yearEnd(@Body() dto: YearEndDto, @Req() req: any) {
+    return this.leave.runYearEndManually(this.empId(req), dto.leave_year);
+  }
+
+  @UseGuards(OrganizationAdminGuard)
+  @Post('admin/run-credits')
+  @ApiOperation({ summary: 'Bring all credits up to date now' })
+  runCredits() {
+    return this.leave.runCreditsManually();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Reports (Admin)
+  // ---------------------------------------------------------------------------
+
+  @UseGuards(OrganizationAdminGuard)
+  @Get('reports')
+  getReports(@Query() q: LeaveReportsQueryDto) {
+    return this.reports.getReport(q);
+  }
+
+  @UseGuards(OrganizationAdminGuard)
+  @Get('reports/export')
+  async exportReports(@Query() q: LeaveReportsQueryDto, @Res() res: Response) {
+    this.send(res, await this.reports.exportReport(q));
   }
 }

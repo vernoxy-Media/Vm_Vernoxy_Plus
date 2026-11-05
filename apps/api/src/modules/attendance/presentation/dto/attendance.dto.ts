@@ -236,6 +236,18 @@ export class DashboardResponseDto {
   @ApiProperty({ type: () => TodayAttendanceBlockDto })
   today!: TodayAttendanceBlockDto;
 
+  @ApiPropertyOptional({ type: Object })
+  shift?: {
+    shift_id?: number;
+    shift_name: string;
+    start_time: string;
+    end_time: string;
+    late_arrival_grace_minutes: number;
+    early_exit_grace_minutes: number;
+    full_day_hours?: number;
+    half_day_hours?: number;
+  };
+
   @ApiProperty({ type: () => DashboardStatsDto })
   stats!: DashboardStatsDto;
 
@@ -532,3 +544,41 @@ export class PunchLocationDto {
   @Min(0)
   accuracy?: number;
 }
+export class AttendanceReportsQueryDto {
+  @ApiPropertyOptional({
+    type: String,
+    enum: ['daily', 'monthly_summary', 'employee', 'department', 'late_early', 'regularization'],
+    default: 'daily',
+  })
+  @IsOptional()
+  reportType?: 'daily' | 'monthly_summary' | 'employee' | 'department' | 'late_early' | 'regularization';
+
+  @ApiPropertyOptional({ type: String, example: '2026-10-01' })
+  @IsOptional()
+  fromDate?: string;
+
+  @ApiPropertyOptional({ type: String, example: '2026-10-31' })
+  @IsOptional()
+  toDate?: string;
+
+  @ApiPropertyOptional({ type: String, description: 'Department ID or comma-separated IDs' })
+  @IsOptional()
+  departmentId?: string;
+
+  @ApiPropertyOptional({ type: Number, description: 'Employee ID' })
+  @IsOptional()
+  employeeId?: number;
+
+  @ApiPropertyOptional({ type: Number, description: 'Shift ID' })
+  @IsOptional()
+  shiftId?: number;
+
+  @ApiPropertyOptional({ type: String, description: 'Status filter' })
+  @IsOptional()
+  status?: string;
+
+  @ApiPropertyOptional({ type: String, enum: ['csv', 'excel', 'pdf'] })
+  @IsOptional()
+  format?: 'csv' | 'excel' | 'pdf';
+}
+

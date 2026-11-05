@@ -39,6 +39,8 @@ import {
   EmployeeActivationStatusDto,
   ActivateEmployeeResponseDto,
   CreateCustomDocumentDto,
+  SendDocumentRequestDto,
+  SendDocumentRequestResponseDto,
 } from '../dto/employee-document.dto';
 
 @ApiTags('Organization Documents')
@@ -223,15 +225,26 @@ export class EmployeeDocumentController {
     return this.documentService.declineDocument(id, documentType, reason || 'Candidate declined', adminId);
   }
 
+  @Get('employees/:id/documents/:documentType/issued')
+  @ApiOperation({ summary: 'Get issued draft HTML content for letter / NDA' })
+  async getIssuedDocument(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('documentType') documentType: string,
+  ) {
+    return this.documentService.getIssuedDocument(id, documentType);
+  }
+
   @Get('employees/:id/documents/:documentType/download')
   @ApiOperation({ summary: 'Download or view issued employee document file' })
   async downloadDocument(
     @Param('id', ParseIntPipe) id: number,
     @Param('documentType') documentType: string,
     @Query('inline') inline: string | undefined,
+    @Query('type') variantType: string | undefined,
     @Res() res: Response,
   ): Promise<void> {
-    const fileData = await this.documentService.getDocumentForDownload(id, documentType);
+    const variant = variantType === 'issued' ? 'issued' : 'signed';
+    const fileData = await this.documentService.getDocumentForDownload(id, documentType, variant);
     const isInline =
       inline === 'true' ||
       fileData.mimeType.startsWith('image/') ||
@@ -243,4 +256,18 @@ export class EmployeeDocumentController {
     );
     res.send(fileData.content);
   }
+
+  @Post('employees/:id/documents/request-email')
+  @ApiOperation({ summary: 'Send email to candidate requesting all pending documents' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiResponse({ status: 200, type: SendDocumentRequestResponseDto })
+  async sendDocumentRequestEmail(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: SendDocumentRequestDto,
+    @Req() req: any,
+  ): Promise<SendDocumentRequestResponseDto> {
+    const adminId = req.user?.emp_id || 1;
+    return this.documentService.sendDocumentRequestEmail(id, adminId, dto);
+  }
+
 }

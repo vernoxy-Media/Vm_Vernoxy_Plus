@@ -1,7 +1,12 @@
+-- migrate:up
 -- Migration: 20261030130000_consolidate_history_into_activity_logs.sql
 -- Description: Unifies 7 domain history and audit tables into the consolidated activity_logs table
 
 -- 1. Migrate task_history into activity_logs
+DO $mig$
+BEGIN
+  IF to_regclass('public.task_history') IS NOT NULL THEN
+    EXECUTE $sql$
 INSERT INTO activity_logs (entity_type, entity_id, event, summary, details, performed_by, performed_at)
 SELECT
   'TASK',
@@ -16,9 +21,17 @@ SELECT
   )),
   actor_id,
   created_at
-FROM task_history;
+FROM task_history
+    $sql$;
+  END IF;
+END
+$mig$;
 
 -- 2. Migrate project_activity_logs into activity_logs
+DO $mig$
+BEGIN
+  IF to_regclass('public.project_activity_logs') IS NOT NULL THEN
+    EXECUTE $sql$
 INSERT INTO activity_logs (entity_type, entity_id, event, summary, details, performed_by, performed_at)
 SELECT
   'PROJECT',
@@ -28,9 +41,17 @@ SELECT
   COALESCE(metadata::jsonb, '{}'::jsonb),
   actor_emp_id,
   created_at
-FROM project_activity_logs;
+FROM project_activity_logs
+    $sql$;
+  END IF;
+END
+$mig$;
 
 -- 3. Migrate bug_history into activity_logs
+DO $mig$
+BEGIN
+  IF to_regclass('public.bug_history') IS NOT NULL THEN
+    EXECUTE $sql$
 INSERT INTO activity_logs (entity_type, entity_id, event, summary, details, performed_by, performed_at)
 SELECT
   'BUG',
@@ -44,9 +65,17 @@ SELECT
   )),
   actor_emp_id,
   created_at
-FROM bug_history;
+FROM bug_history
+    $sql$;
+  END IF;
+END
+$mig$;
 
 -- 4. Migrate leave_request_history into activity_logs
+DO $mig$
+BEGIN
+  IF to_regclass('public.leave_request_history') IS NOT NULL THEN
+    EXECUTE $sql$
 INSERT INTO activity_logs (entity_type, entity_id, event, summary, details, performed_by, performed_at)
 SELECT
   'LEAVE_REQUEST',
@@ -56,9 +85,17 @@ SELECT
   CASE WHEN details IS NOT NULL THEN jsonb_build_object('details', details) ELSE NULL END,
   performed_by,
   performed_at
-FROM leave_request_history;
+FROM leave_request_history
+    $sql$;
+  END IF;
+END
+$mig$;
 
 -- 5. Migrate expense_claim_history into activity_logs
+DO $mig$
+BEGIN
+  IF to_regclass('public.expense_claim_history') IS NOT NULL THEN
+    EXECUTE $sql$
 INSERT INTO activity_logs (entity_type, entity_id, event, summary, details, performed_by, performed_at)
 SELECT
   'EXPENSE_CLAIM',
@@ -71,9 +108,17 @@ SELECT
   )),
   performed_by,
   performed_at
-FROM expense_claim_history;
+FROM expense_claim_history
+    $sql$;
+  END IF;
+END
+$mig$;
 
 -- 6. Migrate complaint_history into activity_logs
+DO $mig$
+BEGIN
+  IF to_regclass('public.complaint_history') IS NOT NULL THEN
+    EXECUTE $sql$
 INSERT INTO activity_logs (entity_type, entity_id, event, summary, details, performed_by, performed_at)
 SELECT
   'COMPLAINT',
@@ -88,9 +133,17 @@ SELECT
   )),
   performed_by,
   created_at
-FROM complaint_history;
+FROM complaint_history
+    $sql$;
+  END IF;
+END
+$mig$;
 
 -- 7. Migrate employee_history into activity_logs
+DO $mig$
+BEGIN
+  IF to_regclass('public.employee_history') IS NOT NULL THEN
+    EXECUTE $sql$
 INSERT INTO activity_logs (entity_type, entity_id, event, summary, details, performed_by, performed_at)
 SELECT
   'EMPLOYEE',
@@ -109,7 +162,11 @@ SELECT
   )),
   created_by,
   COALESCE(created_at, effective_date::timestamptz)
-FROM employee_history;
+FROM employee_history
+    $sql$;
+  END IF;
+END
+$mig$;
 
 -- 8. Drop the 7 legacy tables
 DROP TABLE IF EXISTS task_history CASCADE;
@@ -120,3 +177,7 @@ DROP TABLE IF EXISTS expense_claim_history CASCADE;
 DROP TABLE IF EXISTS complaint_history CASCADE;
 DROP TABLE IF EXISTS employee_history CASCADE;
 
+
+-- migrate:down
+-- Irreversible: the old per-module history tables were dropped after their rows were moved into activity_logs.
+DO $$ BEGIN RAISE EXCEPTION 'Migration 20261030130000 is irreversible (old history tables were dropped). Restore from backup instead.'; END $$;

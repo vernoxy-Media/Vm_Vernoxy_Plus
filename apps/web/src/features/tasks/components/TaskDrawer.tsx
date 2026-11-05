@@ -34,6 +34,8 @@ export interface TaskDrawerProps {
   task: TaskDetailDto | null;
   isOpen: boolean;
   isAdmin: boolean;
+  /** Approve / send back Submitted tasks: the Admin, or the Project Manager for Project Tasks. Defaults to isAdmin. */
+  canApprove?: boolean;
   embedded?: boolean;
   onClose: () => void;
   onEdit?: (task: TaskDetailDto) => void;
@@ -127,6 +129,7 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
   task,
   isOpen,
   isAdmin,
+  canApprove: canApproveProp,
   embedded = false,
   onClose,
   onEdit,
@@ -135,6 +138,7 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
   onAddSubTask,
   onSendMessage,
 }) => {
+  const canApprove = canApproveProp ?? isAdmin;
   const { user } = useAuth();
   const [nowMs, setNowMs] = React.useState<number>(Date.now());
   const [expandedLogs, setExpandedLogs] = React.useState<boolean>(false);
@@ -149,11 +153,16 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
       ? subTasks.find((st) => st.assignees.some((a) => a.employee_id === user?.emp_id))
       : null;
 
+  const isTaskAssignee =
+    task?.assignees?.some((a) => a.employee_id === user?.emp_id) ||
+    task?.lead_employee_id === user?.emp_id;
+
   // The active task whose session this user is performing:
   // - If the task has sub-tasks and the user is assigned to one: mySubTask
-  // - If the task has NO sub-tasks: task itself
-  // - If the task has sub-tasks and user is not assigned: null (supervisor view)
-  const activeTask = mySubTask || (!task?.has_sub_tasks && subTasks.length === 0 ? task : null);
+  // - If the task has NO sub-tasks and user is assigned to task: task itself
+  // - Otherwise (supervisor or non-assignee view): null
+  const activeTask =
+    mySubTask || (!task?.has_sub_tasks && subTasks.length === 0 && isTaskAssignee ? task : null);
 
   // Live ticking timer every 1000ms if active task or any subtask has is_timer_running === true
   React.useEffect(() => {
@@ -724,7 +733,7 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
                         Work has been submitted and awaits review.
                       </span>
                     </div>
-                    {isAdmin && onMoveStage && (
+                    {canApprove && onMoveStage && (
                       <div className="flex items-center gap-1.5 shrink-0">
                         <button
                           type="button"
@@ -778,9 +787,11 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
                   </span>
                 </div>
                 <p className="text-xs text-slate-600 leading-relaxed">
-                  This task is delegated into {subTasks.length} sub-tasks. Work sessions and timers are tracked by assigned team members on each individual sub-task below.
+                  {subTasks.length > 0
+                    ? `This task is delegated into ${subTasks.length} sub-tasks. Work sessions and timers are tracked by assigned team members on each individual sub-task below.`
+                    : 'You are viewing this task in supervisor mode. Work sessions and timers are tracked by assigned employees.'}
                 </p>
-                {stage === 'requested' && isAdmin && onMoveStage && (
+                {stage === 'requested' && canApprove && onMoveStage && (
                   <div className="pt-2 flex items-center gap-2 border-t border-slate-200/80">
                     <button
                       type="button"
@@ -829,6 +840,7 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
                     {subTasks.map((st) => {
                       const stStage = STAGE_LABELS[st.stage as TaskStage] || STAGE_LABELS.assigned;
                       const assignee = st.assignees[0];
+                      const isStAssignee = st.assignees?.some((a) => a.employee_id === user?.emp_id);
                       const stSec = computeSeconds(
                         st.actual_minutes,
                         st.is_timer_running,
@@ -902,51 +914,55 @@ export const TaskDrawer: React.FC<TaskDrawerProps> = ({
 
                             {/* Subtask Action Buttons */}
                             <div className="flex items-center gap-1.5">
-                              {st.stage === 'assigned' && onTrackWorkSession && (
-                                <button
-                                  type="button"
-                                  disabled={submittingAction !== null}
-                                  onClick={() => handleAction(st.task_id, 'start')}
-                                  className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-1 rounded-lg transition-colors cursor-pointer"
-                                >
-                                  <Play className="w-2.5 h-2.5 fill-emerald-700" /> Start
-                                </button>
-                              )}
-
-                              {st.stage === 'in_progress' && onTrackWorkSession && (
+                              {isStAssignee && (
                                 <>
-                                  {st.is_timer_running ? (
-                                    <button
-                                      type="button"
-                                      disabled={submittingAction !== null}
-                                      onClick={() => handleAction(st.task_id, 'pause')}
-                                      className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2 py-1 rounded-lg transition-colors cursor-pointer"
-                                    >
-                                      <Pause className="w-2.5 h-2.5 fill-amber-700" /> Pause
-                                    </button>
-                                  ) : (
+                                  {st.stage === 'assigned' && onTrackWorkSession && (
                                     <button
                                       type="button"
                                       disabled={submittingAction !== null}
                                       onClick={() => handleAction(st.task_id, 'start')}
                                       className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-1 rounded-lg transition-colors cursor-pointer"
                                     >
-                                      <Play className="w-2.5 h-2.5 fill-emerald-700" /> Resume
+                                      <Play className="w-2.5 h-2.5 fill-emerald-700" /> Start
                                     </button>
                                   )}
 
-                                  <button
-                                    type="button"
-                                    disabled={submittingAction !== null}
-                                    onClick={() => handleAction(st.task_id, 'finish')}
-                                    className="inline-flex items-center gap-1 text-[11px] font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 px-2 py-1 rounded-lg transition-colors cursor-pointer"
-                                  >
-                                    <CheckCircle2 className="w-2.5 h-2.5" /> Finish
-                                  </button>
+                                  {st.stage === 'in_progress' && onTrackWorkSession && (
+                                    <>
+                                      {st.is_timer_running ? (
+                                        <button
+                                          type="button"
+                                          disabled={submittingAction !== null}
+                                          onClick={() => handleAction(st.task_id, 'pause')}
+                                          className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2 py-1 rounded-lg transition-colors cursor-pointer"
+                                        >
+                                          <Pause className="w-2.5 h-2.5 fill-amber-700" /> Pause
+                                        </button>
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          disabled={submittingAction !== null}
+                                          onClick={() => handleAction(st.task_id, 'start')}
+                                          className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-1 rounded-lg transition-colors cursor-pointer"
+                                        >
+                                          <Play className="w-2.5 h-2.5 fill-emerald-700" /> Resume
+                                        </button>
+                                      )}
+
+                                      <button
+                                        type="button"
+                                        disabled={submittingAction !== null}
+                                        onClick={() => handleAction(st.task_id, 'finish')}
+                                        className="inline-flex items-center gap-1 text-[11px] font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 px-2 py-1 rounded-lg transition-colors cursor-pointer"
+                                      >
+                                        <CheckCircle2 className="w-2.5 h-2.5" /> Finish
+                                      </button>
+                                    </>
+                                  )}
                                 </>
                               )}
 
-                              {isAdmin && st.stage === 'requested' && onMoveStage && (
+                              {canApprove && st.stage === 'requested' && onMoveStage && (
                                 <button
                                   type="button"
                                   onClick={() => onMoveStage(st.task_id, 'completed')}

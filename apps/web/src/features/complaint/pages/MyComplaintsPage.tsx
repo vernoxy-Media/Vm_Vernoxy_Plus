@@ -11,7 +11,6 @@ import {
   Loader2,
   RotateCcw,
   Eye,
-  ChevronRight,
   FilterX,
   CalendarDays,
   Inbox,
@@ -422,15 +421,12 @@ export const MyComplaintsPage: React.FC = (): React.ReactElement => {
                   </div>
                   {c.handler_name && <p className="text-xs text-slate-500">Handler: <span className="font-medium text-slate-700">{c.handler_name}</span></p>}
                   <div className="flex items-center gap-2 pt-1">
-                    {c.status === 'Resolved' ? (
+                    {c.status === 'Resolved' && (
                       <button type="button" onClick={() => startConfirm(c.complaint_id)} className="inline-flex h-9 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-emerald-600 text-[13px] font-semibold text-white shadow-sm shadow-emerald-600/25 transition hover:bg-emerald-700">
                         <CheckCircle2 className="h-4 w-4" /> Confirm
                       </button>
-                    ) : (
-                      <button type="button" onClick={() => setViewingComplaintId(c.complaint_id)} className="inline-flex h-9 flex-1 cursor-pointer items-center justify-center gap-1 rounded-xl border border-slate-200 text-[13px] font-semibold text-indigo-600 transition hover:bg-indigo-50">
-                        View <ChevronRight className="h-4 w-4" />
-                      </button>
                     )}
+                    <div className="ml-auto" />
                     <RowActionsMenu label={`More actions for ${c.complaint_no}`} actions={menuActionsFor(c)} />
                   </div>
                 </li>
@@ -484,13 +480,9 @@ export const MyComplaintsPage: React.FC = (): React.ReactElement => {
                       </td>
                       <td className="px-5 py-3.5 text-right">
                         <div className="flex items-center justify-end gap-1">
-                          {c.status === 'Resolved' ? (
+                          {c.status === 'Resolved' && (
                             <button type="button" onClick={() => startConfirm(c.complaint_id)} className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 text-[13px] font-semibold text-white shadow-sm shadow-emerald-600/25 transition hover:bg-emerald-700">
                               <CheckCircle2 className="h-3.5 w-3.5" /> Confirm
-                            </button>
-                          ) : (
-                            <button type="button" onClick={() => setViewingComplaintId(c.complaint_id)} className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-lg px-3 text-[13px] font-semibold text-indigo-600 transition hover:bg-indigo-50">
-                              View <ChevronRight className="h-4 w-4" />
                             </button>
                           )}
                           <RowActionsMenu label={`More actions for ${c.complaint_no}`} actions={menuActionsFor(c)} />

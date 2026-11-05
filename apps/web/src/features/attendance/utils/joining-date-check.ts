@@ -77,11 +77,7 @@ export function checkJoiningDateConflict(
     };
   }
 
-  return {
-    isWeeklyOff: false,
-    isHoliday: false,
-    message: 'Working day (no holiday or weekly off conflict)',
-    severity: 'ok',
-  };
+  // Normal working day: do not return message (show notice only for conflicts)
+  return null;
 }
 

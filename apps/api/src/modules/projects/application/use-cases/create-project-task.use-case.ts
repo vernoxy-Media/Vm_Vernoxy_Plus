@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 import {
   CreateProjectTaskInput,
   ProjectRepositoryPort,
@@ -9,13 +10,13 @@ export class CreateProjectTaskUseCase {
 
   async execute(input: CreateProjectTaskInput): Promise<ProjectTaskEntity> {
     if (!input.title || !input.title.trim()) {
-      throw new Error('Task title cannot be blank');
+      throw new BadRequestException('Task title cannot be blank');
     }
     if (input.title.trim().length > 150) {
-      throw new Error('Task title cannot exceed 150 characters');
+      throw new BadRequestException('Task title cannot exceed 150 characters');
     }
     if (!input.assignee_ids || input.assignee_ids.length === 0) {
-      throw new Error('At least one project member must be assigned');
+      throw new BadRequestException('At least one project member must be assigned');
     }
 
     return this.projectRepo.createProjectTask(input);

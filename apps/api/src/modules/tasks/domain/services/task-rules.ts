@@ -46,7 +46,15 @@ export function canTransitionStage(
   }
 
   if (fromStage === 'requested') {
-    if (toStage === 'in_progress') return { allowed: true };
+    if (toStage === 'in_progress') {
+      if (!isAdmin) {
+        return {
+          allowed: false,
+          reason: 'Only administrators or project managers can return submitted tasks for rework',
+        };
+      }
+      return { allowed: true };
+    }
     if (toStage === 'completed') {
       if (!isAdmin) {
         return { allowed: false, reason: 'Only administrators or project managers can approve tasks' };

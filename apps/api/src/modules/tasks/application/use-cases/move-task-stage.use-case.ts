@@ -32,14 +32,30 @@ export class MoveTaskStageUseCase {
       throw new TaskNotFoundError(command.taskId);
     }
 
-    if (!command.isAdmin) {
-      const isAssignee = existing.assignees.some((a) => a.employee_id === command.actorEmpId);
-      if (!isAssignee) {
-        throw new TaskPermissionDeniedError('Only assigned employees or administrators can move this task');
+    const isAssignee = existing.assignees.some((a) => a.employee_id === command.actorEmpId);
+    const isLead = existing.lead_employee_id === command.actorEmpId;
+
+    // Approver actions (BFD Section 3.3): Approving a submitted task, or rejecting back to in_progress with notes
+    const isApproverAction =
+      (existing.stage === 'requested' && command.targetStage === 'completed') ||
+      (existing.stage === 'requested' && command.targetStage === 'in_progress');
+
+    // Approver (BFD 3.4): Admin for every task; the Project Manager also for Project Tasks.
+    const projectManagerId = await this.taskRepo.getTaskProjectManagerId(existing.task_id);
+    const isApprover = command.isAdmin || (projectManagerId !== null && projectManagerId === command.actorEmpId);
+
+    if (isApproverAction) {
+      if (!isApprover) {
+        throw new TaskPermissionDeniedError('Only the Admin, or the Project Manager for Project Tasks, can approve or send back this task.');
+      }
+    } else {
+      // Execution actions (moving to In Progress, Hold, or submitting): only assigned employees can perform
+      if (!isAssignee && !isLead) {
+        throw new TaskPermissionDeniedError('Only assigned employees can move, pause, or submit this task');
       }
     }
 
-    const check = canTransitionStage(existing.stage, command.targetStage, command.isAdmin);
+    const check = canTransitionStage(existing.stage, command.targetStage, isApprover);
     if (!check.allowed) {
       throw new InvalidStageTransitionError(check.reason || 'Invalid stage transition');
     }
@@ -68,11 +84,11 @@ export class MoveTaskStageUseCase {
       actor_emp_id: command.actorEmpId,
       note: command.note?.trim() || null,
       hold_reason: command.targetStage === 'hold' ? (command.hold_reason?.trim() || command.note?.trim() || null) : null,
-      self_approved: command.isAdmin,
+      self_approved: isApprover,
     });
 
     // Handle notifications asynchronously without failing the stage transition
-    this.dispatchNotifications(existing.stage, command.targetStage, updated, command).catch(() => {});
+    this.dispatchNotifications(existing.stage, command.targetStage, updated, { ...command, isAdmin: isApprover }, projectManagerId).catch(() => {});
 
     return updated;
   }
@@ -82,11 +98,13 @@ export class MoveTaskStageUseCase {
     toStage: TaskStage,
     task: TaskEntity,
     command: MoveTaskStageCommand,
+    projectManagerId: number | null = null,
   ): Promise<void> {
     // 1. Moving to requested (Submitted) -> notify admin approvers
     if (toStage === 'requested') {
       const approverIds = await this.approverResolver.getAdminApproverIds();
-      const notifyApprovers = approverIds
+      if (projectManagerId) approverIds.push(projectManagerId);
+      const notifyApprovers = Array.from(new Set(approverIds))
         .filter((id) => id !== command.actorEmpId)
         .map((id) => ({
           recipient_id: id,

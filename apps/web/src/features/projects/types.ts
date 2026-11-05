@@ -185,14 +185,27 @@ export interface ProjectTaskItem {
   created_at: string;
 }
 
+/** Same fields as Create Task in the Task Module, plus Sprint (Project BFD 2.7). */
 export interface CreateProjectTaskPayload {
   title: string;
   description?: string;
-  priority?: 'low' | 'medium' | 'high' | 'urgent';
-  due_date?: string;
+  priority?: 'low' | 'medium' | 'high';
   allocated_minutes?: number;
   sprint_id?: number;
   assignee_ids: number[];
+  task_type_id?: number;
+  other_task_type?: string;
+  has_sub_tasks?: boolean;
+  lead_employee_id?: number;
+  sub_tasks?: Array<{
+    title: string;
+    description?: string;
+    allocated_minutes?: number;
+    assignee_ids: number[];
+    priority?: 'low' | 'medium' | 'high';
+    task_type_id?: number;
+    other_task_type?: string;
+  }>;
 }
 
 export interface ProjectDiscussionItem {
@@ -294,5 +307,7 @@ export interface CreateProjectBugPayload {
   other_bug_type?: string;
   attachment_url?: string;
   task_id?: number;
+  /** Screenshot or document, max 5 MB (uploaded before the bug is saved). */
+  attachment_file?: File | null;
 }
 

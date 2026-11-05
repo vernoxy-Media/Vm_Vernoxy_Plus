@@ -40,6 +40,20 @@ export interface TodayAttendanceData {
   active_break_reason?: string | null;
   server_now: string; // ISO
   timeline: TimelineEvent[];
+  /** Approved leave today, from Leave Management. */
+  leave_info?: {
+    type_name: string;
+    part: string;
+    half?: string | null;
+    request_no?: string | null;
+    from_date?: string | null;
+    to_date?: string | null;
+    approved_by?: string | null;
+    check_in_message?: string | null;
+    check_in_allowed_from?: string | null;
+  } | null;
+  /** "Your leave for today is waiting for approval" */
+  pending_leave_note?: string | null;
 }
 
 export interface AttendanceStatistics {
@@ -90,6 +104,8 @@ export interface DayRecord {
   /** Where the punch happened, when the clock-in captured a location */
   latitude?: number | null;
   longitude?: number | null;
+  /** 'half' when only the first or second half is approved leave. */
+  leave_part?: 'full' | 'half' | null;
   can_request_correction: boolean;
   is_today?: boolean;
   check_in_location?: string | null;
@@ -101,6 +117,16 @@ export interface AttendanceDashboardResponse {
   statistics: AttendanceStatistics;
   month_summary: MonthSummary;
   records: DayRecord[];
+  shift?: {
+    shift_id?: number;
+    shift_name: string;
+    start_time: string;
+    end_time: string;
+    late_arrival_grace_minutes: number;
+    early_exit_grace_minutes: number;
+    full_day_hours?: number;
+    half_day_hours?: number;
+  };
 }
 
 export interface DayDetailBreak {

@@ -29,7 +29,7 @@ export const SettingsPage: React.FC = () => {
   }
 
   const ActiveComponent = currentSection?.component || visibleSections[0]?.component;
-  const currentGroup = currentSection?.group || 'Organization';
+  const currentGroup = currentSection?.group || 'Employee';
   const currentGroupSections = sectionGroups[currentGroup] || [];
   const groups = SETTINGS_MAIN_GROUPS.filter((g) => (sectionGroups[g.name] || []).length > 0);
 

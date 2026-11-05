@@ -288,6 +288,9 @@ export class EmployeeController {
         delete effectiveDto.bank_name;
         delete effectiveDto.account_number;
         delete effectiveDto.ifsc_code;
+        delete effectiveDto.leave_policy_id;
+        delete effectiveDto.probation_period;
+        delete effectiveDto.notice_period;
       }
 
       const emp = await this.updateEmployeeUseCase.execute({
@@ -311,26 +314,26 @@ export class EmployeeController {
         emergency_contact_name: dto.emergency_contact_name,
         emergency_contact_number: dto.emergency_contact_number,
         emergency_contact_relation: dto.emergency_contact_relation,
-        employment_type_id: dto.employment_type_id,
-        salary: dto.salary,
-        probation_period: dto.probation_period,
-        notice_period: dto.notice_period,
-        pf: dto.pf,
-        ot_eligible: dto.ot_eligible,
-        ot_rate_type: dto.ot_rate_type,
-        ot_rate: dto.ot_rate,
-        ot_multiplier: dto.ot_multiplier,
-        minimum_ot_per_day: dto.minimum_ot_per_day,
-        ot_paid_as: dto.ot_paid_as,
-        pf_applicable: dto.pf_applicable,
-        uan: dto.uan,
-        employee_pf_pct: dto.employee_pf_pct,
-        employer_pf_pct: dto.employer_pf_pct,
-        payment_mode: dto.payment_mode,
-        bank_name: dto.bank_name,
-        account_number: dto.account_number,
-        ifsc_code: dto.ifsc_code,
-        leave_policy_id: dto.leave_policy_id,
+        employment_type_id: effectiveDto.employment_type_id,
+        salary: effectiveDto.salary,
+        probation_period: effectiveDto.probation_period,
+        notice_period: effectiveDto.notice_period,
+        pf: effectiveDto.pf,
+        ot_eligible: effectiveDto.ot_eligible,
+        ot_rate_type: effectiveDto.ot_rate_type,
+        ot_rate: effectiveDto.ot_rate,
+        ot_multiplier: effectiveDto.ot_multiplier,
+        minimum_ot_per_day: effectiveDto.minimum_ot_per_day,
+        ot_paid_as: effectiveDto.ot_paid_as,
+        pf_applicable: effectiveDto.pf_applicable,
+        uan: effectiveDto.uan,
+        employee_pf_pct: effectiveDto.employee_pf_pct,
+        employer_pf_pct: effectiveDto.employer_pf_pct,
+        payment_mode: effectiveDto.payment_mode,
+        bank_name: effectiveDto.bank_name,
+        account_number: effectiveDto.account_number,
+        ifsc_code: effectiveDto.ifsc_code,
+        leave_policy_id: effectiveDto.leave_policy_id,
         termination_date: dto.termination_date,
         deactivation_reason: dto.deactivation_reason,
         deactivation_notes: dto.deactivation_notes,

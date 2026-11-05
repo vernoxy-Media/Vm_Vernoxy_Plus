@@ -68,7 +68,7 @@ export class TaskBoardCardDto {
   @ApiPropertyOptional({ type: String, example: 'Setup JWT and argon2', nullable: true })
   description!: string | null;
 
-  @ApiProperty({ enum: ['low', 'medium', 'high', 'critical'], example: 'high' })
+  @ApiProperty({ enum: ['low', 'medium', 'high'], example: 'high' })
   priority!: TaskPriority;
 
   @ApiPropertyOptional({ type: Number, example: 2, nullable: true })
@@ -266,7 +266,7 @@ export class TaskDetailDto {
   @ApiPropertyOptional({ type: String, nullable: true })
   description!: string | null;
 
-  @ApiProperty({ enum: ['low', 'medium', 'high', 'critical'] })
+  @ApiProperty({ enum: ['low', 'medium', 'high'] })
   priority!: TaskPriority;
 
   @ApiPropertyOptional({ type: Number, nullable: true })
@@ -383,11 +383,34 @@ export class CreateSubTaskDto {
   @Min(1)
   allocated_minutes?: number;
 
-  @ApiProperty({ type: [Number], example: [1] })
+  @ApiPropertyOptional({ type: [Number], example: [1], description: 'One or many employees of the main task' })
+  @IsOptional()
   @IsArray()
-  @ArrayMinSize(1)
   @IsInt({ each: true })
   assignee_ids!: number[];
+
+  @ApiPropertyOptional({ type: String })
+  @IsOptional()
+  @IsString()
+  @MaxLength(10000)
+  description?: string;
+
+  @ApiPropertyOptional({ enum: ['low', 'medium', 'high'] })
+  @IsOptional()
+  @IsEnum(['low', 'medium', 'high'], { message: 'Please select the Priority: High, Medium or Low.' })
+  priority?: TaskPriority;
+
+  @ApiPropertyOptional({ type: Number })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  task_type_id?: number;
+
+  @ApiPropertyOptional({ type: String, maxLength: 100 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  other_task_type?: string;
 }
 
 export class CreateTaskDto {
@@ -403,9 +426,9 @@ export class CreateTaskDto {
   @MaxLength(10000)
   description?: string;
 
-  @ApiPropertyOptional({ enum: ['low', 'medium', 'high', 'critical'], default: 'medium' })
+  @ApiPropertyOptional({ enum: ['low', 'medium', 'high'], default: 'medium' })
   @IsOptional()
-  @IsEnum(['low', 'medium', 'high', 'critical'])
+  @IsEnum(['low', 'medium', 'high'], { message: 'Please select the Priority: High, Medium or Low.' })
   priority?: TaskPriority;
 
   @ApiPropertyOptional({ type: Number, example: 1 })
@@ -477,9 +500,9 @@ export class UpdateTaskDto {
   @MaxLength(10000)
   description?: string;
 
-  @ApiPropertyOptional({ enum: ['low', 'medium', 'high', 'critical'] })
+  @ApiPropertyOptional({ enum: ['low', 'medium', 'high'] })
   @IsOptional()
-  @IsEnum(['low', 'medium', 'high', 'critical'])
+  @IsEnum(['low', 'medium', 'high'], { message: 'Please select the Priority: High, Medium or Low.' })
   priority?: TaskPriority;
 
   @ApiPropertyOptional({ type: Number })
@@ -547,9 +570,9 @@ export class TaskBoardQueryDto {
   @IsString()
   search?: string;
 
-  @ApiPropertyOptional({ enum: ['low', 'medium', 'high', 'critical'] })
+  @ApiPropertyOptional({ enum: ['low', 'medium', 'high'] })
   @IsOptional()
-  @IsEnum(['low', 'medium', 'high', 'critical'])
+  @IsEnum(['low', 'medium', 'high'], { message: 'Please select the Priority: High, Medium or Low.' })
   priority?: TaskPriority;
 
   @ApiPropertyOptional({ type: Number })

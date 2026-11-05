@@ -17,6 +17,7 @@ import {
   X,
 } from 'lucide-react';
 import { TaskBoardCardDto } from '@vernoxy-pulse/api-client';
+import { useAuth } from '@/features/auth/context/AuthContext';
 import type { TaskPriority, TaskStage } from '../types';
 import { AvatarStack } from './AvatarStack';
 import { formatMinutesToHuman } from './DurationField';
@@ -108,14 +109,18 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   onResume,
   isOverlay = false,
 }) => {
+  const { user } = useAuth();
   const stage = (task.stage as TaskStage) || 'assigned';
   const stageStyles = STAGE_BORDER_STYLES[stage] || STAGE_BORDER_STYLES.assigned;
   const isCompleted = stage === 'completed';
+  const isAssignee = task.assignees?.some((a) => a.employee_id === user?.emp_id);
+  const isApproverMove = isAdmin && stage === 'requested';
+  const canDrag = isCompleted ? false : isApproverMove || Boolean(isAssignee);
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.task_id.toString(),
     data: { type: 'Task', task, stage: task.stage },
-    disabled: isOverlay || isCompleted, // BFD Section 3.3: Completed tasks cannot be dragged or modified
+    disabled: isOverlay || !canDrag, // BFD Section 3.3: Completed locked, execution moves restricted to assignees
   });
 
   const style: React.CSSProperties = {
@@ -284,7 +289,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
             </>
           )}
 
-          {!isAdmin && task.stage === 'assigned' && onStart && (
+          {isAssignee && task.stage === 'assigned' && onStart && (
             <button
               type="button"
               onClick={() => onStart(task.task_id)}
@@ -294,7 +299,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
             </button>
           )}
 
-          {!isAdmin && task.stage === 'in_progress' && (
+          {isAssignee && task.stage === 'in_progress' && (
             <div className="flex items-center gap-1">
               {onHold && (
                 <button
@@ -318,7 +323,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
             </div>
           )}
 
-          {task.stage === 'hold' && onResume && (
+          {isAssignee && task.stage === 'hold' && onResume && (
             <button
               type="button"
               onClick={() => onResume(task.task_id)}

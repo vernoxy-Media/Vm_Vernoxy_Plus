@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../../../core/prisma/prisma.service';
 import { AUTH_TOKENS } from '../../../auth/application/ports/tokens';
-import { MailPort } from '../../../auth/application/ports/auth.ports';
+import { MailPort, DocumentRequestMailItem } from '../../../auth/application/ports/auth.ports';
 import {
   EmployeeDocumentItemDto,
   DocumentTemplateItemDto,
@@ -716,6 +716,7 @@ export class EmployeeDocumentService implements OnModuleInit, OnModuleDestroy {
   async getDocumentForDownload(
     empId: number,
     documentType: string,
+    variant: 'signed' | 'issued' = 'signed',
   ): Promise<{ content: string | Buffer; fileName: string; mimeType: string }> {
     const docs = await this.getEmployeeDocuments(empId);
     const doc = docs.find((d) => d.document_type === documentType);
@@ -723,7 +724,49 @@ export class EmployeeDocumentService implements OnModuleInit, OnModuleDestroy {
       throw new NotFoundException(`Document ${documentType} not found`);
     }
 
-    // 1. Check if an uploaded file exists in storage/employee-docs/<empId>/
+    // If 'issued' is explicitly requested
+    if (variant === 'issued') {
+      let issuedHtml = doc.draft_content;
+      if (!issuedHtml && ['offer_letter', 'joining_letter', 'nda_signed'].includes(documentType)) {
+        try {
+          const draft = await this.generateDraft(empId, { document_type: documentType }, 1);
+          issuedHtml = draft.draft_content;
+          await this.prisma.$executeRaw`
+            UPDATE employee_documents
+            SET draft_content = ${issuedHtml}
+            WHERE emp_id = ${empId} AND document_type = ${documentType}
+          `;
+        } catch (e) {}
+      }
+
+      if (issuedHtml) {
+        const docHtml = `
+          <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+          <head>
+            <meta charset="utf-8">
+            <title>${doc.title} (Issued)</title>
+            <style>
+              body { font-family: 'Calibri', 'Arial', sans-serif; font-size: 11pt; line-height: 1.5; color: #1e293b; padding: 40px; }
+              h2 { color: #0f172a; border-bottom: 2px solid #2563eb; padding-bottom: 8px; }
+              table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+              th, td { border: 1px solid #cbd5e1; padding: 8px; text-align: left; }
+              th { background-color: #f1f5f9; }
+            </style>
+          </head>
+          <body>
+            ${issuedHtml}
+          </body>
+          </html>
+        `;
+        return {
+          content: docHtml,
+          fileName: `issued_${doc.file_name || `${documentType}.doc`}`,
+          mimeType: 'application/msword',
+        };
+      }
+    }
+
+    // Default or signed: Check if an uploaded file exists in storage/employee-docs/<empId>/
     const repoRoot = path.resolve(__dirname, '../../../../../../..');
     const storageDir = path.resolve(repoRoot, 'storage', 'employee-docs', String(empId));
     if (fs.existsSync(storageDir)) {
@@ -769,9 +812,45 @@ export class EmployeeDocumentService implements OnModuleInit, OnModuleDestroy {
     throw new NotFoundException(`Document file content not available`);
   }
 
+  async getIssuedDocument(
+    empId: number,
+    documentType: string,
+  ): Promise<{ title: string; document_type: string; draft_content: string; issued_at: string | null }> {
+    const docs = await this.getEmployeeDocuments(empId);
+    const doc = docs.find((d) => d.document_type === documentType);
+    if (!doc) {
+      throw new NotFoundException(`Document ${documentType} not found`);
+    }
+
+    let issuedContent = doc.draft_content;
+    if (!issuedContent && ['offer_letter', 'joining_letter', 'nda_signed'].includes(documentType)) {
+      try {
+        const draft = await this.generateDraft(empId, { document_type: documentType }, 1);
+        issuedContent = draft.draft_content;
+        await this.prisma.$executeRaw`
+          UPDATE employee_documents
+          SET draft_content = ${issuedContent}
+          WHERE emp_id = ${empId} AND document_type = ${documentType}
+        `;
+      } catch (e) {}
+    }
+
+    if (!issuedContent) {
+      throw new NotFoundException(`Issued content for ${documentType} is not available.`);
+    }
+
+    return {
+      title: doc.title,
+      document_type: documentType,
+      draft_content: issuedContent,
+      issued_at: doc.issued_at || null,
+    };
+  }
+
   async getActivationEligibility(empId: number): Promise<EmployeeActivationStatusDto> {
     const empResult = await this.prisma.$queryRaw<Array<any>>`
       SELECT e.emp_id, e.status, e.address, e.emergency_contact_name, e.emergency_contact_number, e.birth_date,
+             e.leave_policy_id,
              p.emp_id AS pay_policy_emp_id, p.bank_name, p.account_number, p.pf_applicable, p.ot_eligible
       FROM employees e
       LEFT JOIN employee_pay_policies p ON p.emp_id = e.emp_id
@@ -834,7 +913,11 @@ export class EmployeeDocumentService implements OnModuleInit, OnModuleDestroy {
       }
     }
 
-    const canActivate = isDocsComplete && isDetailsCompleted;
+    // Leave BFD 3.2: a Leave Policy is required before the employee is activated.
+    if (!emp.leave_policy_id) {
+      missingDetails.push('Leave Policy (Pay & Policies > Leave)');
+    }
+    const canActivate = isDocsComplete && isDetailsCompleted && Boolean(emp.leave_policy_id);
 
     return {
       can_activate: canActivate,
@@ -842,7 +925,7 @@ export class EmployeeDocumentService implements OnModuleInit, OnModuleDestroy {
       missing_documents: missingDocs,
       total_required: totalRequired,
       completed_required: completedRequired,
-      is_details_completed: isDetailsCompleted,
+      is_details_completed: isDetailsCompleted && Boolean(emp.leave_policy_id),
       missing_details: missingDetails,
     };
   }
@@ -858,7 +941,11 @@ export class EmployeeDocumentService implements OnModuleInit, OnModuleDestroy {
         reasons.push(`Mandatory documents missing: ${eligibility.missing_documents.join(', ')}`);
       }
       if (!eligibility.is_details_completed) {
-        reasons.push('Employee details (PF, OT, Bank, Emergency Contact) must be filled before activating account.');
+        reasons.push(
+          eligibility.missing_details?.length
+            ? `Please complete: ${(eligibility.missing_details || []).join(', ')}.`
+            : 'Employee details (PF, OT, Bank, Emergency Contact) must be filled before activating account.',
+        );
       }
       throw new BadRequestException(`Cannot activate account. ${reasons.join(' ')}`);
     }
@@ -1044,4 +1131,147 @@ export class EmployeeDocumentService implements OnModuleInit, OnModuleDestroy {
       must_change_password: true,
     };
   }
+
+  /**
+   * BFD Reference Screen 8 Marker 3:
+   * Send document request email to candidate listing every ticked-but-pending
+   * and required-but-unticked document.
+   */
+  async sendDocumentRequestEmail(
+    empId: number,
+    adminId?: number,
+    options?: { email?: string; notes?: string }
+  ): Promise<{
+    success: boolean;
+    message: string;
+    sent_to: string;
+    candidate_name: string;
+    pending_count: number;
+    pending_documents: DocumentRequestMailItem[];
+  }> {
+    const employee = await this.prisma.employees.findUnique({
+      where: { emp_id: empId },
+      select: {
+        emp_id: true,
+        name: true,
+        personal_email: true,
+        office_email: true,
+        email: true,
+        status: true,
+      },
+    });
+
+    if (!employee) {
+      throw new NotFoundException(`Employee #${empId} not found`);
+    }
+
+    const candidate = await this.prisma.candidates.findFirst({
+      where: { converted_to_emp_id: empId },
+      select: { candidate_id: true, name: true, email: true },
+    });
+
+    const recipientEmail = (
+      options?.email ||
+      candidate?.email ||
+      employee.personal_email ||
+      employee.email ||
+      employee.office_email ||
+      ''
+    ).trim();
+
+    if (!recipientEmail) {
+      throw new BadRequestException('No email address available to send the document request.');
+    }
+
+    const allDocs = await this.getEmployeeDocuments(empId);
+
+    // Rule: Marker 3 - Emails candidate a list of every ticked-but-pending and required-but-unticked document.
+    const pendingList: DocumentRequestMailItem[] = [];
+
+    for (const doc of allDocs) {
+      // Exclude purely company-given exit/post-employment letters (relieving, experience, salary slips)
+      if (
+        doc.category === 'given_to_employee' &&
+        doc.document_type !== 'offer_letter' &&
+        doc.document_type !== 'joining_letter'
+      ) {
+        continue;
+      }
+
+      const hasFile = Boolean(doc.file_url) || doc.status === 'uploaded' || doc.status === 'accepted' || doc.status === 'signed';
+
+      if (doc.is_ticked && !hasFile) {
+        pendingList.push({
+          title: doc.title,
+          category: doc.category === 'agreement' ? 'Agreement' : 'Documentation',
+          isRequired: Boolean(doc.is_required_for_activation),
+          reason: 'ticked_pending',
+        });
+      } else if (doc.is_required_for_activation && !doc.is_ticked && !hasFile) {
+        pendingList.push({
+          title: doc.title,
+          category: doc.category === 'agreement' ? 'Agreement' : 'Documentation',
+          isRequired: true,
+          reason: 'required_unticked',
+        });
+      }
+    }
+
+    if (pendingList.length === 0) {
+      return {
+        success: true,
+        message: 'All requested documents have already been uploaded. No pending documents to request.',
+        sent_to: recipientEmail,
+        candidate_name: candidate?.name || employee.name,
+        pending_count: 0,
+        pending_documents: [],
+      };
+    }
+
+    if (this.mailPort) {
+      try {
+        await this.mailPort.sendDocumentRequest({
+          to: recipientEmail,
+          candidateName: candidate?.name || employee.name,
+          employeeId: empId,
+          pendingDocuments: pendingList,
+          customMessage: options?.notes,
+        });
+      } catch (err: any) {
+        this.logger.error(`Failed to dispatch document request email: ${err.message}`);
+        throw new BadRequestException(`Failed to send email: ${err.message}`);
+      }
+    } else {
+      this.logger.warn(`MailPort not available. Skipping email delivery to ${recipientEmail}.`);
+    }
+
+    // Log in activity_logs
+    try {
+      await this.prisma.$executeRaw`
+        INSERT INTO activity_logs (entity_type, entity_id, event, summary, details, performed_by, performed_at)
+        VALUES (
+          'EMPLOYEE', ${empId}, 'DOCUMENT_REQUEST_SENT', 'Document Request Emailed',
+          jsonb_build_object(
+            'sent_to', ${recipientEmail},
+            'pending_count', ${pendingList.length},
+            'candidate_name', ${candidate?.name || employee.name},
+            'notes', ${options?.notes || null}
+          ),
+          ${adminId || null}, NOW()
+        )
+      `;
+    } catch (logErr: any) {
+      this.logger.warn(`Failed to record activity log for document request: ${logErr.message}`);
+    }
+
+    return {
+      success: true,
+      message: `Document request successfully sent to ${recipientEmail} (${pendingList.length} pending document${pendingList.length > 1 ? 's' : ''}).`,
+      sent_to: recipientEmail,
+      candidate_name: candidate?.name || employee.name,
+      pending_count: pendingList.length,
+      pending_documents: pendingList,
+    };
+  }
+
 }

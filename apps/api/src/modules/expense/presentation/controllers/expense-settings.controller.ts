@@ -52,7 +52,9 @@ export class ExpenseSettingsController {
   @ApiOperation({ summary: 'Create new expense category (Admin only)' })
   async createCategory(@Body() dto: CreateExpenseCategoryDto, @Req() req: any) {
     const adminId = req.user?.emp_id || 1;
-    return this.expenseSettingsService.createCategory(dto, adminId);
+    const r: any = await this.expenseSettingsService.createCategory(dto, adminId);
+    await this.expenseSettingsService.notifyAdmins(`category "${dto.name}" added`, adminId);
+    return r;
   }
 
   @UseGuards(OrganizationAdminGuard)
@@ -64,7 +66,9 @@ export class ExpenseSettingsController {
     @Req() req: any,
   ) {
     const adminId = req.user?.emp_id || 1;
-    return this.expenseSettingsService.updateCategory(id, dto, adminId);
+    const r: any = await this.expenseSettingsService.updateCategory(id, dto, adminId);
+    await this.expenseSettingsService.notifyAdmins(`category #${id} edited`, adminId);
+    return r;
   }
 
   @UseGuards(OrganizationAdminGuard)
@@ -72,7 +76,9 @@ export class ExpenseSettingsController {
   @ApiOperation({ summary: 'Toggle category active/inactive status (Admin only)' })
   async toggleCategoryStatus(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
     const adminId = req.user?.emp_id || 1;
-    return this.expenseSettingsService.toggleCategoryStatus(id, adminId);
+    const r: any = await this.expenseSettingsService.toggleCategoryStatus(id, adminId);
+    await this.expenseSettingsService.notifyAdmins(`category #${id} switched ${r?.is_active ? 'on' : 'off'}`, adminId);
+    return r;
   }
 
   @UseGuards(OrganizationAdminGuard)
@@ -80,7 +86,9 @@ export class ExpenseSettingsController {
   @ApiOperation({ summary: 'Soft delete expense category (Admin only)' })
   async deleteCategory(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
     const adminId = req.user?.emp_id || 1;
-    return this.expenseSettingsService.deleteCategory(id, adminId);
+    const r: any = await this.expenseSettingsService.deleteCategory(id, adminId);
+    await this.expenseSettingsService.notifyAdmins(`category #${id} deleted`, adminId);
+    return r;
   }
 
   // ---------------------------------------------------------------------------
@@ -145,7 +153,9 @@ export class ExpenseSettingsController {
   @ApiOperation({ summary: 'Create new expense type (Admin only)' })
   async createExpenseType(@Body() dto: CreateExpenseTypeDto, @Req() req: any) {
     const adminId = req.user?.emp_id || 1;
-    return this.expenseSettingsService.createExpenseType(dto, adminId);
+    const r: any = await this.expenseSettingsService.createExpenseType(dto, adminId);
+    await this.expenseSettingsService.notifyAdmins(`expense type "${dto.name}" added`, adminId);
+    return r;
   }
 
   @UseGuards(OrganizationAdminGuard)
@@ -157,7 +167,9 @@ export class ExpenseSettingsController {
     @Req() req: any,
   ) {
     const adminId = req.user?.emp_id || 1;
-    return this.expenseSettingsService.updateExpenseType(id, dto, adminId);
+    const r: any = await this.expenseSettingsService.updateExpenseType(id, dto, adminId);
+    await this.expenseSettingsService.notifyAdmins(`expense type #${id} edited`, adminId);
+    return r;
   }
 
   @UseGuards(OrganizationAdminGuard)
@@ -165,7 +177,9 @@ export class ExpenseSettingsController {
   @ApiOperation({ summary: 'Toggle expense type active/inactive status (Admin only)' })
   async toggleExpenseTypeStatus(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
     const adminId = req.user?.emp_id || 1;
-    return this.expenseSettingsService.toggleExpenseTypeStatus(id, adminId);
+    const r: any = await this.expenseSettingsService.toggleExpenseTypeStatus(id, adminId);
+    await this.expenseSettingsService.notifyAdmins(`expense type #${id} switched`, adminId);
+    return r;
   }
 
   @UseGuards(OrganizationAdminGuard)
@@ -173,7 +187,9 @@ export class ExpenseSettingsController {
   @ApiOperation({ summary: 'Soft delete expense type (Admin only)' })
   async deleteExpenseType(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
     const adminId = req.user?.emp_id || 1;
-    return this.expenseSettingsService.deleteExpenseType(id, adminId);
+    const r: any = await this.expenseSettingsService.deleteExpenseType(id, adminId);
+    await this.expenseSettingsService.notifyAdmins(`expense type #${id} deleted`, adminId);
+    return r;
   }
 
   // ---------------------------------------------------------------------------
