@@ -22,23 +22,28 @@ export const BugResolutionTimeLineChart: React.FC<BugResolutionTimeLineChartProp
   const data = computeBugResolutionTime(projects, periodMonths);
 
   // SVG Line Chart Dimensions
-  const chartWidth = 320;
-  const chartHeight = 130;
-  const paddingX = 24;
-  const paddingY = 16;
+  const chartWidth = 340;
+  const chartHeight = 150;
+  const paddingLeft = 32;
+  const paddingRight = 16;
+  const paddingTop = 22;
+  const paddingBottom = 26;
 
   const maxVal = Math.max(
     ...data.flatMap((d) => [d.avgDevHours, d.avgQaHours]),
     20
   );
 
+  const baselineY = chartHeight - paddingBottom;
+  const usableHeight = chartHeight - paddingTop - paddingBottom;
+
   const getX = (idx: number) => {
-    if (data.length <= 1) return chartWidth / 2;
-    return paddingX + (idx / (data.length - 1)) * (chartWidth - paddingX * 2);
+    if (data.length <= 1) return (chartWidth - paddingLeft - paddingRight) / 2 + paddingLeft;
+    return paddingLeft + (idx / (data.length - 1)) * (chartWidth - paddingLeft - paddingRight);
   };
 
   const getY = (val: number) => {
-    return chartHeight - paddingY - (val / maxVal) * (chartHeight - paddingY * 2);
+    return baselineY - (val / maxVal) * usableHeight;
   };
 
   const devPath = data
@@ -102,23 +107,59 @@ export const BugResolutionTimeLineChart: React.FC<BugResolutionTimeLineChartProp
       <div className="my-3 flex flex-col items-center justify-center relative">
         <svg
           viewBox={`0 0 ${chartWidth} ${chartHeight}`}
-          className="w-full h-36 overflow-visible"
+          className="w-full h-40 overflow-visible"
         >
-          {/* Subtle Gridlines */}
+          {/* Subtle Y-Axis Gridlines & Labels */}
+          <text
+            x="26"
+            y={getY(maxVal) + 3}
+            textAnchor="end"
+            className="text-[9px] fill-slate-400 font-medium"
+          >
+            {Math.round(maxVal)}h
+          </text>
           <line
-            x1={paddingX}
+            x1={paddingLeft}
+            y1={getY(maxVal)}
+            x2={chartWidth - paddingRight}
+            y2={getY(maxVal)}
+            stroke="#f8fafc"
+            strokeDasharray="3 3"
+          />
+
+          <text
+            x="26"
+            y={getY(maxVal / 2) + 3}
+            textAnchor="end"
+            className="text-[9px] fill-slate-400 font-medium"
+          >
+            {Math.round(maxVal / 2)}h
+          </text>
+          <line
+            x1={paddingLeft}
             y1={getY(maxVal / 2)}
-            x2={chartWidth - paddingX}
+            x2={chartWidth - paddingRight}
             y2={getY(maxVal / 2)}
             stroke="#f1f5f9"
-            strokeDasharray="4 4"
+            strokeDasharray="3 3"
           />
+
+          {/* Baseline (0h) */}
+          <text
+            x="26"
+            y={baselineY + 3}
+            textAnchor="end"
+            className="text-[9px] fill-slate-400 font-medium"
+          >
+            0h
+          </text>
           <line
-            x1={paddingX}
-            y1={chartHeight - paddingY}
-            x2={chartWidth - paddingX}
-            y2={chartHeight - paddingY}
+            x1={paddingLeft}
+            y1={baselineY}
+            x2={chartWidth - paddingRight}
+            y2={baselineY}
             stroke="#e2e8f0"
+            strokeWidth="1.5"
           />
 
           {/* Dev Line */}
@@ -141,50 +182,110 @@ export const BugResolutionTimeLineChart: React.FC<BugResolutionTimeLineChartProp
             strokeLinejoin="round"
           />
 
-          {/* Points & Data Labels */}
+          {/* Points, Data Labels, Axis Ticks, and Month Labels */}
           {data.map((d, i) => {
             const x = getX(i);
             const yDev = getY(d.avgDevHours);
             const yQa = getY(d.avgQaHours);
+            const isZeroBoth = d.avgDevHours === 0 && d.avgQaHours === 0;
+            const isClose = Math.abs(yDev - yQa) < 14;
 
             return (
               <g
                 key={d.monthKey}
                 onMouseEnter={() => setHoveredMonth(d)}
                 onMouseLeave={() => setHoveredMonth(null)}
-                className="cursor-pointer"
+                className="cursor-pointer group"
               >
-                {/* Dev Dot */}
-                <circle cx={x} cy={yDev} r="4" fill="#2563eb" stroke="#ffffff" strokeWidth="2" />
-                <text
-                  x={x}
-                  y={yDev - 6}
-                  textAnchor="middle"
-                  className="text-[9px] fill-slate-700 font-bold"
-                >
-                  {d.avgDevHours}h
-                </text>
+                {/* Vertical Axis Tick Mark */}
+                <line
+                  x1={x}
+                  y1={baselineY}
+                  x2={x}
+                  y2={baselineY + 4}
+                  stroke="#cbd5e1"
+                  strokeWidth="1"
+                />
 
-                {/* QA Dot */}
-                <circle cx={x} cy={yQa} r="4" fill="#f59e0b" stroke="#ffffff" strokeWidth="2" />
+                {/* X-Axis Month Label - Sits safely in dedicated row below baseline */}
                 <text
                   x={x}
-                  y={yQa + 12}
+                  y={baselineY + 16}
                   textAnchor="middle"
-                  className="text-[9px] fill-slate-700 font-bold"
-                >
-                  {d.avgQaHours}h
-                </text>
-
-                {/* Month Label */}
-                <text
-                  x={x}
-                  y={chartHeight}
-                  textAnchor="middle"
-                  className="text-[10px] fill-slate-400 font-medium"
+                  className="text-[10px] fill-slate-500 font-semibold group-hover:fill-blue-600 transition-colors"
                 >
                   {d.monthLabel}
                 </text>
+
+                {/* Dev & QA Dots */}
+                <circle
+                  cx={x}
+                  cy={yDev}
+                  r="4"
+                  fill="#2563eb"
+                  stroke="#ffffff"
+                  strokeWidth="2"
+                  className="transition-transform group-hover:r-5"
+                />
+                <circle
+                  cx={x}
+                  cy={yQa}
+                  r="4"
+                  fill="#f59e0b"
+                  stroke="#ffffff"
+                  strokeWidth="2"
+                  className="transition-transform group-hover:r-5"
+                />
+
+                {/* Data Labels - Strictly positioned above dots to never override the month label */}
+                {isZeroBoth ? (
+                  <text
+                    x={x}
+                    y={baselineY - 6}
+                    textAnchor="middle"
+                    className="text-[9px] fill-slate-400 font-medium"
+                  >
+                    0h
+                  </text>
+                ) : isClose ? (
+                  <>
+                    <text
+                      x={x - 10}
+                      y={yDev - 6}
+                      textAnchor="middle"
+                      className="text-[9px] fill-blue-600 font-bold"
+                    >
+                      {d.avgDevHours}h
+                    </text>
+                    <text
+                      x={x + 10}
+                      y={yQa - 6}
+                      textAnchor="middle"
+                      className="text-[9px] fill-amber-600 font-bold"
+                    >
+                      {d.avgQaHours}h
+                    </text>
+                  </>
+                ) : (
+                  <>
+                    <text
+                      x={x}
+                      y={yDev - 6}
+                      textAnchor="middle"
+                      className="text-[9px] fill-blue-600 font-bold"
+                    >
+                      {d.avgDevHours}h
+                    </text>
+                    <text
+                      x={x}
+                      y={yQa - 6}
+                      textAnchor="middle"
+                      className="text-[9px] fill-amber-600 font-bold"
+                    >
+                      {d.avgQaHours}h
+                    </text>
+                  </>
+                )}
               </g>
             );
           })}
