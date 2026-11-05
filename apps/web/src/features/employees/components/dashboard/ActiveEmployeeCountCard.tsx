@@ -62,10 +62,10 @@ export const ActiveEmployeeCountCard: React.FC<ActiveEmployeeCountCardProps> = (
       </div>
 
       {/* Main KPI Value */}
-      <div className="my-6 flex flex-col items-start">
-        <p className="text-xs font-medium text-slate-500 mb-1">Currently active employees</p>
-        <div className="flex items-baseline gap-3">
-          <span className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight">
+      <div className="flex-1 flex flex-col items-center justify-center text-center my-4">
+        <p className="text-xs font-medium text-slate-500 mb-2">Currently active employees</p>
+        <div className="flex items-center justify-center gap-3">
+          <span className="text-5xl sm:text-6xl font-black text-slate-900 tracking-tight">
             {count}
           </span>
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
