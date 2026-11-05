@@ -374,6 +374,8 @@ export const App: React.FC = () => {
                 path="/admin/roles"
                 element={<Navigate to="/admin/settings/roles" replace />}
               />
+              <Route path="/admin/employees/dashboard" element={<Navigate to="/admin/employees?tab=dashboard" replace />} />
+              <Route path="/admin/employee-dashboard" element={<Navigate to="/admin/employees?tab=dashboard" replace />} />
               <Route
                 path="/admin/employees"
                 element={

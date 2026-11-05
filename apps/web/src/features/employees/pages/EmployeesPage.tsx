@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { EmployeeResponseDto } from '@vernoxy-pulse/api-client';
 import {
   useEmployeesQuery,
@@ -10,9 +10,11 @@ import {
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { AdminLayout } from '@/shared/layouts/AdminLayout';
 import { AddEmployeeModal } from '../components/AddEmployeeModal';
+import { EmployeeDashboardTab } from '../components/dashboard/EmployeeDashboardTab';
 import { SearchableSelect } from '@/shared/ui';
 import {
   Users,
+  BarChart3,
   User,
   UserX,
   Plus,
@@ -85,10 +87,42 @@ export const EmployeesPage: React.FC = () => {
   const navigate = useNavigate();
 
   // Filter states - Default status starts as "Active" per specification
-  const [search, setSearch] = useState('');
-  const [selectedDepId, setSelectedDepId] = useState<number | undefined>(undefined);
-  const [selectedRoleId, setSelectedRoleId] = useState<number | undefined>(undefined);
-  const [statusFilter, setStatusFilter] = useState<'Active' | 'Inactive' | 'All'>('Active');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialStatus = (searchParams.get('status') as 'Active' | 'Inactive' | 'All') || 'Active';
+  const initialDepId = searchParams.get('dep_id') ? Number(searchParams.get('dep_id')) : undefined;
+  const initialRoleId = searchParams.get('role_id') ? Number(searchParams.get('role_id')) : undefined;
+  const initialQ = searchParams.get('q') || '';
+
+  const currentTab = searchParams.get('tab') === 'dashboard' ? 'dashboard' : 'employees';
+
+  const setTab = (tab: 'employees' | 'dashboard') => {
+    const next = new URLSearchParams(searchParams);
+    if (tab === 'dashboard') {
+      next.set('tab', 'dashboard');
+    } else {
+      next.delete('tab');
+    }
+    setSearchParams(next, { replace: true });
+  };
+  
+  const [search, setSearch] = useState(initialQ);
+  const [selectedDepId, setSelectedDepId] = useState<number | undefined>(initialDepId);
+  const [selectedRoleId, setSelectedRoleId] = useState<number | undefined>(initialRoleId);
+  const [statusFilter, setStatusFilter] = useState<'Active' | 'Inactive' | 'All'>(initialStatus);
+
+  React.useEffect(() => {
+    const qParam = searchParams.get('q');
+    const depParam = searchParams.get('dep_id');
+    const roleParam = searchParams.get('role_id');
+    const statusParam = searchParams.get('status');
+
+    if (qParam !== null) setSearch(qParam);
+    if (depParam !== null) setSelectedDepId(depParam ? Number(depParam) : undefined);
+    if (roleParam !== null) setSelectedRoleId(roleParam ? Number(roleParam) : undefined);
+    if (statusParam === 'Active' || statusParam === 'Inactive' || statusParam === 'All') {
+      setStatusFilter(statusParam);
+    }
+  }, [searchParams]);
   const [sortField, setSortField] = useState<'name' | 'joining_date' | 'emp_id'>('emp_id');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [currentPage, setCurrentPage] = useState(1);
@@ -251,25 +285,55 @@ export const EmployeesPage: React.FC = () => {
   return (
     <AdminLayout title="Employees" fluid>
       <div className="space-y-5 pb-12">
-        {/* Marker 1 & 2: Header & Add Employee Action */}
+        {/* Simple Tab Switcher (Matching Recruitment / Candidates style) */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Employees</h1>
-            <p className="text-sm text-slate-500 mt-0.5">
-              Manage everyone who works in the company
-            </p>
+          <div className="inline-flex items-center p-1 bg-white rounded-xl border border-slate-300 shadow-xs">
+            <button
+              type="button"
+              id="tab-employees-btn"
+              onClick={() => setTab('employees')}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-extrabold transition cursor-pointer ${
+                currentTab === 'employees'
+                  ? 'bg-gradient-to-r from-[#5B4CF8] to-[#6C63FF] text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              }`}
+            >
+              <Users className="w-4 h-4 stroke-[2]" />
+              <span>All Employees</span>
+            </button>
+
+            <button
+              type="button"
+              id="tab-dashboard-btn"
+              onClick={() => setTab('dashboard')}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-extrabold transition cursor-pointer ${
+                currentTab === 'dashboard'
+                  ? 'bg-gradient-to-r from-[#5B4CF8] to-[#6C63FF] text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              }`}
+            >
+              <BarChart3 className="w-4 h-4 stroke-[2]" />
+              <span>Dashboard</span>
+            </button>
           </div>
-          <button
-            type="button"
-            id="add-employee-button"
-            onClick={() => setIsAddEmployeeModalOpen(true)}
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 text-sm font-semibold text-white shadow-xs hover:bg-blue-700 transition-colors self-start sm:self-auto cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Add Employee</span>
-          </button>
+
+          <div className="flex items-center gap-2.5 self-start sm:self-auto">
+            <button
+              type="button"
+              id="add-employee-button"
+              onClick={() => setIsAddEmployeeModalOpen(true)}
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-blue-600 text-sm font-semibold text-white shadow-xs hover:bg-blue-700 transition-colors cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add Employee</span>
+            </button>
+          </div>
         </div>
 
+        {currentTab === 'dashboard' ? (
+          <EmployeeDashboardTab />
+        ) : (
+          <>
         {/* Global Error Banner */}
         {errorMessage && !deletingEmp && (
           <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 flex items-start gap-3 text-rose-800 animate-in fade-in">
@@ -901,6 +965,8 @@ export const EmployeesPage: React.FC = () => {
             </>
           )}
         </div>
+        </>
+        )}
       </div>
 
       {/* Delete Employee Confirmation Modal */}
