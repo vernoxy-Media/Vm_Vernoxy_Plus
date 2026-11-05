@@ -675,6 +675,46 @@ export class LeaveService {
     return rows;
   }
 
+  /**
+   * Undo what an approved leave did to attendance. Placeholder rows go away (today / future) or become absent
+   * (past); days the employee really punched on keep their punches and get their normal status back.
+   */
+  private async revertLeaveAttendance(requestId: number, adminId: number): Promise<void> {
+    await this.prisma.$executeRaw`
+      UPDATE attendance_days
+      SET leave_request_id = NULL,
+          leave_half = NULL,
+          day_status = CASE
+            WHEN check_out_at IS NULL THEN 'incomplete'
+            WHEN production_minutes >= 480 THEN 'present'
+            WHEN production_minutes >= 240 THEN 'half_day'
+            ELSE 'absent'
+          END,
+          updated_at = clock_timestamp()
+      WHERE leave_request_id = ${requestId}
+        AND (check_out_at IS NOT NULL OR check_in_at <> (work_date + interval '9 hours'));
+    `;
+
+    await this.prisma.$executeRaw`
+      UPDATE attendance_days
+      SET deleted_at = clock_timestamp(),
+          deleted_by = ${adminId},
+          updated_at = clock_timestamp()
+      WHERE leave_request_id = ${requestId}
+        AND work_date >= CURRENT_DATE;
+    `;
+
+    await this.prisma.$executeRaw`
+      UPDATE attendance_days
+      SET day_status = 'absent',
+          leave_request_id = NULL,
+          leave_half = NULL,
+          updated_at = clock_timestamp()
+      WHERE leave_request_id = ${requestId}
+        AND work_date < CURRENT_DATE;
+    `;
+  }
+
   async applyLeave(empId: number, dto: ApplyLeaveDto) {
     const calc = await this.calculateLeaveDays(empId, dto);
 
@@ -1211,27 +1251,7 @@ export class LeaveService {
         );
       `;
 
-      // Remove 'leave' status from attendance:
-      // For today and future days: soft-delete the placeholder attendance record so employee can punch in normally
-      // For past days: mark as 'absent' since the date has already passed
-      await this.prisma.$executeRaw`
-        UPDATE attendance_days
-        SET deleted_at = clock_timestamp(),
-            deleted_by = ${adminId},
-            updated_at = clock_timestamp()
-        WHERE leave_request_id = ${requestId}
-          AND work_date >= CURRENT_DATE;
-      `;
-
-      await this.prisma.$executeRaw`
-        UPDATE attendance_days
-        SET day_status = 'absent',
-            leave_request_id = NULL,
-            leave_half = NULL,
-            updated_at = clock_timestamp()
-        WHERE leave_request_id = ${requestId}
-          AND work_date < CURRENT_DATE;
-      `;
+      await this.revertLeaveAttendance(requestId, adminId);
 
       await this.prisma.$executeRaw`
         INSERT INTO activity_logs (entity_type, entity_id, event, summary, details, performed_by, performed_at)
@@ -1303,27 +1323,7 @@ export class LeaveService {
       );
     `;
 
-    // Revert attendance:
-    // For today and future days: soft-delete the placeholder attendance record so employee can punch in normally
-    // For past days: mark as 'absent' since the date has already passed
-    await this.prisma.$executeRaw`
-      UPDATE attendance_days
-      SET deleted_at = clock_timestamp(),
-          deleted_by = ${adminId},
-          updated_at = clock_timestamp()
-      WHERE leave_request_id = ${requestId}
-        AND work_date >= CURRENT_DATE;
-    `;
-
-    await this.prisma.$executeRaw`
-      UPDATE attendance_days
-      SET day_status = 'absent',
-          leave_request_id = NULL,
-          leave_half = NULL,
-          updated_at = clock_timestamp()
-      WHERE leave_request_id = ${requestId}
-        AND work_date < CURRENT_DATE;
-    `;
+    await this.revertLeaveAttendance(requestId, adminId);
 
     await this.prisma.$executeRaw`
       INSERT INTO activity_logs (entity_type, entity_id, event, summary, details, performed_by, performed_at)

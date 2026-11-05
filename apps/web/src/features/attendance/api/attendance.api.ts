@@ -274,6 +274,7 @@ export async function fetchRegularizations(
   if (params.to_date) query.append('to_date', params.to_date);
   if (params.search) query.append('search', params.search);
   if (params.scope) query.append('scope', params.scope);
+  if (params.emp_id) query.append('emp_id', String(params.emp_id));
 
   const qs = query.toString();
   return await customFetch<AttendanceRegularization[]>(
@@ -338,3 +339,30 @@ export async function bulkApproveRegularizationRequests(
 
 
 
+
+/** Current position from the browser, or null when it is denied, unavailable or slow. */
+export function getBrowserLocation(timeoutMs = 6000): Promise<{ latitude: number; longitude: number; accuracy: number } | null> {
+  if (typeof navigator === 'undefined' || !navigator.geolocation) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      (p) => resolve({ latitude: p.coords.latitude, longitude: p.coords.longitude, accuracy: p.coords.accuracy }),
+      () => resolve(null),
+      { enableHighAccuracy: false, timeout: timeoutMs, maximumAge: 60_000 },
+    );
+  });
+}
+
+/** Remembers where a punch happened. Best effort: a failure here never affects the punch itself. */
+export async function savePunchLocation(kind: 'in' | 'out'): Promise<void> {
+  try {
+    const loc = await getBrowserLocation();
+    if (!loc) return;
+    await customFetch(`${BASE_URL}/me/punch-location`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kind, ...loc }),
+    });
+  } catch {
+    /* ignored on purpose */
+  }
+}

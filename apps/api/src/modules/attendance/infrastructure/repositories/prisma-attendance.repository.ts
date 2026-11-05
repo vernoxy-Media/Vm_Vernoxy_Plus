@@ -30,6 +30,8 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
       dayStatus: row.day_status,
       source: row.source,
       workedOnNonWorkingDay: row.worked_on_non_working_day,
+      leaveRequestId: row.leave_request_id ?? null,
+      leaveHalf: row.leave_half ?? null,
       note: row.note,
       createdAt: row.created_at,
       createdBy: row.created_by,
@@ -145,6 +147,16 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
       },
     });
     return this.mapDayRowToEntity(created);
+  }
+
+  /** The employee clocks in on a half-day-leave day: the 09:00 placeholder becomes their real check-in. */
+  async startWorkOnLeaveDay(attendanceId: number, checkInAt: Date): Promise<AttendanceDayEntity> {
+    await this.prisma.attendance_days.updateMany({
+      where: { attendance_id: attendanceId, check_out_at: null, deleted_at: null },
+      data: { check_in_at: checkInAt, day_status: 'incomplete', updated_at: new Date() },
+    });
+    const row = await this.prisma.attendance_days.findUnique({ where: { attendance_id: attendanceId } });
+    return this.mapDayRowToEntity(row);
   }
 
   async closeAttendanceDayWithBreak(
@@ -893,7 +905,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
       production_minutes: number;
       break_minutes: number;
       day_status: string | null;
-      leave: { type_name: string; part: string } | null;
+      leave: { type_name: string; part: string; half: string | null } | null;
       holiday_name: string | null;
       flags: Record<string, any>;
       breaks: Array<{ started_at: Date; ended_at: Date | null }>;
@@ -921,6 +933,11 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
         COALESCE(ad.break_minutes, 0)::int AS break_minutes,
         COALESCE(ad.production_minutes, 0)::int AS production_minutes,
         ad.day_status::text AS day_status,
+        ad.leave_half,
+        ad.leave_request_id,
+        lt.name AS leave_type_name,
+        -- approving a leave stores a placeholder 09:00 check-in; anything else is a real punch
+        (ad.check_in_at IS NOT NULL AND (ad.check_out_at IS NOT NULL OR ad.check_in_at <> (ad.work_date + interval '9 hours'))) AS has_real_punch,
         COALESCE(ad.worked_on_non_working_day, false) AS worked_on_non_working_day,
         COALESCE(
           (
@@ -944,6 +961,8 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
         ON ad.emp_id = $1
         AND ad.work_date = cd.day_date
         AND ad.deleted_at IS NULL
+      LEFT JOIN leave_requests lr ON lr.request_id = ad.leave_request_id
+      LEFT JOIN leave_types lt ON lt.leave_type_id = lr.leave_type_id
       ORDER BY cd.day_date ASC;
       `,
       empId,
@@ -982,14 +1001,25 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
       let brkMinutes = r.break_minutes || 0;
       let dayStatus = r.day_status || null;
 
-      if (r.day_status === 'leave') {
+      const leaveInfo = r.leave_request_id || r.day_status === 'leave'
+        ? {
+            type_name: (r.leave_type_name as string) || 'Leave',
+            part: r.leave_half ? 'half' : 'full',
+            half: (r.leave_half as string) || null,
+          }
+        : null;
+      // A half-day leave still has a working half: real punches count against the half-day target
+      const halfLeaveWorked = !!leaveInfo && leaveInfo.part === 'half' && !!r.has_real_punch;
+      const dayTargetMins = halfLeaveWorked ? halfDayMins : fullDayMins;
+
+      if (leaveInfo && !halfLeaveWorked) {
         state = 'leave';
         dayStatus = 'leave';
         prodMinutes = 0;
         brkMinutes = 0;
       } else if (r.check_in_at) {
         if (r.check_out_at) {
-          state = determineDayStatus(new Date(r.check_out_at), prodMinutes, fullDayMins, halfDayMins, graceMins);
+          state = determineDayStatus(new Date(r.check_out_at), prodMinutes, dayTargetMins, halfLeaveWorked ? Math.floor(halfDayMins / 2) : halfDayMins, graceMins);
           dayStatus = state;
         } else {
           // Open day (e.g. today)
@@ -1005,16 +1035,16 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
             brkMinutes = openCalc.breakMinutesSoFar;
           } else if (isPast) {
             const totalBreakMinutes = breaksList.reduce((acc, b) => {
-              const end = b.ended_at || new Date(new Date(r.check_in_at).getTime() + fullDayMins * 60000);
+              const end = b.ended_at || new Date(new Date(r.check_in_at).getTime() + dayTargetMins * 60000);
               return acc + Math.max(0, Math.floor((end.getTime() - b.started_at.getTime()) / 60000));
             }, 0);
             brkMinutes = totalBreakMinutes;
-            prodMinutes = Math.max(0, fullDayMins - totalBreakMinutes);
+            prodMinutes = Math.max(0, dayTargetMins - totalBreakMinutes);
             state = determineDayStatus(
-              new Date(new Date(r.check_in_at).getTime() + (fullDayMins + totalBreakMinutes) * 60000),
+              new Date(new Date(r.check_in_at).getTime() + (dayTargetMins + totalBreakMinutes) * 60000),
               prodMinutes,
-              fullDayMins,
-              halfDayMins,
+              dayTargetMins,
+              halfLeaveWorked ? Math.floor(halfDayMins / 2) : halfDayMins,
               graceMins,
             );
             dayStatus = state;
@@ -1047,7 +1077,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
         production_minutes: prodMinutes,
         break_minutes: brkMinutes,
         day_status: dayStatus,
-        leave: null,
+        leave: leaveInfo,
         holiday_name: holidayMatch ? holidayMatch.name : null,
         flags: {
           worked_on_non_working_day: r.worked_on_non_working_day || (isWeeklyOff || isHoliday),
@@ -1067,7 +1097,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
     production_minutes: number;
     break_minutes: number;
     status: string;
-    leave: { type_name: string; part: string } | null;
+    leave: { type_name: string; part: string; half: string | null } | null;
     holiday: string | null;
     correction: { id: number; status: string } | null;
     can_request_correction: boolean;

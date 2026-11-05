@@ -11,10 +11,15 @@ import {
   Req,
   ParseIntPipe,
   UseGuards,
+  Inject,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../auth/presentation/guards/jwt-auth.guard';
 import { OrganizationAdminGuard } from '../../../organization/presentation/guards/organization-admin.guard';
+import {
+  ACCESS_POLICY_PORT_TOKEN,
+  AccessPolicyPort,
+} from '../../../organization/application/ports/access-policy.port';
 import { LeaveService } from '../../application/services/leave.service';
 import {
   CreateLeaveTypeDto,
@@ -40,7 +45,11 @@ import {
 @UseGuards(JwtAuthGuard)
 @Controller('leave')
 export class LeaveController {
-  constructor(private readonly leaveService: LeaveService) {}
+  constructor(
+    private readonly leaveService: LeaveService,
+    @Inject(ACCESS_POLICY_PORT_TOKEN)
+    private readonly accessPolicy: AccessPolicyPort,
+  ) {}
 
   // ---------------------------------------------------------------------------
   // Master Data Settings: Leave Types (Admin)
@@ -178,9 +187,12 @@ export class LeaveController {
 
   @Get('calendar')
   @ApiOperation({ summary: 'Team leave calendar: approved leaves in a month' })
-  async getLeaveCalendar(@Query('month') month?: string, @Query('department_id') departmentId?: string) {
+  async getLeaveCalendar(@Req() req: any, @Query('month') month?: string, @Query('department_id') departmentId?: string) {
     const dep = departmentId ? Number(departmentId) : undefined;
-    return this.leaveService.getLeaveCalendar(month, Number.isInteger(dep) ? dep : undefined);
+    const rows = await this.leaveService.getLeaveCalendar(month, Number.isInteger(dep) ? dep : undefined);
+    // only administrators see everybody's leave; everyone else sees their own
+    if (await this.accessPolicy.canManageOrganization(req.user.emp_id)) return rows;
+    return rows.filter((r: any) => r.emp_id === req.user.emp_id);
   }
 
   @Get('my')
@@ -326,7 +338,8 @@ export class LeaveController {
     @Query('typeId') typeIdParam?: string,
   ) {
     const currentEmpId = req.user?.emp_id || 1;
-    const targetEmpId = empIdParam ? parseInt(empIdParam, 10) : currentEmpId;
+    const isAdmin = await this.accessPolicy.canManageOrganization(currentEmpId);
+    const targetEmpId = isAdmin && empIdParam ? parseInt(empIdParam, 10) : currentEmpId;
     const typeId = typeIdParam ? parseInt(typeIdParam, 10) : undefined;
     return this.leaveService.getLeaveLedger(targetEmpId, typeId);
   }

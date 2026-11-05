@@ -991,7 +991,7 @@ export class EmployeeDocumentService implements OnModuleInit, OnModuleDestroy {
     await this.prisma.$executeRaw`
       INSERT INTO employee_credentials (emp_id, password_hash, must_change_password, created_by, updated_at)
       VALUES (${empId}, ${passwordHash}, TRUE, ${adminId}, NOW())
-      ON CONFLICT (emp_id) DO UPDATE SET
+      ON CONFLICT (emp_id) WHERE deleted_at IS NULL DO UPDATE SET
         password_hash = EXCLUDED.password_hash,
         must_change_password = TRUE,
         failed_attempts = 0,

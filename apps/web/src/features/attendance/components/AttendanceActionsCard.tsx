@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  Zap,
   ChevronDown,
   Coffee,
   Utensils,
   User,
   MessageSquare,
-  Play,
-  Square,
   Loader2,
+  LogIn,
+  LogOut,
 } from 'lucide-react';
 import type { TodayAttendanceData, BreakOption } from '../types/attendance.types';
 
@@ -22,6 +21,7 @@ export interface AttendanceActionsCardProps {
   errorMessage?: string | null;
   infoToast?: string | null;
   onDismissToast?: () => void;
+  onRegularize?: () => void;
 }
 
 const BREAK_OPTIONS: Array<{
@@ -42,6 +42,7 @@ export const AttendanceActionsCard: React.FC<AttendanceActionsCardProps> = ({
   onPunchOut,
   onStartBreak,
   onResumeBreak,
+  onRegularize,
 }) => {
   const [now, setNow] = useState(new Date());
   const [isWfh, setIsWfh] = useState(false);
@@ -85,6 +86,16 @@ export const AttendanceActionsCard: React.FC<AttendanceActionsCardProps> = ({
     year: 'numeric',
   });
 
+  const targetSec = today.target_seconds || 28800;
+  const workedSec = today.worked_seconds || 0;
+  const breakSec = today.break_seconds || 0;
+  const remainingSec = Math.max(0, targetSec - workedSec);
+  const pct = targetSec > 0 ? Math.min(100, Math.round((workedSec / targetSec) * 100)) : 0;
+  const hm = (sec: number) => {
+    const t = Math.max(0, Math.round(sec / 60));
+    return `${Math.floor(t / 60)}h ${String(t % 60).padStart(2, '0')}m`;
+  };
+
   const isWorking = today.state === 'working';
   const isOnBreak = today.state === 'on_break';
 
@@ -93,136 +104,94 @@ export const AttendanceActionsCard: React.FC<AttendanceActionsCardProps> = ({
     onStartBreak(type);
   };
 
+  const primary = isOnBreak ? (
+    <button
+      type="button"
+      disabled
+      title="You cannot clock out while on break. Please resume work first."
+      className="w-full rounded-xl bg-white/15 px-5 py-4 text-base font-semibold text-white/50 cursor-not-allowed whitespace-nowrap"
+    >
+      Web Clock-out
+    </button>
+  ) : (
+    <button
+      type="button"
+      disabled={isPending}
+      onClick={() => (isWorking ? onPunchOut() : onPunchIn())}
+      className={`inline-flex w-full items-center justify-center gap-2.5 rounded-xl px-5 py-4 text-base font-bold shadow-md transition active:scale-[0.98] disabled:opacity-50 whitespace-nowrap cursor-pointer ${
+        isWorking ? 'bg-rose-500 text-white hover:bg-rose-600' : 'cta-pulse bg-white text-[#1D4ED8] hover:bg-sky-50'
+      }`}
+    >
+      {isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : isWorking ? <LogOut className="h-5 w-5" /> : <LogIn className="h-5 w-5" />}
+      {isWorking ? 'Web Clock-out' : 'Web Clock-in'}
+    </button>
+  );
+
+  const linkCls = 'inline-flex w-full items-center justify-between gap-2 rounded-lg bg-white/10 px-3.5 py-2 text-left text-[13px] font-medium text-white transition hover:bg-white/20 cursor-pointer';
+
   return (
     <div
       id="attendance-actions-card"
-      className="bg-white rounded-[22px] border border-[#D4DCE6] shadow-floating-card card-hover-lift p-5 sm:p-5.5 flex flex-col justify-between relative overflow-hidden"
+      className="relative flex flex-col justify-between gap-4 overflow-hidden rounded-2xl bg-gradient-to-br from-[#0B1B4A] via-[#16358F] to-[#2563EB] p-4 text-white shadow-lg shadow-blue-900/10 sm:p-5"
     >
-      {/* Small abstract wave in top-right corner with 5% opacity */}
-      <svg
-        className="absolute top-0 right-0 w-44 h-32 pointer-events-none opacity-5 z-0"
-        viewBox="0 0 180 120"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        aria-hidden="true"
-      >
-        <path d="M0,0 C50,30 110,15 180,75 L180,0 Z" fill="#5B4CF8" />
-        <path d="M30,0 C80,45 130,20 180,95 L180,0 Z" fill="#6C63FF" />
-      </svg>
-
-      {/* Card Header: purple Zap + title + Live Status Badge */}
-      <div className="flex items-center justify-between mb-2 relative z-10">
-        <div className="flex items-center gap-2">
-          <Zap className="w-4 h-4 text-[#5B4CF8] fill-[#5B4CF8] stroke-[#5B4CF8]" />
-          <h3 className="font-semibold text-[#1E293B] text-[15px] tracking-tight">Actions</h3>
-        </div>
-
-        {isOnBreak ? (
-          <span className="text-[11px] font-bold text-[#92400E] bg-[#FEF3C7] border border-[#FDE68A] px-3 py-1 rounded-full shadow-2xs">
-            On Break
-          </span>
-        ) : isWorking ? (
-          <span className="text-[11px] font-bold text-[#166534] bg-[#DCFCE7] border border-[#BBF7D0] px-3 py-1 rounded-full flex items-center gap-1.5 shadow-2xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#16A34A] animate-pulse" />
-            Working
-          </span>
-        ) : (
-          <span className="text-[11px] font-bold text-[#3730A3] bg-[#E0E7FF] border border-[#C7D2FE] px-3 py-1 rounded-full shadow-2xs">
-            Ready to Clock In
-          </span>
-        )}
-      </div>
-
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-5 flex-1 relative z-10 pt-1">
-        {/* Left Side: Live Digital Clock, Date, Remote Clock-In Toggle */}
-        <div className="space-y-3.5">
-          <div>
-            <div className="flex items-baseline whitespace-nowrap tracking-tight leading-none font-mono">
-              <span className="text-3xl sm:text-4xl lg:text-[44px] font-extrabold text-[#1E293B] tracking-tight">
-                {h24}:{minutes}
-              </span>
-              <span className="text-sm sm:text-base lg:text-lg font-bold text-[#64748B] ml-2 font-mono whitespace-nowrap">
-                :{seconds} {ampm}
-              </span>
-            </div>
-            <div className="text-xs font-medium text-[#64748B] mt-2">
-              {dateFormatted}
-            </div>
+      <span aria-hidden className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+      <div className="relative flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
+        <div>
+          <div className="flex items-baseline whitespace-nowrap font-medium leading-none text-white">
+            <span className="text-4xl sm:text-[44px] tracking-tight">{h24}:{minutes}</span>
+            <span className="ml-1 text-sm text-sky-200">:{seconds} {ampm}</span>
           </div>
-
-          <div>
-            <div className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider mb-1.5">
-              Remote Clock-In
-            </div>
-            <label
-              htmlFor="wfh-toggle"
-              className="inline-flex items-center gap-2.5 cursor-pointer select-none group"
-            >
-              <div className="relative inline-flex items-center">
-                <input
-                  type="checkbox"
-                  id="wfh-toggle"
-                  checked={isWfh}
-                  onChange={(e) => setIsWfh(e.target.checked)}
-                  className="sr-only"
-                />
-                <div
-                  className={`w-10 h-6 rounded-full transition-colors flex items-center p-0.5 ${
-                    isWfh ? 'bg-[#5B4CF8]' : 'bg-slate-300'
-                  }`}
-                >
-                  <div
-                    className={`w-5 h-5 bg-white rounded-full shadow-md transform transition-transform duration-200 ${
-                      isWfh ? 'translate-x-4' : 'translate-x-0'
-                    }`}
-                  />
-                </div>
-              </div>
-              <span className="text-xs font-semibold text-[#1E293B] group-hover:text-indigo-600 transition-colors">
-                Work From Home
+          <div className="mt-2 text-xs text-sky-200">{dateFormatted}</div>
+          <div className="mt-3">
+            {isOnBreak ? (
+              <span className="rounded-full bg-amber-400/90 px-3 py-1 text-[11px] font-bold text-amber-950">On Break</span>
+            ) : isWorking ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-400/90 px-3 py-1 text-[11px] font-bold text-emerald-950">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-900" />
+                Working
               </span>
-            </label>
+            ) : (
+              <span className="rounded-full bg-white/20 px-3 py-1 text-[11px] font-bold text-white">Ready to Clock In</span>
+            )}
           </div>
-        </div>
-
-        {/* Right Side: Break Dropdown + Clock Out/In Button */}
-        <div className="flex items-center gap-2 shrink-0 pb-0.5">
-          {/* Break Button / Dropdown */}
-          {isOnBreak ? (
-            <button
-              type="button"
-              disabled={isPending}
-              onClick={() => onResumeBreak()}
-              className="px-3 sm:px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl shadow-xs btn-hover-lift transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 whitespace-nowrap shrink-0"
-            >
-              {isPending ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin stroke-[1.75]" />
-              ) : (
-                <Play className="w-3 h-3 fill-current" />
+          {today.punched_in_at && (
+            <p className="mt-3 text-xs text-sky-100/80">
+              Clocked in at{' '}
+              <span className="font-semibold text-white">
+                {new Date(today.punched_in_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+              </span>
+              {today.punched_out_at && (
+                <>
+                  {' '}· out at{' '}
+                  <span className="font-semibold text-white">
+                    {new Date(today.punched_out_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </>
               )}
-              <span className="whitespace-nowrap">Resume</span>
+            </p>
+          )}
+        </div>
+
+        <div className="grid w-full min-w-[11rem] grid-cols-2 gap-2 sm:w-auto sm:min-w-[16rem]">
+          <div className="col-span-2">{primary}</div>
+
+          {isOnBreak ? (
+            <button type="button" disabled={isPending} onClick={() => onResumeBreak()} className={linkCls}>
+              Resume Work
             </button>
           ) : (
-            <div className="relative shrink-0" ref={dropdownRef}>
+            <div className="relative" ref={dropdownRef}>
               <button
                 type="button"
                 disabled={!isWorking || isPending}
                 onClick={() => setBreakDropdownOpen((prev) => !prev)}
-                className={`px-3 sm:px-3.5 py-2 text-xs font-semibold rounded-xl border transition flex items-center gap-1.5 cursor-pointer btn-hover-lift whitespace-nowrap ${
-                  isWorking && !isPending
-                    ? 'bg-white hover:bg-[#F4F4FF] border-[#D4DCE6] text-[#1E293B] shadow-2xs'
-                    : 'bg-[#F8FAFC] border-[#D4DCE6] text-slate-400 cursor-not-allowed'
-                }`}
+                className={`${linkCls} inline-flex items-center gap-1 disabled:cursor-not-allowed disabled:opacity-40`}
               >
-                <span className="whitespace-nowrap">Break</span>
-                <ChevronDown className="w-3.5 h-3.5 stroke-[1.75]" />
+                Take a Break <ChevronDown className="h-4 w-4" />
               </button>
-
               {breakDropdownOpen && (
-                <div className="absolute right-0 bottom-full mb-1.5 w-44 rounded-xl bg-white border border-[#D4DCE6] shadow-xl py-1.5 z-30 animate-in fade-in">
-                  <div className="text-[10px] font-extrabold uppercase text-[#94A3B8] px-3 py-1">
-                    Select Break
-                  </div>
+                <div className="absolute left-0 top-full z-30 mt-1.5 w-52 rounded-xl border border-[#D4DCE6] bg-white py-1.5 shadow-xl animate-in fade-in">
+                  <div className="px-3 py-1 text-[10px] font-extrabold uppercase text-[#94A3B8]">Select Break</div>
                   {BREAK_OPTIONS.map((opt) => {
                     const Icon = opt.icon;
                     return (
@@ -230,9 +199,9 @@ export const AttendanceActionsCard: React.FC<AttendanceActionsCardProps> = ({
                         key={opt.id}
                         type="button"
                         onClick={() => handleSelectBreak(opt.id)}
-                        className="w-full text-left px-3 py-1.5 text-xs font-semibold text-[#1E293B] hover:bg-[#F4F4FF] flex items-center gap-2"
+                        className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm font-semibold text-[#1E293B] hover:bg-[#F4F4FF]"
                       >
-                        <Icon className="w-3.5 h-3.5 text-[#64748B] stroke-[1.75]" />
+                        <Icon className="h-3.5 w-3.5 text-[#64748B]" />
                         <span>{opt.label}</span>
                       </button>
                     );
@@ -242,47 +211,44 @@ export const AttendanceActionsCard: React.FC<AttendanceActionsCardProps> = ({
             </div>
           )}
 
-          {/* Primary Clock Out / Clock In Button */}
-          {isOnBreak ? (
-            <button
-              type="button"
-              disabled
-              title="You cannot clock out while on break. Please resume work first."
-              className="px-3.5 sm:px-4 py-2 bg-slate-100 border border-slate-200 text-slate-400 font-bold text-xs rounded-xl cursor-not-allowed select-none whitespace-nowrap shrink-0"
-            >
-              <span className="whitespace-nowrap">Clock-Out</span>
-            </button>
-          ) : isWorking ? (
-            <button
-              type="button"
-              disabled={isPending}
-              onClick={() => onPunchOut()}
-              className="px-3.5 sm:px-4 py-2 bg-[#EF4444] hover:bg-rose-600 text-white font-bold text-xs rounded-xl shadow-xs shadow-rose-500/20 btn-hover-lift transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 whitespace-nowrap shrink-0"
-            >
-              {isPending ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin stroke-[1.75]" />
-              ) : (
-                <Square className="w-3 h-3 fill-current" />
-              )}
-              <span className="whitespace-nowrap">Clock-Out</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              disabled={isPending}
-              onClick={() => onPunchIn()}
-              className="px-3.5 sm:px-4 py-2 bg-[#16A34A] hover:bg-[#15803D] text-white font-bold text-xs rounded-xl shadow-xs shadow-emerald-500/20 btn-hover-lift transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 whitespace-nowrap shrink-0"
-            >
-              {isPending ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin stroke-[1.75]" />
-              ) : (
-                <Play className="w-3 h-3 fill-current" />
-              )}
-              <span className="whitespace-nowrap">Clock-In</span>
+          {onRegularize && (
+            <button type="button" onClick={onRegularize} className={`${linkCls} col-span-2`}>
+              Forgot to Clock-in/out
             </button>
           )}
+
+          <label htmlFor="wfh-toggle" className="inline-flex w-full cursor-pointer select-none items-center gap-2.5 rounded-lg bg-white/10 px-3.5 py-2 text-[13px] font-medium text-white transition hover:bg-white/20">
+            <input
+              type="checkbox"
+              id="wfh-toggle"
+              checked={isWfh}
+              onChange={(e) => setIsWfh(e.target.checked)}
+              className="h-3.5 w-3.5 cursor-pointer accent-white"
+            />
+            Work From Home
+          </label>
         </div>
       </div>
+
+      <div className="relative mt-auto rounded-xl bg-white/10 p-3">
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div>
+              <div className="text-sm font-semibold tabular-nums">{hm(workedSec)}</div>
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-sky-200/80">Worked</div>
+            </div>
+            <div>
+              <div className="text-sm font-semibold tabular-nums">{hm(breakSec)}</div>
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-sky-200/80">Break</div>
+            </div>
+            <div>
+              <div className="text-sm font-semibold tabular-nums">{remainingSec > 0 ? hm(remainingSec) : 'Done'}</div>
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-sky-200/80">Remaining</div>
+            </div>
+          </div>
+          <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-white/15" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Today's progress">
+            <div className="h-full rounded-full bg-sky-300 transition-all duration-700" style={{ width: `${pct}%` }} />
+          </div>
+        </div>
     </div>
   );
 };

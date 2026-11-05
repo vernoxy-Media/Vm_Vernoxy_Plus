@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsIn, IsNotEmpty, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class TimelineEventDto {
   @ApiProperty({ type: String, enum: ['punch_in', 'break_start', 'break_end', 'punch_out'] })
@@ -502,5 +502,33 @@ export class RegularizationQueryDto {
   @ApiPropertyOptional({ type: String, enum: ['me', 'team', 'all'] })
   @IsOptional()
   scope?: string;
+
+  @ApiPropertyOptional({ type: Number, description: 'Administrators only: requests of this employee' })
+  @IsOptional()
+  emp_id?: number;
 }
 
+
+export class PunchLocationDto {
+  @ApiProperty({ type: String, enum: ['in', 'out'] })
+  @IsIn(['in', 'out'])
+  kind!: 'in' | 'out';
+
+  @ApiProperty({ type: Number, example: 20.5992 })
+  @IsNumber()
+  @Min(-90)
+  @Max(90)
+  latitude!: number;
+
+  @ApiProperty({ type: Number, example: 72.9342 })
+  @IsNumber()
+  @Min(-180)
+  @Max(180)
+  longitude!: number;
+
+  @ApiPropertyOptional({ type: Number, description: 'Accuracy radius in metres' })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  accuracy?: number;
+}

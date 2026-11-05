@@ -83,6 +83,13 @@ export interface DayRecord {
   status_label: string;
   holiday_name?: string | null;
   leave_type?: string | null;
+  /** Breaks taken that day (ISO times), drawn as gaps in the attendance visual */
+  breaks?: Array<{ started_at: string; ended_at: string | null }>;
+  /** Which half is on leave, when it is a half-day leave */
+  leave_half?: 'FIRST_HALF' | 'SECOND_HALF' | null;
+  /** Where the punch happened, when the clock-in captured a location */
+  latitude?: number | null;
+  longitude?: number | null;
   can_request_correction: boolean;
   is_today?: boolean;
   check_in_location?: string | null;
@@ -249,6 +256,8 @@ export interface RegularizationFilterParams {
   to_date?: string;
   search?: string;
   scope?: string;
+  /** Administrators only: one employee's requests */
+  emp_id?: number;
 }
 
 

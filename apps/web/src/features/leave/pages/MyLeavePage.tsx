@@ -712,248 +712,258 @@ export const MyLeavePage: React.FC<MyLeavePageProps> = ({ hideBreadcrumb = false
       {/* MODAL: APPLY LEAVE (Reference Screen 4)                                   */}
       {/* ========================================================================= */}
       {isApplyModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 space-y-4 border border-slate-200 max-h-[90vh] overflow-y-auto text-xs">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 backdrop-blur-[2px] sm:items-stretch sm:justify-end" onMouseDown={(e) => e.target === e.currentTarget && setIsApplyModalOpen(false)}>
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Apply for leave"
+            className="flex max-h-[94dvh] w-full flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl sm:max-h-none sm:max-w-[30rem] sm:rounded-none animate-in slide-in-from-bottom sm:slide-in-from-right duration-200"
+          >
             {/* Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <FileText className="w-4 h-4 text-blue-600" /> Apply for Leave
-              </h3>
+            <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4 sm:px-6">
+              <div>
+                <h3 className="text-lg font-semibold tracking-tight text-slate-900">Apply Leave</h3>
+                <p className="mt-0.5 text-xs text-slate-500">Your request goes to your approver for review.</p>
+              </div>
               <button
                 type="button"
                 onClick={() => setIsApplyModalOpen(false)}
-                className="p-1 text-slate-400 hover:text-slate-700 rounded-lg cursor-pointer"
+                aria-label="Close"
+                className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 cursor-pointer"
               >
-                <X className="w-4 h-4" />
+                <X className="h-4 w-4" />
               </button>
             </div>
 
-            {applyError && (
-              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                <span>{applyError}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleApplySubmit} className="space-y-4">
-              {/* Leave Type Select */}
-              <div>
-                <label className="block text-slate-700 font-semibold mb-1">Leave Type *</label>
-                <select
-                  value={applyForm.leave_type_id}
-                  onChange={(e) =>
-                    setApplyForm({ ...applyForm, leave_type_id: parseInt(e.target.value, 10) })
-                  }
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 font-medium text-slate-800"
-                >
-                  {allTypes
-                    .filter((t) => t.status === 'ACTIVE')
-                    .map((t) => (
-                      <option key={t.leave_type_id} value={t.leave_type_id}>
-                        {t.name} ({t.is_paid ? 'Paid' : 'Unpaid'})
-                      </option>
-                    ))}
-                </select>
-                {selectedBalance && selectedBalance.balance_tracked && (
-                  <p className="text-[11px] text-slate-500 mt-1">
-                    Available balance:{' '}
-                    <strong className="text-blue-600">{selectedBalance.available_balance} days</strong>
-                  </p>
+            <form onSubmit={handleApplySubmit} className="flex min-h-0 flex-1 flex-col">
+              <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5 sm:px-6 text-[13px]">
+                {applyError && (
+                  <div role="alert" className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-rose-700">
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <span>{applyError}</span>
+                  </div>
                 )}
-              </div>
 
-              {/* Date Range */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-700 font-semibold mb-1">From Date *</label>
-                  <input
-                    type="date"
-                    value={applyForm.from_date}
-                    onChange={(e) => setApplyForm({ ...applyForm, from_date: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-700 font-semibold mb-1">To Date *</label>
-                  <input
-                    type="date"
-                    value={applyForm.to_date}
-                    onChange={(e) => setApplyForm({ ...applyForm, to_date: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50"
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Half-day duration options */}
-              <div>
-                <label className="block text-slate-700 font-semibold mb-1">Day Option</label>
-                <div className="flex gap-2">
-                  {[
-                    { id: 'FULL_DAY', label: 'Full Day' },
-                    { id: 'FIRST_HALF', label: 'First Half' },
-                    { id: 'SECOND_HALF', label: 'Second Half' },
-                  ].map((opt) => (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() => setApplyForm({ ...applyForm, duration: opt.id as any })}
-                      className={`flex-1 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
-                        applyForm.duration === opt.id
-                          ? 'bg-blue-50 border-blue-600 text-blue-700'
-                          : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Live Day Calculation Preview */}
-              {calcMut.data && (
-                <div className="p-3 bg-blue-50/60 border border-blue-200 rounded-xl space-y-1">
-                  <div className="flex items-center justify-between font-bold text-blue-900 text-xs">
-                    <span>Requested Leave Days:</span>
-                    <span>{calcMut.data.leave_days} days</span>
+                {/* Leave type cards with balance */}
+                <section>
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500">Leave type</label>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {allTypes
+                      .filter((t) => t.status === 'ACTIVE')
+                      .map((t) => {
+                        const bal = (data?.balances || []).find((b) => b.leave_type_id === t.leave_type_id);
+                        const on = applyForm.leave_type_id === t.leave_type_id;
+                        return (
+                          <button
+                            key={t.leave_type_id}
+                            type="button"
+                            aria-pressed={on}
+                            onClick={() => setApplyForm({ ...applyForm, leave_type_id: t.leave_type_id })}
+                            className={`rounded-xl border p-3 text-left transition cursor-pointer ${
+                              on ? 'border-blue-600 bg-blue-50/60 ring-1 ring-blue-600' : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                            }`}
+                          >
+                            <span className="flex items-center justify-between gap-2">
+                              <span className="truncate text-[13px] font-semibold text-slate-900">{t.name}</span>
+                              <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase ${t.is_paid ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-600'}`}>
+                                {t.is_paid ? 'Paid' : 'Unpaid'}
+                              </span>
+                            </span>
+                            <span className="mt-1 block text-xs text-slate-500">
+                              {bal && bal.balance_tracked ? (
+                                <>
+                                  <strong className="text-sm font-semibold text-slate-800">{bal.available_balance}</strong> days available
+                                </>
+                              ) : (
+                                'No balance limit'
+                              )}
+                            </span>
+                          </button>
+                        );
+                      })}
                   </div>
-                  {calcMut.data.is_short_notice && (
-                    <p className="text-[11px] text-amber-700 font-medium">
-                      Notice: This request is considered short notice per company policy.
-                    </p>
-                  )}
-                  {calcMut.data.attachment_required && (
-                    <p className="text-[11px] text-rose-700 font-medium">
-                      A supporting document/medical certificate is mandatory for this request.
-                    </p>
-                  )}
-                </div>
-              )}
+                </section>
 
-              {/* Reason */}
-              <div>
-                <label className="block text-slate-700 font-semibold mb-1">Reason for Leave *</label>
-                <textarea
-                  value={applyForm.reason}
-                  onChange={(e) => setApplyForm({ ...applyForm, reason: e.target.value })}
-                  placeholder="Explain why you need this leave..."
-                  rows={3}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50"
-                  required
-                />
-              </div>
-
-              {/* Supporting Document / Medical Certificate Attachment */}
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-slate-700 font-semibold text-xs flex items-center gap-1.5">
-                    <Paperclip className="w-3.5 h-3.5 text-blue-600" />
-                    Supporting Document (Medical Cert / Slip)
-                  </label>
-                  <div className="flex items-center gap-1 text-[11px] font-semibold bg-white p-0.5 rounded-lg border border-slate-200">
-                    <button
-                      type="button"
-                      onClick={() => setAttachmentInputMode('file')}
-                      className={`px-2 py-0.5 rounded cursor-pointer ${
-                        attachmentInputMode === 'file'
-                          ? 'bg-blue-600 text-white shadow-2xs'
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                    >
-                      Upload File
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setAttachmentInputMode('url')}
-                      className={`px-2 py-0.5 rounded cursor-pointer ${
-                        attachmentInputMode === 'url'
-                          ? 'bg-blue-600 text-white shadow-2xs'
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                    >
-                      Direct URL
-                    </button>
+                {/* Dates */}
+                <section>
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500">Dates</label>
+                  <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
+                    <div>
+                      <span className="mb-1 block text-xs text-slate-500">From</span>
+                      <input
+                        type="date"
+                        value={applyForm.from_date}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setApplyForm({ ...applyForm, from_date: v, to_date: applyForm.to_date < v ? v : applyForm.to_date });
+                        }}
+                        className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <span className="mb-1 block text-xs text-slate-500">To</span>
+                      <input
+                        type="date"
+                        min={applyForm.from_date}
+                        value={applyForm.to_date}
+                        onChange={(e) => setApplyForm({ ...applyForm, to_date: e.target.value })}
+                        className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
+                        required
+                      />
+                    </div>
                   </div>
-                </div>
 
-                {attachmentInputMode === 'file' ? (
-                  <div>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      id="leave-attachment-file-input"
-                      onChange={handleFileSelect}
-                      disabled={isUploadingFile}
-                      accept="image/*,.pdf,.doc,.docx"
-                      className="hidden"
-                    />
-
-                    {uploadedFileName ? (
-                      <div className="flex items-center justify-between p-2.5 rounded-lg bg-white border border-emerald-200 text-emerald-800 text-xs">
-                        <div className="flex items-center gap-2 truncate">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                          <span className="font-semibold truncate">{uploadedFileName}</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={handleRemoveUploadedFile}
-                          className="text-slate-400 hover:text-rose-600 p-1 transition-colors cursor-pointer"
-                          title="Remove file"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ) : (
+                  <div role="radiogroup" aria-label="Day option" className="mt-3 grid grid-cols-3 gap-1 rounded-lg bg-slate-100 p-1">
+                    {[
+                      { id: 'FULL_DAY', label: 'Full day' },
+                      { id: 'FIRST_HALF', label: 'First half' },
+                      { id: 'SECOND_HALF', label: 'Second half' },
+                    ].map((opt) => (
                       <button
+                        key={opt.id}
                         type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={isUploadingFile}
-                        className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 border-dashed border-slate-300 hover:border-blue-400 bg-white hover:bg-blue-50/20 text-slate-600 transition-colors cursor-pointer text-xs font-semibold"
+                        role="radio"
+                        aria-checked={applyForm.duration === opt.id}
+                        onClick={() => setApplyForm({ ...applyForm, duration: opt.id as any })}
+                        className={`rounded-md py-1.5 text-xs font-semibold transition cursor-pointer ${
+                          applyForm.duration === opt.id ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                        }`}
                       >
-                        {isUploadingFile ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
-                            <span>Uploading attachment...</span>
-                          </>
-                        ) : (
-                          <>
-                            <UploadCloud className="w-4 h-4 text-slate-500" />
-                            <span>Choose document or image from device (max 5 MB)</span>
-                          </>
-                        )}
+                        {opt.label}
                       </button>
+                    ))}
+                  </div>
+                </section>
+
+                {/* Live summary */}
+                {calcMut.data && (
+                  <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-3.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-blue-900/70">Leave days</span>
+                      <span className="text-xl font-semibold text-blue-900">{calcMut.data.leave_days}</span>
+                    </div>
+                    {selectedBalance && selectedBalance.balance_tracked && (
+                      <div className="mt-1.5 flex items-center justify-between border-t border-blue-100 pt-1.5 text-xs text-slate-600">
+                        <span>Balance after this request</span>
+                        <strong className={Number(selectedBalance.available_balance) - Number(calcMut.data.leave_days) < 0 ? 'text-rose-600' : 'text-slate-800'}>
+                          {Math.round((Number(selectedBalance.available_balance) - Number(calcMut.data.leave_days)) * 100) / 100} days
+                        </strong>
+                      </div>
+                    )}
+                    {calcMut.data.is_short_notice && (
+                      <p className="mt-2 text-xs font-medium text-amber-700">This request is short notice as per company policy.</p>
+                    )}
+                    {calcMut.data.attachment_required && (
+                      <p className="mt-2 text-xs font-medium text-rose-700">A supporting document is mandatory for this request.</p>
                     )}
                   </div>
-                ) : (
-                  <div>
+                )}
+
+                {/* Reason */}
+                <section>
+                  <label htmlFor="leave-reason" className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500">Reason</label>
+                  <textarea
+                    id="leave-reason"
+                    value={applyForm.reason}
+                    onChange={(e) => setApplyForm({ ...applyForm, reason: e.target.value })}
+                    placeholder="Add a short note for your approver"
+                    rows={3}
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
+                    required
+                  />
+                </section>
+
+                {/* Attachment */}
+                <section>
+                  <div className="mb-2 flex items-center justify-between">
+                    <label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      <Paperclip className="h-3.5 w-3.5" /> Attachment <span className="font-normal normal-case text-slate-400">(optional)</span>
+                    </label>
+                    <div className="inline-flex rounded-md bg-slate-100 p-0.5 text-[11px] font-semibold">
+                      {(['file', 'url'] as const).map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => setAttachmentInputMode(m)}
+                          className={`rounded px-2 py-0.5 cursor-pointer ${attachmentInputMode === m ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500'}`}
+                        >
+                          {m === 'file' ? 'Upload' : 'Link'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {attachmentInputMode === 'file' ? (
+                    <div>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        id="leave-attachment-file-input"
+                        onChange={handleFileSelect}
+                        disabled={isUploadingFile}
+                        accept="image/*,.pdf,.doc,.docx"
+                        className="hidden"
+                      />
+                      {uploadedFileName ? (
+                        <div className="flex items-center justify-between gap-2 rounded-lg border border-emerald-200 bg-emerald-50/60 p-2.5 text-emerald-800">
+                          <span className="flex min-w-0 items-center gap-2">
+                            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+                            <span className="truncate font-medium">{uploadedFileName}</span>
+                          </span>
+                          <button type="button" onClick={handleRemoveUploadedFile} title="Remove file" className="p-1 text-slate-400 hover:text-rose-600 cursor-pointer">
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={isUploadingFile}
+                          className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 px-4 py-4 text-slate-600 transition hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer"
+                        >
+                          {isUploadingFile ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                              Uploading…
+                            </>
+                          ) : (
+                            <>
+                              <UploadCloud className="h-4 w-4 text-slate-500" />
+                              <span>Choose a file <span className="text-slate-400">(PDF, image or Word, max 5 MB)</span></span>
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  ) : (
                     <input
                       type="url"
-                      placeholder="https://storage.example.com/medical_slip.pdf"
+                      placeholder="https://…"
                       value={applyForm.attachment_url}
                       onChange={(e) => setApplyForm({ ...applyForm, attachment_url: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-white text-xs"
+                      className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
                     />
-                  </div>
-                )}
+                  )}
+                </section>
               </div>
 
               {/* Footer */}
-              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+              <div className="flex gap-2.5 border-t border-slate-200 bg-white px-5 py-3.5 sm:px-6">
                 <button
                   type="button"
                   onClick={() => setIsApplyModalOpen(false)}
-                  className="px-4 py-2 border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-700 font-semibold cursor-pointer"
+                  className="flex-1 rounded-lg border border-slate-300 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 cursor-pointer sm:flex-none sm:px-6"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={applyMut.isPending || isUploadingFile}
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-xs disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50 cursor-pointer sm:px-8"
                 >
-                  {applyMut.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  Submit Application
+                  {applyMut.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Apply
                 </button>
               </div>
             </form>

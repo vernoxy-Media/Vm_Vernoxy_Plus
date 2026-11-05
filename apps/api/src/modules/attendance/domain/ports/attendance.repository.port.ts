@@ -6,6 +6,7 @@ export interface AttendanceRepository {
   findDayByEmpAndDate(empId: number, workDate: string): Promise<AttendanceDayEntity | null>;
   findDaysByEmpAndMonth(empId: number, yearMonth: string): Promise<AttendanceDayEntity[]>;
   createAttendanceDay(data: Omit<AttendanceDayEntity, 'attendanceId' | 'createdAt'>): Promise<AttendanceDayEntity>;
+  startWorkOnLeaveDay(attendanceId: number, checkInAt: Date): Promise<AttendanceDayEntity>;
   closeAttendanceDayWithBreak(
     attendanceId: number,
     checkOutAt: Date,

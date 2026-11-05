@@ -4,6 +4,7 @@ import { Settings, ClipboardCheck, RefreshCw, Download, Clock, FileText, CheckCi
 import { getAccessToken } from '@vernoxy-pulse/api-client';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useAttendanceDashboard, usePunchActions } from '../hooks/use-attendance';
+import { EmployeeSwitcher, type SwitcherEmployee } from '../components/EmployeeSwitcher';
 import { AttendanceSkeleton } from '../components/AttendanceSkeleton';
 import { AttendanceDashboardCards } from '../components/AttendanceDashboardCards';
 import { AddRegularizationModal } from '../components/AddRegularizationModal';
@@ -27,11 +28,8 @@ const MONTH_OPTIONS = [
 
 export const AttendancePage: React.FC = () => {
   const { user } = useAuth();
-  const canManageAttendance = Boolean(
-    user?.access?.can_manage_organization ||
-      user?.role?.role_name?.toLowerCase().includes('admin') ||
-      user?.role?.role_name?.toLowerCase().includes('manager')
-  );
+  // Only administrators manage other people's attendance; everyone else works on their own.
+  const canManageAttendance = Boolean(user?.access?.can_manage_organization);
 
   const todayDateStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const currentMonthStr = useMemo(() => todayDateStr.slice(0, 7), [todayDateStr]);
@@ -53,7 +51,11 @@ export const AttendancePage: React.FC = () => {
     return [curYear + 1, curYear, curYear - 1, curYear - 2].map(String);
   }, []);
 
-  const { data, isLoading, error, refetch } = useAttendanceDashboard(selectedMonth);
+  // administrators can look at any employee; everybody else only ever sees themselves
+  const [viewEmp, setViewEmp] = useState<SwitcherEmployee | null>(null);
+  const viewing = canManageAttendance ? viewEmp : null;
+
+  const { data, isLoading, error, refetch } = useAttendanceDashboard(selectedMonth, viewing?.emp_id);
 
   const {
     punchInMutation,
@@ -187,6 +189,15 @@ export const AttendancePage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2.5 shrink-0">
+          {canManageAttendance && user && (
+            <EmployeeSwitcher
+              value={viewing}
+              me={{ emp_id: user.emp_id, name: user.name ?? 'Me' }}
+              onChange={(e) => setViewEmp(e)}
+            />
+          )}
+
+          {canManageAttendance && (
           <button
             type="button"
             onClick={() => setIsExportModalOpen(true)}
@@ -197,6 +208,7 @@ export const AttendancePage: React.FC = () => {
             <Download className="w-3.5 h-3.5 text-slate-500 stroke-[1.75]" />
             <span>{isExporting ? 'Exporting...' : 'Export'}</span>
           </button>
+          )}
 
           <button
             type="button"
@@ -220,9 +232,9 @@ export const AttendancePage: React.FC = () => {
       </div>
 
       {/* Top Module Tabs: Timesheet & Dashboard, My Regularizations, Approvals */}
-      <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
+      <div className="border-b border-slate-200">
         <div
-          className="inline-flex items-center gap-1.5 p-1 bg-slate-100/80 border border-slate-200/80 rounded-2xl shadow-2xs"
+          className="-mb-px flex items-center gap-1 overflow-x-auto scrollbar-thin"
           role="tablist"
           aria-label="Attendance Sections"
         >
@@ -232,10 +244,10 @@ export const AttendancePage: React.FC = () => {
             role="tab"
             aria-selected={attendanceTab === 'timesheet'}
             onClick={() => setAttendanceTab('timesheet')}
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-3.5 py-3 text-[13px] font-semibold transition-colors cursor-pointer ${
               attendanceTab === 'timesheet'
-                ? 'bg-white text-indigo-600 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                ? 'border-[#5B4CF8] text-[#5B4CF8]'
+                : 'border-transparent text-slate-500 hover:text-slate-900 hover:border-slate-300'
             }`}
           >
             <Clock className="w-3.5 h-3.5" />
@@ -248,10 +260,10 @@ export const AttendancePage: React.FC = () => {
             role="tab"
             aria-selected={attendanceTab === 'regularization'}
             onClick={() => setAttendanceTab('regularization')}
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-3.5 py-3 text-[13px] font-semibold transition-colors cursor-pointer ${
               attendanceTab === 'regularization'
-                ? 'bg-white text-indigo-600 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                ? 'border-[#5B4CF8] text-[#5B4CF8]'
+                : 'border-transparent text-slate-500 hover:text-slate-900 hover:border-slate-300'
             }`}
           >
             <FileText className="w-3.5 h-3.5" />
@@ -265,10 +277,10 @@ export const AttendancePage: React.FC = () => {
               role="tab"
               aria-selected={attendanceTab === 'approvals'}
               onClick={() => setAttendanceTab('approvals')}
-              className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-3.5 py-3 text-[13px] font-semibold transition-colors cursor-pointer ${
                 attendanceTab === 'approvals'
-                  ? 'bg-white text-indigo-600 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                  ? 'border-[#5B4CF8] text-[#5B4CF8]'
+                  : 'border-transparent text-slate-500 hover:text-slate-900 hover:border-slate-300'
               }`}
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
@@ -305,15 +317,16 @@ export const AttendancePage: React.FC = () => {
           monthLabel="This Month"
           statusLabel="Live Shift"
           onOpenMyRequests={() => setAttendanceTab('regularization')}
+          viewing={viewing ? { emp_id: viewing.emp_id, name: viewing.name, onExit: () => setViewEmp(null) } : null}
         />
       )}
 
       {attendanceTab === 'regularization' && (
-        <MyRegularizationsPanel />
+        <MyRegularizationsPanel viewing={viewing} />
       )}
 
       {attendanceTab === 'approvals' && canManageAttendance && (
-        <ApprovalsPanel />
+        <ApprovalsPanel viewing={viewing} />
       )}
 
       {/* Export Monthly Attendance Modal */}
@@ -409,6 +422,7 @@ export const AttendancePage: React.FC = () => {
         <AddRegularizationModal
           isOpen={true}
           initialDate={correctionModalDate}
+          empId={viewing?.emp_id}
           initialCheckIn={correctionRow?.punch_in}
           initialCheckOut={correctionRow?.punch_out}
           onClose={() => setCorrectionModalDate(null)}

@@ -46,9 +46,15 @@ export interface DashboardResponseDto {
       production_minutes: number;
       break_minutes: number;
       day_status: string | null;
-      leave: { type_name: string; part: string } | null;
+      leave: { type_name: string; part: string; half?: string | null } | null;
       holiday_name: string | null;
       flags: Record<string, any>;
+      breaks?: Array<{ started_at: string; ended_at: string | null }>;
+      /** Filled in by the controller when the punch captured a location */
+      punch_location?: {
+        in: { latitude: number; longitude: number } | null;
+        out: { latitude: number; longitude: number } | null;
+      };
     }>;
     month_label: string;
     is_current_month: boolean;
@@ -192,7 +198,7 @@ export class GetDashboardUseCase {
         isWeeklyOff: todayRawDay.state === 'weekly_off',
         isHoliday: todayRawDay.state === 'holiday',
         holidayName: todayRawDay.holiday_name,
-        fullDayMinutes: empHours.fullDayMinutes,
+        fullDayMinutes: todayRawDay.leave?.part === 'half' ? empHours.halfDayMinutes : empHours.fullDayMinutes,
         halfDayMinutes: empHours.halfDayMinutes,
       });
     } else {
@@ -273,14 +279,18 @@ export class GetDashboardUseCase {
         days: visibleDays.map((d) => ({
           date: d.date,
           state: d.state,
-          check_in_at: d.check_in_at ? d.check_in_at.toISOString() : null,
-          check_out_at: d.check_out_at ? d.check_out_at.toISOString() : null,
+          check_in_at: d.state !== 'leave' && d.check_in_at ? d.check_in_at.toISOString() : null,
+          check_out_at: d.state !== 'leave' && d.check_out_at ? d.check_out_at.toISOString() : null,
           production_minutes: d.production_minutes,
           break_minutes: d.break_minutes,
           day_status: d.day_status,
           leave: d.leave,
           holiday_name: d.holiday_name,
           flags: d.flags,
+          breaks: d.breaks.map((b) => ({
+            started_at: b.started_at.toISOString(),
+            ended_at: b.ended_at ? b.ended_at.toISOString() : null,
+          })),
         })),
         month_label: monthLabel,
         is_current_month: isCurrentMonth,

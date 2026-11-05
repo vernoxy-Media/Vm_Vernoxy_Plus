@@ -1,3 +1,4 @@
+import { isLeavePlaceholderPunch } from './leave-placeholder';
 import { AttendanceDayEntity } from '../entities/attendance-day.entity';
 import { AttendanceBreakEntity } from '../entities/attendance-break.entity';
 import {
@@ -55,9 +56,10 @@ export function buildTodayBlock(params: TodayBlockParams): TodayAttendanceBlock 
   const timezone = params.timezone || 'Asia/Kolkata';
   const workDate = params.attendanceDay?.workDate || formatWorkDate(params.now, timezone);
 
-  const isLeaveDayStatus = params.attendanceDay?.dayStatus === 'leave';
+  const isLeaveDayStatus = params.attendanceDay?.dayStatus === 'leave' && !params.attendanceDay.leaveHalf && !(params.attendanceDay.checkInAt && !isLeavePlaceholderPunch(params.attendanceDay));
   const isFullDayLeave = params.leave?.part === 'full' || isLeaveDayStatus;
-  const isHalfDayLeave = params.leave?.part === 'half';
+  const dayLeaveHalf = !!params.attendanceDay?.leaveHalf;
+  const isHalfDayLeave = params.leave?.part === 'half' || dayLeaveHalf;
   const isHoliday = !!params.isHoliday;
   const isWeeklyOff = params.isWeeklyOff !== undefined
     ? params.isWeeklyOff
@@ -76,7 +78,7 @@ export function buildTodayBlock(params: TodayBlockParams): TodayAttendanceBlock 
   const targetMinutes = calculateDailyTargetMinutes({
     isWeeklyOff,
     isHoliday,
-    leaveType: params.leave?.part || (isLeaveDayStatus ? 'full' : null),
+    leaveType: params.leave?.part || (dayLeaveHalf ? 'half' : isLeaveDayStatus ? 'full' : null),
     fullDayMinutes: params.fullDayMinutes ?? DEFAULT_FULL_DAY_MINUTES,
     halfDayMinutes: params.halfDayMinutes ?? DEFAULT_HALF_DAY_MINUTES,
   });

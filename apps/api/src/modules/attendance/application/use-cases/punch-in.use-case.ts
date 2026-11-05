@@ -11,6 +11,7 @@ import {
   TodayAttendanceBlock,
 } from '../../domain/services/today-block-builder';
 import { AlreadyPunchedInError } from '../../domain/errors/attendance.errors';
+import { isLeavePlaceholderPunch } from '../../domain/services/leave-placeholder';
 
 export class PunchInUseCase {
   constructor(
@@ -25,6 +26,19 @@ export class PunchInUseCase {
     const existingDay = await this.attendanceRepo.findDayByEmpAndDate(empId, workDate);
     const dayDate = new Date(workDate);
     const isWeeklyOff = dayDate.getUTCDay() === 0 || dayDate.getUTCDay() === 6;
+
+    // Half-day leave: the 09:00 placeholder is not a punch, so the employee can still clock in for the working half
+    if (existingDay && existingDay.leaveHalf && isLeavePlaceholderPunch(existingDay)) {
+      const started = await this.attendanceRepo.startWorkOnLeaveDay(existingDay.attendanceId, now);
+      return buildTodayBlock({
+        now,
+        timezone,
+        attendanceDay: started,
+        breaks: [],
+        openBreak: null,
+        isWeeklyOff,
+      });
+    }
 
     if (existingDay && existingDay.checkInAt) {
       const breaks = await this.attendanceRepo.findBreaksByAttendanceId(existingDay.attendanceId);

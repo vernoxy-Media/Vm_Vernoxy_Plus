@@ -1,41 +1,57 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, CheckSquare, Square, Eye, Check } from 'lucide-react';
+import { Search, CheckSquare, Square, Eye, Check, ClipboardCheck } from 'lucide-react';
 import { fetchRegularizations, bulkApproveRegularizationRequests } from '../api/attendance.api';
 import { useLookupsQuery } from '@/features/organization/hooks/use-master-data';
 import type { AttendanceRegularization } from '../types/attendance.types';
 import { RegularizationDetailModal } from './RegularizationDetailModal';
+import { Pagination } from '@/shared/ui/Pagination';
+import { Avatar } from '@/shared/ui/Avatar';
+import { RequestedTimes, StatusPill, TypeChip, formatDay, submittedOn } from './regularization-ui';
 
-export const ApprovalsPanel: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'rejected'>('pending');
-  const [department, setDepartment] = useState<string>('All');
-  const [requestType, setRequestType] = useState<string>('All');
-  const [fromDate, setFromDate] = useState<string>('');
-  const [toDate, setToDate] = useState<string>('');
-  const [search, setSearch] = useState<string>('');
+const TABS = ['pending', 'approved', 'rejected'] as const;
+type Tab = (typeof TABS)[number];
+
+const field =
+  'h-9 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-xs text-slate-800 focus:border-[#5B4CF8] focus:outline-none focus:ring-2 focus:ring-[#5B4CF8]/15';
+
+export const ApprovalsPanel: React.FC<{
+  /** An administrator looking at one employee: only that employee's requests are listed */
+  viewing?: { emp_id: number; name: string } | null;
+}> = ({ viewing }) => {
+  const [activeTab, setActiveTab] = useState<Tab>('pending');
+  const [department, setDepartment] = useState('All');
+  const [requestType, setRequestType] = useState('All');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const { data: requestTypeOptions } = useLookupsQuery('request_type');
-  const requestTypes = requestTypeOptions && requestTypeOptions.length > 0
-    ? requestTypeOptions.map((o) => o.label)
-    : ['Missing Check-in', 'Missing Check-out', 'Incorrect Time', 'Full Day Missed', 'On Duty / Field Work'];
+  const requestTypes =
+    requestTypeOptions && requestTypeOptions.length > 0
+      ? requestTypeOptions.map((o) => o.label)
+      : ['Missing Check-in', 'Missing Check-out', 'Incorrect Time', 'Full Day Missed', 'On Duty / Field Work'];
 
   const [requests, setRequests] = useState<AttendanceRegularization[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [selectedRequest, setSelectedRequest] = useState<AttendanceRegularization | null>(null);
-  const [isDetailOpen, setIsDetailOpen] = useState<boolean>(false);
-  const [isBulkApproving, setIsBulkApproving] = useState<boolean>(false);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isBulkApproving, setIsBulkApproving] = useState(false);
 
   const loadRequests = async () => {
     setIsLoading(true);
     try {
       const data = await fetchRegularizations({
         tab: activeTab,
+        emp_id: viewing?.emp_id,
         department_id: department !== 'All' ? Number(department) : undefined,
         request_type: requestType !== 'All' ? requestType : undefined,
         from_date: fromDate || undefined,
         to_date: toDate || undefined,
         search: search || undefined,
-        scope: 'team', // manager/HR view
+        scope: 'team',
       });
       setRequests(data);
       setSelectedIds([]);
@@ -48,38 +64,28 @@ export const ApprovalsPanel: React.FC = () => {
 
   useEffect(() => {
     loadRequests();
-  }, [activeTab, department, requestType, fromDate, toDate]);
+  }, [activeTab, department, requestType, fromDate, toDate, viewing?.emp_id]);
 
-  // Debounced search
+  // debounced search
   useEffect(() => {
-    const timer = setTimeout(() => {
-      loadRequests();
-    }, 300);
+    const timer = setTimeout(loadRequests, 300);
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Departments list extracted from requests or defaults
+  useEffect(() => setPage(1), [activeTab, department, requestType, fromDate, toDate, search, pageSize, viewing?.emp_id]);
+
   const departments = useMemo(() => {
     const list = new Set<string>();
-    requests.forEach((r) => {
-      if (r.departmentName) list.add(r.departmentName);
-    });
+    requests.forEach((r) => r.departmentName && list.add(r.departmentName));
     return Array.from(list);
   }, [requests]);
 
-  const handleSelectAll = () => {
-    if (selectedIds.length === requests.length) {
-      setSelectedIds([]);
-    } else {
-      setSelectedIds(requests.map((r) => r.correctionId));
-    }
-  };
+  const rows = requests.slice((page - 1) * pageSize, page * pageSize);
+  const allOnPageSelected = rows.length > 0 && rows.every((r) => selectedIds.includes(r.correctionId));
 
-  const toggleSelect = (id: number) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    );
-  };
+  const toggleSelect = (id: number) => setSelectedIds((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
+  const togglePage = () =>
+    setSelectedIds((p) => (allOnPageSelected ? p.filter((id) => !rows.some((r) => r.correctionId === id)) : [...new Set([...p, ...rows.map((r) => r.correctionId)])]));
 
   const handleBulkApprove = async () => {
     if (selectedIds.length === 0) return;
@@ -87,310 +93,213 @@ export const ApprovalsPanel: React.FC = () => {
     try {
       await bulkApproveRegularizationRequests(selectedIds);
       loadRequests();
-    } catch {
-      // Handled in loadRequests
     } finally {
       setIsBulkApproving(false);
     }
   };
 
-  const formatTimeStr = (isoDate?: string | null) => {
-    if (!isoDate) return '--';
-    try {
-      const d = new Date(isoDate);
-      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } catch {
-      return '--';
-    }
+  const open = (r: AttendanceRegularization) => {
+    setSelectedRequest(r);
+    setIsDetailOpen(true);
   };
+
+  const Check_ = ({ id, on }: { id: number; on: boolean }) => (
+    <button type="button" aria-label={on ? 'Deselect request' : 'Select request'} onClick={(e) => { e.stopPropagation(); toggleSelect(id); }} className="text-slate-300 hover:text-slate-600 cursor-pointer">
+      {on ? <CheckSquare className="h-4 w-4 text-[#5B4CF8]" /> : <Square className="h-4 w-4" />}
+    </button>
+  );
 
   return (
     <div className="space-y-4">
-      {/* Header with Title and Tabs */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1">
-        <div>
-          <h2 className="text-xl font-bold text-slate-800">
-            Attendance Regularization Approvals
-          </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Review and resolve employee attendance regularization requests.
-          </p>
-        </div>
-
-        {/* Status Pill Tabs */}
-        <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-2xl border border-slate-200/80 shadow-2xs">
-          <button
-            type="button"
-            onClick={() => setActiveTab('pending')}
-            className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${
-              activeTab === 'pending'
-                ? 'bg-white text-[#5B4CF8] shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
-            }`}
-          >
-            Pending {activeTab === 'pending' && `(${requests.length})`}
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('approved')}
-            className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${
-              activeTab === 'approved'
-                ? 'bg-white text-[#5B4CF8] shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
-            }`}
-          >
-            Approved
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('rejected')}
-            className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${
-              activeTab === 'rejected'
-                ? 'bg-white text-[#5B4CF8] shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
-            }`}
-          >
-            Rejected
-          </button>
-        </div>
-      </div>
-
-      {/* Filter Bar */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 bg-white p-3.5 rounded-2xl border border-slate-200/90 shadow-2xs">
-        <div>
-          <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-            Department
-          </label>
-          <select
-            value={department}
-            onChange={(e) => setDepartment(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-          >
-            <option value="All">All Departments</option>
-            {departments.map((d) => (
-              <option key={d} value={d}>
-                {d}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-            Request Type
-          </label>
-          <select
-            value={requestType}
-            onChange={(e) => setRequestType(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-          >
-            <option value="All">All Request Types</option>
-            {requestTypes.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-            From Date
-          </label>
-          <input
-            type="date"
-            value={fromDate}
-            onChange={(e) => setFromDate(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-          />
-        </div>
-
-        <div>
-          <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-            To Date
-          </label>
-          <input
-            type="date"
-            value={toDate}
-            onChange={(e) => setToDate(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-          />
-        </div>
-
-        <div>
-          <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-            Search
-          </label>
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Name or Emp ID"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-white pl-8 pr-2.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-            />
-            <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+            <ClipboardCheck className="h-5 w-5" />
+          </span>
+          <div>
+            <h2 className="text-xl font-semibold tracking-tight text-slate-900">{viewing ? `Approvals · ${viewing.name}` : 'Regularization approvals'}</h2>
+            <p className="text-xs text-slate-500">{viewing ? "Requests raised by this employee." : 'Review and resolve employee attendance requests.'}</p>
           </div>
         </div>
       </div>
 
-      {/* Action / Batch Header */}
-      {activeTab === 'pending' && (
-        <div className="flex items-center justify-between bg-indigo-50/60 px-4 py-2.5 rounded-xl border border-indigo-100">
-          <span className="text-xs text-indigo-900 font-semibold">
-            {requests.length} requests waiting for approval
-          </span>
-          {selectedIds.length > 0 && (
+      <div className="overflow-hidden rounded-2xl border border-[#E4E8EF] bg-white shadow-sm">
+        <div className="flex flex-col gap-3 border-b border-slate-100 px-4 pt-2 lg:flex-row lg:items-center lg:justify-between">
+          <div role="tablist" aria-label="Approval status" className="-mb-px flex items-center gap-1 overflow-x-auto">
+            {TABS.map((t) => (
+              <button
+                key={t}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === t}
+                onClick={() => setActiveTab(t)}
+                className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-3 py-3 text-[13px] font-semibold capitalize transition-colors cursor-pointer ${
+                  activeTab === t ? 'border-[#5B4CF8] text-[#5B4CF8]' : 'border-transparent text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                {t}
+                {activeTab === t && <span className="rounded-full bg-indigo-100 px-1.5 py-0.5 text-[10px] font-bold text-indigo-700">{requests.length}</span>}
+              </button>
+            ))}
+          </div>
+
+          {activeTab === 'pending' && selectedIds.length > 0 && (
             <button
               type="button"
               onClick={handleBulkApprove}
               disabled={isBulkApproving}
-              className="rounded-xl bg-emerald-600 hover:bg-emerald-700 px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              className="mb-3 inline-flex items-center justify-center gap-1.5 self-start rounded-lg bg-emerald-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50 lg:mb-0 cursor-pointer"
             >
-              <Check className="w-3.5 h-3.5" />
-              <span>{isBulkApproving ? 'Approving...' : `Approve Selected (${selectedIds.length})`}</span>
+              <Check className="h-3.5 w-3.5" />
+              {isBulkApproving ? 'Approving…' : `Approve selected (${selectedIds.length})`}
             </button>
           )}
         </div>
-      )}
 
-      {/* Data Table */}
-      <div className="overflow-x-auto rounded-2xl border border-slate-200/90 bg-white shadow-floating-card">
-        <table className="w-full text-left text-xs">
-          <thead className="bg-slate-50/80 text-slate-600 border-b border-slate-200/80 text-[11px] font-bold uppercase tracking-wider">
-            <tr>
-              {activeTab === 'pending' && (
-                <th className="w-10 px-3 py-3.5 text-center">
-                  <button
-                    type="button"
-                    onClick={handleSelectAll}
-                    className="text-slate-400 hover:text-slate-700 cursor-pointer"
-                  >
-                    {selectedIds.length > 0 && selectedIds.length === requests.length ? (
-                      <CheckSquare className="h-4 w-4 text-[#5B4CF8]" />
-                    ) : (
-                      <Square className="h-4 w-4" />
-                    )}
-                  </button>
-                </th>
-              )}
-              <th className="px-4 py-3.5">Request ID</th>
-              <th className="px-4 py-3.5">Employee</th>
-              <th className="px-4 py-3.5">Dept.</th>
-              <th className="px-4 py-3.5">Date</th>
-              <th className="px-4 py-3.5">Type</th>
-              <th className="px-4 py-3.5">Requested In / Out</th>
-              <th className="px-4 py-3.5">Submitted</th>
-              <th className="px-4 py-3.5">Status</th>
-              <th className="px-4 py-3.5 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {isLoading ? (
-              <tr>
-                <td colSpan={10} className="px-4 py-12 text-center text-slate-400 font-medium">
-                  Loading requests...
-                </td>
-              </tr>
-            ) : requests.length === 0 ? (
-              <tr>
-                <td colSpan={10} className="px-4 py-12 text-center text-slate-400 font-medium">
-                  No {activeTab} regularization requests found.
-                </td>
-              </tr>
-            ) : (
-              requests.map((r) => {
-                const isSelected = selectedIds.includes(r.correctionId);
-                const reqInOut = `${formatTimeStr(r.requestedCheckInAt)} / ${formatTimeStr(r.requestedCheckOutAt)}`;
-                const submittedDateStr = r.createdAt
-                  ? new Date(r.createdAt).toLocaleDateString([], { day: '2-digit', month: 'short' })
-                  : '--';
+        {/* filters */}
+        <div className="grid grid-cols-1 gap-3 border-b border-slate-100 bg-[#F8FAFC] px-4 py-3 sm:grid-cols-2 lg:grid-cols-5">
+          <label className="block">
+            <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Department</span>
+            <select value={department} onChange={(e) => setDepartment(e.target.value)} className={field}>
+              <option value="All">All departments</option>
+              {departments.map((d) => <option key={d} value={d}>{d}</option>)}
+            </select>
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Request type</span>
+            <select value={requestType} onChange={(e) => setRequestType(e.target.value)} className={field}>
+              <option value="All">All request types</option>
+              {requestTypes.map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">From</span>
+            <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className={field} />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">To</span>
+            <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className={field} />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Search</span>
+            <span className="relative block">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Name or employee ID" className={`${field} pl-8`} />
+            </span>
+          </label>
+        </div>
 
-                return (
-                  <tr
-                    key={r.correctionId}
-                    className="hover:bg-slate-50/70 transition-colors"
-                  >
-                    {activeTab === 'pending' && (
-                      <td className="px-3 py-3 text-center">
+        {/* table from tablet up */}
+        <div className="hidden overflow-x-auto md:block">
+          <table className="w-full min-w-[920px] text-left text-xs">
+            <thead className="bg-[#F8FAFC] text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+              <tr>
+                {activeTab === 'pending' && (
+                  <th className="w-10 py-3 pl-5 pr-2">
+                    <button type="button" aria-label="Select all on this page" onClick={togglePage} className="text-slate-300 hover:text-slate-600 cursor-pointer">
+                      {allOnPageSelected ? <CheckSquare className="h-4 w-4 text-[#5B4CF8]" /> : <Square className="h-4 w-4" />}
+                    </button>
+                  </th>
+                )}
+                <th className={`${activeTab === 'pending' ? 'px-3' : 'pl-5 pr-3'} py-3`}>Employee</th>
+                <th className="px-3 py-3">Request</th>
+                <th className="px-3 py-3">Date</th>
+                <th className="px-3 py-3">Type</th>
+                <th className="px-3 py-3">Requested in → out</th>
+                <th className="px-3 py-3">Submitted</th>
+                <th className="px-3 py-3">Status</th>
+                <th className="py-3 pl-3 pr-5 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {isLoading ? (
+                <tr><td colSpan={9} className="py-14 text-center text-slate-400">Loading requests…</td></tr>
+              ) : rows.length === 0 ? (
+                <tr><td colSpan={9} className="py-14 text-center text-slate-400">No {activeTab} regularization requests found.</td></tr>
+              ) : (
+                rows.map((r) => {
+                  const day = formatDay(r.workDate);
+                  const on = selectedIds.includes(r.correctionId);
+                  return (
+                    <tr key={r.correctionId} onClick={() => open(r)} className={`h-[58px] cursor-pointer border-t border-slate-100 transition-colors ${on ? 'bg-indigo-50/40' : 'hover:bg-slate-50/70'}`}>
+                      {activeTab === 'pending' && <td className="py-2 pl-5 pr-2"><Check_ id={r.correctionId} on={on} /></td>}
+                      <td className={`${activeTab === 'pending' ? 'px-3' : 'pl-5 pr-3'} py-2`}>
+                        <div className="flex items-center gap-2.5">
+                          <Avatar name={r.employeeName || 'Employee'} size={32} />
+                          <div className="min-w-0">
+                            <p className="truncate text-[13px] font-semibold text-slate-900">{r.employeeName}</p>
+                            <p className="truncate text-[11px] text-slate-500">{r.departmentName || 'General'}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-3 py-2 text-[13px] font-medium text-slate-700">{r.requestId}</td>
+                      <td className="whitespace-nowrap px-3 py-2 text-[13px] text-slate-800">{day.date} <span className="text-slate-400">· {day.weekday}</span></td>
+                      <td className="px-3 py-2"><TypeChip type={r.requestType} /></td>
+                      <td className="px-3 py-2 text-[13px]"><RequestedTimes r={r} /></td>
+                      <td className="whitespace-nowrap px-3 py-2 text-[13px] text-slate-500">{submittedOn(r)}</td>
+                      <td className="px-3 py-2"><StatusPill status={r.status} /></td>
+                      <td className="whitespace-nowrap py-2 pl-3 pr-5 text-right">
                         <button
                           type="button"
-                          onClick={() => toggleSelect(r.correctionId)}
-                          className="text-slate-400 hover:text-slate-700 cursor-pointer"
+                          onClick={(e) => { e.stopPropagation(); open(r); }}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-indigo-200 hover:text-[#5B4CF8] cursor-pointer"
                         >
-                          {isSelected ? (
-                            <CheckSquare className="h-4 w-4 text-[#5B4CF8]" />
-                          ) : (
-                            <Square className="h-4 w-4" />
-                          )}
+                          <Eye className="h-3.5 w-3.5" /> {activeTab === 'pending' ? 'Review' : 'View'}
                         </button>
                       </td>
-                    )}
-                    <td className="px-4 py-3 font-bold text-slate-800">
-                      {r.requestId}
-                    </td>
-                    <td className="px-4 py-3 text-slate-800 font-semibold">
-                      {r.employeeName}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600 font-medium">
-                      {r.departmentName || 'General'}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600 whitespace-nowrap font-medium">
-                      {r.workDate}
-                    </td>
-                    <td className="px-4 py-3 text-slate-700 font-medium">
-                      {r.requestType}
-                    </td>
-                    <td className="px-4 py-3 text-slate-700 whitespace-nowrap font-medium">
-                      {reqInOut}
-                    </td>
-                    <td className="px-4 py-3 text-slate-500 whitespace-nowrap">
-                      {submittedDateStr}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-bold capitalize border ${
-                          r.status === 'approved'
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            : r.status === 'rejected'
-                            ? 'bg-rose-50 text-rose-700 border-rose-200'
-                            : 'bg-amber-50 text-amber-700 border-amber-200'
-                        }`}
-                      >
-                        {r.status}
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* cards on phones */}
+        <ul className="divide-y divide-slate-100 md:hidden">
+          {isLoading ? (
+            <li className="py-12 text-center text-sm text-slate-400">Loading requests…</li>
+          ) : rows.length === 0 ? (
+            <li className="py-12 text-center text-sm text-slate-400">No {activeTab} regularization requests found.</li>
+          ) : (
+            rows.map((r) => {
+              const day = formatDay(r.workDate);
+              const on = selectedIds.includes(r.correctionId);
+              return (
+                <li key={r.correctionId} className={`flex items-start gap-3 px-4 py-3.5 ${on ? 'bg-indigo-50/40' : ''}`}>
+                  {activeTab === 'pending' && <div className="pt-1"><Check_ id={r.correctionId} on={on} /></div>}
+                  <button type="button" onClick={() => open(r)} className="min-w-0 flex-1 space-y-2 text-left">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="flex min-w-0 items-center gap-2">
+                        <Avatar name={r.employeeName || 'Employee'} size={28} />
+                        <span className="truncate text-sm font-semibold text-slate-900">{r.employeeName}</span>
                       </span>
-                    </td>
-                    <td className="px-4 py-3 text-right whitespace-nowrap">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedRequest(r);
-                          setIsDetailOpen(true);
-                        }}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:text-[#5B4CF8] hover:border-indigo-200 font-semibold text-xs shadow-2xs transition cursor-pointer"
-                      >
-                        <Eye className="h-3.5 w-3.5" />
-                        <span>View</span>
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
+                      <StatusPill status={r.status} />
+                    </div>
+                    <div className="text-[13px] text-slate-700">{r.requestId} · {day.date} <span className="text-slate-400">({day.weekday})</span></div>
+                    <div className="flex flex-wrap items-center gap-2 text-[13px]">
+                      <TypeChip type={r.requestType} />
+                      <RequestedTimes r={r} />
+                    </div>
+                  </button>
+                </li>
+              );
+            })
+          )}
+        </ul>
+
+        {!isLoading && requests.length > 0 && (
+          <Pagination page={page} pageSize={pageSize} total={requests.length} onPageChange={setPage} onPageSizeChange={setPageSize} />
+        )}
       </div>
 
-      {/* Review Modal */}
       <RegularizationDetailModal
         isOpen={isDetailOpen}
         onClose={() => {
           setIsDetailOpen(false);
           setSelectedRequest(null);
         }}
-        onSuccess={() => {
-          loadRequests();
-        }}
+        onSuccess={() => loadRequests()}
         regularization={selectedRequest}
         isApproverView={true}
       />

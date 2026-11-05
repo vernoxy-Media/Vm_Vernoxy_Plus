@@ -26,6 +26,8 @@ export interface AttendanceInsightDrawerProps {
   date: string | null; // "YYYY-MM-DD"
   record?: DayRecord | null;
   initialMode?: 'insight' | 'regularize';
+  /** Administrators looking at another employee: the day and any request are theirs */
+  empId?: number | null;
   onClose: () => void;
   onSuccessRegularization?: (message: string) => void;
 }
@@ -53,12 +55,13 @@ export const AttendanceInsightDrawer: React.FC<AttendanceInsightDrawerProps> = (
   date,
   record,
   initialMode = 'insight',
+  empId,
   onClose,
   onSuccessRegularization,
 }) => {
   const { user } = useAuth();
   const [mode, setMode] = useState<'insight' | 'regularize'>(initialMode);
-  const { data: dayDetail } = useDayDetail(isOpen && date ? date : null);
+  const { data: dayDetail } = useDayDetail(isOpen && date ? date : null, empId);
 
   // Form states for Regularization Form
   const [missingPunchType, setMissingPunchType] = useState('Missing Clock Out');
@@ -153,24 +156,16 @@ export const AttendanceInsightDrawer: React.FC<AttendanceInsightDrawerProps> = (
 
   // Calculate Metrics Data (from dayDetail or record)
   const productionSeconds =
-    dayDetail?.production_seconds ??
     record?.production_seconds ??
+    dayDetail?.production_seconds ??
     0;
 
   const breakSeconds =
-    dayDetail?.break_seconds ??
     record?.break_seconds ??
+    dayDetail?.break_seconds ??
     0;
 
   const grossSeconds = productionSeconds + breakSeconds;
-
-  const formatHoursDisplay = (sec: number) => {
-    if (!sec || sec <= 0) return '0:0hrs';
-    const hours = Math.floor(sec / 3600);
-    const minutes = Math.floor((sec % 3600) / 60);
-    if (minutes === 0) return `${hours}h 00m`;
-    return `${hours}h ${String(minutes).padStart(2, '0')}m`;
-  };
 
   // Status computation
   const statusLabel = useMemo(() => {
@@ -265,7 +260,7 @@ export const AttendanceInsightDrawer: React.FC<AttendanceInsightDrawerProps> = (
     try {
       setIsSubmitting(true);
       const payload: CreateRegularizationPayload = {
-        emp_id: user?.emp_id,
+        emp_id: empId ?? user?.emp_id,
         work_date: date,
         request_type: missingPunchType,
         current_check_in_at: punchInTime,
@@ -292,6 +287,47 @@ export const AttendanceInsightDrawer: React.FC<AttendanceInsightDrawerProps> = (
 
   const isOther = reasonCategory.toLowerCase() === 'other';
 
+  const statusChip =
+    record?.status === 'present' ? 'bg-emerald-100 text-emerald-700'
+    : record?.status === 'absent' || record?.status === 'incomplete' || record?.status === 'short_hours' ? 'bg-rose-100 text-rose-700'
+    : record?.status === 'leave' || record?.status === 'half_day' ? 'bg-violet-100 text-violet-700'
+    : 'bg-slate-100 text-slate-600';
+
+  const clockMinutes = (t: string | null) => {
+    if (!t) return null;
+    if (t.includes('T')) {
+      const dt = new Date(t);
+      return isNaN(dt.getTime()) ? null : dt.getHours() * 60 + dt.getMinutes();
+    }
+    const m = t.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+    if (!m) return null;
+    let h = parseInt(m[1], 10);
+    const ap = m[3]?.toUpperCase();
+    if (ap === 'PM' && h < 12) h += 12;
+    if (ap === 'AM' && h === 12) h = 0;
+    return h * 60 + parseInt(m[2], 10);
+  };
+  const inMin = clockMinutes(punchInTime);
+  const outMin = clockMinutes(punchOutTime);
+  const T0 = 360;
+  const SPAN = 960;
+  const barLeft = inMin === null ? 0 : Math.min(98, Math.max(0, ((inMin - T0) / SPAN) * 100));
+  const barWidth = inMin === null || outMin === null ? 0 : Math.min(100 - barLeft, Math.max(1.5, ((outMin - inMin) / SPAN) * 100));
+  const hrs = (sec: number) => {
+    const t = Math.max(0, Math.round((sec || 0) / 60));
+    return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')} hrs`;
+  };
+  const leaveChip = record?.leave_half
+    ? `${record.leave_half === 'FIRST_HALF' ? '1st' : '2nd'} half leave${record.leave_type ? ` · ${record.leave_type}` : ''}`
+    : record?.status === 'leave'
+    ? `Leave${record.leave_type ? ` · ${record.leave_type}` : ''}`
+    : null;
+  const leaveWindow = record?.leave_half === 'FIRST_HALF' ? [540, 795] : record?.leave_half === 'SECOND_HALF' ? [795, 1050] : null;
+  const gapsMin = (record?.breaks || [])
+    .map((b) => ({ s: clockMinutes(b.started_at), e: clockMinutes(b.ended_at) }))
+    .filter((g): g is { s: number; e: number } => g.s !== null && g.e !== null && g.e > g.s);
+  const punchPlace = record?.check_in_location || null;
+
   return createPortal(
     <div
       role="dialog"
@@ -307,27 +343,28 @@ export const AttendanceInsightDrawer: React.FC<AttendanceInsightDrawerProps> = (
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10 z-50 pointer-events-none">
         <div className="w-screen max-w-md h-full bg-white shadow-2xl flex flex-col justify-between border-l border-slate-200 animate-in slide-in-from-right duration-250 pointer-events-auto">
           {/* Top Section / Header matching reference images 2 & 3 */}
-          <div className="p-6 border-b border-slate-100 flex items-start justify-between bg-white shrink-0">
-            <div>
-              <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                ATTENDANCE INSIGHT
-              </div>
-              <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight mt-1">
-                {fullDateFormatted}
-              </h2>
-              <div className="flex items-center gap-1.5 text-xs font-bold text-rose-500 mt-1 tracking-wide">
-                <span className="w-2 h-2 rounded-full bg-rose-500 inline-block shrink-0" />
-                <span>SHIFT ● {shiftDisplay}</span>
+          <div className="px-5 py-4 sm:px-6 border-b border-slate-200 flex items-start justify-between gap-3 bg-white shrink-0">
+            <div className="min-w-0">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Attendance insight</div>
+              <h2 className="mt-0.5 text-xl font-semibold text-slate-900 tracking-tight">{fullDateFormatted}</h2>
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
+                <span>General Shift</span>
+                <span className="text-slate-300">|</span>
+                <span className="text-slate-700">{shiftDisplay}</span>
+                <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${statusChip}`}>{statusLabel}</span>
+                {leaveChip && (
+                  <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold uppercase text-violet-700">{leaveChip}</span>
+                )}
               </div>
             </div>
 
             <button
               onClick={onClose}
               type="button"
-              className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer shrink-0"
+              className="w-8 h-8 rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700 flex items-center justify-center transition-colors cursor-pointer shrink-0"
               aria-label="Close insight"
             >
-              <X className="w-4 h-4 stroke-[2.5]" />
+              <X className="w-4 h-4" />
             </button>
           </div>
 
@@ -336,156 +373,137 @@ export const AttendanceInsightDrawer: React.FC<AttendanceInsightDrawerProps> = (
             {mode === 'insight' ? (
               /* ================= MODE 1: ATTENDANCE INSIGHT (Image 2) ================= */
               <div className="space-y-6 animate-in fade-in duration-200">
-                {/* 5 Metric Cards in Grid */}
-                <div className="grid grid-cols-2 gap-3.5">
-                  {/* Card 1: STATUS */}
-                  <div className="bg-[#f8fafc] border border-slate-100/90 rounded-2xl p-4 transition-all">
-                    <span className="block text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                      STATUS
-                    </span>
-                    <span className="block text-xl font-extrabold text-slate-900 tracking-tight mt-1">
-                      {statusLabel}
-                    </span>
-                  </div>
-
-                  {/* Card 2: EFFECTIVE */}
-                  <div className="bg-[#f8fafc] border border-slate-100/90 rounded-2xl p-4 transition-all">
-                    <span className="block text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                      EFFECTIVE
-                    </span>
-                    <span className="block text-xl font-extrabold text-slate-900 tracking-tight mt-1">
-                      {formatHoursDisplay(productionSeconds)}
-                    </span>
-                  </div>
-
-                  {/* Card 3: GROSS */}
-                  <div className="bg-[#f8fafc] border border-slate-100/90 rounded-2xl p-4 transition-all">
-                    <span className="block text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                      GROSS
-                    </span>
-                    <span className="block text-xl font-extrabold text-slate-900 tracking-tight mt-1">
-                      {formatHoursDisplay(grossSeconds)}
-                    </span>
-                  </div>
-
-                  {/* Card 4: PRODUCTIVE */}
-                  <div className="bg-[#f8fafc] border border-slate-100/90 rounded-2xl p-4 transition-all">
-                    <span className="block text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                      PRODUCTIVE
-                    </span>
-                    <span className="block text-xl font-extrabold text-slate-900 tracking-tight mt-1">
-                      {formatHoursDisplay(productionSeconds)}
-                    </span>
-                  </div>
-
-                  {/* Card 5: BREAK */}
-                  <div className="bg-[#f8fafc] border border-slate-100/90 rounded-2xl p-4 col-span-1 transition-all">
-                    <span className="block text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                      BREAK
-                    </span>
-                    <span className="block text-xl font-extrabold text-slate-900 tracking-tight mt-1">
-                      {formatHoursDisplay(breakSeconds)}
-                    </span>
-                  </div>
+                {/* Hours summary */}
+                <div className="grid grid-cols-3 divide-x divide-slate-200 rounded-xl border border-slate-200 bg-white">
+                  {[
+                    ['Effective hours', hrs(productionSeconds), 'text-sky-600'],
+                    ['Gross hours', hrs(grossSeconds), 'text-slate-900'],
+                    ['Break', hrs(breakSeconds), 'text-amber-600'],
+                  ].map(([label, value, tone]) => (
+                    <div key={label} className="px-3 py-3.5 text-center">
+                      <div className={`text-base sm:text-lg font-semibold tabular-nums ${tone}`}>{value}</div>
+                      <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400">{label}</div>
+                    </div>
+                  ))}
                 </div>
 
-                {/* ACTIVITY TIMELINE Header Row with Regularize Button */}
-                <div className="flex items-center justify-between pt-2">
-                  <h3 className="text-sm font-extrabold uppercase tracking-wider text-slate-900">
-                    ACTIVITY TIMELINE
-                  </h3>
-                  <button
-                    onClick={() => setMode('regularize')}
-                    type="button"
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-rose-50 border border-rose-200/80 text-rose-600 hover:bg-rose-100 font-bold text-xs shadow-2xs transition-all cursor-pointer"
+                {/* Attendance visual */}
+                <div>
+                  <div className="mb-2 flex items-center justify-between">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Attendance visual</h3>
+                    <button
+                      onClick={() => setMode('regularize')}
+                      type="button"
+                      className="inline-flex items-center gap-1.5 text-[13px] text-[#1471DD] hover:underline cursor-pointer"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                      Regularise
+                    </button>
+                  </div>
+                  <div
+                    className="relative h-7 rounded-lg border border-slate-200 bg-slate-50"
+                    style={{
+                      backgroundImage: 'repeating-linear-gradient(to right, #CBD5E1 0, #CBD5E1 1px, transparent 1px, transparent 6.25%)',
+                    }}
                   >
-                    <Edit3 className="w-3.5 h-3.5 stroke-[2.3]" />
-                    <span>Regularize</span>
-                  </button>
-                </div>
-
-                {/* SYSTEM PUNCH RECORDS Box (matching reference image dashed container) */}
-                <div className="border border-dashed border-slate-300 rounded-2xl p-4 bg-white text-center">
-                  <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 mb-2">
-                    SYSTEM PUNCH RECORDS
+                    {leaveWindow && (
+                      <div
+                        className="absolute top-1/2 h-3 -translate-y-1/2 rounded-sm bg-violet-400"
+                        style={{ left: `${((leaveWindow[0] - T0) / SPAN) * 100}%`, width: `${((leaveWindow[1] - leaveWindow[0]) / SPAN) * 100}%` }}
+                        title={record?.leave_half === 'FIRST_HALF' ? 'First half on leave' : 'Second half on leave'}
+                      />
+                    )}
+                    {barWidth > 0 && (
+                      <div
+                        className="absolute top-1/2 h-3 -translate-y-1/2 overflow-hidden rounded-sm bg-sky-400"
+                        style={{ left: `${barLeft}%`, width: `${barWidth}%` }}
+                      >
+                        {gapsMin.map((g, i) => (
+                          <span
+                            key={i}
+                            className="absolute inset-y-0 bg-sky-100"
+                            style={{ left: `${((g.s - (inMin as number)) / Math.max(1, (outMin as number) - (inMin as number))) * 100}%`, width: `${((g.e - g.s) / Math.max(1, (outMin as number) - (inMin as number))) * 100}%` }}
+                          />
+                        ))}
+                      </div>
+                    )}
+                    {inMin !== null && barWidth === 0 && (
+                      <span className="absolute top-1/2 h-3 w-1.5 -translate-y-1/2 rounded-sm bg-sky-400" style={{ left: `${barLeft}%` }} />
+                    )}
                   </div>
-
-                  <div className="flex items-center justify-center gap-8 py-1">
-                    {/* Arrival */}
-                    <div className="text-center min-w-[90px]">
-                      <div className="font-mono text-base font-extrabold text-slate-800 tracking-tight">
-                        {arrivalDisplay}
-                      </div>
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 mt-0.5">
-                        ARRIVAL
-                      </div>
-                    </div>
-
-                    {/* Vertical Divider */}
-                    <div className="w-[1px] h-8 bg-slate-200" />
-
-                    {/* Departure */}
-                    <div className="text-center min-w-[90px]">
-                      <div className="font-mono text-base font-extrabold text-slate-800 tracking-tight">
-                        {departureDisplay}
-                      </div>
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-rose-500 mt-0.5">
-                        DEPARTURE
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Punch Location Note (Valsad by default) */}
-                  <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-center gap-1.5 text-[11px] font-medium text-slate-500">
-                    <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Location: Valsad</span>
+                  <div className="mt-1 flex justify-between text-[10px] text-slate-400">
+                    <span>6 AM</span><span>10 AM</span><span>2 PM</span><span>6 PM</span><span>10 PM</span>
                   </div>
                 </div>
 
-                {/* Timeline Events detail if available */}
-                {dayDetail?.timeline && dayDetail.timeline.length > 0 && (
-                  <div className="pt-2 space-y-3">
-                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                      Detailed Activity Log
+                {/* Arrival / departure */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-xl border border-slate-200 p-3.5">
+                    <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-600">
+                      <LogIn className="h-3.5 w-3.5" /> Arrival
                     </div>
-                    <div className="space-y-2.5">
-                      {dayDetail.timeline.map((event, idx) => {
-                        let Icon = Clock;
-                        let iconBg = 'bg-slate-100 text-slate-600';
-                        if (event.type === 'punch_in') {
-                          Icon = LogIn;
-                          iconBg = 'bg-emerald-50 text-emerald-600';
-                        } else if (event.type === 'break_start') {
-                          Icon = Coffee;
-                          iconBg = 'bg-rose-50 text-rose-600';
-                        } else if (event.type === 'break_end') {
-                          Icon = Play;
-                          iconBg = 'bg-blue-50 text-blue-600';
-                        } else if (event.type === 'punch_out') {
-                          Icon = LogOut;
-                          iconBg = 'bg-rose-50 text-rose-600';
-                        }
-
-                        return (
-                          <div
-                            key={event.id || idx}
-                            className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs"
-                          >
-                            <div className="flex items-center gap-2.5">
-                              <div className={`w-6 h-6 rounded-lg ${iconBg} flex items-center justify-center`}>
-                                <Icon className="w-3.5 h-3.5" />
-                              </div>
-                              <span className="font-bold text-slate-800">{event.label}</span>
-                            </div>
-                            <span className="font-mono font-semibold text-slate-500">
-                              {event.display_time}
-                            </span>
-                          </div>
-                        );
-                      })}
+                    <div className="mt-1 text-lg font-semibold tabular-nums text-slate-900">{arrivalDisplay}</div>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 p-3.5">
+                    <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-rose-500">
+                      <LogOut className="h-3.5 w-3.5" /> Departure
                     </div>
+                    <div className="mt-1 text-lg font-semibold tabular-nums text-slate-900">{departureDisplay}</div>
+                  </div>
+                </div>
+                {record?.latitude != null && record.longitude != null && (
+                  <div className="-mt-1 overflow-hidden rounded-xl border border-slate-200">
+                    <iframe
+                      title="Punch location"
+                      loading="lazy"
+                      className="h-40 w-full"
+                      src={`https://www.openstreetmap.org/export/embed.html?bbox=${record.longitude - 0.004}%2C${record.latitude - 0.003}%2C${record.longitude + 0.004}%2C${record.latitude + 0.003}&layer=mapnik&marker=${record.latitude}%2C${record.longitude}`}
+                    />
                   </div>
                 )}
+                {punchPlace && (
+                  <div className="-mt-3 flex items-center gap-1.5 text-xs text-slate-500">
+                    <MapPin className="h-3.5 w-3.5 text-slate-400" />
+                    <span>{punchPlace}</span>
+                  </div>
+                )}
+
+                {/* Activity log (vertical timeline) */}
+                <div>
+                  <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Activity log</h3>
+                  {dayDetail?.timeline && dayDetail.timeline.length > 0 ? (
+                    <ol className="relative ml-3 space-y-4 border-l border-slate-200 pl-6">
+                      {dayDetail.timeline.map((event, idx) => {
+                        let Icon = Clock;
+                        let tone = 'bg-slate-100 text-slate-500';
+                        if (event.type === 'punch_in') { Icon = LogIn; tone = 'bg-emerald-100 text-emerald-600'; }
+                        else if (event.type === 'break_start') { Icon = Coffee; tone = 'bg-amber-100 text-amber-600'; }
+                        else if (event.type === 'break_end') { Icon = Play; tone = 'bg-sky-100 text-sky-600'; }
+                        else if (event.type === 'punch_out') { Icon = LogOut; tone = 'bg-rose-100 text-rose-600'; }
+                        return (
+                          <li key={event.id || idx} className="relative">
+                            <span className={`absolute -left-[37px] top-0 flex h-6 w-6 items-center justify-center rounded-full ring-4 ring-white ${tone}`}>
+                              <Icon className="h-3 w-3" />
+                            </span>
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="text-[13px] font-medium text-slate-800 capitalize">{event.label}</p>
+                                {(event.break_type || event.reason) && (
+                                  <p className="mt-0.5 text-xs text-slate-500">{[event.break_type, event.reason].filter(Boolean).join(' · ')}</p>
+                                )}
+                              </div>
+                              <span className="shrink-0 text-xs tabular-nums text-slate-500">{event.display_time}</span>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ol>
+                  ) : (
+                    <p className="rounded-xl border border-dashed border-slate-200 py-6 text-center text-xs text-slate-400">
+                      No clock-in or clock-out was recorded for this day.
+                    </p>
+                  )}
+                </div>
               </div>
             ) : (
               /* ================= MODE 2: REGULARIZATION FORM (Image 3) ================= */
