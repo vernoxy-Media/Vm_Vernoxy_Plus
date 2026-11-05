@@ -118,7 +118,26 @@ export class PrismaCandidateRepository implements ICandidateRepository {
         { candidate_code: { contains: q, mode: 'insensitive' } },
         { email: { contains: q, mode: 'insensitive' } },
         { phone: { contains: q, mode: 'insensitive' } },
+        { roles: { role_name: { contains: q, mode: 'insensitive' } } },
+        { departments: { name: { contains: q, mode: 'insensitive' } } },
+        { source: { contains: q, mode: 'insensitive' } },
       ];
+    }
+
+    if (params.experienceType && params.experienceType.toLowerCase() !== 'all') {
+      where.experience_type = { equals: params.experienceType.toLowerCase(), mode: 'insensitive' };
+    }
+
+    if (params.startDate || params.endDate) {
+      where.created_at = {};
+      if (params.startDate) {
+        where.created_at.gte = new Date(params.startDate);
+      }
+      if (params.endDate) {
+        const end = new Date(params.endDate);
+        end.setHours(23, 59, 59, 999);
+        where.created_at.lte = end;
+      }
     }
 
     if (params.roleId) {

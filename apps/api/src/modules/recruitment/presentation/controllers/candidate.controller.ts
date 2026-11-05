@@ -282,6 +282,9 @@ export class CandidateController {
     @Query('depId') depId?: string,
     @Query('source') source?: string,
     @Query('stage') stage?: string,
+    @Query('experienceType') experienceType?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
   ): Promise<CandidateListResponseDto> {
@@ -291,6 +294,9 @@ export class CandidateController {
       depId: depId ? parseInt(depId, 10) : undefined,
       source,
       stage,
+      experienceType,
+      startDate,
+      endDate,
       limit: limit ? parseInt(limit, 10) : 10,
       offset: offset ? parseInt(offset, 10) : 0,
     });
