@@ -32,6 +32,7 @@ export class PrismaMasterLookupRepository implements MasterLookupRepositoryPort 
         lookup_id: true,
         code: true,
         label: true,
+        parent_id: true,
       },
     });
 
@@ -39,6 +40,7 @@ export class PrismaMasterLookupRepository implements MasterLookupRepositoryPort 
       id: r.lookup_id,
       code: r.code,
       label: r.label,
+      parent_id: r.parent_id,
     }));
   }
 
@@ -53,6 +55,7 @@ export class PrismaMasterLookupRepository implements MasterLookupRepositoryPort 
         { sort_order: 'asc' },
         { label: 'asc' },
       ],
+      include: { parent: { select: { label: true } } },
     });
 
     return rows.map((r) => this.toItem(r));
@@ -61,6 +64,7 @@ export class PrismaMasterLookupRepository implements MasterLookupRepositoryPort 
   async getById(id: number): Promise<MasterLookupItem | null> {
     const row = await this.prisma.master_lookup.findFirst({
       where: { lookup_id: id, deleted_at: null },
+      include: { parent: { select: { label: true } } },
     });
     if (!row) return null;
     return this.toItem(row);
@@ -68,12 +72,21 @@ export class PrismaMasterLookupRepository implements MasterLookupRepositoryPort 
 
   async create(input: CreateMasterLookupInput): Promise<MasterLookupItem> {
     // Auto-generate code from label if not provided
-    const code = (input.code || input.label)
+    let code = (input.code || input.label)
       .toLowerCase()
       .trim()
       .replace(/\s+/g, '_')
       .replace(/[^a-z0-9_]/g, '')
       .replace(/^_+|_+$/g, '');
+
+    // Codes are unique per type, and "Phase I" exists under many GIDCs, so a child carries its parent's code.
+    if (input.parent_id) {
+      const parent = await this.prisma.master_lookup.findFirst({
+        where: { lookup_id: input.parent_id, deleted_at: null },
+        select: { code: true },
+      });
+      if (parent) code = `${parent.code}__${code}`.slice(0, 50);
+    }
 
     // Get max sort_order for this type to append at end
     let sortOrder = input.sort_order ?? 0;
@@ -95,9 +108,11 @@ export class PrismaMasterLookupRepository implements MasterLookupRepositoryPort 
         label: input.label.trim(),
         sort_order: sortOrder,
         is_active: input.is_active ?? true,
+        parent_id: input.parent_id ?? null,
         created_by: actor,
         updated_by: actor,
       },
+      include: { parent: { select: { label: true } } },
     });
 
     return this.toItem(row);
@@ -111,10 +126,12 @@ export class PrismaMasterLookupRepository implements MasterLookupRepositoryPort 
     if (input.code !== undefined) data.code = input.code;
     if (input.sort_order !== undefined) data.sort_order = input.sort_order;
     if (input.is_active !== undefined) data.is_active = input.is_active;
+    if (input.parent_id !== undefined) data.parent_id = input.parent_id;
 
     const row = await this.prisma.master_lookup.update({
       where: { lookup_id: input.id },
       data,
+      include: { parent: { select: { label: true } } },
     });
 
     return this.toItem(row);
@@ -141,6 +158,8 @@ export class PrismaMasterLookupRepository implements MasterLookupRepositoryPort 
     sort_order: number;
     is_active: boolean;
     created_at: Date;
+    parent_id: number | null;
+    parent?: { label: string } | null;
   }): MasterLookupItem {
     return {
       id: row.lookup_id,
@@ -150,6 +169,8 @@ export class PrismaMasterLookupRepository implements MasterLookupRepositoryPort 
       sort_order: row.sort_order,
       is_active: row.is_active,
       created_at: row.created_at.toISOString(),
+      parent_id: row.parent_id,
+      parent_label: row.parent?.label ?? null,
     };
   }
 }

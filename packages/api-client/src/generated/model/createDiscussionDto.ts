@@ -9,4 +9,6 @@
 export interface CreateDiscussionDto {
   message: string;
   attachments?: string[];
+  /** Employee IDs tagged with @ in the message */
+  tagged_employee_ids?: number[];
 }

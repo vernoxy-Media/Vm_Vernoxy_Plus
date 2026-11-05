@@ -2,9 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer utilities {
+  /* A field the form has marked as wrong turns red, with or without per-field classes. */
+  input[aria-invalid='true'],
+  select[aria-invalid='true'],
+  textarea[aria-invalid='true'] {
+    border-color: rgb(248 113 113) !important;
+    background-color: rgb(254 242 242 / 0.6);
+    box-shadow: 0 0 0 3px rgb(254 226 226);
+  }
+  input[aria-invalid='true']:focus,
+  select[aria-invalid='true']:focus,
+  textarea[aria-invalid='true']:focus {
+    box-shadow: 0 0 0 3px rgb(254 202 202);
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @layer base {
   :root {
-    /* ── Color tokens ───────────────────────────────── */
+    /* â”€â”€ Color tokens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     --background: 220 33% 98%; /* #F6F8FB */
     --foreground: 222 47% 11%; /* #0F172A */
     --card: 0 0% 100%;
@@ -24,7 +47,7 @@
     --ring: 245 93% 63%;
     --radius: 0.875rem;
 
-    /* ── Sidebar widths ─────────────────────────────── */
+    /* â”€â”€ Sidebar widths â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     --sidebar-expanded: 16.5rem;
     --sidebar-collapsed: 5rem;
   }
@@ -39,7 +62,7 @@
 
 body {
   font-family: 'Geist', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: 0.9375rem; /* 15px */
+  font-size: 0.875rem; /* 14px */
   line-height: 1.5;
   color: #1E293B;
   background-color: #F5F7FC;
@@ -47,7 +70,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ── Four Corner Subtle Glows (reduced by 60%, opacity under 5%, center pure #F6F8FB) ──── */
+/* â”€â”€ Four Corner Subtle Glows (reduced by 60%, opacity under 5%, center pure #F6F8FB) â”€â”€â”€â”€ */
 .dashboard-canvas-bg {
   background-color: #F6F8FB;
   background-image: 
@@ -58,7 +81,7 @@ body {
   background-attachment: fixed;
 }
 
-/* ── 2% Monochrome Noise Texture ──── */
+/* â”€â”€ 2% Monochrome Noise Texture â”€â”€â”€â”€ */
 .noise-overlay {
   position: fixed;
   inset: 0;
@@ -70,7 +93,7 @@ body {
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
 }
 
-/* ── Floating layered card shadow with crisp definition ──── */
+/* â”€â”€ Floating layered card shadow with crisp definition â”€â”€â”€â”€ */
 .shadow-floating-card {
   box-shadow: 
     0 1px 3px rgba(15, 23, 42, 0.05),
@@ -83,7 +106,7 @@ body {
     0 16px 48px rgba(15, 23, 42, 0.10);
 }
 
-/* ── Micro-interactions: 150-200ms smooth lift ──── */
+/* â”€â”€ Micro-interactions: 150-200ms smooth lift â”€â”€â”€â”€ */
 .card-hover-lift {
   transition: transform 180ms ease, box-shadow 180ms ease;
 }
@@ -109,7 +132,7 @@ body {
   outline-offset: 2px;
 }
 
-/* ── Scrollbar polish ──── */
+/* â”€â”€ Scrollbar polish â”€â”€â”€â”€ */
 ::-webkit-scrollbar {
   width: 7px;
   height: 7px;
@@ -151,4 +174,30 @@ body {
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #94A3B8;
+}
+/* Calendar: the grid eases in when the month changes */
+@keyframes cal-fade {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.cal-fade { animation: cal-fade 0.2s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .cal-fade { animation: none; }
+}
+
+/* Messenger motion */
+@keyframes msg-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes msg-pop { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: none; } }
+@keyframes msg-sheet-in { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes msg-slide-left { from { transform: translateX(100%); } to { transform: none; } }
+@keyframes msg-slide-up { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+.msg-fade { animation: msg-fade 0.18s ease-out; }
+.msg-pop { animation: msg-pop 0.18s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.msg-slide-up { animation: msg-slide-up 0.22s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.msg-modal { animation: msg-pop 0.18s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.msg-panel { animation: msg-slide-left 0.24s cubic-bezier(0.2, 0.8, 0.2, 1); }
+@media (max-width: 639px) { .msg-modal { animation: msg-sheet-in 0.26s cubic-bezier(0.2, 0.8, 0.2, 1); } }
+@media (min-width: 1280px) { .msg-panel { animation: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .msg-fade, .msg-pop, .msg-slide-up, .msg-modal, .msg-panel { animation: none; }
 }

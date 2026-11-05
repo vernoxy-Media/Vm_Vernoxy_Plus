@@ -61,6 +61,8 @@ export class EventsGateway
           };
           client.join(`user:${empId}`);
           client.join('tasks:board');
+          client.join('auth:users');
+          this.eventsService.userConnected(empId, client.id);
           this.logger.log(
             `Authenticated socket connected: ${client.id} (emp_id: ${empId})`,
           );
@@ -81,7 +83,22 @@ export class EventsGateway
   }
 
   handleDisconnect(client: Socket) {
+    const empId = client.data?.user?.emp_id;
+    if (empId) this.eventsService.userDisconnected(empId, client.id);
     this.logger.log(`Socket disconnected: ${client.id}`);
+  }
+
+  /** The page has seen no mouse, key or touch for a while. */
+  @SubscribeMessage('presence:idle')
+  handleIdle(@ConnectedSocket() client: Socket) {
+    const empId = client.data?.user?.emp_id;
+    if (empId) this.eventsService.setIdle(empId, client.id, true);
+  }
+
+  @SubscribeMessage('presence:active')
+  handleActive(@ConnectedSocket() client: Socket) {
+    const empId = client.data?.user?.emp_id;
+    if (empId) this.eventsService.setIdle(empId, client.id, false);
   }
 
   @SubscribeMessage('join:project')

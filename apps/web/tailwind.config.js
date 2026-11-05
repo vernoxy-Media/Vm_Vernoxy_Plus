@@ -4,8 +4,8 @@ export default {
   theme: {
     extend: {
       fontSize: {
-        xs:   ['0.875rem',  { lineHeight: '1.25rem'  }],  // 14px
-        sm:   ['0.9375rem', { lineHeight: '1.375rem' }],  // 15px
+        xs:   ['0.75rem',   { lineHeight: '1rem'     }],  // 12px
+        sm:   ['0.875rem',  { lineHeight: '1.25rem'  }],  // 14px
         base: ['1rem',      { lineHeight: '1.5rem'   }],  // 16px
         lg:   ['1.125rem',  { lineHeight: '1.75rem'  }],  // 18px
         xl:   ['1.25rem',   { lineHeight: '1.75rem'  }],  // 20px
@@ -76,5 +76,14 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    // `outline-hidden` (Tailwind 4 name) is used across the UI; give Tailwind 3 the same utility
+    function ({ addUtilities }) {
+      addUtilities({
+        '.outline-hidden': { outline: '2px solid transparent', 'outline-offset': '2px' },
+        // Tailwind 4 name, used by every modal backdrop in the app
+        '.backdrop-blur-xs': { '-webkit-backdrop-filter': 'blur(4px)', 'backdrop-filter': 'blur(4px)' },
+      });
+    },
+  ],
 };

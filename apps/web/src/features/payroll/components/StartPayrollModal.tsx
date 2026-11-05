@@ -7,7 +7,6 @@ import {
   Users,
   Loader2,
   Lock,
-  Sparkles,
 } from 'lucide-react';
 import {
   useStartPayrollEligibilityQuery,
@@ -243,11 +242,7 @@ export const StartPayrollModal: React.FC<StartPayrollModalProps> = ({
             onClick={handleStart}
             className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs hover:shadow-md transition cursor-pointer disabled:opacity-50"
           >
-            {isWorking ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Sparkles className="w-4 h-4" />
-            )}
+            {isWorking && <Loader2 className="w-4 h-4 animate-spin" />}
             <span>Calculate</span>
           </button>
         </div>

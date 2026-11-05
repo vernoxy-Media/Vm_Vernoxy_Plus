@@ -7,5 +7,9 @@
  */
 
 export type RoleControllerGetOptionsParams = {
-dep_id: number;
+dep_id?: number;
+/**
+ * Comma-separated department IDs
+ */
+dep_ids?: string;
 };

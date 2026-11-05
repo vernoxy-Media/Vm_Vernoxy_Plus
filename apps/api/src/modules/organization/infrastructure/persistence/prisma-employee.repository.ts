@@ -76,7 +76,7 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       profile_picture: record.profile_picture ?? null,
       profile_picture_url:
         record.profile_picture && this.storage
-          ? this.storage.getSignedUrl(record.profile_picture)
+          ? this.storage.getSignedUrlIfExists(record.profile_picture)
           : null,
       status: record.status as 'Active' | 'Inactive' | 'Onboarding',
       joining_date: record.joining_date,

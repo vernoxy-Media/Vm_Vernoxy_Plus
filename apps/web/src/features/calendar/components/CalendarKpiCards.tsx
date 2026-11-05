@@ -163,61 +163,58 @@ export const CalendarKpiCards: React.FC<CalendarKpiCardsProps> = ({
       value: safeSummary.tasks_done,
       subtext: contextLabel || 'Completed this month',
       icon: CheckCircle2,
-      bgColor: 'bg-emerald-50',
-      textColor: 'text-emerald-700',
-      iconColor: 'text-emerald-600',
-      borderColor: 'border-emerald-100',
+      bgColor: 'bg-emerald-500 shadow-emerald-500/30',
+      textColor: 'text-emerald-900',
+      iconColor: 'text-white',
+      borderColor: 'from-emerald-50 border-emerald-100',
     },
     {
       label: 'Submitted Tasks',
       value: safeSummary.tasks_submitted,
       subtext: 'Awaiting review',
       icon: Send,
-      bgColor: 'bg-amber-50',
-      textColor: 'text-amber-700',
-      iconColor: 'text-amber-600',
-      borderColor: 'border-amber-100',
+      bgColor: 'bg-amber-500 shadow-amber-500/30',
+      textColor: 'text-amber-900',
+      iconColor: 'text-white',
+      borderColor: 'from-amber-50 border-amber-100',
     },
     {
       label: 'Approved Tasks',
       value: safeSummary.tasks_approved,
       subtext: 'Approved by lead/admin',
       icon: Clock,
-      bgColor: 'bg-blue-50',
-      textColor: 'text-blue-700',
-      iconColor: 'text-blue-600',
-      borderColor: 'border-blue-100',
+      bgColor: 'bg-blue-500 shadow-blue-500/30',
+      textColor: 'text-blue-900',
+      iconColor: 'text-white',
+      borderColor: 'from-blue-50 border-blue-100',
     },
     {
       label: 'Total Allocated Time',
       value: formatMinutes(safeSummary.total_allocated_minutes),
       subtext: 'Estimated total effort',
       icon: Hourglass,
-      bgColor: 'bg-indigo-50',
-      textColor: 'text-indigo-700',
-      iconColor: 'text-indigo-600',
-      borderColor: 'border-indigo-100',
+      bgColor: 'bg-violet-500 shadow-violet-500/30',
+      textColor: 'text-violet-900',
+      iconColor: 'text-white',
+      borderColor: 'from-violet-50 border-violet-100',
     },
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+    <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
       {taskCards.map((c, i) => {
         const Icon = c.icon;
         return (
-          <div
-            key={i}
-            className={`p-4 rounded-xl border bg-white shadow-2xs hover:shadow-xs transition-shadow flex items-center justify-between ${c.borderColor}`}
-          >
-            <div>
-              <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">{c.label}</p>
-              <h3 className="text-2xl font-black text-slate-800 mt-1">
+          <div key={i} className={`flex items-center gap-3 rounded-2xl border bg-gradient-to-br ${c.borderColor} to-white p-3 shadow-2xs transition hover:-translate-y-0.5 hover:shadow-md sm:p-4`}>
+            <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-md sm:h-11 sm:w-11 ${c.bgColor} ${c.iconColor}`}>
+              <Icon className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <h3 className={`text-xl font-extrabold leading-none tracking-tight sm:text-2xl ${c.textColor}`}>
                 {isLoading ? <span className="animate-pulse text-slate-300">...</span> : c.value}
               </h3>
-              <p className="text-[11px] text-slate-400 mt-0.5">{c.subtext}</p>
-            </div>
-            <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${c.bgColor} ${c.iconColor}`}>
-              <Icon className="w-5 h-5" />
+              <p className="mt-1 truncate text-[11px] font-semibold text-slate-600">{c.label}</p>
+              <p className="hidden truncate text-[11px] text-slate-400 sm:block">{c.subtext}</p>
             </div>
           </div>
         );

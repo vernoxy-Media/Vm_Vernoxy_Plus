@@ -59,6 +59,7 @@ model companies {
   youtube_url                                      String?
   google_business_profile_url                      String?
   brochure_url                                     String?
+  clients                                          clients[]
   employees_companies_created_byToemployees        employees?           @relation("companies_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_companies_created_by")
   customer_types                                   customer_types       @relation(fields: [customer_type_id], references: [customer_type_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_companies_customer_type_id")
   employees_companies_deleted_byToemployees        employees?           @relation("companies_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_companies_deleted_by")
@@ -248,6 +249,10 @@ model employees {
   candidates_candidates_decision_byToemployees                                               candidates[]                      @relation("candidates_decision_byToemployees")
   candidates_candidates_referred_by_emp_idToemployees                                        candidates[]                      @relation("candidates_referred_by_emp_idToemployees")
   candidates_candidates_reporting_manager_idToemployees                                      candidates[]                      @relation("candidates_reporting_manager_idToemployees")
+  clients_clients_created_byToemployees                                                      clients[]                         @relation("clients_created_byToemployees")
+  clients_clients_deleted_byToemployees                                                      clients[]                         @relation("clients_deleted_byToemployees")
+  clients_clients_owner_idToemployees                                                        clients[]                         @relation("clients_owner_idToemployees")
+  clients_clients_updated_byToemployees                                                      clients[]                         @relation("clients_updated_byToemployees")
   companies_companies_created_byToemployees                                                  companies[]                       @relation("companies_created_byToemployees")
   companies_companies_deleted_byToemployees                                                  companies[]                       @relation("companies_deleted_byToemployees")
   companies_companies_owner_idToemployees                                                    companies[]                       @relation("companies_owner_idToemployees")
@@ -280,6 +285,7 @@ model employees {
   crm_follow_ups_crm_follow_ups_assigned_toToemployees                                       crm_follow_ups[]                  @relation("crm_follow_ups_assigned_toToemployees")
   crm_follow_ups_crm_follow_ups_created_byToemployees                                        crm_follow_ups[]                  @relation("crm_follow_ups_created_byToemployees")
   crm_import_batches                                                                         crm_import_batches[]
+  crm_import_batches_crm_import_batches_undone_byToemployees                                 crm_import_batches[]              @relation("crm_import_batches_undone_byToemployees")
   crm_lead_notes                                                                             crm_lead_notes[]
   customer_types_customer_types_created_byToemployees                                        customer_types[]                  @relation("customer_types_created_byToemployees")
   customer_types_customer_types_deleted_byToemployees                                        customer_types[]                  @relation("customer_types_deleted_byToemployees")
@@ -444,6 +450,9 @@ model employees {
   roles_roles_created_byToemployees                                                          roles[]                           @relation("roles_created_byToemployees")
   roles_roles_deleted_byToemployees                                                          roles[]                           @relation("roles_deleted_byToemployees")
   roles_roles_updated_byToemployees                                                          roles[]                           @relation("roles_updated_byToemployees")
+  sales_user_rights_sales_user_rights_created_byToemployees                                  sales_user_rights[]               @relation("sales_user_rights_created_byToemployees")
+  sales_user_rights_sales_user_rights_emp_idToemployees                                      sales_user_rights?                @relation("sales_user_rights_emp_idToemployees")
+  sales_user_rights_sales_user_rights_updated_byToemployees                                  sales_user_rights[]               @relation("sales_user_rights_updated_byToemployees")
   settings_change_log                                                                        settings_change_log[]
   software_license_assignments_software_license_assignments_assigned_byToemployees           software_license_assignments[]    @relation("software_license_assignments_assigned_byToemployees")
   software_license_assignments_software_license_assignments_emp_idToemployees                software_license_assignments[]    @relation("software_license_assignments_emp_idToemployees")
@@ -556,10 +565,14 @@ model leads {
   lost_note                                         String?
   on_hold_reason                                    String?
   on_hold_follow_up_date                            DateTime?            @db.Timestamptz(6)
+  next_follow_up_at                                 DateTime?            @db.Timestamptz(6)
+  converted_client_id                               Int?
+  clients_clients_converted_from_lead_idToleads     clients[]            @relation("clients_converted_from_lead_idToleads")
   crm_communications                                crm_communications[]
   crm_follow_ups                                    crm_follow_ups[]
   crm_lead_notes                                    crm_lead_notes[]
   companies                                         companies?           @relation(fields: [company_id], references: [company_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_leads_company_id")
+  clients_leads_converted_client_idToclients        clients?             @relation("leads_converted_client_idToclients", fields: [converted_client_id], references: [client_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_leads_converted_client")
   employees_leads_created_byToemployees             employees?           @relation("leads_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_leads_created_by")
   employees_leads_deleted_byToemployees             employees?           @relation("leads_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_leads_deleted_by")
   master_lookup_leads_lost_reason_idTomaster_lookup master_lookup?       @relation("leads_lost_reason_idTomaster_lookup", fields: [lost_reason_id], references: [lookup_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_leads_lost_reason_id")
@@ -579,6 +592,9 @@ model master_lookup {
   code                                                  String                         @db.VarChar(50)
   label                                                 String                         @db.VarChar(150)
   sort_order                                            Int                            @default(0)
+  parent_id                                             Int?
+  parent                                                master_lookup?                 @relation("master_lookup_parent", fields: [parent_id], references: [lookup_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_master_lookup_parent")
+  children                                              master_lookup[]                @relation("master_lookup_parent")
   is_active                                             Boolean                        @default(true)
   created_at                                            DateTime                       @default(now()) @db.Timestamptz(6)
   created_by                                            Int?
@@ -770,40 +786,41 @@ model otp_codes {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model data_transfer_jobs {
-  job_id                                             String             @id(map: "pk_data_transfer_jobs") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  job_id                                             String               @id(map: "pk_data_transfer_jobs") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   direction                                          transfer_direction
-  entity_type                                        String             @db.VarChar(30)
-  format                                             String             @db.VarChar(10)
+  entity_type                                        String               @db.VarChar(30)
+  format                                             String               @db.VarChar(10)
   status                                             transfer_status
-  original_filename                                  String?            @db.VarChar(255)
-  file_key                                           String?            @db.VarChar(100)
-  file_sha256                                        String?            @db.Char(64)
+  original_filename                                  String?              @db.VarChar(255)
+  file_key                                           String?              @db.VarChar(100)
+  file_sha256                                        String?              @db.Char(64)
   file_size_bytes                                    BigInt?
-  report_key                                         String?            @db.VarChar(100)
-  options                                            Json               @default("{}")
-  total_rows                                         Int                @default(0)
-  valid_rows                                         Int                @default(0)
-  warning_rows                                       Int                @default(0)
-  error_rows                                         Int                @default(0)
-  processed_rows                                     Int                @default(0)
-  created_rows                                       Int                @default(0)
-  skipped_rows                                       Int                @default(0)
-  failed_rows                                        Int                @default(0)
-  error_message                                      String?            @db.VarChar(500)
-  cancel_requested                                   Boolean            @default(false)
-  started_at                                         DateTime?          @db.Timestamptz(6)
-  finished_at                                        DateTime?          @db.Timestamptz(6)
-  heartbeat_at                                       DateTime?          @db.Timestamptz(6)
-  expires_at                                         DateTime?          @db.Timestamptz(6)
-  created_at                                         DateTime           @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  report_key                                         String?              @db.VarChar(100)
+  options                                            Json                 @default("{}")
+  total_rows                                         Int                  @default(0)
+  valid_rows                                         Int                  @default(0)
+  warning_rows                                       Int                  @default(0)
+  error_rows                                         Int                  @default(0)
+  processed_rows                                     Int                  @default(0)
+  created_rows                                       Int                  @default(0)
+  skipped_rows                                       Int                  @default(0)
+  failed_rows                                        Int                  @default(0)
+  error_message                                      String?              @db.VarChar(500)
+  cancel_requested                                   Boolean              @default(false)
+  started_at                                         DateTime?            @db.Timestamptz(6)
+  finished_at                                        DateTime?            @db.Timestamptz(6)
+  heartbeat_at                                       DateTime?            @db.Timestamptz(6)
+  expires_at                                         DateTime?            @db.Timestamptz(6)
+  created_at                                         DateTime             @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
   created_by                                         Int?
-  updated_at                                         DateTime           @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at                                         DateTime             @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
   updated_by                                         Int?
-  deleted_at                                         DateTime?          @db.Timestamptz(6)
+  deleted_at                                         DateTime?            @db.Timestamptz(6)
   deleted_by                                         Int?
-  employees_data_transfer_jobs_created_byToemployees employees?         @relation("data_transfer_jobs_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_data_transfer_jobs_created_by")
-  employees_data_transfer_jobs_deleted_byToemployees employees?         @relation("data_transfer_jobs_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_data_transfer_jobs_deleted_by")
-  employees_data_transfer_jobs_updated_byToemployees employees?         @relation("data_transfer_jobs_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_data_transfer_jobs_updated_by")
+  crm_import_batches                                 crm_import_batches[]
+  employees_data_transfer_jobs_created_byToemployees employees?           @relation("data_transfer_jobs_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_data_transfer_jobs_created_by")
+  employees_data_transfer_jobs_deleted_byToemployees employees?           @relation("data_transfer_jobs_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_data_transfer_jobs_deleted_by")
+  employees_data_transfer_jobs_updated_byToemployees employees?           @relation("data_transfer_jobs_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_data_transfer_jobs_updated_by")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -1092,6 +1109,7 @@ model calendar_events {
   employees_calendar_events_organizer_idToemployees employees                  @relation("calendar_events_organizer_idToemployees", fields: [organizer_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_calendar_events_organizer")
   tasks                                             tasks?                     @relation(fields: [task_id], references: [task_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_calendar_events_task")
   employees_calendar_events_updated_byToemployees   employees?                 @relation("calendar_events_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_calendar_events_updated_by")
+  crm_follow_ups                                    crm_follow_ups[]
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -1741,67 +1759,82 @@ model candidates {
 }
 
 model crm_communications {
-  communication_id    Int        @id @default(autoincrement())
+  communication_id    Int              @id @default(autoincrement())
   company_id          Int?
   lead_id             Int?
   contact_id          Int?
-  contact_person_name String?    @db.VarChar(150)
-  type                String     @db.VarChar(50)
-  communication_date  DateTime   @default(now()) @db.Timestamptz(6)
+  contact_person_name String?          @db.VarChar(150)
+  type                String           @db.VarChar(50)
+  communication_date  DateTime         @default(now()) @db.Timestamptz(6)
   what_discussed      String
-  outcome             String?    @db.VarChar(100)
+  outcome             String?          @db.VarChar(100)
   attachment_url      String?
+  call_status         String?          @db.VarChar(20)
+  not_received_reason String?          @db.VarChar(150)
   created_by          Int?
-  created_at          DateTime   @default(now()) @db.Timestamptz(6)
-  updated_at          DateTime?  @db.Timestamptz(6)
-  deleted_at          DateTime?  @db.Timestamptz(6)
-  companies           companies? @relation(fields: [company_id], references: [company_id], onDelete: Cascade, onUpdate: NoAction)
-  persons             persons?   @relation(fields: [contact_id], references: [person_id], onUpdate: NoAction)
-  employees           employees? @relation(fields: [created_by], references: [emp_id], onUpdate: NoAction)
-  leads               leads?     @relation(fields: [lead_id], references: [lead_id], onUpdate: NoAction)
+  created_at          DateTime         @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime?        @db.Timestamptz(6)
+  deleted_at          DateTime?        @db.Timestamptz(6)
+  companies           companies?       @relation(fields: [company_id], references: [company_id], onDelete: Cascade, onUpdate: NoAction)
+  persons             persons?         @relation(fields: [contact_id], references: [person_id], onUpdate: NoAction)
+  employees           employees?       @relation(fields: [created_by], references: [emp_id], onUpdate: NoAction)
+  leads               leads?           @relation(fields: [lead_id], references: [lead_id], onUpdate: NoAction)
+  crm_follow_ups      crm_follow_ups[]
 
   @@index([communication_date(sort: Desc)], map: "idx_crm_comm_date")
 }
 
 model crm_follow_ups {
-  follow_up_id                                    Int        @id @default(autoincrement())
+  follow_up_id                                    Int                 @id @default(autoincrement())
   company_id                                      Int?
   lead_id                                         Int?
   contact_id                                      Int?
-  contact_person_name                             String?    @db.VarChar(150)
-  follow_up_on                                    DateTime   @db.Timestamptz(6)
-  type                                            String     @db.VarChar(50)
+  contact_person_name                             String?             @db.VarChar(150)
+  follow_up_on                                    DateTime            @db.Timestamptz(6)
+  type                                            String              @db.VarChar(50)
   assigned_to                                     Int
   purpose                                         String?
-  status                                          String     @default("Pending") @db.VarChar(50)
-  rescheduled_count                               Int        @default(0)
-  done_on                                         DateTime?  @db.Timestamptz(6)
-  outcome                                         String?    @db.VarChar(100)
+  status                                          String              @default("Pending") @db.VarChar(50)
+  rescheduled_count                               Int                 @default(0)
+  done_on                                         DateTime?           @db.Timestamptz(6)
+  outcome                                         String?             @db.VarChar(100)
   what_happened                                   String?
   reason                                          String?
   created_by                                      Int?
-  created_at                                      DateTime   @default(now()) @db.Timestamptz(6)
-  updated_at                                      DateTime?  @db.Timestamptz(6)
-  deleted_at                                      DateTime?  @db.Timestamptz(6)
-  employees_crm_follow_ups_assigned_toToemployees employees  @relation("crm_follow_ups_assigned_toToemployees", fields: [assigned_to], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
-  companies                                       companies? @relation(fields: [company_id], references: [company_id], onDelete: Cascade, onUpdate: NoAction)
-  persons                                         persons?   @relation(fields: [contact_id], references: [person_id], onUpdate: NoAction)
-  employees_crm_follow_ups_created_byToemployees  employees? @relation("crm_follow_ups_created_byToemployees", fields: [created_by], references: [emp_id], onUpdate: NoAction)
-  leads                                           leads?     @relation(fields: [lead_id], references: [lead_id], onUpdate: NoAction)
+  created_at                                      DateTime            @default(now()) @db.Timestamptz(6)
+  updated_at                                      DateTime?           @db.Timestamptz(6)
+  deleted_at                                      DateTime?           @db.Timestamptz(6)
+  reminder_sent_at                                DateTime?           @db.Timestamptz(6)
+  overdue_notified_at                             DateTime?           @db.Timestamptz(6)
+  completed_communication_id                      Int?
+  calendar_event_id                               Int?
+  employees_crm_follow_ups_assigned_toToemployees employees           @relation("crm_follow_ups_assigned_toToemployees", fields: [assigned_to], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+  companies                                       companies?          @relation(fields: [company_id], references: [company_id], onDelete: Cascade, onUpdate: NoAction)
+  persons                                         persons?            @relation(fields: [contact_id], references: [person_id], onUpdate: NoAction)
+  employees_crm_follow_ups_created_byToemployees  employees?          @relation("crm_follow_ups_created_byToemployees", fields: [created_by], references: [emp_id], onUpdate: NoAction)
+  leads                                           leads?              @relation(fields: [lead_id], references: [lead_id], onUpdate: NoAction)
+  calendar_events                                 calendar_events?    @relation(fields: [calendar_event_id], references: [event_id], onUpdate: NoAction, map: "fk_crm_fu_calendar_event")
+  crm_communications                              crm_communications? @relation(fields: [completed_communication_id], references: [communication_id], onUpdate: NoAction, map: "fk_crm_fu_completed_communication")
 
   @@index([follow_up_on], map: "idx_crm_fu_date")
 }
 
 model crm_import_batches {
-  batch_id          Int       @id @default(autoincrement())
-  file_name         String    @db.VarChar(255)
-  imported_by       Int
-  imported_at       DateTime  @default(now()) @db.Timestamptz(6)
-  can_undo_until    DateTime  @db.Timestamptz(6)
-  is_undone         Boolean   @default(false)
-  companies_created Json?     @default("[]")
-  leads_created     Json?     @default("[]")
-  employees         employees @relation(fields: [imported_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+  batch_id                                          Int                 @id @default(autoincrement())
+  file_name                                         String              @db.VarChar(255)
+  imported_by                                       Int
+  imported_at                                       DateTime            @default(now()) @db.Timestamptz(6)
+  can_undo_until                                    DateTime            @db.Timestamptz(6)
+  is_undone                                         Boolean             @default(false)
+  companies_created                                 Json?               @default("[]")
+  leads_created                                     Json?               @default("[]")
+  job_id                                            String?             @db.Uuid
+  companies_updated                                 Json?               @default("[]")
+  undone_at                                         DateTime?           @db.Timestamptz(6)
+  undone_by                                         Int?
+  employees                                         employees           @relation(fields: [imported_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+  data_transfer_jobs                                data_transfer_jobs? @relation(fields: [job_id], references: [job_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_crm_import_batches_job")
+  employees_crm_import_batches_undone_byToemployees employees?          @relation("crm_import_batches_undone_byToemployees", fields: [undone_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_crm_import_batches_undone_by")
 }
 
 model crm_lead_notes {
@@ -2474,6 +2507,45 @@ model settings_change_log {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model clients {
+  client_id                                   Int        @id(map: "pk_clients") @default(autoincrement())
+  client_code                                 String?    @unique(map: "ux_clients_client_code") @db.VarChar(50)
+  company_id                                  Int
+  converted_from_lead_id                      Int?
+  won_on                                      DateTime   @db.Date
+  win_note                                    String
+  owner_id                                    Int?
+  created_at                                  DateTime   @default(now()) @db.Timestamptz(6)
+  created_by                                  Int?
+  updated_at                                  DateTime?  @db.Timestamptz(6)
+  updated_by                                  Int?
+  deleted_at                                  DateTime?  @db.Timestamptz(6)
+  deleted_by                                  Int?
+  reversed_reason                             String?
+  companies                                   companies  @relation(fields: [company_id], references: [company_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_clients_company_id")
+  leads_clients_converted_from_lead_idToleads leads?     @relation("clients_converted_from_lead_idToleads", fields: [converted_from_lead_id], references: [lead_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_clients_converted_from_lead")
+  employees_clients_created_byToemployees     employees? @relation("clients_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_clients_created_by")
+  employees_clients_deleted_byToemployees     employees? @relation("clients_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_clients_deleted_by")
+  employees_clients_owner_idToemployees       employees? @relation("clients_owner_idToemployees", fields: [owner_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_clients_owner_id")
+  employees_clients_updated_byToemployees     employees? @relation("clients_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_clients_updated_by")
+  leads_leads_converted_client_idToclients    leads[]    @relation("leads_converted_client_idToclients")
+
+  @@index([converted_from_lead_id], map: "ix_clients_converted_from_lead")
+}
+
+model sales_user_rights {
+  emp_id                                            Int        @id(map: "pk_sales_user_rights")
+  can_import                                        Boolean    @default(false)
+  can_export                                        Boolean    @default(false)
+  created_at                                        DateTime   @default(now()) @db.Timestamptz(6)
+  created_by                                        Int?
+  updated_at                                        DateTime?  @db.Timestamptz(6)
+  updated_by                                        Int?
+  employees_sales_user_rights_created_byToemployees employees? @relation("sales_user_rights_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_sales_user_rights_created_by")
+  employees_sales_user_rights_emp_idToemployees     employees  @relation("sales_user_rights_emp_idToemployees", fields: [emp_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_sales_user_rights_emp")
+  employees_sales_user_rights_updated_byToemployees employees? @relation("sales_user_rights_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_sales_user_rights_updated_by")
+}
+
 model kb_acknowledgements {
   ack_id                Int                 @id @default(autoincrement())
   article_id            Int

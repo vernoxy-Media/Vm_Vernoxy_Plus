@@ -30,6 +30,10 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 
   if (!user) return null;
 
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const todayLabel = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
   // Access control check for administrative areas
   if (requireAdmin && !user.access?.can_manage_organization) {
     return (
@@ -139,24 +143,31 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 
       {/* Main Content Area */}
       <div
-        className={`flex-1 min-w-0 flex flex-col min-h-screen relative z-10 transition-all duration-200 ${
-          isCollapsed ? 'lg:pl-[5.75rem]' : 'lg:pl-[17.5rem]'
+        className={`flex-1 min-w-0 flex flex-col min-h-screen relative transition-all duration-200 ${
+          isCollapsed ? 'lg:pl-[6.25rem]' : 'lg:pl-[17.75rem]'
         }`}
       >
         {/* Frosted Glass Header: Background rgba(255,255,255,.75), Backdrop Blur 20px, crisp bottom border #D4DCE6 */}
-        <header className="hidden lg:flex items-center justify-end h-16 px-6 lg:px-8 bg-white/75 backdrop-blur-[20px] border-b border-[#D4DCE6] sticky top-0 z-20 transition-all shadow-[0_1px_2px_rgba(15,23,42,0.02)]">
-          <div className="flex items-center gap-3">
+        <header className="sticky top-3 z-20 mx-3 mt-3 hidden h-[64px] items-center justify-between gap-4 rounded-2xl border border-slate-200/70 bg-white/85 px-5 shadow-sm backdrop-blur-[20px] transition-all lg:flex">
+          <div className="min-w-0">
+            <p className="truncate text-[15px] font-bold leading-tight tracking-tight text-slate-900">
+              {greeting}, {user.name.split(' ')[0]}
+            </p>
+            <p className="truncate text-xs text-slate-500">{todayLabel}</p>
+          </div>
+
+          <div className="flex shrink-0 items-center gap-2.5">
             <NotificationBell />
             <Link
               to="/calendar"
               id="desktop-header-calendar-btn"
               title="Calendar"
               aria-label="Calendar"
-              className="p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-white/80 transition-colors cursor-pointer"
+              className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
             >
-              <Calendar className="w-5 h-5 stroke-[1.75]" />
+              <Calendar className="h-[18px] w-[18px]" strokeWidth={1.9} />
             </Link>
-            <div className="h-5 w-px bg-slate-200/80 mx-1" />
+            <div className="mx-1 h-6 w-px bg-slate-200" />
             <UserMenu />
           </div>
         </header>

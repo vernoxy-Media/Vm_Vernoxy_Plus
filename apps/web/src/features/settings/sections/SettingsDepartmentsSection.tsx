@@ -15,15 +15,15 @@ import {
   Loader2,
   AlertCircle,
   X,
-  ChevronLeft,
-  ChevronRight,
 } from 'lucide-react';
+import { CursorPager } from '@/shared/ui/Pagination';
 
 export const SettingsDepartmentsSection: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<boolean | undefined>(undefined);
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [cursorHistory, setCursorHistory] = useState<string[]>([]);
+  const [limit, setLimit] = useState(10);
 
   // Modals state
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -39,7 +39,7 @@ export const SettingsDepartmentsSection: React.FC = () => {
   const { data, isLoading, error } = useDepartmentsQuery({
     q: search || undefined,
     is_active: statusFilter,
-    limit: 20,
+    limit,
     cursor,
   });
 
@@ -306,47 +306,34 @@ export const SettingsDepartmentsSection: React.FC = () => {
           </div>
         )}
 
-        {/* Pagination Bar with Previous and Next Page navigation */}
         {(cursorHistory.length > 0 || Boolean(data?.next_cursor)) && (
-          <div className="p-3 border-t border-slate-200 bg-slate-50/70 flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500">
-              Page {cursorHistory.length + 1}
-            </span>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                id="departments-prev-page-button"
-                disabled={cursorHistory.length === 0}
-                onClick={() => {
-                  if (cursorHistory.length > 0) {
-                    const prevCursor = cursorHistory[cursorHistory.length - 1];
-                    setCursorHistory((prev) => prev.slice(0, -1));
-                    setCursor(prevCursor || undefined);
-                  }
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-slate-300 text-slate-700 shadow-2xs hover:bg-slate-100 disabled:opacity-40 disabled:pointer-events-none transition-colors cursor-pointer"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" />
-                Previous Page
-              </button>
-
-              <button
-                type="button"
-                id="departments-next-page-button"
-                disabled={!data?.next_cursor}
-                onClick={() => {
-                  if (data?.next_cursor) {
-                    setCursorHistory((prev) => [...prev, cursor || '']);
-                    setCursor(data.next_cursor);
-                  }
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-slate-300 text-slate-700 shadow-2xs hover:bg-slate-100 disabled:opacity-40 disabled:pointer-events-none transition-colors cursor-pointer"
-              >
-                Next Page
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
+          <CursorPager
+            page={cursorHistory.length + 1}
+            shown={data?.items.length ?? 0}
+            hasPrev={cursorHistory.length > 0}
+            hasNext={Boolean(data?.next_cursor)}
+            pageSize={limit}
+            onPageSizeChange={(n) => {
+              setLimit(n);
+              setCursor(undefined);
+              setCursorHistory([]);
+            }}
+            prevId="departments-prev-page-button"
+            nextId="departments-next-page-button"
+            onPrev={() => {
+              if (cursorHistory.length > 0) {
+                const prevCursor = cursorHistory[cursorHistory.length - 1];
+                setCursorHistory((prev) => prev.slice(0, -1));
+                setCursor(prevCursor || undefined);
+              }
+            }}
+            onNext={() => {
+              if (data?.next_cursor) {
+                setCursorHistory((prev) => [...prev, cursor || '']);
+                setCursor(data.next_cursor);
+              }
+            }}
+          />
         )}
       </div>
 

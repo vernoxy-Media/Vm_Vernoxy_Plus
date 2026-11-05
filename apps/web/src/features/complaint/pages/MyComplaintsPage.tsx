@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   AlertCircle,
   Plus,
@@ -10,6 +10,11 @@ import {
   X,
   Loader2,
   RotateCcw,
+  Eye,
+  ChevronRight,
+  FilterX,
+  CalendarDays,
+  Inbox,
 } from 'lucide-react';
 import {
   useMyComplaintsQuery,
@@ -28,6 +33,9 @@ import {
 } from '@/features/organization/hooks/use-organization';
 import { useUploadAttachment } from '@/shared/hooks/use-attachments';
 import { SearchableSelect } from '@/shared/ui/SearchableSelect';
+import { Pagination } from '@/shared/ui/Pagination';
+import { RowActionsMenu, type RowAction } from '@/shared/ui/RowActionsMenu';
+import { Badge, Field, STATUS_TONE, StatCard } from '../components/complaint-ui';
 
 export const MyComplaintsPage: React.FC = (): React.ReactElement => {
   const currentYear = new Date().getFullYear();
@@ -235,245 +243,267 @@ export const MyComplaintsPage: React.FC = (): React.ReactElement => {
     overdue: 0,
   };
 
+  const allRows: ComplaintSummaryItem[] = data?.complaints || [];
+  const filtersChanged = selectedYear !== currentYear || selectedStatus !== 'All' || selectedTypeId !== undefined;
+  const resetFilters = () => {
+    setSelectedYear(currentYear);
+    setSelectedStatus('All');
+    setSelectedTypeId(undefined);
+  };
+
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  useEffect(() => setPage(1), [selectedYear, selectedStatus, selectedTypeId, pageSize]);
+  const safePage = Math.min(page, Math.max(1, Math.ceil(allRows.length / pageSize)));
+  const rows = allRows.slice((safePage - 1) * pageSize, safePage * pageSize);
+
+  const startWithdraw = (id: number) => {
+    setWithdrawingId(id);
+    setWithdrawReason('');
+  };
+  const startConfirm = (id: number) => {
+    setConfirmingId(id);
+    setConfirmComment('');
+  };
+  const startReopen = (id: number) => {
+    setReopeningId(id);
+    setReopenReason('');
+    setReopenError('');
+  };
+  const openAdd = () => {
+    setIsAddModalOpen(true);
+    setAddError('');
+    setDateWarning('');
+  };
+
+  /** Extra actions for one complaint, shown in the three-dots menu. */
+  const menuActionsFor = (cm: ComplaintSummaryItem): RowAction[] => {
+    const list: RowAction[] = [{ label: 'View details', icon: Eye, onClick: () => setViewingComplaintId(cm.complaint_id) }];
+    if (cm.status === 'Resolved') {
+      list.push({ label: 'Reopen', icon: RotateCcw, danger: true, onClick: () => startReopen(cm.complaint_id) });
+    }
+    if (['New', 'Open'].includes(cm.status)) {
+      list.push({ label: 'Withdraw', icon: XCircle, danger: true, onClick: () => startWithdraw(cm.complaint_id) });
+    }
+    return list;
+  };
+
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <AlertCircle className="w-7 h-7 text-indigo-600" />
-            My Complaints
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Every complaint you have raised. Follow progress, communicate with handlers, and confirm resolutions.
-          </p>
+    <div className="w-full space-y-5">
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3.5">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-600/25">
+            <AlertCircle className="h-6 w-6" />
+          </span>
+          <div className="min-w-0">
+            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-[28px]">My Complaints</h1>
+            <p className="mt-0.5 text-sm text-slate-500">Every complaint you have raised. Follow progress and confirm resolutions.</p>
+          </div>
         </div>
 
         <button
-          onClick={() => {
-            setIsAddModalOpen(true);
-            setAddError('');
-            setDateWarning('');
-          }}
-          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-sm transition cursor-pointer"
+          type="button"
+          onClick={openAdd}
+          className="inline-flex h-10 shrink-0 cursor-pointer items-center justify-center gap-2 self-start rounded-xl bg-indigo-600 px-4 text-[13px] font-semibold text-white shadow-sm shadow-indigo-600/25 transition hover:bg-indigo-700 focus:outline-hidden focus:ring-4 focus:ring-indigo-600/20 active:scale-[0.98] sm:self-auto"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="h-4 w-4" strokeWidth={2.5} />
           Add Complaint
         </button>
       </div>
 
-      {/* 4 Counters (BFD Page 8 Marker 1) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Active</span>
-            <div className="text-2xl font-bold text-indigo-600 mt-1">{counters.active}</div>
-            <span className="text-[11px] text-slate-500 mt-0.5 block">New, Open, In Progress</span>
-          </div>
-          <div className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
-            <Clock className="w-5 h-5" />
-          </div>
-        </div>
+      {/* Counters */}
+      <div className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 lg:grid-cols-4 lg:gap-4">
+        <StatCard label="Active" value={counters.active} hint="New, Open, In Progress" icon={Clock} tone="text-indigo-600" tile="bg-indigo-50 text-indigo-600 ring-indigo-100" bar="from-indigo-500 to-violet-500" />
+        <StatCard label="Resolved" value={counters.resolved_waiting} hint="Waiting for your confirmation" icon={CheckCircle2} tone="text-amber-600" tile="bg-amber-50 text-amber-600 ring-amber-100" bar="from-amber-400 to-orange-400" />
+        <StatCard label="Closed this year" value={counters.closed_this_year} hint={`Settled or closed in ${selectedYear}`} icon={XCircle} tone="text-slate-800" tile="bg-emerald-50 text-emerald-600 ring-emerald-100" bar="from-emerald-400 to-teal-400" />
+        <StatCard label="Overdue" value={counters.overdue} hint="Past target resolution date" icon={AlertTriangle} tone="text-rose-600" tile="bg-rose-50 text-rose-600 ring-rose-100" bar="from-rose-500 to-pink-500" />
+      </div>
 
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Resolved</span>
-            <div className="text-2xl font-bold text-amber-600 mt-1">{counters.resolved_waiting}</div>
-            <span className="text-[11px] text-slate-500 mt-0.5 block">Waiting for your confirmation</span>
-          </div>
-          <div className="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
-            <CheckCircle2 className="w-5 h-5" />
-          </div>
-        </div>
+      {/* Filters */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <div className="grid grid-cols-1 gap-4 min-[480px]:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto] lg:items-end">
+          <Field label="Year">
+            <SearchableSelect
+              value={selectedYear}
+              onChange={(v) => setSelectedYear(Number(v))}
+              options={[currentYear, currentYear - 1, currentYear - 2].map((y) => ({ value: y, label: String(y) }))}
+              className="w-full"
+            />
+          </Field>
 
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Closed This Year</span>
-            <div className="text-2xl font-bold text-slate-700 mt-1">{counters.closed_this_year}</div>
-            <span className="text-[11px] text-slate-500 mt-0.5 block">Settled or closed in {selectedYear}</span>
-          </div>
-          <div className="w-10 h-10 rounded-lg bg-slate-50 text-slate-600 flex items-center justify-center font-bold">
-            <XCircle className="w-5 h-5" />
-          </div>
-        </div>
+          <Field label="Status">
+            <SearchableSelect
+              placeholder="All Statuses"
+              value={selectedStatus === 'All' ? null : selectedStatus}
+              onChange={(v) => setSelectedStatus(v ? String(v) : 'All')}
+              options={[
+                { value: 'All', label: 'All Statuses' },
+                { value: 'New', label: 'New' },
+                { value: 'Open', label: 'Open' },
+                { value: 'In Progress', label: 'In Progress' },
+                { value: 'Resolved', label: 'Resolved' },
+                { value: 'Closed', label: 'Closed' },
+              ]}
+              clearable
+              className="w-full"
+            />
+          </Field>
 
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Overdue</span>
-            <div className="text-2xl font-bold text-rose-600 mt-1">{counters.overdue}</div>
-            <span className="text-[11px] text-slate-500 mt-0.5 block">Past target resolution date</span>
-          </div>
-          <div className="w-10 h-10 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center font-bold">
-            <AlertTriangle className="w-5 h-5" />
+          <Field label="Complaint type">
+            <SearchableSelect
+              placeholder="All Types"
+              value={selectedTypeId ?? null}
+              onChange={(v) => setSelectedTypeId(v ? Number(v) : undefined)}
+              options={types.map((t) => ({ value: t.type_id, label: t.name }))}
+              clearable
+              className="w-full"
+            />
+          </Field>
+
+          <div className="flex h-10 items-center">
+            {filtersChanged && (
+              <button type="button" onClick={resetFilters} className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-800">
+                <FilterX className="h-3.5 w-3.5" />
+                Reset
+              </button>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Filters (BFD Page 8 Marker 3) */}
-      <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center gap-3 text-xs">
-        <div className="flex items-center gap-1.5">
-          <span className="text-slate-500 font-medium">Year:</span>
-          <SearchableSelect
-            value={selectedYear}
-            onChange={(v) => setSelectedYear(Number(v))}
-            options={[currentYear, currentYear - 1, currentYear - 2].map((y) => ({ value: y, label: String(y) }))}
-            className="min-w-[90px]"
-          />
-        </div>
-
-        <div className="flex items-center gap-1.5">
-          <span className="text-slate-500 font-medium">Status:</span>
-          <SearchableSelect
-            placeholder="All Statuses"
-            value={selectedStatus === 'All' ? null : selectedStatus}
-            onChange={(v) => setSelectedStatus(v ? String(v) : 'All')}
-            options={[
-              { value: 'All', label: 'All Statuses' },
-              { value: 'New', label: 'New' },
-              { value: 'Open', label: 'Open' },
-              { value: 'In Progress', label: 'In Progress' },
-              { value: 'Resolved', label: 'Resolved' },
-              { value: 'Closed', label: 'Closed' },
-            ]}
-            clearable
-            className="min-w-[130px]"
-          />
-        </div>
-
-        <div className="flex items-center gap-1.5">
-          <span className="text-slate-500 font-medium">Complaint Type:</span>
-          <SearchableSelect
-            placeholder="All Types"
-            value={selectedTypeId ?? null}
-            onChange={(v) => setSelectedTypeId(v ? Number(v) : undefined)}
-            options={types.map((t) => ({ value: t.type_id, label: t.name }))}
-            clearable
-            className="min-w-[140px]"
-          />
-        </div>
-      </div>
-
-      {/* Complaints Table (BFD Page 8 Reference Screen 1) */}
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+      {/* Complaints */}
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         {isLoading ? (
-          <div className="p-12 text-center text-slate-400">
-            <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-indigo-600" />
-            <p className="text-xs">Loading complaints...</p>
+          <div className="flex flex-col items-center justify-center gap-3 py-24">
+            <Loader2 className="h-7 w-7 animate-spin text-indigo-600" />
+            <p className="text-sm font-medium text-slate-500">Loading complaints...</p>
           </div>
-        ) : (data?.complaints || []).length === 0 ? (
-          <div className="p-16 text-center text-slate-400">
-            <AlertCircle className="w-12 h-12 text-slate-300 mx-auto mb-2" />
-            <p className="text-sm font-semibold text-slate-700">No complaints match your filters</p>
-            <p className="text-xs text-slate-500 mt-1">You can raise a new complaint using the "+ Add Complaint" button.</p>
+        ) : allRows.length === 0 ? (
+          <div className="px-4 py-16 text-center">
+            <span className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50 text-slate-300 ring-1 ring-slate-100">
+              <Inbox className="h-7 w-7" />
+            </span>
+            <p className="text-base font-semibold text-slate-800">{filtersChanged ? 'No complaints match your filters' : 'You have not raised any complaints'}</p>
+            <p className="mx-auto mt-1 max-w-sm text-sm text-slate-500">Raise a new one any time with the "Add Complaint" button.</p>
+            <div className="mt-4 flex justify-center gap-2">
+              {filtersChanged && (
+                <button type="button" onClick={resetFilters} className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
+                  <FilterX className="h-4 w-4" /> Reset filters
+                </button>
+              )}
+              <button type="button" onClick={openAdd} className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-xl bg-indigo-600 px-4 text-[13px] font-semibold text-white shadow-sm shadow-indigo-600/25 transition hover:bg-indigo-700">
+                <Plus className="h-4 w-4" /> Add Complaint
+              </button>
+            </div>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
-                <tr>
-                  <th className="py-3 px-4">Complaint No.</th>
-                  <th className="py-3 px-4">Date</th>
-                  <th className="py-3 px-4">Subject</th>
-                  <th className="py-3 px-4">Type</th>
-                  <th className="py-3 px-4">Handler</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {(data?.complaints || []).map((c: ComplaintSummaryItem) => (
-                  <tr key={c.complaint_id} className="hover:bg-slate-50/70 transition">
-                    <td className="py-3 px-4 font-mono font-semibold text-indigo-600">
-                      <button
-                        onClick={() => setViewingComplaintId(c.complaint_id)}
-                        className="hover:underline cursor-pointer"
-                      >
-                        {c.complaint_no}
+          <>
+            {/* Small screens: one card per complaint */}
+            <ul className="divide-y divide-slate-100 md:hidden">
+              {rows.map((c: ComplaintSummaryItem) => (
+                <li key={c.complaint_id} className="space-y-3 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <button type="button" onClick={() => setViewingComplaintId(c.complaint_id)} className="cursor-pointer rounded-lg bg-indigo-50 px-2.5 py-1 font-mono text-xs font-semibold text-indigo-700">
+                      {c.complaint_no}
+                    </button>
+                    <div className="flex flex-wrap items-center justify-end gap-1.5">
+                      <Badge label={c.status} tone={STATUS_TONE[c.status]} />
+                      {c.is_overdue && <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[10.5px] font-bold text-rose-700 ring-1 ring-rose-100">Overdue</span>}
+                    </div>
+                  </div>
+                  <p className="font-semibold text-slate-900">{c.subject}</p>
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+                    <span>{c.type_name}</span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <CalendarDays className="h-3.5 w-3.5" />
+                      {c.complaint_date}
+                    </span>
+                  </div>
+                  {c.handler_name && <p className="text-xs text-slate-500">Handler: <span className="font-medium text-slate-700">{c.handler_name}</span></p>}
+                  <div className="flex items-center gap-2 pt-1">
+                    {c.status === 'Resolved' ? (
+                      <button type="button" onClick={() => startConfirm(c.complaint_id)} className="inline-flex h-9 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-emerald-600 text-[13px] font-semibold text-white shadow-sm shadow-emerald-600/25 transition hover:bg-emerald-700">
+                        <CheckCircle2 className="h-4 w-4" /> Confirm
                       </button>
-                    </td>
-                    <td className="py-3 px-4 text-slate-600">{c.complaint_date}</td>
-                    <td className="py-3 px-4 font-medium text-slate-900 max-w-xs truncate">
-                      {c.subject}
-                    </td>
-                    <td className="py-3 px-4 text-slate-700">{c.type_name}</td>
-                    <td className="py-3 px-4 text-slate-600 font-medium">{c.handler_name}</td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-1.5">
-                        <span
-                          className={`px-2 py-0.5 rounded text-[11px] font-semibold ${
-                            c.status === 'Resolved'
-                              ? 'bg-amber-100 text-amber-800 border border-amber-200'
-                              : c.status === 'Closed'
-                              ? 'bg-slate-100 text-slate-700 border border-slate-200'
-                              : c.status === 'In Progress'
-                              ? 'bg-blue-100 text-blue-800 border border-blue-200'
-                              : c.status === 'Open'
-                              ? 'bg-indigo-100 text-indigo-800 border border-indigo-200'
-                              : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                          }`}
-                        >
-                          {c.status}
-                        </span>
-                        {c.is_overdue && (
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-200">
-                            Overdue
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => setViewingComplaintId(c.complaint_id)}
-                          className="text-indigo-600 hover:text-indigo-800 font-semibold cursor-pointer"
-                        >
-                          View
-                        </button>
+                    ) : (
+                      <button type="button" onClick={() => setViewingComplaintId(c.complaint_id)} className="inline-flex h-9 flex-1 cursor-pointer items-center justify-center gap-1 rounded-xl border border-slate-200 text-[13px] font-semibold text-indigo-600 transition hover:bg-indigo-50">
+                        View <ChevronRight className="h-4 w-4" />
+                      </button>
+                    )}
+                    <RowActionsMenu label={`More actions for ${c.complaint_no}`} actions={menuActionsFor(c)} />
+                  </div>
+                </li>
+              ))}
+            </ul>
 
-                        {/* Withdraw option for New or Open (BFD Pg 8 Marker 7) */}
-                        {['New', 'Open'].includes(c.status) && (
-                          <button
-                            onClick={() => {
-                              setWithdrawingId(c.complaint_id);
-                              setWithdrawReason('');
-                            }}
-                            className="text-slate-500 hover:text-slate-800 font-semibold cursor-pointer"
-                          >
-                            Withdraw
-                          </button>
-                        )}
-
-                        {/* Confirm / Reopen for Resolved */}
-                        {c.status === 'Resolved' && (
-                          <>
-                            <button
-                              onClick={() => {
-                                setConfirmingId(c.complaint_id);
-                                setConfirmComment('');
-                              }}
-                              className="text-emerald-600 hover:text-emerald-800 font-semibold cursor-pointer"
-                            >
-                              Confirm
-                            </button>
-                            <button
-                              onClick={() => {
-                                setReopeningId(c.complaint_id);
-                                setReopenReason('');
-                                setReopenError('');
-                              }}
-                              className="text-rose-600 hover:text-rose-800 font-semibold cursor-pointer"
-                            >
-                              Reopen
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </td>
+            {/* Larger screens: table */}
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full min-w-[820px] text-left text-sm">
+                <thead className="bg-slate-50/95">
+                  <tr className="border-b border-slate-200 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+                    <th className="whitespace-nowrap px-5 py-3">Complaint No.</th>
+                    <th className="whitespace-nowrap px-5 py-3">Date</th>
+                    <th className="whitespace-nowrap px-5 py-3">Subject</th>
+                    <th className="whitespace-nowrap px-5 py-3">Type</th>
+                    <th className="whitespace-nowrap px-5 py-3">Handler</th>
+                    <th className="whitespace-nowrap px-5 py-3">Status</th>
+                    <th className="whitespace-nowrap px-5 py-3 text-right">Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {rows.map((c: ComplaintSummaryItem) => (
+                    <tr key={c.complaint_id} className={`transition-colors hover:bg-blue-50/30 ${c.is_overdue ? 'bg-rose-50/30' : ''}`}>
+                      <td className="px-5 py-3.5">
+                        <button type="button" onClick={() => setViewingComplaintId(c.complaint_id)} className="cursor-pointer whitespace-nowrap rounded-lg bg-indigo-50 px-2.5 py-1 font-mono text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100">
+                          {c.complaint_no}
+                        </button>
+                      </td>
+                      <td className="whitespace-nowrap px-5 py-3.5 text-slate-600">{c.complaint_date}</td>
+                      <td className="max-w-[16rem] px-5 py-3.5">
+                        <span className="block truncate font-medium text-slate-900">{c.subject}</span>
+                      </td>
+                      <td className="px-5 py-3.5 text-slate-600">{c.type_name}</td>
+                      <td className="px-5 py-3.5">
+                        {c.handler_name ? (
+                          <div className="flex items-center gap-2">
+                            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[11px] font-bold text-indigo-600">
+                              {c.handler_name.split(/\s+/).slice(0, 2).map((w: string) => w[0]?.toUpperCase()).join('')}
+                            </span>
+                            <span className="font-medium text-slate-700">{c.handler_name}</span>
+                          </div>
+                        ) : (
+                          <span className="rounded-full border border-dashed border-slate-300 px-2.5 py-0.5 text-xs text-slate-400">Not assigned</span>
+                        )}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <Badge label={c.status} tone={STATUS_TONE[c.status]} />
+                          {c.is_overdue && <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[10.5px] font-bold text-rose-700 ring-1 ring-rose-100">Overdue</span>}
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {c.status === 'Resolved' ? (
+                            <button type="button" onClick={() => startConfirm(c.complaint_id)} className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 text-[13px] font-semibold text-white shadow-sm shadow-emerald-600/25 transition hover:bg-emerald-700">
+                              <CheckCircle2 className="h-3.5 w-3.5" /> Confirm
+                            </button>
+                          ) : (
+                            <button type="button" onClick={() => setViewingComplaintId(c.complaint_id)} className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-lg px-3 text-[13px] font-semibold text-indigo-600 transition hover:bg-indigo-50">
+                              View <ChevronRight className="h-4 w-4" />
+                            </button>
+                          )}
+                          <RowActionsMenu label={`More actions for ${c.complaint_no}`} actions={menuActionsFor(c)} />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <Pagination page={safePage} pageSize={pageSize} total={allRows.length} onPageChange={setPage} onPageSizeChange={setPageSize} />
+          </>
         )}
       </div>
 

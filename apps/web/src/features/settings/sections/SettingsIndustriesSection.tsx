@@ -11,13 +11,14 @@ import { MasterDataPage } from '@/features/organization/components/MasterDataPag
 import { MasterDataDialog } from '@/features/organization/components/MasterDataDialog';
 import { Factory } from 'lucide-react';
 import { getIndustryColumns, getIndustryDialogFields } from '../industries-columns';
+import { useCursorPaging } from '../useCursorPaging';
 
 export const SettingsIndustriesSection: React.FC = () => {
   const [search, setSearch] = useState('');
   const [level, setLevel] = useState<'top' | 'sub'>('top');
   const [parentId, setParentId] = useState<number | undefined>(undefined);
   const [statusFilter, setStatusFilter] = useState<boolean | undefined>(undefined);
-  const [cursor, setCursor] = useState<number | undefined>(undefined);
+  const paging = useCursorPaging<number>();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<IndustryListItemDto | null>(null);
@@ -29,8 +30,8 @@ export const SettingsIndustriesSection: React.FC = () => {
     level,
     parent_id: level === 'sub' ? parentId : undefined,
     is_active: statusFilter,
-    limit: 20,
-    cursor,
+    limit: paging.limit,
+    cursor: paging.cursor,
   });
 
   const createMutation = useCreateIndustryMutation();
@@ -98,12 +99,12 @@ export const SettingsIndustriesSection: React.FC = () => {
         searchValue={search}
         onSearchChange={(v) => {
           setSearch(v);
-          setCursor(undefined);
+          paging.reset();
         }}
         statusFilter={statusFilter}
         onStatusFilterChange={(v) => {
           setStatusFilter(v);
-          setCursor(undefined);
+          paging.reset();
         }}
         extraFilters={
           <div className="flex items-center gap-2">
@@ -112,7 +113,7 @@ export const SettingsIndustriesSection: React.FC = () => {
                 type="button"
                 onClick={() => {
                   setLevel('top');
-                  setCursor(undefined);
+                  paging.reset();
                 }}
                 className={`px-2.5 py-1 rounded-md transition-all ${
                   level === 'top' ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-600'
@@ -124,7 +125,7 @@ export const SettingsIndustriesSection: React.FC = () => {
                 type="button"
                 onClick={() => {
                   setLevel('sub');
-                  setCursor(undefined);
+                  paging.reset();
                 }}
                 className={`px-2.5 py-1 rounded-md transition-all ${
                   level === 'sub' ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-600'
@@ -138,7 +139,7 @@ export const SettingsIndustriesSection: React.FC = () => {
                 value={parentId ?? ''}
                 onChange={(e) => {
                   setParentId(e.target.value ? Number(e.target.value) : undefined);
-                  setCursor(undefined);
+                  paging.reset();
                 }}
                 className="px-3 py-1.5 rounded-lg text-xs border border-slate-200 bg-white font-medium"
               >
@@ -159,7 +160,11 @@ export const SettingsIndustriesSection: React.FC = () => {
         error={error ? (error as { message?: string }).message || 'Failed to load industries' : null}
         emptyIcon={<Factory className="w-8 h-8" />}
         nextCursor={data?.next_cursor}
-        onNextPage={() => setCursor(data?.next_cursor || undefined)}
+        onNextPage={() => paging.next(data?.next_cursor)}
+        onPrevPage={paging.prev}
+        page={paging.page}
+        pageSize={paging.limit}
+        onPageSizeChange={paging.setLimit}
         onAdd={handleOpenAdd}
         onEdit={handleOpenEdit}
         onDelete={handleDelete}

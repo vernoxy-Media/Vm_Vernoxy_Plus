@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   AlertCircle,
@@ -13,6 +13,10 @@ import {
   Loader2,
   X,
   Play,
+  ChevronRight,
+  FilterX,
+  CalendarDays,
+  Inbox,
 } from 'lucide-react';
 import {
   useAllComplaintsQuery,
@@ -42,6 +46,9 @@ import {
 } from '@/features/organization/hooks/use-organization';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { SearchableSelect } from '@/shared/ui/SearchableSelect';
+import { Pagination } from '@/shared/ui/Pagination';
+import { RowActionsMenu } from '@/shared/ui/RowActionsMenu';
+import { Badge, PRIORITY_TONE, STATUS_TONE, initials } from '../components/complaint-ui';
 
 export const ComplaintsManagementPage: React.FC = (): React.ReactElement => {
   const { user } = useAuth();
@@ -338,322 +345,387 @@ export const ComplaintsManagementPage: React.FC = (): React.ReactElement => {
     avg_days_to_resolve_this_month: 0,
   };
 
+  const allRows: ComplaintSummaryItem[] = data?.complaints || [];
+  const hasFilters = Boolean(selectedTypeId || selectedDeptId || selectedPriority || selectedHandlerId || fromDate || toDate || searchQuery);
+  const clearFilters = () => {
+    setSelectedTypeId(undefined);
+    setSelectedDeptId(undefined);
+    setSelectedPriority('');
+    setSelectedHandlerId(undefined);
+    setFromDate('');
+    setToDate('');
+    setSearchQuery('');
+  };
+
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  useEffect(() => setPage(1), [activeTab, selectedTypeId, selectedDeptId, selectedPriority, selectedHandlerId, fromDate, toDate, searchQuery, pageSize]);
+  const safePage = Math.min(page, Math.max(1, Math.ceil(allRows.length / pageSize)));
+  const rows = allRows.slice((safePage - 1) * pageSize, safePage * pageSize);
+
+  const openCloseWithoutAction = (c: ComplaintSummaryItem) => {
+    setClosingWithoutActionId(c.complaint_id);
+    setCloseReason('Duplicate');
+    setCloseRemarks('');
+    setLinkedDuplicateId('');
+    setCloseWithoutActionError('');
+  };
+
+  const statCards = [
+    { label: 'New', value: counters.new_waiting, hint: 'Waiting for review', icon: Clock, tone: 'text-amber-600', tile: 'bg-amber-50 text-amber-600 ring-amber-100', bar: 'from-amber-400 to-orange-400', onClick: () => setActiveTab('New') },
+    { label: 'Open or in progress', value: counters.open_or_in_progress, hint: 'Being investigated', icon: Play, tone: 'text-indigo-600', tile: 'bg-indigo-50 text-indigo-600 ring-indigo-100', bar: 'from-indigo-500 to-violet-500', onClick: () => setActiveTab('Active') },
+    { label: 'Overdue', value: counters.overdue, hint: 'Past target date', icon: AlertTriangle, tone: 'text-rose-600', tile: 'bg-rose-50 text-rose-600 ring-rose-100', bar: 'from-rose-500 to-pink-500' },
+    { label: 'Avg time to resolve', value: counters.avg_days_to_resolve_this_month, unit: 'days', hint: 'Settled this month', icon: CheckCircle2, tone: 'text-slate-800', tile: 'bg-emerald-50 text-emerald-600 ring-emerald-100', bar: 'from-emerald-400 to-teal-400' },
+  ];
+
+  const dateField = 'h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-[13px] text-slate-700 transition hover:border-slate-300 focus:border-blue-500 focus:outline-hidden focus:ring-4 focus:ring-blue-500/10';
+
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="w-full space-y-5">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <AlertCircle className="w-7 h-7 text-indigo-600" />
-            {isAdmin ? 'Complaints Management' : 'Assigned Complaints'}
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            {isAdmin
-              ? 'Review submitted employee complaints, assign handlers, track investigation progress, and close resolved issues.'
-              : 'Complaints assigned to you to investigate and resolve.'}
-          </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3.5">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-600/25">
+            <AlertCircle className="h-6 w-6" />
+          </span>
+          <div className="min-w-0">
+            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-[28px]">{isAdmin ? 'Complaints Management' : 'Assigned Complaints'}</h1>
+            <p className="mt-0.5 text-sm text-slate-500">
+              {isAdmin
+                ? 'Review complaints, assign handlers, track progress and close resolved issues.'
+                : 'Complaints assigned to you to investigate and resolve.'}
+            </p>
+          </div>
         </div>
 
         {isAdmin && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2.5">
             <Link
               to="/complaints?tab=reports"
-              className="px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 flex items-center gap-1.5 transition cursor-pointer shadow-sm"
+              className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-[13px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
             >
-              <BarChart3 className="w-4 h-4 text-indigo-600" />
-              Complaint Reports
+              <BarChart3 className="h-4 w-4 text-indigo-600" />
+              Reports
             </Link>
             <Link
               to="/admin/settings/complaint-settings"
-              className="px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 flex items-center gap-1.5 transition cursor-pointer shadow-sm"
+              className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-[13px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
             >
-              <Settings className="w-4 h-4 text-slate-500" />
+              <Settings className="h-4 w-4 text-slate-500" />
               Settings
             </Link>
           </div>
         )}
       </div>
 
-      {/* 4 Counters (BFD Page 16 Marker 1) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">New</span>
-            <div className="text-2xl font-bold text-amber-600 mt-1">{counters.new_waiting}</div>
-            <span className="text-[11px] text-slate-500 mt-0.5 block">Waiting for review</span>
-          </div>
-          <div className="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
-            <Clock className="w-5 h-5" />
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Open or In Progress</span>
-            <div className="text-2xl font-bold text-indigo-600 mt-1">{counters.open_or_in_progress}</div>
-            <span className="text-[11px] text-slate-500 mt-0.5 block">Being investigated</span>
-          </div>
-          <div className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
-            <Play className="w-5 h-5" />
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Overdue</span>
-            <div className="text-2xl font-bold text-rose-600 mt-1">{counters.overdue}</div>
-            <span className="text-[11px] text-slate-500 mt-0.5 block">Past Target Date</span>
-          </div>
-          <div className="w-10 h-10 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center font-bold">
-            <AlertTriangle className="w-5 h-5" />
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Avg Time to Resolve</span>
-            <div className="text-2xl font-bold text-slate-800 mt-1">
-              {counters.avg_days_to_resolve_this_month} <span className="text-xs font-normal text-slate-500">days</span>
+      {/* Counters */}
+      <div className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 lg:grid-cols-4 lg:gap-4">
+        {statCards.map((card) => {
+          const Icon = card.icon;
+          const body = (
+            <>
+              <span className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${card.bar}`} aria-hidden />
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">{card.label}</p>
+                  <p className={`mt-2 text-3xl font-extrabold leading-none tracking-tight ${card.tone}`}>
+                    {card.value}
+                    {card.unit && <span className="ml-1.5 text-sm font-medium text-slate-400">{card.unit}</span>}
+                  </p>
+                </div>
+                <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ring-1 ${card.tile}`}>
+                  <Icon className="h-5 w-5" />
+                </span>
+              </div>
+              <p className="mt-3 text-xs text-slate-500">{card.hint}</p>
+            </>
+          );
+          const cls = 'relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition';
+          return card.onClick ? (
+            <button key={card.label} type="button" onClick={card.onClick} className={`${cls} hover:-translate-y-0.5 hover:shadow-md`}>
+              {body}
+            </button>
+          ) : (
+            <div key={card.label} className={cls}>
+              {body}
             </div>
-            <span className="text-[11px] text-slate-500 mt-0.5 block">Settled this month</span>
-          </div>
-          <div className="w-10 h-10 rounded-lg bg-slate-50 text-slate-600 flex items-center justify-center font-bold">
-            <CheckCircle2 className="w-5 h-5" />
-          </div>
+          );
+        })}
+      </div>
+
+      {/* Status tabs */}
+      <div className="-mx-1 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div role="tablist" aria-label="Complaint status" className="inline-flex gap-1 rounded-xl bg-slate-100 p-1">
+          {(['Active', 'New', 'Resolved', 'Closed', 'All'] as const).map((tab) => {
+            const on = activeTab === tab;
+            return (
+              <button
+                key={tab}
+                type="button"
+                role="tab"
+                aria-selected={on}
+                onClick={() => setActiveTab(tab)}
+                className={`inline-flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-lg px-4 py-2 text-[13px] font-semibold transition ${
+                  on ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                {tab}
+                {tab === 'New' && counters.new_waiting > 0 && (
+                  <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10.5px] font-bold leading-none text-amber-800">{counters.new_waiting}</span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Tabs (BFD Page 16 Marker 3) */}
-      <div className="flex border-b border-slate-200 gap-6">
-        {(['Active', 'New', 'Resolved', 'Closed', 'All'] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`pb-3 text-sm font-semibold transition border-b-2 cursor-pointer flex items-center gap-1.5 ${
-              activeTab === tab
-                ? 'border-indigo-600 text-indigo-600'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            {tab}
-            {tab === 'New' && counters.new_waiting > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
-                {counters.new_waiting}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
+      {/* Filters */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search by complaint no., subject or complainant..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-10 pr-4 text-sm text-slate-800 placeholder:text-slate-400 transition focus:border-blue-500 focus:bg-white focus:outline-hidden focus:ring-4 focus:ring-blue-500/10"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3 lg:w-[22rem]">
+            <label className="relative block">
+              <span className="sr-only">From date</span>
+              <CalendarDays className="pointer-events-none absolute left-3 top-1/2 hidden h-4 w-4 -translate-y-1/2 text-slate-400 min-[480px]:block" />
+              <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className={`${dateField} min-[480px]:pl-9`} title="From date" />
+            </label>
+            <label className="relative block">
+              <span className="sr-only">To date</span>
+              <CalendarDays className="pointer-events-none absolute left-3 top-1/2 hidden h-4 w-4 -translate-y-1/2 text-slate-400 min-[480px]:block" />
+              <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className={`${dateField} min-[480px]:pl-9`} title="To date" />
+            </label>
+          </div>
+        </div>
 
-      {/* Filter Toolbar (BFD Page 16 Marker 4) */}
-      <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center gap-3 text-xs">
-        <SearchableSelect
-          placeholder="All Types"
-          value={selectedTypeId ?? null}
-          onChange={(v) => setSelectedTypeId(v ? Number(v) : undefined)}
-          options={types.map((t) => ({ value: t.type_id, label: t.name }))}
-          clearable
-          className="min-w-[140px]"
-        />
-
-        <SearchableSelect
-          placeholder="All Departments"
-          value={selectedDeptId ?? null}
-          onChange={(v) => setSelectedDeptId(v ? Number(v) : undefined)}
-          options={deptOptions.map((d: any) => ({ value: d.dep_id || d.id, label: d.name }))}
-          clearable
-          className="min-w-[160px]"
-        />
-
-        <SearchableSelect
-          placeholder="All Priorities"
-          value={selectedPriority || null}
-          onChange={(v) => setSelectedPriority(v ? String(v) : '')}
-          options={[
-            { value: 'Low', label: 'Low' },
-            { value: 'Medium', label: 'Medium' },
-            { value: 'High', label: 'High' },
-            { value: 'Urgent', label: 'Urgent' },
-          ]}
-          clearable
-          className="min-w-[130px]"
-        />
-
-        <SearchableSelect
-          placeholder="All Handlers"
-          value={selectedHandlerId ?? null}
-          onChange={(v) => setSelectedHandlerId(v ? Number(v) : undefined)}
-          options={empOptions.map((emp: any) => ({ value: emp.emp_id || emp.id, label: emp.name }))}
-          clearable
-          className="min-w-[150px]"
-        />
-
-        <input
-          type="date"
-          value={fromDate}
-          onChange={(e) => setFromDate(e.target.value)}
-          className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500"
-          title="From Date"
-        />
-
-        <input
-          type="date"
-          value={toDate}
-          onChange={(e) => setToDate(e.target.value)}
-          className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500"
-          title="To Date"
-        />
-
-        <div className="relative flex-1 min-w-[180px]">
-          <input
-            type="text"
-            placeholder="Search by Complaint No., subject or complainant..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-2.5 py-1.5 pl-8 bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:bg-white"
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <SearchableSelect
+            placeholder="All Types"
+            value={selectedTypeId ?? null}
+            onChange={(v) => setSelectedTypeId(v ? Number(v) : undefined)}
+            options={types.map((t) => ({ value: t.type_id, label: t.name }))}
+            clearable
+            className="w-full"
           />
-          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2" />
+          <SearchableSelect
+            placeholder="All Departments"
+            value={selectedDeptId ?? null}
+            onChange={(v) => setSelectedDeptId(v ? Number(v) : undefined)}
+            options={deptOptions.map((d: any) => ({ value: d.dep_id || d.id, label: d.name }))}
+            clearable
+            className="w-full"
+          />
+          <SearchableSelect
+            placeholder="All Priorities"
+            value={selectedPriority || null}
+            onChange={(v) => setSelectedPriority(v ? String(v) : '')}
+            options={[
+              { value: 'Low', label: 'Low' },
+              { value: 'Medium', label: 'Medium' },
+              { value: 'High', label: 'High' },
+              { value: 'Urgent', label: 'Urgent' },
+            ]}
+            clearable
+            className="w-full"
+          />
+          <SearchableSelect
+            placeholder="All Handlers"
+            value={selectedHandlerId ?? null}
+            onChange={(v) => setSelectedHandlerId(v ? Number(v) : undefined)}
+            options={empOptions.map((emp: any) => ({ value: emp.emp_id || emp.id, label: emp.name }))}
+            clearable
+            className="w-full"
+          />
         </div>
+
+        {hasFilters && (
+          <div className="mt-3 flex justify-end">
+            <button type="button" onClick={clearFilters} className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-800">
+              <FilterX className="h-3.5 w-3.5" />
+              Clear filters
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Complaints Table (BFD Reference Screen 3) */}
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+      {/* Complaints */}
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         {isLoading ? (
-          <div className="p-12 text-center text-slate-400">
-            <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-indigo-600" />
-            <p className="text-xs">Loading complaints...</p>
+          <div className="flex flex-col items-center justify-center gap-3 py-24">
+            <Loader2 className="h-7 w-7 animate-spin text-indigo-600" />
+            <p className="text-sm font-medium text-slate-500">Loading complaints...</p>
           </div>
-        ) : (data?.complaints || []).length === 0 ? (
-          <div className="p-16 text-center text-slate-400">
-            <AlertCircle className="w-10 h-10 mx-auto mb-2 text-slate-300" />
-            <p className="text-sm font-semibold text-slate-700">No complaints in this view</p>
+        ) : allRows.length === 0 ? (
+          <div className="px-4 py-16 text-center">
+            <span className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50 text-slate-300 ring-1 ring-slate-100">
+              <Inbox className="h-7 w-7" />
+            </span>
+            <p className="text-base font-semibold text-slate-800">No complaints in this view</p>
+            <p className="mx-auto mt-1 max-w-sm text-sm text-slate-500">{hasFilters ? 'Nothing matches these filters.' : 'New complaints will show up here.'}</p>
+            {hasFilters && (
+              <button type="button" onClick={clearFilters} className="mt-4 inline-flex h-9 cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
+                <FilterX className="h-4 w-4" /> Clear filters
+              </button>
+            )}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
-                <tr>
-                  <th className="py-3 px-4">Complaint No.</th>
-                  <th className="py-3 px-4">Raised By</th>
-                  <th className="py-3 px-4">Subject</th>
-                  <th className="py-3 px-4">Type</th>
-                  <th className="py-3 px-4">Priority</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4">Target Date</th>
-                  <th className="py-3 px-4 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {(data?.complaints || []).map((c: ComplaintSummaryItem) => (
-                  <tr key={c.complaint_id} className="hover:bg-slate-50/70 transition">
-                    <td className="py-3 px-4 font-mono font-semibold text-indigo-600">
-                      <button
-                        onClick={() => setViewingComplaintId(c.complaint_id)}
-                        className="hover:underline cursor-pointer"
-                      >
-                        {c.complaint_no}
-                      </button>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="font-semibold text-slate-800">{c.complainant_name}</div>
-                      <div className="text-[10px] text-slate-400">{c.department_name}</div>
-                    </td>
-                    <td className="py-3 px-4 font-medium text-slate-900 max-w-xs truncate">
-                      {c.is_confidential ? (
-                        <span className="flex items-center gap-1 text-slate-600 font-semibold italic">
-                          <Lock className="w-3 h-3 text-amber-600" /> Confidential
-                        </span>
-                      ) : (
-                        c.subject
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-slate-700">{c.type_name}</td>
-                    <td className="py-3 px-4">
-                      {c.priority && c.priority !== '—' ? (
-                        <span
-                          className={`px-2 py-0.5 rounded text-[11px] font-semibold ${
-                            c.priority === 'Urgent'
-                              ? 'bg-rose-100 text-rose-800'
-                              : c.priority === 'High'
-                              ? 'bg-amber-100 text-amber-800'
-                              : c.priority === 'Medium'
-                              ? 'bg-indigo-100 text-indigo-800'
-                              : 'bg-slate-100 text-slate-700'
-                          }`}
-                        >
-                          {c.priority}
-                        </span>
-                      ) : (
-                        <span className="text-slate-400">—</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4">
-                      <span
-                        className={`px-2 py-0.5 rounded text-[11px] font-semibold ${
-                          c.status === 'Resolved'
-                            ? 'bg-amber-100 text-amber-800 border border-amber-200'
-                            : c.status === 'Closed'
-                            ? 'bg-slate-100 text-slate-700 border border-slate-200'
-                            : c.status === 'In Progress'
-                            ? 'bg-blue-100 text-blue-800 border border-blue-200'
-                            : c.status === 'Open'
-                            ? 'bg-indigo-100 text-indigo-800 border border-indigo-200'
-                            : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                        }`}
-                      >
-                        {c.status}
+          <>
+            {/* Small screens: one card per complaint */}
+            <ul className="divide-y divide-slate-100 md:hidden">
+              {rows.map((c: ComplaintSummaryItem) => (
+                <li key={c.complaint_id} className="space-y-3 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <button type="button" onClick={() => setViewingComplaintId(c.complaint_id)} className="cursor-pointer rounded-lg bg-indigo-50 px-2.5 py-1 font-mono text-xs font-semibold text-indigo-700">
+                      {c.complaint_no}
+                    </button>
+                    <Badge label={c.status} tone={STATUS_TONE[c.status]} />
+                  </div>
+                  <p className="font-semibold text-slate-900">
+                    {c.is_confidential ? (
+                      <span className="inline-flex items-center gap-1.5 italic text-slate-600">
+                        <Lock className="h-3.5 w-3.5 text-amber-600" /> Confidential
                       </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      {c.target_date ? (
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-slate-700 font-medium">{c.target_date}</span>
-                          {c.is_overdue && (
-                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-200">
-                              Overdue
-                            </span>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-slate-400">—</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      {c.status === 'New' ? (
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            onClick={() => openAcceptModal(c)}
-                            className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-semibold cursor-pointer shadow-xs"
-                          >
-                            Review
-                          </button>
-                          <button
-                            onClick={() => {
-                              setClosingWithoutActionId(c.complaint_id);
-                              setCloseReason('Duplicate');
-                              setCloseRemarks('');
-                              setLinkedDuplicateId('');
-                              setCloseWithoutActionError('');
-                            }}
-                            className="px-2.5 py-1 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded font-semibold cursor-pointer"
-                          >
-                            Close
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => setViewingComplaintId(c.complaint_id)}
-                          className="text-indigo-600 hover:text-indigo-800 font-semibold cursor-pointer"
-                        >
-                          Open
+                    ) : (
+                      c.subject
+                    )}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="flex items-center gap-2 text-sm text-slate-600">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100 text-[10px] font-bold text-indigo-600">{initials(c.complainant_name)}</span>
+                      {c.complainant_name}
+                    </span>
+                    {c.priority && c.priority !== '—' && <Badge label={c.priority} tone={PRIORITY_TONE[c.priority]} />}
+                  </div>
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+                    <span>{c.type_name}</span>
+                    {c.target_date && (
+                      <span className="inline-flex items-center gap-1.5">
+                        <CalendarDays className="h-3.5 w-3.5" />
+                        {c.target_date}
+                        {c.is_overdue && <span className="rounded-full bg-rose-50 px-1.5 py-0.5 text-[10px] font-bold text-rose-700 ring-1 ring-rose-100">Overdue</span>}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 pt-1">
+                    {c.status === 'New' ? (
+                      <>
+                        <button type="button" onClick={() => openAcceptModal(c)} className="h-9 flex-1 cursor-pointer rounded-xl bg-indigo-600 text-[13px] font-semibold text-white shadow-sm shadow-indigo-600/25 transition hover:bg-indigo-700">
+                          Review
                         </button>
-                      )}
-                    </td>
+                        <button type="button" onClick={() => openCloseWithoutAction(c)} className="h-9 flex-1 cursor-pointer rounded-xl border border-slate-200 text-[13px] font-semibold text-slate-600 transition hover:bg-slate-50">
+                          Close
+                        </button>
+                      </>
+                    ) : (
+                      <button type="button" onClick={() => setViewingComplaintId(c.complaint_id)} className="inline-flex h-9 flex-1 cursor-pointer items-center justify-center gap-1 rounded-xl border border-slate-200 text-[13px] font-semibold text-indigo-600 transition hover:bg-indigo-50">
+                        Open <ChevronRight className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+
+            {/* Larger screens: table */}
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full min-w-[900px] text-left text-sm">
+                <thead className="bg-slate-50/95">
+                  <tr className="border-b border-slate-200 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+                    <th className="whitespace-nowrap px-5 py-3">Complaint No.</th>
+                    <th className="whitespace-nowrap px-5 py-3">Raised By</th>
+                    <th className="whitespace-nowrap px-5 py-3">Subject</th>
+                    <th className="whitespace-nowrap px-5 py-3">Type</th>
+                    <th className="whitespace-nowrap px-5 py-3">Priority</th>
+                    <th className="whitespace-nowrap px-5 py-3">Status</th>
+                    <th className="whitespace-nowrap px-5 py-3">Target Date</th>
+                    <th className="whitespace-nowrap px-5 py-3 text-right">Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {rows.map((c: ComplaintSummaryItem) => (
+                    <tr key={c.complaint_id} className={`transition-colors hover:bg-blue-50/30 ${c.is_overdue ? 'bg-rose-50/30' : ''}`}>
+                      <td className="px-5 py-3.5">
+                        <button type="button" onClick={() => setViewingComplaintId(c.complaint_id)} className="cursor-pointer whitespace-nowrap rounded-lg bg-indigo-50 px-2.5 py-1 font-mono text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100">
+                          {c.complaint_no}
+                        </button>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-2.5">
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[11px] font-bold text-indigo-600">{initials(c.complainant_name)}</span>
+                          <div className="min-w-0">
+                            <div className="truncate font-semibold text-slate-800">{c.complainant_name}</div>
+                            <div className="truncate text-xs text-slate-400">{c.department_name}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="max-w-[16rem] px-5 py-3.5">
+                        {c.is_confidential ? (
+                          <span className="inline-flex items-center gap-1.5 font-semibold italic text-slate-600">
+                            <Lock className="h-3.5 w-3.5 text-amber-600" /> Confidential
+                          </span>
+                        ) : (
+                          <span className="block truncate font-medium text-slate-900">{c.subject}</span>
+                        )}
+                      </td>
+                      <td className="px-5 py-3.5 text-slate-600">{c.type_name}</td>
+                      <td className="px-5 py-3.5">
+                        {c.priority && c.priority !== '—' ? <Badge label={c.priority} tone={PRIORITY_TONE[c.priority]} /> : <span className="text-slate-300">—</span>}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <Badge label={c.status} tone={STATUS_TONE[c.status]} />
+                      </td>
+                      <td className="px-5 py-3.5">
+                        {c.target_date ? (
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="whitespace-nowrap font-medium text-slate-700">{c.target_date}</span>
+                            {c.is_overdue && <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[10.5px] font-bold text-rose-700 ring-1 ring-rose-100">Overdue</span>}
+                          </div>
+                        ) : (
+                          <span className="text-slate-300">—</span>
+                        )}
+                      </td>
+                      <td className="px-5 py-3.5 text-right">
+                        {c.status === 'New' ? (
+                          <div className="flex items-center justify-end gap-1">
+                            <button type="button" onClick={() => openAcceptModal(c)} className="h-8 cursor-pointer rounded-lg bg-indigo-600 px-3.5 text-[13px] font-semibold text-white shadow-sm shadow-indigo-600/25 transition hover:bg-indigo-700">
+                              Review
+                            </button>
+                            <RowActionsMenu
+                              label={`More actions for ${c.complaint_no}`}
+                              actions={[
+                                { label: 'View details', icon: Search, onClick: () => setViewingComplaintId(c.complaint_id) },
+                                { label: 'Close without action', icon: XCircle, danger: true, onClick: () => openCloseWithoutAction(c) },
+                              ]}
+                            />
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-end gap-1">
+                            <button type="button" onClick={() => setViewingComplaintId(c.complaint_id)} className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-lg px-3 text-[13px] font-semibold text-indigo-600 transition hover:bg-indigo-50">
+                              Open <ChevronRight className="h-4 w-4" />
+                            </button>
+                            <RowActionsMenu
+                              label={`More actions for ${c.complaint_no}`}
+                              actions={[{ label: 'View details', icon: Search, onClick: () => setViewingComplaintId(c.complaint_id) }]}
+                            />
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <Pagination page={safePage} pageSize={pageSize} total={allRows.length} onPageChange={setPage} onPageSizeChange={setPageSize} />
+          </>
         )}
       </div>
 

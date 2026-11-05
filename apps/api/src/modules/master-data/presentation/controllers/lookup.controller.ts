@@ -41,6 +41,8 @@ function toDto(item: MasterLookupItem): MasterLookupItemDto {
     sort_order: item.sort_order,
     is_active: item.is_active,
     created_at: item.created_at,
+    parent_id: item.parent_id,
+    parent_label: item.parent_label,
   };
 }
 
@@ -101,6 +103,7 @@ export class LookupController {
         code: body.code,
         sort_order: body.sort_order,
         is_active: body.is_active,
+        parent_id: body.parent_id,
         actor_id: req.user!.emp_id,
       });
       return toDto(item);
@@ -125,6 +128,7 @@ export class LookupController {
         code: body.code,
         sort_order: body.sort_order,
         is_active: body.is_active,
+        parent_id: body.parent_id,
         actor_id: req.user!.emp_id,
       });
       return toDto(item);

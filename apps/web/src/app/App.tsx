@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/features/auth/context/AuthContext';
 import { SocketProvider } from '@/shared/socket/SocketContext';
+import { MessengerProvider } from '@/features/messenger/MessengerContext';
+import { MeetingReminders } from '@/features/calendar/components/MeetingReminders';
 import { ProtectedRoute } from '@/features/auth/components/ProtectedRoute';
 import { AdminRoute } from '@/features/auth/components/AdminRoute';
 import { LoginPage } from '@/features/auth/pages/LoginPage';
@@ -37,11 +39,27 @@ import { CompanyDetailPage } from '@/features/companies/pages/CompanyDetailPage'
 import { CompanyImportPage } from '@/features/companies/pages/CompanyImportPage';
 import { AttendancePage } from '@/features/attendance/pages/AttendancePage';
 import { CalendarPage } from '@/features/calendar/pages/CalendarPage';
+import { MessengerPage } from '@/features/messenger/pages/MessengerPage';
 import { PerformancePage } from '@/features/performance/pages/PerformancePage';
 import { ProjectsPage } from '@/features/projects/pages/ProjectsPage';
 import { MyTasksPage } from '@/features/tasks/pages/MyTasksPage';
 import { DepartmentsPage } from '@/features/organization/pages/DepartmentsPage';
 import { AppLayout } from '@/shared/layouts/AppLayout';
+
+// Sales CRM Feature imports
+import { SalesRoute } from '@/features/sales/components/common/SalesRoute';
+import { CompaniesListPage as SalesCompaniesListPage } from '@/features/sales/pages/CompaniesListPage';
+import { ClientsListPage as SalesClientsListPage } from '@/features/sales/pages/ClientsListPage';
+import { SalesReportsPage } from '@/features/sales/pages/SalesReportsPage';
+import { CompanyFormPage as SalesCompanyFormPage } from '@/features/sales/pages/CompanyFormPage';
+import { CompanyDetailPage as SalesCompanyDetailPage } from '@/features/sales/pages/CompanyDetailPage';
+import { LeadsListPage } from '@/features/sales/pages/LeadsListPage';
+import { LeadDetailPage } from '@/features/sales/pages/LeadDetailPage';
+import { FollowUpsPage } from '@/features/sales/pages/FollowUpsPage';
+import { ImportPage as SalesImportPage } from '@/features/sales/pages/ImportPage';
+import { HistoryPage as SalesHistoryPage } from '@/features/sales/pages/HistoryPage';
+import { RightsPage as SalesRightsPage } from '@/features/sales/pages/RightsPage';
+import { ClientDetailPage } from '@/features/sales/pages/ClientDetailPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -59,6 +77,8 @@ export const App: React.FC = () => {
       <AuthProvider>
         <SocketProvider>
           <BrowserRouter>
+            <MessengerProvider>
+            <MeetingReminders />
             <Routes>
               {/* Public Routes */}
               <Route path="/login" element={<LoginPage />} />
@@ -219,6 +239,19 @@ export const App: React.FC = () => {
                   </ProtectedRoute>
                 }
               />
+              {['/messenger', '/messenger/:conversationId'].map((path) => (
+                <Route
+                  key={path}
+                  path={path}
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout fluid>
+                        <MessengerPage />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+              ))}
               <Route
                 path="/performance"
                 element={
@@ -550,10 +583,147 @@ export const App: React.FC = () => {
                 }
               />
 
+              {/* Sales CRM Module Routes */}
+              <Route
+                path="/sales"
+                element={<Navigate to="/sales/companies" replace />}
+              />
+              <Route
+                path="/sales/companies"
+                element={
+                  <SalesRoute>
+                    <AppLayout fluid>
+                      <SalesCompaniesListPage key="companies" />
+                    </AppLayout>
+                  </SalesRoute>
+                }
+              />
+              <Route
+                path="/sales/clients"
+                element={
+                  <SalesRoute>
+                    <AppLayout fluid>
+                      <SalesClientsListPage />
+                    </AppLayout>
+                  </SalesRoute>
+                }
+              />
+              <Route
+                path="/sales/companies/new"
+                element={
+                  <SalesRoute>
+                    <AppLayout fluid>
+                      <SalesCompanyFormPage />
+                    </AppLayout>
+                  </SalesRoute>
+                }
+              />
+              <Route
+                path="/sales/companies/:id"
+                element={
+                  <SalesRoute>
+                    <AppLayout fluid>
+                      <SalesCompanyDetailPage />
+                    </AppLayout>
+                  </SalesRoute>
+                }
+              />
+              <Route
+                path="/sales/companies/:id/edit"
+                element={
+                  <SalesRoute>
+                    <AppLayout fluid>
+                      <SalesCompanyFormPage />
+                    </AppLayout>
+                  </SalesRoute>
+                }
+              />
+              <Route
+                path="/sales/leads"
+                element={
+                  <SalesRoute>
+                    <AppLayout fluid>
+                      <LeadsListPage />
+                    </AppLayout>
+                  </SalesRoute>
+                }
+              />
+              <Route
+                path="/sales/leads/:id"
+                element={
+                  <SalesRoute>
+                    <AppLayout fluid>
+                      <LeadDetailPage />
+                    </AppLayout>
+                  </SalesRoute>
+                }
+              />
+              <Route
+                path="/sales/follow-ups"
+                element={
+                  <SalesRoute>
+                    <AppLayout fluid>
+                      <FollowUpsPage />
+                    </AppLayout>
+                  </SalesRoute>
+                }
+              />
+              <Route
+                path="/sales/import"
+                element={
+                  <SalesRoute>
+                    <AppLayout fluid>
+                      <SalesImportPage />
+                    </AppLayout>
+                  </SalesRoute>
+                }
+              />
+              <Route
+                path="/sales/history"
+                element={
+                  <SalesRoute>
+                    <AppLayout fluid>
+                      <SalesHistoryPage />
+                    </AppLayout>
+                  </SalesRoute>
+                }
+              />
+              <Route
+                path="/sales/reports"
+                element={
+                  <SalesRoute>
+                    <AppLayout fluid>
+                      <SalesReportsPage />
+                    </AppLayout>
+                  </SalesRoute>
+                }
+              />
+              <Route
+                path="/sales/rights"
+                element={
+                  <SalesRoute requireAdmin>
+                    <AppLayout fluid>
+                      <SalesRightsPage />
+                    </AppLayout>
+                  </SalesRoute>
+                }
+              />
+              <Route
+                path="/sales/clients/:id"
+                element={
+                  <SalesRoute>
+                    <AppLayout fluid>
+                      <ClientDetailPage />
+                    </AppLayout>
+                  </SalesRoute>
+                }
+              />
+
               {/* 404 Route */}
               <Route path="/404" element={<NotFoundPage />} />
               <Route path="*" element={<Navigate to="/404" replace />} />
             </Routes>
+            </MessengerProvider>
           </BrowserRouter>
         </SocketProvider>
       </AuthProvider>

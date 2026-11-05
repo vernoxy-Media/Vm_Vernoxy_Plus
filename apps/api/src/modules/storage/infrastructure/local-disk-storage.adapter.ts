@@ -154,6 +154,15 @@ export class LocalDiskStorageAdapter implements FileStoragePort, OnModuleInit {
     return `/api/v1/files/profile-photos/${key}?exp=${expires}&sig=${signature}`;
   }
 
+  getSignedUrlIfExists(key: string, ttlSeconds?: number): string | null {
+    try {
+      if (!fs.existsSync(this.resolveKeyPath(key, 'profile-photos'))) return null;
+      return this.getSignedUrl(key, ttlSeconds);
+    } catch {
+      return null;
+    }
+  }
+
   verifySignedUrl(key: string, expires: number, signature: string): boolean {
     if (!StorageValidator.isValidStorageKey(key, 'profile-photos')) {
       return false;

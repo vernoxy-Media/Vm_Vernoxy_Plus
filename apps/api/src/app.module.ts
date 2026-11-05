@@ -13,6 +13,7 @@ import { DataTransferModule } from './modules/data-transfer/public-api';
 import { CrmModule } from './modules/crm/crm.module';
 import { AttendanceModule } from './modules/attendance/public-api';
 import { NotificationsModule } from './modules/notifications/public-api';
+import { MessengerModule } from './modules/messenger/public-api';
 import { TasksModule } from './modules/tasks/public-api';
 import { CalendarModule } from './modules/calendar/public-api';
 import { ProjectsModule } from './modules/projects/public-api';
@@ -24,6 +25,7 @@ import { ExpenseModule } from './modules/expense/expense.module';
 import { AttachmentsModule } from './modules/attachments/attachments.module';
 import { ComplaintModule } from './modules/complaint/complaint.module';
 import { LicenseModule } from './modules/license/license.module';
+import { SalesModule } from './modules/sales/public-api';
 import { KnowledgeBaseModule } from './modules/knowledge-base/knowledge-base.module';
 import { PerformanceModule } from './modules/performance/performance.module';
 
@@ -45,6 +47,7 @@ import { PerformanceModule } from './modules/performance/performance.module';
     CrmModule,
     AttendanceModule,
     NotificationsModule,
+    MessengerModule,
     TasksModule,
     CalendarModule,
     ProjectsModule,
@@ -56,6 +59,7 @@ import { PerformanceModule } from './modules/performance/performance.module';
     AttachmentsModule,
     ComplaintModule,
     LicenseModule,
+    SalesModule,
     KnowledgeBaseModule,
     PerformanceModule,
   ],

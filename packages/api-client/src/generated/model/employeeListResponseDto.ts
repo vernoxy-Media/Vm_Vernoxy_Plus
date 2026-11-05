@@ -6,14 +6,11 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { EmployeeResponseDto } from './employeeResponseDto';
+import type { EmployeeStatsDto } from './employeeStatsDto';
 
 export interface EmployeeListResponseDto {
   items: EmployeeResponseDto[];
   /** @nullable */
   next_cursor?: string | null;
-  stats?: {
-    total: number;
-    active: number;
-    inactive: number;
-  };
+  stats?: EmployeeStatsDto;
 }

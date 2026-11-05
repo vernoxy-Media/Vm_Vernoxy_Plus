@@ -9,11 +9,12 @@ import {
 import { MasterDataPage, MasterDataColumn } from '@/features/organization/components/MasterDataPage';
 import { MasterDataDialog, MasterDataFormField } from '@/features/organization/components/MasterDataDialog';
 import { Users, ShieldCheck, Check } from 'lucide-react';
+import { useCursorPaging } from '../useCursorPaging';
 
 export const SettingsCustomerTypesSection: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<boolean | undefined>(undefined);
-  const [cursor, setCursor] = useState<number | undefined>(undefined);
+  const paging = useCursorPaging<number>();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<CustomerTypeItemDto | null>(null);
@@ -22,8 +23,8 @@ export const SettingsCustomerTypesSection: React.FC = () => {
   const { data, isLoading, error } = useCustomerTypesQuery({
     q: search || undefined,
     is_active: statusFilter,
-    limit: 20,
-    cursor,
+    limit: paging.limit,
+    cursor: paging.cursor,
   });
 
   const createMutation = useCreateCustomerTypeMutation();
@@ -151,12 +152,12 @@ export const SettingsCustomerTypesSection: React.FC = () => {
         searchValue={search}
         onSearchChange={(v) => {
           setSearch(v);
-          setCursor(undefined);
+          paging.reset();
         }}
         statusFilter={statusFilter}
         onStatusFilterChange={(v) => {
           setStatusFilter(v);
-          setCursor(undefined);
+          paging.reset();
         }}
         columns={columns}
         items={data?.items || []}
@@ -165,7 +166,11 @@ export const SettingsCustomerTypesSection: React.FC = () => {
         error={error ? (error as { message?: string }).message || 'Failed to load customer types' : null}
         emptyIcon={<Users className="w-8 h-8" />}
         nextCursor={data?.next_cursor}
-        onNextPage={() => setCursor(data?.next_cursor || undefined)}
+        onNextPage={() => paging.next(data?.next_cursor)}
+        onPrevPage={paging.prev}
+        page={paging.page}
+        pageSize={paging.limit}
+        onPageSizeChange={paging.setLimit}
         onAdd={handleOpenAdd}
         onEdit={handleOpenEdit}
         onDelete={handleDelete}

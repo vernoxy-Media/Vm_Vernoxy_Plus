@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Bell, Check, CheckCheck, Inbox } from 'lucide-react';
 import {
   useNotificationsControllerGetNotifications,
@@ -27,6 +28,7 @@ export const NotificationBell: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const { socket } = useSocket();
+  const navigate = useNavigate();
 
   const { data: countData, refetch: refetchCount } = useNotificationsControllerGetUnreadCount({
     query: { refetchInterval: 30_000 },
@@ -76,6 +78,20 @@ export const NotificationBell: React.FC = () => {
     refetchList();
   };
 
+  // A follow-up notification opens the follow-ups page and counts as read.
+  const openNotification = async (n: NotificationResponseDto) => {
+    if (n.kind === 'calendar_reminder') {
+      if (!n.read_at) await handleMarkOne(n.notification_id);
+      setIsOpen(false);
+      navigate('/calendar');
+      return;
+    }
+    if (n.entity_type !== 'FOLLOW_UP' && !n.kind.startsWith('follow_up')) return;
+    if (!n.read_at) await handleMarkOne(n.notification_id);
+    setIsOpen(false);
+    navigate('/sales/follow-ups');
+  };
+
   const handleMarkAll = async () => {
     await markAllMutation.mutateAsync();
     refetchCount();
@@ -89,11 +105,11 @@ export const NotificationBell: React.FC = () => {
         id="notification-bell-btn"
         onClick={() => setIsOpen(!isOpen)}
         aria-label="Notifications"
-        className="relative p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+        className="relative flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
       >
-        <Bell className="w-5 h-5" />
+        <Bell className="h-[18px] w-[18px]" strokeWidth={1.9} />
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-bold text-white shadow-xs animate-pulse">
+          <span className="absolute -right-1.5 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-bold text-white ring-2 ring-white">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
@@ -131,7 +147,10 @@ export const NotificationBell: React.FC = () => {
               notifications.map((n) => (
                 <div
                   key={n.notification_id}
-                  className={`p-3.5 transition-colors ${n.read_at ? 'bg-white opacity-70' : 'bg-blue-50/20'}`}
+                  onClick={() => openNotification(n)}
+                  className={`p-3.5 transition-colors ${n.read_at ? 'bg-white opacity-70' : 'bg-blue-50/20'} ${
+                    n.entity_type === 'FOLLOW_UP' || n.kind.startsWith('follow_up') ? 'cursor-pointer hover:bg-slate-50' : ''
+                  }`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
@@ -144,7 +163,10 @@ export const NotificationBell: React.FC = () => {
                     {!n.read_at && (
                       <button
                         type="button"
-                        onClick={() => handleMarkOne(n.notification_id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMarkOne(n.notification_id);
+                        }}
                         title="Mark as read"
                         className="p-1 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
                       >

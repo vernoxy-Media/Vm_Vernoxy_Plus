@@ -18,6 +18,36 @@ export interface CalendarEventsQuery {
   event_type?: CalendarEventType;
 }
 
+export interface CalendarDueQuery {
+  start_date: string; // YYYY-MM-DD
+  end_date: string; // YYYY-MM-DD
+  requesting_emp_id: number;
+  is_admin: boolean;
+  employee_ids?: number[];
+}
+
+/** A task that is due, or a project deadline, on one day. */
+export interface CalendarDueItem {
+  kind: 'task' | 'project';
+  id: number;
+  code: string;
+  title: string;
+  due_date: string; // YYYY-MM-DD
+  /** Tasks only */
+  priority?: string;
+  stage?: string;
+  project_name?: string | null;
+  /** Projects only */
+  status?: string;
+}
+
+export interface MeetingConflictQuery {
+  employee_ids: number[];
+  start: Date;
+  end: Date;
+  exclude_event_id?: number;
+}
+
 export interface CreateCalendarEventRepoInput {
   event_type: CalendarEventType;
   title: string;
@@ -104,6 +134,22 @@ export interface CalendarHolidayItem {
 }
 
 export interface CalendarRepositoryPort {
+  /** Tasks that are not done yet, on their due date, and project deadlines, for the days asked for. */
+  getDueItems(query: CalendarDueQuery): Promise<CalendarDueItem[]>;
+
+  /**
+   * Records that this person was reminded about a meeting they are part of. Returns the meeting the first time,
+   * and null when it was already recorded or they are not part of it (so the reminder is shown once).
+   */
+  claimMeetingReminder(
+    eventId: number,
+    empId: number,
+    kind: 'before' | 'start',
+  ): Promise<{ title: string; start_time: Date; meeting_link: string | null } | null>;
+
+  /** Timed meetings that overlap [start, end) for any of these people (organizer, or guest who has not declined). */
+  findMeetingConflicts(query: MeetingConflictQuery): Promise<import('../errors/calendar.errors').MeetingConflict[]>;
+
   getEvents(query: CalendarEventsQuery): Promise<CalendarEventEntity[]>;
   getEventById(eventId: number): Promise<CalendarEventEntity | null>;
   createEvent(input: CreateCalendarEventRepoInput): Promise<CalendarEventEntity>;

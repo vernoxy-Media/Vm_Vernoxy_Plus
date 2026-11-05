@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Video, Check, Send } from 'lucide-react';
 import type { CalendarEvent } from '../types';
 import type { LeaveCalendarItem } from '@/features/leave/hooks/use-leave';
-import { formatLocalDate, classifyCalendarDay, AttendanceDayRecordInfo } from '../date-utils';
+import { formatLocalDate, classifyCalendarDay, AttendanceDayRecordInfo, startOfWeek } from '../date-utils';
 
 interface WeeklyTimeGridProps {
   currentDate: Date;
@@ -38,13 +38,9 @@ export const WeeklyTimeGrid: React.FC<WeeklyTimeGridProps> = ({
     return () => clearInterval(interval);
   }, []);
 
-  // Compute the 7 days of the current week (Monday start)
+  // Compute the 7 days of the current week (see WEEK_START)
   const getWeekDates = (baseDate: Date): Date[] => {
-    const d = new Date(baseDate);
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday start
-    const monday = new Date(d.setDate(diff));
-    monday.setHours(0, 0, 0, 0);
+    const monday = startOfWeek(baseDate);
 
     return Array.from({ length: 7 }, (_, i) => {
       const weekDay = new Date(monday);

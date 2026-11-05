@@ -651,6 +651,30 @@ export class LeaveService {
     };
   }
 
+  /** Approved leaves that touch the month (YYYY-MM): the team calendar. */
+  async getLeaveCalendar(month?: string, departmentId?: number) {
+    const now = new Date();
+    const m = month && /^\d{4}-(0[1-9]|1[0-2])$/.test(month) ? month : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const [y, mo] = m.split('-').map(Number);
+    const first = `${m}-01`;
+    const last = `${m}-${String(new Date(y, mo, 0).getDate()).padStart(2, '0')}`;
+    const rows = await this.prisma.$queryRaw<any[]>`
+      SELECT r.request_id, r.request_no, r.emp_id, e.name AS employee_name, d.name AS department_name, e.dep_id,
+        r.leave_type_id, t.name AS leave_type_name, t.calendar_color, r.is_paid, r.duration,
+        to_char(r.from_date, 'YYYY-MM-DD') AS from_date, to_char(r.to_date, 'YYYY-MM-DD') AS to_date,
+        r.leave_days::float8 AS leave_days
+      FROM leave_requests r
+      JOIN leave_types t ON t.leave_type_id = r.leave_type_id
+      JOIN employees e ON e.emp_id = r.emp_id
+      LEFT JOIN departments d ON d.dep_id = e.dep_id
+      WHERE r.status = 'APPROVED' AND r.from_date <= ${last}::date AND r.to_date >= ${first}::date
+        AND e.deleted_at IS NULL
+        AND (${departmentId ?? null}::int IS NULL OR e.dep_id = ${departmentId ?? null}::int)
+      ORDER BY r.from_date, e.name;
+    `;
+    return rows;
+  }
+
   async applyLeave(empId: number, dto: ApplyLeaveDto) {
     const calc = await this.calculateLeaveDays(empId, dto);
 

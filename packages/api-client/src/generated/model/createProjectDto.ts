@@ -22,6 +22,8 @@ export interface CreateProjectDto {
   project_status?: CreateProjectDtoProjectStatus;
   member_ids: number[];
   client_name?: string;
+  /** Detailed project description */
+  description?: string;
   lead_received_date?: string;
   project_approved_date?: string;
   tech_frontend?: string;

@@ -789,6 +789,12 @@ export class EmployeeResponseDto {
 
   @ApiPropertyOptional({ type: String, example: 'HDFC0001234' })
   ifsc_code?: string | null;
+
+  @ApiPropertyOptional({ type: String, example: '3 Months', nullable: true })
+  probation_period?: string | null;
+
+  @ApiPropertyOptional({ type: String, example: '30 Days', nullable: true })
+  notice_period?: string | null;
 }
 
 export class EmployeeHistoryItemDto {

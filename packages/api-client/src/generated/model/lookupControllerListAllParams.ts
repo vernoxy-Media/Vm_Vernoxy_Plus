@@ -8,7 +8,7 @@
 
 export type LookupControllerListAllParams = {
 /**
- * Lookup type to list. Allowed: task_type, break_type, project_category, project_status, project_type, lead_source, lost_reason, person_department, request_type, attendance_reason, shift_type, leave_type
+ * Lookup type to list. Allowed: task_type, break_type, project_category, project_status, project_type, lead_source, lost_reason, person_department, request_type, attendance_reason, shift_type, leave_type, employment_type, gender, blood_group, deactivation_reason, candidate_source, job_portal, notice_period, candidate_stage, rejection_reason, addition_category, deduction_category, day_adjustment_reason
  */
 type: string;
 };

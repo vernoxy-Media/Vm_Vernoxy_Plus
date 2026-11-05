@@ -44,7 +44,7 @@ export class PrismaEmployeeAuthRepository implements EmployeeAuthRepository {
     const creds = raw.employee_credentials_employee_credentials_emp_idToemployees?.[0] ?? null;
     const profile_picture_url =
       raw.profile_picture && this.storage
-        ? this.storage.getSignedUrl(raw.profile_picture)
+        ? this.storage.getSignedUrlIfExists(raw.profile_picture)
         : null;
 
     return {
@@ -93,7 +93,7 @@ export class PrismaEmployeeAuthRepository implements EmployeeAuthRepository {
     const creds = raw.employee_credentials_employee_credentials_emp_idToemployees?.[0] ?? null;
     const profile_picture_url =
       raw.profile_picture && this.storage
-        ? this.storage.getSignedUrl(raw.profile_picture)
+        ? this.storage.getSignedUrlIfExists(raw.profile_picture)
         : null;
 
     return {

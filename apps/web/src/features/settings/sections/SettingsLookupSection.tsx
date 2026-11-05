@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { LucideIcon } from 'lucide-react';
-import { MasterLookupItemDto } from '@vernoxy-pulse/api-client';
+import { MasterLookupItemDto, CreateLookupDto, UpdateLookupDto } from '@vernoxy-pulse/api-client';
 import {
   useAdminLookupsQuery,
   useCreateLookupMutation,
@@ -10,7 +10,12 @@ import {
 import { MasterDataPage, MasterDataColumn } from '@/features/organization/components/MasterDataPage';
 import { MasterDataDialog, MasterDataFormField } from '@/features/organization/components/MasterDataDialog';
 
+/** A lookup row can belong to another one (a GIDC Area belongs to a GIDC). The API sends the link. */
+type LookupRow = MasterLookupItemDto & { parent_id?: number | null; parent_label?: string | null };
+
 interface SettingsLookupSectionProps {
+  /** Set when each row belongs to a row of another list, such as an area to its GIDC. */
+  parent?: { lookupType: string; label: string; emptyLabel: string };
   lookupType: string;
   title: string;
   description: string;
@@ -26,13 +31,17 @@ export const SettingsLookupSection: React.FC<SettingsLookupSectionProps> = ({
   addLabel,
   searchPlaceholder,
   icon: Icon,
+  parent,
 }) => {
   const [search, setSearch] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MasterLookupItemDto | null>(null);
   const [dialogError, setDialogError] = useState<string | null>(null);
 
-  const { data = [], isLoading, error } = useAdminLookupsQuery(lookupType);
+  const { data: rawData = [], isLoading, error } = useAdminLookupsQuery(lookupType);
+  const data = rawData as LookupRow[];
+  // Same query key as the list itself when there is no parent, so nothing extra is fetched
+  const { data: parentItems = [] } = useAdminLookupsQuery(parent?.lookupType ?? lookupType);
 
   const createMutation = useCreateLookupMutation(lookupType);
   const updateMutation = useUpdateLookupMutation(lookupType);
@@ -41,7 +50,8 @@ export const SettingsLookupSection: React.FC<SettingsLookupSectionProps> = ({
   const filtered = data.filter(
     (item) =>
       item.label.toLowerCase().includes(search.toLowerCase()) ||
-      item.code.toLowerCase().includes(search.toLowerCase()),
+      item.code.toLowerCase().includes(search.toLowerCase()) ||
+      (item.parent_label ?? '').toLowerCase().includes(search.toLowerCase()),
   );
 
   const handleOpenAdd = () => {
@@ -76,14 +86,16 @@ export const SettingsLookupSection: React.FC<SettingsLookupSectionProps> = ({
             code: values.code ? (values.code as string).trim() : undefined,
             sort_order: values.sort_order ? Number(values.sort_order) : undefined,
             is_active: Boolean(values.is_active),
-          },
+            ...(parent ? { parent_id: values.parent_id ? Number(values.parent_id) : null } : {}),
+          } as UpdateLookupDto,
         });
       } else {
         await createMutation.mutateAsync({
           label: (values.label as string).trim(),
           code: values.code ? (values.code as string).trim() : undefined,
           sort_order: values.sort_order ? Number(values.sort_order) : undefined,
-        });
+          ...(parent && values.parent_id ? { parent_id: Number(values.parent_id) } : {}),
+        } as CreateLookupDto);
       }
       setIsDialogOpen(false);
     } catch (err: unknown) {
@@ -93,6 +105,20 @@ export const SettingsLookupSection: React.FC<SettingsLookupSectionProps> = ({
   };
 
   const dialogFields: MasterDataFormField[] = [
+    ...(parent
+      ? [
+          {
+            name: 'parent_id',
+            label: parent.label,
+            type: 'select' as const,
+            options: [
+              { value: '', label: parent.emptyLabel },
+              ...parentItems.filter((p) => p.is_active).map((p) => ({ value: p.id, label: p.label })),
+            ],
+            helpText: `Pick the ${parent.label} this belongs to, or leave it common to all.`,
+          },
+        ]
+      : []),
     {
       name: 'label',
       label: 'Display Name',
@@ -137,6 +163,22 @@ export const SettingsLookupSection: React.FC<SettingsLookupSectionProps> = ({
         </div>
       ),
     },
+    ...(parent
+      ? [
+          {
+            key: 'parent',
+            header: parent.label,
+            render: (item: MasterLookupItemDto) => {
+              const label = (item as LookupRow).parent_label;
+              return label ? (
+                <span className="inline-flex whitespace-nowrap rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700 ring-1 ring-blue-100">{label}</span>
+              ) : (
+                <span className="inline-flex whitespace-nowrap rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500">All {parent.label}s</span>
+              );
+            },
+          },
+        ]
+      : []),
     {
       key: 'code',
       header: 'Code',
@@ -185,6 +227,7 @@ export const SettingsLookupSection: React.FC<SettingsLookupSectionProps> = ({
         getItemKey={(item) => item.id}
         isLoading={isLoading}
         error={error ? `Failed to load ${title.toLowerCase()}` : null}
+        icon={<Icon className="w-5 h-5" />}
         emptyIcon={<Icon className="w-8 h-8" />}
         onAdd={handleOpenAdd}
         onEdit={handleOpenEdit}
@@ -193,18 +236,19 @@ export const SettingsLookupSection: React.FC<SettingsLookupSectionProps> = ({
 
       <MasterDataDialog
         isOpen={isDialogOpen}
-        title={editingItem ? `Edit ${title.slice(0, -1)}` : addLabel}
+        title={editingItem ? addLabel.replace(/^Add\s+/, 'Edit ') : addLabel}
         icon={<Icon className="w-5 h-5" />}
         fields={dialogFields}
         initialValues={
           editingItem
             ? {
+                parent_id: String((editingItem as LookupRow).parent_id ?? ''),
                 label: editingItem.label,
                 code: editingItem.code,
                 sort_order: String(editingItem.sort_order),
                 is_active: editingItem.is_active,
               }
-            : { label: '', code: '', sort_order: '' }
+            : { parent_id: '', label: '', code: '', sort_order: '' }
         }
         isEdit={Boolean(editingItem)}
         isPending={createMutation.isPending || updateMutation.isPending}

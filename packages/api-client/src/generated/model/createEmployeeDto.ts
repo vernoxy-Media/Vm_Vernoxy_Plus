@@ -5,6 +5,9 @@
  * Sales CRM + HRMS REST API contracts
  * OpenAPI spec version: 1.0.0
  */
+import type { CreateEmployeeDtoOtRateType } from './createEmployeeDtoOtRateType';
+import type { CreateEmployeeDtoOtPaidAs } from './createEmployeeDtoOtPaidAs';
+import type { CreateEmployeeDtoPaymentMode } from './createEmployeeDtoPaymentMode';
 
 export interface CreateEmployeeDto {
   /** Employee full name */
@@ -64,20 +67,25 @@ export interface CreateEmployeeDto {
   salary?: number;
   /** PF (cannot be negative) */
   pf?: number;
+  /** Overtime eligibility */
   ot_eligible?: boolean;
-  ot_rate_type?: 'FIXED' | 'MULTIPLIER' | null;
-  ot_rate?: number | null;
-  ot_multiplier?: number | null;
+  ot_rate_type?: CreateEmployeeDtoOtRateType;
+  ot_rate?: number;
+  ot_multiplier?: number;
   minimum_ot_per_day?: number;
-  ot_paid_as?: 'SALARY' | 'COMP_OFF';
+  ot_paid_as?: CreateEmployeeDtoOtPaidAs;
   pf_applicable?: boolean;
-  uan?: string | null;
+  uan?: string;
   employee_pf_pct?: number;
   employer_pf_pct?: number;
-  payment_mode?: 'BANK_TRANSFER' | 'CHEQUE' | 'CASH' | null;
-  bank_name?: string | null;
-  account_number?: string | null;
-  ifsc_code?: string | null;
+  payment_mode?: CreateEmployeeDtoPaymentMode;
+  bank_name?: string;
+  account_number?: string;
+  ifsc_code?: string;
+  /** @nullable */
   probation_period?: string | null;
+  /** @nullable */
   notice_period?: string | null;
+  /** @nullable */
+  leave_policy_id?: number | null;
 }

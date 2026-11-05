@@ -1,5 +1,7 @@
-import React from 'react';
-import { Plus, Search, Edit2, Trash2, Loader2, AlertCircle, ChevronRight } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Plus, Search, Edit2, Trash2, Loader2, AlertCircle } from 'lucide-react';
+import { RowActionsMenu, type RowAction } from '@/shared/ui/RowActionsMenu';
+import { Pagination, CursorPager } from '@/shared/ui/Pagination';
 
 export interface MasterDataColumn<T> {
   key: string;
@@ -34,6 +36,11 @@ export interface MasterDataPageProps<T> {
   emptyDescription?: string;
   nextCursor?: string | number | null;
   onNextPage?: () => void;
+  /** Only for lists the server pages with a cursor. */
+  onPrevPage?: () => void;
+  page?: number;
+  pageSize?: number;
+  onPageSizeChange?: (size: number) => void;
   onAdd: () => void;
   onEdit?: (item: T) => void;
   onDelete?: (item: T) => void;
@@ -45,6 +52,8 @@ export interface MasterDataPageProps<T> {
 
 export function MasterDataPage<T>({
   title,
+  description,
+  icon,
   addLabel,
   searchPlaceholder = 'Search...',
   searchValue,
@@ -62,6 +71,10 @@ export function MasterDataPage<T>({
   emptyDescription = 'Get started by creating your first entry.',
   nextCursor,
   onNextPage,
+  onPrevPage,
+  page: serverPage = 1,
+  pageSize: serverPageSize,
+  onPageSizeChange: onServerPageSizeChange,
   onAdd,
   onEdit,
   onDelete,
@@ -70,164 +83,178 @@ export function MasterDataPage<T>({
   extraActions,
   tableId = 'master-data-table',
 }: MasterDataPageProps<T>) {
+  const hasActions = Boolean(onEdit || onDelete || extraActions);
+
+  // A list the server pages with a cursor is shown as it comes; a full list is paged here
+  const serverPaged = Boolean(onNextPage);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  useEffect(() => setPage(1), [searchValue, statusFilter, pageSize]);
+  const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
+  const safePage = Math.min(page, pageCount);
+  const rows = serverPaged ? items : items.slice((safePage - 1) * pageSize, safePage * pageSize);
+
+  const actionsFor = (item: T) => {
+    const actions: RowAction[] = [];
+    if (onEdit && canEdit(item)) actions.push({ label: 'Edit', icon: Edit2, onClick: () => onEdit(item) });
+    if (onDelete && canDelete(item)) actions.push({ label: 'Delete', icon: Trash2, danger: true, onClick: () => onDelete(item) });
+    return (
+      <>
+        {extraActions?.(item)}
+        <RowActionsMenu actions={actions} label="Row actions" />
+      </>
+    );
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-100">
-        <div>
-          <h2 className="text-xl font-bold text-slate-900 tracking-tight">{title}</h2>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3.5">
+          {icon && <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 ring-1 ring-blue-100">{icon}</span>}
+          <div className="min-w-0">
+            <h2 className="truncate text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">{title}</h2>
+            {description && <p className="mt-0.5 text-sm text-slate-500">{description}</p>}
+          </div>
         </div>
         <button
           type="button"
           onClick={onAdd}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 transition-colors focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 shrink-0"
+          className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-[13px] font-semibold text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700 focus:outline-hidden focus:ring-4 focus:ring-blue-600/20 active:scale-[0.98]"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="h-4 w-4" strokeWidth={2.5} />
           {addLabel}
         </button>
       </div>
 
-      {/* Filter Row (stitched / sticky to top) */}
-      <div className="sticky top-16 lg:top-0 z-20 bg-[#f4f6fa]/95 backdrop-blur-xs py-1">
-        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1">
+      {/* Toolbar */}
+      <div className="flex flex-col items-stretch gap-3 md:flex-row md:items-center">
+        <div className="flex flex-1 flex-col items-stretch gap-2.5 sm:flex-row sm:items-center">
           <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               value={searchValue}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder={searchPlaceholder}
-              className="w-full pl-10 pr-4 py-2 rounded-lg text-xs border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all"
+              className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-10 pr-4 text-sm text-slate-800 placeholder:text-slate-400 transition focus:border-blue-500 focus:bg-white focus:outline-hidden focus:ring-4 focus:ring-blue-500/10"
             />
           </div>
           {extraFilters}
         </div>
 
         {onStatusFilterChange && (
-          <div className="flex items-center gap-1 p-1 bg-white rounded-lg border border-slate-200 text-xs font-medium self-start md:self-auto">
-            <button
-              type="button"
-              onClick={() => onStatusFilterChange(undefined)}
-              className={`px-2.5 py-1 rounded-md transition-all ${
-                statusFilter === undefined ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              All
-            </button>
-            <button
-              type="button"
-              onClick={() => onStatusFilterChange(true)}
-              className={`px-2.5 py-1 rounded-md transition-all ${
-                statusFilter === true ? 'bg-emerald-50 text-emerald-700 font-semibold' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Active
-            </button>
-            <button
-              type="button"
-              onClick={() => onStatusFilterChange(false)}
-              className={`px-2.5 py-1 rounded-md transition-all ${
-                statusFilter === false ? 'bg-slate-100 text-slate-900 font-semibold' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Inactive
-            </button>
+          <div role="group" aria-label="Status" className="inline-flex self-start rounded-xl bg-slate-100 p-1 text-[13px] font-semibold md:self-auto">
+            {([['All', undefined, 'text-blue-700'], ['Active', true, 'text-emerald-700'], ['Inactive', false, 'text-slate-800']] as const).map(([label, value, on]) => (
+              <button
+                key={label}
+                type="button"
+                onClick={() => onStatusFilterChange(value)}
+                className={`rounded-lg px-3.5 py-1.5 transition ${statusFilter === value ? `bg-white shadow-sm ${on}` : 'text-slate-500 hover:text-slate-800'}`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         )}
       </div>
-    </div>
 
-      {/* Table Container */}
-      <div className="rounded-xl border border-slate-200 overflow-hidden bg-white">
+      {/* Table */}
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
         {isLoading ? (
-          <div className="py-16 flex flex-col items-center justify-center gap-3">
-            <Loader2 className="w-7 h-7 text-blue-600 animate-spin" />
-            <p className="text-xs text-slate-500 font-medium">Loading {title.toLowerCase()}...</p>
+          <div className="flex flex-col items-center justify-center gap-3 py-20">
+            <Loader2 className="h-7 w-7 animate-spin text-blue-600" />
+            <p className="text-sm font-medium text-slate-500">Loading {title.toLowerCase()}...</p>
           </div>
         ) : error ? (
-          <div className="py-12 text-center text-rose-600 px-4">
-            <AlertCircle className="w-7 h-7 mx-auto mb-2 text-rose-500" />
-            <p className="font-semibold text-xs">Failed to load data</p>
-            <p className="text-xs text-slate-500 mt-1">{error}</p>
+          <div className="px-4 py-14 text-center">
+            <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-50 text-rose-500">
+              <AlertCircle className="h-6 w-6" />
+            </span>
+            <p className="text-sm font-semibold text-slate-800">Failed to load data</p>
+            <p className="mt-1 text-sm text-slate-500">{error}</p>
           </div>
         ) : items.length === 0 ? (
-          <div className="py-16 text-center px-4">
-            {emptyIcon && <div className="text-slate-300 mx-auto mb-2 flex justify-center">{emptyIcon}</div>}
-            <h3 className="text-sm font-semibold text-slate-800">{emptyTitle}</h3>
-            <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">{emptyDescription}</p>
+          <div className="px-4 py-16 text-center">
+            {emptyIcon && <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50 text-slate-300 ring-1 ring-slate-100">{emptyIcon}</div>}
+            <h3 className="text-base font-semibold text-slate-800">{emptyTitle}</h3>
+            <p className="mx-auto mt-1 max-w-sm text-sm text-slate-500">{emptyDescription}</p>
           </div>
         ) : (
-          <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-360px)] min-h-[350px]">
-            <table className="w-full text-left text-xs relative" id={tableId}>
-              <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider shadow-2xs">
-                <tr>
-                  {columns.map((col) => (
-                    <th key={col.key} className={`py-3 px-5 ${col.align === 'right' ? 'text-right' : ''}`}>
-                      {col.header}
-                    </th>
-                  ))}
-                  {(onEdit || onDelete || extraActions) && <th className="py-3 px-5 text-right">Actions</th>}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {items.map((item) => {
-                  const key = getItemKey(item);
-                  return (
-                    <tr key={key} id={`row-${key}`} className="hover:bg-slate-50/60 transition-colors">
-                      {columns.map((col) => (
-                        <td key={col.key} className={`py-3.5 px-5 ${col.align === 'right' ? 'text-right' : ''}`}>
-                          {col.render(item)}
-                        </td>
+          <>
+            {/* Small screens: one card per row */}
+            <ul className="divide-y divide-slate-100 md:hidden">
+              {rows.map((item) => (
+                <li key={getItemKey(item)} className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1 text-sm font-semibold text-slate-900">{columns[0]?.render(item)}</div>
+                    {hasActions && <div className="flex shrink-0 items-center gap-1">{actionsFor(item)}</div>}
+                  </div>
+                  {columns.length > 1 && (
+                    <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
+                      {columns.slice(1).map((col) => (
+                        <div key={col.key} className="min-w-0">
+                          <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{col.header}</dt>
+                          <dd className="mt-0.5 text-sm text-slate-700">{col.render(item)}</dd>
+                        </div>
                       ))}
-                      {(onEdit || onDelete || extraActions) && (
-                        <td className="py-3.5 px-5 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            {extraActions?.(item)}
-                            {onEdit && canEdit(item) && (
-                              <button
-                                type="button"
-                                onClick={() => onEdit(item)}
-                                className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                title="Edit"
-                              >
-                                <Edit2 className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-                            {onDelete && canDelete(item) && (
-                              <button
-                                type="button"
-                                onClick={() => onDelete(item)}
-                                className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                                title="Delete"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      )}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                    </dl>
+                  )}
+                </li>
+              ))}
+            </ul>
+
+            <div className="hidden max-h-[calc(100vh-380px)] min-h-[320px] overflow-auto md:block">
+              <table className="relative w-full min-w-[560px] text-left text-sm" id={tableId}>
+                <thead className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur-xs">
+                  <tr className="border-b border-slate-200 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+                    {columns.map((col) => (
+                      <th key={col.key} className={`whitespace-nowrap px-5 py-3 ${col.align === 'right' ? 'text-right' : ''}`}>
+                        {col.header}
+                      </th>
+                    ))}
+                    {hasActions && <th className="w-px whitespace-nowrap px-5 py-3 text-right">Actions</th>}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {rows.map((item) => {
+                    const key = getItemKey(item);
+                    return (
+                      <tr key={key} id={`row-${key}`} className="transition-colors hover:bg-blue-50/30">
+                        {columns.map((col) => (
+                          <td key={col.key} className={`px-5 py-3.5 text-slate-600 ${col.align === 'right' ? 'text-right' : ''}`}>
+                            {col.render(item)}
+                          </td>
+                        ))}
+                        {hasActions && (
+                          <td className="px-5 py-3.5 text-right">
+                            <div className="flex items-center justify-end gap-1">{actionsFor(item)}</div>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
 
-        {/* Keyset Pagination */}
-        {nextCursor && onNextPage && (
-          <div className="p-3 border-t border-slate-200 bg-slate-50/50 flex items-center justify-end">
-            <button
-              type="button"
-              onClick={onNextPage}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-slate-200 text-slate-700 shadow-xs hover:bg-slate-100 transition-colors"
-            >
-              Next Page
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        )}
+        {!isLoading && !error && items.length > 0 &&
+          (serverPaged ? (
+            <CursorPager
+              page={serverPage}
+              shown={items.length}
+              hasPrev={serverPage > 1}
+              hasNext={Boolean(nextCursor)}
+              onPrev={() => onPrevPage?.()}
+              onNext={() => onNextPage?.()}
+              pageSize={serverPageSize}
+              onPageSizeChange={onServerPageSizeChange}
+            />
+          ) : (
+            <Pagination page={safePage} pageSize={pageSize} total={items.length} onPageChange={setPage} onPageSizeChange={setPageSize} />
+          ))}
       </div>
     </div>
   );
