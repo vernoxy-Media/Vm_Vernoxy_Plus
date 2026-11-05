@@ -193,7 +193,7 @@ export const DashboardFilterBar: React.FC<DashboardFilterBarProps> = ({
             <select
               value={filters.department}
               onChange={(e) => onChangeFilters({ ...filters, department: e.target.value })}
-              className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-medium text-slate-800 pr-8 focus:border-blue-500 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 transition cursor-pointer"
+              className="w-full h-[38px] appearance-none rounded-xl border border-slate-200 bg-slate-50/50 px-3 text-xs font-medium text-slate-800 pr-8 hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition cursor-pointer shadow-2xs"
             >
               <option value="All">All Departments</option>
               {departments.map((dept) => (
@@ -215,7 +215,7 @@ export const DashboardFilterBar: React.FC<DashboardFilterBarProps> = ({
             <select
               value={filters.designation}
               onChange={(e) => onChangeFilters({ ...filters, designation: e.target.value })}
-              className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-medium text-slate-800 pr-8 focus:border-blue-500 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 transition cursor-pointer"
+              className="w-full h-[38px] appearance-none rounded-xl border border-slate-200 bg-slate-50/50 px-3 text-xs font-medium text-slate-800 pr-8 hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition cursor-pointer shadow-2xs"
             >
               <option value="All">All Designations</option>
               {roles.map((role) => (
@@ -237,7 +237,7 @@ export const DashboardFilterBar: React.FC<DashboardFilterBarProps> = ({
             <select
               value={filters.employmentType}
               onChange={(e) => onChangeFilters({ ...filters, employmentType: e.target.value })}
-              className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-medium text-slate-800 pr-8 focus:border-blue-500 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 transition cursor-pointer"
+              className="w-full h-[38px] appearance-none rounded-xl border border-slate-200 bg-slate-50/50 px-3 text-xs font-medium text-slate-800 pr-8 hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition cursor-pointer shadow-2xs"
             >
               <option value="All">All Employment Types</option>
               {employmentTypeLookups.map((t) => (
@@ -259,7 +259,7 @@ export const DashboardFilterBar: React.FC<DashboardFilterBarProps> = ({
             <select
               value={filters.gender}
               onChange={(e) => onChangeFilters({ ...filters, gender: e.target.value })}
-              className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-medium text-slate-800 pr-8 focus:border-blue-500 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 transition cursor-pointer"
+              className="w-full h-[38px] appearance-none rounded-xl border border-slate-200 bg-slate-50/50 px-3 text-xs font-medium text-slate-800 pr-8 hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition cursor-pointer shadow-2xs"
             >
               <option value="All">All Genders</option>
               {genderLookups.map((g) => (
@@ -281,7 +281,7 @@ export const DashboardFilterBar: React.FC<DashboardFilterBarProps> = ({
             <select
               value={filters.joiningDate.preset}
               onChange={(e) => handleJoiningDatePresetChange(e.target.value)}
-              className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-medium text-slate-800 pr-8 focus:border-blue-500 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 transition cursor-pointer"
+              className="w-full h-[38px] appearance-none rounded-xl border border-slate-200 bg-slate-50/50 px-3 text-xs font-medium text-slate-800 pr-8 hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition cursor-pointer shadow-2xs"
             >
               <option value="all">All Dates</option>
               <option value="today">Today</option>
@@ -306,7 +306,7 @@ export const DashboardFilterBar: React.FC<DashboardFilterBarProps> = ({
             <select
               value={filters.reportingManager}
               onChange={(e) => onChangeFilters({ ...filters, reportingManager: e.target.value })}
-              className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-medium text-slate-800 pr-8 focus:border-blue-500 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 transition cursor-pointer"
+              className="w-full h-[38px] appearance-none rounded-xl border border-slate-200 bg-slate-50/50 px-3 text-xs font-medium text-slate-800 pr-8 hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition cursor-pointer shadow-2xs"
             >
               <option value="All">All Managers</option>
               {managerOptions.map((mgr) => (
@@ -333,7 +333,7 @@ export const DashboardFilterBar: React.FC<DashboardFilterBarProps> = ({
                   employeeStatus: e.target.value as 'All' | 'Active' | 'Inactive',
                 })
               }
-              className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-medium text-slate-800 pr-8 focus:border-blue-500 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 transition cursor-pointer"
+              className="w-full h-[38px] appearance-none rounded-xl border border-slate-200 bg-slate-50/50 px-3 text-xs font-medium text-slate-800 pr-8 hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition cursor-pointer shadow-2xs"
             >
               <option value="All">All (Default)</option>
               <option value="Active">Active</option>
@@ -345,23 +345,26 @@ export const DashboardFilterBar: React.FC<DashboardFilterBarProps> = ({
 
         {/* Search Field */}
         <div className="space-y-1">
-          <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-            Search Employees
+          <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center justify-between">
+            <span>Search Employees</span>
+            {filters.search && (
+              <span className="text-[10px] text-blue-600 font-semibold lowercase">filtering</span>
+            )}
           </label>
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+          <div className="relative group">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
             <input
               type="text"
               value={filters.search}
               onChange={(e) => onChangeFilters({ ...filters, search: e.target.value })}
               placeholder="Search ID, name, email, phone..."
-              className="w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-8.5 pr-8 py-2 text-xs font-medium text-slate-800 placeholder-slate-400 focus:border-blue-500 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 transition"
+              className="w-full h-[38px] rounded-xl border border-slate-200 bg-slate-50/50 pl-10 pr-8 text-xs font-medium text-slate-800 placeholder:text-slate-400 hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition shadow-2xs"
             />
             {filters.search && (
               <button
                 type="button"
                 onClick={() => onChangeFilters({ ...filters, search: '' })}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 transition"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 rounded-md transition cursor-pointer"
                 title="Clear search"
               >
                 <X className="w-3.5 h-3.5" />
