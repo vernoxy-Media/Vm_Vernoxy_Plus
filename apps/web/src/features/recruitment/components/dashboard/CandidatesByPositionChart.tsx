@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { CandidateItem } from '../../hooks/use-recruitment';
 import { calculatePercentage } from './dashboard.utils';
 
@@ -7,30 +7,20 @@ interface CandidatesByPositionChartProps {
 }
 
 export const CandidatesByPositionChart: React.FC<CandidatesByPositionChartProps> = ({ candidates }) => {
-  const [hoveredPosition, setHoveredPosition] = useState<{
-    position: string;
-    count: number;
-    pct: number;
-    top: number;
-  } | null>(null);
-
   const totalFiltered = candidates.length;
 
   // Group candidates strictly by their saved Position Applied For (role_name from candidate record)
   const positionMap = new Map<string, number>();
 
   candidates.forEach((c) => {
-    // Note: Use candidate's role_name (Position applied for), NEVER final_role_name or employee designation!
     const positionName = (c.role_name || '').trim() || 'Unspecified';
     positionMap.set(positionName, (positionMap.get(positionName) || 0) + 1);
   });
 
-  // Sort descending by candidate count
   const sorted = Array.from(positionMap.entries())
     .map(([position, count]) => ({ position, count }))
     .sort((a, b) => b.count - a.count);
 
-  // Group remaining positions as "Other" if there are more than 7 positions
   let displayPositions: { position: string; count: number }[] = [];
   if (sorted.length > 7) {
     const top6 = sorted.slice(0, 6);
@@ -54,7 +44,7 @@ export const CandidatesByPositionChart: React.FC<CandidatesByPositionChartProps>
   ];
 
   return (
-    <div className="relative flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md h-full">
+    <div className="relative flex flex-col rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs h-full">
       <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
         <div>
           <h3 className="text-base font-bold text-slate-900 tracking-tight">Candidates by Position</h3>
@@ -80,26 +70,6 @@ export const CandidatesByPositionChart: React.FC<CandidatesByPositionChartProps>
         </div>
       ) : (
         <div className="flex-1 flex flex-col justify-center space-y-3 pt-1 relative">
-          {/* Tooltip Overlay */}
-          {hoveredPosition && (
-            <div
-              className="absolute right-4 pointer-events-none z-30 px-3 py-2 bg-slate-900 text-white text-xs rounded-xl shadow-xl transition-all duration-150 animate-in fade-in"
-              style={{ top: `${Math.max(10, hoveredPosition.top - 20)}px` }}
-            >
-              <div className="font-semibold text-slate-100 border-b border-slate-700/60 pb-1 mb-1">
-                {hoveredPosition.position}
-              </div>
-              <div className="flex items-center justify-between gap-4 text-slate-300">
-                <span>Candidates:</span>
-                <span className="font-bold text-white">{hoveredPosition.count}</span>
-              </div>
-              <div className="flex items-center justify-between gap-4 text-slate-300">
-                <span>Percentage:</span>
-                <span className="font-bold text-blue-400">{hoveredPosition.pct}%</span>
-              </div>
-            </div>
-          )}
-
           {displayPositions.map((item, idx) => {
             const pct = calculatePercentage(item.count, totalFiltered);
             const widthPct = maxCount > 0 ? (item.count / maxCount) * 100 : 0;
@@ -108,42 +78,41 @@ export const CandidatesByPositionChart: React.FC<CandidatesByPositionChartProps>
             return (
               <div
                 key={item.position}
-                className="group flex items-center gap-3 cursor-pointer py-0.5"
-                onMouseEnter={(e) => {
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  const parentRect = e.currentTarget.parentElement?.getBoundingClientRect();
-                  if (parentRect) {
-                    setHoveredPosition({
-                      position: item.position,
-                      count: item.count,
-                      pct,
-                      top: rect.top - parentRect.top,
-                    });
-                  }
-                }}
-                onMouseLeave={() => setHoveredPosition(null)}
+                className="group relative flex items-center gap-3 cursor-pointer py-0.5"
               >
+                {/* Tooltip Overlay (CSS based, completely stable, zero layout shift) */}
+                <div className="absolute right-0 -top-8 z-30 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150 px-3 py-1.5 bg-slate-900 text-white text-xs rounded-xl shadow-xl flex items-center gap-2.5 whitespace-nowrap">
+                  <span className="font-semibold text-slate-100">{item.position}:</span>
+                  <span className="font-bold text-white">{item.count} candidates</span>
+                  <span className="font-bold text-blue-400">({pct}%)</span>
+                </div>
+
                 {/* Position Title (Y-axis) */}
-                <div className="w-36 shrink-0 text-right text-xs font-semibold text-slate-700 truncate group-hover:text-blue-600 transition" title={item.position}>
+                <div
+                  className="w-36 shrink-0 text-right text-xs font-semibold text-slate-700 truncate group-hover:text-blue-600 transition-colors"
+                  title={item.position}
+                >
                   {item.position}
                 </div>
 
-                {/* Horizontal Bar */}
-                <div className="flex-1 h-5 bg-slate-100 rounded-lg overflow-hidden flex items-center relative">
-                  <div
-                    className="h-full rounded-lg transition-all duration-500 ease-out group-hover:brightness-95"
-                    style={{
-                      width: `${Math.max(widthPct, item.count > 0 ? 3 : 0)}%`,
-                      backgroundColor: barColor,
-                    }}
-                  />
+                {/* Horizontal Bar Track */}
+                <div className="flex-1 h-6 bg-slate-100 rounded-lg overflow-hidden relative flex items-center">
+                  {item.count > 0 && (
+                    <div
+                      className="absolute left-0 top-0 bottom-0 rounded-lg transition-all duration-300 group-hover:brightness-95"
+                      style={{
+                        width: `${Math.max(widthPct, 3)}%`,
+                        backgroundColor: barColor,
+                      }}
+                    />
+                  )}
                   {/* Count & Percentage Label */}
                   <span
-                    className={`text-[11px] font-bold px-2 transition select-none ${
-                      widthPct > 20 ? 'text-white' : 'text-slate-700 font-extrabold'
+                    className={`relative z-10 text-[11px] font-bold px-2.5 select-none ${
+                      widthPct > 20 ? 'text-white' : 'text-slate-700'
                     }`}
                   >
-                    {item.count} {item.count > 0 && <span className="opacity-80 text-[10px]">({pct}%)</span>}
+                    {item.count} {item.count > 0 && <span className="opacity-85 text-[10px]">({pct}%)</span>}
                   </span>
                 </div>
               </div>

@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react';
 import {
-  BarChart3,
   Loader2,
   AlertTriangle,
   RefreshCw,

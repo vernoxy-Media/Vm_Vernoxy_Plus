@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { CandidateItem } from '../../hooks/use-recruitment';
 import {
   OPEN_STAGES,
@@ -18,20 +18,8 @@ export const PipelineStageChart: React.FC<PipelineStageChartProps> = ({
   candidates,
   selectedStageFilter,
 }) => {
-  const [hoveredStage, setHoveredStage] = useState<{
-    stage: RecruitmentStageName;
-    count: number;
-    pct: number;
-    x: number;
-    y: number;
-  } | null>(null);
-
   const totalFiltered = candidates.length;
 
-  // Decide which stages to show on the X-axis
-  // If 'Open' (default), show the 6 open stages.
-  // If 'All', show all 9 stages.
-  // If a specific stage is selected, show that specific stage (or the active set).
   const stagesToDisplay: RecruitmentStageName[] =
     selectedStageFilter === 'Open'
       ? [...OPEN_STAGES]
@@ -41,7 +29,6 @@ export const PipelineStageChart: React.FC<PipelineStageChartProps> = ({
       ? ALL_STAGES.filter((s) => s.toLowerCase() === selectedStageFilter.toLowerCase())
       : [...OPEN_STAGES];
 
-  // Count candidates in each stage from the filtered dataset
   const stageCounts: Record<RecruitmentStageName, number> = {
     New: 0,
     Screening: 0,
@@ -62,13 +49,12 @@ export const PipelineStageChart: React.FC<PipelineStageChartProps> = ({
   });
 
   const maxCount = Math.max(1, ...stagesToDisplay.map((s) => stageCounts[s] || 0));
-  // Y-axis ticks
   const yAxisMax = Math.ceil(maxCount * 1.25) || 5;
   const tickCount = 4;
   const ticks = Array.from({ length: tickCount + 1 }, (_, i) => Math.round((yAxisMax / tickCount) * i));
 
   return (
-    <div className="relative flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md h-full">
+    <div className="relative flex flex-col rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs h-full">
       <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
         <div>
           <h3 className="text-base font-bold text-slate-900 tracking-tight">Candidate Pipeline by Stage</h3>
@@ -94,32 +80,10 @@ export const PipelineStageChart: React.FC<PipelineStageChartProps> = ({
         </div>
       ) : (
         <div className="flex-1 flex flex-col justify-end pt-2 pb-1 relative min-h-[260px]">
-          {/* Tooltip Overlay */}
-          {hoveredStage && (
-            <div
-              className="absolute pointer-events-none z-30 transform -translate-x-1/2 -translate-y-full mb-3 px-3 py-2 bg-slate-900 text-white text-xs rounded-xl shadow-xl transition-all duration-150 animate-in fade-in"
-              style={{ left: `${hoveredStage.x}px`, top: `${hoveredStage.y}px` }}
-            >
-              <div className="font-semibold text-slate-100 border-b border-slate-700/60 pb-1 mb-1">
-                {hoveredStage.stage}
-              </div>
-              <div className="flex items-center justify-between gap-4 text-slate-300">
-                <span>Candidates:</span>
-                <span className="font-bold text-white">{hoveredStage.count}</span>
-              </div>
-              <div className="flex items-center justify-between gap-4 text-slate-300">
-                <span>Percentage:</span>
-                <span className="font-bold text-blue-400">{hoveredStage.pct}%</span>
-              </div>
-              {/* Arrow */}
-              <div className="absolute left-1/2 bottom-[-5px] -translate-x-1/2 w-2.5 h-2.5 bg-slate-900 rotate-45"></div>
-            </div>
-          )}
-
           {/* Chart Container */}
-          <div className="relative flex-1 flex w-full">
+          <div className="relative flex-1 flex w-full items-end">
             {/* Y-Axis Labels & Gridlines */}
-            <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+            <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-8">
               {ticks.slice().reverse().map((tick) => (
                 <div key={tick} className="flex items-center w-full">
                   <span className="w-8 text-right pr-2 text-[11px] font-medium text-slate-400 select-none">
@@ -131,7 +95,7 @@ export const PipelineStageChart: React.FC<PipelineStageChartProps> = ({
             </div>
 
             {/* Bars Area */}
-            <div className="flex-1 flex items-end justify-around pl-10 pr-2 pt-6 pb-2 z-10 h-full min-h-[200px]">
+            <div className="flex-1 flex items-end justify-around pl-10 pr-2 pt-6 pb-2 z-10 w-full">
               {stagesToDisplay.map((stage) => {
                 const count = stageCounts[stage] || 0;
                 const pct = calculatePercentage(count, totalFiltered);
@@ -141,36 +105,44 @@ export const PipelineStageChart: React.FC<PipelineStageChartProps> = ({
                 return (
                   <div
                     key={stage}
-                    className="flex-1 flex flex-col items-center justify-end h-full px-1 sm:px-2 group cursor-pointer"
-                    onMouseEnter={(e) => {
-                      const rect = e.currentTarget.getBoundingClientRect();
-                      const parentRect = e.currentTarget.parentElement?.getBoundingClientRect();
-                      if (parentRect) {
-                        setHoveredStage({
-                          stage,
-                          count,
-                          pct,
-                          x: rect.left - parentRect.left + rect.width / 2,
-                          y: rect.top - parentRect.top,
-                        });
-                      }
-                    }}
-                    onMouseLeave={() => setHoveredStage(null)}
+                    className="relative flex-1 flex flex-col items-center justify-end px-1 sm:px-2 group cursor-pointer"
                   >
+                    {/* Tooltip on Hover */}
+                    <div className="absolute -top-16 z-30 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150 px-3 py-2 bg-slate-900 text-white text-xs rounded-xl shadow-xl whitespace-nowrap">
+                      <div className="font-semibold text-slate-100 border-b border-slate-700/60 pb-1 mb-1">
+                        {stage}
+                      </div>
+                      <div className="flex items-center justify-between gap-3 text-slate-300">
+                        <span>Candidates:</span>
+                        <span className="font-bold text-white">{count}</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-4 text-slate-300">
+                        <span>Percentage:</span>
+                        <span className="font-bold text-blue-400">{pct}%</span>
+                      </div>
+                      <div className="absolute left-1/2 bottom-[-4px] -translate-x-1/2 w-2 h-2 bg-slate-900 rotate-45"></div>
+                    </div>
+
                     {/* Count Data Label on top of Bar */}
-                    <div className="mb-1 text-xs font-bold text-slate-700 transition group-hover:scale-110 group-hover:text-blue-600">
+                    <div
+                      className={`mb-1.5 text-xs font-bold transition-colors ${
+                        count > 0 ? 'text-slate-800 group-hover:text-blue-600' : 'text-slate-400'
+                      }`}
+                    >
                       {count}
                     </div>
 
                     {/* Vertical Bar */}
-                    <div className="w-full max-w-[44px] bg-slate-100 rounded-t-lg overflow-hidden flex items-end min-h-[4px]">
-                      <div
-                        className="w-full rounded-t-lg transition-all duration-500 ease-out group-hover:brightness-95 group-hover:shadow-sm"
-                        style={{
-                          height: `${Math.max(heightPct, count > 0 ? 6 : 2)}%`,
-                          backgroundColor: colors.hex,
-                        }}
-                      />
+                    <div className="w-full max-w-[42px] h-[160px] bg-slate-100 rounded-t-lg overflow-hidden flex items-end">
+                      {count > 0 && (
+                        <div
+                          className="w-full rounded-t-lg transition-all duration-300 group-hover:brightness-95"
+                          style={{
+                            height: `${Math.max(heightPct, 6)}%`,
+                            backgroundColor: colors.hex,
+                          }}
+                        />
+                      )}
                     </div>
                   </div>
                 );
@@ -179,11 +151,11 @@ export const PipelineStageChart: React.FC<PipelineStageChartProps> = ({
           </div>
 
           {/* X-Axis Category Labels */}
-          <div className="flex justify-around pl-10 pr-2 border-t border-slate-200 pt-2">
+          <div className="flex justify-around pl-10 pr-2 border-t border-slate-200 pt-2.5">
             {stagesToDisplay.map((stage) => (
               <div
                 key={stage}
-                className="flex-1 text-center truncate text-[11.5px] font-semibold text-slate-600 px-0.5"
+                className="flex-1 text-center truncate text-[11.5px] font-semibold text-slate-700 px-0.5"
                 title={stage}
               >
                 {stage}

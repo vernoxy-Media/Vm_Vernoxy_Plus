@@ -30,11 +30,8 @@ export const ExperienceTypeChart: React.FC<ExperienceTypeChartProps> = ({ candid
   const circumference = 2 * Math.PI * radius;
 
   // Segment strokeDasharray calculations
-  // Fresher portion:
   const fresherStroke = totalFiltered > 0 ? (fresherCount / totalFiltered) * circumference : 0;
-  // Experienced portion:
   const expStroke = totalFiltered > 0 ? (experiencedCount / totalFiltered) * circumference : 0;
-  // Offset: start from 12 o'clock (-90 degrees)
   const fresherOffset = 0;
   const expOffset = -fresherStroke;
 
@@ -42,7 +39,7 @@ export const ExperienceTypeChart: React.FC<ExperienceTypeChartProps> = ({ candid
   const EXPERIENCED_COLOR = '#4f46e5'; // Indigo-600
 
   return (
-    <div className="relative flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md h-full">
+    <div className="relative flex flex-col rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs h-full">
       <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
         <div>
           <h3 className="text-base font-bold text-slate-900 tracking-tight">Candidates by Experience Type</h3>
@@ -69,25 +66,29 @@ export const ExperienceTypeChart: React.FC<ExperienceTypeChartProps> = ({ candid
         </div>
       ) : (
         <div className="flex-1 flex flex-col items-center justify-center pt-2 pb-2">
-          {/* Tooltip Overlay */}
-          {hoveredType && (
-            <div className="mb-2 px-3 py-1.5 bg-slate-900 text-white text-xs rounded-xl shadow-lg animate-in fade-in flex items-center gap-3">
-              <span className="font-semibold text-slate-200">{hoveredType}:</span>
-              <span className="font-bold text-white">
-                {hoveredType === 'Fresher' ? fresherCount : experiencedCount} candidates
-              </span>
-              <span className="font-bold text-cyan-400">
-                ({hoveredType === 'Fresher' ? fresherPct : experiencedPct}%)
-              </span>
-            </div>
-          )}
+          {/* Tooltip Badge */}
+          <div className="h-7 mb-2 flex items-center justify-center">
+            {hoveredType ? (
+              <div className="px-3 py-1 bg-slate-900 text-white text-xs rounded-xl shadow-md flex items-center gap-2.5">
+                <span className="font-semibold text-slate-200">{hoveredType}:</span>
+                <span className="font-bold text-white">
+                  {hoveredType === 'Fresher' ? fresherCount : experiencedCount} candidates
+                </span>
+                <span className="font-bold text-cyan-400">
+                  ({hoveredType === 'Fresher' ? fresherPct : experiencedPct}%)
+                </span>
+              </div>
+            ) : (
+              <span className="text-[11px] font-medium text-slate-400">Hover a segment for details</span>
+            )}
+          </div>
 
           {/* Donut Chart with Center Total Value */}
           <div className="relative flex items-center justify-center">
             <svg
               width={size}
               height={size}
-              className="transform -rotate-90 origin-center transition-transform"
+              className="transform -rotate-90 origin-center"
             >
               {/* Background circle track */}
               <circle
@@ -99,7 +100,7 @@ export const ExperienceTypeChart: React.FC<ExperienceTypeChartProps> = ({ candid
                 strokeWidth={strokeWidth}
               />
 
-              {/* Fresher Segment */}
+              {/* Fresher Segment - Stroke width remains constant to prevent layout shaking */}
               {fresherCount > 0 && (
                 <circle
                   cx={size / 2}
@@ -107,16 +108,17 @@ export const ExperienceTypeChart: React.FC<ExperienceTypeChartProps> = ({ candid
                   r={radius}
                   fill="none"
                   stroke={FRESHER_COLOR}
-                  strokeWidth={hoveredType === 'Fresher' ? strokeWidth + 4 : strokeWidth}
+                  strokeWidth={strokeWidth}
                   strokeDasharray={`${fresherStroke} ${circumference}`}
                   strokeDashoffset={fresherOffset}
-                  className="transition-all duration-300 cursor-pointer"
+                  className="cursor-pointer transition-opacity duration-150"
+                  style={{ opacity: hoveredType === 'Experienced' ? 0.45 : 1 }}
                   onMouseEnter={() => setHoveredType('Fresher')}
                   onMouseLeave={() => setHoveredType(null)}
                 />
               )}
 
-              {/* Experienced Segment */}
+              {/* Experienced Segment - Stroke width remains constant to prevent layout shaking */}
               {experiencedCount > 0 && (
                 <circle
                   cx={size / 2}
@@ -124,10 +126,11 @@ export const ExperienceTypeChart: React.FC<ExperienceTypeChartProps> = ({ candid
                   r={radius}
                   fill="none"
                   stroke={EXPERIENCED_COLOR}
-                  strokeWidth={hoveredType === 'Experienced' ? strokeWidth + 4 : strokeWidth}
+                  strokeWidth={strokeWidth}
                   strokeDasharray={`${expStroke} ${circumference}`}
                   strokeDashoffset={expOffset}
-                  className="transition-all duration-300 cursor-pointer"
+                  className="cursor-pointer transition-opacity duration-150"
+                  style={{ opacity: hoveredType === 'Fresher' ? 0.45 : 1 }}
                   onMouseEnter={() => setHoveredType('Experienced')}
                   onMouseLeave={() => setHoveredType(null)}
                 />
@@ -149,7 +152,7 @@ export const ExperienceTypeChart: React.FC<ExperienceTypeChartProps> = ({ candid
           <div className="mt-6 flex flex-wrap items-center justify-center gap-6 w-full pt-3 border-t border-slate-100">
             {/* Fresher legend item */}
             <div
-              className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl cursor-pointer transition ${
+              className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl cursor-pointer transition-colors ${
                 hoveredType === 'Fresher' ? 'bg-cyan-50 ring-1 ring-cyan-200' : 'hover:bg-slate-50'
               }`}
               onMouseEnter={() => setHoveredType('Fresher')}
@@ -165,7 +168,7 @@ export const ExperienceTypeChart: React.FC<ExperienceTypeChartProps> = ({ candid
 
             {/* Experienced legend item */}
             <div
-              className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl cursor-pointer transition ${
+              className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl cursor-pointer transition-colors ${
                 hoveredType === 'Experienced' ? 'bg-indigo-50 ring-1 ring-indigo-200' : 'hover:bg-slate-50'
               }`}
               onMouseEnter={() => setHoveredType('Experienced')}

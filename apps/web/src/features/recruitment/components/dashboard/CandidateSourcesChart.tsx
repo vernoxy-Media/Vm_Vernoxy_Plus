@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { CandidateItem } from '../../hooks/use-recruitment';
 import {
   STANDARD_SOURCES,
@@ -13,16 +13,8 @@ interface CandidateSourcesChartProps {
 }
 
 export const CandidateSourcesChart: React.FC<CandidateSourcesChartProps> = ({ candidates }) => {
-  const [hoveredSource, setHoveredSource] = useState<{
-    source: CandidateSourceName;
-    count: number;
-    pct: number;
-    top: number;
-  } | null>(null);
-
   const totalFiltered = candidates.length;
 
-  // Count candidates for each of the 9 standard sources
   const counts: Record<CandidateSourceName, number> = {
     'Job Portal': 0,
     'LinkedIn': 0,
@@ -47,7 +39,7 @@ export const CandidateSourcesChart: React.FC<CandidateSourcesChartProps> = ({ ca
   const maxCount = Math.max(1, ...STANDARD_SOURCES.map((s) => counts[s]));
 
   return (
-    <div className="relative flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md h-full">
+    <div className="relative flex flex-col rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs h-full">
       <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
         <div>
           <h3 className="text-base font-bold text-slate-900 tracking-tight">Candidate Sources</h3>
@@ -73,26 +65,6 @@ export const CandidateSourcesChart: React.FC<CandidateSourcesChartProps> = ({ ca
         </div>
       ) : (
         <div className="flex-1 flex flex-col justify-center space-y-2.5 pt-1 relative">
-          {/* Tooltip Overlay */}
-          {hoveredSource && (
-            <div
-              className="absolute right-4 pointer-events-none z-30 px-3 py-2 bg-slate-900 text-white text-xs rounded-xl shadow-xl transition-all duration-150 animate-in fade-in"
-              style={{ top: `${Math.max(10, hoveredSource.top - 20)}px` }}
-            >
-              <div className="font-semibold text-slate-100 border-b border-slate-700/60 pb-1 mb-1">
-                {hoveredSource.source}
-              </div>
-              <div className="flex items-center justify-between gap-4 text-slate-300">
-                <span>Candidates:</span>
-                <span className="font-bold text-white">{hoveredSource.count}</span>
-              </div>
-              <div className="flex items-center justify-between gap-4 text-slate-300">
-                <span>Percentage:</span>
-                <span className="font-bold text-indigo-400">{hoveredSource.pct}%</span>
-              </div>
-            </div>
-          )}
-
           {STANDARD_SOURCES.map((source) => {
             const count = counts[source] || 0;
             const pct = calculatePercentage(count, totalFiltered);
@@ -102,42 +74,38 @@ export const CandidateSourcesChart: React.FC<CandidateSourcesChartProps> = ({ ca
             return (
               <div
                 key={source}
-                className="group flex items-center gap-3 cursor-pointer py-0.5"
-                onMouseEnter={(e) => {
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  const parentRect = e.currentTarget.parentElement?.getBoundingClientRect();
-                  if (parentRect) {
-                    setHoveredSource({
-                      source,
-                      count,
-                      pct,
-                      top: rect.top - parentRect.top,
-                    });
-                  }
-                }}
-                onMouseLeave={() => setHoveredSource(null)}
+                className="group relative flex items-center gap-3 cursor-pointer py-0.5"
               >
+                {/* Tooltip Overlay (CSS based, completely stable, zero layout shift) */}
+                <div className="absolute right-0 -top-8 z-30 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150 px-3 py-1.5 bg-slate-900 text-white text-xs rounded-xl shadow-xl flex items-center gap-2.5 whitespace-nowrap">
+                  <span className="font-semibold text-slate-100">{source}:</span>
+                  <span className="font-bold text-white">{count} candidates</span>
+                  <span className="font-bold text-indigo-400">({pct}%)</span>
+                </div>
+
                 {/* Category Label (Y-axis) */}
-                <div className="w-32 shrink-0 text-right text-xs font-semibold text-slate-700 truncate group-hover:text-indigo-600 transition">
+                <div className="w-36 shrink-0 text-right text-xs font-semibold text-slate-700 truncate group-hover:text-indigo-600 transition-colors">
                   {source}
                 </div>
 
                 {/* Horizontal Bar Track */}
-                <div className="flex-1 h-5 bg-slate-100 rounded-lg overflow-hidden flex items-center relative">
-                  <div
-                    className="h-full rounded-lg transition-all duration-500 ease-out group-hover:brightness-95"
-                    style={{
-                      width: `${Math.max(widthPct, count > 0 ? 3 : 0)}%`,
-                      backgroundColor: barColor,
-                    }}
-                  />
+                <div className="flex-1 h-6 bg-slate-100 rounded-lg overflow-hidden relative flex items-center">
+                  {count > 0 && (
+                    <div
+                      className="absolute left-0 top-0 bottom-0 rounded-lg transition-all duration-300 group-hover:brightness-95"
+                      style={{
+                        width: `${Math.max(widthPct, 3)}%`,
+                        backgroundColor: barColor,
+                      }}
+                    />
+                  )}
                   {/* Inside/Adjacent Data Label */}
                   <span
-                    className={`text-[11px] font-bold px-2 transition select-none ${
-                      widthPct > 20 ? 'text-white' : 'text-slate-700 font-extrabold'
+                    className={`relative z-10 text-[11px] font-bold px-2.5 select-none ${
+                      widthPct > 20 ? 'text-white' : 'text-slate-700'
                     }`}
                   >
-                    {count} {count > 0 && <span className="opacity-80 text-[10px]">({pct}%)</span>}
+                    {count} {count > 0 && <span className="opacity-85 text-[10px]">({pct}%)</span>}
                   </span>
                 </div>
               </div>
