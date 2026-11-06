@@ -149,15 +149,29 @@ export interface ProjectRepositoryPort {
   createSprint(input: CreateSprintInput): Promise<SprintEntity>;
   getSprints(projectId: number): Promise<SprintEntity[]>;
   updateSprint(sprintId: number, input: UpdateSprintInput): Promise<SprintEntity>;
+  /** Moves a task (and its sub-tasks) into a sprint, or back to the backlog when sprintId is null. */
+  moveTaskToSprint(projectId: number, taskId: number, sprintId: number | null, actorId: number): Promise<void>;
+  /** Completes a sprint; unfinished tasks go to moveToSprintId, or to the backlog when it is null. */
+  completeSprint(projectId: number, sprintId: number, moveToSprintId: number | null, actorId: number): Promise<{ sprint: SprintEntity; moved_tasks: number }>;
   createProjectTask(input: CreateProjectTaskInput): Promise<ProjectTaskEntity>;
   getSprintTasks(projectId: number, sprintId?: number): Promise<ProjectTaskEntity[]>;
+  /** What is still open in a project, for the delivery check. */
+  getDeliveryCounts(projectId: number): Promise<import('../services/delivery').DeliveryCounts>;
+  /** Won clients, for choosing the client of a project. */
+  getClientOptions(): Promise<Array<{ client_id: number; client_code: string | null; name: string }>>;
+  /** Codes (TSK-…) of the tasks and sub-tasks of the project that are assigned to, or led by, the employee. */
+  getTaskCodesFor(projectId: number, empId: number): Promise<string[]>;
   updateProject(projectId: number, input: UpdateProjectInput, actorEmpId: number): Promise<ProjectEntity>;
   getDiscussions(projectId: number): Promise<any[]>;
   createDiscussion(projectId: number, senderEmpId: number, message: string, attachments?: any): Promise<any>;
   getActivityLogs(projectId: number): Promise<any[]>;
   getBugs(projectId: number): Promise<any[]>;
+  /** Bugs, across all projects, assigned to or reported by the employee (null: every bug). */
+  getBugsForEmployee(empId: number | null): Promise<any[]>;
   getBugDetail(bugId: number): Promise<any>;
   createBug(projectId: number, reporterEmpId: number, input: any): Promise<any>;
+  /** Changes the start / due date of a bug; a date left undefined stays, null clears it. */
+  updateBugDates(projectId: number, bugId: number, dates: { start_date?: string | null; due_date?: string | null }, actorId: number): Promise<any>;
   updateBugStatus(bugId: number, actorEmpId: number, newStatus: string, note?: string): Promise<any>;
   addBugComment(bugId: number, empId: number, comment: string): Promise<any>;
 }

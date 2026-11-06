@@ -185,6 +185,9 @@ export class MeResponseDto {
   @ApiProperty({ type: Boolean, example: false })
   must_change_password!: boolean;
 
+  @ApiPropertyOptional({ type: String, nullable: true, example: 'ocean', description: 'The colour theme the employee chose; empty is the default' })
+  ui_theme?: string | null;
+
   @ApiProperty({ type: () => AccessSummaryDto })
   access!: AccessSummaryDto;
 }

@@ -417,6 +417,11 @@ export class UpdateProjectStatusDto {
   @IsOptional()
   @IsString()
   reason?: string;
+
+  @ApiPropertyOptional({ description: 'Admin only: deliver the project even though work is still open (a reason is required)' })
+  @IsOptional()
+  @IsBoolean()
+  force?: boolean;
 }
 
 export class ProjectsFilterDto {
@@ -570,6 +575,16 @@ export class CreateProjectTaskDto {
   @Type(() => Number)
   @IsInt()
   sprint_id?: number;
+
+  @ApiPropertyOptional({ example: '2026-11-10', description: 'Start date (YYYY-MM-DD)' })
+  @IsOptional()
+  @IsString()
+  start_date?: string;
+
+  @ApiPropertyOptional({ example: '2026-11-20', description: 'Due date (YYYY-MM-DD)' })
+  @IsOptional()
+  @IsString()
+  due_date?: string;
 }
 
 export class CreateDiscussionDto {
@@ -652,6 +667,16 @@ export class CreateBugDto {
   @IsString()
   @MaxLength(1000)
   attachment_url?: string;
+
+  @ApiPropertyOptional({ example: '2026-11-10', description: 'Start date (YYYY-MM-DD)' })
+  @IsOptional()
+  @IsString()
+  start_date?: string;
+
+  @ApiPropertyOptional({ example: '2026-11-20', description: 'Due date (YYYY-MM-DD)' })
+  @IsOptional()
+  @IsString()
+  due_date?: string;
 }
 
 export class UpdateBugStatusDto {
@@ -693,3 +718,31 @@ export class AddBugCommentDto {
   comment!: string;
 }
 
+export class MoveTaskSprintDto {
+  @ApiPropertyOptional({ nullable: true, description: 'Target sprint id; null or omitted sends the task to the backlog' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  sprint_id?: number | null;
+}
+
+export class CompleteSprintDto {
+  @ApiPropertyOptional({ nullable: true, description: 'Sprint that receives the unfinished tasks; omitted means the backlog' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  move_to_sprint_id?: number | null;
+}
+
+/** Change the start and / or due date of a bug. A date left out stays as it is; null clears it. */
+export class UpdateBugDatesDto {
+  @ApiPropertyOptional({ nullable: true, example: '2026-11-10' })
+  @IsOptional()
+  @IsString()
+  start_date?: string | null;
+
+  @ApiPropertyOptional({ nullable: true, example: '2026-11-20' })
+  @IsOptional()
+  @IsString()
+  due_date?: string | null;
+}

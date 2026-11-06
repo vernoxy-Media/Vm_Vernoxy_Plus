@@ -75,6 +75,20 @@ export class ProjectAccessService {
     return bug ? String(bug.status) : null;
   }
 
+  /** Does this employee manage at least one project? */
+  async isProjectManagerAnywhere(empId: number): Promise<boolean> {
+    return (await this.prisma.projects.count({ where: { project_manager_id: empId, deleted_at: null } })) > 0;
+  }
+
+  /** Status and the two people a bug belongs to, if it is in the project. */
+  async bugInProject(projectId: number, bugId: number): Promise<{ status: string; assigned_to: number; reported_by: number } | null> {
+    const bug = await this.prisma.project_bugs.findFirst({
+      where: { bug_id: bugId, project_id: projectId, deleted_at: null },
+      select: { status: true, assigned_to: true, reported_by: true },
+    });
+    return bug ? { status: String(bug.status), assigned_to: bug.assigned_to, reported_by: bug.reported_by } : null;
+  }
+
   /** Active employees of the project, including the Project Manager. */
   async memberIds(projectId: number): Promise<number[]> {
     const rows = await this.prisma.$queryRaw<Array<{ emp_id: number }>>`

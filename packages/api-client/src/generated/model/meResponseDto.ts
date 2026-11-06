@@ -20,5 +20,8 @@ export interface MeResponseDto {
   role: RoleSummaryDto;
   department: DepartmentSummaryDto;
   must_change_password: boolean;
+  /** The colour theme the employee chose; empty is the default
+   * @nullable */
+  ui_theme?: string | null;
   access: AccessSummaryDto;
 }

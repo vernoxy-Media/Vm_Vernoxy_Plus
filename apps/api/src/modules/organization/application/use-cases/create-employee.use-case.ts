@@ -227,6 +227,8 @@ export class CreateEmployeeUseCase {
         {
           emp_id: created.emp_id,
           password: command.password,
+          // The password the Admin hands over is temporary: the employee chooses their own at the first sign in
+          must_change_password: true,
           actor_emp_id: command.acting_admin_id,
         },
         tx,

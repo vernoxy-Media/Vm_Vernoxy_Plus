@@ -67,9 +67,19 @@ describe('logging a call', () => {
 
   it('a received call is saved with its call time and conversation', async () => {
     const { work, calls } = fakeWork('New');
-    await new LeadActivityUseCases(work).logOnLead(7, { ...base, call_status: 'Received', what_discussed: 'Wants a quote', outcome: 'Interested' }, rep, NOW);
-    expect(calls.created[0]).toMatchObject({ call_status: 'Received', what_discussed: 'Wants a quote', outcome: 'Interested', counts_as_conversation: true });
+    await new LeadActivityUseCases(work).logOnLead(7, { ...base, call_status: 'Received', call_duration_seconds: 208, what_discussed: 'Wants a quote', outcome: 'Interested' }, rep, NOW);
+    expect(calls.created[0]).toMatchObject({ call_status: 'Received', call_duration_seconds: 208, what_discussed: 'Wants a quote', outcome: 'Interested', counts_as_conversation: true });
     expect(calls.created[0].communication_date).toEqual(base.communication_date);
+  });
+
+  it('a received call needs its length, and a call that was not received has none', async () => {
+    const { work, calls } = fakeWork('New');
+    const uc = new LeadActivityUseCases(work);
+    const received = { ...base, call_status: 'Received', what_discussed: 'Wants a quote', outcome: 'Interested' };
+    await expect(uc.logOnLead(7, received, rep, NOW)).rejects.toMatchObject({ errors: [{ field: 'call_duration_seconds' }] });
+    await expect(uc.logOnLead(7, { ...received, call_duration_seconds: 0 }, rep, NOW)).rejects.toMatchObject({ errors: [{ field: 'call_duration_seconds' }] });
+    await expect(uc.logOnLead(7, { ...base, call_status: 'Not received', not_received_reason: 'busy', call_duration_seconds: 30 }, rep, NOW)).rejects.toMatchObject({ errors: [{ field: 'call_duration_seconds' }] });
+    expect(calls.created).toHaveLength(0);
   });
 
   it('a received call without a conversation is refused', async () => {

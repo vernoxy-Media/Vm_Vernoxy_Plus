@@ -81,6 +81,8 @@ export interface MeResult {
     name: string;
   };
   must_change_password: boolean;
+  /** The colour theme the employee chose; null is the default. */
+  ui_theme: string | null;
   access: {
     can_manage_organization: boolean;
     can_manage_companies: boolean;
@@ -593,6 +595,7 @@ export class AuthService {
         name: emp.department_name,
       },
       must_change_password: emp.credentials?.must_change_password ?? false,
+      ui_theme: emp.ui_theme ?? null,
       access: {
         can_manage_organization: Boolean(emp.is_admin) && emp.status === 'Active',
         can_manage_companies: Boolean(emp.is_admin) && emp.status === 'Active',

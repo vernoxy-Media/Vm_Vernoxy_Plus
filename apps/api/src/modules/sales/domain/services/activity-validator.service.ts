@@ -21,6 +21,8 @@ export interface ConversationInput {
   call_status?: string | null;
   /** Calls that were not received: why. */
   not_received_reason?: string | null;
+  /** Calls that were received: how long the call lasted, in seconds (3 min 28 sec = 208). */
+  call_duration_seconds?: number | null;
 }
 
 /** A call that nobody picked up: there was no conversation. */
@@ -28,7 +30,7 @@ export const isNotReceivedCall = (i: Pick<ConversationInput, 'type' | 'call_stat
   i.type === 'Call' && i.call_status === 'Not received';
 
 /** BFD section 7, Part 1/2. Quick log leaves the outcome empty, the full popup requires it. */
-export function validateConversation(i: ConversationInput, now: Date, opts: { requireOutcome: boolean }): FieldError[] {
+export function validateConversation(i: ConversationInput, now: Date, opts: { requireOutcome: boolean; requireDuration?: boolean }): FieldError[] {
   const errors: FieldError[] = [];
   if (!i.type) errors.push({ field: 'type', message: MSG.required });
   else if (!(CONVERSATION_TYPES as readonly string[]).includes(i.type)) {
@@ -47,6 +49,18 @@ export function validateConversation(i: ConversationInput, now: Date, opts: { re
   if (notReceived && !i.not_received_reason) errors.push({ field: 'not_received_reason', message: MSG.required });
   if (!notReceived && i.not_received_reason) {
     errors.push({ field: 'not_received_reason', message: 'A reason is only for a call that was not received.' });
+  }
+
+  // How long the call lasted: only for a call that was picked up
+  const duration = i.call_duration_seconds ?? null;
+  if (duration !== null) {
+    if (i.type !== 'Call' || notReceived) {
+      errors.push({ field: 'call_duration_seconds', message: 'The call length is only for a call that was received.' });
+    } else if (!Number.isInteger(duration) || duration < 1 || duration >= 86400) {
+      errors.push({ field: 'call_duration_seconds', message: 'Enter how long the call lasted, for example 3 min 28 sec (up to 23 h 59 min).' });
+    }
+  } else if (opts.requireDuration && i.type === 'Call' && !notReceived) {
+    errors.push({ field: 'call_duration_seconds', message: 'Please enter how long the call lasted, for example 3 min 28 sec.' });
   }
 
   if (i.communication_date === null || Number.isNaN(i.communication_date.getTime())) {

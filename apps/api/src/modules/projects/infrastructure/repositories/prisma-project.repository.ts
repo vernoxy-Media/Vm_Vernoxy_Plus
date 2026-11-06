@@ -1,5 +1,6 @@
-import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../../core/prisma/prisma.service';
+import { loggedSeconds, timeByEmployee } from '../../../tasks/public-api';
 import {
   AssignableEmployee,
   CreateProjectInput,
@@ -168,6 +169,7 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
           deadline: new Date(input.deadline),
           project_manager_id: input.project_manager_id,
           client_name: input.client_name?.trim() || null,
+          client_id: await this.clientIdByName(tx, input.client_name),
           lead_received_date: input.lead_received_date ? new Date(input.lead_received_date) : null,
           project_approved_date: input.project_approved_date ? new Date(input.project_approved_date) : null,
           tech_frontend: input.tech_frontend?.trim() || null,
@@ -586,6 +588,95 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
     };
   }
 
+  async moveTaskToSprint(projectId: number, taskId: number, sprintId: number | null, actorId: number): Promise<void> {
+    const task = await this.prisma.tasks.findUnique({ where: { task_id: taskId } });
+    if (!task || task.deleted_at || task.project_id !== projectId) {
+      throw new NotFoundException('Task not found in this project.');
+    }
+    if (task.parent_task_id) {
+      throw new BadRequestException('A sub-task moves together with its parent task.');
+    }
+    let sprintName = 'Backlog';
+    if (sprintId !== null) {
+      const sprint = await this.prisma.project_sprints.findUnique({ where: { sprint_id: sprintId } });
+      if (!sprint || sprint.deleted_at || sprint.project_id !== projectId) {
+        throw new BadRequestException('Please select a Sprint of this project.');
+      }
+      if (sprint.status === 'completed') {
+        throw new BadRequestException('Tasks cannot be moved into a completed sprint.');
+      }
+      sprintName = sprint.sprint_name;
+    }
+    await this.prisma.$transaction([
+      this.prisma.tasks.updateMany({
+        where: { OR: [{ task_id: taskId }, { parent_task_id: taskId }], deleted_at: null },
+        data: { sprint_id: sprintId, updated_at: new Date(), updated_by: actorId },
+      }),
+      this.prisma.activity_logs.create({
+        data: {
+          entity_type: 'PROJECT',
+          entity_id: projectId,
+          event: 'task_sprint_changed',
+          summary: `Task ${task.task_code} was moved to ${sprintName}.`,
+          performed_by: actorId,
+        },
+      }),
+    ]);
+  }
+
+  async completeSprint(
+    projectId: number,
+    sprintId: number,
+    moveToSprintId: number | null,
+    actorId: number,
+  ): Promise<{ sprint: SprintEntity; moved_tasks: number }> {
+    const sprint = await this.prisma.project_sprints.findUnique({ where: { sprint_id: sprintId } });
+    if (!sprint || sprint.deleted_at || sprint.project_id !== projectId) {
+      throw new NotFoundException('Sprint not found in this project.');
+    }
+    if (sprint.status === 'completed') {
+      throw new BadRequestException('This sprint is already completed.');
+    }
+    let target = 'the backlog';
+    if (moveToSprintId !== null) {
+      if (moveToSprintId === sprintId) {
+        throw new BadRequestException('Choose a different sprint for the unfinished tasks.');
+      }
+      const next = await this.prisma.project_sprints.findUnique({ where: { sprint_id: moveToSprintId } });
+      if (!next || next.deleted_at || next.project_id !== projectId) {
+        throw new BadRequestException('Please select a Sprint of this project.');
+      }
+      if (next.status === 'completed') {
+        throw new BadRequestException('Unfinished tasks cannot move into a completed sprint.');
+      }
+      target = next.sprint_name;
+    }
+
+    const moved = await this.prisma.$transaction(async (tx) => {
+      const res = await tx.tasks.updateMany({
+        where: { sprint_id: sprintId, deleted_at: null, stage: { not: 'completed' } },
+        data: { sprint_id: moveToSprintId, updated_at: new Date(), updated_by: actorId },
+      });
+      await tx.project_sprints.update({
+        where: { sprint_id: sprintId },
+        data: { status: 'completed', updated_at: new Date(), updated_by: actorId },
+      });
+      await tx.activity_logs.create({
+        data: {
+          entity_type: 'PROJECT',
+          entity_id: projectId,
+          event: 'sprint_completed',
+          summary: `Sprint "${sprint.sprint_name}" was completed.${res.count ? ` ${res.count} unfinished task(s) moved to ${target}.` : ''}`,
+          performed_by: actorId,
+        },
+      });
+      return res.count;
+    });
+
+    const fresh = (await this.getSprints(projectId)).find((x) => x.sprint_id === sprintId)!;
+    return { sprint: fresh, moved_tasks: moved };
+  }
+
   async createProjectTask(input: CreateProjectTaskInput): Promise<ProjectTaskEntity> {
     return this.prisma.$transaction(async (tx) => {
       const project = await tx.projects.findUnique({
@@ -684,7 +775,10 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
         status: created.stage,
         progress_percentage: created.stage === 'completed' ? 100 : created.stage === 'in_progress' ? 50 : 0,
         due_date: created.due_date ? created.due_date.toISOString().slice(0, 10) : null,
+        start_date: null,
         allocated_minutes: created.allocated_minutes,
+        logged_seconds: 0,
+        time_by_employee: [],
         assignees: assignees.map((a) => {
           const emp = a.employees_task_assignees_employee_idToemployees;
           return {
@@ -730,14 +824,18 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
       project_id: t.project_id!,
       sprint_id: t.sprint_id,
       sprint_name: t.project_sprints?.sprint_name ?? null,
+      parent_task_id: t.parent_task_id,
       title: t.title,
       description: t.description,
       priority: t.priority,
       stage: t.stage,
       status: t.stage,
       progress_percentage: t.stage === 'completed' ? 100 : t.stage === 'in_progress' ? 50 : 0,
+      start_date: t.start_date ? t.start_date.toISOString().slice(0, 10) : null,
       due_date: t.due_date ? t.due_date.toISOString().slice(0, 10) : null,
       allocated_minutes: t.allocated_minutes,
+      logged_seconds: loggedSeconds(t.work_logs) || (t.actual_minutes || 0) * 60,
+      time_by_employee: timeByEmployee(t.work_logs),
       assignees: t.task_assignees.map((a) => {
         const emp = a.employees_task_assignees_employee_idToemployees;
         return {
@@ -749,6 +847,63 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
       }),
       created_at: t.created_at.toISOString(),
     }));
+  }
+
+  async getDeliveryCounts(projectId: number): Promise<import('../../domain/services/delivery').DeliveryCounts> {
+    const today = new Date(new Date().toISOString().slice(0, 10));
+    const rootOpen = { project_id: projectId, deleted_at: null, parent_task_id: null, stage: { not: 'completed' as const } };
+    const [openSprints, openIssues, openBugs, overdueIssues, rows] = await Promise.all([
+      this.prisma.project_sprints.count({ where: { project_id: projectId, deleted_at: null, status: { not: 'completed' } } }),
+      this.prisma.tasks.count({ where: rootOpen }),
+      this.prisma.project_bugs.count({ where: { project_id: projectId, deleted_at: null, status: { notIn: ['done', 'not_a_bug'] as any } } }),
+      this.prisma.tasks.count({ where: { ...rootOpen, due_date: { lt: today } } }),
+      this.prisma.tasks.findMany({
+        where: { project_id: projectId, deleted_at: null },
+        select: { parent_task_id: true, allocated_minutes: true, actual_minutes: true, work_logs: true },
+      }),
+    ]);
+    return {
+      openSprints,
+      openIssues,
+      openBugs,
+      overdueIssues,
+      estimatedMinutes: rows.filter((r) => !r.parent_task_id).reduce((n, r) => n + (r.allocated_minutes || 0), 0),
+      loggedSeconds: rows.reduce((n, r) => n + (loggedSeconds(r.work_logs) || (r.actual_minutes || 0) * 60), 0),
+    };
+  }
+
+  /** The CRM client whose company has this name (the one the project is built for), so that client's login can see the project. */
+  private async clientIdByName(db: { clients: PrismaService['clients'] }, name?: string | null): Promise<number | null> {
+    const wanted = name?.trim();
+    if (!wanted) return null;
+    const rows = await db.clients.findMany({
+      where: { deleted_at: null, companies: { name: { equals: wanted, mode: 'insensitive' }, deleted_at: null } },
+      select: { client_id: true },
+      take: 2,
+    });
+    return rows.length === 1 ? rows[0]!.client_id : null;
+  }
+
+  async getClientOptions(): Promise<Array<{ client_id: number; client_code: string | null; name: string }>> {
+    const rows = await this.prisma.clients.findMany({
+      where: { deleted_at: null },
+      include: { companies: { select: { name: true } } },
+    });
+    return rows
+      .map((r) => ({ client_id: r.client_id, client_code: r.client_code, name: r.companies.name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  async getTaskCodesFor(projectId: number, empId: number): Promise<string[]> {
+    const rows = await this.prisma.tasks.findMany({
+      where: {
+        project_id: projectId,
+        deleted_at: null,
+        OR: [{ lead_employee_id: empId }, { task_assignees: { some: { employee_id: empId, deleted_at: null } } }],
+      },
+      select: { task_code: true },
+    });
+    return rows.map((r) => r.task_code);
   }
 
   async updateProject(
@@ -773,7 +928,10 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
       if (input.start_date !== undefined) dataToUpdate.start_date = new Date(input.start_date);
       if (input.deadline !== undefined) dataToUpdate.deadline = new Date(input.deadline);
       if (input.project_manager_id !== undefined) dataToUpdate.project_manager_id = input.project_manager_id;
-      if (input.client_name !== undefined) dataToUpdate.client_name = input.client_name?.trim() || null;
+      if (input.client_name !== undefined) {
+        dataToUpdate.client_name = input.client_name?.trim() || null;
+        dataToUpdate.client_id = await this.clientIdByName(this.prisma, input.client_name);
+      }
       if (input.lead_received_date !== undefined) {
         dataToUpdate.lead_received_date = input.lead_received_date ? new Date(input.lead_received_date) : null;
       }
@@ -979,6 +1137,40 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
     }));
   }
 
+  async getBugsForEmployee(empId: number | null): Promise<any[]> {
+    const rows = await this.prisma.project_bugs.findMany({
+      where: {
+        deleted_at: null,
+        ...(empId === null ? {} : { OR: [{ assigned_to: empId }, { reported_by: empId }] }),
+        projects: { deleted_at: null },
+      },
+      include: {
+        projects: { select: { project_no: true, project_name: true } },
+        employees_project_bugs_assigned_toToemployees: { select: { name: true } },
+        employees_project_bugs_reported_byToemployees: { select: { name: true } },
+      },
+      orderBy: { created_at: 'desc' },
+    });
+    return rows.map((b) => ({
+      bug_id: b.bug_id,
+      bug_code: b.bug_code,
+      project_id: b.project_id,
+      project_no: b.projects?.project_no ?? null,
+      project_name: b.projects?.project_name ?? null,
+      task_id: b.task_id,
+      title: b.title,
+      priority: b.priority,
+      status: b.status,
+      assigned_to: b.assigned_to,
+      assigned_to_name: b.employees_project_bugs_assigned_toToemployees?.name ?? 'Unassigned',
+      reported_by: b.reported_by,
+      reported_by_name: b.employees_project_bugs_reported_byToemployees?.name ?? 'Unknown',
+      start_date: b.start_date ? b.start_date.toISOString().slice(0, 10) : null,
+      due_date: b.due_date ? b.due_date.toISOString().slice(0, 10) : null,
+      created_at: b.created_at.toISOString(),
+    }));
+  }
+
   async getBugs(projectId: number): Promise<any[]> {
     const rows = await this.prisma.project_bugs.findMany({
       where: { project_id: projectId, deleted_at: null },
@@ -1016,6 +1208,8 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
       dev_ended_at: b.dev_ended_at?.toISOString() ?? null,
       qa_started_at: b.qa_started_at?.toISOString() ?? null,
       qa_ended_at: b.qa_ended_at?.toISOString() ?? null,
+      start_date: b.start_date ? b.start_date.toISOString().slice(0, 10) : null,
+      due_date: b.due_date ? b.due_date.toISOString().slice(0, 10) : null,
       total_time_minutes: b.total_time_minutes,
       created_at: b.created_at.toISOString(),
     }));
@@ -1073,6 +1267,8 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
       dev_ended_at: bug.dev_ended_at?.toISOString() ?? null,
       qa_started_at: bug.qa_started_at?.toISOString() ?? null,
       qa_ended_at: bug.qa_ended_at?.toISOString() ?? null,
+      start_date: bug.start_date ? bug.start_date.toISOString().slice(0, 10) : null,
+      due_date: bug.due_date ? bug.due_date.toISOString().slice(0, 10) : null,
       total_time_minutes: bug.total_time_minutes,
       created_at: bug.created_at.toISOString(),
       comments: bug.bug_comments.map((c) => ({
@@ -1141,6 +1337,8 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
         bug_type: input.bug_type as any,
         other_bug_type: input.other_bug_type?.trim() || null,
         attachment_url: input.attachment_url?.trim() || null,
+        start_date: input.start_date ? new Date(input.start_date) : null,
+        due_date: input.due_date ? new Date(input.due_date) : null,
         created_by: reporterEmpId,
       },
       include: {
@@ -1199,9 +1397,30 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
       dev_ended_at: null,
       qa_started_at: null,
       qa_ended_at: null,
+      start_date: created.start_date ? created.start_date.toISOString().slice(0, 10) : null,
+      due_date: created.due_date ? created.due_date.toISOString().slice(0, 10) : null,
       total_time_minutes: 0,
       created_at: created.created_at.toISOString(),
     };
+  }
+
+  async updateBugDates(
+    projectId: number,
+    bugId: number,
+    dates: { start_date?: string | null; due_date?: string | null },
+    actorId: number,
+  ): Promise<any> {
+    const bug = await this.prisma.project_bugs.findUnique({ where: { bug_id: bugId } });
+    if (!bug || bug.project_id !== projectId) throw new NotFoundException('Bug not found in this project.');
+    const pick = (next: string | null | undefined, current: Date | null) => (next === undefined ? current : next ? new Date(next) : null);
+    const start = pick(dates.start_date, bug.start_date);
+    const due = pick(dates.due_date, bug.due_date);
+    if (start && due && start > due) throw new BadRequestException('Start date cannot be after the Due Date.');
+    await this.prisma.project_bugs.update({
+      where: { bug_id: bugId },
+      data: { start_date: start, due_date: due, updated_by: actorId, updated_at: new Date() },
+    });
+    return this.getBugDetail(bugId);
   }
 
   async updateBugStatus(

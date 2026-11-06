@@ -133,6 +133,7 @@ export class PrismaSalesWorkRepository implements SalesWorkRepositoryPort {
           outcome: d.outcome,
           call_status: d.call_status ?? null,
           not_received_reason: d.not_received_reason ?? null,
+          call_duration_seconds: d.call_duration_seconds ?? null,
           created_by: d.actor_emp_id,
         },
         select: { communication_id: true },
@@ -213,6 +214,7 @@ export class PrismaSalesWorkRepository implements SalesWorkRepositoryPort {
       outcome: r.outcome,
       call_status: r.call_status,
       not_received_reason: r.not_received_reason,
+      call_duration_seconds: r.call_duration_seconds ?? null,
       logged_by: person(r.employees),
       created_by: r.created_by,
       created_at: r.created_at,
@@ -237,6 +239,7 @@ export class PrismaSalesWorkRepository implements SalesWorkRepositoryPort {
         ...(patch.what_discussed !== undefined ? { what_discussed: patch.what_discussed } : {}),
         ...(patch.call_status !== undefined ? { call_status: patch.call_status } : {}),
         ...(patch.not_received_reason !== undefined ? { not_received_reason: patch.not_received_reason } : {}),
+        ...(patch.call_duration_seconds !== undefined ? { call_duration_seconds: patch.call_duration_seconds } : {}),
         ...(patch.outcome !== undefined ? { outcome: patch.outcome } : {}),
         updated_at: new Date(),
       };
@@ -510,7 +513,7 @@ export class PrismaSalesWorkRepository implements SalesWorkRepositoryPort {
     const rest: TimelineEntry[] = [];
     for (const c of comms) {
       const r = this.toComm(c);
-      rest.push({ kind: 'conversation', at: r.communication_date, title: r.call_status === 'Not received' ? `Call not received${r.contact ? ` (${r.contact.name})` : ''}` : `${r.type}${r.contact ? ` with ${r.contact.name}` : ''}`, body: r.what_discussed, by: r.logged_by, pinned: false, ref_id: r.communication_id, meta: { outcome: r.outcome, call_status: r.call_status, not_received_reason: r.not_received_reason } });
+      rest.push({ kind: 'conversation', at: r.communication_date, title: r.call_status === 'Not received' ? `Call not received${r.contact ? ` (${r.contact.name})` : ''}` : `${r.type}${r.contact ? ` with ${r.contact.name}` : ''}`, body: r.what_discussed, by: r.logged_by, pinned: false, ref_id: r.communication_id, meta: { outcome: r.outcome, call_status: r.call_status, not_received_reason: r.not_received_reason, call_duration_seconds: r.call_duration_seconds ?? null } });
     }
     for (const n of notes) {
       const r = this.toNote(n);

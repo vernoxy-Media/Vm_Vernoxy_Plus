@@ -6,7 +6,7 @@ import {
 } from '../../domain/errors/task.errors';
 import { EmployeeDirectoryPort } from '../../domain/ports/employee-directory.port';
 import { TaskRepositoryPort } from '../../domain/ports/task.repository.port';
-import { validateAssigneeIds } from '../../domain/services/task-rules';
+import { parseDueDate, validateAssigneeIds, validateDateRange } from '../../domain/services/task-rules';
 import { CreateNotificationUseCase } from '../../../notifications/public-api';
 
 export interface UpdateTaskCommand {
@@ -15,6 +15,7 @@ export interface UpdateTaskCommand {
   description?: string | null;
   priority?: TaskPriority;
   task_type_id?: number | null;
+  start_date?: string | null;
   due_date?: string | null;
   allocated_minutes?: number | null;
   assignee_ids?: number[];
@@ -49,6 +50,17 @@ export class UpdateTaskUseCase {
       const m = Number(command.allocated_minutes || 0);
       if (!Number.isInteger(m) || m <= 0) throw new AssigneeValidationError('Allocated Time is mandatory and must be greater than zero.');
     }
+    if (command.due_date !== undefined && parseDueDate(command.due_date) === undefined) {
+      throw new AssigneeValidationError('Please enter a valid Due Date.');
+    }
+    if (command.start_date !== undefined && parseDueDate(command.start_date) === undefined) {
+      throw new AssigneeValidationError('Please enter a valid Start Date.');
+    }
+    // A change to one date is checked against the other date the task already has
+    const nextStart = command.start_date !== undefined ? parseDueDate(command.start_date) : existing.start_date;
+    const nextDue = command.due_date !== undefined ? parseDueDate(command.due_date) : existing.due_date;
+    const rangeError = validateDateRange(nextStart, nextDue);
+    if (rangeError) throw new AssigneeValidationError(rangeError);
     if (command.priority !== undefined && !['high', 'medium', 'low'].includes(command.priority)) {
       throw new AssigneeValidationError('Please select the Priority: High, Medium or Low.');
     }
@@ -87,7 +99,8 @@ export class UpdateTaskUseCase {
       description: command.description !== undefined ? command.description?.trim() || null : undefined,
       priority: command.priority,
       task_type_id: command.task_type_id,
-      due_date: command.due_date,
+      start_date: command.start_date === undefined ? undefined : parseDueDate(command.start_date),
+      due_date: command.due_date === undefined ? undefined : parseDueDate(command.due_date),
       allocated_minutes: command.allocated_minutes,
       assignee_ids: cleanAssigneeIds,
       ...(otherText !== undefined ? { other_task_type: otherText } : {}),

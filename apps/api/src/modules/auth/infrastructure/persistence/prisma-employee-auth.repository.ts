@@ -60,6 +60,7 @@ export class PrismaEmployeeAuthRepository implements EmployeeAuthRepository {
       dep_id: raw.dep_id,
       department_name: raw.departments_employees_dep_idTodepartments?.name ?? 'Unknown',
       is_admin: raw.roles_employees_role_idToroles?.is_admin ?? false,
+      ui_theme: raw.ui_theme ?? null,
       deleted_at: raw.deleted_at,
       credentials: creds
         ? {
@@ -109,6 +110,7 @@ export class PrismaEmployeeAuthRepository implements EmployeeAuthRepository {
       dep_id: raw.dep_id,
       department_name: raw.departments_employees_dep_idTodepartments?.name ?? 'Unknown',
       is_admin: raw.roles_employees_role_idToroles?.is_admin ?? false,
+      ui_theme: raw.ui_theme ?? null,
       deleted_at: raw.deleted_at,
       credentials: creds
         ? {

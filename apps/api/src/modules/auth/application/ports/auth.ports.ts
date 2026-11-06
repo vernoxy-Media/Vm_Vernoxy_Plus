@@ -66,6 +66,8 @@ export interface EmployeeWithAuth {
   dep_id: number;
   department_name: string;
   is_admin?: boolean;
+  /** The colour theme this employee chose for the app; empty means the default. */
+  ui_theme?: string | null;
   deleted_at: Date | null;
   credentials: {
     credential_id: number;

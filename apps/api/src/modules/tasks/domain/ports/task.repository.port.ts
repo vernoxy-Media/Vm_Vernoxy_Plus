@@ -27,6 +27,10 @@ export interface TaskBoardCard {
   parent_task_id: number | null;
   parent_task_code?: string | null;
   parent_task_title?: string | null;
+  /** The project the task belongs to (a subtask takes its parent's); null for a personal or quick task. */
+  project_id?: number | null;
+  project_no?: string | null;
+  project_name?: string | null;
   is_overdue: boolean;
   started_at?: Date | null;
   actual_minutes?: number;
@@ -93,6 +97,12 @@ export interface CreateSubTaskRepoInput {
   other_task_type?: string | null;
   allocated_minutes?: number | null;
   assignee_ids: number[];
+  due_date?: string | null;
+  start_date?: string | null;
+}
+
+export interface AddSubTaskRepoInput extends CreateSubTaskRepoInput {
+  actor_emp_id: number;
 }
 
 export interface CreateTaskRepoInput {
@@ -102,6 +112,7 @@ export interface CreateTaskRepoInput {
   priority?: TaskPriority;
   task_type_id?: number | null;
   due_date?: string | null;
+  start_date?: string | null;
   allocated_minutes?: number | null;
   assignee_ids: number[];
   created_by: number;
@@ -122,6 +133,7 @@ export interface UpdateTaskRepoInput {
   priority?: TaskPriority;
   task_type_id?: number | null;
   due_date?: string | null;
+  start_date?: string | null;
   allocated_minutes?: number | null;
   assignee_ids?: number[];
   updated_by: number;
@@ -150,6 +162,11 @@ export interface TaskRepositoryPort {
   findById(taskId: number): Promise<TaskEntity | null>;
   findByCode(taskCode: string): Promise<TaskEntity | null>;
   updateTask(taskId: number, input: UpdateTaskRepoInput): Promise<TaskEntity>;
+  /**
+   * Adds a sub-task to an existing task. The parent becomes a container: its estimate is the total of
+   * its sub-tasks, the sub-task's employees join the parent, and a task already In Review goes back to In Progress.
+   */
+  addSubTask(parentTaskId: number, input: AddSubTaskRepoInput): Promise<{ parent: TaskEntity; sub_task: TaskEntity }>;
   moveStage(taskId: number, input: MoveStageRepoInput): Promise<TaskEntity>;
   /** Project Manager of the task's project (own or parent task), for Project Task approval. */
   getTaskProjectManagerId(taskId: number): Promise<number | null>;

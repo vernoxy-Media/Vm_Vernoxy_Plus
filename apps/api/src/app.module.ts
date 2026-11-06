@@ -28,6 +28,9 @@ import { LicenseModule } from './modules/license/license.module';
 import { SalesModule } from './modules/sales/public-api';
 import { KnowledgeBaseModule } from './modules/knowledge-base/knowledge-base.module';
 import { PerformanceModule } from './modules/performance/performance.module';
+import { MaintenanceModule } from './modules/maintenance/maintenance.module';
+import { ClientPortalModule } from './modules/client-portal/client-portal.module';
+import { PreferencesModule } from './modules/preferences/preferences.module';
 
 @Module({
 
@@ -62,6 +65,9 @@ import { PerformanceModule } from './modules/performance/performance.module';
     SalesModule,
     KnowledgeBaseModule,
     PerformanceModule,
+    MaintenanceModule,
+    ClientPortalModule,
+    PreferencesModule,
   ],
   controllers: [HealthController],
   providers: [

@@ -43,6 +43,12 @@ export interface TaskBoardCardDto {
   parent_task_code?: string | null;
   /** @nullable */
   parent_task_title?: string | null;
+  /** @nullable */
+  project_id?: number | null;
+  /** @nullable */
+  project_no?: string | null;
+  /** @nullable */
+  project_name?: string | null;
   is_overdue: boolean;
   /** @nullable */
   started_at?: string | null;
