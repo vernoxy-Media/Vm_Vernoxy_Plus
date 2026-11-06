@@ -52,22 +52,28 @@ export const AttendanceDetailModal: React.FC<AttendanceDetailModalProps> = ({
 
   // 1. Employee ID
   const employeeId =
-    (dayDetail as any)?.employee_id ||
+    (employeeInfo?.empId
+      ? (String(employeeInfo.empId).startsWith('EMP-')
+          ? String(employeeInfo.empId)
+          : `EMP-${String(employeeInfo.empId).padStart(4, '0')}`)
+      : null) ||
     (record as any)?.employee_code ||
-    (employeeInfo?.empId ? `EMP-${String(employeeInfo.empId).padStart(4, '0')}` : null) ||
+    (dayDetail as any)?.employee_id ||
     `EMP-${String(user?.emp_id || 15).padStart(4, '0')}`;
 
   // 2. Employee Name
   const employeeName =
-    (dayDetail as any)?.employee_name ||
     employeeInfo?.name ||
+    (record as any)?.name ||
+    (dayDetail as any)?.employee_name ||
     user?.name ||
     'Priya Shah';
 
   // 3. Department
   const departmentName =
-    (dayDetail as any)?.department ||
     employeeInfo?.department ||
+    (record as any)?.department ||
+    (dayDetail as any)?.department ||
     (user as any)?.department?.department_name ||
     (user as any)?.dep_name ||
     'Finance';
@@ -84,12 +90,15 @@ export const AttendanceDetailModal: React.FC<AttendanceDetailModalProps> = ({
 
   // 5. Shift: Shift name and timing that applied on that date
   const shiftDisplay =
-    (dayDetail as any)?.shift ||
     (record as any)?.shift_name ||
+    (dayDetail as any)?.shift ||
     'General - 09:30 - 18:30';
 
   // 6. Check-in Time
-  const punchInRaw = dayDetail?.punched_in_at || record?.punch_in;
+  const punchInRaw =
+    (record as any)?.in_time && (record as any)?.in_time !== '--'
+      ? (record as any)?.in_time
+      : dayDetail?.punched_in_at || record?.punch_in;
   let checkInTime = '--';
   if (punchInRaw) {
     if (punchInRaw.includes('T')) {
@@ -104,7 +113,10 @@ export const AttendanceDetailModal: React.FC<AttendanceDetailModalProps> = ({
   }
 
   // 7. Check-out Time
-  const punchOutRaw = dayDetail?.punched_out_at || record?.punch_out;
+  const punchOutRaw =
+    (record as any)?.out_time && (record as any)?.out_time !== '--'
+      ? (record as any)?.out_time
+      : dayDetail?.punched_out_at || record?.punch_out;
   let checkOutTime = '--';
   if (punchOutRaw) {
     if (punchOutRaw.includes('T')) {
@@ -123,7 +135,11 @@ export const AttendanceDetailModal: React.FC<AttendanceDetailModalProps> = ({
   const prodHours = Math.floor(prodSecs / 3600);
   const prodMins = Math.floor((prodSecs % 3600) / 60);
   const workingHoursDisplay =
-    prodSecs > 0 ? `${String(prodHours).padStart(2, '0')}:${String(prodMins).padStart(2, '0')}` : '--';
+    (record as any)?.working_hours && (record as any)?.working_hours !== '--'
+      ? (record as any)?.working_hours
+      : prodSecs > 0
+      ? `${String(prodHours).padStart(2, '0')}:${String(prodMins).padStart(2, '0')}`
+      : '--';
 
   // 9. Late By (Number, minutes - shown only when check-in is after grace period, else 0 min)
   const lateByMinutes = calculateLateByMinutes(checkInTime);
@@ -134,10 +150,13 @@ export const AttendanceDetailModal: React.FC<AttendanceDetailModalProps> = ({
   const earlyExitDisplay = `${earlyExitMinutes} min`;
 
   // 11. Status: with Late or Early Exit shown beside it
-  const isHoliday = Boolean(record?.status === 'holiday' || (dayDetail as any)?.holiday || record?.holiday_name);
-  const isWeeklyOff = Boolean(record?.status === 'weekly_off' || (!punchInRaw && (dateObj.getUTCDay() === 0 || dateObj.getUTCDay() === 6)));
-  const isLeave = Boolean(record?.status === 'leave' || (dayDetail as any)?.leave || record?.leave_type);
-  const isMissingPunch = !record?.is_today && date < todayStr && Boolean(checkInTime !== '--' && checkOutTime === '--');
+  const recordStatusRaw = ((record as any)?.status || '').toLowerCase();
+  const isHoliday = Boolean(recordStatusRaw === 'holiday' || (dayDetail as any)?.holiday || record?.holiday_name);
+  const isWeeklyOff = Boolean(recordStatusRaw === 'weekly off' || record?.status === 'weekly_off' || (!punchInRaw && (dateObj.getUTCDay() === 0 || dateObj.getUTCDay() === 6)));
+  const isLeave = Boolean(recordStatusRaw === 'on leave' || record?.status === 'leave' || (dayDetail as any)?.leave || record?.leave_type);
+  const isMissingPunch = Boolean(recordStatusRaw === 'missing punch') || (!record?.is_today && date < todayStr && Boolean(checkInTime !== '--' && checkOutTime === '--'));
+  const isHalfDay = Boolean(recordStatusRaw === 'half day' || record?.status === 'half_day' || dayDetail?.status === 'half_day');
+  const isAbsent = Boolean(recordStatusRaw === 'absent' || record?.status === 'absent' || (!punchInRaw && date < todayStr));
 
   let statusDisplay = 'Present';
   if (isHoliday) {
@@ -148,9 +167,9 @@ export const AttendanceDetailModal: React.FC<AttendanceDetailModalProps> = ({
     statusDisplay = `On Leave · ${record?.leave_type || 'Approved'}`;
   } else if (isMissingPunch) {
     statusDisplay = 'Missing Punch';
-  } else if (record?.status === 'half_day' || dayDetail?.status === 'half_day') {
+  } else if (isHalfDay) {
     statusDisplay = 'Half Day';
-  } else if (record?.status === 'absent' || (!punchInRaw && date < todayStr)) {
+  } else if (isAbsent) {
     statusDisplay = 'Absent';
   } else if (checkInTime !== '--') {
     if (lateByMinutes > 0 && earlyExitMinutes > 0) {

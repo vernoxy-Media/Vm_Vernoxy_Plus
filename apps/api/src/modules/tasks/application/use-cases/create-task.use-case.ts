@@ -3,7 +3,7 @@ import { AssigneeValidationError } from '../../domain/errors/task.errors';
 import { TaskClockPort } from '../../domain/ports/clock.port';
 import { EmployeeDirectoryPort } from '../../domain/ports/employee-directory.port';
 import { CreateSubTaskRepoInput, TaskRepositoryPort } from '../../domain/ports/task.repository.port';
-import { validateAssigneeIds, validateSubTasks } from '../../domain/services/task-rules';
+import { parseDueDate, validateAssigneeIds, validateDateRange, validateSubTasks } from '../../domain/services/task-rules';
 import { CreateNotificationUseCase } from '../../../notifications/public-api';
 
 export interface CreateTaskCommand {
@@ -11,6 +11,7 @@ export interface CreateTaskCommand {
   description?: string | null;
   priority?: TaskPriority;
   task_type_id?: number | null;
+  start_date?: string | null;
   due_date?: string | null;
   allocated_minutes?: number | null;
   assignee_ids: number[];
@@ -20,8 +21,17 @@ export interface CreateTaskCommand {
   has_sub_tasks?: boolean;
   other_task_type?: string | null;
   sub_tasks?: CreateSubTaskRepoInput[];
+  /** Project Task (Project Management BFD 2.7). */
+  project_id?: number | null;
+  sprint_id?: number | null;
 }
 
+const PRIORITIES: TaskPriority[] = ['high', 'medium', 'low'];
+
+/**
+ * Task BFD 2.3 / 2.4 / 3.5. Used for Admin tasks, employee (quick) tasks and
+ * Project Tasks, so all three follow the same rules.
+ */
 export class CreateTaskUseCase {
   constructor(
     private readonly taskRepo: TaskRepositoryPort,
@@ -31,95 +41,146 @@ export class CreateTaskUseCase {
   ) {}
 
   async execute(command: CreateTaskCommand): Promise<TaskEntity> {
-    const title = command.title?.trim();
-    if (!title) {
-      throw new AssigneeValidationError('Task title cannot be blank');
-    }
-    if (title.length > 150) {
-      throw new AssigneeValidationError('Task title cannot exceed 150 characters');
-    }
+    const fail = (msg: string) => {
+      throw new AssigneeValidationError(msg);
+    };
 
-    // For Quick Task (created by employee for themselves), automatically assign to creator
-    let assignees = command.assignee_ids;
-    if (command.source === 'quick') {
-      assignees = [command.creator_emp_id];
-    }
+    const title = command.title?.trim();
+    if (!title) fail('Please enter the Task Name.');
+    if (title!.length > 150) fail('Task Name cannot be longer than 150 characters.');
+
+    const allocated = Number(command.allocated_minutes || 0);
+    if (!Number.isInteger(allocated) || allocated <= 0) fail('Allocated Time is mandatory and must be greater than zero.');
+
+    const priority = (command.priority || 'medium') as TaskPriority;
+    if (!PRIORITIES.includes(priority)) fail('Please select the Priority: High, Medium or Low.');
+
+    const dueDate = parseDueDate(command.due_date);
+    if (dueDate === undefined) fail('Please enter a valid Due Date.');
+    const startDate = parseDueDate(command.start_date);
+    if (startDate === undefined) fail('Please enter a valid Start Date.');
+    const rangeError = validateDateRange(startDate, dueDate);
+    if (rangeError) fail(rangeError);
+
+    const typeInfo = await this.checkTaskType(command.task_type_id, command.other_task_type, 'Task Type');
+
+    const isQuick = command.source === 'quick';
+    const hasSubTasks = Boolean(command.has_sub_tasks);
+
+    // An employee's own task cannot be assigned to anyone else (BFD 3.5).
+    let assignees = Array.from(new Set((command.assignee_ids || []).map(Number)));
+    if (isQuick) assignees = [command.creator_emp_id];
 
     const validation = validateAssigneeIds(assignees);
-    if (!validation.valid) {
-      throw new AssigneeValidationError(validation.error!);
+    if (!validation.valid) fail('Please select the employee in Assigned To.');
+
+    // Without sub tasks only one employee can be selected (BFD 2.3).
+    if (!hasSubTasks && assignees.length !== 1) {
+      fail('Only one employee can be selected in Assigned To. Tick "Has Sub Tasks" to share the task.');
     }
 
     const allActive = await this.employeeDirectory.validateActiveEmployees(assignees);
-    if (!allActive) {
-      throw new AssigneeValidationError('One or more assignees are inactive or deleted');
-    }
+    if (!allActive) fail('A task can be assigned only to an Active employee.');
 
-    // Lead employee validation when has_sub_tasks is checked
-    if (command.has_sub_tasks) {
-      if (!command.lead_employee_id) {
-        throw new AssigneeValidationError('Lead employee is mandatory when task has sub tasks');
-      }
-      if (!assignees.includes(command.lead_employee_id)) {
-        throw new AssigneeValidationError('Lead employee must be selected from the assigned employees list');
-      }
+    let leadId: number | null = null;
+    let subTasks: CreateSubTaskRepoInput[] | undefined;
+    if (hasSubTasks) {
+      leadId = isQuick ? command.creator_emp_id : Number(command.lead_employee_id || 0) || null;
+      if (!leadId) fail('Please select the Lead.');
+      if (!assignees.includes(leadId!)) fail('The Lead must be one of the employees in Assigned To.');
+      if (!command.sub_tasks || command.sub_tasks.length === 0) fail('Please add at least one sub task, or untick "Has Sub Tasks".');
 
-      // Validate sub tasks time rules & assignees
-      if (command.sub_tasks && command.sub_tasks.length > 0) {
-        const subValidation = validateSubTasks(
-          command.allocated_minutes,
-          command.sub_tasks,
-          assignees,
-        );
-        if (!subValidation.valid) {
-          throw new AssigneeValidationError(subValidation.error!);
+      subTasks = [];
+      for (const [i, st] of command.sub_tasks!.entries()) {
+        const stAssignees = isQuick ? [command.creator_emp_id] : Array.from(new Set((st.assignee_ids || []).map(Number)));
+        if (!st.title?.trim()) fail(`Please enter the name of sub task ${i + 1}.`);
+        if (st.title!.trim().length > 150) fail(`The name of sub task ${i + 1} cannot be longer than 150 characters.`);
+        const stPriority = (st.priority || priority) as TaskPriority;
+        if (!PRIORITIES.includes(stPriority)) fail(`Please select the Priority of sub task ${i + 1}.`);
+        let stOther: string | null = null;
+        if (st.task_type_id) {
+          stOther = (await this.checkTaskType(st.task_type_id, st.other_task_type, `Task Type of sub task ${i + 1}`)).other;
         }
+        const stDue = parseDueDate(st.due_date);
+        if (stDue === undefined) fail(`Please enter a valid Due Date for sub task ${i + 1}.`);
+        const stStart = parseDueDate(st.start_date);
+        if (stStart === undefined) fail(`Please enter a valid Start Date for sub task ${i + 1}.`);
+        const stRange = validateDateRange(stStart, stDue);
+        if (stRange) fail(`Sub task ${i + 1}: ${stRange}`);
+        subTasks.push({
+          start_date: stStart,
+          due_date: stDue,
+          title: st.title!.trim(),
+          description: st.description?.trim() || null,
+          priority: stPriority,
+          task_type_id: st.task_type_id || null,
+          other_task_type: stOther,
+          allocated_minutes: st.allocated_minutes || null,
+          assignee_ids: stAssignees,
+        });
       }
-    }
-
-    // Other Task Type validation
-    if (command.other_task_type && command.other_task_type.length > 100) {
-      throw new AssigneeValidationError('Other task type cannot exceed 100 characters');
+      // Time rules (BFD 2.4) and sub task employees come from the main task.
+      const subValidation = validateSubTasks(allocated, subTasks, assignees);
+      if (!subValidation.valid) fail(subValidation.error!);
     }
 
     const now = this.clock.now();
-    const year = now.getFullYear();
-    const taskCode = await this.taskRepo.getNextTaskCode(year);
+    const taskCode = await this.taskRepo.getNextTaskCode(now.getFullYear());
 
     const task = await this.taskRepo.createTask({
       task_code: taskCode,
-      title,
+      title: title!,
       description: command.description?.trim() || null,
-      priority: command.priority || 'medium',
-      task_type_id: command.task_type_id || null,
-      due_date: command.due_date || null,
-      allocated_minutes: command.allocated_minutes || null,
-      assignee_ids: Array.from(new Set(assignees)),
+      priority,
+      task_type_id: command.task_type_id!,
+      start_date: startDate ?? null,
+      due_date: dueDate ?? null,
+      allocated_minutes: allocated,
+      assignee_ids: assignees,
       created_by: command.creator_emp_id,
       source: command.source || 'personal',
-      lead_employee_id: command.has_sub_tasks ? command.lead_employee_id : null,
-      has_sub_tasks: Boolean(command.has_sub_tasks),
-      other_task_type: command.other_task_type?.trim() || null,
-      sub_tasks: command.has_sub_tasks ? command.sub_tasks : undefined,
+      lead_employee_id: leadId,
+      has_sub_tasks: hasSubTasks,
+      other_task_type: typeInfo.other,
+      sub_tasks: subTasks,
+      project_id: command.project_id ?? null,
+      sprint_id: command.sprint_id ?? null,
     });
 
-    // Notify assignees (except creator if they assigned themselves)
-    const notificationInputs = task.assignees
-      .filter((a) => a.employee_id !== command.creator_emp_id)
-      .map((a) => ({
-        recipient_id: a.employee_id,
-        kind: 'task_assigned',
-        title: `Assigned: ${task.task_code}`,
-        body: `You have been assigned to task: "${task.title}"`,
-        entity_type: 'task',
-        entity_id: task.task_id,
-        created_by: command.creator_emp_id,
-      }));
-
-    if (notificationInputs.length > 0) {
-      await this.createNotificationUseCase.executeMany(notificationInputs).catch(() => {});
+    // In-app notification when a task is assigned (BFD 2.5). Sub task employees get their own sub task.
+    const recipients = new Set<number>();
+    if (hasSubTasks) {
+      for (const st of subTasks || []) st.assignee_ids.forEach((id) => recipients.add(id));
+      if (leadId) recipients.add(leadId);
+    } else {
+      assignees.forEach((id) => recipients.add(id));
     }
+    recipients.delete(command.creator_emp_id);
+    const inputs = Array.from(recipients).map((id) => ({
+      recipient_id: id,
+      kind: 'task_assigned',
+      title: `Task assigned: ${task.task_code}`,
+      body: `You have been assigned the task "${task.title}".`,
+      entity_type: 'task',
+      entity_id: task.task_id,
+      created_by: command.creator_emp_id,
+    }));
+    if (inputs.length) await this.createNotificationUseCase.executeMany(inputs).catch(() => {});
 
     return task;
+  }
+
+  /** Task Type is mandatory; "Others" needs its own text (max 100), saved with this task only. */
+  private async checkTaskType(typeId: number | null | undefined, other: string | null | undefined, label: string) {
+    if (!typeId) throw new AssigneeValidationError(`Please select the ${label}.`);
+    const code = await this.taskRepo.getTaskTypeCode(Number(typeId));
+    if (!code) throw new AssigneeValidationError(`Please select a valid ${label}.`);
+    if (code === 'other') {
+      const text = (other || '').trim();
+      if (!text) throw new AssigneeValidationError('Please enter the Other Task Type.');
+      if (text.length > 100) throw new AssigneeValidationError('Other Task Type cannot be longer than 100 characters.');
+      return { code, other: text };
+    }
+    return { code, other: null as string | null };
   }
 }

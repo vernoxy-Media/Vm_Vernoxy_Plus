@@ -21,7 +21,17 @@ export interface TodayBlockParams {
   isHoliday?: boolean;
   holidayName?: string | null;
   isWeeklyOff?: boolean;
-  leave?: { typeName: string; part: 'full' | 'half' } | null;
+  leave?: {
+    typeName: string;
+    part: 'full' | 'half';
+    half?: 'FULL_DAY' | 'FIRST_HALF' | 'SECOND_HALF';
+    requestNo?: string;
+    fromDate?: string;
+    toDate?: string;
+    approvedBy?: string | null;
+    secondHalfStartsAt?: Date | null;
+  } | null;
+  pendingLeave?: { requestNo: string; typeName: string } | null;
   fullDayMinutes?: number;
   halfDayMinutes?: number;
 }
@@ -47,7 +57,18 @@ export interface TodayAttendanceBlock {
     break_type?: string | null;
     reason?: string | null;
   }>;
-  leave: { type_name: string; part: string } | null;
+  leave: {
+    type_name: string;
+    part: string;
+    half?: string | null;
+    request_no?: string | null;
+    from_date?: string | null;
+    to_date?: string | null;
+    approved_by?: string | null;
+    check_in_message?: string | null;
+    check_in_allowed_from?: string | null;
+  } | null;
+  pending_leave_note?: string | null;
   holiday_name: string | null;
 }
 
@@ -55,8 +76,9 @@ export function buildTodayBlock(params: TodayBlockParams): TodayAttendanceBlock 
   const timezone = params.timezone || 'Asia/Kolkata';
   const workDate = params.attendanceDay?.workDate || formatWorkDate(params.now, timezone);
 
-  const isLeaveDayStatus = params.attendanceDay?.dayStatus === 'leave';
-  const isFullDayLeave = params.leave?.part === 'full' || isLeaveDayStatus;
+  // Leave comes from Leave Management (params.leave); legacy 'leave' rows are ignored.
+  const isLeaveDayStatus = false;
+  const isFullDayLeave = params.leave?.part === 'full';
   const isHalfDayLeave = params.leave?.part === 'half';
   const isHoliday = !!params.isHoliday;
   const isWeeklyOff = params.isWeeklyOff !== undefined
@@ -76,7 +98,7 @@ export function buildTodayBlock(params: TodayBlockParams): TodayAttendanceBlock 
   const targetMinutes = calculateDailyTargetMinutes({
     isWeeklyOff,
     isHoliday,
-    leaveType: params.leave?.part || (isLeaveDayStatus ? 'full' : null),
+    leaveType: params.leave?.part || null,
     fullDayMinutes: params.fullDayMinutes ?? DEFAULT_FULL_DAY_MINUTES,
     halfDayMinutes: params.halfDayMinutes ?? DEFAULT_HALF_DAY_MINUTES,
   });
@@ -160,8 +182,25 @@ export function buildTodayBlock(params: TodayBlockParams): TodayAttendanceBlock 
     production_minutes: productionMinutes,
     events,
     leave: params.leave
-      ? { type_name: params.leave.typeName, part: params.leave.part }
+      ? {
+          type_name: params.leave.typeName,
+          part: params.leave.part,
+          half: params.leave.half || null,
+          request_no: params.leave.requestNo || null,
+          from_date: params.leave.fromDate || null,
+          to_date: params.leave.toDate || null,
+          approved_by: params.leave.approvedBy || null,
+          check_in_message: isFullDayLeave
+            ? `You are on approved leave today (${params.leave.typeName}). Check-in is not available.`
+            : params.leave.half === 'FIRST_HALF'
+              ? 'You are on leave for the first half. Check-in opens at the start of the second half of your shift.'
+              : 'You are on leave for the second half. Check-out is expected by the middle of your shift.',
+          check_in_allowed_from: params.leave.secondHalfStartsAt ? params.leave.secondHalfStartsAt.toISOString() : null,
+        }
       : (isLeaveDayStatus ? { type_name: 'Approved Leave', part: 'full' } : null),
+    pending_leave_note: params.pendingLeave
+      ? `Your leave for today is waiting for approval (${params.pendingLeave.typeName}, ${params.pendingLeave.requestNo}).`
+      : null,
     holiday_name: params.holidayName || null,
   };
 }

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
+  customFetch,
   attendanceControllerGetDashboard,
   // /check-in is operation 0 (the API also lists /me/punch-in as operation 1)
   attendanceControllerPunchIn0 as attendanceControllerPunchIn,
@@ -15,10 +16,19 @@ import type {
   TodayAttendanceData,
   CorrectionRequestPayload,
 } from '../types/attendance.types';
-import { startBreak } from '../api/attendance.api';
+import { startBreak, savePunchLocation } from '../api/attendance.api';
+import { fetchAttendanceRegister, fetchAttendanceReports } from '../api/attendance.api';
+import type {
+  AttendanceRegisterQuery,
+  AttendanceRegisterResponse,
+  AttendanceReportsQuery,
+  AttendanceReportsResponse,
+} from '../api/attendance.api';
 
 export const ATTENDANCE_QUERY_KEY = 'attendance_dashboard';
 export const ATTENDANCE_DAY_QUERY_KEY = 'attendance_day_detail';
+export const ATTENDANCE_REGISTER_QUERY_KEY = 'attendance_register';
+export const ATTENDANCE_REPORTS_QUERY_KEY = 'attendance_reports';
 
 function mapApiTodayBlock(t: any): TodayAttendanceData {
   if (!t) {
@@ -88,6 +98,8 @@ function mapApiTodayBlock(t: any): TodayAttendanceData {
     active_break_reason: t.current_break_reason || null,
     server_now: t.server_now || new Date().toISOString(),
     timeline,
+    leave_info: t.leave || null,
+    pending_leave_note: t.pending_leave_note || null,
   };
 }
 
@@ -151,16 +163,31 @@ function mapApiDashboardToUiModel(apiData: any): AttendanceDashboardResponse {
       status_label: (d.state || 'not_started').replace('_', ' ').toUpperCase(),
       holiday_name: d.holiday_name || null,
       leave_type: d.leave?.type_name || null,
+      // Leave Management reports FULL_DAY / FIRST_HALF / SECOND_HALF; only a half is drawn as a half
+      leave_half: d.leave?.half === 'FIRST_HALF' || d.leave?.half === 'SECOND_HALF' ? d.leave.half : null,
+      breaks: d.breaks || [],
+      latitude: (d.punch_location?.in ?? d.punch_location?.out)?.latitude ?? null,
+      longitude: (d.punch_location?.in ?? d.punch_location?.out)?.longitude ?? null,
+      leave_part: (d.leave?.part as 'full' | 'half' | undefined) || null,
       can_request_correction: d.date <= today.date,
       is_today: d.date === today.date,
     };
   });
+
+  const shift = data.shift || {
+    shift_name: 'General Shift',
+    start_time: '09:30',
+    end_time: '18:30',
+    late_arrival_grace_minutes: 15,
+    early_exit_grace_minutes: 15,
+  };
 
   return {
     today,
     statistics,
     month_summary: monthSummary,
     records,
+    shift,
   };
 }
 
@@ -169,11 +196,14 @@ function currentMonthKey(): string {
   return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`;
 }
 
-export function useAttendanceDashboard(month: string) {
+export function useAttendanceDashboard(month: string, empId?: number | null) {
   return useQuery<AttendanceDashboardResponse>({
-    queryKey: [ATTENDANCE_QUERY_KEY, month],
+    queryKey: empId ? [ATTENDANCE_QUERY_KEY, month, empId] : [ATTENDANCE_QUERY_KEY, month],
     queryFn: async () => {
-      const res = await attendanceControllerGetDashboard({ month });
+      // viewing another employee (administrators only) goes through the same endpoint with emp_id
+      const res = empId
+        ? await customFetch<any>(`/api/v1/attendance/me/dashboard?month=${month}&emp_id=${empId}`)
+        : await attendanceControllerGetDashboard({ month });
       return mapApiDashboardToUiModel(res);
     },
     // The API refuses months that have not started yet, so do not ask for them.
@@ -186,11 +216,31 @@ export function useAttendanceDashboard(month: string) {
   });
 }
 
-export function useDayDetail(date: string | null) {
-  return useQuery<DayDetailResponse>({
-    queryKey: [ATTENDANCE_DAY_QUERY_KEY, date],
+export function useEmployeeAttendanceDashboard(empId?: number, month?: string) {
+  const currentMonth = month || new Date().toISOString().slice(0, 7);
+  return useQuery<AttendanceDashboardResponse>({
+    queryKey: ['employee_attendance_dashboard', empId, currentMonth],
     queryFn: async () => {
-      const res = await attendanceControllerGetDayDetail(date!);
+      if (!empId) throw new Error('Employee ID required');
+      const qs = currentMonth ? `?month=${currentMonth}` : '';
+      const res = await customFetch<any>(`/api/v1/attendance/employees/${empId}/dashboard${qs}`);
+      return mapApiDashboardToUiModel(res);
+    },
+    enabled: Boolean(empId),
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchInterval: 60 * 1000,
+    refetchOnWindowFocus: true,
+  });
+}
+
+export function useDayDetail(date: string | null, empId?: number | null) {
+  return useQuery<DayDetailResponse>({
+    queryKey: empId ? [ATTENDANCE_DAY_QUERY_KEY, date, empId] : [ATTENDANCE_DAY_QUERY_KEY, date],
+    queryFn: async () => {
+      const res = empId
+        ? await customFetch<any>(`/api/v1/attendance/me/days/${date}?emp_id=${empId}`)
+        : await attendanceControllerGetDayDetail(date!);
       const detail = (res as any)?.data ?? res;
       return {
         date: detail.work_date,
@@ -272,6 +322,8 @@ export function usePunchActions({ month, onConflict, onAnnounce }: PunchMutation
   const punchInMutation = useMutation({
     mutationFn: async () => {
       const res = await attendanceControllerPunchIn();
+      // fire and forget: the map pin is a bonus, the punch is already done
+      void savePunchLocation('in').then(() => queryClient.invalidateQueries({ queryKey: [ATTENDANCE_QUERY_KEY] }));
       return (res as any)?.data ?? res;
     },
     onSuccess: (data) => {
@@ -292,6 +344,7 @@ export function usePunchActions({ month, onConflict, onAnnounce }: PunchMutation
   const punchOutMutation = useMutation({
     mutationFn: async () => {
       const res = await attendanceControllerPunchOut();
+      void savePunchLocation('out').then(() => queryClient.invalidateQueries({ queryKey: [ATTENDANCE_QUERY_KEY] }));
       return (res as any)?.data ?? res;
     },
     onSuccess: (data) => {
@@ -377,5 +430,33 @@ export function useSubmitCorrection(onSuccessCallback?: () => void) {
       queryClient.invalidateQueries({ queryKey: [ATTENDANCE_DAY_QUERY_KEY] });
       onSuccessCallback?.();
     },
+  });
+}
+
+
+export function useAttendanceRegister(params: AttendanceRegisterQuery) {
+  return useQuery<AttendanceRegisterResponse>({
+    queryKey: [ATTENDANCE_REGISTER_QUERY_KEY, params.date, params.departmentId, params.shiftId, params.status, params.search],
+    queryFn: () => fetchAttendanceRegister(params),
+    staleTime: 30 * 1000,
+    refetchOnWindowFocus: true,
+  });
+}
+
+export function useAttendanceReports(params: AttendanceReportsQuery) {
+  return useQuery<AttendanceReportsResponse>({
+    queryKey: [
+      ATTENDANCE_REPORTS_QUERY_KEY,
+      params.reportType,
+      params.fromDate,
+      params.toDate,
+      params.departmentId,
+      params.employeeId,
+      params.shiftId,
+      params.status,
+    ],
+    queryFn: () => fetchAttendanceReports(params),
+    staleTime: 30 * 1000,
+    refetchOnWindowFocus: true,
   });
 }

@@ -5,6 +5,8 @@ import { useEmployeeDetailQuery } from '@/features/organization/hooks/use-organi
 import { AppLayout } from '@/shared/layouts/AppLayout';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { Avatar } from '@/shared/ui/Avatar';
+import { UpcomingHolidays } from '@/features/attendance/components/UpcomingHolidays';
+import { BirthdayCelebrations } from '@/features/attendance/components/BirthdayCelebrations';
 import { EditProfileModal } from '@/features/employees/components/EditProfileModal';
 import {
   User,
@@ -328,11 +330,15 @@ export const HomePage: React.FC = () => {
           </div>
         </div>
 
+        <BirthdayCelebrations />
+        <UpcomingHolidays />
+
         {/* Edit Profile Modal */}
         <EditProfileModal
           isOpen={isEditProfileOpen}
           onClose={() => setIsEditProfileOpen(false)}
           employee={activeEmployee}
+          isAdmin={Boolean(user?.access?.can_manage_organization)}
           onSuccess={async () => {
             refetchEmployee();
             await refreshProfile();

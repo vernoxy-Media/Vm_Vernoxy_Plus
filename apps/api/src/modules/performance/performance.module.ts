@@ -6,6 +6,8 @@ import { PerformanceCyclesService } from './application/services/performance-cyc
 import { PerformanceFormsService } from './application/services/performance-forms.service';
 import { PerformanceReviewsService } from './application/services/performance-reviews.service';
 import { PerformanceSchedulerService } from './application/services/performance-scheduler.service';
+import { PerformanceAccessService } from './application/services/performance-access.service';
+import { PerformanceAdminGuard } from './presentation/guards/performance-admin.guard';
 import { PerformanceCyclesController } from './presentation/controllers/performance-cycles.controller';
 import { PerformanceFormsController } from './presentation/controllers/performance-forms.controller';
 import { PerformanceReviewsController } from './presentation/controllers/performance-reviews.controller';
@@ -18,6 +20,8 @@ import { PerformanceReviewsController } from './presentation/controllers/perform
     PerformanceReviewsController,
   ],
   providers: [
+    PerformanceAccessService,
+    PerformanceAdminGuard,
     PerformanceCyclesService,
     PerformanceFormsService,
     PerformanceReviewsService,

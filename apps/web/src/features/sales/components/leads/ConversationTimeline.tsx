@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Phone, PhoneOff, Mail, MessageSquare, Users, MapPin, Plus, User, Loader2 } from 'lucide-react';
+import { Phone, PhoneOff, Mail, MessageSquare, Users, MapPin, Plus, User, Loader2, Timer } from 'lucide-react';
+import { formatCallDuration } from '../common/CallDurationInput';
 import { ConversationBodyDto, useSalesActivityControllerLeadConversations, useSalesActivityControllerLogOnLead } from '@vernoxy-pulse/api-client';
 
 import { LogCommunicationModal, type LogCommunicationPayload } from '../common/LogCommunicationModal';
@@ -132,6 +133,9 @@ export const ConversationTimeline: React.FC<ConversationTimelineProps> = ({
                     <span className="px-2 py-0.5 rounded text-2xs font-semibold bg-gray-100 text-gray-700 uppercase">
                       {conv.type}
                     </span>
+                    {conv.call_status !== 'Not received' && conv.call_duration_seconds ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-semibold bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100"><Timer className="h-3 w-3" />{formatCallDuration(conv.call_duration_seconds)}</span>
+                    ) : null}
                     {conv.call_status === 'Not received' && conv.not_received_reason && (
                       <span className="px-2 py-0.5 rounded-full text-2xs font-semibold bg-rose-50 text-rose-700 ring-1 ring-rose-100">{conv.not_received_reason}</span>
                     )}

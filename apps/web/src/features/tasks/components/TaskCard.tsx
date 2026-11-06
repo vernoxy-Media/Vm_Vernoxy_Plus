@@ -2,11 +2,14 @@ import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
-  AlertCircle,
   AlertTriangle,
   Calendar,
   Check,
+  ChevronDown,
+  ChevronUp,
+  ChevronsUp,
   Clock,
+  Equal,
   GitBranch,
   Lock,
   PauseCircle,
@@ -17,8 +20,9 @@ import {
   X,
 } from 'lucide-react';
 import { TaskBoardCardDto } from '@vernoxy-pulse/api-client';
+import { useAuth } from '@/features/auth/context/AuthContext';
+import { JiraAvatar } from '@/shared/ui/JiraAvatar';
 import type { TaskPriority, TaskStage } from '../types';
-import { AvatarStack } from './AvatarStack';
 import { formatMinutesToHuman } from './DurationField';
 import { formatDisplayDate } from '@/shared/utils/date.utils';
 
@@ -35,67 +39,21 @@ export interface TaskCardProps {
   isOverlay?: boolean;
 }
 
-const PRIORITY_STYLES: Record<TaskPriority, string> = {
-  low: 'bg-slate-100 text-slate-700 border-slate-200',
-  medium: 'bg-blue-50 text-blue-700 border-blue-200',
-  high: 'bg-amber-50 text-amber-700 border-amber-200',
-  critical: 'bg-rose-50 text-rose-700 border-rose-200',
+const PRIORITY: Record<TaskPriority, { label: string; icon: React.ElementType; color: string }> = {
+  critical: { label: 'Highest', icon: ChevronsUp, color: 'text-[#CD1317]' },
+  high: { label: 'High', icon: ChevronUp, color: 'text-[#E9494A]' },
+  medium: { label: 'Medium', icon: Equal, color: 'text-[#E97F33]' },
+  low: { label: 'Low', icon: ChevronDown, color: 'text-[#2D8738]' },
 };
 
-// Stage-specific border, hover, and overlay styling
-const STAGE_BORDER_STYLES: Record<
-  TaskStage,
-  {
-    border: string;
-    hoverBorder: string;
-    bg: string;
-    overlayBorder: string;
-    overlayRing: string;
-    accentLeft: string;
-  }
-> = {
-  assigned: {
-    border: 'border-slate-300',
-    hoverBorder: 'hover:border-slate-400',
-    bg: 'bg-white',
-    overlayBorder: 'border-slate-400',
-    overlayRing: 'ring-slate-400/25',
-    accentLeft: 'border-l-slate-400',
-  },
-  in_progress: {
-    border: 'border-blue-400',
-    hoverBorder: 'hover:border-blue-500',
-    bg: 'bg-gradient-to-br from-blue-50/20 via-white to-white',
-    overlayBorder: 'border-blue-500',
-    overlayRing: 'ring-blue-500/25',
-    accentLeft: 'border-l-blue-500',
-  },
-  hold: {
-    border: 'border-amber-400',
-    hoverBorder: 'hover:border-amber-500',
-    bg: 'bg-gradient-to-br from-amber-50/30 via-white to-white',
-    overlayBorder: 'border-amber-500',
-    overlayRing: 'ring-amber-500/25',
-    accentLeft: 'border-l-amber-500',
-  },
-  requested: {
-    border: 'border-purple-400',
-    hoverBorder: 'hover:border-purple-500',
-    bg: 'bg-gradient-to-br from-purple-50/25 via-white to-white',
-    overlayBorder: 'border-purple-500',
-    overlayRing: 'ring-purple-500/25',
-    accentLeft: 'border-l-purple-500',
-  },
-  completed: {
-    border: 'border-emerald-500',
-    hoverBorder: 'hover:border-emerald-600',
-    bg: 'bg-gradient-to-br from-emerald-50/30 via-white to-white',
-    overlayBorder: 'border-emerald-500',
-    overlayRing: 'ring-emerald-500/25',
-    accentLeft: 'border-l-emerald-500',
-  },
-};
+const CARD_SHADOW = 'shadow-[0_1px_1px_rgba(9,30,66,0.25),0_0_1px_rgba(9,30,66,0.31)]';
+const ACTION = 'inline-flex h-6 cursor-pointer items-center gap-1 rounded-[3px] px-2 text-[12px] font-medium transition-colors';
 
+/**
+ * A card on the task board, in Jira's style: the summary first, then the small facts about the work,
+ * and the issue type, key, priority and assignee along the bottom. The rules for who may move or act on it
+ * are the same as before.
+ */
 export const TaskCard: React.FC<TaskCardProps> = ({
   task,
   isAdmin,
@@ -108,14 +66,20 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   onResume,
   isOverlay = false,
 }) => {
+  const { user } = useAuth();
   const stage = (task.stage as TaskStage) || 'assigned';
-  const stageStyles = STAGE_BORDER_STYLES[stage] || STAGE_BORDER_STYLES.assigned;
   const isCompleted = stage === 'completed';
+  const isAssignee = task.assignees?.some((a) => a.employee_id === user?.emp_id);
+  const isApproverMove = isAdmin && stage === 'requested';
+  const canDrag = isCompleted ? false : isApproverMove || Boolean(isAssignee);
+  const pr = PRIORITY[task.priority as TaskPriority] ?? PRIORITY.medium;
+  const PriorityIcon = pr.icon;
+  const lockReason = !canDrag && !isCompleted ? `Only ${task.assignees?.map((a) => a.name).join(', ') || 'the assignee'} can move this task` : undefined;
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.task_id.toString(),
     data: { type: 'Task', task, stage: task.stage },
-    disabled: isOverlay || isCompleted, // BFD Section 3.3: Completed tasks cannot be dragged or modified
+    disabled: isOverlay || !canDrag, // Done is locked, and only the assignee moves a task
   });
 
   const style: React.CSSProperties = {
@@ -124,14 +88,14 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   };
 
   if (isDragging && !isOverlay) {
-    return (
-      <div
-        ref={setNodeRef}
-        style={style}
-        className={`rounded-xl border-2 border-dashed ${stageStyles.border} bg-slate-50/50 p-4 min-h-[118px] opacity-40 transition-all duration-150`}
-      />
-    );
+    return <div ref={setNodeRef} style={style} className="min-h-[88px] rounded-[3px] border-2 border-dashed border-[#B3BAC5] bg-white/50 opacity-60" />;
   }
+
+  const hasActions =
+    (isAdmin && stage === 'requested') ||
+    (isAssignee && stage === 'assigned' && onStart) ||
+    (isAssignee && stage === 'in_progress' && (onHold || onRequestReview)) ||
+    (isAssignee && stage === 'hold' && onResume);
 
   return (
     <div
@@ -140,195 +104,138 @@ export const TaskCard: React.FC<TaskCardProps> = ({
       {...(isOverlay || isCompleted ? {} : attributes)}
       {...(isOverlay || isCompleted ? {} : listeners)}
       onClick={() => onCardClick?.(task.task_id)}
-      className={`group relative rounded-xl border border-l-4 ${stageStyles.border} ${stageStyles.accentLeft} ${stageStyles.bg} p-3.5 transition-all select-none touch-none ${
+      className={`group select-none touch-none rounded-[3px] bg-white p-2.5 transition ${CARD_SHADOW} ${
         isOverlay
-          ? `${stageStyles.overlayBorder} shadow-2xl ring-4 ${stageStyles.overlayRing} rotate-1 scale-[1.02] cursor-grabbing`
+          ? 'rotate-2 cursor-grabbing shadow-[0_8px_16px_-4px_rgba(9,30,66,0.25),0_0_1px_rgba(9,30,66,0.31)]'
           : isCompleted
-          ? `${stageStyles.hoverBorder} shadow-xs hover:shadow-md cursor-pointer opacity-95`
-          : `${stageStyles.hoverBorder} shadow-xs hover:shadow-md cursor-grab active:cursor-grabbing duration-150`
+            ? 'cursor-pointer hover:bg-[#F4F5F7]'
+            : canDrag
+              ? 'cursor-grab hover:bg-[#F4F5F7] active:cursor-grabbing'
+              : 'cursor-pointer hover:bg-[#F4F5F7]'
       }`}
     >
-      {/* Top row: Code + Source + Type + Priority */}
-      <div className="flex items-center justify-between gap-1.5 mb-2">
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-xs font-mono font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded-md">
-            {task.task_code}
-          </span>
+      {/* Where the work belongs: its project, or a quick task of your own */}
+      {(task.project_name || task.source === 'quick') && (
+        <p className="mb-1 flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-[#5E6C84]">
+          {task.project_name ? (
+            <span className="truncate" title={task.project_name}>{task.project_no ? `${task.project_no} · ` : ''}{task.project_name}</span>
+          ) : (
+            <span className="rounded-[3px] bg-[#FFF0B3] px-1 py-px text-[#172B4D]">Quick task</span>
+          )}
+        </p>
+      )}
+      <p className={`line-clamp-3 text-[14px] leading-5 ${isCompleted ? 'text-[#42526E]' : 'text-[#172B4D]'}`}>{task.title}</p>
+
+      {/* Small facts about the work */}
+      {(task.parent_task_id || task.has_sub_tasks || task.lead_employee_name || (stage === 'hold' && task.hold_reason) || task.is_overdue || task.is_timer_running || (task.actual_minutes ?? 0) > 0 || task.allocated_minutes || task.due_date || task.task_type_label) && (
+        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[12px] text-[#5E6C84]">
           {task.task_type_label && (
-            <span
-              title={task.other_task_type || task.task_type_label}
-              className="text-[11px] font-medium text-slate-500 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded-md truncate max-w-[110px]"
-            >
+            <span title={task.other_task_type || task.task_type_label} className="max-w-[120px] truncate rounded-[3px] bg-[rgba(9,30,66,0.08)] px-1 py-px font-medium text-[#42526E]">
               {task.other_task_type ? `${task.task_type_label}: ${task.other_task_type}` : task.task_type_label}
             </span>
           )}
-          {isCompleted && (
-            <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-md">
-              <Lock className="w-2.5 h-2.5" /> Approved
+          {task.parent_task_id && (
+            <span className="inline-flex items-center gap-1 rounded-[3px] bg-[#DEEBFF] px-1 py-px font-medium text-[#0747A6]">
+              <GitBranch className="h-3 w-3" /> {task.parent_task_code || 'Parent'}
             </span>
           )}
-        </div>
-        <span
-          className={`text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-md border ${
-            PRIORITY_STYLES[task.priority]
-          }`}
-        >
-          {task.priority}
-        </span>
-      </div>
-
-      {/* Title */}
-      <h3
-        className={`text-sm font-semibold line-clamp-2 mb-2 transition-colors ${
-          isCompleted
-            ? 'text-slate-700 group-hover:text-emerald-700'
-            : 'text-slate-800 group-hover:text-blue-600'
-        }`}
-      >
-        {task.title}
-      </h3>
-
-      {/* Sub-task indicator if this card is a sub-task */}
-      {task.parent_task_id && (
-        <div className="flex items-center gap-1 mb-2 text-[11px] text-sky-700 bg-sky-50 border border-sky-200 px-1.5 py-0.5 rounded-md font-medium w-fit">
-          <GitBranch className="w-3 h-3 text-sky-600" />
-          <span>Sub-task of {task.parent_task_code || 'Main Task'}</span>
-        </div>
-      )}
-
-      {/* Subtasks and Lead badge if configured */}
-      {(task.has_sub_tasks || task.lead_employee_name) && (
-        <div className="flex flex-wrap items-center gap-1.5 mb-2 text-[11px]">
           {task.has_sub_tasks && (
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-sky-50 text-sky-700 border border-sky-200 font-medium">
-              <GitBranch className="w-3 h-3 text-sky-600" />
-              {task.sub_tasks_count || 0} Subtasks
+            <span className="inline-flex items-center gap-1 font-medium">
+              <GitBranch className="h-3.5 w-3.5" /> {task.sub_tasks_count || 0} sub-tasks
             </span>
           )}
           {task.lead_employee_name && (
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 font-medium">
-              <UserCheck className="w-3 h-3 text-amber-600" />
-              Lead: {task.lead_employee_name}
+            <span className="inline-flex items-center gap-1" title="Lead">
+              <UserCheck className="h-3.5 w-3.5" /> {task.lead_employee_name}
+            </span>
+          )}
+          {task.is_overdue && <span className="rounded-[3px] bg-[#FFEBE6] px-1 py-px font-semibold text-[#BF2600]">Overdue</span>}
+          {task.is_timer_running ? (
+            <span className="inline-flex items-center gap-1 font-semibold text-[#006644]"><span className="h-2 w-2 animate-pulse rounded-full bg-[#36B37E]" /> Timer running</span>
+          ) : (task.actual_minutes ?? 0) > 0 ? (
+            <span className="inline-flex items-center gap-1" title="Time spent"><Clock className="h-3.5 w-3.5" /> {formatMinutesToHuman(task.actual_minutes)} spent</span>
+          ) : null}
+          {task.allocated_minutes && (
+            <span className="inline-flex items-center gap-1" title="Estimate"><Clock className="h-3.5 w-3.5 opacity-60" /> {formatMinutesToHuman(task.allocated_minutes)}</span>
+          )}
+          {task.due_date && (
+            <span className={`inline-flex items-center gap-1 rounded-[3px] px-1 py-px font-medium ${task.is_overdue ? 'bg-[#FFEBE6] text-[#BF2600]' : 'bg-[rgba(9,30,66,0.08)] text-[#42526E]'}`} title="Due date">
+              <Calendar className="h-3 w-3" /> {formatDisplayDate(task.due_date)}
             </span>
           )}
         </div>
       )}
 
-      {/* Hold Reason alert box if currently on Hold */}
       {stage === 'hold' && task.hold_reason && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50/70 p-2 mb-2.5 text-xs text-amber-900 flex items-start gap-1.5">
-          <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
-          <div className="line-clamp-2">
-            <span className="font-bold">Hold: </span>
-            {task.hold_reason}
-          </div>
-        </div>
+        <p className="mt-2 flex items-start gap-1.5 rounded-[3px] bg-[#FFFAE6] px-2 py-1.5 text-[12px] text-[#172B4D] shadow-[inset_3px_0_0_#FF991F]">
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#FF991F]" />
+          <span className="line-clamp-2">{task.hold_reason}</span>
+        </p>
       )}
 
-      {/* Meta: Overdue, Timer Running, Spent, Allocated, Due Date */}
-      <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 mb-3">
-        {task.is_overdue && (
-          <span className="inline-flex items-center gap-1 rounded-md bg-rose-50 px-1.5 py-0.5 text-[11px] font-semibold text-rose-600 border border-rose-200">
-            <AlertCircle className="w-3 h-3" /> Overdue
+      {/* Issue type, key, priority and assignee */}
+      <div className="mt-2.5 flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <span aria-hidden className="flex h-4 w-4 shrink-0 items-center justify-center rounded-[3px] bg-[#4BADE8] text-white">
+            {task.parent_task_id ? <GitBranch className="h-2.5 w-2.5" strokeWidth={3} /> : <Check className="h-3 w-3" strokeWidth={3.5} />}
           </span>
-        )}
-        {task.is_timer_running ? (
-          <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-1.5 py-0.5 text-[11px] font-bold text-emerald-700 border border-emerald-200 animate-pulse">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
-            Active
-          </span>
-        ) : task.actual_minutes && task.actual_minutes > 0 ? (
-          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50/60 px-1.5 py-0.5 rounded border border-emerald-100">
-            <Clock className="w-3 h-3 text-emerald-600" />
-            {formatMinutesToHuman(task.actual_minutes)} spent
-          </span>
-        ) : null}
-        {task.allocated_minutes && (
-          <span className="inline-flex items-center gap-1">
-            <Clock className="w-3 h-3 text-slate-400" />
-            {formatMinutesToHuman(task.allocated_minutes)}
-          </span>
-        )}
-        {task.due_date && (
-          <span className="inline-flex items-center gap-1">
-            <Calendar className="w-3 h-3 text-slate-400" />
-            {formatDisplayDate(task.due_date)}
-          </span>
-        )}
+          <span className={`truncate text-[12px] font-medium text-[#5E6C84] ${isCompleted ? 'line-through' : ''}`}>{task.task_code}</span>
+          {isCompleted && <Lock className="h-3 w-3 shrink-0 text-[#36B37E]" aria-label="Done, locked" />}
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          {lockReason && (
+            <span title={lockReason} aria-label={lockReason} className="flex text-[#97A0AF]">
+              <Lock className="h-3.5 w-3.5" />
+            </span>
+          )}
+          <span title={`Priority: ${pr.label}`} className="flex"><PriorityIcon className={`h-4 w-4 ${pr.color}`} strokeWidth={3} aria-label={`Priority ${pr.label}`} /></span>
+          <div className="flex -space-x-1.5" title={task.assignees?.map((a) => a.name).join(', ')}>
+            {(task.assignees ?? []).slice(0, 2).map((a) => <JiraAvatar key={a.employee_id} name={a.name} id={a.employee_id} src={a.avatar_url} size={24} ring />)}
+            {(task.assignees ?? []).length > 2 && <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#DFE1E6] text-[10px] font-semibold text-[#42526E] ring-2 ring-white">+{task.assignees.length - 2}</span>}
+            {(task.assignees ?? []).length === 0 && <span title="Unassigned" className="flex h-6 w-6 items-center justify-center rounded-full bg-[#DFE1E6] text-[10px] text-[#5E6C84]">?</span>}
+          </div>
+        </div>
       </div>
 
-      {/* Bottom row: Assignees + Inline quick actions */}
-      <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-        <AvatarStack assignees={task.assignees} size={24} max={3} />
-
-        {/* Quick stage transition triggers */}
-        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-          {isAdmin && task.stage === 'requested' && (
+      {/* Quick moves, for whoever may make them */}
+      {hasActions && (
+        <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-[#DFE1E6] pt-2" onClick={(e) => e.stopPropagation()}>
+          {isAdmin && stage === 'requested' && (
             <>
-              <button
-                type="button"
-                onClick={() => onApprove?.(task.task_id)}
-                title="Approve & Complete"
-                className="p-1 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors cursor-pointer"
-              >
-                <Check className="w-3.5 h-3.5" />
+              <button type="button" onClick={() => onApprove?.(task.task_id)} title="Approve and mark Done" className={`${ACTION} bg-[#E3FCEF] text-[#006644] hover:bg-[#ABF5D1]`}>
+                <Check className="h-3.5 w-3.5" /> Approve
               </button>
-              <button
-                type="button"
-                onClick={() => onReject?.(task.task_id)}
-                title="Reject with Note"
-                className="p-1 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors cursor-pointer"
-              >
-                <X className="w-3.5 h-3.5" />
+              <button type="button" onClick={() => onReject?.(task.task_id)} title="Send back with a note" className={`${ACTION} bg-[#FFEBE6] text-[#BF2600] hover:bg-[#FFBDAD]`}>
+                <X className="h-3.5 w-3.5" /> Send back
               </button>
             </>
           )}
-
-          {!isAdmin && task.stage === 'assigned' && onStart && (
-            <button
-              type="button"
-              onClick={() => onStart(task.task_id)}
-              className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded-md transition-colors cursor-pointer"
-            >
-              <Play className="w-2.5 h-2.5" /> Start
+          {isAssignee && stage === 'assigned' && onStart && (
+            <button type="button" onClick={() => onStart(task.task_id)} className={`${ACTION} bg-[#DEEBFF] text-[#0747A6] hover:bg-[#B3D4FF]`}>
+              <Play className="h-3 w-3" /> Start
             </button>
           )}
-
-          {!isAdmin && task.stage === 'in_progress' && (
-            <div className="flex items-center gap-1">
+          {isAssignee && stage === 'in_progress' && (
+            <>
               {onHold && (
-                <button
-                  type="button"
-                  onClick={() => onHold(task.task_id)}
-                  title="Put on Hold"
-                  className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-amber-600 bg-amber-50 hover:bg-amber-100 px-1.5 py-0.5 rounded-md transition-colors cursor-pointer"
-                >
-                  <PauseCircle className="w-3 h-3" /> Hold
+                <button type="button" onClick={() => onHold(task.task_id)} title="Put on hold" className={`${ACTION} bg-[#FFF0B3] text-[#172B4D] hover:bg-[#FFE380]`}>
+                  <PauseCircle className="h-3.5 w-3.5" /> Hold
                 </button>
               )}
               {onRequestReview && (
-                <button
-                  type="button"
-                  onClick={() => onRequestReview(task.task_id)}
-                  className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-purple-600 bg-purple-50 hover:bg-purple-100 px-2 py-0.5 rounded-md transition-colors cursor-pointer"
-                >
-                  <Send className="w-2.5 h-2.5" /> Submit
+                <button type="button" onClick={() => onRequestReview(task.task_id)} className={`${ACTION} bg-[#EAE6FF] text-[#403294] hover:bg-[color:var(--ac-200,#C0B6F2)]`}>
+                  <Send className="h-3 w-3" /> Submit
                 </button>
               )}
-            </div>
+            </>
           )}
-
-          {task.stage === 'hold' && onResume && (
-            <button
-              type="button"
-              onClick={() => onResume(task.task_id)}
-              className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded-md transition-colors cursor-pointer"
-            >
-              <RotateCcw className="w-2.5 h-2.5" /> Resume
+          {isAssignee && stage === 'hold' && onResume && (
+            <button type="button" onClick={() => onResume(task.task_id)} className={`${ACTION} bg-[#DEEBFF] text-[#0747A6] hover:bg-[#B3D4FF]`}>
+              <RotateCcw className="h-3 w-3" /> Resume
             </button>
           )}
         </div>
-      </div>
+      )}
     </div>
   );
 };

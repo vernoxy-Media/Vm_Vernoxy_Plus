@@ -1,25 +1,12 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  ParseIntPipe,
-  Post,
-  Put,
-  Query,
-  Req,
-  UseGuards,
-} from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../auth/presentation/guards/jwt-auth.guard';
 import { PerformanceCyclesService } from '../../application/services/performance-cycles.service';
-import {
-  CreatePerfCycleDto,
-  QueryPerfCyclesDto,
-  UpdatePerfCycleDto,
-} from '../dto/performance.dto';
+import { requireEmpId } from '../../application/services/performance-access.service';
+import { PerformanceAdminGuard } from '../guards/performance-admin.guard';
+import { CreatePerfCycleDto, CyclePreviewQueryDto, QueryPerfCyclesDto, UpdatePerfCycleDto } from '../dto/performance.dto';
 
+/** Cycle Master. Everyone may read cycles (to pick one); only Admin creates or changes them. */
 @ApiTags('Performance - Cycle Master')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
@@ -28,39 +15,47 @@ export class PerformanceCyclesController {
   constructor(private readonly cyclesService: PerformanceCyclesService) {}
 
   @Get()
-  @ApiOperation({ summary: 'List all evaluation cycles' })
-  async listCycles(@Query() query: QueryPerfCyclesDto) {
+  @ApiOperation({ summary: 'List cycles (search by name; filter by type, year and status)' })
+  listCycles(@Query() query: QueryPerfCyclesDto) {
     return this.cyclesService.listCycles(query);
   }
 
+  @Get('preview')
+  @UseGuards(PerformanceAdminGuard)
+  @ApiOperation({ summary: 'Dates, review window and name the system will fill (Screen 2)' })
+  preview(@Query() q: CyclePreviewQueryDto) {
+    return this.cyclesService.preview(q.cycle_type, q.year, q.quarter, q.month);
+  }
+
   @Get(':id')
-  @ApiOperation({ summary: 'Get single cycle details' })
-  async getCycleById(@Param('id', ParseIntPipe) id: number) {
+  getCycleById(@Param('id', ParseIntPipe) id: number) {
     return this.cyclesService.getCycleById(id);
   }
 
   @Post()
-  @ApiOperation({ summary: 'Create new evaluation cycle (Admin only)' })
-  async createCycle(@Body() dto: CreatePerfCycleDto, @Req() req: any) {
-    const userId = req.user?.emp_id || req.user?.sub;
-    return this.cyclesService.createCycle(dto, userId);
+  @UseGuards(PerformanceAdminGuard)
+  @ApiOperation({ summary: 'Add Cycle (Admin)' })
+  createCycle(@Body() dto: CreatePerfCycleDto, @Req() req: any) {
+    return this.cyclesService.createCycle(dto, requireEmpId(req.user));
   }
 
   @Put(':id')
-  @ApiOperation({ summary: 'Update evaluation cycle' })
-  async updateCycle(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: UpdatePerfCycleDto,
-    @Req() req: any,
-  ) {
-    const userId = req.user?.emp_id || req.user?.sub;
-    return this.cyclesService.updateCycle(id, dto, userId);
+  @UseGuards(PerformanceAdminGuard)
+  @ApiOperation({ summary: 'Edit cycle (Admin, only before the review window opens)' })
+  updateCycle(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdatePerfCycleDto, @Req() req: any) {
+    return this.cyclesService.updateCycle(id, dto, requireEmpId(req.user));
+  }
+
+  @Patch(':id')
+  @UseGuards(PerformanceAdminGuard)
+  patchCycle(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdatePerfCycleDto, @Req() req: any) {
+    return this.cyclesService.updateCycle(id, dto, requireEmpId(req.user));
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Delete cycle (if no submitted reviews)' })
-  async deleteCycle(@Param('id', ParseIntPipe) id: number) {
+  @UseGuards(PerformanceAdminGuard)
+  @ApiOperation({ summary: 'Delete cycle (Admin, before the window opens and with no reviews)' })
+  deleteCycle(@Param('id', ParseIntPipe) id: number) {
     return this.cyclesService.deleteCycle(id);
   }
 }
-

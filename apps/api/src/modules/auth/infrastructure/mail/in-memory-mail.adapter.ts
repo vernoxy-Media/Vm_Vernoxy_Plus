@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { MailPort, WelcomeCredentialsParams } from '../../application/ports/auth.ports';
+import { MailPort, WelcomeCredentialsParams, DocumentRequestMailParams } from '../../application/ports/auth.ports';
 
 export interface SentEmailRecord {
   to: string;
   code?: string;
-  purpose: 'login_2fa' | 'password_reset' | 'welcome_credentials';
+  purpose: 'login_2fa' | 'password_reset' | 'welcome_credentials' | 'document_request';
   sentAt: Date;
   details?: any;
 }
@@ -26,6 +26,15 @@ export class InMemoryMailAdapter implements MailPort {
     this.sentEmails.push({
       to: params.officeEmail,
       purpose: 'welcome_credentials',
+      sentAt: new Date(),
+      details: params,
+    });
+  }
+
+  async sendDocumentRequest(params: DocumentRequestMailParams): Promise<void> {
+    this.sentEmails.push({
+      to: params.to,
+      purpose: 'document_request',
       sentAt: new Date(),
       details: params,
     });

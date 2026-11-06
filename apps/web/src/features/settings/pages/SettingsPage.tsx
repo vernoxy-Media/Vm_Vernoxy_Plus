@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useParams, Navigate, useNavigate } from 'react-router-dom';
-import { Settings } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Settings } from 'lucide-react';
 import { SettingsJumpMenu } from '../components/SettingsJumpMenu';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { AdminLayout } from '@/shared/layouts/AdminLayout';
@@ -9,6 +9,63 @@ import {
   getSettingsSectionGroups,
   SETTINGS_MAIN_GROUPS,
 } from '../settings.registry';
+
+/** Tab strip that scrolls with arrow buttons, the mouse wheel or touch when the tabs do not fit. */
+const ScrollableTabs: React.FC<{ label: string; watch?: string; children: React.ReactNode }> = ({ label, watch, children }) => {
+  const ref = React.useRef<HTMLDivElement>(null);
+  const [edge, setEdge] = React.useState({ left: false, right: false });
+
+  const update = React.useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    setEdge({ left: el.scrollLeft > 2, right: el.scrollLeft + el.clientWidth < el.scrollWidth - 2 });
+  }, []);
+
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    // Turn the vertical wheel into sideways scrolling, only while there is room to scroll
+    const onWheel = (e: WheelEvent) => {
+      if (el.scrollWidth <= el.clientWidth || Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+      e.preventDefault();
+      el.scrollLeft += e.deltaY;
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => {
+      ro.disconnect();
+      el.removeEventListener('wheel', onWheel);
+    };
+  }, [update, children]);
+
+  React.useEffect(() => {
+    document.getElementById(`settings-subtab-${watch}`)?.scrollIntoView({ block: 'nearest', inline: 'center' });
+  }, [watch]);
+
+  const nudge = (dir: -1 | 1) => ref.current?.scrollBy({ left: dir * Math.max(200, ref.current.clientWidth * 0.6), behavior: 'smooth' });
+  const arrow =
+    'absolute top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900 cursor-pointer';
+
+  return (
+    <div className="relative border-b border-slate-200 px-4 sm:px-6">
+      {edge.left && (
+        <button type="button" aria-label="Scroll tabs left" onClick={() => nudge(-1)} className={`${arrow} left-2`}>
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+      )}
+      <div ref={ref} onScroll={update} role="tablist" aria-label={label} className="-mb-px flex gap-6 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {children}
+      </div>
+      {edge.right && (
+        <button type="button" aria-label="Scroll tabs right" onClick={() => nudge(1)} className={`${arrow} right-2`}>
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      )}
+    </div>
+  );
+};
 
 export const SettingsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -29,7 +86,7 @@ export const SettingsPage: React.FC = () => {
   }
 
   const ActiveComponent = currentSection?.component || visibleSections[0]?.component;
-  const currentGroup = currentSection?.group || 'Organization';
+  const currentGroup = currentSection?.group || 'Employee';
   const currentGroupSections = sectionGroups[currentGroup] || [];
   const groups = SETTINGS_MAIN_GROUPS.filter((g) => (sectionGroups[g.name] || []).length > 0);
 
@@ -92,8 +149,7 @@ export const SettingsPage: React.FC = () => {
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           {/* Pages of the chosen category */}
           {currentGroupSections.length > 1 && (
-            <div className="border-b border-slate-200 px-4 sm:px-6">
-              <div role="tablist" aria-label={`${currentGroup} settings`} className="-mb-px flex gap-6 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <ScrollableTabs label={`${currentGroup} settings`} watch={sectionId}>
                 {currentGroupSections.map((subSection) => {
                   const SubIcon = subSection.icon;
                   const active = currentSection?.id === subSection.id;
@@ -113,8 +169,7 @@ export const SettingsPage: React.FC = () => {
                     </NavLink>
                   );
                 })}
-              </div>
-            </div>
+            </ScrollableTabs>
           )}
 
           <div className="min-h-[480px] p-4 sm:p-6 lg:p-8">

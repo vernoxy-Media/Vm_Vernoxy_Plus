@@ -1,690 +1,609 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { CalendarOff, Plus, Edit2, Trash2, Copy, Info, X } from 'lucide-react';
 import {
-  CalendarOff,
-  Plus,
-  Edit2,
-  Trash2,
-  Copy,
-  Save,
-  CheckCircle2,
-  X,
-} from 'lucide-react';
-import {
-  useLeaveTypesQuery,
-  useCreateLeaveTypeMutation,
-  useUpdateLeaveTypeMutation,
-  useToggleLeaveTypeStatusMutation,
-  useDeleteLeaveTypeMutation,
-  useLeavePoliciesQuery,
-  useCreateLeavePolicyMutation,
-  useUpdateLeavePolicyMutation,
-  useCopyLeavePolicyMutation,
-  useLeaveGeneralSettingsQuery,
-  useUpdateLeaveGeneralSettingsMutation,
-  useLeaveSettingsChangeLogQuery,
-  LeaveType,
   LeavePolicy,
+  LeavePolicyRule,
+  LeaveType,
+  useCopyLeavePolicyMutation,
+  useCreateLeavePolicyMutation,
+  useCreateLeaveTypeMutation,
+  useDeleteLeaveTypeMutation,
+  useLeaveGeneralSettingsQuery,
+  useLeaveLookupsQuery,
+  useLeavePoliciesQuery,
+  useLeaveSettingsChangeLogQuery,
+  useLeaveTypesQuery,
+  useToggleLeaveTypeStatusMutation,
+  useUpdateLeaveGeneralSettingsMutation,
+  useUpdateLeavePolicyMutation,
+  useUpdateLeaveTypeMutation,
 } from '@/features/leave/hooks/use-leave';
+import {
+  Btn,
+  ConfirmModal,
+  FieldError,
+  Modal,
+  PaidTag,
+  colorStyle,
+  errMessage,
+  fieldErrors,
+  fmtDateTime,
+} from '@/features/leave/components/leave-ui';
 
-const COLOR_OPTIONS = [
-  { label: 'Blue', value: 'blue', bg: 'bg-blue-100 text-blue-700 border-blue-300' },
-  { label: 'Emerald', value: 'emerald', bg: 'bg-emerald-100 text-emerald-700 border-emerald-300' },
-  { label: 'Amber', value: 'amber', bg: 'bg-amber-100 text-amber-700 border-amber-300' },
-  { label: 'Purple', value: 'purple', bg: 'bg-purple-100 text-purple-700 border-purple-300' },
-  { label: 'Rose', value: 'rose', bg: 'bg-rose-100 text-rose-700 border-rose-300' },
-  { label: 'Indigo', value: 'indigo', bg: 'bg-indigo-100 text-indigo-700 border-indigo-300' },
-  { label: 'Slate', value: 'slate', bg: 'bg-slate-100 text-slate-700 border-slate-300' },
-];
+type Tab = 'types' | 'policies' | 'general' | 'changelog';
 
-export const SettingsLeaveTypesSection: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'types' | 'policies' | 'general' | 'changelog'>('types');
+const inputCls = 'w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20';
+const numCls = 'w-16 px-1.5 py-1 rounded-lg border border-slate-200 text-xs text-right';
 
-  // Queries
-  const { data: leaveTypes = [] } = useLeaveTypesQuery();
-  const { data: leavePolicies = [] } = useLeavePoliciesQuery();
-  const { data: generalSettings } = useLeaveGeneralSettingsQuery();
-  const { data: changeLogs = [] } = useLeaveSettingsChangeLogQuery();
+const Radio: React.FC<{ name: string; checked: boolean; onChange: () => void; label: string; disabled?: boolean }> = ({
+  name, checked, onChange, label, disabled,
+}) => (
+  <label className={`inline-flex items-center gap-1.5 text-xs ${disabled ? 'text-slate-400' : 'text-slate-700 cursor-pointer'}`}>
+    <input type="radio" name={name} checked={checked} onChange={onChange} disabled={disabled} className="accent-blue-600" />
+    {label}
+  </label>
+);
 
-  // Mutations
-  const createTypeMut = useCreateLeaveTypeMutation();
-  const updateTypeMut = useUpdateLeaveTypeMutation();
-  const toggleTypeMut = useToggleLeaveTypeStatusMutation();
-  const deleteTypeMut = useDeleteLeaveTypeMutation();
+// =============================================================================
+// Leave Type form (Reference Screen 1)
+// =============================================================================
 
-  const createPolicyMut = useCreateLeavePolicyMutation();
-  const updatePolicyMut = useUpdateLeavePolicyMutation();
-  const copyPolicyMut = useCopyLeavePolicyMutation();
-  const updateGeneralMut = useUpdateLeaveGeneralSettingsMutation();
+const emptyType: Partial<LeaveType> = {
+  name: '',
+  code: '',
+  is_paid: true,
+  balance_tracked: true,
+  half_day_allowed: true,
+  applies_to: undefined,
+  calendar_color: undefined,
+  description: '',
+  status: 'ACTIVE',
+};
 
-  // Leave Type Modal State
-  const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
-  const [editingType, setEditingType] = useState<LeaveType | null>(null);
-  const [typeForm, setTypeForm] = useState({
-    name: '',
-    code: '',
-    is_paid: true,
-    balance_tracked: true,
-    half_day_allowed: true,
-    applies_to: 'ALL' as 'ALL' | 'FEMALE_ONLY' | 'MALE_ONLY',
-    calendar_color: 'blue',
-    description: '',
-    status: 'ACTIVE' as 'ACTIVE' | 'INACTIVE',
-  });
-  const [typeError, setTypeError] = useState('');
+const LeaveTypeModal: React.FC<{ open: boolean; editing: LeaveType | null; onClose: () => void }> = ({ open, editing, onClose }) => {
+  const { data: lookups } = useLeaveLookupsQuery();
+  const createMut = useCreateLeaveTypeMutation();
+  const updateMut = useUpdateLeaveTypeMutation();
+  const [form, setForm] = useState<Partial<LeaveType>>(emptyType);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Policy Modal State
-  const [isPolicyModalOpen, setIsPolicyModalOpen] = useState(false);
-  const [editingPolicy, setEditingPolicy] = useState<LeavePolicy | null>(null);
-  const [policyForm, setPolicyForm] = useState({
-    name: '',
-    pro_rata: true,
-    status: 'ACTIVE' as 'ACTIVE' | 'INACTIVE',
-    rules: [] as any[],
-  });
-  const [policyError, setPolicyError] = useState('');
+  useEffect(() => {
+    if (!open) return;
+    setErrors({});
+    setForm(
+      editing
+        ? { ...editing, description: editing.description || '' }
+        : {
+            ...emptyType,
+            applies_to: (lookups?.leave_applies_to?.[0]?.value as any) || undefined,
+            calendar_color: lookups?.leave_calendar_color?.[0]?.value,
+          },
+    );
+  }, [open, editing, lookups]);
 
-  // Copy Policy Modal State
-  const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
-  const [copySourceId, setCopySourceId] = useState<number | null>(null);
-  const [copyNewName, setCopyNewName] = useState('');
+  const set = (patch: Partial<LeaveType>) => setForm((f) => ({ ...f, ...patch }));
 
-  // General Settings Form
-  const [generalForm, setGeneralForm] = useState<any>(null);
-  const [generalSuccess, setGeneralSuccess] = useState(false);
-
-  React.useEffect(() => {
-    if (generalSettings && !generalForm) {
-      setGeneralForm({
-        leave_year_start: generalSettings.leave_year_start,
-        count_sandwich_leave: generalSettings.count_sandwich_leave,
-        pending_reminder_hours: generalSettings.pending_reminder_hours,
-        approve_after_leave_started: generalSettings.approve_after_leave_started,
-        year_end_processing: generalSettings.year_end_processing,
-        comp_off_hours_per_day: generalSettings.comp_off_hours_per_day,
-      });
-    }
-  }, [generalSettings, generalForm]);
-
-  // Open Add/Edit Leave Type Modal
-  const handleOpenTypeModal = (type?: LeaveType) => {
-    if (type) {
-      setEditingType(type);
-      setTypeForm({
-        name: type.name,
-        code: type.code,
-        is_paid: type.is_paid,
-        balance_tracked: type.balance_tracked,
-        half_day_allowed: type.half_day_allowed,
-        applies_to: type.applies_to,
-        calendar_color: type.calendar_color,
-        description: type.description || '',
-        status: type.status,
-      });
-    } else {
-      setEditingType(null);
-      setTypeForm({
-        name: '',
-        code: '',
-        is_paid: true,
-        balance_tracked: true,
-        half_day_allowed: true,
-        applies_to: 'ALL',
-        calendar_color: 'blue',
-        description: '',
-        status: 'ACTIVE',
-      });
-    }
-    setTypeError('');
-    setIsTypeModalOpen(true);
-  };
-
-  const handleSaveType = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setTypeError('');
+  const save = async () => {
+    const e: Record<string, string> = {};
+    const name = (form.name || '').trim();
+    const code = (form.code || '').trim().toUpperCase();
+    if (name.length < 3 || name.length > 50) e.name = 'Leave Type Name must be 3 to 50 characters.';
+    if (!/^[A-Z]{2,5}$/.test(code)) e.code = 'Code must be 2 to 5 capital letters, such as CL.';
+    if (!form.balance_tracked && form.is_paid) e.balance_tracked = 'Only an Unpaid leave type can be "No limit".';
+    if (!form.applies_to) e.applies_to = 'Please fill this field.';
+    if (!form.calendar_color) e.calendar_color = 'Please fill this field.';
+    if ((form.description || '').length > 200) e.description = 'Description can be up to 200 characters.';
+    setErrors(e);
+    if (Object.keys(e).length) return;
+    const payload = {
+      name,
+      code,
+      is_paid: form.is_paid,
+      balance_tracked: form.balance_tracked,
+      half_day_allowed: form.half_day_allowed,
+      applies_to: form.applies_to,
+      calendar_color: form.calendar_color,
+      description: (form.description || '').trim(),
+      status: form.status,
+    };
     try {
-      if (editingType) {
-        await updateTypeMut.mutateAsync({ id: editingType.leave_type_id, data: typeForm });
-      } else {
-        await createTypeMut.mutateAsync(typeForm);
-      }
-      setIsTypeModalOpen(false);
+      if (editing) await updateMut.mutateAsync({ id: editing.leave_type_id, data: payload });
+      else await createMut.mutateAsync(payload);
+      onClose();
     } catch (err: any) {
-      setTypeError(err?.message || 'Failed to save leave type.');
-    }
-  };
-
-  // Open Add/Edit Policy Modal
-  const handleOpenPolicyModal = (policy?: LeavePolicy) => {
-    if (policy) {
-      setEditingPolicy(policy);
-      setPolicyForm({
-        name: policy.name,
-        pro_rata: policy.pro_rata,
-        status: policy.status,
-        rules: (policy.rules || []).map((r) => ({
-          leave_type_id: r.leave_type_id,
-          days_per_year: r.days_per_year,
-          credit_frequency: r.credit_frequency,
-          carry_forward_days: r.carry_forward_days,
-          max_at_once: r.max_at_once,
-          min_notice_days: r.min_notice_days,
-          backdated_days: r.backdated_days,
-          attachment_after_days: r.attachment_after_days,
-          allowed_during_probation: r.allowed_during_probation,
-          comp_off_expiry_days: r.comp_off_expiry_days,
-        })),
-      });
-    } else {
-      setEditingPolicy(null);
-      // Initialize with active leave types
-      setPolicyForm({
-        name: '',
-        pro_rata: true,
-        status: 'ACTIVE',
-        rules: leaveTypes.map((t) => ({
-          leave_type_id: t.leave_type_id,
-          days_per_year: t.code === 'CL' ? 12 : t.code === 'SL' ? 6 : t.code === 'EL' ? 15 : null,
-          credit_frequency: t.code === 'CO' ? 'FROM_APPROVED_OT' : t.code === 'SL' ? 'YEARLY' : 'MONTHLY',
-          carry_forward_days: t.code === 'EL' ? 30 : 0,
-          max_at_once: t.code === 'CL' ? 3 : t.code === 'EL' ? 10 : t.code === 'CO' ? 2 : null,
-          min_notice_days: t.code === 'EL' ? 7 : t.code === 'CL' || t.code === 'CO' ? 1 : 0,
-          backdated_days: t.code === 'SL' || t.code === 'LWP' ? 7 : 0,
-          attachment_after_days: t.code === 'SL' ? 2 : null,
-          allowed_during_probation: t.code !== 'EL',
-          comp_off_expiry_days: 90,
-        })),
-      });
-    }
-    setPolicyError('');
-    setIsPolicyModalOpen(true);
-  };
-
-  const handleSavePolicy = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setPolicyError('');
-    try {
-      if (editingPolicy) {
-        await updatePolicyMut.mutateAsync({ id: editingPolicy.policy_id, data: policyForm });
-      } else {
-        await createPolicyMut.mutateAsync(policyForm);
-      }
-      setIsPolicyModalOpen(false);
-    } catch (err: any) {
-      setPolicyError(err?.message || 'Failed to save leave policy.');
-    }
-  };
-
-  const handleSaveGeneral = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!generalForm) return;
-    try {
-      await updateGeneralMut.mutateAsync(generalForm);
-      setGeneralSuccess(true);
-      setTimeout(() => setGeneralSuccess(false), 3000);
-    } catch (err: any) {
-      alert(err?.message || 'Failed to update general settings.');
+      const fe = fieldErrors(err);
+      setErrors(Object.keys(fe).length ? fe : { general: errMessage(err) });
     }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 pb-5">
-        <div>
-          <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <CalendarOff className="w-6 h-6 text-blue-600" />
-            Leave Settings
-          </h2>
-          <p className="text-sm text-slate-500 mt-1">
-            Configure Leave Types, Leave Policies, General Rules, and Audit Change Log (BFD Section 3).
-          </p>
+    <Modal
+      open={open}
+      onClose={onClose}
+      width="max-w-2xl"
+      title={editing ? 'Edit Leave Type' : 'Add Leave Type'}
+      subtitle="Leave Settings · Leave Types"
+      footer={
+        <>
+          <Btn onClick={onClose}>Cancel</Btn>
+          <Btn variant="primary" onClick={save} loading={createMut.isPending || updateMut.isPending}>
+            Save Leave Type
+          </Btn>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        {errors.general && <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700">{errors.general}</div>}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-[11px] font-semibold text-slate-700 mb-1">Leave Type Name <span className="text-rose-500">*</span></label>
+            <input value={form.name || ''} maxLength={50} onChange={(e) => set({ name: e.target.value })} className={inputCls} />
+            <FieldError message={errors.name} />
+          </div>
+          <div>
+            <label className="block text-[11px] font-semibold text-slate-700 mb-1">Code <span className="text-rose-500">*</span></label>
+            <input value={form.code || ''} maxLength={5} onChange={(e) => set({ code: e.target.value.toUpperCase().replace(/[^A-Z]/g, '') })} className={inputCls} />
+            <FieldError message={errors.code} />
+          </div>
         </div>
 
-        {/* Tab Switcher */}
-        <div className="flex bg-slate-100 p-1 rounded-xl gap-1">
-          <button
-            type="button"
-            onClick={() => setActiveTab('types')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-              activeTab === 'types'
-                ? 'bg-white text-blue-600 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            Leave Types ({leaveTypes.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('policies')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-              activeTab === 'policies'
-                ? 'bg-white text-blue-600 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            Leave Policies ({leavePolicies.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('general')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-              activeTab === 'general'
-                ? 'bg-white text-blue-600 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            General Settings
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('changelog')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-              activeTab === 'changelog'
-                ? 'bg-white text-blue-600 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            Change Log
-          </button>
+        <div>
+          <label className="block text-[11px] font-semibold text-slate-700 mb-1">Paid or Unpaid <span className="text-rose-500">*</span></label>
+          <div className="flex flex-wrap gap-x-5 gap-y-1">
+            <Radio name="paid" checked={form.is_paid === true} onChange={() => set({ is_paid: true, balance_tracked: true })} label="Paid leave: the day is paid in Payroll" />
+            <Radio name="paid" checked={form.is_paid === false} onChange={() => set({ is_paid: false })} label="Unpaid leave: the day is Loss of Pay (LOP)" />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-[11px] font-semibold text-slate-700 mb-1">Balance tracked</label>
+            <div className="flex gap-4">
+              <Radio name="tracked" checked={form.balance_tracked === true} onChange={() => set({ balance_tracked: true })} label="Yes, needs balance" />
+              <Radio name="tracked" checked={form.balance_tracked === false} onChange={() => set({ balance_tracked: false })} label="No limit" disabled={form.is_paid !== false} />
+            </div>
+            <FieldError message={errors.balance_tracked} />
+          </div>
+          <div>
+            <label className="block text-[11px] font-semibold text-slate-700 mb-1">Half day allowed</label>
+            <div className="flex gap-4">
+              <Radio name="half" checked={form.half_day_allowed === true} onChange={() => set({ half_day_allowed: true })} label="Yes" />
+              <Radio name="half" checked={form.half_day_allowed === false} onChange={() => set({ half_day_allowed: false })} label="No" />
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-[11px] font-semibold text-slate-700 mb-1">Applies to</label>
+            <select value={form.applies_to || ''} onChange={(e) => set({ applies_to: e.target.value as any })} className={inputCls}>
+              {(lookups?.leave_applies_to || []).map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+            <FieldError message={errors.applies_to} />
+          </div>
+          <div>
+            <label className="block text-[11px] font-semibold text-slate-700 mb-1">Colour in calendar</label>
+            <div className="flex items-center gap-2">
+              <span className={`w-4 h-4 rounded ${colorStyle(form.calendar_color).dot}`} />
+              <select value={form.calendar_color || ''} onChange={(e) => set({ calendar_color: e.target.value })} className={inputCls}>
+                {(lookups?.leave_calendar_color || []).map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
+            <FieldError message={errors.calendar_color} />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+            Description <span className="font-normal text-slate-400">optional · shown to employees on the Apply Leave form</span>
+          </label>
+          <input value={form.description || ''} maxLength={200} onChange={(e) => set({ description: e.target.value })} className={inputCls} />
+          <FieldError message={errors.description} />
+        </div>
+
+        <div>
+          <label className="block text-[11px] font-semibold text-slate-700 mb-1">Status</label>
+          <div className="flex gap-4">
+            <Radio name="status" checked={form.status === 'ACTIVE'} onChange={() => set({ status: 'ACTIVE' })} label="Active" />
+            <Radio name="status" checked={form.status === 'INACTIVE'} onChange={() => set({ status: 'INACTIVE' })} label="Inactive" />
+          </div>
+        </div>
+
+        <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 text-[11px]">
+          Changing Paid or Unpaid applies to leave requests submitted after saving. Requests already submitted keep the value they were submitted with.
         </div>
       </div>
+    </Modal>
+  );
+};
 
-      {/* ========================================================================= */}
-      {/* TAB 1: LEAVE TYPES                                                        */}
-      {/* ========================================================================= */}
-      {activeTab === 'types' && (
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <p className="text-sm font-medium text-slate-600">
-              Manage paid/unpaid classifications, tracking rules, and gender applicability.
-            </p>
-            <button
-              type="button"
-              onClick={() => handleOpenTypeModal()}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors"
-            >
-              <Plus className="w-4 h-4" /> Add Leave Type
-            </button>
+// =============================================================================
+// Leave Policy editor (Reference Screen 2)
+// =============================================================================
+
+const PolicyEditor: React.FC<{ open: boolean; editing: LeavePolicy | null; onClose: () => void }> = ({ open, editing, onClose }) => {
+  const { data: lookups } = useLeaveLookupsQuery();
+  const { data: types = [] } = useLeaveTypesQuery();
+  const { data: general } = useLeaveGeneralSettingsQuery();
+  const createMut = useCreatePolicyHook();
+  const updateMut = useUpdateLeavePolicyMutation();
+  const [name, setName] = useState('');
+  const [proRata, setProRata] = useState(true);
+  const [status, setStatus] = useState<'ACTIVE' | 'INACTIVE'>('ACTIVE');
+  const [rules, setRules] = useState<LeavePolicyRule[]>([]);
+  const [addTypeId, setAddTypeId] = useState<number | ''>('');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!open) return;
+    setError('');
+    setAddTypeId('');
+    setName(editing?.name || '');
+    setProRata(editing ? editing.pro_rata : true);
+    setStatus(editing?.status || 'ACTIVE');
+    setRules(editing ? editing.rules.map((r) => ({ ...r })) : []);
+  }, [open, editing]);
+
+  const typeById = (id: number) => types.find((t) => t.leave_type_id === id);
+  const available = types.filter((t) => t.status === 'ACTIVE' && !rules.some((r) => r.leave_type_id === t.leave_type_id));
+  const creditOptions = lookups?.leave_credit_frequency || [];
+
+  const addRule = () => {
+    if (!addTypeId) return;
+    const t = typeById(Number(addTypeId));
+    if (!t) return;
+    setRules([
+      ...rules,
+      {
+        leave_type_id: t.leave_type_id,
+        days_per_year: null,
+        credit_frequency: (creditOptions.find((o) => o.value !== 'FROM_APPROVED_OT')?.value || creditOptions[0]?.value) as any,
+        carry_forward_days: 0,
+        max_at_once: null,
+        min_notice_days: 0,
+        backdated_days: 0,
+        attachment_after_days: null,
+        allowed_during_probation: true,
+        comp_off_expiry_days: 90,
+      },
+    ]);
+    setAddTypeId('');
+  };
+
+  const upd = (idx: number, patch: Partial<LeavePolicyRule>) => setRules(rules.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
+  const num = (v: string) => (v === '' ? null : Number(v));
+
+  const save = async () => {
+    setError('');
+    if (name.trim().length < 2) {
+      setError('Please enter the policy name.');
+      return;
+    }
+    const payload = {
+      name: name.trim(),
+      pro_rata: proRata,
+      status,
+      rules: rules.map((r) => ({
+        leave_type_id: r.leave_type_id,
+        days_per_year: r.days_per_year ?? undefined,
+        credit_frequency: r.credit_frequency,
+        carry_forward_days: r.carry_forward_days ?? 0,
+        max_at_once: r.max_at_once ?? undefined,
+        min_notice_days: r.min_notice_days ?? 0,
+        backdated_days: r.backdated_days ?? 0,
+        attachment_after_days: r.attachment_after_days ?? undefined,
+        allowed_during_probation: r.allowed_during_probation,
+        comp_off_expiry_days: r.comp_off_expiry_days ?? 90,
+      })),
+    };
+    try {
+      if (editing) await updateMut.mutateAsync({ id: editing.policy_id, data: payload });
+      else await createMut.mutateAsync(payload);
+      onClose();
+    } catch (err: any) {
+      setError(errMessage(err));
+    }
+  };
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      width="max-w-6xl"
+      title={editing ? editing.name : 'New Leave Policy'}
+      subtitle={`Leave Settings · Leave Policies · Leave year ${(lookups?.leave_year_start || []).find((o) => o.value === general?.leave_year_start)?.label || ''}`}
+      footer={
+        <>
+          <Btn onClick={onClose}>Cancel</Btn>
+          <Btn variant="primary" onClick={save} loading={createMut.isPending || updateMut.isPending}>
+            Save Policy
+          </Btn>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        {error && <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700">{error}</div>}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div className="md:col-span-2">
+            <label className="block text-[11px] font-semibold text-slate-700 mb-1">Policy name <span className="text-rose-500">*</span></label>
+            <input value={name} maxLength={100} onChange={(e) => setName(e.target.value)} className={inputCls} />
           </div>
+          <div className="rounded-xl border border-slate-200 p-2.5">
+            <div className="text-[11px] font-semibold text-slate-700">Pro-rata</div>
+            <label className="inline-flex items-center gap-1.5 text-xs text-slate-600 mt-1 cursor-pointer">
+              <input type="checkbox" checked={proRata} onChange={(e) => setProRata(e.target.checked)} /> For joiners, from the Joining Date
+            </label>
+          </div>
+          <div className="rounded-xl border border-slate-200 p-2.5">
+            <div className="text-[11px] font-semibold text-slate-700">{editing ? `${editing.employees_count} employees on this policy` : 'Status'}</div>
+            <div className="flex gap-3 mt-1">
+              <Radio name="pstatus" checked={status === 'ACTIVE'} onChange={() => setStatus('ACTIVE')} label="Active" />
+              <Radio name="pstatus" checked={status === 'INACTIVE'} onChange={() => setStatus('INACTIVE')} label="Inactive" />
+            </div>
+          </div>
+        </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold text-xs uppercase tracking-wider">
+        <div className="rounded-2xl border border-slate-200">
+          <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 border-b border-slate-100">
+            <span className="text-xs font-bold text-slate-800">Leave types in this policy</span>
+            <div className="flex items-center gap-2">
+              <select value={addTypeId} onChange={(e) => setAddTypeId(e.target.value ? Number(e.target.value) : '')} className="px-2 py-1 rounded-lg border border-slate-200 text-xs">
+                <option value="">Choose an Active leave type</option>
+                {available.map((t) => (
+                  <option key={t.leave_type_id} value={t.leave_type_id}>{t.name}</option>
+                ))}
+              </select>
+              <button type="button" onClick={addRule} disabled={!addTypeId} className="text-xs font-semibold text-blue-600 disabled:text-slate-300 cursor-pointer">
+                + Add leave type to policy
+              </button>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-500">
+                <tr>
+                  <th className="text-left px-3 py-2">Leave Type</th>
+                  <th className="text-left px-2 py-2">Paid</th>
+                  <th className="text-right px-2 py-2">Per year</th>
+                  <th className="text-left px-2 py-2">Credit</th>
+                  <th className="text-right px-2 py-2">Carry fwd</th>
+                  <th className="text-right px-2 py-2">Max at once</th>
+                  <th className="text-right px-2 py-2">Notice</th>
+                  <th className="text-right px-2 py-2">Backdated</th>
+                  <th className="text-right px-2 py-2">Attach &gt; days</th>
+                  <th className="text-center px-2 py-2">Probation</th>
+                  <th className="text-right px-2 py-2">Comp-off expiry</th>
+                  <th className="px-2 py-2" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {rules.length === 0 && (
                   <tr>
-                    <th className="py-3 px-4">Leave Type</th>
-                    <th className="py-3 px-4">Code</th>
-                    <th className="py-3 px-4">Paid / Unpaid</th>
-                    <th className="py-3 px-4">Tracking</th>
-                    <th className="py-3 px-4">Half Day</th>
-                    <th className="py-3 px-4">Applies To</th>
-                    <th className="py-3 px-4">Status</th>
-                    <th className="py-3 px-4 text-right">Actions</th>
+                    <td colSpan={12} className="py-6 text-center text-slate-400">Add the leave types employees on this policy can take.</td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {leaveTypes.map((type) => (
-                    <tr key={type.leave_type_id} className="hover:bg-slate-50/70 transition-colors">
-                      <td className="py-3 px-4 font-semibold text-slate-800">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`w-2.5 h-2.5 rounded-full bg-${type.calendar_color}-500`}
-                          />
-                          {type.name}
-                        </div>
-                        {type.description && (
-                          <p className="text-xs text-slate-400 font-normal mt-0.5 line-clamp-1">
-                            {type.description}
-                          </p>
-                        )}
+                )}
+                {rules.map((r, idx) => {
+                  const t = typeById(r.leave_type_id);
+                  const tracked = t?.balance_tracked !== false;
+                  const fromOt = r.credit_frequency === 'FROM_APPROVED_OT';
+                  return (
+                    <tr key={r.leave_type_id}>
+                      <td className="px-3 py-2 font-semibold text-slate-800 whitespace-nowrap">
+                        {t?.name || r.leave_type_name} ({t?.code || r.leave_type_code})
+                        {t?.status === 'INACTIVE' && <span className="ml-1 text-[10px] text-slate-400">Inactive</span>}
                       </td>
-                      <td className="py-3 px-4">
-                        <span className="font-mono font-bold text-xs px-2 py-0.5 bg-slate-100 text-slate-700 rounded-md border border-slate-200">
-                          {type.code}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        {type.is_paid ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            Paid
-                          </span>
+                      <td className="px-2 py-2"><PaidTag paid={t?.is_paid ?? Boolean(r.is_paid)} /></td>
+                      <td className="px-2 py-2 text-right">
+                        {tracked && !fromOt ? (
+                          <input type="number" min={0} max={365} step={0.5} value={r.days_per_year ?? ''} onChange={(e) => upd(idx, { days_per_year: num(e.target.value) })} className={numCls} />
                         ) : (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
-                            Unpaid (LOP)
-                          </span>
+                          <span className="text-slate-400">{tracked ? '—' : 'No limit'}</span>
                         )}
                       </td>
-                      <td className="py-3 px-4 text-slate-600 text-xs font-medium">
-                        {type.balance_tracked ? 'Tracked' : 'No limit'}
+                      <td className="px-2 py-2">
+                        {tracked ? (
+                          <select value={r.credit_frequency} onChange={(e) => upd(idx, { credit_frequency: e.target.value as any })} className="px-1.5 py-1 rounded-lg border border-slate-200 text-xs">
+                            {creditOptions.map((o) => (
+                              <option key={o.value} value={o.value}>{o.label}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <span className="text-slate-400">—</span>
+                        )}
                       </td>
-                      <td className="py-3 px-4 text-slate-600 text-xs font-medium">
-                        {type.half_day_allowed ? 'Allowed' : 'No'}
+                      <td className="px-2 py-2 text-right">
+                        {tracked ? <input type="number" min={0} step={0.5} value={r.carry_forward_days ?? 0} onChange={(e) => upd(idx, { carry_forward_days: Number(e.target.value || 0) })} className={numCls} /> : '—'}
                       </td>
-                      <td className="py-3 px-4 text-slate-600 text-xs font-medium">
-                        {type.applies_to === 'ALL'
-                          ? 'All Employees'
-                          : type.applies_to === 'FEMALE_ONLY'
-                          ? 'Female Only'
-                          : 'Male Only'}
+                      <td className="px-2 py-2 text-right">
+                        <input type="number" min={0.5} step={0.5} placeholder="No limit" value={r.max_at_once ?? ''} onChange={(e) => upd(idx, { max_at_once: num(e.target.value) })} className={numCls} />
                       </td>
-                      <td className="py-3 px-4">
-                        <button
-                          type="button"
-                          onClick={() => toggleTypeMut.mutate(type.leave_type_id)}
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold cursor-pointer transition-colors ${
-                            type.status === 'ACTIVE'
-                              ? 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100'
-                              : 'bg-slate-100 text-slate-500 border border-slate-200 hover:bg-slate-200'
-                          }`}
-                        >
-                          {type.status}
-                        </button>
+                      <td className="px-2 py-2 text-right">
+                        <input type="number" min={0} step={1} value={r.min_notice_days ?? 0} onChange={(e) => upd(idx, { min_notice_days: Number(e.target.value || 0) })} className={numCls} />
                       </td>
-                      <td className="py-3 px-4 text-right space-x-1">
-                        <button
-                          type="button"
-                          onClick={() => handleOpenTypeModal(type)}
-                          className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-                          title="Edit Leave Type"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (window.confirm(`Delete ${type.name}?`)) {
-                              deleteTypeMut.mutate(type.leave_type_id);
-                            }
-                          }}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                          title="Delete Leave Type"
-                        >
-                          <Trash2 className="w-4 h-4" />
+                      <td className="px-2 py-2 text-right">
+                        <input type="number" min={0} step={1} value={r.backdated_days ?? 0} onChange={(e) => upd(idx, { backdated_days: Number(e.target.value || 0) })} className={numCls} />
+                      </td>
+                      <td className="px-2 py-2 text-right">
+                        <input type="number" min={0} step={0.5} placeholder="Never" value={r.attachment_after_days ?? ''} onChange={(e) => upd(idx, { attachment_after_days: num(e.target.value) })} className={numCls} />
+                      </td>
+                      <td className="px-2 py-2 text-center">
+                        <input type="checkbox" checked={r.allowed_during_probation} onChange={(e) => upd(idx, { allowed_during_probation: e.target.checked })} title="Allowed during probation" />
+                      </td>
+                      <td className="px-2 py-2 text-right">
+                        {fromOt ? (
+                          <input type="number" min={1} step={1} value={r.comp_off_expiry_days ?? 90} onChange={(e) => upd(idx, { comp_off_expiry_days: Number(e.target.value || 90) })} className={numCls} />
+                        ) : (
+                          <span className="text-slate-300">—</span>
+                        )}
+                      </td>
+                      <td className="px-2 py-2 text-right">
+                        <button type="button" onClick={() => setRules(rules.filter((_, i) => i !== idx))} className="p-1 text-slate-400 hover:text-rose-600 cursor-pointer" title="Remove from policy">
+                          <X className="w-3.5 h-3.5" />
                         </button>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
+        </div>
+        <div className="flex items-start gap-1.5 p-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 text-[11px]">
+          <Info className="w-3.5 h-3.5 shrink-0 mt-px" />
+          New rules apply from the time of saving: days already credited and requests already submitted keep their values, and the next credit uses the new rule.
+          Paid or Unpaid comes from the Leave Type and cannot be changed here.
+        </div>
+      </div>
+    </Modal>
+  );
+};
+
+function useCreatePolicyHook() {
+  return useCreateLeavePolicyMutation();
+}
+
+// =============================================================================
+// Section
+// =============================================================================
+
+export const SettingsLeaveTypesSection: React.FC = () => {
+  const [tab, setTab] = useState<Tab>('types');
+  const { data: lookups } = useLeaveLookupsQuery();
+  const { data: types = [] } = useLeaveTypesQuery();
+  const { data: policies = [] } = useLeavePoliciesQuery();
+  const { data: general } = useLeaveGeneralSettingsQuery();
+  const { data: changeLog = [] } = useLeaveSettingsChangeLogQuery(tab === 'changelog');
+  const toggleMut = useToggleLeaveTypeStatusMutation();
+  const deleteMut = useDeleteLeaveTypeMutation();
+  const copyMut = useCopyLeavePolicyMutation();
+  const updateGeneralMut = useUpdateLeaveGeneralSettingsMutation();
+
+  const [typeModal, setTypeModal] = useState<{ open: boolean; editing: LeaveType | null }>({ open: false, editing: null });
+  const [policyModal, setPolicyModal] = useState<{ open: boolean; editing: LeavePolicy | null }>({ open: false, editing: null });
+  const [deleteType, setDeleteType] = useState<LeaveType | null>(null);
+  const [copySource, setCopySource] = useState<LeavePolicy | null>(null);
+  const [copyName, setCopyName] = useState('');
+  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const [generalForm, setGeneralForm] = useState<any>(null);
+
+  useEffect(() => {
+    if (general) setGeneralForm({ ...general });
+  }, [general]);
+
+  const flash = (ok: boolean, text: string) => {
+    setMessage({ ok, text });
+    setTimeout(() => setMessage(null), 5000);
+  };
+
+  const label = (type: keyof NonNullable<typeof lookups>, value: string) =>
+    (lookups?.[type] || []).find((o) => o.value === value)?.label || value;
+
+  const tabBtn = (id: Tab, text: string) => (
+    <button
+      type="button"
+      onClick={() => setTab(id)}
+      className={`px-4 py-1.5 rounded-lg text-xs font-semibold cursor-pointer ${tab === id ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+    >
+      {text}
+    </button>
+  );
+
+  const generalChanged = useMemo(
+    () => general && generalForm && JSON.stringify(general) !== JSON.stringify(generalForm),
+    [general, generalForm],
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 pb-5">
+        <div>
+          <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+            <CalendarOff className="w-6 h-6 text-blue-600" /> Leave Settings
+          </h2>
+          <p className="text-sm text-slate-500 mt-1">Leave Types, Leave Policies and General settings. Every change is kept in the Change Log.</p>
+        </div>
+        <div className="flex bg-slate-100 p-1 rounded-xl gap-1">
+          {tabBtn('types', 'Leave Types')}
+          {tabBtn('policies', 'Leave Policies')}
+          {tabBtn('general', 'General')}
+          {tabBtn('changelog', 'Change Log')}
+        </div>
+      </div>
+
+      {message && (
+        <div className={`p-3 rounded-xl text-xs border ${message.ok ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-700'}`}>
+          {message.text}
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* TAB 2: LEAVE POLICIES                                                     */}
-      {/* ========================================================================= */}
-      {activeTab === 'policies' && (
-        <div className="space-y-6">
-          <div className="flex justify-between items-center">
-            <p className="text-sm font-medium text-slate-600">
-              Configure Leave Policies with annual allotments, accrual rules, notice, and carry-forward.
-            </p>
-            <button
-              type="button"
-              onClick={() => handleOpenPolicyModal()}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors"
-            >
-              <Plus className="w-4 h-4" /> Add Leave Policy
-            </button>
+      {/* ------------------------------------------------------------ Types */}
+      {tab === 'types' && (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+            <span className="text-sm font-bold text-slate-900">Leave Types</span>
+            <Btn variant="primary" onClick={() => setTypeModal({ open: true, editing: null })}>
+              <Plus className="w-4 h-4" /> Add Leave Type
+            </Btn>
           </div>
-
-          <div className="grid grid-cols-1 gap-6">
-            {leavePolicies.map((policy) => (
-              <div
-                key={policy.policy_id}
-                className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4"
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-3">
-                  <div>
-                    <div className="flex items-center gap-2.5">
-                      <h3 className="text-base font-bold text-slate-900">{policy.name}</h3>
-                      <span
-                        className={`text-xs px-2 py-0.5 rounded-full font-semibold border ${
-                          policy.status === 'ACTIVE'
-                            ? 'bg-blue-50 text-blue-700 border-blue-200'
-                            : 'bg-slate-100 text-slate-500 border-slate-200'
-                        }`}
-                      >
-                        {policy.status}
-                      </span>
-                      {policy.pro_rata && (
-                        <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-                          Pro-rata enabled
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-slate-500 mt-1">
-                      {policy.employees_count || 0} active employees on this policy
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCopySourceId(policy.policy_id);
-                        setCopyNewName(`${policy.name} (Copy)`);
-                        setIsCopyModalOpen(true);
-                      }}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"
-                    >
-                      <Copy className="w-3.5 h-3.5" /> Copy Policy
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleOpenPolicyModal(policy)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold shadow-xs transition-colors"
-                    >
-                      <Edit2 className="w-3.5 h-3.5" /> Edit Rules
-                    </button>
-                  </div>
-                </div>
-
-                {/* Rules Table */}
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200 uppercase tracking-wider">
-                      <tr>
-                        <th className="py-2.5 px-3">Leave Type</th>
-                        <th className="py-2.5 px-3">Days / Year</th>
-                        <th className="py-2.5 px-3">Credit Accrual</th>
-                        <th className="py-2.5 px-3">Carry Fwd</th>
-                        <th className="py-2.5 px-3">Max at Once</th>
-                        <th className="py-2.5 px-3">Min Notice</th>
-                        <th className="py-2.5 px-3">Backdated</th>
-                        <th className="py-2.5 px-3">Probation</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {(policy.rules || []).map((rule) => (
-                        <tr key={rule.rule_id} className="hover:bg-slate-50/50">
-                          <td className="py-2.5 px-3 font-semibold text-slate-800 flex items-center gap-1.5">
-                            <span className="font-mono text-slate-600">{rule.leave_type_code}</span> - {rule.leave_type_name}
-                          </td>
-                          <td className="py-2.5 px-3 text-slate-700 font-semibold">
-                            {rule.days_per_year !== null && rule.days_per_year !== undefined
-                              ? `${rule.days_per_year} days`
-                              : 'No limit'}
-                          </td>
-                          <td className="py-2.5 px-3 text-slate-600">
-                            {rule.credit_frequency === 'MONTHLY'
-                              ? 'Monthly (1st)'
-                              : rule.credit_frequency === 'YEARLY'
-                              ? 'Yearly (1 Jan)'
-                              : 'Approved OT'}
-                          </td>
-                          <td className="py-2.5 px-3 text-slate-600">
-                            {rule.carry_forward_days > 0 ? `Up to ${rule.carry_forward_days}` : 'No'}
-                          </td>
-                          <td className="py-2.5 px-3 text-slate-600">
-                            {rule.max_at_once ? `${rule.max_at_once} days` : 'No limit'}
-                          </td>
-                          <td className="py-2.5 px-3 text-slate-600">
-                            {rule.min_notice_days > 0 ? `${rule.min_notice_days} days` : 'None'}
-                          </td>
-                          <td className="py-2.5 px-3 text-slate-600">
-                            {rule.backdated_days > 0 ? `${rule.backdated_days} days` : 'No'}
-                          </td>
-                          <td className="py-2.5 px-3">
-                            {rule.allowed_during_probation ? (
-                              <span className="text-emerald-700 font-semibold">Allowed</span>
-                            ) : (
-                              <span className="text-rose-600 font-semibold">Blocked</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* TAB 3: GENERAL SETTINGS                                                   */}
-      {/* ========================================================================= */}
-      {activeTab === 'general' && generalForm && (
-        <form onSubmit={handleSaveGeneral} className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs max-w-2xl space-y-5">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-            <div>
-              <h3 className="text-base font-bold text-slate-900">General Leave Settings</h3>
-              <p className="text-xs text-slate-500">Company-wide leave year, sandwich rules, and reminders (BFD Section 3 Part 3).</p>
-            </div>
-            {generalSuccess && (
-              <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Saved
-              </span>
-            )}
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Leave Year Cycle</label>
-              <select
-                value={generalForm.leave_year_start}
-                onChange={(e) => setGeneralForm({ ...generalForm, leave_year_start: e.target.value })}
-                className="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-              >
-                <option value="JANUARY_TO_DECEMBER">January to December (Default)</option>
-                <option value="APRIL_TO_MARCH">April to March</option>
-              </select>
-            </div>
-
-            <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl border border-slate-200">
-              <div>
-                <span className="text-xs font-semibold text-slate-800 block">Count Weekly Offs & Holidays ("Sandwich Rule")</span>
-                <span className="text-xs text-slate-500">When enabled, off days inside a leave period are counted as leave days.</span>
-              </div>
-              <input
-                type="checkbox"
-                checked={generalForm.count_sandwich_leave}
-                onChange={(e) => setGeneralForm({ ...generalForm, count_sandwich_leave: e.target.checked })}
-                className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
-              />
-            </div>
-
-            <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl border border-slate-200">
-              <div>
-                <span className="text-xs font-semibold text-slate-800 block">Approve After Leave Started</span>
-                <span className="text-xs text-slate-500">Allow Admin to approve a pending request whose first day has already passed.</span>
-              </div>
-              <input
-                type="checkbox"
-                checked={generalForm.approve_after_leave_started}
-                onChange={(e) => setGeneralForm({ ...generalForm, approve_after_leave_started: e.target.checked })}
-                className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Pending Reminder (Hours)</label>
-                <input
-                  type="number"
-                  min="1"
-                  max="168"
-                  value={generalForm.pending_reminder_hours}
-                  onChange={(e) => setGeneralForm({ ...generalForm, pending_reminder_hours: parseInt(e.target.value, 10) })}
-                  className="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Comp-off from OT (Hours / Day)</label>
-                <input
-                  type="number"
-                  min="1"
-                  max="24"
-                  step="0.5"
-                  value={generalForm.comp_off_hours_per_day}
-                  onChange={(e) => setGeneralForm({ ...generalForm, comp_off_hours_per_day: parseFloat(e.target.value) })}
-                  className="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Year-end Accrual Processing</label>
-              <select
-                value={generalForm.year_end_processing}
-                onChange={(e) => setGeneralForm({ ...generalForm, year_end_processing: e.target.value })}
-                className="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-              >
-                <option value="AUTOMATIC">Automatic (Runs on 1st day of new leave year)</option>
-                <option value="MANUAL">Manual (Started by Admin)</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="pt-3 border-t border-slate-100 flex justify-end">
-            <button
-              type="submit"
-              disabled={updateGeneralMut.isPending}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors cursor-pointer"
-            >
-              <Save className="w-4 h-4" /> Save General Settings
-            </button>
-          </div>
-        </form>
-      )}
-
-      {/* ========================================================================= */}
-      {/* TAB 4: CHANGE LOG                                                         */}
-      {/* ========================================================================= */}
-      {activeTab === 'changelog' && (
-        <div className="space-y-4">
-          <p className="text-sm font-medium text-slate-600">
-            Immutable audit record of all changes made to Leave Types, Policies, and Settings.
-          </p>
-
-          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase tracking-wider">
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs text-left">
+              <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-500">
                 <tr>
-                  <th className="py-3 px-4">Entity</th>
-                  <th className="py-3 px-4">Field</th>
-                  <th className="py-3 px-4">Old Value</th>
-                  <th className="py-3 px-4">New Value</th>
-                  <th className="py-3 px-4">Changed By</th>
-                  <th className="py-3 px-4">Timestamp</th>
+                  <th className="px-4 py-2.5">Leave Type</th>
+                  <th className="px-3 py-2.5">Code</th>
+                  <th className="px-3 py-2.5">Paid or Unpaid</th>
+                  <th className="px-3 py-2.5">Balance</th>
+                  <th className="px-3 py-2.5">Half day</th>
+                  <th className="px-3 py-2.5">Applies to</th>
+                  <th className="px-3 py-2.5">Status</th>
+                  <th className="px-3 py-2.5 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 font-mono">
-                {changeLogs.map((log) => (
-                  <tr key={log.log_id} className="hover:bg-slate-50">
-                    <td className="py-2.5 px-4 font-sans font-semibold text-slate-800">
-                      {log.entity_type} #{log.entity_id}
+              <tbody className="divide-y divide-slate-100">
+                {types.map((t) => (
+                  <tr key={t.leave_type_id} className="hover:bg-slate-50/60">
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center gap-2 font-semibold text-slate-800">
+                        <span className={`w-2.5 h-2.5 rounded-sm ${colorStyle(t.calendar_color).dot}`} /> {t.name}
+                      </div>
+                      {t.description && <div className="text-[11px] text-slate-400 mt-0.5">{t.description}</div>}
                     </td>
-                    <td className="py-2.5 px-4 text-slate-600">{log.field_name}</td>
-                    <td className="py-2.5 px-4 text-rose-600 max-w-xs truncate">{log.old_value || '—'}</td>
-                    <td className="py-2.5 px-4 text-emerald-700 max-w-xs truncate">{log.new_value || '—'}</td>
-                    <td className="py-2.5 px-4 font-sans text-slate-700">{log.changed_by_name || `Admin #${log.changed_by}`}</td>
-                    <td className="py-2.5 px-4 text-slate-400 font-sans">
-                      {new Date(log.changed_at).toLocaleString()}
+                    <td className="px-3 py-2.5 font-mono">{t.code}</td>
+                    <td className="px-3 py-2.5"><PaidTag paid={t.is_paid} /></td>
+                    <td className="px-3 py-2.5">{t.balance_tracked ? 'Tracked' : 'No limit'}</td>
+                    <td className="px-3 py-2.5">{t.half_day_allowed ? 'Yes' : 'No'}</td>
+                    <td className="px-3 py-2.5">{label('leave_applies_to', t.applies_to)}</td>
+                    <td className="px-3 py-2.5">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await toggleMut.mutateAsync(t.leave_type_id);
+                          } catch (e: any) {
+                            flash(false, errMessage(e));
+                          }
+                        }}
+                        className={`px-2 py-0.5 rounded-full text-[11px] font-semibold border cursor-pointer ${
+                          t.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'
+                        }`}
+                        title="Click to change"
+                      >
+                        {t.status === 'ACTIVE' ? 'Active' : 'Inactive'}
+                      </button>
+                    </td>
+                    <td className="px-3 py-2.5 text-right whitespace-nowrap">
+                      <button type="button" onClick={() => setTypeModal({ open: true, editing: t })} className="p-1.5 text-slate-500 hover:text-blue-600 cursor-pointer" title="Edit">
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      {!t.is_used && (
+                        <button type="button" onClick={() => setDeleteType(t)} className="p-1.5 text-slate-500 hover:text-rose-600 cursor-pointer" title="Delete (never used)">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -694,443 +613,248 @@ export const SettingsLeaveTypesSection: React.FC = () => {
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* MODAL: ADD / EDIT LEAVE TYPE (Reference Screen 1)                         */}
-      {/* ========================================================================= */}
-      {isTypeModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 space-y-4 border border-slate-200">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="text-base font-bold text-slate-900">
-                {editingType ? 'Edit Leave Type' : 'Add Leave Type'}
-              </h3>
-              <button
-                type="button"
-                onClick={() => setIsTypeModalOpen(false)}
-                className="p-1 text-slate-400 hover:text-slate-700 rounded-lg"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {typeError && (
-              <div className="p-3 text-xs bg-rose-50 text-rose-700 border border-rose-200 rounded-xl">
-                {typeError}
-              </div>
-            )}
-
-            <form onSubmit={handleSaveType} className="space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-3">
+      {/* ------------------------------------------------------------ Policies */}
+      {tab === 'policies' && (
+        <div className="space-y-4">
+          <div className="flex justify-end">
+            <Btn variant="primary" onClick={() => setPolicyModal({ open: true, editing: null })}>
+              <Plus className="w-4 h-4" /> New Leave Policy
+            </Btn>
+          </div>
+          {policies.map((p) => (
+            <div key={p.policy_id} className="bg-white rounded-2xl border border-slate-200 shadow-2xs">
+              <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b border-slate-100">
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Leave Type Name *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Casual Leave"
-                    value={typeForm.name}
-                    onChange={(e) => setTypeForm({ ...typeForm, name: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Code * (2-5 caps)</label>
-                  <input
-                    type="text"
-                    required
-                    maxLength={5}
-                    placeholder="e.g. CL"
-                    value={typeForm.code}
-                    onChange={(e) => setTypeForm({ ...typeForm, code: e.target.value.toUpperCase() })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 font-mono"
-                  />
-                </div>
-              </div>
-
-              {/* Paid or Unpaid */}
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1.5">Paid or Unpaid *</label>
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="is_paid"
-                      checked={typeForm.is_paid}
-                      onChange={() => setTypeForm({ ...typeForm, is_paid: true })}
-                      className="text-blue-600 focus:ring-blue-500"
-                    />
-                    <span>Paid (Full day in Payroll)</span>
-                  </label>
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="is_paid"
-                      checked={!typeForm.is_paid}
-                      onChange={() => setTypeForm({ ...typeForm, is_paid: false })}
-                      className="text-blue-600 focus:ring-blue-500"
-                    />
-                    <span>Unpaid (Loss of Pay / LOP)</span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Balance Tracked */}
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1.5">Balance Tracked *</label>
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="balance_tracked"
-                      checked={typeForm.balance_tracked}
-                      onChange={() => setTypeForm({ ...typeForm, balance_tracked: true })}
-                      className="text-blue-600 focus:ring-blue-500"
-                    />
-                    <span>Yes, needs balance</span>
-                  </label>
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="balance_tracked"
-                      disabled={typeForm.is_paid}
-                      checked={!typeForm.balance_tracked}
-                      onChange={() => setTypeForm({ ...typeForm, balance_tracked: false })}
-                      className="text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className={typeForm.is_paid ? 'text-slate-400' : ''}>
-                      No limit (Unpaid only)
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-slate-900">{p.name}</h3>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${p.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
+                      {p.status === 'ACTIVE' ? 'Active' : 'Inactive'}
                     </span>
-                  </label>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    {p.employees_count} employees on this policy · Pro-rata {p.pro_rata ? 'on' : 'off'} · Leave year {label('leave_year_start', general?.leave_year_start || '')}
+                  </p>
                 </div>
-              </div>
-
-              {/* Half Day & Applies To */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Half Day Allowed *</label>
-                  <select
-                    value={typeForm.half_day_allowed ? 'yes' : 'no'}
-                    onChange={(e) => setTypeForm({ ...typeForm, half_day_allowed: e.target.value === 'yes' })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white"
-                  >
-                    <option value="yes">Yes</option>
-                    <option value="no">No</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Applies To *</label>
-                  <select
-                    value={typeForm.applies_to}
-                    onChange={(e) => setTypeForm({ ...typeForm, applies_to: e.target.value as any })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white"
-                  >
-                    <option value="ALL">All employees</option>
-                    <option value="FEMALE_ONLY">Female only</option>
-                    <option value="MALE_ONLY">Male only</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Calendar Color */}
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Colour in Calendar</label>
                 <div className="flex gap-2">
-                  {COLOR_OPTIONS.map((c) => (
-                    <button
-                      key={c.value}
-                      type="button"
-                      onClick={() => setTypeForm({ ...typeForm, calendar_color: c.value })}
-                      className={`px-2.5 py-1 rounded-lg border text-xs font-semibold ${c.bg} ${
-                        typeForm.calendar_color === c.value ? 'ring-2 ring-blue-500 shadow-xs' : 'opacity-70'
-                      }`}
-                    >
-                      {c.label}
-                    </button>
-                  ))}
+                  <Btn onClick={() => { setCopySource(p); setCopyName(`${p.name} (Copy)`); }}>
+                    <Copy className="w-3.5 h-3.5" /> Copy Policy
+                  </Btn>
+                  <Btn onClick={() => setPolicyModal({ open: true, editing: p })}>
+                    <Edit2 className="w-3.5 h-3.5" /> Edit
+                  </Btn>
                 </div>
               </div>
-
-              {/* Description */}
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Description (Optional)</label>
-                <textarea
-                  rows={2}
-                  maxLength={200}
-                  value={typeForm.description}
-                  onChange={(e) => setTypeForm({ ...typeForm, description: e.target.value })}
-                  placeholder="Shown on the Apply Leave form..."
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                />
-              </div>
-
-              <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsTypeModalOpen(false)}
-                  className="px-4 py-2 border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 font-semibold"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={createTypeMut.isPending || updateTypeMut.isPending}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-semibold shadow-xs"
-                >
-                  Save Leave Type
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* MODAL: ADD / EDIT LEAVE POLICY (Reference Screen 2)                       */}
-      {/* ========================================================================= */}
-      {isPolicyModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl shadow-xl max-w-4xl w-full p-6 space-y-4 border border-slate-200 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="text-base font-bold text-slate-900">
-                {editingPolicy ? `Edit Leave Policy: ${editingPolicy.name}` : 'Create Leave Policy'}
-              </h3>
-              <button
-                type="button"
-                onClick={() => setIsPolicyModalOpen(false)}
-                className="p-1 text-slate-400 hover:text-slate-700 rounded-lg"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {policyError && (
-              <div className="p-3 text-xs bg-rose-50 text-rose-700 border border-rose-200 rounded-xl">
-                {policyError}
-              </div>
-            )}
-
-            <form onSubmit={handleSavePolicy} className="space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Policy Name *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Standard Leave Policy"
-                    value={policyForm.name}
-                    onChange={(e) => setPolicyForm({ ...policyForm, name: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                  />
-                </div>
-
-                <div className="flex items-center gap-3 pt-6">
-                  <label className="flex items-center gap-2 cursor-pointer font-semibold text-slate-700">
-                    <input
-                      type="checkbox"
-                      checked={policyForm.pro_rata}
-                      onChange={(e) => setPolicyForm({ ...policyForm, pro_rata: e.target.checked })}
-                      className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
-                    />
-                    <span>Pro-rata calculation for mid-year joiners</span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Rules Table */}
-              <div>
-                <label className="block font-semibold text-slate-700 mb-2">
-                  Rules per Leave Type included in this Policy
-                </label>
-                <div className="border border-slate-200 rounded-xl overflow-hidden">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
-                      <tr>
-                        <th className="py-2 px-3">Type</th>
-                        <th className="py-2 px-3">Days / Yr</th>
-                        <th className="py-2 px-3">Accrual</th>
-                        <th className="py-2 px-3">Carry Fwd</th>
-                        <th className="py-2 px-3">Max at Once</th>
-                        <th className="py-2 px-3">Notice</th>
-                        <th className="py-2 px-3">Backdated</th>
-                        <th className="py-2 px-3">Probation</th>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead className="text-[10px] uppercase tracking-wider text-slate-400">
+                    <tr>
+                      <th className="text-left px-4 py-2">Leave Type</th>
+                      <th className="text-left px-2 py-2">Paid</th>
+                      <th className="text-left px-2 py-2">Per year</th>
+                      <th className="text-left px-2 py-2">Credit</th>
+                      <th className="text-left px-2 py-2">Carry fwd</th>
+                      <th className="text-left px-2 py-2">Max at once</th>
+                      <th className="text-left px-2 py-2">Notice</th>
+                      <th className="text-left px-2 py-2">Backdated</th>
+                      <th className="text-left px-2 py-2">Attachment</th>
+                      <th className="text-left px-2 py-2">Probation</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {p.rules.map((r) => (
+                      <tr key={r.leave_type_id}>
+                        <td className="px-4 py-2 font-semibold text-slate-800">{r.leave_type_name} ({r.leave_type_code})</td>
+                        <td className="px-2 py-2"><PaidTag paid={Boolean(r.is_paid)} /></td>
+                        <td className="px-2 py-2">{r.balance_tracked === false ? 'No limit' : r.days_per_year ?? '—'}</td>
+                        <td className="px-2 py-2">
+                          {r.balance_tracked === false
+                            ? '—'
+                            : r.credit_frequency === 'MONTHLY' && r.days_per_year
+                              ? `${Math.round((Number(r.days_per_year) / 12) * 100) / 100} per month`
+                              : label('leave_credit_frequency', r.credit_frequency)}
+                        </td>
+                        <td className="px-2 py-2">{r.carry_forward_days ? `Up to ${r.carry_forward_days}` : 'No'}</td>
+                        <td className="px-2 py-2">{r.max_at_once ?? '—'}</td>
+                        <td className="px-2 py-2">{r.min_notice_days ? `${r.min_notice_days} day${r.min_notice_days === 1 ? '' : 's'}` : '—'}</td>
+                        <td className="px-2 py-2">{r.backdated_days ? `${r.backdated_days} days` : 'No'}</td>
+                        <td className="px-2 py-2">{r.attachment_after_days != null ? `More than ${r.attachment_after_days} days` : 'Never'}</td>
+                        <td className="px-2 py-2">{r.allowed_during_probation ? 'Yes' : 'No'}</td>
                       </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {policyForm.rules.map((rule, idx) => {
-                        const lt = leaveTypes.find((t) => t.leave_type_id === rule.leave_type_id);
-                        return (
-                          <tr key={rule.leave_type_id} className="hover:bg-slate-50">
-                            <td className="py-2 px-3 font-semibold text-slate-800">
-                              {lt?.code} ({lt?.name})
-                            </td>
-                            <td className="py-2 px-3">
-                              <input
-                                type="number"
-                                step="0.5"
-                                min="0"
-                                max="365"
-                                placeholder="None"
-                                value={rule.days_per_year ?? ''}
-                                onChange={(e) => {
-                                  const val = e.target.value === '' ? null : parseFloat(e.target.value);
-                                  const updated = [...policyForm.rules];
-                                  updated[idx].days_per_year = val;
-                                  setPolicyForm({ ...policyForm, rules: updated });
-                                }}
-                                className="w-16 px-2 py-1 rounded border border-slate-200"
-                              />
-                            </td>
-                            <td className="py-2 px-3">
-                              <select
-                                value={rule.credit_frequency}
-                                onChange={(e) => {
-                                  const updated = [...policyForm.rules];
-                                  updated[idx].credit_frequency = e.target.value;
-                                  setPolicyForm({ ...policyForm, rules: updated });
-                                }}
-                                className="px-2 py-1 rounded border border-slate-200 bg-white"
-                              >
-                                <option value="MONTHLY">Monthly</option>
-                                <option value="YEARLY">Yearly</option>
-                                <option value="FROM_APPROVED_OT">Approved OT</option>
-                              </select>
-                            </td>
-                            <td className="py-2 px-3">
-                              <input
-                                type="number"
-                                min="0"
-                                value={rule.carry_forward_days}
-                                onChange={(e) => {
-                                  const updated = [...policyForm.rules];
-                                  updated[idx].carry_forward_days = parseFloat(e.target.value) || 0;
-                                  setPolicyForm({ ...policyForm, rules: updated });
-                                }}
-                                className="w-14 px-2 py-1 rounded border border-slate-200"
-                              />
-                            </td>
-                            <td className="py-2 px-3">
-                              <input
-                                type="number"
-                                min="0"
-                                placeholder="None"
-                                value={rule.max_at_once ?? ''}
-                                onChange={(e) => {
-                                  const updated = [...policyForm.rules];
-                                  updated[idx].max_at_once = e.target.value === '' ? null : parseFloat(e.target.value);
-                                  setPolicyForm({ ...policyForm, rules: updated });
-                                }}
-                                className="w-14 px-2 py-1 rounded border border-slate-200"
-                              />
-                            </td>
-                            <td className="py-2 px-3">
-                              <input
-                                type="number"
-                                min="0"
-                                value={rule.min_notice_days}
-                                onChange={(e) => {
-                                  const updated = [...policyForm.rules];
-                                  updated[idx].min_notice_days = parseInt(e.target.value, 10) || 0;
-                                  setPolicyForm({ ...policyForm, rules: updated });
-                                }}
-                                className="w-14 px-2 py-1 rounded border border-slate-200"
-                              />
-                            </td>
-                            <td className="py-2 px-3">
-                              <input
-                                type="number"
-                                min="0"
-                                value={rule.backdated_days}
-                                onChange={(e) => {
-                                  const updated = [...policyForm.rules];
-                                  updated[idx].backdated_days = parseInt(e.target.value, 10) || 0;
-                                  setPolicyForm({ ...policyForm, rules: updated });
-                                }}
-                                className="w-14 px-2 py-1 rounded border border-slate-200"
-                              />
-                            </td>
-                            <td className="py-2 px-3 text-center">
-                              <input
-                                type="checkbox"
-                                checked={rule.allowed_during_probation}
-                                onChange={(e) => {
-                                  const updated = [...policyForm.rules];
-                                  updated[idx].allowed_during_probation = e.target.checked;
-                                  setPolicyForm({ ...policyForm, rules: updated });
-                                }}
-                                className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
-                              />
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-
-              <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsPolicyModalOpen(false)}
-                  className="px-4 py-2 border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 font-semibold"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={createPolicyMut.isPending || updatePolicyMut.isPending}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-semibold shadow-xs"
-                >
-                  Save Policy
-                </button>
-              </div>
-            </form>
-          </div>
+            </div>
+          ))}
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* MODAL: COPY POLICY                                                        */}
-      {/* ========================================================================= */}
-      {isCopyModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4 border border-slate-200 text-xs">
-            <h3 className="text-base font-bold text-slate-900">Make Copy of Policy</h3>
-            <p className="text-slate-500">Enter a unique name for the new cloned policy:</p>
-
-            <input
-              type="text"
-              required
-              value={copyNewName}
-              onChange={(e) => setCopyNewName(e.target.value)}
-              className="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-            />
-
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setIsCopyModalOpen(false)}
-                className="px-4 py-2 border border-slate-200 text-slate-600 rounded-xl font-semibold"
+      {/* ------------------------------------------------------------ General */}
+      {tab === 'general' && generalForm && (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5 space-y-4 max-w-3xl">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-1">Leave Year</label>
+              <select
+                value={generalForm.leave_year_start}
+                disabled={general?.leave_year_locked}
+                onChange={(e) => setGeneralForm({ ...generalForm, leave_year_start: e.target.value })}
+                className={`${inputCls} disabled:bg-slate-50`}
               >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={async () => {
-                  if (copySourceId && copyNewName) {
-                    await copyPolicyMut.mutateAsync({ id: copySourceId, new_name: copyNewName });
-                    setIsCopyModalOpen(false);
-                  }
-                }}
-                disabled={copyPolicyMut.isPending}
-                className="px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 shadow-xs"
-              >
-                Create Copy
-              </button>
+                {(lookups?.leave_year_start || []).map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+              {general?.leave_year_locked && <p className="text-[10px] text-slate-400 mt-1">Can be changed only before the first leave year is opened.</p>}
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-1">Year-end processing</label>
+              <select value={generalForm.year_end_processing} onChange={(e) => setGeneralForm({ ...generalForm, year_end_processing: e.target.value })} className={inputCls}>
+                {(lookups?.leave_year_end_processing || []).map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-1">Pending reminder (hours)</label>
+              <input type="number" min={1} max={720} value={generalForm.pending_reminder_hours} onChange={(e) => setGeneralForm({ ...generalForm, pending_reminder_hours: Number(e.target.value) })} className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-1">Comp-off from OT (hours that make one day)</label>
+              <input type="number" min={1} max={24} step={0.5} value={generalForm.comp_off_hours_per_day} onChange={(e) => setGeneralForm({ ...generalForm, comp_off_hours_per_day: Number(e.target.value) })} className={inputCls} />
+              <p className="text-[10px] text-slate-400 mt-1">Half of it makes half a day.</p>
             </div>
           </div>
+          <label className="flex items-start gap-2 text-xs cursor-pointer">
+            <input type="checkbox" checked={generalForm.count_sandwich_leave} onChange={(e) => setGeneralForm({ ...generalForm, count_sandwich_leave: e.target.checked })} className="mt-0.5" />
+            <span>
+              <span className="font-semibold text-slate-800 block">Count Weekly Offs and Holidays inside a leave ("sandwich" rule)</span>
+              <span className="text-slate-500">Off: they are not Leave Days. On: they are counted.</span>
+            </span>
+          </label>
+          <label className="flex items-start gap-2 text-xs cursor-pointer">
+            <input type="checkbox" checked={generalForm.approve_after_leave_started} onChange={(e) => setGeneralForm({ ...generalForm, approve_after_leave_started: e.target.checked })} className="mt-0.5" />
+            <span>
+              <span className="font-semibold text-slate-800 block">Approve after the leave has started</span>
+              <span className="text-slate-500">Lets the Admin approve a Pending request whose first day has passed.</span>
+            </span>
+          </label>
+          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+            <Btn onClick={() => setGeneralForm({ ...general })} disabled={!generalChanged}>Reset</Btn>
+            <Btn
+              variant="primary"
+              disabled={!generalChanged}
+              loading={updateGeneralMut.isPending}
+              onClick={async () => {
+                try {
+                  await updateGeneralMut.mutateAsync({
+                    leave_year_start: generalForm.leave_year_start,
+                    count_sandwich_leave: generalForm.count_sandwich_leave,
+                    pending_reminder_hours: generalForm.pending_reminder_hours,
+                    approve_after_leave_started: generalForm.approve_after_leave_started,
+                    year_end_processing: generalForm.year_end_processing,
+                    comp_off_hours_per_day: generalForm.comp_off_hours_per_day,
+                  });
+                  flash(true, 'General settings saved.');
+                } catch (e: any) {
+                  flash(false, errMessage(e));
+                }
+              }}
+            >
+              Save General settings
+            </Btn>
+          </div>
         </div>
       )}
+
+      {/* ------------------------------------------------------------ Change Log */}
+      {tab === 'changelog' && (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-x-auto">
+          <table className="w-full text-xs text-left">
+            <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-500">
+              <tr>
+                <th className="px-4 py-2.5">When</th>
+                <th className="px-3 py-2.5">Who</th>
+                <th className="px-3 py-2.5">Setting</th>
+                <th className="px-3 py-2.5">Field</th>
+                <th className="px-3 py-2.5">Old value</th>
+                <th className="px-3 py-2.5">New value</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {changeLog.length === 0 ? (
+                <tr><td colSpan={6} className="py-8 text-center text-slate-400">No changes recorded yet.</td></tr>
+              ) : (
+                changeLog.map((c) => (
+                  <tr key={c.log_id}>
+                    <td className="px-4 py-2 whitespace-nowrap text-slate-600">{fmtDateTime(c.changed_at)}</td>
+                    <td className="px-3 py-2 text-slate-700">{c.changed_by_name || '—'}</td>
+                    <td className="px-3 py-2 text-slate-700">{c.entity_name || c.entity_type}</td>
+                    <td className="px-3 py-2 font-mono text-[11px] text-slate-600">{c.field_name}</td>
+                    <td className="px-3 py-2 text-slate-500 max-w-[220px] truncate" title={c.old_value || ''}>{c.old_value ?? '—'}</td>
+                    <td className="px-3 py-2 text-slate-800 max-w-[220px] truncate" title={c.new_value || ''}>{c.new_value || '—'}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <LeaveTypeModal open={typeModal.open} editing={typeModal.editing} onClose={() => setTypeModal({ open: false, editing: null })} />
+      <PolicyEditor open={policyModal.open} editing={policyModal.editing} onClose={() => setPolicyModal({ open: false, editing: null })} />
+
+      <ConfirmModal
+        open={Boolean(deleteType)}
+        title={`Delete ${deleteType?.name}?`}
+        message="This leave type has never been used, so it can be deleted. A type that has been used can only be made Inactive."
+        confirmLabel="Delete"
+        variant="danger"
+        loading={deleteMut.isPending}
+        onCancel={() => setDeleteType(null)}
+        onConfirm={async () => {
+          if (!deleteType) return;
+          try {
+            await deleteMut.mutateAsync(deleteType.leave_type_id);
+            flash(true, `${deleteType.name} was deleted.`);
+          } catch (e: any) {
+            flash(false, errMessage(e));
+          }
+          setDeleteType(null);
+        }}
+      />
+
+      <Modal
+        open={Boolean(copySource)}
+        onClose={() => setCopySource(null)}
+        width="max-w-md"
+        title="Copy Policy"
+        subtitle={copySource ? `Make a new policy from ${copySource.name}` : ''}
+        footer={
+          <>
+            <Btn onClick={() => setCopySource(null)}>Cancel</Btn>
+            <Btn
+              variant="primary"
+              loading={copyMut.isPending}
+              onClick={async () => {
+                if (!copySource) return;
+                try {
+                  await copyMut.mutateAsync({ id: copySource.policy_id, new_name: copyName.trim() });
+                  flash(true, `${copyName.trim()} created.`);
+                  setCopySource(null);
+                } catch (e: any) {
+                  flash(false, errMessage(e));
+                }
+              }}
+            >
+              Copy
+            </Btn>
+          </>
+        }
+      >
+        <label className="block text-[11px] font-semibold text-slate-700 mb-1">New policy name <span className="text-rose-500">*</span></label>
+        <input value={copyName} onChange={(e) => setCopyName(e.target.value)} className={inputCls} />
+      </Modal>
     </div>
   );
 };

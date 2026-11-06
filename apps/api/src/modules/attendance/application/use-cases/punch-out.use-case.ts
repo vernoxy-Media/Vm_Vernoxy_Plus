@@ -40,7 +40,8 @@ export class PunchOutUseCase {
       ? await this.appSettingsRepo.getEmployeeWorkingMinutes(empId)
       : { fullDayMinutes: 480, halfDayMinutes: 240, fullDayHours: 8, halfDayHours: 4, graceMinutes: 0 };
 
-    if (!existingDay || !existingDay.checkInAt || existingDay.dayStatus === 'leave') {
+    // Leave lives in leave_request_days; any row with a check-in is a real check-in.
+    if (!existingDay || !existingDay.checkInAt) {
       throw new NotWorkingError('Cannot punch out before punching in');
     }
 

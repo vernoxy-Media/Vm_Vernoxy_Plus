@@ -58,6 +58,20 @@ export class DeactivateEmployeeUseCase {
       throw new ValidationDomainError('Invalid termination date format', 'termination_date');
     }
 
+    if (employee.joining_date) {
+      const joiningDate = new Date(employee.joining_date);
+      if (!isNaN(joiningDate.getTime())) {
+        const termDateStr = parsedTerminationDate.toISOString().slice(0, 10);
+        const joinDateStr = joiningDate.toISOString().slice(0, 10);
+        if (termDateStr < joinDateStr) {
+          throw new ValidationDomainError(
+            `Termination date (${termDateStr}) cannot be earlier than joining date (${joinDateStr})`,
+            'termination_date',
+          );
+        }
+      }
+    }
+
     const deactivated = await this.employeeRepo.deactivate(command.id, {
       termination_date: parsedTerminationDate,
       reason: trimmedReason,

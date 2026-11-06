@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
-import { MailPort, WelcomeCredentialsParams } from '../../application/ports/auth.ports';
+import { MailPort, WelcomeCredentialsParams, DocumentRequestMailParams } from '../../application/ports/auth.ports';
 
 @Injectable()
 export class SmtpMailAdapter implements MailPort {
@@ -183,4 +183,118 @@ The Vernoxy Pulse Team`;
       }
     }
   }
+
+  async sendDocumentRequest(params: DocumentRequestMailParams): Promise<void> {
+    const subject = 'Action Required: Pending Onboarding Documents - Vernoxy Pulse';
+
+    const documentRowsHtml = params.pendingDocuments
+      .map(
+        (doc, index) => `
+        <tr style="border-bottom: 1px solid #f1f5f9; ${index % 2 === 0 ? 'background-color: #fafbfc;' : 'background-color: #ffffff;'}">
+          <td style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #1e293b;">
+            ${doc.title}
+          </td>
+          <td style="padding: 12px 16px; font-size: 12px; color: #64748b;">
+            ${doc.category || 'General'}
+          </td>
+          <td style="padding: 12px 16px; text-align: right;">
+            ${
+              doc.isRequired
+                ? '<span style="display: inline-block; padding: 3px 8px; font-size: 11px; font-weight: 700; background-color: #fef3c7; color: #92400e; border: 1px solid #fde68a; border-radius: 6px;">Required</span>'
+                : '<span style="display: inline-block; padding: 3px 8px; font-size: 11px; font-weight: 600; background-color: #f1f5f9; color: #475569; border-radius: 6px;">Pending</span>'
+            }
+          </td>
+        </tr>
+      `
+      )
+      .join('');
+
+    const documentRowsText = params.pendingDocuments
+      .map(
+        (doc, index) =>
+          `${index + 1}. ${doc.title} (${doc.category || 'General'})${doc.isRequired ? ' [REQUIRED]' : ''}`
+      )
+      .join('\n');
+
+    const customMessageHtml = params.customMessage
+      ? `
+      <div style="background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 14px 16px; border-radius: 0 8px 8px 0; margin: 20px 0;">
+        <p style="font-size: 12px; font-weight: 700; color: #1e40af; text-transform: uppercase; margin: 0 0 4px 0;">Message from HR Team:</p>
+        <p style="font-size: 13px; color: #1e3a8a; margin: 0; line-height: 1.5;">${params.customMessage}</p>
+      </div>
+    `
+      : '';
+
+    const htmlBody = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 620px; margin: 0 auto; padding: 32px 24px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
+        <div style="border-bottom: 1px solid #f1f5f9; padding-bottom: 20px; margin-bottom: 24px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="font-size: 20px; font-weight: 800; color: #2563eb; letter-spacing: -0.5px;">Vernoxy Pulse</div>
+          </div>
+          <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Employee Onboarding Portal</span>
+        </div>
+
+        <p style="color: #0f172a; font-size: 16px; font-weight: 600; margin-top: 0;">
+          Dear ${params.candidateName},
+        </p>
+
+        <p style="color: #475569; font-size: 14px; line-height: 1.6;">
+          As part of completing your onboarding process with <strong>Vernoxy</strong>, please provide the following pending documents at your earliest convenience:
+        </p>
+
+        ${customMessageHtml}
+
+        <div style="margin: 24px 0; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+          <table style="width: 100%; border-collapse: collapse; text-align: left;">
+            <thead>
+              <tr style="background-color: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                <th style="padding: 10px 16px; font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Document</th>
+                <th style="padding: 10px 16px; font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Category</th>
+                <th style="padding: 10px 16px; font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; text-align: right;">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${documentRowsHtml}
+            </tbody>
+          </table>
+        </div>
+
+        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; margin: 24px 0;">
+          <h4 style="font-size: 12px; font-weight: 700; color: #334155; text-transform: uppercase; margin: 0 0 8px 0;">Submission Guidelines</h4>
+          <ul style="margin: 0; padding-left: 20px; font-size: 12px; color: #64748b; line-height: 1.6;">
+            <li>Allowed file formats: <strong>PDF, JPG, or PNG</strong>.</li>
+            <li>Maximum file size: <strong>5 MB</strong> per document.</li>
+            <li>Please ensure files are clear, complete, and legible.</li>
+            <li>You can reply directly to your HR contact with the attached documents or upload them when requested.</li>
+          </ul>
+        </div>
+
+        <p style="color: #64748b; font-size: 13px; line-height: 1.5;">
+          If you have any questions or have already submitted any of these documents, please let your HR contact know.
+        </p>
+
+        <hr style="border: none; border-top: 1px solid #f1f5f9; margin: 28px 0 16px;" />
+        <p style="color: #94a3b8; font-size: 11px; text-align: center; margin: 0;">
+          This is an automated onboarding notification from Vernoxy Pulse.
+        </p>
+      </div>
+    `;
+
+    const textBody = `Dear ${params.candidateName},\n\nAs part of completing your onboarding with Vernoxy, please provide the following pending documents:\n\n${documentRowsText}\n\n${params.customMessage ? `Message from HR:\n${params.customMessage}\n\n` : ''}Guidelines:\n- Allowed file formats: PDF, JPG, or PNG (up to 5MB each)\n- Ensure scans/copies are clear and legible.\n\nThank you,\nVernoxy HR Team`;
+
+    try {
+      await this.transporter.sendMail({
+        from: this.from,
+        to: params.to,
+        subject,
+        text: textBody,
+        html: htmlBody,
+      });
+      this.logger.log(`Document request email sent to ${params.to} for candidate ${params.candidateName}`);
+    } catch (err: any) {
+      this.logger.error(`Failed to send document request email to ${params.to}: ${err.message}`);
+      throw err;
+    }
+  }
+
 }

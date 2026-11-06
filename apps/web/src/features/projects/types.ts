@@ -139,7 +139,7 @@ export interface ProjectsFilterParams {
   search?: string;
 }
 
-export type SprintStatus = 'planned' | 'in_progress' | 'completed';
+export type SprintStatus = 'planned' | 'active' | 'completed';
 
 export interface SprintItem {
   sprint_id: number;
@@ -171,9 +171,11 @@ export interface ProjectTaskItem {
   priority?: string;
   stage?: string;
   status?: string;
+  start_date?: string | null;
   due_date?: string | null;
   allocated_minutes?: number | null;
   sprint_id?: number | null;
+  parent_task_id?: number | null;
   project_id: number;
   assignees: Array<{
     emp_id: number;
@@ -182,17 +184,34 @@ export interface ProjectTaskItem {
     profile_picture?: string | null;
   }>;
   progress_percentage: number;
+  /** Exact seconds worked, from the work log. */
+  logged_seconds?: number;
+  /** Seconds each employee worked on this task. */
+  time_by_employee?: Array<{ employee_id: number; employee_name: string; seconds: number }>;
   created_at: string;
 }
 
+/** Same fields as Create Task in the Task Module, plus Sprint (Project BFD 2.7). */
 export interface CreateProjectTaskPayload {
   title: string;
   description?: string;
-  priority?: 'low' | 'medium' | 'high' | 'urgent';
-  due_date?: string;
+  priority?: 'low' | 'medium' | 'high';
   allocated_minutes?: number;
   sprint_id?: number;
   assignee_ids: number[];
+  task_type_id?: number;
+  other_task_type?: string;
+  has_sub_tasks?: boolean;
+  lead_employee_id?: number;
+  sub_tasks?: Array<{
+    title: string;
+    description?: string;
+    allocated_minutes?: number;
+    assignee_ids: number[];
+    priority?: 'low' | 'medium' | 'high';
+    task_type_id?: number;
+    other_task_type?: string;
+  }>;
 }
 
 export interface ProjectDiscussionItem {
@@ -272,6 +291,8 @@ export interface ProjectBugItem {
   bug_type: BugType;
   other_bug_type?: string | null;
   attachment_url?: string | null;
+  start_date?: string | null;
+  due_date?: string | null;
   dev_started_at?: string | null;
   dev_ended_at?: string | null;
   qa_started_at?: string | null;
@@ -294,5 +315,39 @@ export interface CreateProjectBugPayload {
   other_bug_type?: string;
   attachment_url?: string;
   task_id?: number;
+  start_date?: string;
+  due_date?: string;
+  /** Screenshot or document, max 5 MB (uploaded before the bug is saved). */
+  attachment_file?: File | null;
 }
 
+
+/** A client (a won company) that a project can be for. */
+export interface ClientOption {
+  client_id: number;
+  client_code: string | null;
+  name: string;
+}
+
+export interface DeliveryCheck {
+  key: 'sprints' | 'issues' | 'bugs';
+  label: string;
+  done: boolean;
+  open: number;
+  detail: string;
+}
+
+/** Is the project ready to be delivered, and what is still open. */
+export interface DeliveryReadiness {
+  ready: boolean;
+  checks: DeliveryCheck[];
+  blockers: string[];
+  counts: {
+    openSprints: number;
+    openIssues: number;
+    openBugs: number;
+    overdueIssues: number;
+    estimatedMinutes: number;
+    loggedSeconds: number;
+  };
+}

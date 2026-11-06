@@ -1,14 +1,16 @@
 import React, { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import { Settings, ClipboardCheck, RefreshCw, Download, Clock, FileText, CheckCircle2, X } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { Settings, ClipboardCheck, RefreshCw, Download, Clock, FileText, CheckCircle2, X, Calendar } from 'lucide-react';
 import { getAccessToken } from '@vernoxy-pulse/api-client';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useAttendanceDashboard, usePunchActions } from '../hooks/use-attendance';
+import { EmployeeSwitcher, type SwitcherEmployee } from '../components/EmployeeSwitcher';
 import { AttendanceSkeleton } from '../components/AttendanceSkeleton';
 import { AttendanceDashboardCards } from '../components/AttendanceDashboardCards';
 import { AddRegularizationModal } from '../components/AddRegularizationModal';
 import { MyRegularizationsPanel } from '../components/MyRegularizationsPanel';
 import { ApprovalsPanel } from '../components/ApprovalsPanel';
+import { MyAttendanceCalendarSection } from '../components/MyAttendanceCalendarSection';
 
 const MONTH_OPTIONS = [
   { value: '01', label: 'January' },
@@ -27,21 +29,28 @@ const MONTH_OPTIONS = [
 
 export const AttendancePage: React.FC = () => {
   const { user } = useAuth();
-  const canManageAttendance = Boolean(
-    user?.access?.can_manage_organization ||
-      user?.role?.role_name?.toLowerCase().includes('admin') ||
-      user?.role?.role_name?.toLowerCase().includes('manager')
-  );
+  // Only administrators manage other people's attendance; everyone else works on their own.
+  const canManageAttendance = Boolean(user?.access?.can_manage_organization);
 
   const todayDateStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const currentMonthStr = useMemo(() => todayDateStr.slice(0, 7), [todayDateStr]);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlTab = searchParams.get('tab');
+  const validTabs: Array<'timesheet' | 'calendar' | 'regularization' | 'approvals'> = [
+    'timesheet',
+    'calendar',
+    'regularization',
+    'approvals',
+  ];
+  const initialTab = validTabs.includes(urlTab as any) ? (urlTab as any) : 'timesheet';
 
   const [selectedDate, setSelectedDate] = useState<string>(todayDateStr);
   const [selectedMonth, setSelectedMonth] = useState<string>(currentMonthStr);
   const [announcement, setAnnouncement] = useState<string>('');
   const [infoToast, setInfoToast] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [attendanceTab, setAttendanceTab] = useState<'timesheet' | 'regularization' | 'approvals'>('timesheet');
+  const [attendanceTab, setAttendanceTab] = useState<'timesheet' | 'calendar' | 'regularization' | 'approvals'>(initialTab);
   const [correctionModalDate, setCorrectionModalDate] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -53,7 +62,11 @@ export const AttendancePage: React.FC = () => {
     return [curYear + 1, curYear, curYear - 1, curYear - 2].map(String);
   }, []);
 
-  const { data, isLoading, error, refetch } = useAttendanceDashboard(selectedMonth);
+  // administrators can look at any employee; everybody else only ever sees themselves
+  const [viewEmp, setViewEmp] = useState<SwitcherEmployee | null>(null);
+  const viewing = canManageAttendance ? viewEmp : null;
+
+  const { data, isLoading, error, refetch } = useAttendanceDashboard(selectedMonth, viewing?.emp_id);
 
   const {
     punchInMutation,
@@ -173,7 +186,7 @@ export const AttendancePage: React.FC = () => {
       {/* Top Header matching reference image */}
       <div className="flex items-center justify-between pb-1">
         <div className="flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-2xl bg-indigo-50/80 border border-indigo-100 text-[#5B4CF8] flex items-center justify-center shrink-0 shadow-2xs">
+          <div className="w-11 h-11 rounded-2xl bg-indigo-50/80 border border-indigo-100 text-[color:var(--ac-main,#5B4CF8)] flex items-center justify-center shrink-0 shadow-2xs">
             <ClipboardCheck className="w-5 h-5 stroke-[1.75]" />
           </div>
           <div>
@@ -187,6 +200,15 @@ export const AttendancePage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2.5 shrink-0">
+          {canManageAttendance && user && (
+            <EmployeeSwitcher
+              value={viewing}
+              me={{ emp_id: user.emp_id, name: user.name ?? 'Me' }}
+              onChange={(e) => setViewEmp(e)}
+            />
+          )}
+
+          {canManageAttendance && (
           <button
             type="button"
             onClick={() => setIsExportModalOpen(true)}
@@ -197,6 +219,7 @@ export const AttendancePage: React.FC = () => {
             <Download className="w-3.5 h-3.5 text-slate-500 stroke-[1.75]" />
             <span>{isExporting ? 'Exporting...' : 'Export'}</span>
           </button>
+          )}
 
           <button
             type="button"
@@ -220,9 +243,9 @@ export const AttendancePage: React.FC = () => {
       </div>
 
       {/* Top Module Tabs: Timesheet & Dashboard, My Regularizations, Approvals */}
-      <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
+      <div className="border-b border-slate-200">
         <div
-          className="inline-flex items-center gap-1.5 p-1 bg-slate-100/80 border border-slate-200/80 rounded-2xl shadow-2xs"
+          className="-mb-px flex items-center gap-1 overflow-x-auto scrollbar-thin"
           role="tablist"
           aria-label="Attendance Sections"
         >
@@ -231,11 +254,14 @@ export const AttendancePage: React.FC = () => {
             id="attendance-tab-timesheet"
             role="tab"
             aria-selected={attendanceTab === 'timesheet'}
-            onClick={() => setAttendanceTab('timesheet')}
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            onClick={() => {
+              setAttendanceTab('timesheet');
+              setSearchParams({});
+            }}
+            className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-3.5 py-3 text-[13px] font-semibold transition-colors cursor-pointer ${
               attendanceTab === 'timesheet'
-                ? 'bg-white text-indigo-600 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                ? 'border-[color:var(--ac-main,#5B4CF8)] text-[color:var(--ac-main,#5B4CF8)]'
+                : 'border-transparent text-slate-500 hover:text-slate-900 hover:border-slate-300'
             }`}
           >
             <Clock className="w-3.5 h-3.5" />
@@ -244,14 +270,36 @@ export const AttendancePage: React.FC = () => {
 
           <button
             type="button"
+            id="attendance-tab-calendar"
+            role="tab"
+            aria-selected={attendanceTab === 'calendar'}
+            onClick={() => {
+              setAttendanceTab('calendar');
+              setSearchParams({ tab: 'calendar' });
+            }}
+            className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-3.5 py-3 text-[13px] font-semibold transition-colors cursor-pointer ${
+              attendanceTab === 'calendar'
+                ? 'border-[color:var(--ac-main,#5B4CF8)] text-[color:var(--ac-main,#5B4CF8)]'
+                : 'border-transparent text-slate-500 hover:text-slate-900 hover:border-slate-300'
+            }`}
+          >
+            <Calendar className="w-3.5 h-3.5" />
+            <span>My Attendance &amp; Calendar</span>
+          </button>
+
+          <button
+            type="button"
             id="attendance-tab-regularizations"
             role="tab"
             aria-selected={attendanceTab === 'regularization'}
-            onClick={() => setAttendanceTab('regularization')}
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            onClick={() => {
+              setAttendanceTab('regularization');
+              setSearchParams({ tab: 'regularization' });
+            }}
+            className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-3.5 py-3 text-[13px] font-semibold transition-colors cursor-pointer ${
               attendanceTab === 'regularization'
-                ? 'bg-white text-indigo-600 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                ? 'border-[color:var(--ac-main,#5B4CF8)] text-[color:var(--ac-main,#5B4CF8)]'
+                : 'border-transparent text-slate-500 hover:text-slate-900 hover:border-slate-300'
             }`}
           >
             <FileText className="w-3.5 h-3.5" />
@@ -264,16 +312,33 @@ export const AttendancePage: React.FC = () => {
               id="attendance-tab-approvals"
               role="tab"
               aria-selected={attendanceTab === 'approvals'}
-              onClick={() => setAttendanceTab('approvals')}
-              className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              onClick={() => {
+                setAttendanceTab('approvals');
+                setSearchParams({ tab: 'approvals' });
+              }}
+              className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-3.5 py-3 text-[13px] font-semibold transition-colors cursor-pointer ${
                 attendanceTab === 'approvals'
-                  ? 'bg-white text-indigo-600 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                  ? 'border-[color:var(--ac-main,#5B4CF8)] text-[color:var(--ac-main,#5B4CF8)]'
+                  : 'border-transparent text-slate-500 hover:text-slate-900 hover:border-slate-300'
               }`}
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
               <span>Approvals</span>
             </button>
+          )}
+
+          {canManageAttendance && (
+            <>
+              <span aria-hidden className="mx-1 h-5 w-px shrink-0 bg-slate-200" />
+              <Link
+                to="/attendance/register"
+                title="Everyone's daily attendance and reports"
+                className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 border-transparent px-3.5 py-3 text-[13px] font-semibold text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-900"
+              >
+                <ClipboardCheck className="w-3.5 h-3.5" />
+                <span>Attendance Register</span>
+              </Link>
+            </>
           )}
         </div>
       </div>
@@ -284,6 +349,7 @@ export const AttendancePage: React.FC = () => {
           statistics={statistics}
           monthSummary={month_summary}
           records={records}
+          shift={data?.shift}
           isPending={isPending}
           onPunchIn={handlePunchIn}
           onPunchOut={handlePunchOut}
@@ -305,15 +371,20 @@ export const AttendancePage: React.FC = () => {
           monthLabel="This Month"
           statusLabel="Live Shift"
           onOpenMyRequests={() => setAttendanceTab('regularization')}
+          viewing={viewing ? { emp_id: viewing.emp_id, name: viewing.name, onExit: () => setViewEmp(null) } : null}
         />
       )}
 
+      {attendanceTab === 'calendar' && (
+        <MyAttendanceCalendarSection />
+      )}
+
       {attendanceTab === 'regularization' && (
-        <MyRegularizationsPanel />
+        <MyRegularizationsPanel viewing={viewing} />
       )}
 
       {attendanceTab === 'approvals' && canManageAttendance && (
-        <ApprovalsPanel />
+        <ApprovalsPanel viewing={viewing} />
       )}
 
       {/* Export Monthly Attendance Modal */}
@@ -322,7 +393,7 @@ export const AttendancePage: React.FC = () => {
           <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 text-[#5B4CF8] flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 text-[color:var(--ac-main,#5B4CF8)] flex items-center justify-center">
                   <Download className="w-4 h-4 stroke-[2]" />
                 </div>
                 <div>
@@ -394,7 +465,7 @@ export const AttendancePage: React.FC = () => {
                 type="button"
                 onClick={() => handleExportCsv()}
                 disabled={isExporting}
-                className="px-4 py-2 rounded-xl bg-[#5B4CF8] hover:bg-indigo-600 text-white text-xs font-semibold shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                className="px-4 py-2 rounded-xl bg-[color:var(--ac-main,#5B4CF8)] hover:bg-indigo-600 text-white text-xs font-semibold shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>{isExporting ? 'Exporting...' : 'Download CSV'}</span>
@@ -409,6 +480,7 @@ export const AttendancePage: React.FC = () => {
         <AddRegularizationModal
           isOpen={true}
           initialDate={correctionModalDate}
+          empId={viewing?.emp_id}
           initialCheckIn={correctionRow?.punch_in}
           initialCheckOut={correctionRow?.punch_out}
           onClose={() => setCorrectionModalDate(null)}

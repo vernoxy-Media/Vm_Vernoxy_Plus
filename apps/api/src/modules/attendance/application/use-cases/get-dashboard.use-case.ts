@@ -12,9 +12,20 @@ import {
   TodayAttendanceBlock,
 } from '../../domain/services/today-block-builder';
 import { AttendanceNotFoundError } from '../../domain/errors/attendance.errors';
+import { loadLeaveForToday } from './leave-for-today';
 
 export interface DashboardResponseDto {
   today: TodayAttendanceBlock;
+  shift?: {
+    shift_id?: number;
+    shift_name: string;
+    start_time: string;
+    end_time: string;
+    late_arrival_grace_minutes: number;
+    early_exit_grace_minutes: number;
+    full_day_hours?: number;
+    half_day_hours?: number;
+  };
   stats: {
     today: { worked: number; target: number };
     week: { start: string; end: string; worked: number; target: number };
@@ -46,9 +57,15 @@ export interface DashboardResponseDto {
       production_minutes: number;
       break_minutes: number;
       day_status: string | null;
-      leave: { type_name: string; part: string } | null;
+      leave: { type_name: string; part: string; half?: string | null } | null;
       holiday_name: string | null;
       flags: Record<string, any>;
+      breaks?: Array<{ started_at: string; ended_at: string | null }>;
+      /** Filled in by the controller when the punch captured a location */
+      punch_location?: {
+        in: { latitude: number; longitude: number } | null;
+        out: { latitude: number; longitude: number } | null;
+      };
     }>;
     month_label: string;
     is_current_month: boolean;
@@ -152,8 +169,13 @@ export class GetDashboardUseCase {
     const todayHoliday = settings.holidays.find((h) => h.date === todayDateStr);
     const isTodayHoliday = !!todayHoliday;
     let todayBlock: TodayAttendanceBlock;
+    const { leave: todayLeave, pendingLeave: todayPendingLeave } = await loadLeaveForToday(
+      this.attendanceRepo,
+      empId,
+      todayDateStr,
+    );
 
-    if (todayRawDay && todayRawDay.check_in_at) {
+    if (todayRawDay && todayRawDay.check_in_at && todayRawDay.day_status !== 'leave') {
       const openBreak = todayRawDay.breaks.find((b) => b.ended_at === null);
       todayBlock = buildTodayBlock({
         now,
@@ -192,6 +214,8 @@ export class GetDashboardUseCase {
         isWeeklyOff: todayRawDay.state === 'weekly_off',
         isHoliday: todayRawDay.state === 'holiday',
         holidayName: todayRawDay.holiday_name,
+        leave: todayLeave,
+        pendingLeave: todayPendingLeave,
         fullDayMinutes: empHours.fullDayMinutes,
         halfDayMinutes: empHours.halfDayMinutes,
       });
@@ -205,6 +229,8 @@ export class GetDashboardUseCase {
         isWeeklyOff: isTodayWeeklyOff,
         isHoliday: isTodayHoliday,
         holidayName: todayHoliday?.name || null,
+        leave: todayLeave,
+        pendingLeave: todayPendingLeave,
         fullDayMinutes: empHours.fullDayMinutes,
         halfDayMinutes: empHours.halfDayMinutes,
       });
@@ -249,8 +275,47 @@ export class GetDashboardUseCase {
     const joiningMonthStr = joiningDate.slice(0, 7);
     const canGoPrev = prevMonthStr >= joiningMonthStr;
 
+    const assignedShiftId = settings.employee_shifts?.[String(empId)];
+    const employeeShift = (assignedShiftId ? settings.shifts.find((s) => s.shift_id === assignedShiftId) : null)
+      || settings.default_shift
+      || settings.shifts[0];
+
+    const formatTimeToHHMM = (val: any, fallback: string): string => {
+      if (!val) return fallback;
+      if (typeof val === 'string') {
+        const m = val.match(/(\d{1,2}):(\d{2})/);
+        if (m) return `${m[1].padStart(2, '0')}:${m[2]}`;
+      }
+      if (val instanceof Date) {
+        const h = String(val.getUTCHours()).padStart(2, '0');
+        const m = String(val.getUTCMinutes()).padStart(2, '0');
+        return `${h}:${m}`;
+      }
+      return fallback;
+    };
+
+    const shiftDto = employeeShift ? {
+      shift_id: employeeShift.shift_id,
+      shift_name: employeeShift.shift_name,
+      start_time: formatTimeToHHMM(employeeShift.start_time, '09:30'),
+      end_time: formatTimeToHHMM(employeeShift.end_time, '18:30'),
+      late_arrival_grace_minutes: Number(employeeShift.late_arrival_grace_minutes ?? 15),
+      early_exit_grace_minutes: Number(employeeShift.early_exit_grace_minutes ?? 15),
+      full_day_hours: Number(employeeShift.full_day_hours ?? 8),
+      half_day_hours: Number(employeeShift.half_day_hours ?? 4),
+    } : {
+      shift_name: 'General Shift',
+      start_time: '09:30',
+      end_time: '18:30',
+      late_arrival_grace_minutes: 15,
+      early_exit_grace_minutes: 15,
+      full_day_hours: 8,
+      half_day_hours: 4,
+    };
+
     return {
       today: todayBlock,
+      shift: shiftDto,
       stats: {
         today: {
           worked: todayBlock.worked_minutes_so_far,
@@ -273,14 +338,18 @@ export class GetDashboardUseCase {
         days: visibleDays.map((d) => ({
           date: d.date,
           state: d.state,
-          check_in_at: d.check_in_at ? d.check_in_at.toISOString() : null,
-          check_out_at: d.check_out_at ? d.check_out_at.toISOString() : null,
+          check_in_at: d.state !== 'leave' && d.check_in_at ? d.check_in_at.toISOString() : null,
+          check_out_at: d.state !== 'leave' && d.check_out_at ? d.check_out_at.toISOString() : null,
           production_minutes: d.production_minutes,
           break_minutes: d.break_minutes,
           day_status: d.day_status,
           leave: d.leave,
           holiday_name: d.holiday_name,
           flags: d.flags,
+          breaks: d.breaks.map((b) => ({
+            started_at: b.started_at.toISOString(),
+            ended_at: b.ended_at ? b.ended_at.toISOString() : null,
+          })),
         })),
         month_label: monthLabel,
         is_current_month: isCurrentMonth,

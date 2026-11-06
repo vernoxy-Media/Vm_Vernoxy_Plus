@@ -13,6 +13,7 @@ import { EmployeeDirectoryAdapter } from './infrastructure/adapters/employee-dir
 import { TaskSystemClock } from './infrastructure/adapters/system-clock.adapter';
 import { PrismaTaskRepository } from './infrastructure/repositories/prisma-task.repository';
 import { CreateTaskUseCase } from './application/use-cases/create-task.use-case';
+import { AddSubTaskUseCase } from './application/use-cases/add-sub-task.use-case';
 import { GetAdminBoardUseCase } from './application/use-cases/get-admin-board.use-case';
 import { GetAdminSummaryUseCase } from './application/use-cases/get-admin-summary.use-case';
 import { GetAssignableEmployeesUseCase } from './application/use-cases/get-assignable-employees.use-case';
@@ -73,6 +74,12 @@ import { TaskAdminGuard } from './presentation/guards/task-admin.guard';
       provide: GetSubTasksUseCase,
       useFactory: (repo: TaskRepositoryPort) => new GetSubTasksUseCase(repo),
       inject: [TASK_TOKENS.TaskRepository],
+    },
+    {
+      provide: AddSubTaskUseCase,
+      useFactory: (repo: TaskRepositoryPort, dir: EmployeeDirectoryPort, notif: CreateNotificationUseCase) =>
+        new AddSubTaskUseCase(repo, dir, notif),
+      inject: [TASK_TOKENS.TaskRepository, TASK_TOKENS.EmployeeDirectory, CreateNotificationUseCase],
     },
     {
       provide: UpdateTaskUseCase,
@@ -144,6 +151,6 @@ import { TaskAdminGuard } from './presentation/guards/task-admin.guard';
       inject: [TASK_TOKENS.EmployeeDirectory],
     },
   ],
-  exports: [TASK_TOKENS.TaskRepository],
+  exports: [TASK_TOKENS.TaskRepository, CreateTaskUseCase, AddSubTaskUseCase],
 })
 export class TasksModule {}

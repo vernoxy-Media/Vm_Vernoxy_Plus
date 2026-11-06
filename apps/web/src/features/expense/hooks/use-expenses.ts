@@ -1,396 +1,453 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { customFetch } from '@vernoxy-pulse/api-client';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { customFetch, getAccessToken } from '@vernoxy-pulse/api-client';
 
 // =============================================================================
-// Interfaces & Types
+// Types (Expense Management BFD 1.0)
 // =============================================================================
 
 export type ExpenseType = 'Office Expense' | 'Personal Expense';
+export type ClaimStatus = 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED' | 'REIMBURSED';
+/** Labels come from the expense_payment_mode lookup. */
+export type PaymentMode = string;
 
-export type ClaimStatus =
-  | 'DRAFT'
-  | 'SUBMITTED'
-  | 'APPROVED'
-  | 'REJECTED'
-  | 'REIMBURSED';
-
-export type RejectionReason =
-  | 'Receipt missing or unclear'
-  | 'Amount does not match receipt'
-  | 'Not a business expense'
-  | 'Not allowed under policy'
-  | 'Above policy limit'
-  | 'Duplicate claim'
-  | 'Submitted too late'
-  | 'Wrong category or type'
-  | 'Other';
-
-export type PaymentMode = 'Bank Transfer' | 'UPI' | 'Cash' | 'Cheque';
-
-export interface ExpenseClaimSummary {
-  claim_id: number;
-  claim_no: string;
+export interface ExpenseMe {
   emp_id: number;
-  expense_date: string;
-  category_id: number;
-  expense_type: ExpenseType;
-  amount: number;
-  merchant_name?: string | null;
-  description: string;
+  is_admin: boolean;
+  is_accounts: boolean;
+  is_approver: boolean;
+  approver_department_ids: number[];
+  can_use_claims: boolean;
+  can_reimburse: boolean;
+}
+
+export interface LookupOption {
+  code: string;
+  label: string;
+}
+
+export interface ClaimFlag {
+  code: 'ABOVE_LIMIT' | 'POSSIBLE_DUPLICATE' | 'LATE';
+  label: string;
+  message: string;
+  claim_no?: string | null;
+  claim_id?: number | null;
+}
+
+export interface MyClaimRow {
+  claim_id: number;
+  claim_no: string | null;
+  expense_date: string | null;
+  category_id: number | null;
+  category_name: string | null;
+  expense_type: string | null;
+  amount: number | null;
+  merchant_name: string | null;
   status: ClaimStatus;
+  rejection_reason: string | null;
+  decision_remarks: string | null;
   is_above_limit: boolean;
   is_possible_duplicate: boolean;
-  duplicate_reference_claim_id?: number | null;
   is_late: boolean;
-  submitted_at?: string | null;
-  approver_emp_id?: number | null;
-  decided_at?: string | null;
-  decided_by?: number | null;
-  decision_remarks?: string | null;
-  rejection_reason?: string | null;
-  flags_acknowledged?: boolean;
-  reimbursement_method?: 'DIRECT' | 'PAYROLL' | null;
-  reimbursed_at?: string | null;
-  reimbursed_by?: number | null;
-  payment_mode?: PaymentMode | null;
-  payment_reference_no?: string | null;
-  payment_date?: string | null;
-  payroll_run_id?: number | null;
-  copied_from_claim_id?: number | null;
-  created_at: string;
-  category?: {
-    category_id: number;
-    name: string;
-    code?: string | null;
-    allowed_type: string;
-    limit_per_claim?: number | null;
+  receipts: number;
+  can_delete: boolean;
+  actions: Array<'EDIT' | 'DELETE' | 'WITHDRAW' | 'COPY' | 'VIEW'>;
+}
+
+export interface MyClaimsResponse {
+  counters: {
+    drafts: number;
+    waiting_amount: number;
+    waiting_count: number;
+    approved_unpaid_amount: number;
+    reimbursed_this_year: number;
   };
-  approver?: {
-    emp_id: number;
-    name: string;
-    email: string;
-  } | null;
-  employee_name?: string;
-  department_name?: string | null;
-  category_name?: string;
+  has_any_claim: boolean;
+  period: { month: string; from: string; to: string };
+  total: number;
+  page: number;
+  page_size: number;
+  rows: MyClaimRow[];
 }
 
-export interface ExpenseClaimStats {
-  totalClaimed: number;
-  pendingApproval: number;
-  approvedReady: number;
-  reimbursedTotal: number;
-  draftCount: number;
-  submittedCount: number;
-  approvedCount: number;
-  rejectedCount: number;
-  reimbursedCount: number;
+export interface MyClaimsFilter {
+  month?: string;
+  from_date?: string;
+  to_date?: string;
+  status?: string;
+  category_id?: number;
+  expense_type?: string;
+  page?: number;
 }
 
-export interface MyExpensesResponse {
-  stats: ExpenseClaimStats;
-  claims: ExpenseClaimSummary[];
+export interface FormCategory {
+  category_id: number;
+  name: string;
+  allowed_type: 'OFFICE' | 'PERSONAL' | 'BOTH';
+  limit_per_claim: number | null;
+  receipt_rule: 'ALWAYS' | 'ABOVE_THRESHOLD';
+  receipt_threshold_amount: number;
 }
 
-export interface AttachmentItem {
+export interface FormOptions {
+  employee: { emp_id: number; name: string; emp_code: string; department_name: string | null };
+  categories: FormCategory[];
+  types: Array<{ code: string; name: string }>;
+  claim_window_days: number;
+  after_claim_window_action: 'FLAG_AS_LATE' | 'STOP_SUBMISSION';
+  today: string;
+}
+
+export interface ReceiptItem {
   attachment_id: number;
   file_name: string;
   file_url: string;
+  mime_type: string | null;
   file_size_bytes: number;
-  mime_type: string;
-  display_order: number;
-  created_at: string;
 }
 
-export interface ClaimHistoryItem {
-  history_id: number;
+export interface ClaimDetails {
   claim_id: number;
-  event: string;
-  performed_by: number;
-  performed_by_name: string;
-  performed_at: string;
-  remarks?: string | null;
-  details?: string | null;
-}
-
-export interface ExpenseClaimDetails extends ExpenseClaimSummary {
-  employee?: {
-    emp_id: number;
-    name: string;
-    email: string;
-    dep_id?: number;
-    department_name?: string | null;
+  claim_no: string | null;
+  status: ClaimStatus;
+  emp_id: number;
+  employee: { emp_id: number; name: string; emp_code: string; department_name: string | null };
+  expense_date: string | null;
+  category_id: number | null;
+  category: (FormCategory & { is_active: boolean }) | null;
+  expense_type: string | null;
+  amount: number | null;
+  merchant_name: string | null;
+  description: string | null;
+  submitted_at: string | null;
+  approver_name: string | null;
+  decided_at: string | null;
+  decided_by_name: string | null;
+  decision_remarks: string | null;
+  rejection_reason: string | null;
+  is_self_approved: boolean;
+  flags: ClaimFlag[];
+  checks: Array<{ ok: boolean; label: string; claim_id?: number | null }>;
+  copied_from_claim_id: number | null;
+  reimbursement_method: 'DIRECT' | 'PAYROLL' | null;
+  payment_mode: string | null;
+  payment_reference_no: string | null;
+  payment_date: string | null;
+  payroll_run_id: number | null;
+  bank: { bank_name: string | null; account_number: string | null; ifsc_code: string | null } | null;
+  receipts: ReceiptItem[];
+  history: Array<{ at: string; event: string; by: string | null; summary: string | null }>;
+  permissions: {
+    can_edit: boolean;
+    can_withdraw: boolean;
+    can_copy: boolean;
+    can_delete: boolean;
+    can_decide: boolean;
+    self_approval: boolean;
+    can_reopen: boolean;
+    can_pay: boolean;
   };
-  decided_by_user?: {
-    emp_id: number;
-    name: string;
-    email: string;
-  } | null;
-  attachments: AttachmentItem[];
-  history: ClaimHistoryItem[];
 }
 
-export interface CreateExpenseClaimPayload {
-  expense_date: string;
-  category_id: number;
-  expense_type: ExpenseType;
-  amount: number;
-  merchant_name?: string;
-  description: string;
-  submit_immediately?: boolean;
-  attachment_ids?: number[];
-}
-
-export interface UpdateExpenseClaimPayload {
+export interface SaveClaimPayload {
   expense_date?: string;
-  category_id?: number;
-  expense_type?: ExpenseType;
-  amount?: number;
-  merchant_name?: string;
-  description?: string;
+  category_id?: number | null;
+  expense_type?: string | null;
+  amount?: number | null;
+  merchant_name?: string | null;
+  description?: string | null;
   attachment_ids?: number[];
+  submit?: boolean;
+  confirm_flags?: boolean;
+  copied_from_claim_id?: number;
 }
 
-export interface ReviewClaimPayload {
-  action: 'APPROVE' | 'REJECT';
-  rejection_reason?: RejectionReason;
-  decision_remarks?: string;
-  flags_acknowledged?: boolean;
+export interface ClaimListRow {
+  claim_id: number;
+  claim_no: string;
+  emp_id: number;
+  employee_name: string;
+  department_name: string | null;
+  expense_date: string;
+  category_name: string | null;
+  expense_type: string;
+  amount: number;
+  status: ClaimStatus;
+  is_above_limit: boolean;
+  is_possible_duplicate: boolean;
+  is_late: boolean;
+  is_self_approved: boolean;
+  submitted_at: string | null;
+  decided_at: string | null;
+  decided_by_name: string | null;
+  flags: string[];
 }
 
-export interface ReopenClaimPayload {
-  remarks?: string;
-  target_status?: 'SUBMITTED' | 'DRAFT';
+export interface ClaimsListFilter {
+  tab?: string;
+  emp_id?: number;
+  department_id?: number;
+  category_id?: number;
+  expense_type?: string;
+  from_date?: string;
+  to_date?: string;
+  search?: string;
+  page?: number;
 }
 
-export interface DirectReimbursementPayload {
-  payment_mode: PaymentMode;
-  payment_reference_no: string;
-  payment_date: string;
+export interface ClaimsListResponse {
+  tab: string;
+  tabs: string[];
+  viewer: { is_admin: boolean; is_accounts: boolean; is_approver: boolean };
+  counters: {
+    waiting_count: number;
+    waiting_amount: number;
+    approved_this_month: number;
+    oldest_waiting_days: number;
+    approved_unpaid_amount: number;
+    approved_unpaid_count: number;
+  };
+  total: number;
+  page: number;
+  page_size: number;
+  rows: ClaimListRow[];
 }
 
-export interface PayrollReimbursementPayload {
-  payroll_run_id?: number;
+export interface ReimbursementRow {
+  claim_id: number;
+  claim_no: string;
+  emp_id: number;
+  employee_name: string;
+  department_name: string | null;
+  bank_name: string | null;
+  account_number: string | null;
+  ifsc_code: string | null;
+  employee_status: string;
+  expense_date: string;
+  category_name: string | null;
+  expense_type: string;
+  amount: number;
+  status: ClaimStatus;
+  decided_at: string | null;
+  reimbursement_method: 'DIRECT' | 'PAYROLL' | null;
+  payroll_run_id: number | null;
+  payroll_month: number | null;
+  payroll_year: number | null;
+  payroll_status: string | null;
+  payment_date: string | null;
+  payment_mode: string | null;
+  payment_reference_no: string | null;
 }
 
 // =============================================================================
-// React Query Hooks
+// Helpers
 // =============================================================================
 
-export function useMyExpenses(status?: string) {
+const qs = (o: Record<string, any>) => {
+  const p = new URLSearchParams();
+  Object.entries(o).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== '') p.append(k, String(v));
+  });
+  const s = p.toString();
+  return s ? `?${s}` : '';
+};
+
+/** Reads a server error (problem+json) as one sentence. */
+export function errorText(err: any, fallback = 'Something went wrong. Please try again.'): string {
+  if (!err) return fallback;
+  if (typeof err === 'string') return err;
+  return err.detail || err.message || fallback;
+}
+
+/** Field errors from the server, keyed by field. */
+export function fieldErrors(err: any): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const e of err?.errors || []) if (e?.field && e.field !== 'flags' && !out[e.field]) out[e.field] = e.message;
+  return out;
+}
+
+/** The "Submit anyway?" answer is needed when the server returns FLAGS_CONFIRM. */
+export function flagsToConfirm(err: any): ClaimFlag[] | null {
+  if (err?.code !== 'FLAGS_CONFIRM') return null;
+  return (err.errors || []).filter((e: any) => e.field === 'flags').map((e: any) => ({ code: e.code, label: e.code, message: e.message }));
+}
+
+/** Downloads a file from the API with the signed-in token. */
+export async function downloadFile(url: string, filename: string) {
+  const headers: Record<string, string> = { 'X-Requested-With': 'pulse-web' };
+  const token = getAccessToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const res = await fetch(url, { headers, credentials: 'include' });
+  if (!res.ok) {
+    let msg = 'Download failed.';
+    try {
+      const j = await res.json();
+      msg = j.detail || j.message || msg;
+    } catch {
+      /* ignore */
+    }
+    throw new Error(msg);
+  }
+  const blob = await res.blob();
+  const href = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = href;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(href);
+}
+
+/** Receipt upload; linked to the claim on Save/Submit. */
+export async function uploadReceipt(file: File): Promise<ReceiptItem> {
+  const form = new FormData();
+  form.append('file', file);
+  form.append('entity_type', 'EXPENSE_CLAIM');
+  form.append('entity_id', '0');
+  const r = await customFetch<any>('/api/v1/attachments/upload', { method: 'POST', body: form });
+  return {
+    attachment_id: r.attachment_id,
+    file_name: r.file_name ?? file.name,
+    file_url: r.file_url,
+    mime_type: r.mime_type ?? file.type,
+    file_size_bytes: Number(r.file_size_bytes ?? file.size),
+  };
+}
+
+export const receiptUrl = (id: number) => `/api/v1/attachments/${id}/download`;
+
+const BASE = '/api/v1/expense';
+const json = (method: string, body?: unknown): RequestInit => ({ method, body: body === undefined ? undefined : JSON.stringify(body) });
+
+// =============================================================================
+// Queries
+// =============================================================================
+
+export function useExpenseMe() {
+  return useQuery({ queryKey: ['expenses', 'me'], queryFn: () => customFetch<ExpenseMe>(`${BASE}/me`), staleTime: 60_000 });
+}
+
+export function useExpenseLookups() {
   return useQuery({
-    queryKey: ['expenses', 'my', status || 'ALL'],
-    queryFn: () => {
-      const url =
-        status && status !== 'ALL'
-          ? `/api/v1/expense/claims/my?status=${encodeURIComponent(status)}`
-          : '/api/v1/expense/claims/my';
-      return customFetch<MyExpensesResponse>(url);
-    },
+    queryKey: ['expenses', 'lookups'],
+    queryFn: () => customFetch<{ rejection_reasons: LookupOption[]; payment_modes: LookupOption[] }>(`${BASE}/lookups`),
+    staleTime: 5 * 60_000,
   });
 }
 
-export function useExpenseClaimDetails(claimId: number | null) {
+export function useMyClaims(filter: MyClaimsFilter) {
+  return useQuery({
+    queryKey: ['expenses', 'my', filter],
+    queryFn: () => customFetch<MyClaimsResponse>(`${BASE}/claims/my${qs(filter)}`),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useFormOptions(enabled = true) {
+  return useQuery({ queryKey: ['expenses', 'form-options'], queryFn: () => customFetch<FormOptions>(`${BASE}/claims/form-options`), enabled });
+}
+
+export function useClaimDetails(claimId: number | null) {
   return useQuery({
     queryKey: ['expenses', 'claim', claimId],
-    queryFn: () => customFetch<ExpenseClaimDetails>(`/api/v1/expense/claims/${claimId}`),
-    enabled: Boolean(claimId && claimId > 0),
+    queryFn: () => customFetch<ClaimDetails>(`${BASE}/claims/${claimId}`),
+    enabled: !!claimId,
   });
 }
 
-export function useCreateExpenseClaim() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (payload: CreateExpenseClaimPayload) =>
-      customFetch<ExpenseClaimSummary>('/api/v1/expense/claims', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['expenses'] });
-    },
-  });
-}
-
-export function useUpdateExpenseClaim() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: UpdateExpenseClaimPayload }) =>
-      customFetch<ExpenseClaimSummary>(`/api/v1/expense/claims/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      }),
-    onSuccess: (_, vars) => {
-      queryClient.invalidateQueries({ queryKey: ['expenses'] });
-      queryClient.invalidateQueries({ queryKey: ['expenses', 'claim', vars.id] });
-    },
-  });
-}
-
-export function useSubmitDraftClaim() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: number) =>
-      customFetch<ExpenseClaimSummary>(`/api/v1/expense/claims/${id}/submit`, {
-        method: 'POST',
-      }),
-    onSuccess: (_, id) => {
-      queryClient.invalidateQueries({ queryKey: ['expenses'] });
-      queryClient.invalidateQueries({ queryKey: ['expenses', 'claim', id] });
-    },
-  });
-}
-
-export function useWithdrawClaim() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: number) =>
-      customFetch<ExpenseClaimSummary>(`/api/v1/expense/claims/${id}/withdraw`, {
-        method: 'POST',
-      }),
-    onSuccess: (_, id) => {
-      queryClient.invalidateQueries({ queryKey: ['expenses'] });
-      queryClient.invalidateQueries({ queryKey: ['expenses', 'claim', id] });
-    },
-  });
-}
-
-export function useDeleteDraftClaim() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: number) =>
-      customFetch<void>(`/api/v1/expense/claims/${id}`, {
-        method: 'DELETE',
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['expenses'] });
-    },
-  });
-}
-
-export function useCopyToDraftClaim() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: number) =>
-      customFetch<ExpenseClaimSummary>(`/api/v1/expense/claims/${id}/copy-to-draft`, {
-        method: 'POST',
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['expenses'] });
-    },
-  });
-}
-
-// -----------------------------------------------------------------------------
-// Approvals Queue Hooks
-// -----------------------------------------------------------------------------
-
-export function useApprovalsQueue() {
+export function useClaimsList(filter: ClaimsListFilter, enabled = true) {
   return useQuery({
-    queryKey: ['expenses', 'approvals-queue'],
-    queryFn: () => customFetch<ExpenseClaimSummary[]>('/api/v1/expense/approvals/queue'),
+    queryKey: ['expenses', 'list', filter],
+    queryFn: () => customFetch<ClaimsListResponse>(`${BASE}/claims${qs(filter)}`),
+    placeholderData: keepPreviousData,
+    enabled,
   });
 }
 
-export function useReviewClaim() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: ReviewClaimPayload }) =>
-      customFetch<ExpenseClaimSummary>(`/api/v1/expense/approvals/${id}/review`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      }),
-    onSuccess: (_, vars) => {
-      queryClient.invalidateQueries({ queryKey: ['expenses'] });
-      queryClient.invalidateQueries({ queryKey: ['expenses', 'claim', vars.id] });
-    },
-  });
-}
-
-// -----------------------------------------------------------------------------
-// Admin Reopen Hook
-// -----------------------------------------------------------------------------
-
-export function useReopenClaim() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: ReopenClaimPayload }) =>
-      customFetch<ExpenseClaimSummary>(`/api/v1/expense/claims/${id}/reopen`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      }),
-    onSuccess: (_, vars) => {
-      queryClient.invalidateQueries({ queryKey: ['expenses'] });
-      queryClient.invalidateQueries({ queryKey: ['expenses', 'claim', vars.id] });
-    },
-  });
-}
-
-// -----------------------------------------------------------------------------
-// Reimbursement Queue Hooks
-// -----------------------------------------------------------------------------
-
-export function useReimbursementQueue(status?: string) {
+export function useReimbursements(status: string, enabled = true) {
   return useQuery({
-    queryKey: ['expenses', 'reimbursements-queue', status || 'APPROVED'],
-    queryFn: () => {
-      const url = status
-        ? `/api/v1/expense/reimbursements/queue?status=${encodeURIComponent(status)}`
-        : '/api/v1/expense/reimbursements/queue';
-      return customFetch<ExpenseClaimSummary[]>(url);
+    queryKey: ['expenses', 'reimbursements', status],
+    queryFn: () => customFetch<ReimbursementRow[]>(`${BASE}/reimbursements${qs({ status })}`),
+    enabled,
+  });
+}
+
+export function useDraftPayrollRuns(enabled = true) {
+  return useQuery({
+    queryKey: ['expenses', 'payroll-runs'],
+    queryFn: () => customFetch<Array<{ payroll_run_id: number; payroll_month: number; payroll_year: number }>>(`${BASE}/reimbursements/payroll-runs`),
+    enabled,
+  });
+}
+
+export const exportClaimsList = (filter: ClaimsListFilter, date: string) =>
+  downloadFile(`${BASE}/claims/export${qs({ ...filter, page: undefined })}`, `expense-claims-${date}.xlsx`);
+
+export const downloadAllReceipts = (claimId: number, claimNo: string | null) =>
+  downloadFile(`${BASE}/claims/${claimId}/receipts.zip`, `${(claimNo || `claim-${claimId}`).replace(/\//g, '-')}-receipts.zip`);
+
+// =============================================================================
+// Mutations
+// =============================================================================
+
+/** What claim actions return: just enough to show a message; lists refetch. */
+export interface ClaimResult {
+  claim_id: number;
+  claim_no: string | null;
+  status: ClaimStatus;
+}
+
+function useExpenseMutation<TVars, TOut = ClaimResult>(fn: (v: TVars) => Promise<TOut>) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['expenses'] });
     },
   });
 }
 
-export function useProcessDirectReimbursement() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: DirectReimbursementPayload }) =>
-      customFetch<ExpenseClaimSummary>(`/api/v1/expense/reimbursements/${id}/direct`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      }),
-    onSuccess: (_, vars) => {
-      queryClient.invalidateQueries({ queryKey: ['expenses'] });
-      queryClient.invalidateQueries({ queryKey: ['expenses', 'claim', vars.id] });
-    },
-  });
-}
+export const useSaveClaim = () =>
+  useExpenseMutation(({ id, payload }: { id: number | null; payload: SaveClaimPayload }) =>
+    customFetch<ClaimResult>(id ? `${BASE}/claims/${id}` : `${BASE}/claims`, json(id ? 'PUT' : 'POST', payload)),
+  );
 
-export function useAddToPayroll() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, data }: { id: number; data?: PayrollReimbursementPayload }) =>
-      customFetch<ExpenseClaimSummary>(`/api/v1/expense/reimbursements/${id}/add-to-payroll`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data || {}),
-      }),
-    onSuccess: (_, vars) => {
-      queryClient.invalidateQueries({ queryKey: ['expenses'] });
-      queryClient.invalidateQueries({ queryKey: ['expenses', 'claim', vars.id] });
-    },
-  });
-}
+export const useSubmitClaim = () =>
+  useExpenseMutation(({ id, confirm_flags }: { id: number; confirm_flags?: boolean }) =>
+    customFetch<ClaimResult>(`${BASE}/claims/${id}/submit`, json('POST', { confirm_flags })),
+  );
 
-export function useRemoveFromPayroll() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: number) =>
-      customFetch<ExpenseClaimSummary>(`/api/v1/expense/reimbursements/${id}/remove-from-payroll`, {
-        method: 'POST',
-      }),
-    onSuccess: (_, id) => {
-      queryClient.invalidateQueries({ queryKey: ['expenses'] });
-      queryClient.invalidateQueries({ queryKey: ['expenses', 'claim', id] });
-    },
-  });
-}
+export const useWithdrawClaim = () =>
+  useExpenseMutation(({ id, reason }: { id: number; reason?: string }) =>
+    customFetch<ClaimResult>(`${BASE}/claims/${id}/withdraw`, json('POST', { reason: reason || undefined })),
+  );
+
+export const useDeleteClaim = () => useExpenseMutation((id: number) => customFetch<{ success: boolean }>(`${BASE}/claims/${id}`, { method: 'DELETE' }));
+
+export const useCopyClaim = () => useExpenseMutation((id: number) => customFetch<ClaimResult>(`${BASE}/claims/${id}/copy`, json('POST', {})));
+
+export const useApproveClaim = () =>
+  useExpenseMutation(({ id, remarks, flags_acknowledged }: { id: number; remarks?: string; flags_acknowledged?: boolean }) =>
+    customFetch<ClaimResult>(`${BASE}/claims/${id}/approve`, json('POST', { remarks: remarks || undefined, flags_acknowledged })),
+  );
+
+export const useRejectClaim = () =>
+  useExpenseMutation(({ id, reason_code, remarks }: { id: number; reason_code: string; remarks: string }) =>
+    customFetch<ClaimResult>(`${BASE}/claims/${id}/reject`, json('POST', { reason_code, remarks })),
+  );
+
+export const useReopenClaim = () =>
+  useExpenseMutation(({ id, reason }: { id: number; reason: string }) => customFetch<ClaimResult>(`${BASE}/claims/${id}/reopen`, json('POST', { reason })));
+
+export const useRecordPayment = () =>
+  useExpenseMutation((p: { claim_ids: number[]; payment_date: string; payment_mode_code: string; payment_reference_no: string }) =>
+    customFetch<{ success: boolean; count: number; total: number }>(`${BASE}/reimbursements/pay`, json('POST', p)),
+  );
+
+export const useAddToPayroll = () =>
+  useExpenseMutation((p: { claim_ids: number[]; payroll_run_id: number }) =>
+    customFetch<{ success: boolean; count: number }>(`${BASE}/reimbursements/payroll`, json('POST', p)),
+  );
 
 // =============================================================================
 // Expense Reports (Section 11)
@@ -520,3 +577,11 @@ export function useExpenseReports(filters: ExpenseReportsFilter = {}) {
   });
 }
 
+
+export function exportExpenseReports(filters: ExpenseReportsFilter) {
+  const p = new URLSearchParams();
+  Object.entries(filters).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== '') p.append(k, String(v));
+  });
+  return downloadFile(`/api/v1/expense/reports/export?${p.toString()}`, `expense-report-${filters.from_date || filters.month || 'period'}.xlsx`);
+}

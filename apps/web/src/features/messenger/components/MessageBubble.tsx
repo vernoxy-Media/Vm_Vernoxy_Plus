@@ -150,7 +150,7 @@ export const MessageBubble: React.FC<Props> = (p) => {
     fn();
   };
 
-  const bubble = mine ? 'bg-[#e0e7ff] rounded-tr-none' : 'bg-white rounded-tl-none';
+  const bubble = mine ? 'bg-[var(--chat-mine,#e0e7ff)] rounded-tr-none' : 'bg-white rounded-tl-none';
   const radius = p.firstOfRun ? '' : mine ? 'rounded-tr-lg' : 'rounded-tl-lg';
 
   const row = (Icon: React.ElementType, label: string, fn: () => void, danger?: boolean) => (
@@ -250,7 +250,7 @@ export const MessageBubble: React.FC<Props> = (p) => {
             aria-haspopup="menu"
             aria-expanded={menu}
             onClick={() => (menu ? setMenu(false) : openMenu())}
-            className={`absolute right-1 top-1 rounded-full bg-gradient-to-l ${mine ? 'from-[#e0e7ff]' : 'from-white'} to-transparent p-1 text-slate-500 opacity-0 transition focus:opacity-100 group-hover:opacity-100 max-sm:hidden`}
+            className={`absolute right-1 top-1 rounded-full bg-gradient-to-l ${mine ? 'from-[var(--chat-mine,#e0e7ff)]' : 'from-white'} to-transparent p-1 text-slate-500 opacity-0 transition focus:opacity-100 group-hover:opacity-100 max-sm:hidden`}
           >
             <ChevronDown className="h-4 w-4" />
           </button>

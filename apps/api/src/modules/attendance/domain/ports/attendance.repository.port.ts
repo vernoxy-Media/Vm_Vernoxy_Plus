@@ -119,7 +119,7 @@ export interface AttendanceRepository {
       production_minutes: number;
       break_minutes: number;
       day_status: string | null;
-      leave: { type_name: string; part: string } | null;
+      leave: { type_name: string; part: string; [key: string]: any } | null;
       holiday_name: string | null;
       flags: Record<string, any>;
       breaks: Array<{ started_at: Date; ended_at: Date | null; break_type?: string | null; reason?: string | null }>;
@@ -138,11 +138,40 @@ export interface AttendanceRepository {
     production_minutes: number;
     break_minutes: number;
     status: string;
-    leave: { type_name: string; part: string } | null;
+    leave: { type_name: string; part: string; [key: string]: any } | null;
     holiday: string | null;
     correction: { id: number; status: string } | null;
     can_request_correction: boolean;
   } | null>;
   getTeamAttendance(query: { date?: string; month?: string; depId?: number }): Promise<any[]>;
+  /** Approved / pending leave on a date, read from Leave Management. */
+  findLeaveForDate?(empId: number, date: string): Promise<{
+    approved: {
+      day_part: 'FULL_DAY' | 'FIRST_HALF' | 'SECOND_HALF';
+      leave_type_name: string;
+      request_no: string;
+      from_date: string;
+      to_date: string;
+      approved_by: string | null;
+    } | null;
+    pending: { request_no: string; leave_type_name: string } | null;
+    second_half_starts_at: Date | null;
+  }>;
   getAttendanceCsvReport(yearMonth: string): Promise<string>;
+  getAttendanceRegister(query: {
+    date?: string;
+    departmentId?: number;
+    shiftId?: number;
+    status?: string;
+    search?: string;
+  }): Promise<any>;
+  getAttendanceReports(query: {
+    reportType?: string;
+    fromDate?: string;
+    toDate?: string;
+    departmentId?: string;
+    employeeId?: number;
+    shiftId?: number;
+    status?: string;
+  }): Promise<any>;
 }

@@ -32,9 +32,25 @@ export interface WelcomeCredentialsParams {
   loginUrl?: string;
 }
 
+
+export interface DocumentRequestMailItem {
+  title: string;
+  category?: string;
+  isRequired?: boolean;
+  reason: 'ticked_pending' | 'required_unticked';
+}
+
+export interface DocumentRequestMailParams {
+  to: string;
+  candidateName: string;
+  employeeId?: string | number;
+  pendingDocuments: DocumentRequestMailItem[];
+  customMessage?: string;
+}
 export interface MailPort {
   sendOtp(to: string, code: string, purpose: 'login_2fa' | 'password_reset'): Promise<void>;
   sendWelcomeCredentials(params: WelcomeCredentialsParams): Promise<void>;
+  sendDocumentRequest(params: DocumentRequestMailParams): Promise<void>;
 }
 
 export interface EmployeeWithAuth {
@@ -50,6 +66,8 @@ export interface EmployeeWithAuth {
   dep_id: number;
   department_name: string;
   is_admin?: boolean;
+  /** The colour theme this employee chose for the app; empty means the default. */
+  ui_theme?: string | null;
   deleted_at: Date | null;
   credentials: {
     credential_id: number;

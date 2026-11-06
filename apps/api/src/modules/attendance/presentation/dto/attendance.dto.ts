@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsIn, IsNotEmpty, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class TimelineEventDto {
   @ApiProperty({ type: String, enum: ['punch_in', 'break_start', 'break_end', 'punch_out'] })
@@ -235,6 +235,18 @@ export class MonthBlockDto {
 export class DashboardResponseDto {
   @ApiProperty({ type: () => TodayAttendanceBlockDto })
   today!: TodayAttendanceBlockDto;
+
+  @ApiPropertyOptional({ type: Object })
+  shift?: {
+    shift_id?: number;
+    shift_name: string;
+    start_time: string;
+    end_time: string;
+    late_arrival_grace_minutes: number;
+    early_exit_grace_minutes: number;
+    full_day_hours?: number;
+    half_day_hours?: number;
+  };
 
   @ApiProperty({ type: () => DashboardStatsDto })
   stats!: DashboardStatsDto;
@@ -502,5 +514,71 @@ export class RegularizationQueryDto {
   @ApiPropertyOptional({ type: String, enum: ['me', 'team', 'all'] })
   @IsOptional()
   scope?: string;
+
+  @ApiPropertyOptional({ type: Number, description: 'Administrators only: requests of this employee' })
+  @IsOptional()
+  emp_id?: number;
+}
+
+
+export class PunchLocationDto {
+  @ApiProperty({ type: String, enum: ['in', 'out'] })
+  @IsIn(['in', 'out'])
+  kind!: 'in' | 'out';
+
+  @ApiProperty({ type: Number, example: 20.5992 })
+  @IsNumber()
+  @Min(-90)
+  @Max(90)
+  latitude!: number;
+
+  @ApiProperty({ type: Number, example: 72.9342 })
+  @IsNumber()
+  @Min(-180)
+  @Max(180)
+  longitude!: number;
+
+  @ApiPropertyOptional({ type: Number, description: 'Accuracy radius in metres' })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  accuracy?: number;
+}
+export class AttendanceReportsQueryDto {
+  @ApiPropertyOptional({
+    type: String,
+    enum: ['daily', 'monthly_summary', 'employee', 'department', 'late_early', 'regularization'],
+    default: 'daily',
+  })
+  @IsOptional()
+  reportType?: 'daily' | 'monthly_summary' | 'employee' | 'department' | 'late_early' | 'regularization';
+
+  @ApiPropertyOptional({ type: String, example: '2026-10-01' })
+  @IsOptional()
+  fromDate?: string;
+
+  @ApiPropertyOptional({ type: String, example: '2026-10-31' })
+  @IsOptional()
+  toDate?: string;
+
+  @ApiPropertyOptional({ type: String, description: 'Department ID or comma-separated IDs' })
+  @IsOptional()
+  departmentId?: string;
+
+  @ApiPropertyOptional({ type: Number, description: 'Employee ID' })
+  @IsOptional()
+  employeeId?: number;
+
+  @ApiPropertyOptional({ type: Number, description: 'Shift ID' })
+  @IsOptional()
+  shiftId?: number;
+
+  @ApiPropertyOptional({ type: String, description: 'Status filter' })
+  @IsOptional()
+  status?: string;
+
+  @ApiPropertyOptional({ type: String, enum: ['csv', 'excel', 'pdf'] })
+  @IsOptional()
+  format?: 'csv' | 'excel' | 'pdf';
 }
 

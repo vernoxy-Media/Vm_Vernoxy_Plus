@@ -13,14 +13,12 @@ import { useAuth } from '@/features/auth/context/AuthContext';
 import {
   ArrowLeft,
   Building2,
-  Calendar,
   AlertTriangle,
   UserX,
   History,
   CheckCircle2,
   Edit2,
   Loader2,
-  Clock,
   Wallet,
   Sparkles,
   TrendingUp,
@@ -32,9 +30,9 @@ import {
   Landmark,
 } from 'lucide-react';
 import { EmployeeDocumentsTab } from '../components/EmployeeDocumentsTab';
+import { EmployeeAttendanceTab } from '../components/EmployeeAttendanceTab';
 import { OnboardingChecklistTab } from '../components/OnboardingChecklistTab';
-import { useLeavePoliciesQuery, useAssignEmployeePolicyMutation, useAllLeaveBalancesQuery } from '@/features/leave/hooks/use-leave';
-import { SearchableSelect } from '@/shared/ui/SearchableSelect';
+import { EmployeeLeaveCard } from '@/features/leave/components/EmployeeLeaveCard';
 import {
   useEmployeeActivationStatusQuery,
   useActivateEmployeeMutation,
@@ -42,6 +40,7 @@ import {
   ActivateEmployeeResult,
 } from '../hooks/use-employee-documents';
 import { AccountActivatedModal } from '../components/AccountActivatedModal';
+import { ResetEmployeePasswordButton } from '../components/ResetEmployeePasswordButton';
 import { ActivateEmployeeAccountModal } from '../components/ActivateEmployeeAccountModal';
 import { EditProfileModal } from '../components/EditProfileModal';
 import { useAttendanceSettingsQuery } from '@/features/attendance/hooks/use-attendance-settings';
@@ -100,7 +99,7 @@ export const EmployeeDetailPage: React.FC = () => {
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
 
   const tabParam = searchParams.get('tab');
-  const [activeTab, setActiveTab] = useState<'overview' | 'pay_policy' | 'onboarding' | 'documents' | 'history'>(
+  const [activeTab, setActiveTab] = useState<'overview' | 'attendance' | 'pay_policy' | 'onboarding' | 'documents' | 'history'>(
     tabParam === 'onboarding'
       ? 'onboarding'
       : tabParam === 'documents'
@@ -134,21 +133,24 @@ export const EmployeeDetailPage: React.FC = () => {
   const { data: employee, isLoading, error, refetch: refetchEmployee } = useEmployeeDetailQuery(empId);
 
   useEffect(() => {
+    if (isDeactivateModalOpen && employee) {
+      const joinStr = employee.joining_date
+        ? new Date(employee.joining_date).toISOString().split('T')[0]
+        : null;
+      if (joinStr && joinStr > todayStr) {
+        setTerminationDate(joinStr);
+      } else {
+        setTerminationDate(todayStr);
+      }
+      setDeactivationError(null);
+    }
+  }, [isDeactivateModalOpen, employee, todayStr]);
+
+  useEffect(() => {
     if (employee?.status === 'Onboarding' && !searchParams.get('tab')) {
       setActiveTab('onboarding');
     }
   }, [employee?.status, searchParams]);
-  const { data: leavePolicies = [] } = useLeavePoliciesQuery();
-  const assignPolicyMut = useAssignEmployeePolicyMutation();
-  const { data: allBalances = [] } = useAllLeaveBalancesQuery();
-  const [selectedPolicyId, setSelectedPolicyId] = useState<number | null>(null);
-  const [isChangingPolicy, setIsChangingPolicy] = useState(false);
-
-  const empLeaveBalances = React.useMemo(() => {
-    if (!employee || !allBalances) return [];
-    const found = allBalances.find((b: any) => b.emp_id === employee.emp_id);
-    return found?.balances || [];
-  }, [employee, allBalances]);
   const { data: historyList, isLoading: isHistoryLoading } = useEmployeeHistoryQuery(empId);
   const { data: warningData } = useDeactivateWarningQuery(isDeactivateModalOpen ? empId : undefined);
   const { data: deactivationReasonsLookup } = useLookupsQuery('deactivation_reason');
@@ -221,6 +223,14 @@ export const EmployeeDetailPage: React.FC = () => {
     if (!empId) return;
     setDeactivationError(null);
 
+    if (employee?.joining_date) {
+      const joinStr = new Date(employee.joining_date).toISOString().split('T')[0];
+      if (terminationDate < joinStr) {
+        setDeactivationError(`Termination date cannot be earlier than joining date (${joinStr}).`);
+        return;
+      }
+    }
+
     if (deactivationReason.toLowerCase() === 'other' && !deactivationNotes.trim()) {
       setDeactivationError('Please provide notes when Reason is "Other"');
       return;
@@ -286,6 +296,7 @@ export const EmployeeDetailPage: React.FC = () => {
             <ArrowLeft className="w-4 h-4" />
             Back to Employees
           </button>
+          {currentUser?.access?.can_manage_organization && employee.emp_id !== currentUser.emp_id && <ResetEmployeePasswordButton empId={employee.emp_id} />}
         </div>
 
         {/* Top Profile Card Header (Matching Reference Screen 1) */}
@@ -478,6 +489,17 @@ export const EmployeeDetailPage: React.FC = () => {
               }`}
             >
               <span>Overview</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('attendance')}
+              className={`py-3 px-1 border-b-2 font-semibold text-sm transition-colors flex items-center gap-2 cursor-pointer ${
+                activeTab === 'attendance'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
+              }`}
+            >
+              <span>Attendance</span>
             </button>
             <button
               type="button"
@@ -758,6 +780,16 @@ export const EmployeeDetailPage: React.FC = () => {
         )}
 
         {/* ========================================================================= */}
+        {/* ATTENDANCE TAB CONTENT                                                    */}
+        {/* ========================================================================= */}
+        {activeTab === 'attendance' && employee && (
+          <EmployeeAttendanceTab
+            employeeId={employee.emp_id}
+            employeeName={employee.name}
+          />
+        )}
+
+        {/* ========================================================================= */}
         {/* PAY & POLICIES TAB CONTENT                                                */}
         {/* ========================================================================= */}
         {activeTab === 'pay_policy' && employee && (
@@ -767,28 +799,28 @@ export const EmployeeDetailPage: React.FC = () => {
               <div>
                 <div className="flex items-center gap-2">
                   <span className="px-2.5 py-1 rounded-lg text-2xs font-bold uppercase tracking-wider bg-blue-50 text-blue-700">
-                    Payroll & Compliance
+                    Compensation & Entitlements
                   </span>
-                  <span className="text-xs text-slate-400">• Automated Calculation Ready</span>
                 </div>
-                <h3 className="text-lg font-bold text-slate-900 mt-1">Pay Policy & Overtime Rules</h3>
+                <h3 className="text-lg font-bold text-slate-900 mt-1">Pay & Leave Policies</h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Compensation structure, overtime rates, statutory compliance, and disbursement account
+                  Salary compensation, statutory PF, disbursement account, and assigned leave entitlements
                 </p>
               </div>
 
-              <Link
-                to={`/admin/employees/${employee.emp_id}/edit`}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition"
+              <button
+                type="button"
+                onClick={() => setIsEditProfileModalOpen(true)}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition cursor-pointer"
               >
                 <Edit2 className="w-3.5 h-3.5" />
-                Edit Pay Policies
-              </Link>
+                Edit Compensation & Policies
+              </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Card 1: Base Compensation */}
-              <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xs p-6 space-y-5">
+              <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xs p-6 space-y-4">
                 <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
                   <div className="p-2 rounded-xl bg-amber-50 text-amber-600">
                     <Wallet className="w-4 h-4" />
@@ -799,358 +831,131 @@ export const EmployeeDetailPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/60">
+                <div className="space-y-3">
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/60">
                     <span className="text-2xs font-bold text-slate-500 uppercase tracking-wider block">
                       Base Salary
                     </span>
-                    <p className="text-xl font-bold text-slate-900 mt-1 font-mono">
+                    <p className="text-lg font-bold text-slate-900 mt-0.5 font-mono">
                       ₹{Number(employee.salary || 0).toLocaleString()}
                       <span className="text-2xs font-normal text-slate-400 ml-1">/ mo</span>
                     </p>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/60">
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/60">
                     <span className="text-2xs font-bold text-slate-500 uppercase tracking-wider block">
                       Annual CTC
                     </span>
-                    <p className="text-xl font-bold text-slate-900 mt-1 font-mono">
+                    <p className="text-lg font-bold text-slate-900 mt-0.5 font-mono">
                       ₹{(Number(employee.salary || 0) * 12).toLocaleString()}
                       <span className="text-2xs font-normal text-slate-400 ml-1">/ yr</span>
                     </p>
                   </div>
-                </div>
 
-                <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-100 flex items-center justify-between text-xs">
-                  <span className="text-slate-500">Effective Hourly Base Rate:</span>
-                  <span className="font-mono font-semibold text-slate-800">
-                    ₹{((Number(employee.salary || 0) / 208) || 0).toFixed(2)}/hr
-                    <span className="text-2xs text-slate-400 font-normal ml-1">(26d × 8h)</span>
-                  </span>
+                  <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-50 text-xs text-slate-600">
+                    <span className="text-2xs font-semibold uppercase text-slate-400">Overtime:</span>
+                    <span className={`font-semibold text-2xs px-2 py-0.5 rounded-full ${
+                      employee.ot_eligible
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : 'bg-slate-200 text-slate-600'
+                    }`}>
+                      {employee.ot_eligible ? 'Eligible for OT' : 'Not Eligible'}
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              {/* Card 2: Overtime (OT) Policy */}
-              <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xs p-6 space-y-5">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-2 rounded-xl bg-amber-50 text-amber-600">
-                      <Clock className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-slate-900 text-sm">Overtime (OT) Policy</h4>
-                      <p className="text-2xs text-slate-400">Rules applied during attendance payroll runs</p>
-                    </div>
-                  </div>
-
-                  <span
-                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-2xs font-bold ${
-                      employee.ot_eligible || (employee as any).pay_policy?.ot_eligible
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                        : 'bg-slate-100 text-slate-500 border border-slate-200'
-                    }`}
-                  >
-                    {employee.ot_eligible || (employee as any).pay_policy?.ot_eligible
-                      ? 'Eligible'
-                      : 'Not Eligible'}
-                  </span>
-                </div>
-
-                {employee.ot_eligible || (employee as any).pay_policy?.ot_eligible ? (
-                  <div className="space-y-3.5">
-                    <div className="grid grid-cols-2 gap-3 text-xs">
-                      <div className="p-3 rounded-xl bg-slate-50">
-                        <span className="text-slate-400 block text-2xs uppercase font-semibold">Calculation Mode</span>
-                        <span className="font-semibold text-slate-800 mt-0.5 block">
-                          {(employee.ot_rate_type || (employee as any).pay_policy?.ot_rate_type) === 'FIXED'
-                            ? 'Fixed Hourly Rate'
-                            : 'Hourly Base Multiplier'}
-                        </span>
-                      </div>
-
-                      <div className="p-3 rounded-xl bg-slate-50">
-                        <span className="text-slate-400 block text-2xs uppercase font-semibold">Applied Rate</span>
-                        <span className="font-mono font-bold text-amber-600 mt-0.5 block text-sm">
-                          {(employee.ot_rate_type || (employee as any).pay_policy?.ot_rate_type) === 'FIXED'
-                            ? `₹${Number(employee.ot_rate ?? (employee as any).pay_policy?.ot_rate ?? 0)}/hr`
-                            : `${Number(employee.ot_multiplier ?? (employee as any).pay_policy?.ot_multiplier ?? 1.5)}x Base Rate`}
-                        </span>
-                      </div>
-
-                      <div className="p-3 rounded-xl bg-slate-50">
-                        <span className="text-slate-400 block text-2xs uppercase font-semibold">Daily Min Threshold</span>
-                        <span className="font-semibold text-slate-800 mt-0.5 block">
-                          {Number(employee.minimum_ot_per_day ?? (employee as any).pay_policy?.minimum_ot_per_day ?? 0)} hours
-                        </span>
-                      </div>
-
-                      <div className="p-3 rounded-xl bg-slate-50">
-                        <span className="text-slate-400 block text-2xs uppercase font-semibold">Disbursement Type</span>
-                        <span className="font-semibold text-slate-800 mt-0.5 block">
-                          {(employee.ot_paid_as || (employee as any).pay_policy?.ot_paid_as) === 'COMP_OFF'
-                            ? 'Compensatory Off'
-                            : 'Direct Salary Payout'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-4 rounded-xl bg-slate-50 border border-dashed border-slate-200 text-center">
-                    <p className="text-xs text-slate-500">
-                      Overtime computation is turned off. Additional hours logged beyond shift will not accrue OT allowance.
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Card 3: Statutory Compliance (PF) */}
-              <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xs p-6 space-y-5">
+              {/* Card 2: Statutory Compliance (PF) */}
+              <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xs p-6 space-y-4">
                 <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                   <div className="flex items-center gap-2.5">
                     <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600">
                       <ShieldCheck className="w-4 h-4" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-slate-900 text-sm">Provident Fund & Statutory</h4>
-                      <p className="text-2xs text-slate-400">EPFO registration and monthly deductions</p>
+                      <h4 className="font-bold text-slate-900 text-sm">Provident Fund (PF)</h4>
+                      <p className="text-2xs text-slate-400">EPFO registration & monthly deduction</p>
                     </div>
                   </div>
 
                   <span
                     className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-2xs font-bold ${
-                      employee.pf_applicable || (employee as any).pay_policy?.pf_applicable || Number(employee.pf) > 0
+                      employee.pf_applicable || Number(employee.pf) > 0
                         ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                         : 'bg-slate-100 text-slate-500 border border-slate-200'
                     }`}
                   >
-                    {employee.pf_applicable || (employee as any).pay_policy?.pf_applicable || Number(employee.pf) > 0
-                      ? 'Enrolled'
-                      : 'Exempt'}
+                    {employee.pf_applicable || Number(employee.pf) > 0 ? 'Enrolled' : 'Exempt'}
                   </span>
                 </div>
 
-                <div className="space-y-3.5">
-                  <div className="p-3.5 rounded-xl bg-slate-50 flex items-center justify-between">
-                    <div>
-                      <span className="text-2xs font-bold text-slate-500 uppercase tracking-wider block">
-                        Universal Account Number (UAN)
-                      </span>
-                      <p className="font-mono font-bold text-slate-900 text-sm mt-0.5">
-                        {employee.uan || (employee as any).pay_policy?.uan || (
-                          <span className="text-slate-400 font-normal italic text-xs">Not configured</span>
-                        )}
-                      </p>
-                    </div>
-                    <span className="text-2xs text-slate-400 font-semibold px-2 py-0.5 rounded bg-white border border-slate-200">
-                      EPFO
+                <div className="space-y-3">
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/60">
+                    <span className="text-2xs font-bold text-slate-500 uppercase tracking-wider block">
+                      Monthly Contribution
                     </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 text-xs">
-                    <div className="p-3 rounded-xl bg-slate-50">
-                      <span className="text-slate-400 block text-2xs uppercase font-semibold">Employee Share</span>
-                      <span className="font-mono font-bold text-slate-800 mt-0.5 block">
-                        {Number(employee.employee_pf_pct ?? (employee as any).pay_policy?.employee_pf_pct ?? 12)}%
-                      </span>
-                    </div>
-
-                    <div className="p-3 rounded-xl bg-slate-50">
-                      <span className="text-slate-400 block text-2xs uppercase font-semibold">Employer Share</span>
-                      <span className="font-mono font-bold text-slate-800 mt-0.5 block">
-                        {Number(employee.employer_pf_pct ?? (employee as any).pay_policy?.employer_pf_pct ?? 12)}%
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-slate-50 flex items-center justify-between text-xs">
-                    <span className="text-slate-500">Current Monthly PF Contribution:</span>
-                    <span className="font-mono font-bold text-slate-900">
+                    <p className="text-lg font-bold text-slate-900 mt-0.5 font-mono">
                       ₹{Number(employee.pf || 0).toLocaleString()}
+                      <span className="text-2xs font-normal text-slate-400 ml-1">/ mo</span>
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/60">
+                    <span className="text-2xs font-bold text-slate-500 uppercase tracking-wider block">
+                      Universal Account Number (UAN)
                     </span>
+                    <p className="font-mono font-semibold text-slate-800 text-xs mt-1">
+                      {employee.uan || (
+                        <span className="text-slate-400 font-normal italic">Not configured</span>
+                      )}
+                    </p>
                   </div>
                 </div>
               </div>
 
-              {/* Card 4: Banking & Disbursement */}
-              <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xs p-6 space-y-5">
+              {/* Card 3: Banking & Disbursement */}
+              <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xs p-6 space-y-4">
                 <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
                   <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
                     <Landmark className="w-4 h-4" />
                   </div>
                   <div>
                     <h4 className="font-bold text-slate-900 text-sm">Disbursement & Banking</h4>
-                    <p className="text-2xs text-slate-400">Account destination for automated salary payouts</p>
+                    <p className="text-2xs text-slate-400">Account destination for salary payouts</p>
                   </div>
                 </div>
 
-                <div className="space-y-3.5">
-                  <div className="grid grid-cols-2 gap-3 text-xs">
-                    <div className="p-3 rounded-xl bg-slate-50">
-                      <span className="text-slate-400 block text-2xs uppercase font-semibold">Payment Mode</span>
-                      <span className="font-semibold text-slate-800 mt-0.5 block">
-                        {(employee.payment_mode || (employee as any).pay_policy?.payment_mode) === 'CASH'
-                          ? 'Cash Payout'
-                          : (employee.payment_mode || (employee as any).pay_policy?.payment_mode) === 'CHEQUE'
-                          ? 'Cheque'
-                          : 'Direct Bank Transfer'}
-                      </span>
-                    </div>
-
-                    <div className="p-3 rounded-xl bg-slate-50">
-                      <span className="text-slate-400 block text-2xs uppercase font-semibold">Bank Name</span>
-                      <span className="font-semibold text-slate-800 mt-0.5 block truncate">
-                        {employee.bank_name || (employee as any).pay_policy?.bank_name || (
-                          <span className="text-slate-400 font-normal italic">Not specified</span>
-                        )}
-                      </span>
-                    </div>
-
-                    <div className="p-3 rounded-xl bg-slate-50">
-                      <span className="text-slate-400 block text-2xs uppercase font-semibold">Account Number</span>
-                      <span className="font-mono font-semibold text-slate-800 mt-0.5 block truncate">
-                        {employee.account_number || (employee as any).pay_policy?.account_number || (
-                          <span className="text-slate-400 font-normal italic">Not specified</span>
-                        )}
-                      </span>
-                    </div>
-
-                    <div className="p-3 rounded-xl bg-slate-50">
-                      <span className="text-slate-400 block text-2xs uppercase font-semibold">IFSC Code</span>
-                      <span className="font-mono font-semibold text-slate-800 uppercase mt-0.5 block">
-                        {employee.ifsc_code || (employee as any).pay_policy?.ifsc_code || (
-                          <span className="text-slate-400 font-normal italic">Not specified</span>
-                        )}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-100 flex items-center gap-2 text-2xs text-emerald-800">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <span>Configured for automated payroll sheet generation & bulk bank transfers</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Card 5: Leave Policy & Entitlements (BFD Pages 5, 9, 13) */}
-              <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xs p-6 space-y-5 md:col-span-2">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
-                      <Calendar className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-slate-900 text-sm">Leave Policy & Entitlement</h4>
-                      <p className="text-2xs text-slate-400">Assigned leave rules, quota, and pro-rata opening balance</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {!isChangingPolicy ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedPolicyId((employee as any).leave_policy_id || (leavePolicies[0]?.policy_id ?? null));
-                          setIsChangingPolicy(true);
-                        }}
-                        className="px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 cursor-pointer"
-                      >
-                        Change Leave Policy
-                      </button>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <div className="min-w-[180px]">
-                          <SearchableSelect
-                            placeholder="Select Leave Policy"
-                            value={selectedPolicyId}
-                            onChange={(v) => setSelectedPolicyId(v ? Number(v) : null)}
-                            options={leavePolicies.map((p) => ({ value: p.policy_id, label: p.name }))}
-                          />
-                        </div>
-                        <button
-                          type="button"
-                          disabled={!selectedPolicyId || assignPolicyMut.isPending}
-                          onClick={async () => {
-                            if (!selectedPolicyId || !employee?.emp_id) return;
-                            try {
-                              await assignPolicyMut.mutateAsync({
-                                empId: employee.emp_id,
-                                policyId: selectedPolicyId,
-                              });
-                              setIsChangingPolicy(false);
-                              alert('Leave policy updated and opening balance calculated.');
-                            } catch (err: any) {
-                              alert(err?.detail || err?.message || 'Failed to update leave policy.');
-                            }
-                          }}
-                          className="px-3 py-1.5 bg-blue-600 text-white rounded-xl text-xs font-semibold hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
-                        >
-                          {assignPolicyMut.isPending ? 'Saving...' : 'Save'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setIsChangingPolicy(false)}
-                          className="px-2.5 py-1.5 border border-slate-200 text-slate-500 rounded-xl text-xs hover:bg-slate-50 cursor-pointer"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/60">
-                    <span className="text-2xs font-bold text-slate-500 uppercase tracking-wider block">Assigned Policy</span>
-                    <p className="text-base font-bold text-slate-900 mt-1">
-                      {leavePolicies.find((p) => p.policy_id === (employee as any).leave_policy_id)?.name || 'Standard Leave Policy'}
-                    </p>
-                  </div>
-
-                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/60">
-                    <span className="text-2xs font-bold text-slate-500 uppercase tracking-wider block">Policy Status</span>
-                    <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                      Active
+                <div className="space-y-2.5 text-xs">
+                  <div className="p-3 rounded-xl bg-slate-50">
+                    <span className="text-slate-400 block text-2xs uppercase font-semibold">Bank Name</span>
+                    <span className="font-semibold text-slate-800 mt-0.5 block truncate">
+                      {employee.bank_name || <span className="text-slate-400 font-normal italic">Not specified</span>}
                     </span>
                   </div>
 
-                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/60">
-                    <span className="text-2xs font-bold text-slate-500 uppercase tracking-wider block">Pro-Rata Rule</span>
-                    <p className="text-xs text-slate-700 mt-1">
-                      Calculated from Joining Date ({new Date(employee.joining_date).toISOString().split('T')[0]})
-                    </p>
+                  <div className="p-3 rounded-xl bg-slate-50">
+                    <span className="text-slate-400 block text-2xs uppercase font-semibold">Account Number</span>
+                    <span className="font-mono font-semibold text-slate-800 mt-0.5 block truncate">
+                      {employee.account_number || <span className="text-slate-400 font-normal italic">Not specified</span>}
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-50">
+                    <span className="text-slate-400 block text-2xs uppercase font-semibold">IFSC Code</span>
+                    <span className="font-mono font-semibold text-slate-800 uppercase mt-0.5 block">
+                      {employee.ifsc_code || <span className="text-slate-400 font-normal italic">Not specified</span>}
+                    </span>
                   </div>
                 </div>
-
-                <div>
-                  <h5 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                    Current Year Available Balances
-                  </h5>
-                  {empLeaveBalances.length === 0 ? (
-                    <div className="p-4 bg-slate-50 border border-dashed border-slate-200 rounded-xl text-center text-xs text-slate-400">
-                      Balances will initialize when employee logs in or when an adjustment is saved.
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      {empLeaveBalances.map((bal: any) => (
-                        <div key={bal.leave_type_id} className="p-3 rounded-xl border border-slate-200 bg-white">
-                          <div className="flex items-center justify-between">
-                            <span className="font-bold text-slate-800 text-xs">{bal.name}</span>
-                            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 font-bold">
-                              {bal.code}
-                            </span>
-                          </div>
-                          <div className="mt-2 text-xl font-bold text-blue-600 font-mono">
-                            {bal.available_balance} <span className="text-xs font-normal text-slate-400">days</span>
-                          </div>
-                          <div className="mt-1 text-[10px] text-slate-400">
-                            {bal.credited_days} credited • {bal.days_taken} taken
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
               </div>
+
+              {/* Card 4: Leave (Leave BFD 4.2 / R&O BFD 9: Leave Policy and Opening Balance) */}
+              <EmployeeLeaveCard
+                empId={employee.emp_id}
+                employeeName={employee.name}
+                joiningDate={employee.joining_date as any}
+                isAdmin={Boolean(currentUser?.access?.can_manage_organization)}
+              />
             </div>
           </div>
         )}
@@ -1365,10 +1170,18 @@ export const EmployeeDetailPage: React.FC = () => {
                 <input
                   type="date"
                   value={terminationDate}
-                  onChange={(e) => setTerminationDate(e.target.value)}
+                  min={employee?.joining_date ? new Date(employee.joining_date).toISOString().split('T')[0] : undefined}
+                  onChange={(e) => {
+                    setTerminationDate(e.target.value);
+                    setDeactivationError(null);
+                  }}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 transition"
                 />
-                <span className="text-2xs text-slate-400 mt-1 block">Defaults to today (last working day).</span>
+                <span className="text-2xs text-slate-400 mt-1 block">
+                  {employee?.joining_date && new Date(employee.joining_date).toISOString().split('T')[0] > todayStr
+                    ? `Must be on or after joining date (${new Date(employee.joining_date).toISOString().split('T')[0]}).`
+                    : 'Defaults to today (last working day).'}
+                </span>
               </div>
 
               <div>
@@ -1469,6 +1282,7 @@ export const EmployeeDetailPage: React.FC = () => {
         isOpen={isEditProfileModalOpen}
         onClose={() => setIsEditProfileModalOpen(false)}
         employee={employee}
+        isAdmin={Boolean(currentUser?.access?.can_manage_organization)}
         onSuccess={async () => {
           refetchEmployee();
           if (isSelf) {

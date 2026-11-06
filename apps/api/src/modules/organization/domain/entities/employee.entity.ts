@@ -48,6 +48,8 @@ export interface Employee {
   emergency_contact_name?: string | null;
   emergency_contact_number?: string | null;
   emergency_contact_relation?: string | null;
+  /** Leave policy assigned to the employee (Leave BFD 3.2). */
+  leave_policy_id?: number | null;
   employment_type_id?: number | null;
   employment_type?: {
     lookup_id: number;

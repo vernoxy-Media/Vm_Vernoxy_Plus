@@ -13,6 +13,8 @@ import { ForgotPasswordPage } from '@/features/auth/pages/ForgotPasswordPage';
 import { ResetPasswordPage } from '@/features/auth/pages/ResetPasswordPage';
 import { ChangePasswordPage } from '@/features/auth/pages/ChangePasswordPage';
 import { HomePage } from '@/features/home/pages/HomePage';
+import { ClientPortalApp } from '@/features/client-portal/ClientPortalApp';
+import { AppThemeSync } from '@/shared/theme/AppThemeSync';
 import { NotFoundPage } from './NotFoundPage';
 import { SettingsPage } from '@/features/settings/pages/SettingsPage';
 import { AttendanceSettingsPage } from '@/features/attendance/pages/AttendanceSettingsPage';
@@ -38,6 +40,7 @@ import { CompanyFormPage } from '@/features/companies/pages/CompanyFormPage';
 import { CompanyDetailPage } from '@/features/companies/pages/CompanyDetailPage';
 import { CompanyImportPage } from '@/features/companies/pages/CompanyImportPage';
 import { AttendancePage } from '@/features/attendance/pages/AttendancePage';
+import { AttendanceRegisterPage } from '@/features/attendance/pages/AttendanceRegisterPage';
 import { CalendarPage } from '@/features/calendar/pages/CalendarPage';
 import { MessengerPage } from '@/features/messenger/pages/MessengerPage';
 import { PerformancePage } from '@/features/performance/pages/PerformancePage';
@@ -75,6 +78,7 @@ export const App: React.FC = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <AppThemeSync />
         <SocketProvider>
           <BrowserRouter>
             <MessengerProvider>
@@ -85,6 +89,8 @@ export const App: React.FC = () => {
               <Route path="/login/verify" element={<VerifyOtpPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
+              {/* Clients: their own sign in and a read-only view of their projects */}
+              <Route path="/client/*" element={<ClientPortalApp />} />
 
               {/* Authenticated Routes */}
               <Route
@@ -111,6 +117,26 @@ export const App: React.FC = () => {
                       <AttendancePage />
                     </AppLayout>
                   </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/attendance/register"
+                element={
+                  <AdminRoute>
+                    <AppLayout fluid>
+                      <AttendanceRegisterPage />
+                    </AppLayout>
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/attendance/reports"
+                element={
+                  <AdminRoute>
+                    <AppLayout fluid>
+                      <AttendanceRegisterPage defaultView="reports" />
+                    </AppLayout>
+                  </AdminRoute>
                 }
               />
               <Route
@@ -227,7 +253,11 @@ export const App: React.FC = () => {
               />
               <Route
                 path="/attendance/calendar"
-                element={<Navigate to="/calendar" replace />}
+                element={<Navigate to="/attendance?tab=calendar" replace />}
+              />
+              <Route
+                path="/attendance/my-attendance"
+                element={<Navigate to="/attendance?tab=calendar" replace />}
               />
               <Route
                 path="/calendar"
@@ -332,7 +362,7 @@ export const App: React.FC = () => {
               {/* Settings & Master Data */}
               <Route
                 path="/admin/settings"
-                element={<Navigate to="/admin/settings/roles" replace />}
+                element={<Navigate to="/admin/settings/employment-types" replace />}
               />
               <Route
                 path="/admin/settings/knowledge-base"

@@ -1,110 +1,69 @@
 import React from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { MyLeavePage } from './MyLeavePage';
 import { LeaveRequestsPage } from './LeaveRequestsPage';
 import { LeaveReportsPage } from './LeaveReportsPage';
+import { LeaveBalancesPage } from './LeaveBalancesPage';
+import { LeaveCalendarPage } from './LeaveCalendarPage';
+import { useLeaveDashboardQuery } from '../hooks/use-leave';
+
+type Tab = 'my-leave' | 'requests' | 'team' | 'calendar' | 'balances' | 'reports';
 
 export const LeavePage: React.FC = () => {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const isAdmin = !!user?.access?.can_manage_organization;
+  const { data: dashboard } = useLeaveDashboardQuery();
+  const isManager = Boolean(dashboard?.manager?.team_size);
   const [searchParams, setSearchParams] = useSearchParams();
-  const currentTab = searchParams.get('tab');
+  const requested = (searchParams.get('tab') || 'my-leave') as Tab | 'management';
 
-  const activeTab: 'my-leave' | 'requests' | 'reports' =
-    currentTab === 'reports' && isAdmin
-      ? 'reports'
-      : (currentTab === 'requests' || currentTab === 'management') && isAdmin
-      ? 'requests'
-      : 'my-leave';
+  const tabs: Array<{ id: Tab; label: string }> = [
+    { id: 'my-leave', label: 'My Leave' },
+    ...(isAdmin ? [{ id: 'requests' as Tab, label: 'Leave Requests' }] : []),
+    ...(!isAdmin && isManager ? [{ id: 'team' as Tab, label: 'Team Leave' }] : []),
+    ...(isAdmin || isManager ? [{ id: 'calendar' as Tab, label: 'Leave Calendar' }] : []),
+    ...(isAdmin ? [{ id: 'balances' as Tab, label: 'Balances' }, { id: 'reports' as Tab, label: 'Reports' }] : []),
+  ];
+  const normalized: Tab = requested === 'management' ? 'requests' : (requested as Tab);
+  const active: Tab = tabs.some((t) => t.id === normalized) ? normalized : 'my-leave';
 
-  const handleTabChange = (tab: 'my-leave' | 'requests' | 'calendar' | 'reports') => {
-    if (tab === 'calendar') {
-      navigate('/calendar');
-      return;
-    }
-    if (tab === 'my-leave') {
-      setSearchParams({});
-    } else {
-      setSearchParams({ tab });
-    }
-  };
+  const go = (tab: Tab) => setSearchParams(tab === 'my-leave' ? {} : { tab });
+  const current = tabs.find((t) => t.id === active)?.label || 'My Leave';
 
   return (
     <div className="w-full space-y-3">
-      {/* Top Header Bar: Breadcrumb on left, Admin Pill Switcher on right */}
-      <div className="w-full flex items-center justify-between pt-1 pb-1">
+      <div className="w-full flex flex-wrap items-center justify-between gap-2 pt-1 pb-1">
         <div className="flex items-center gap-1.5 text-xs text-slate-400">
-          <span className="hover:text-slate-600 transition-colors">Leave</span>
+          <span>Leave</span>
           <span className="text-slate-300">&gt;</span>
-          <span className="font-semibold text-slate-700">
-            {activeTab === 'requests'
-              ? 'Leave Requests'
-              : activeTab === 'reports'
-              ? 'Leave Reports'
-              : 'My Leave'}
-          </span>
+          <span className="font-semibold text-slate-700">{current}</span>
         </div>
-
-        {isAdmin && (
-          <div className="inline-flex items-center gap-1 bg-slate-100 p-1 rounded-full text-xs font-semibold shadow-2xs">
-            <button
-              type="button"
-              id="tab-my-leave"
-              onClick={() => handleTabChange('my-leave')}
-              className={`px-3.5 py-1 rounded-full transition-all cursor-pointer ${
-                activeTab === 'my-leave'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              My Leave
-            </button>
-            <button
-              type="button"
-              id="tab-leave-requests"
-              onClick={() => handleTabChange('requests')}
-              className={`px-3.5 py-1 rounded-full transition-all cursor-pointer ${
-                activeTab === 'requests'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Requests
-            </button>
-            <button
-              type="button"
-              id="tab-leave-calendar"
-              onClick={() => handleTabChange('calendar')}
-              className="px-3.5 py-1 rounded-full transition-all cursor-pointer text-slate-600 hover:text-slate-900"
-            >
-              Calendar
-            </button>
-            <button
-              type="button"
-              id="tab-leave-reports"
-              onClick={() => handleTabChange('reports')}
-              className={`px-3.5 py-1 rounded-full transition-all cursor-pointer ${
-                activeTab === 'reports'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Reports
-            </button>
+        {tabs.length > 1 && (
+          <div className="inline-flex flex-wrap items-center gap-1 bg-slate-100 p-1 rounded-full text-xs font-semibold">
+            {tabs.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                id={`tab-leave-${t.id}`}
+                onClick={() => go(t.id)}
+                className={`px-3.5 py-1 rounded-full transition-all cursor-pointer ${
+                  active === t.id ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
           </div>
         )}
       </div>
 
-      {/* Tab Content */}
-      {activeTab === 'requests' && isAdmin ? (
-        <LeaveRequestsPage hideBreadcrumb />
-      ) : activeTab === 'reports' && isAdmin ? (
-        <LeaveReportsPage />
-      ) : (
-        <MyLeavePage hideBreadcrumb />
-      )}
+      {active === 'requests' && <LeaveRequestsPage hideBreadcrumb onNavigate={(t) => go(t)} />}
+      {active === 'team' && <LeaveRequestsPage hideBreadcrumb teamMode />}
+      {active === 'calendar' && <LeaveCalendarPage isAdmin={isAdmin} />}
+      {active === 'balances' && <LeaveBalancesPage />}
+      {active === 'reports' && <LeaveReportsPage />}
+      {active === 'my-leave' && <MyLeavePage hideBreadcrumb />}
     </div>
   );
 };

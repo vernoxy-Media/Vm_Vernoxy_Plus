@@ -7,7 +7,10 @@ import {
   TaskSource,
   TaskStage,
 } from '../../domain/entities/task.entity';
+import { TaskNotFoundError } from '../../domain/errors/task.errors';
+import { minutesAfter, stoppedNote, timerRunner } from '../../domain/services/work-time';
 import {
+  AddSubTaskRepoInput,
   CreateTaskRepoInput,
   MoveStageRepoInput,
   TaskBoardCard,
@@ -30,10 +33,10 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
 
   async getNextTaskCode(year: number): Promise<string> {
     const rows: any[] = await this.prisma.$queryRawUnsafe(
-      `INSERT INTO task_counters (counter_year, last_number)
-       VALUES ($1, 1)
-       ON CONFLICT (counter_year)
-       DO UPDATE SET last_number = task_counters.last_number + 1
+      `INSERT INTO entity_counters (entity_type, counter_key, last_number)
+       VALUES ('TASK', $1, 1)
+       ON CONFLICT (entity_type, counter_key)
+       DO UPDATE SET last_number = entity_counters.last_number + 1
        RETURNING last_number;`,
       String(year),
     );
@@ -51,6 +54,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
           priority: input.priority ?? 'medium',
           task_type_id: input.task_type_id ?? null,
           due_date: input.due_date ? new Date(input.due_date) : null,
+          start_date: input.start_date ? new Date(input.start_date) : null,
           allocated_minutes: input.allocated_minutes ?? null,
           created_by: input.created_by,
           source: input.source || 'personal',
@@ -58,6 +62,8 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
           lead_employee_id: input.lead_employee_id ?? null,
           has_sub_tasks: Boolean(input.has_sub_tasks),
           other_task_type: input.other_task_type ?? null,
+          project_id: input.project_id ?? null,
+          sprint_id: input.sprint_id ?? null,
         },
       });
 
@@ -104,12 +110,19 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
             data: {
               task_code: subCode,
               title: st.title,
-              priority: input.priority ?? 'medium',
-              task_type_id: input.task_type_id ?? null,
+              // A sub task has the same fields as the main task (BFD 2.4); missing ones follow the main task.
+              description: st.description ?? null,
+              priority: st.priority ?? input.priority ?? 'medium',
+              task_type_id: st.task_type_id ?? input.task_type_id ?? null,
+              other_task_type: st.task_type_id ? (st.other_task_type ?? null) : (input.other_task_type ?? null),
               allocated_minutes: st.allocated_minutes ?? null,
+              due_date: st.due_date ? new Date(st.due_date) : null,
+              start_date: st.start_date ? new Date(st.start_date) : null,
               created_by: input.created_by,
               source: input.source || 'personal',
               parent_task_id: created.task_id,
+              project_id: input.project_id ?? null,
+              sprint_id: input.sprint_id ?? null,
               stage: 'assigned',
             },
           });
@@ -140,7 +153,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
             subCode,
             st.title,
             null,
-            input.due_date,
+            st.due_date ?? input.due_date,
             st.allocated_minutes,
             st.assignee_ids,
             null,
@@ -152,6 +165,164 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
 
       return this.fetchTaskEntity(created.task_id, tx);
     });
+  }
+
+  async addSubTask(parentTaskId: number, input: AddSubTaskRepoInput): Promise<{ parent: TaskEntity; sub_task: TaskEntity }> {
+    return this.prisma.$transaction(async (tx) => {
+      const parent = await tx.tasks.findUnique({ where: { task_id: parentTaskId } });
+      if (!parent || parent.deleted_at) throw new TaskNotFoundError(parentTaskId);
+
+      const children = await tx.tasks.findMany({
+        where: { parent_task_id: parentTaskId },
+        select: { task_code: true, allocated_minutes: true, deleted_at: true },
+      });
+      const liveMinutes = children.filter((c) => !c.deleted_at).reduce((n, c) => n + (c.allocated_minutes || 0), 0);
+      // Next number after every existing sub-task, deleted ones included, so a code is never reused
+      const nextNo = children.reduce((max, c) => {
+        const m = /-(\d+)$/.exec(c.task_code);
+        return m ? Math.max(max, Number(m[1])) : max;
+      }, 0) + 1;
+      const subCode = `${parent.task_code}-${String(nextNo).padStart(2, '0')}`;
+
+      const sub = await tx.tasks.create({
+        data: {
+          task_code: subCode,
+          title: input.title,
+          description: input.description ?? null,
+          priority: input.priority ?? parent.priority,
+          task_type_id: input.task_type_id ?? parent.task_type_id,
+          other_task_type: input.task_type_id ? (input.other_task_type ?? null) : parent.other_task_type,
+          allocated_minutes: input.allocated_minutes ?? null,
+          due_date: input.due_date ? new Date(input.due_date) : null,
+          start_date: input.start_date ? new Date(input.start_date) : null,
+          created_by: input.actor_emp_id,
+          source: parent.source,
+          parent_task_id: parentTaskId,
+          project_id: parent.project_id,
+          sprint_id: parent.sprint_id,
+          stage: 'assigned',
+        },
+      });
+
+      await tx.task_assignees.createMany({
+        data: input.assignee_ids.map((empId) => ({ task_id: sub.task_id, employee_id: empId, created_by: input.actor_emp_id })),
+      });
+      await tx.activity_logs.create({
+        data: {
+          entity_type: 'TASK',
+          entity_id: sub.task_id,
+          event: 'created',
+          summary: `Sub task created under ${parent.task_code}`,
+          details: { to_stage: 'assigned' },
+          performed_by: input.actor_emp_id,
+        },
+      });
+      await this.syncTaskCalendarEvent(
+        tx, sub.task_id, subCode, input.title, null, input.due_date ?? parent.due_date, input.allocated_minutes, input.assignee_ids, null, input.actor_emp_id, false,
+      );
+
+      // The parent is now a container for its sub-tasks
+      const parentAssignees = await tx.task_assignees.findMany({
+        where: { task_id: parentTaskId, deleted_at: null },
+        select: { employee_id: true },
+      });
+      const have = new Set(parentAssignees.map((a) => a.employee_id));
+      const missing = input.assignee_ids.filter((id) => !have.has(id));
+      if (missing.length) {
+        await tx.task_assignees.createMany({
+          data: missing.map((empId) => ({ task_id: parentTaskId, employee_id: empId, created_by: input.actor_emp_id })),
+        });
+      }
+      const parentTeam = [...have, ...missing];
+      const lead = parent.lead_employee_id ?? parentAssignees[0]?.employee_id ?? input.assignee_ids[0] ?? null;
+      const total = liveMinutes + (input.allocated_minutes ?? 0);
+
+      await tx.tasks.update({
+        where: { task_id: parentTaskId },
+        data: {
+          has_sub_tasks: true,
+          allocated_minutes: total,
+          lead_employee_id: lead,
+          // New work was added, so anything waiting for review is open again
+          ...(parent.stage === 'requested' ? { stage: 'in_progress', requested_at: null } : {}),
+          updated_at: new Date(),
+          updated_by: input.actor_emp_id,
+        },
+      });
+      await tx.activity_logs.create({
+        data: {
+          entity_type: 'TASK',
+          entity_id: parentTaskId,
+          event: 'edited',
+          summary: `Sub task ${subCode} added`,
+          details: { note: `Sub task ${subCode} added; estimate is now ${total} minutes` },
+          performed_by: input.actor_emp_id,
+        },
+      });
+      await this.syncTaskCalendarEvent(
+        tx, parentTaskId, parent.task_code, parent.title, parent.description, parent.due_date, total, parentTeam, lead, input.actor_emp_id, false,
+      );
+
+      return { parent: await this.fetchTaskEntity(parentTaskId, tx), sub_task: await this.fetchTaskEntity(sub.task_id, tx) };
+    });
+  }
+
+  async getTaskProjectManagerId(taskId: number): Promise<number | null> {
+    const rows: any[] = await this.prisma.$queryRaw`
+      SELECT p.project_manager_id
+      FROM tasks t
+      LEFT JOIN tasks pt ON pt.task_id = t.parent_task_id
+      JOIN projects p ON p.project_id = COALESCE(t.project_id, pt.project_id)
+      WHERE t.task_id = ${taskId} AND p.deleted_at IS NULL
+      LIMIT 1;
+    `;
+    return rows[0]?.project_manager_id ?? null;
+  }
+
+  async getTaskTypeCode(taskTypeId: number): Promise<string | null> {
+    const rows: any[] = await this.prisma.$queryRaw`
+      SELECT code FROM master_lookup
+      WHERE lookup_id = ${taskTypeId} AND lookup_type = 'task_type' AND is_active = true AND deleted_at IS NULL;
+    `;
+    return rows[0]?.code ?? null;
+  }
+
+  /** BFD Project 3.4: Break or Clock-out pauses the running task; it stays In Progress with the timer stopped. */
+  async pauseRunningTasks(empId: number, reason: string): Promise<number[]> {
+    const now = new Date();
+    const running = await this.prisma.tasks.findMany({
+      where: {
+        deleted_at: null,
+        is_timer_running: true,
+        task_assignees: { some: { employee_id: empId, deleted_at: null } },
+      },
+      select: { task_id: true, timer_started_at: true, actual_minutes: true, work_logs: true },
+    });
+    for (const t of running) {
+      const elapsed = t.timer_started_at ? Math.max(0, Math.floor((now.getTime() - new Date(t.timer_started_at).getTime()) / 1000)) : 0;
+      const addMins = elapsed > 0 ? Math.max(1, Math.round(elapsed / 60)) : 0;
+      const logs = Array.isArray(t.work_logs) ? [...(t.work_logs as any[])] : [];
+      logs.push({
+        log_id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        employee_id: empId,
+        action: 'pause',
+        timestamp: now.toISOString(),
+        duration_seconds: elapsed,
+        note: reason,
+      });
+      await this.prisma.tasks.update({
+        where: { task_id: t.task_id },
+        data: {
+          actual_minutes: (t.actual_minutes || 0) + addMins,
+          is_timer_running: false,
+          timer_started_at: null,
+          work_logs: logs,
+          updated_by: empId,
+          updated_at: now,
+        },
+      });
+    }
+    return running.map((t) => t.task_id);
   }
 
   async findById(taskId: number): Promise<TaskEntity | null> {
@@ -179,6 +350,9 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
       if (input.task_type_id !== undefined) data.task_type_id = input.task_type_id;
       if (input.due_date !== undefined) {
         data.due_date = input.due_date ? new Date(input.due_date) : null;
+      }
+      if (input.start_date !== undefined) {
+        data.start_date = input.start_date ? new Date(input.start_date) : null;
       }
       if (input.allocated_minutes !== undefined) data.allocated_minutes = input.allocated_minutes;
       if (input.lead_employee_id !== undefined) data.lead_employee_id = input.lead_employee_id;
@@ -647,6 +821,9 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
       };
 
       if (input.action === 'start') {
+        // A timer that is already running keeps running; starting again would throw its elapsed time away.
+        if (existing.is_timer_running) return this.fetchTaskEntity(taskId, tx);
+
         // Enforce Section 3.4 Task Working Rules: Only one task can be running (In Progress) at a time.
         // If employee has any other task currently running with active timer, pause it.
         const otherRunningTasks = await tx.tasks.findMany({
@@ -667,6 +844,9 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
         });
 
         for (const other of otherRunningTasks) {
+          // A teammate's timer on a shared task is theirs to stop, not ours
+          const startedBy = timerRunner(other.work_logs);
+          if (startedBy && startedBy.id !== input.actor_emp_id) continue;
           let elapsedSeconds = 0;
           if (other.timer_started_at) {
             elapsedSeconds = Math.max(
@@ -674,8 +854,8 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
               Math.floor((now.getTime() - new Date(other.timer_started_at).getTime()) / 1000),
             );
           }
-          const addMins = elapsedSeconds > 0 ? Math.max(1, Math.round(elapsedSeconds / 60)) : 0;
           const otherLogs = Array.isArray(other.work_logs) ? [...other.work_logs] : [];
+          const otherMinutes = minutesAfter(otherLogs, other.actual_minutes, elapsedSeconds);
           otherLogs.push({
             log_id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
             employee_id: input.actor_emp_id,
@@ -689,7 +869,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
           await tx.tasks.update({
             where: { task_id: other.task_id },
             data: {
-              actual_minutes: (other.actual_minutes || 0) + addMins,
+              actual_minutes: otherMinutes,
               is_timer_running: false,
               timer_started_at: null,
               work_logs: otherLogs,
@@ -767,6 +947,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
           }
         }
       } else if (input.action === 'pause') {
+        if (!existing.is_timer_running) return this.fetchTaskEntity(taskId, tx);
         let elapsedSeconds = 0;
         if (existing.is_timer_running && existing.timer_started_at) {
           elapsedSeconds = Math.max(
@@ -774,19 +955,19 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
             Math.floor((now.getTime() - new Date(existing.timer_started_at).getTime()) / 1000),
           );
         }
-        const addMins = elapsedSeconds > 0 ? Math.max(1, Math.round(elapsedSeconds / 60)) : 0;
-        updateData.actual_minutes = (existing.actual_minutes || 0) + addMins;
+        const runner = existing.is_timer_running ? timerRunner(existingLogs) : null;
+        updateData.actual_minutes = minutesAfter(existingLogs, existing.actual_minutes, elapsedSeconds);
         updateData.is_timer_running = false;
         updateData.timer_started_at = null;
 
         existingLogs.push({
           log_id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-          employee_id: input.actor_emp_id,
-          employee_name: input.actor_name,
+          employee_id: runner?.id ?? input.actor_emp_id,
+          employee_name: runner?.name || input.actor_name,
           action: 'pause',
           timestamp: now.toISOString(),
           duration_seconds: elapsedSeconds,
-          note: input.note || null,
+          note: stoppedNote(input.note, runner, { id: input.actor_emp_id, name: input.actor_name }),
         });
         updateData.work_logs = existingLogs;
 
@@ -815,8 +996,8 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
             Math.floor((now.getTime() - new Date(existing.timer_started_at).getTime()) / 1000),
           );
         }
-        const addMins = elapsedSeconds > 0 ? Math.max(1, Math.round(elapsedSeconds / 60)) : 0;
-        updateData.actual_minutes = (existing.actual_minutes || 0) + addMins;
+        const runner = existing.is_timer_running ? timerRunner(existingLogs) : null;
+        updateData.actual_minutes = minutesAfter(existingLogs, existing.actual_minutes, elapsedSeconds);
         updateData.is_timer_running = false;
         updateData.timer_started_at = null;
         updateData.stage = 'requested';
@@ -824,12 +1005,12 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
 
         existingLogs.push({
           log_id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-          employee_id: input.actor_emp_id,
-          employee_name: input.actor_name,
+          employee_id: runner?.id ?? input.actor_emp_id,
+          employee_name: runner?.name || input.actor_name,
           action: 'finish',
           timestamp: now.toISOString(),
           duration_seconds: elapsedSeconds,
-          note: input.note || null,
+          note: stoppedNote(input.note, runner, { id: input.actor_emp_id, name: input.actor_name }),
         });
         updateData.work_logs = existingLogs;
 
@@ -1066,6 +1247,9 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
         t.parent_task_id,
         t_p.task_code AS parent_task_code,
         t_p.title AS parent_task_title,
+        proj.project_id AS project_id,
+        proj.project_no AS project_no,
+        proj.project_name AS project_name,
         (t.stage <> 'completed' AND t.due_date IS NOT NULL AND t.due_date < CURRENT_DATE) AS is_overdue,
         t.started_at,
         CASE
@@ -1108,6 +1292,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
         ) AS assignees
       FROM tasks t
       LEFT JOIN tasks t_p ON t.parent_task_id = t_p.task_id AND t_p.deleted_at IS NULL
+      LEFT JOIN projects proj ON proj.project_id = COALESCE(t.project_id, t_p.project_id) AND proj.deleted_at IS NULL
       LEFT JOIN master_lookup ml ON t.task_type_id = ml.lookup_id AND ml.deleted_at IS NULL
       LEFT JOIN employees e_lead ON t.lead_employee_id = e_lead.emp_id AND e_lead.deleted_at IS NULL
       WHERE ${whereClause}
@@ -1137,6 +1322,9 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
       parent_task_id: r.parent_task_id,
       parent_task_code: r.parent_task_code ?? null,
       parent_task_title: r.parent_task_title ?? null,
+      project_id: r.project_id ?? null,
+      project_no: r.project_no ?? null,
+      project_name: r.project_name ?? null,
       is_overdue: Boolean(r.is_overdue),
       started_at: r.started_at ? new Date(r.started_at) : null,
       actual_minutes: r.actual_minutes ?? 0,
@@ -1340,16 +1528,24 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
 
     let parentTaskCode: string | null = null;
     let parentTaskTitle: string | null = null;
+    let projectId: number | null = row.project_id ?? null;
     if (row.parent_task_id) {
       const p = await tx.tasks.findUnique({
         where: { task_id: row.parent_task_id },
-        select: { task_code: true, title: true },
+        select: { task_code: true, title: true, project_id: true },
       });
       if (p) {
         parentTaskCode = p.task_code;
         parentTaskTitle = p.title;
+        projectId = projectId ?? p.project_id ?? null;
       }
     }
+    const project = projectId
+      ? await tx.projects.findUnique({
+          where: { project_id: projectId },
+          select: { project_id: true, project_no: true, project_name: true },
+        })
+      : null;
 
     return {
       task_id: row.task_id,
@@ -1359,6 +1555,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
       priority: row.priority,
       task_type_id: row.task_type_id,
       task_type_label: row.master_lookup?.label ?? null,
+      start_date: row.start_date ? row.start_date.toISOString().slice(0, 10) : null,
       due_date: row.due_date ? row.due_date.toISOString().slice(0, 10) : null,
       allocated_minutes: row.allocated_minutes,
       stage: row.stage,
@@ -1368,6 +1565,9 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
       parent_task_id: row.parent_task_id,
       parent_task_code: parentTaskCode,
       parent_task_title: parentTaskTitle,
+      project_id: project?.project_id ?? null,
+      project_no: project?.project_no ?? null,
+      project_name: project?.project_name ?? null,
       lead_employee_id: row.lead_employee_id,
       lead_employee_name: row.employees_tasks_lead_employee_idToemployees?.name ?? null,
       has_sub_tasks: Boolean(row.has_sub_tasks),

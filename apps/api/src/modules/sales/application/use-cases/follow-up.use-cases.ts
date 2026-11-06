@@ -107,6 +107,8 @@ export interface CompleteInput {
   done_on?: Date | null;
   outcome?: string | null;
   what_happened?: string | null;
+  /** A call follow-up: how long the call lasted, in seconds. */
+  call_duration_seconds?: number | null;
   next_step?: NextStepInput | null;
 }
 
@@ -330,6 +332,14 @@ export class FollowUpUseCases {
       next_step: action,
     };
     const errors = validateComplete(fields, rec.created_at, now);
+    // A call follow-up records how long the call lasted; other channels have no call length
+    const duration = input.call_duration_seconds ?? null;
+    if (rec.type === 'Call') {
+      if (duration === null) errors.push({ field: 'call_duration_seconds', message: 'Please enter how long the call lasted, for example 3 min 28 sec.' });
+      else if (!Number.isInteger(duration) || duration < 1 || duration >= 86400) errors.push({ field: 'call_duration_seconds', message: 'Enter how long the call lasted, for example 3 min 28 sec (up to 23 h 59 min).' });
+    } else if (duration !== null) {
+      errors.push({ field: 'call_duration_seconds', message: 'The call length is only for a call.' });
+    }
 
     if (rec.lead === null && (action === 'qualify' || action === 'hold' || action === 'lost')) {
       errors.push({ field: 'next_step.action', message: 'This step is only available for a lead. Convert the company to a lead first.' });
@@ -366,6 +376,7 @@ export class FollowUpUseCases {
           communication_date: fields.done_on,
           what_discussed: fields.what_happened as string,
           outcome: fields.outcome as string,
+          call_duration_seconds: rec.type === 'Call' ? duration : null,
         },
         actor,
         now,

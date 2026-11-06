@@ -1,12 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import {
-  X,
-  Search,
-  Check,
-  Users,
-  Building2,
-  AlertCircle,
-} from 'lucide-react';
+import { Search, Check, Building2, Loader2, X } from 'lucide-react';
 import type {
   AssignableEmployee,
   CreateProjectPayload,
@@ -16,6 +9,9 @@ import type {
   ProjectType,
 } from '../types';
 import { useLookupsQuery } from '@/features/organization/hooks/use-master-data';
+import { J_BTN_PRIMARY, J_BTN_SUBTLE, J_INPUT, JBanner, JField, JiraModal } from '@/shared/ui/JiraModal';
+import { JiraAvatar } from '@/shared/ui/JiraAvatar';
+import { ClientPicker } from './ClientPicker';
 
 const DEFAULT_PROJECT_TYPES = [
   { code: 'client', label: 'Client Project (VM-CL)' },
@@ -65,6 +61,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Form Fields
   const [projectName, setProjectName] = useState('');
@@ -115,15 +112,13 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
       setMemberSearch('');
       setIsMemberDropdownOpen(false);
       setError(null);
+      setErrors({});
     }
   }, [isOpen, initialData, mode]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        memberDropdownRef.current &&
-        !memberDropdownRef.current.contains(event.target as Node)
-      ) {
+      if (memberDropdownRef.current && !memberDropdownRef.current.contains(event.target as Node)) {
         setIsMemberDropdownOpen(false);
       }
     };
@@ -144,9 +139,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
   }, [employees, memberSearch]);
 
   const toggleMember = (empId: number) => {
-    setSelectedMemberIds((prev) =>
-      prev.includes(empId) ? prev.filter((id) => id !== empId) : [...prev, empId]
-    );
+    setSelectedMemberIds((prev) => (prev.includes(empId) ? prev.filter((id) => id !== empId) : [...prev, empId]));
   };
 
   const removeMember = (empId: number, e: React.MouseEvent) => {
@@ -169,39 +162,29 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
     setMemberSearch('');
     setIsMemberDropdownOpen(false);
     setError(null);
+    setErrors({});
     onClose();
+  };
+
+  const validate = () => {
+    const e: Record<string, string> = {};
+    if (!projectName.trim()) e.name = 'Project name is required.';
+    if (!startDate) e.start = 'Start date is required.';
+    if (!deadline) e.end = 'End date / deadline is required.';
+    else if (startDate && new Date(startDate) > new Date(deadline)) e.end = 'The deadline cannot be before the start date.';
+    if (!projectManagerId) e.manager = 'Please select a Project Manager.';
+    if (category === 'other' && !otherCategory.trim()) e.other = 'Please specify the category.';
+    setErrors(e);
+    return Object.keys(e).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!projectName.trim()) {
-      setError('Project name is required');
-      return;
-    }
-    if (!startDate) {
-      setError('Start date is required');
-      return;
-    }
-    if (!deadline) {
-      setError('End date / deadline is required');
-      return;
-    }
-    if (new Date(startDate) > new Date(deadline)) {
-      setError('Deadline cannot be before start date');
-      return;
-    }
-    if (!projectManagerId) {
-      setError('Please select a Project Manager');
-      return;
-    }
-    if (category === 'other' && !otherCategory.trim()) {
-      setError('Please specify the category');
-      return;
-    }
+    setError(null);
+    if (!validate()) return;
 
     try {
       setIsSubmitting(true);
-      setError(null);
 
       const payload: CreateProjectPayload = {
         project_name: projectName.trim(),
@@ -221,8 +204,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
       handleClose();
     } catch (err: any) {
       console.error('Error creating project:', err);
-      const msg = err?.detail || err?.message || 'Failed to create project. Please check the inputs.';
-      setError(msg);
+      setError(err?.detail || err?.message || 'Failed to save the project. Please check the inputs.');
     } finally {
       setIsSubmitting(false);
     }
@@ -230,356 +212,178 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
 
   if (!isOpen) return null;
 
+  const isEdit = mode === 'edit';
+  const prefix = /\(([A-Z]{2}-[A-Z]{2})\)/.exec(projectTypeOptions.find((o) => o.code === projectType)?.label ?? '')?.[1];
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-100 flex flex-col max-h-[90vh] overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
-          <div>
-            <h2 className="text-lg font-bold text-slate-900">
-              {mode === 'edit' ? 'Edit Project Details' : 'Create Project'}
-            </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              {mode === 'edit'
-                ? 'Update project information and manage team member assignments'
-                : 'Fill in project details to create the project card immediately'}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={handleClose}
-            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition cursor-pointer"
-          >
-            <X className="w-5 h-5" />
+    <JiraModal
+      title={isEdit ? 'Edit project' : 'Create project'}
+      size="lg"
+      onClose={handleClose}
+      onSubmit={handleSubmit}
+      zIndex={60}
+      footer={
+        <>
+          <button type="button" onClick={handleClose} disabled={isSubmitting} className={J_BTN_SUBTLE}>Cancel</button>
+          <button type="submit" disabled={isSubmitting} className={J_BTN_PRIMARY}>
+            {isSubmitting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+            {isEdit ? 'Save' : 'Create'}
           </button>
+        </>
+      }
+    >
+      <p className="text-[12px] text-[#5E6C84]">Required fields are marked with an asterisk <span className="text-[#DE350B]">*</span></p>
+      {error && <JBanner>{error}</JBanner>}
+
+      {isEdit && initialData?.project_no && (
+        <JField label="Key" htmlFor="project-key">
+          <input id="project-key" value={initialData.project_no} disabled className={J_INPUT} />
+        </JField>
+      )}
+
+      <JField label="Project name" required htmlFor="project-name" error={errors.name}>
+        <input id="project-name" autoFocus type="text" value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder="e.g. Website redesign" className={J_INPUT} />
+      </JField>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <JField label="Project type" required htmlFor="project-type" hint={!isEdit && prefix ? `Keys start with ${prefix}` : undefined}>
+          <select id="project-type" value={projectType} onChange={(e) => setProjectType(e.target.value as ProjectType)} className={J_INPUT}>
+            {projectTypeOptions.map((opt) => (
+              <option key={opt.code} value={opt.code}>{opt.label}</option>
+            ))}
+          </select>
+        </JField>
+        <JField label="Category" required htmlFor="project-category">
+          <select id="project-category" value={category} onChange={(e) => setCategory(e.target.value as ProjectCategory)} className={J_INPUT}>
+            {categoryOptions.map((opt) => (
+              <option key={opt.code} value={opt.code}>{opt.label}</option>
+            ))}
+          </select>
+        </JField>
+      </div>
+
+      {category === 'other' && (
+        <JField label="Specify category" required htmlFor="project-other" error={errors.other}>
+          <input id="project-other" type="text" value={otherCategory} onChange={(e) => setOtherCategory(e.target.value)} placeholder="Enter a custom category" className={J_INPUT} />
+        </JField>
+      )}
+
+      {projectType === 'client' && (
+        <JField label="Client" optional htmlFor="project-client" hint="Choose from the clients you have won, or type a new name.">
+          <ClientPicker id="project-client" value={clientName} onChange={setClientName} />
+        </JField>
+      )}
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <JField label="Project lead" required htmlFor="project-manager" error={errors.manager}>
+          <select id="project-manager" value={projectManagerId} onChange={(e) => setProjectManagerId(e.target.value ? Number(e.target.value) : '')} className={J_INPUT}>
+            <option value="">Select a project manager</option>
+            {employees.map((emp) => (
+              <option key={emp.emp_id} value={emp.emp_id}>
+                {emp.name}{emp.role_name ? ` (${emp.role_name})` : ''}{emp.department_name ? ` · ${emp.department_name}` : ''}
+              </option>
+            ))}
+          </select>
+        </JField>
+        <JField label={isEdit ? 'Status' : 'Initial status'} required htmlFor="project-status">
+          <select id="project-status" value={projectStatus} onChange={(e) => setProjectStatus(e.target.value as ProjectStatus)} className={J_INPUT}>
+            <option value="new">New</option>
+            <option value="planning">Planning</option>
+            <option value="in_progress">In Progress</option>
+            <option value="on_hold">On Hold</option>
+          </select>
+        </JField>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <JField label="Start date" required htmlFor="project-start" error={errors.start}>
+          <input id="project-start" type="date" value={startDate} max={deadline || undefined} onChange={(e) => setStartDate(e.target.value)} className={J_INPUT} />
+        </JField>
+        <JField label="End date / deadline" required htmlFor="project-end" error={errors.end}>
+          <input id="project-end" type="date" value={deadline} min={startDate || undefined} onChange={(e) => setDeadline(e.target.value)} className={J_INPUT} />
+        </JField>
+      </div>
+
+      <JField label="Description" optional htmlFor="project-desc">
+        <textarea id="project-desc" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What is this project about, and what should it deliver?" className={`${J_INPUT} resize-y`} />
+      </JField>
+
+      {/* Team: chips for who is on the project, and a search to add more */}
+      <div ref={memberDropdownRef}>
+        <div className="mb-1 flex items-center justify-between">
+          <label htmlFor="project-members" className="text-[12px] font-semibold text-[#5E6C84]">Team members</label>
+          <span className="text-[12px] text-[#5E6C84]">{selectedMemberIds.length} selected</span>
         </div>
 
-        {/* Scrollable Form Body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
-          {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2.5 text-xs text-red-600 font-medium">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
+        {selectedMemberIds.length > 0 && (
+          <ul className="mb-2 flex flex-wrap gap-1.5">
+            {selectedMemberIds.map((id) => {
+              const emp = employees.find((x) => x.emp_id === id);
+              if (!emp) return null;
+              return (
+                <li key={id} className="inline-flex items-center gap-1.5 rounded-[3px] bg-[#DFE1E6] py-0.5 pl-1 pr-1 text-[13px] font-medium text-[#172B4D]">
+                  <JiraAvatar name={emp.name} id={emp.emp_id} src={emp.profile_picture} size={18} />
+                  <span>{emp.name}</span>
+                  <button type="button" onClick={(e) => removeMember(id, e)} aria-label={`Remove ${emp.name}`} className="flex h-4 w-4 cursor-pointer items-center justify-center rounded-[3px] text-[#42526E] hover:bg-[rgba(9,30,66,0.12)]">
+                    <X className="h-3 w-3" />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
 
-          {/* Project Name */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-700">
-              Project Name <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              required
-              value={projectName}
-              onChange={(e) => setProjectName(e.target.value)}
-              placeholder="Enter project name (e.g. Website Redesign)"
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-            />
-          </div>
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-[#5E6C84]" />
+          <input
+            id="project-members"
+            type="text"
+            value={memberSearch}
+            onChange={(e) => { setMemberSearch(e.target.value); setIsMemberDropdownOpen(true); }}
+            onFocus={() => setIsMemberDropdownOpen(true)}
+            placeholder="Search employees by name, department or role"
+            autoComplete="off"
+            className={`${J_INPUT} pl-8`}
+          />
 
-          {/* Description Field (Accepts large paragraphs) */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-slate-700">Project Description</label>
-              <span className="text-[11px] text-slate-400">Optional</span>
-            </div>
-            <textarea
-              rows={3}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Provide a detailed overview of the project scope, objectives, or deliverable details..."
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition resize-y"
-            />
-          </div>
-
-          {/* Row: Project Type & Category */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700">
-                Project Type <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={projectType}
-                onChange={(e) => setProjectType(e.target.value as ProjectType)}
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-              >
-                {projectTypeOptions.map((opt) => (
-                  <option key={opt.code} value={opt.code}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700">
-                Category <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value as ProjectCategory)}
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-              >
-                {categoryOptions.map((opt) => (
-                  <option key={opt.code} value={opt.code}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {category === 'other' && (
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700">
-                Specify Category <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                value={otherCategory}
-                onChange={(e) => setOtherCategory(e.target.value)}
-                placeholder="Enter custom category"
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-              />
-            </div>
-          )}
-
-          {/* Row: Project Manager & Initial Status */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700">
-                Project Manager <span className="text-red-500">*</span>
-              </label>
-              <select
-                required
-                value={projectManagerId}
-                onChange={(e) => setProjectManagerId(e.target.value ? Number(e.target.value) : '')}
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-              >
-                <option value="">Select Project Manager</option>
-                {employees.map((emp) => (
-                  <option key={emp.emp_id} value={emp.emp_id}>
-                    {emp.name} {emp.role_name ? `(${emp.role_name})` : ''} {emp.department_name ? `• ${emp.department_name}` : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700">
-                Initial Status <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={projectStatus}
-                onChange={(e) => setProjectStatus(e.target.value as ProjectStatus)}
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-              >
-                <option value="new">New</option>
-                <option value="planning">Planning</option>
-                <option value="in_progress">In Progress</option>
-                <option value="on_hold">On Hold</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Row: Start Date & Deadline */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700">
-                Start Date <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <input
-                  type="date"
-                  required
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700">
-                End Date / Deadline <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <input
-                  type="date"
-                  required
-                  value={deadline}
-                  onChange={(e) => setDeadline(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Client Name (Optional) */}
-          {projectType === 'client' && (
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700">Client / Company Name</label>
-              <input
-                type="text"
-                value={clientName}
-                onChange={(e) => setClientName(e.target.value)}
-                placeholder="Enter client or brand name (e.g. Acme Corp)"
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-              />
-            </div>
-          )}
-
-          {/* Assign Team Members with Searchable Dropdown (Filter by Name, Department, Role) */}
-          <div className="space-y-2 pt-1" ref={memberDropdownRef}>
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-slate-700">Assign Team Members</label>
-              <span className="text-[11px] font-semibold text-slate-400">
-                {selectedMemberIds.length} selected
-              </span>
-            </div>
-
-            {/* Selected Member Chips */}
-            {selectedMemberIds.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 pb-1">
-                {selectedMemberIds.map((id) => {
-                  const emp = employees.find((e) => e.emp_id === id);
-                  if (!emp) return null;
-                  return (
-                    <span
-                      key={id}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg text-xs font-medium"
-                    >
-                      <span>{emp.name}</span>
-                      {emp.role_name && (
-                        <span className="text-[10px] text-blue-500">({emp.role_name})</span>
-                      )}
-                      <button
-                        type="button"
-                        onClick={(e) => removeMember(id, e)}
-                        className="text-blue-400 hover:text-blue-700 rounded-full p-0.5 hover:bg-blue-100 transition cursor-pointer"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </span>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Dropdown Container */}
-            <div className="relative">
-              <div
-                onClick={() => setIsMemberDropdownOpen(true)}
-                className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs flex items-center justify-between cursor-pointer hover:border-slate-300 transition"
-              >
-                <div className="flex items-center gap-2 text-slate-400 flex-1">
-                  <Search className="w-3.5 h-3.5 text-slate-400" />
-                  <input
-                    type="text"
-                    value={memberSearch}
-                    onChange={(e) => {
-                      setMemberSearch(e.target.value);
-                      setIsMemberDropdownOpen(true);
-                    }}
-                    onFocus={() => setIsMemberDropdownOpen(true)}
-                    placeholder="Search active employees by name, department, or role..."
-                    className="bg-transparent border-none outline-none text-xs text-slate-800 placeholder:text-slate-400 w-full"
-                  />
-                </div>
-                <Users className="w-4 h-4 text-slate-400 shrink-0 ml-2" />
-              </div>
-
-              {/* Dropdown Menu */}
-              {isMemberDropdownOpen && (
-                <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-2xl shadow-xl z-30 max-h-56 overflow-y-auto divide-y divide-slate-100 animate-in fade-in zoom-in-95 duration-150">
-                  {filteredEmployees.length === 0 ? (
-                    <div className="p-4 text-center text-xs text-slate-400">
-                      No active employees found matching &quot;{memberSearch}&quot;
-                    </div>
-                  ) : (
-                    filteredEmployees.map((emp) => {
-                      const isSelected = selectedMemberIds.includes(emp.emp_id);
-                      return (
-                        <div
-                          key={emp.emp_id}
-                          onClick={() => toggleMember(emp.emp_id)}
-                          className={`p-3 flex items-center justify-between cursor-pointer transition ${
-                            isSelected ? 'bg-blue-50/60 hover:bg-blue-50' : 'hover:bg-slate-50'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-7 h-7 rounded-full bg-slate-100 border border-slate-200 text-slate-600 font-bold flex items-center justify-center text-xs shrink-0">
-                              {emp.name.charAt(0).toUpperCase()}
-                            </div>
-                            <div>
-                              <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                                <span>{emp.name}</span>
-                                {emp.role_name && (
-                                  <span className="px-1.5 py-0.2 rounded-md bg-slate-100 text-[10px] text-slate-600 font-medium border border-slate-200">
-                                    {emp.role_name}
-                                  </span>
-                                )}
-                              </div>
-                              <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
-                                {emp.department_name && (
-                                  <span className="flex items-center gap-1 text-slate-500">
-                                    <Building2 className="w-2.5 h-2.5 text-slate-400" />
-                                    {emp.department_name}
-                                  </span>
-                                )}
-                                <span>{emp.email}</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div
-                            className={`w-5 h-5 rounded-md flex items-center justify-center border transition ${
-                              isSelected
-                                ? 'bg-blue-600 border-blue-600 text-white'
-                                : 'border-slate-300 bg-white'
-                            }`}
-                          >
-                            {isSelected && <Check className="w-3.5 h-3.5 stroke-[2.5]" />}
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Modal Footer: Cancel & Create Project */}
-          <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
-            <button
-              type="button"
-              onClick={handleClose}
-              disabled={isSubmitting}
-              className="px-5 py-2.5 border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-semibold transition cursor-pointer"
-            >
-              Cancel
-            </button>
-
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold transition shadow-xs cursor-pointer flex items-center gap-2 disabled:opacity-50"
-            >
-              {isSubmitting ? (
-                <>
-                  <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  <span>{mode === 'edit' ? 'Saving Changes...' : 'Creating Project...'}</span>
-                </>
+          {isMemberDropdownOpen && (
+            <div role="listbox" aria-multiselectable className="absolute left-0 right-0 top-full z-30 mt-1 max-h-56 overflow-y-auto rounded-[3px] bg-white py-1 shadow-[0_4px_8px_-2px_rgba(9,30,66,0.25),0_0_1px_rgba(9,30,66,0.31)]">
+              {filteredEmployees.length === 0 ? (
+                <p className="px-3 py-4 text-center text-[13px] text-[#5E6C84]">No active employees match “{memberSearch}”</p>
               ) : (
-                <span>{mode === 'edit' ? 'Save Changes' : 'Create Project'}</span>
+                filteredEmployees.map((emp) => {
+                  const on = selectedMemberIds.includes(emp.emp_id);
+                  return (
+                    <button
+                      key={emp.emp_id}
+                      type="button"
+                      role="option"
+                      aria-selected={on}
+                      onClick={() => toggleMember(emp.emp_id)}
+                      className={`flex w-full cursor-pointer items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-[#F4F5F7] ${on ? 'bg-[rgb(var(--ac-50-rgb,222_235_255)/0.6)]' : ''}`}
+                    >
+                      <JiraAvatar name={emp.name} id={emp.emp_id} src={emp.profile_picture} size={28} />
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center gap-1.5 text-[14px] text-[#172B4D]">
+                          <span className="truncate">{emp.name}</span>
+                          {emp.role_name && <span className="shrink-0 rounded-[3px] bg-[#DFE1E6] px-1 py-px text-[11px] font-semibold text-[#42526E]">{emp.role_name}</span>}
+                        </span>
+                        <span className="flex items-center gap-2 truncate text-[12px] text-[#5E6C84]">
+                          {emp.department_name && <span className="inline-flex items-center gap-1"><Building2 className="h-3 w-3" />{emp.department_name}</span>}
+                          <span className="truncate">{emp.email}</span>
+                        </span>
+                      </span>
+                      <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-[3px] border-2 ${on ? 'border-[color:var(--ac-main,#0052CC)] bg-[color:var(--ac-main,#0052CC)] text-white' : 'border-[#DFE1E6] bg-white'}`}>
+                        {on && <Check className="h-3 w-3" strokeWidth={3.5} />}
+                      </span>
+                    </button>
+                  );
+                })
               )}
-            </button>
-          </div>
-        </form>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </JiraModal>
   );
 };

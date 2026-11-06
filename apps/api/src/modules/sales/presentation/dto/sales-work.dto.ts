@@ -26,6 +26,7 @@ export class ConversationBodyDto {
   @ApiPropertyOptional({ enum: OUTCOMES, description: 'Required in the Log Conversation popup, unless the call was not received' }) @IsOptional() @IsString() outcome?: string;
   @ApiPropertyOptional({ enum: ['Received', 'Not received'], description: 'Calls only. Received needs the call time and what was discussed; Not received needs a reason.' }) @IsOptional() @IsString() call_status?: string;
   @ApiPropertyOptional({ description: 'A call that was not received: the reason, from the Call Not Received Reasons list' }) @IsOptional() @IsString() not_received_reason?: string;
+  @ApiPropertyOptional({ type: Number, description: 'A received call: how long it lasted, in seconds (3 min 28 sec = 208)' }) @IsOptional() @Type(() => Number) @IsInt() call_duration_seconds?: number;
   @ApiPropertyOptional({ type: NextFollowUpDto, description: 'The "Schedule next follow-up" part, saved together with the conversation' })
   @IsOptional() @ValidateNested() @Type(() => NextFollowUpDto) next_follow_up?: NextFollowUpDto;
 }
@@ -35,6 +36,7 @@ export class QuickLogBodyDto {
   @ApiPropertyOptional({ description: 'One line: what happened. Optional for a call that was not received.' }) @IsOptional() @IsString() text?: string;
   @ApiPropertyOptional({ enum: ['Received', 'Not received'] }) @IsOptional() @IsString() call_status?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() not_received_reason?: string;
+  @ApiPropertyOptional({ type: Number, description: 'A received call: how long it lasted, in seconds' }) @IsOptional() @Type(() => Number) @IsInt() call_duration_seconds?: number;
 }
 
 export class NoteBodyDto {

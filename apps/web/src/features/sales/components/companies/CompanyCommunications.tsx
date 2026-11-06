@@ -1,7 +1,8 @@
 import React from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { customFetch } from '@vernoxy-pulse/api-client';
-import { Loader2, Mail, MapPin, MessageSquare, Phone, PhoneOff, Plus, User, Users } from 'lucide-react';
+import { Loader2, Mail, MapPin, MessageSquare, Phone, PhoneOff, Plus, Timer, User, Users } from 'lucide-react';
+import { formatCallDuration } from '../common/CallDurationInput';
 import { LogCommunicationModal, type LogCommunicationPayload } from '../common/LogCommunicationModal';
 import { formatDateTimeIST, timeAgo } from '../../utils/date';
 import { unwrapList } from '../../utils/response';
@@ -92,6 +93,7 @@ export const CompanyCommunications: React.FC<Props> = ({ companyId, contacts, lo
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-sm font-semibold text-gray-900">{missed ? 'Call not received' : (c.outcome ?? 'Conversation')}</span>
                       <span className="rounded bg-gray-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-gray-700">{c.type}</span>
+                      {!missed && c.call_duration_seconds ? <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 ring-1 ring-emerald-100"><Timer className="h-3 w-3" />{formatCallDuration(c.call_duration_seconds)}</span> : null}
                       {missed && c.not_received_reason && <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-semibold text-rose-700 ring-1 ring-rose-100">{c.not_received_reason}</span>}
                     </div>
                     <span className="text-[11px] text-gray-400">{formatDateTimeIST(c.communication_date)}</span>

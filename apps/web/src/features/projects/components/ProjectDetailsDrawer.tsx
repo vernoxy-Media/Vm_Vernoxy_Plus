@@ -1,20 +1,17 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   X,
-  CheckCircle2,
-  CheckSquare,
-  Plus,
-  Layers,
   MessageSquare,
   History,
-  Users,
   Edit3,
   AlertCircle,
   Bug,
   FileText,
   AlertTriangle,
-  RotateCcw,
 } from 'lucide-react';
+import { CalendarRange, KanbanSquare, ListTodo, Timer } from 'lucide-react';
+import { ProjectDateRange, ProjectTimelineView } from './ProjectTimelineView';
+import { ProjectWorkspaceNav, type WorkspaceNavGroup } from './ProjectWorkspaceNav';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useSocket } from '@/shared/socket/SocketContext';
 import {
@@ -24,6 +21,11 @@ import {
   fetchProjectSprints,
   createSprint,
   fetchSprintTasks,
+  updateSprint,
+  completeSprint,
+  addSubTask,
+  fetchDeliveryReadiness,
+  moveTaskToSprint,
   createProjectTask,
   fetchProjectDiscussions,
   createProjectDiscussion,
@@ -38,6 +40,7 @@ import type {
   CreateProjectBugPayload,
   CreateProjectTaskPayload,
   CreateSprintPayload,
+  DeliveryReadiness,
   ProjectActivityLogItem,
   ProjectBugItem,
   ProjectDiscussionItem,
@@ -47,13 +50,22 @@ import type {
   SprintItem,
 } from '../types';
 import type { TaskStage } from '../../tasks/types';
-import { TaskDrawer } from '../../tasks/components/TaskDrawer';
 import { CreateSprintModal } from './CreateSprintModal';
+import { ProjectSprintBoard } from './ProjectSprintBoard';
+import { ProjectComments } from './ProjectComments';
+import { ProjectIssueView } from './ProjectIssueView';
+import { AddSubTaskModal } from './AddSubTaskModal';
+import { EmployeeFilter } from './EmployeeFilter';
+import { DeliverProjectDialog } from './DeliverProjectDialog';
+import { ProjectTimeReport } from './ProjectTimeReport';
+import { ProjectBugsView } from './ProjectBugsView';
+import { ProjectSummaryView } from './ProjectSummaryView';
+import { ProjectStatusMenu } from './ProjectStatusMenu';
+import { TaskFormModal } from '@/features/tasks/components/TaskFormModal';
 import { CreateProjectTaskModal } from './CreateProjectTaskModal';
 import { CreateBugModal } from './CreateBugModal';
 import { BugDetailsModal } from './BugDetailsModal';
 import { CreateProjectModal } from './CreateProjectModal';
-import { WhatsAppChat } from '@/shared/components/chat/WhatsAppChat';
 import type { TaskDetailDto } from '@vernoxy-pulse/api-client';
 
 const STATUS_CONFIGS: Record<ProjectStatus, { label: string; bg: string; text: string; dot: string }> = {
@@ -67,17 +79,12 @@ const STATUS_CONFIGS: Record<ProjectStatus, { label: string; bg: string; text: s
   cancelled: { label: 'Cancelled', bg: 'bg-red-50 text-red-700 border-red-200', text: 'text-red-700', dot: 'bg-red-500' },
 };
 
-const STAGE_CONFIG: Record<TaskStage, { label: string; badge: string }> = {
-  assigned: { label: 'Assigned', badge: 'bg-slate-100 text-slate-700 border-slate-200' },
-  in_progress: { label: 'In Progress', badge: 'bg-blue-100 text-blue-700 border-blue-200' },
-  hold: { label: 'Hold', badge: 'bg-amber-100 text-amber-800 border-amber-200' },
-  requested: { label: 'Submitted', badge: 'bg-purple-100 text-purple-700 border-purple-200' },
-  completed: { label: 'Approved', badge: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
-};
-
 export interface ProjectDetailsDrawerProps {
   projectId: number | null;
   isOpen: boolean;
+  /** Open this task or bug as soon as the project opens (deep links). */
+  initialTaskId?: number | null;
+  initialBugId?: number | null;
   onClose: () => void;
   onProjectUpdated?: () => void;
 }
@@ -85,14 +92,14 @@ export interface ProjectDetailsDrawerProps {
 export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
   projectId,
   isOpen,
+  initialTaskId,
+  initialBugId,
   onClose,
   onProjectUpdated,
 }) => {
   const { user } = useAuth();
-  const isAdmin = Boolean(
-    user?.access?.can_manage_organization ||
-    user?.role?.role_name?.toLowerCase().includes('admin')
-  );
+  // Admin = role marked is_admin (same rule as the API).
+  const isAdmin = Boolean(user?.access?.can_manage_organization);
 
   const { socket, joinProject, leaveProject } = useSocket();
 
@@ -113,7 +120,7 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   // Final 4 Tabs: Tasks, Discussion, Overview, Activity Logs
-  const [activeTab, setActiveTab] = useState<'tasks' | 'discussion' | 'overview' | 'activity'>('tasks');
+  const [activeTab, setActiveTab] = useState<'tasks' | 'timeline' | 'timelog' | 'discussion' | 'overview' | 'activity'>('tasks');
   const [tasksSubTab, setTasksSubTab] = useState<'board' | 'bugs'>('board');
 
   // Filters
@@ -121,11 +128,14 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
   const [selectedSprintFilter, setSelectedSprintFilter] = useState<string>('all');
 
   // Dedicated Bug Tab Filters
-  const [bugSearch, setBugSearch] = useState('');
 
   // Modals
   const [isSprintModalOpen, setIsSprintModalOpen] = useState(false);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [taskModalSprintId, setTaskModalSprintId] = useState<number | null>(null);
+  const [boardView, setBoardView] = useState<'board' | 'list'>('board');
+  const [editTask, setEditTask] = useState<TaskDetailDto | null>(null);
+  const [childOf, setChildOf] = useState<TaskDetailDto | null>(null);
   const [isBugModalOpen, setIsBugModalOpen] = useState(false);
   const [isEditProjectModalOpen, setIsEditProjectModalOpen] = useState(false);
   const [selectedBugId, setSelectedBugId] = useState<number | null>(null);
@@ -133,8 +143,9 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
   const [drawerTaskDetail, setDrawerTaskDetail] = useState<TaskDetailDto | null>(null);
 
   // Status Change State
-  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
   const [targetStatusChange, setTargetStatusChange] = useState<ProjectStatus | null>(null);
+  const [deliverOpen, setDeliverOpen] = useState(false);
+  const [delivery, setDelivery] = useState<DeliveryReadiness | null>(null);
   const [statusReason, setStatusReason] = useState('');
   const [isSubmittingStatus, setIsSubmittingStatus] = useState(false);
 
@@ -225,6 +236,34 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
     };
   }, [isOpen, projectId, socket, joinProject, leaveProject]);
 
+  // What is still open before delivery (admin and project manager), kept fresh as the work changes
+  useEffect(() => {
+    if (!isOpen || !projectId || !isManagerOrAdmin) return;
+    let live = true;
+    fetchDeliveryReadiness(projectId).then((d) => live && setDelivery(d)).catch(() => live && setDelivery(null));
+    return () => {
+      live = false;
+    };
+  }, [isOpen, projectId, isManagerOrAdmin, tasks, bugs, sprints, project?.project_status]);
+
+  // Every project opens on its board with clean filters (state would otherwise carry over)
+  useEffect(() => {
+    setSelectedSprintFilter('all');
+    setSelectedEmpFilter('all');
+    setActiveTab('tasks');
+    setTasksSubTab('board');
+    setBoardView('board');
+    setSelectedDrawerTaskId(null);
+    setSelectedBugId(null);
+  }, [projectId, isOpen]);
+
+  // A link to one issue opens it on top of the board
+  useEffect(() => {
+    if (!isOpen || !projectId) return;
+    if (initialTaskId) setSelectedDrawerTaskId(initialTaskId);
+    if (initialBugId) setSelectedBugId(initialBugId);
+  }, [projectId, isOpen, initialTaskId, initialBugId]);
+
   // Load Task Drawer Details
   useEffect(() => {
     if (!selectedDrawerTaskId) {
@@ -243,17 +282,22 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
       }
     };
     loadTask();
-  }, [selectedDrawerTaskId, isAdmin]);
+  }, [selectedDrawerTaskId, isAdmin, tasks]);
 
   // KPI Calculations
+  // The employee filter (admin and project manager) narrows every view, not only the board
+  const empId = selectedEmpFilter === 'all' ? null : Number(selectedEmpFilter);
+  const empTasks = useMemo(() => (empId === null ? tasks : tasks.filter((t) => t.assignees?.some((a) => a.emp_id === empId))), [tasks, empId]);
+  const empBugs = useMemo(() => (empId === null ? bugs : bugs.filter((b) => b.assigned_to === empId || b.reported_by === empId)), [bugs, empId]);
+
   const kpiData = useMemo(() => {
     if (!project) return { estHours: 0, actHours: 0, startDate: '', deadline: '', actualEndDate: null };
 
     const estHours = project.total_estimated_minutes
       ? Math.round(((project.total_estimated_minutes || 0) / 60) * 10) / 10
       : 0;
-    const actMinutes = tasks.reduce((acc, t) => acc + ((t as any).actual_minutes || 0), 0);
-    const actHours = Math.round((actMinutes / 60) * 10) / 10;
+    const actSeconds = empTasks.reduce((acc, t) => acc + (t.logged_seconds ?? ((t as any).actual_minutes || 0) * 60), 0);
+    const actHours = Math.round((actSeconds / 3600) * 10) / 10;
 
     return {
       estHours,
@@ -262,7 +306,7 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
       deadline: project.deadline ? new Date(project.deadline).toLocaleDateString('en-GB') : '---',
       actualEndDate: project.actual_end_date ? new Date(project.actual_end_date).toLocaleDateString('en-GB') : null,
     };
-  }, [project, tasks]);
+  }, [project, empTasks]);
 
   // Filtered Tasks
   const filteredTasks = useMemo(() => {
@@ -278,87 +322,6 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
     });
   }, [tasks, selectedSprintFilter, selectedEmpFilter]);
 
-  // Group Filtered Tasks by Sprint (Sprint Name -> Tasks under this sprint)
-  const groupedTasksBySprint = useMemo(() => {
-    const groups: Array<{
-      sprint_id: number | null;
-      sprint_name: string;
-      status?: string;
-      tasks: ProjectTaskItem[];
-    }> = [];
-
-    if (selectedSprintFilter !== 'all') {
-      const targetSprint = sprints.find((s) => String(s.sprint_id) === selectedSprintFilter);
-      groups.push({
-        sprint_id: targetSprint ? targetSprint.sprint_id : Number(selectedSprintFilter),
-        sprint_name: targetSprint ? targetSprint.sprint_name : `Sprint #${selectedSprintFilter}`,
-        status: targetSprint?.status,
-        tasks: filteredTasks,
-      });
-      return groups;
-    }
-
-    // 1. Group tasks matching active sprints
-    for (const s of sprints) {
-      const sTasks = filteredTasks.filter((t) => t.sprint_id === s.sprint_id);
-      if (sTasks.length > 0) {
-        groups.push({
-          sprint_id: s.sprint_id,
-          sprint_name: s.sprint_name,
-          status: s.status,
-          tasks: sTasks,
-        });
-      }
-    }
-
-    // 2. Backlog / Unassigned Sprint tasks
-    const backlogTasks = filteredTasks.filter(
-      (t) => !t.sprint_id || !sprints.some((s) => s.sprint_id === t.sprint_id)
-    );
-    if (backlogTasks.length > 0) {
-      groups.push({
-        sprint_id: null,
-        sprint_name: 'Backlog / General Tasks',
-        tasks: backlogTasks,
-      });
-    }
-
-    // Fallback if tasks exist but no sprints
-    if (groups.length === 0 && filteredTasks.length > 0) {
-      groups.push({
-        sprint_id: null,
-        sprint_name: 'Tasks',
-        tasks: filteredTasks,
-      });
-    }
-
-    return groups;
-  }, [filteredTasks, sprints, selectedSprintFilter]);
-
-  // Bug Summary
-  const bugStats = useMemo(() => {
-    return {
-      total: bugs.length,
-      open: bugs.filter((b) => b.status === 'new').length,
-      dev: bugs.filter((b) => ['ready_for_dev', 'dev_in_progress'].includes(b.status)).length,
-      qa: bugs.filter((b) => ['ready_for_qa', 'qa_in_progress'].includes(b.status)).length,
-      done: bugs.filter((b) => b.status === 'done').length,
-    };
-  }, [bugs]);
-
-  // Filtered Bugs
-  const filteredBugs = useMemo(() => {
-    return bugs.filter((b) => {
-      if (bugSearch) {
-        const query = bugSearch.toLowerCase();
-        const matchTitle = b.title.toLowerCase().includes(query);
-        const matchCode = b.bug_code.toLowerCase().includes(query);
-        if (!matchTitle && !matchCode) return false;
-      }
-      return true;
-    });
-  }, [bugs, bugSearch]);
-
   // Person-wise Workload Analytics
   const personWiseSummary = useMemo(() => {
     if (!project?.members) return [];
@@ -372,7 +335,8 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
         const totalTasks = memberTasks.length;
         const completedTasks = memberTasks.filter((t) => t.stage === 'completed').length;
         const estMinutes = memberTasks.reduce((sum, t) => sum + (t.allocated_minutes || 0), 0);
-        const actMinutes = memberTasks.reduce((sum, t) => sum + ((t as any).actual_minutes || 0), 0);
+        // What this person logged themselves; a task shared by two people is not counted twice
+        const actSeconds = tasks.reduce((sum, t) => sum + (t.time_by_employee?.find((x) => x.employee_id === member.employee_id)?.seconds ?? 0), 0);
 
         return {
           emp_id: member.employee_id,
@@ -382,15 +346,26 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
           totalTasks,
           completedTasks,
           estHours: (estMinutes / 60).toFixed(1),
-          actHours: (actMinutes / 60).toFixed(1),
+          actHours: (actSeconds / 3600).toFixed(1),
           completionRate: totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0,
         };
       });
   }, [project, tasks, selectedEmpFilter]);
 
   // Status Update Handlers
+  /** Delivery closes the project, so it goes through its own checklist first. */
+  const deliverProject = async (reason: string | undefined, force: boolean) => {
+    if (!projectId) return;
+    await updateProjectStatus(projectId, 'delivered', reason, force);
+    await loadProjectData();
+    onProjectUpdated?.();
+  };
+
   const promptStatusChange = (newStatus: ProjectStatus) => {
-    setIsStatusDropdownOpen(false);
+    if (newStatus === 'delivered') {
+      setDeliverOpen(true);
+      return;
+    }
     if (['on_hold', 'cancelled'].includes(newStatus)) {
       setTargetStatusChange(newStatus);
       setStatusReason('');
@@ -429,8 +404,8 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
 
     try {
       const url = isAdmin
-        ? `/api/v1/admin/tasks/${taskId}/move-stage`
-        : `/api/v1/my-tasks/${taskId}/move-stage`;
+        ? `/api/v1/admin/tasks/${taskId}/move`
+        : `/api/v1/my-tasks/${taskId}/move`;
 
       await customFetch(url, {
         method: 'POST',
@@ -462,6 +437,72 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
     setTasks(updated);
   };
 
+  const taskUrl = (id: number) => (isAdmin ? `/api/v1/admin/tasks/${id}` : `/api/v1/my-tasks/${id}`);
+
+  const reloadTaskDetail = async (id: number) => {
+    const res = await customFetch<any>(taskUrl(id));
+    setDrawerTaskDetail(res?.data || res);
+  };
+
+  /** Stage change from the issue view. Unlike the board's version this reports failures. */
+  const moveStageStrict = async (taskId: number, stage: TaskStage, note?: string, holdReason?: string) => {
+    await customFetch(`${taskUrl(taskId)}/move`, {
+      method: 'POST',
+      body: JSON.stringify({ target_stage: stage, note, hold_reason: holdReason }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+    await refreshPlanning();
+    if (selectedDrawerTaskId) await reloadTaskDetail(selectedDrawerTaskId);
+  };
+
+  /** Change or clear a start or due date straight from the issue view. */
+  const changeDate = async (taskId: number, field: 'start_date' | 'due_date', date: string | null) => {
+    await customFetch(taskUrl(taskId), {
+      method: 'PATCH',
+      body: JSON.stringify({ [field]: date }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+    await refreshPlanning();
+    if (selectedDrawerTaskId) await reloadTaskDetail(selectedDrawerTaskId);
+  };
+
+  const trackSessionStrict = async (taskId: number, action: 'start' | 'pause' | 'finish', note?: string) => {
+    await customFetch(`${taskUrl(taskId)}/work-session`, {
+      method: 'POST',
+      body: JSON.stringify({ action, note }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+    await refreshPlanning();
+    if (selectedDrawerTaskId) await reloadTaskDetail(selectedDrawerTaskId);
+  };
+
+  const refreshPlanning = async () => {
+    if (!projectId) return;
+    const [freshSprints, freshTasks] = await Promise.all([fetchProjectSprints(projectId), fetchSprintTasks(projectId)]);
+    setSprints(freshSprints);
+    setTasks(freshTasks);
+  };
+
+  const handleStartSprint = async (sprintId: number) => {
+    if (!projectId) return;
+    await updateSprint(projectId, sprintId, { status: 'active' });
+    await refreshPlanning();
+  };
+
+  const handleCompleteSprint = async (sprintId: number, moveToSprintId: number | null) => {
+    if (!projectId) return;
+    await completeSprint(projectId, sprintId, moveToSprintId);
+    // The finished sprint is no longer the one to look at; show where the unfinished work went.
+    setSelectedSprintFilter(moveToSprintId ? String(moveToSprintId) : 'all');
+    await refreshPlanning();
+  };
+
+  const handleMoveTaskToSprint = async (taskId: number, sprintId: number | null) => {
+    if (!projectId) return;
+    await moveTaskToSprint(projectId, taskId, sprintId);
+    await refreshPlanning();
+  };
+
   const handleCreateBug = async (payload: CreateProjectBugPayload) => {
     if (!projectId) return;
     await createProjectBug(projectId, payload);
@@ -470,17 +511,78 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
     setTasksSubTab('bugs');
   };
 
+  const issuePrefix = drawerTaskDetail ? `[${drawerTaskDetail.task_code}] ` : '';
+  const issueComments = drawerTaskDetail
+    ? discussions.filter((d) => d.message.startsWith(issuePrefix)).map((d) => ({ ...d, message: d.message.slice(issuePrefix.length) }))
+    : [];
+  const issueSprintId = drawerTaskDetail ? tasks.find((t) => t.task_id === drawerTaskDetail.task_id)?.sprint_id : null;
+  const issueSprintName = sprints.find((x) => x.sprint_id === issueSprintId)?.sprint_name ?? null;
+
   if (!isOpen || !projectId) return null;
 
-  const statusStyle = project ? (STATUS_CONFIGS[project.project_status] || STATUS_CONFIGS.new) : STATUS_CONFIGS.new;
 
-  // Final 4 Tabs: Tasks, Discussion, Overview, Activity Logs
-  const tabsList = [
-    { id: 'tasks', label: 'TASKS', icon: CheckSquare, badge: filteredTasks.length },
-    { id: 'discussion', label: 'DISCUSSION', icon: MessageSquare, badge: discussions.length },
-    { id: 'overview', label: 'OVERVIEW', icon: FileText },
-    { id: 'activity', label: 'ACTIVITY LOG', icon: History, badge: activityLogs.length },
+  // Jira-style navigation: Board and Backlog are two views of the same work
+  const navId =
+    activeTab === 'tasks' ? (tasksSubTab === 'bugs' ? 'bugs' : boardView === 'list' ? 'backlog' : 'board') : activeTab;
+
+  const goNav = (id: string) => {
+    setSelectedDrawerTaskId(null);
+    if (id === 'board' || id === 'backlog' || id === 'bugs') {
+      setActiveTab('tasks');
+      setTasksSubTab(id === 'bugs' ? 'bugs' : 'board');
+      if (id !== 'bugs') setBoardView(id === 'backlog' ? 'list' : 'board');
+    } else {
+      setActiveTab(id as typeof activeTab);
+    }
+  };
+
+  const navGroups: WorkspaceNavGroup[] = [
+    {
+      title: 'Planning',
+      items: [
+        { id: 'board', label: 'Board', icon: KanbanSquare },
+        { id: 'backlog', label: 'Backlog', icon: ListTodo, badge: filteredTasks.length },
+        { id: 'timeline', label: 'Timeline', icon: CalendarRange },
+      ],
+    },
+    {
+      title: 'Work',
+      items: [
+        { id: 'bugs', label: 'Bugs', icon: Bug, badge: bugs.length },
+        { id: 'discussion', label: 'Discussion', icon: MessageSquare, badge: discussions.length },
+      ],
+    },
+    {
+      title: 'Project',
+      items: [
+        { id: 'overview', label: 'Summary', icon: FileText },
+        ...(isManagerOrAdmin ? [{ id: 'timelog', label: 'Time log', icon: Timer }] : []),
+        { id: 'activity', label: 'Activity', icon: History, badge: activityLogs.length },
+      ],
+    },
   ];
+
+  /** Activity grouped by day, newest first, like Jira's activity stream. */
+  const activityByDay = (() => {
+    const dayLabel = (iso: string) => {
+      const d = new Date(iso);
+      const startOf = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+      const diff = Math.round((startOf(new Date()) - startOf(d)) / 86_400_000);
+      if (diff === 0) return 'Today';
+      if (diff === 1) return 'Yesterday';
+      return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    };
+    const groups: Array<{ label: string; items: typeof activityLogs }> = [];
+    [...activityLogs]
+      .sort((x, y) => +new Date(y.created_at) - +new Date(x.created_at))
+      .forEach((log) => {
+        const label = dayLabel(log.created_at);
+        const last = groups[groups.length - 1];
+        if (last && last.label === label) last.items.push(log);
+        else groups.push({ label, items: [log] });
+      });
+    return groups;
+  })();
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
@@ -492,7 +594,7 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
 
       {/* Slide-over panel on the right (same as image) */}
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10">
-        <div className="w-screen max-w-2xl bg-white shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 border-l border-slate-200 h-full overflow-hidden">
+        <div className="w-screen sm:max-w-3xl xl:max-w-[1200px] bg-white shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 border-l border-[#DFE1E6] h-full overflow-hidden">
           {isLoading && !project ? (
             <div className="flex-1 flex flex-col items-center justify-center p-12">
               <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mb-3" />
@@ -512,56 +614,23 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
           ) : (
             <>
               {/* Header matching Image */}
-              <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/70 shrink-0">
+              <div className="px-4 sm:px-6 pt-4 pb-3 border-b border-[#DFE1E6] bg-white shrink-0">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-[11px] font-semibold text-slate-600 bg-slate-200/80 px-2.5 py-0.5 rounded-md border border-slate-300/80">
+                    <span className="text-[12px] font-medium text-[#5E6C84]">
                       {project.project_no}
                     </span>
 
-                    {/* Status Pill with Dropdown for PM/Admin */}
-                    {isManagerOrAdmin ? (
-                      <div className="relative">
-                        <button
-                          type="button"
-                          onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold border transition cursor-pointer ${statusStyle.bg}`}
-                        >
-                          <span className={`w-1.5 h-1.5 rounded-full ${statusStyle.dot}`} />
-                          <span>{statusStyle.label}</span>
-                          <span className="text-[9px] text-slate-400 ml-0.5">▼</span>
-                        </button>
-
-                        {isStatusDropdownOpen && (
-                          <div className="absolute left-0 mt-2 w-44 bg-white rounded-2xl shadow-xl border border-slate-200 py-1.5 z-40">
-                            <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                              Update Status
-                            </div>
-                            {(Object.keys(STATUS_CONFIGS) as ProjectStatus[]).map((st) => (
-                              <button
-                                key={st}
-                                onClick={() => promptStatusChange(st)}
-                                className="w-full text-left px-3.5 py-2 text-xs font-medium hover:bg-slate-50 flex items-center justify-between text-slate-700 cursor-pointer"
-                              >
-                                <span>{STATUS_CONFIGS[st].label}</span>
-                                {project.project_status === st && (
-                                  <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
-                                )}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold border ${statusStyle.bg}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${statusStyle.dot}`} />
-                        <span>{statusStyle.label}</span>
-                      </div>
-                    )}
+                    {/* Status: a lozenge, with a menu when the user may change it */}
+                    <ProjectStatusMenu
+                      status={project.project_status}
+                      canChange={isManagerOrAdmin}
+                      onSelect={(st) => promptStatusChange(st)}
+                    />
                   </div>
 
                   <div className="flex items-center gap-1.5">
-                    {isManagerOrAdmin && (
+                    {isAdmin && (
                       <button
                         type="button"
                         onClick={() => setIsEditProjectModalOpen(true)}
@@ -581,370 +650,117 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
                   </div>
                 </div>
 
-                <h2 className="text-xl font-black text-slate-900 tracking-tight mt-2">
+                <h2 className="text-[24px] font-medium leading-8 text-[#172B4D] mt-1">
                   {project.project_name}
                 </h2>
+                <ProjectDateRange project={project} />
+                {!isManagerOrAdmin && (
+                  <p className="mt-1.5 flex flex-wrap items-center gap-2 text-[13px] text-[#42526E]">
+                    <span className="rounded-[3px] bg-[#DEEBFF] px-1.5 py-px text-[12px] font-semibold text-[#0747A6]">Your view</span>
+                    You see only the work assigned to you in this project.
+                  </p>
+                )}
               </div>
 
-              {/* Tabs Navigation (NO PIPELINE TAB) */}
-              <div className="px-6 border-b border-slate-100 bg-white shrink-0">
-                <nav className="flex space-x-5 overflow-x-auto scrollbar-none" aria-label="Tabs">
-                  {tabsList.map((tab) => {
-                    const Icon = tab.icon;
-                    const isActive = activeTab === tab.id;
-                    return (
-                      <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id as any)}
-                        className={`flex items-center gap-1.5 py-3 text-xs font-bold border-b-2 whitespace-nowrap cursor-pointer transition ${
-                          isActive
-                            ? 'border-blue-600 text-blue-600'
-                            : 'border-transparent text-slate-500 hover:text-slate-800'
-                        }`}
-                      >
-                        <Icon className="w-4 h-4" />
-                        <span>{tab.label}</span>
-                        {tab.badge !== undefined && (
-                          <span
-                            className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                              isActive ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'
-                            }`}
-                          >
-                            {tab.badge}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </nav>
-              </div>
+              {/* Jira layout: project sidebar on large screens, tabs on small ones */}
+              <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+              <ProjectWorkspaceNav
+                projectName={project.project_name}
+                projectKey={project.project_no}
+                subtitle={project.project_type ? `${String(project.project_type).replace(/_/g, ' ')} project` : undefined}
+                groups={navGroups}
+                activeId={navId}
+                onSelect={goNav}
+              />
 
-              {/* Drawer Body - Scrollable content */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* Page content */}
+              <div className="min-w-0 flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+                {isManagerOrAdmin && (project.members?.length ?? 0) > 1 && (activeTab === 'timeline' || activeTab === 'timelog' || activeTab === 'overview' || (activeTab === 'tasks' && tasksSubTab === 'bugs' && selectedDrawerTaskId === null)) && (
+                  <EmployeeFilter
+                    people={Array.from(new Map((project.members ?? []).map((m) => [m.employee_id, m])).values()).map((m) => ({ id: m.employee_id, name: m.name, avatar: m.profile_picture }))}
+                    value={selectedEmpFilter}
+                    onChange={setSelectedEmpFilter}
+                  />
+                )}
                 {/* 1. TAB: TASKS (Image 2 & 3) */}
                 {activeTab === 'tasks' && (
                   <div className="space-y-4">
                     {/* If a task is selected, show embedded Task Details view (Image 2) */}
                     {selectedDrawerTaskId !== null && drawerTaskDetail ? (
-                      <div className="space-y-3">
-                        <TaskDrawer
-                          task={drawerTaskDetail}
-                          isOpen={true}
-                          isAdmin={isAdmin}
-                          embedded={true}
-                          onClose={() => setSelectedDrawerTaskId(null)}
-                          onMoveStage={handleMoveStage}
-                          onTrackWorkSession={async (taskId, action, note) => {
-                            const url = isAdmin
-                              ? `/api/v1/admin/tasks/${taskId}/work-session`
-                              : `/api/v1/my-tasks/${taskId}/work-session`;
-                            await customFetch(url, {
-                              method: 'POST',
-                              body: JSON.stringify({ action, note }),
-                              headers: { 'Content-Type': 'application/json' },
-                            });
-                            const freshTasks = await fetchSprintTasks(projectId);
-                            setTasks(freshTasks);
-                            const res = await customFetch<any>(url.replace('/work-session', ''));
-                            setDrawerTaskDetail(res?.data || res);
-                          }}
-                          onAddSubTask={() => setIsTaskModalOpen(true)}
-                          onSendMessage={async (_taskId, message) => {
-                            try {
-                              await createProjectDiscussion(
-                                projectId,
-                                `[${drawerTaskDetail.task_code}] ${message}`
-                              );
-                              const freshDiscussions = await fetchProjectDiscussions(projectId);
-                              setDiscussions(freshDiscussions);
-                            } catch (err) {
-                              console.error(err);
-                            }
-                          }}
-                        />
-                      </div>
+                      <ProjectIssueView
+                        key={drawerTaskDetail.task_id}
+                        task={drawerTaskDetail}
+                        projectName={project.project_name}
+                        sprintName={issueSprintName}
+                        isAdmin={isAdmin}
+                        canApprove={isAdmin}
+                        currentEmpId={user?.emp_id}
+                        canManage={isManagerOrAdmin}
+                        members={project.members || []}
+                        comments={issueComments}
+                        currentUserName={user?.name}
+                        currentUserAvatar={(user as { profile_picture?: string | null } | null)?.profile_picture ?? null}
+                        onClose={() => setSelectedDrawerTaskId(null)}
+                        onEdit={isAdmin ? setEditTask : undefined}
+                        onAddChild={setChildOf}
+                        onOpenIssue={setSelectedDrawerTaskId}
+                        projectDeadline={project.deadline}
+                        canEditDates={isAdmin}
+                        onChangeDate={changeDate}
+                        onMoveStage={moveStageStrict}
+                        onTrackWorkSession={trackSessionStrict}
+                        onComment={async (message, taggedIds) => {
+                          await createProjectDiscussion(projectId, `${issuePrefix}${message}`, undefined, taggedIds);
+                          setDiscussions(await fetchProjectDiscussions(projectId));
+                        }}
+                      />
                     ) : (
                       /* Otherwise, show INDIVIDUAL LOGS list view (Image 3) */
                       <div className="space-y-4">
-                        {/* Sub-view switcher & Quick Actions Bar */}
-                        <div className="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                          <div className="flex items-center gap-1 bg-slate-100/80 p-1 rounded-xl">
-                            <button
-                              type="button"
-                              onClick={() => setTasksSubTab('board')}
-                              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                                tasksSubTab === 'board'
-                                  ? 'bg-white text-blue-600 shadow-xs'
-                                  : 'text-slate-600 hover:text-slate-900'
-                              }`}
-                            >
-                              <CheckSquare className="w-3.5 h-3.5" />
-                              <span>Tasks</span>
-                              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                                tasksSubTab === 'board' ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-600'
-                              }`}>
-                                {tasks.length}
-                              </span>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => setTasksSubTab('bugs')}
-                              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                                tasksSubTab === 'bugs'
-                                  ? 'bg-white text-rose-600 shadow-xs'
-                                  : 'text-slate-600 hover:text-slate-900'
-                              }`}
-                            >
-                              <Bug className="w-3.5 h-3.5" />
-                              <span>Bugs</span>
-                              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                                tasksSubTab === 'bugs' ? 'bg-rose-100 text-rose-700' : 'bg-slate-200 text-slate-600'
-                              }`}>
-                                {bugs.length}
-                              </span>
-                            </button>
-                          </div>
-
-                          <div className="flex items-center gap-2">
+                        {tasksSubTab === 'bugs' && (
+                          <div className="flex items-center justify-between gap-3">
+                            <h3 className="text-[20px] font-medium text-[#172B4D]">Bugs</h3>
                             <button
                               type="button"
                               onClick={() => setIsBugModalOpen(true)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-semibold transition cursor-pointer"
+                              className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-[3px] bg-[color:var(--ac-main,#0052CC)] px-3 text-[14px] font-medium text-white transition hover:bg-[color:var(--ac-hover,#0065FF)]"
                             >
-                              <Bug className="w-3.5 h-3.5" />
-                              <span>Report Bug</span>
+                              <Bug className="h-4 w-4" />
+                              <span>Report bug</span>
                             </button>
-                            {isManagerOrAdmin && (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={() => setIsSprintModalOpen(true)}
-                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90 rounded-xl text-xs font-semibold shadow-2xs transition cursor-pointer"
-                                  title="Create a new sprint"
-                                >
-                                  <Layers className="w-3.5 h-3.5 text-slate-500" />
-                                  <span>Add Sprint</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setIsTaskModalOpen(true)}
-                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-xs transition cursor-pointer"
-                                >
-                                  <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                                  <span>Add Task</span>
-                                </button>
-                              </>
-                            )}
                           </div>
-                        </div>
+                        )}
 
-                        {/* SUB-VIEW 1: Tasks List (Image 3) */}
+                        {/* SUB-VIEW 1: Jira-style sprint board / backlog */}
                         {tasksSubTab === 'board' && (
-                          <div className="space-y-4">
-                            {/* Header: INDIVIDUAL LOGS & Action Bar */}
-                            <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                              <div className="flex items-center gap-3">
-                                <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">
-                                  INDIVIDUAL LOGS
-                                </h3>
-                                <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
-                                  {filteredTasks.length}
-                                </span>
-                              </div>
-
-                              <div className="flex flex-wrap items-center gap-2.5">
-                                <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                                  <span className="font-semibold text-slate-400">Sprint:</span>
-                                  <select
-                                    value={selectedSprintFilter}
-                                    onChange={(e) => setSelectedSprintFilter(e.target.value)}
-                                    className="px-3 py-1.5 text-xs border border-slate-200 rounded-xl bg-slate-50/50 text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                  >
-                                    <option value="all">All Sprints</option>
-                                    {sprints.map((s) => (
-                                      <option key={s.sprint_id} value={s.sprint_id}>
-                                        {s.sprint_name}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </div>
-
-                                {isManagerOrAdmin && (
-                                  <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                                    <span className="font-semibold text-slate-400">Assignee:</span>
-                                    <select
-                                      value={selectedEmpFilter}
-                                      onChange={(e) => setSelectedEmpFilter(e.target.value)}
-                                      className="px-3 py-1.5 text-xs border border-slate-200 rounded-xl bg-slate-50/50 text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                    >
-                                      <option value="all">All Assignees</option>
-                                      {project.members?.map((m) => (
-                                        <option key={m.employee_id} value={m.employee_id}>
-                                          {m.name}
-                                        </option>
-                                      ))}
-                                    </select>
-                                  </div>
-                                )}
-
-                                {(selectedSprintFilter !== 'all' || selectedEmpFilter !== 'all') && (
-                                  <button
-                                    onClick={() => {
-                                      setSelectedSprintFilter('all');
-                                      setSelectedEmpFilter('all');
-                                    }}
-                                    className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition"
-                                    title="Reset Filters"
-                                  >
-                                    <RotateCcw className="w-3.5 h-3.5" />
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Task List Grouped by Sprint (Sprint Name -> Tasks under this sprint) */}
-                            <div className="space-y-6">
-                              {filteredTasks.length === 0 ? (
-                                <div className="py-16 text-center bg-white rounded-3xl border border-dashed border-slate-200">
-                                  <CheckSquare className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-                                  <h4 className="text-sm font-bold text-slate-800 mb-1">No Tasks Found</h4>
-                                  <p className="text-xs text-slate-400 mb-4 max-w-sm mx-auto">
-                                    Create tasks to track individual assignments, stages, and work sessions.
-                                  </p>
-                                  {isManagerOrAdmin && (
-                                    <button
-                                      onClick={() => setIsTaskModalOpen(true)}
-                                      className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold shadow-xs"
-                                    >
-                                      + Create Stage Task
-                                    </button>
-                                  )}
-                                </div>
-                              ) : (
-                                groupedTasksBySprint.map((grp) => (
-                                  <div key={grp.sprint_id ?? 'backlog'} className="space-y-2.5">
-                                    {/* Sprint Group Header */}
-                                    <div className="flex items-center justify-between px-1.5 py-1">
-                                      <div className="flex items-center gap-2">
-                                        <Layers className="w-3.5 h-3.5 text-blue-600" />
-                                        <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">
-                                          {grp.sprint_name}
-                                        </h4>
-                                        {grp.status && (
-                                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200/80">
-                                            {grp.status}
-                                          </span>
-                                        )}
-                                      </div>
-                                      <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
-                                        {grp.tasks.length} {grp.tasks.length === 1 ? 'task' : 'tasks'}
-                                      </span>
-                                    </div>
-
-                                    {/* Tasks under this sprint */}
-                                    <div className="space-y-2.5">
-                                      {grp.tasks.map((t) => {
-                                        const stConf = (t.stage && STAGE_CONFIG[t.stage as TaskStage])
-                                          ? STAGE_CONFIG[t.stage as TaskStage]
-                                          : { label: t.stage || 'Assigned', badge: 'bg-slate-100 text-slate-700 border-slate-200' };
-                                        const assigneesText = t.assignees?.map((a) => a.name).join(', ') || 'Unassigned';
-                                        return (
-                                          <div
-                                            key={t.task_id}
-                                            onClick={() => setSelectedDrawerTaskId(t.task_id)}
-                                            className="bg-white hover:bg-slate-50/90 border border-slate-200/90 hover:border-blue-400 rounded-2xl p-4 transition-all duration-150 cursor-pointer flex items-center justify-between shadow-2xs hover:shadow-xs group"
-                                          >
-                                            <div>
-                                              <div className="flex items-center gap-2">
-                                                <span className="font-mono text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
-                                                  {t.task_code}
-                                                </span>
-                                                <h4 className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition">
-                                                  {t.title}
-                                                </h4>
-                                              </div>
-                                              <p className="text-xs text-slate-500 mt-1">
-                                                Assigned to: <span className="font-medium text-slate-700">{assigneesText}</span>
-                                              </p>
-                                            </div>
-
-                                            <div className="flex items-center gap-3">
-                                              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${stConf.badge}`}>
-                                                <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                                                {stConf.label}
-                                              </span>
-                                            </div>
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  </div>
-                                ))
-                              )}
-                            </div>
-                          </div>
+                          <ProjectSprintBoard
+                            tasks={tasks}
+                            sprints={sprints}
+                            members={project.members ?? []}
+                            canManage={isManagerOrAdmin}
+                            isAdmin={isAdmin}
+                            currentEmpId={user?.emp_id}
+                            view={boardView}
+                            onViewChange={setBoardView}
+                            sprintFilter={selectedSprintFilter}
+                            onSprintFilter={setSelectedSprintFilter}
+                            assigneeFilter={selectedEmpFilter}
+                            onAssigneeFilter={setSelectedEmpFilter}
+                            onOpenTask={setSelectedDrawerTaskId}
+                            onAddTask={(sprintId) => {
+                              setTaskModalSprintId(sprintId ?? null);
+                              setIsTaskModalOpen(true);
+                            }}
+                            onAddSprint={() => setIsSprintModalOpen(true)}
+                            onMoveStage={handleMoveStage}
+                            onStartSprint={handleStartSprint}
+                            onCompleteSprint={handleCompleteSprint}
+                            onMoveToSprint={handleMoveTaskToSprint}
+                          />
                         )}
 
                         {/* SUB-VIEW 2: Bugs */}
-                        {tasksSubTab === 'bugs' && (
-                          <div className="space-y-4">
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                              <div className="bg-white p-3 rounded-xl border border-slate-200">
-                                <span className="text-[10px] font-bold text-slate-400 uppercase">Total</span>
-                                <div className="text-base font-black text-slate-900">{bugStats.total}</div>
-                              </div>
-                              <div className="bg-white p-3 rounded-xl border border-slate-200">
-                                <span className="text-[10px] font-bold text-rose-600 uppercase">Open</span>
-                                <div className="text-base font-black text-rose-600">{bugStats.open}</div>
-                              </div>
-                              <div className="bg-white p-3 rounded-xl border border-slate-200">
-                                <span className="text-[10px] font-bold text-amber-600 uppercase">In Dev</span>
-                                <div className="text-base font-black text-amber-600">{bugStats.dev}</div>
-                              </div>
-                              <div className="bg-white p-3 rounded-xl border border-slate-200">
-                                <span className="text-[10px] font-bold text-indigo-600 uppercase">In QA</span>
-                                <div className="text-base font-black text-indigo-600">{bugStats.qa}</div>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center justify-between gap-3">
-                              <input
-                                type="text"
-                                value={bugSearch}
-                                onChange={(e) => setBugSearch(e.target.value)}
-                                placeholder="Search bugs by code or title..."
-                                className="w-full sm:w-64 px-3 py-1.5 text-xs border border-slate-200 rounded-xl bg-slate-50/50 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                              />
-                            </div>
-
-                            <div className="space-y-2">
-                              {filteredBugs.length === 0 ? (
-                                <div className="py-10 text-center bg-white rounded-2xl border border-dashed border-slate-200 text-xs text-slate-400">
-                                  No bugs reported
-                                </div>
-                              ) : (
-                                filteredBugs.map((b) => (
-                                  <div
-                                    key={b.bug_id}
-                                    onClick={() => setSelectedBugId(b.bug_id)}
-                                    className="p-3 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between cursor-pointer"
-                                  >
-                                    <div>
-                                      <div className="flex items-center gap-2">
-                                        <span className="font-mono text-[10px] font-bold text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">
-                                          {b.bug_code}
-                                        </span>
-                                        <span className="text-xs font-bold text-slate-900">{b.title}</span>
-                                      </div>
-                                    </div>
-                                    <span className="text-[10px] font-semibold text-slate-500 uppercase">{b.status}</span>
-                                  </div>
-                                ))
-                              )}
-                            </div>
-                          </div>
-                        )}
+                        {tasksSubTab === 'bugs' && <ProjectBugsView bugs={empBugs} onOpenBug={setSelectedBugId} scopeNote={isManagerOrAdmin ? undefined : 'Showing the bugs assigned to you or reported by you.'} />}
                       </div>
                     )}
                   </div>
@@ -952,247 +768,88 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
 
                 {/* 2. TAB: DISCUSSION (WhatsApp Chat Format with Emojis & Tag Notifications) */}
                 {activeTab === 'discussion' && (
-                  <WhatsAppChat
-                    title={project.project_name}
-                    subtitle="Real-time Team Discussion & Mentions"
-                    messages={discussions}
-                    currentUserId={user?.emp_id}
+                  <ProjectComments
+                    comments={discussions}
                     members={project.members || []}
-                    onSendMessage={async (message, taggedIds) => {
+                    currentUserId={user?.emp_id}
+                    currentUserName={user?.name}
+                    currentUserAvatar={(user as { profile_picture?: string | null } | null)?.profile_picture ?? null}
+                    onSend={async (message, taggedIds) => {
                       await createProjectDiscussion(projectId, message, undefined, taggedIds);
                       const updated = await fetchProjectDiscussions(projectId);
                       setDiscussions(updated);
                     }}
-                    heightClass="h-[540px]"
                   />
                 )}
 
-                {/* 3. TAB: OVERVIEW (merged Project Info + Workload Summary + Team) */}
-                {activeTab === 'overview' && (
-                  <div className="space-y-5">
-                    {/* KPI Strip */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs">
-                        <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Est. Hours</span>
-                        <span className="text-base font-black text-slate-900">{kpiData.estHours} hrs</span>
-                      </div>
-                      <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs">
-                        <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Actual Hours</span>
-                        <span className="text-base font-black text-emerald-600">{kpiData.actHours} hrs</span>
-                      </div>
-                      <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs">
-                        <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Start Date</span>
-                        <span className="text-xs font-bold text-slate-800">{kpiData.startDate}</span>
-                      </div>
-                      <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs">
-                        <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Deadline</span>
-                        <span className="text-xs font-bold text-slate-800">{kpiData.deadline}</span>
-                      </div>
-                    </div>
-
-                    {/* Project Information Card */}
-                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs space-y-4">
-                      <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                        <div>
-                          <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">Project Details</h3>
-                          <p className="text-[11px] text-slate-400 mt-0.5">Core project configuration and metadata</p>
-                        </div>
-                        {isManagerOrAdmin && (
-                          <button
-                            type="button"
-                            onClick={() => setIsEditProjectModalOpen(true)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold shadow-xs transition cursor-pointer"
-                          >
-                            <Edit3 className="w-3.5 h-3.5" />
-                            <span>Edit Project</span>
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5 text-xs">
-                        <div>
-                          <span className="text-[10px] uppercase font-bold text-slate-400 block">Project Code</span>
-                          <span className="font-mono font-bold text-slate-800">{project.project_no}</span>
-                        </div>
-                        <div>
-                          <span className="text-[10px] uppercase font-bold text-slate-400 block">Status</span>
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold border ${statusStyle.bg}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${statusStyle.dot}`} />
-                            {statusStyle.label}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-[10px] uppercase font-bold text-slate-400 block">Project Type</span>
-                          <span className="font-semibold text-slate-800 capitalize">{project.project_type.replace(/_/g, ' ')}</span>
-                        </div>
-                        <div>
-                          <span className="text-[10px] uppercase font-bold text-slate-400 block">Category</span>
-                          <span className="font-semibold text-slate-800 capitalize">{project.category.replace(/_/g, ' ')}</span>
-                        </div>
-                        <div>
-                          <span className="text-[10px] uppercase font-bold text-slate-400 block">Client</span>
-                          <span className="font-semibold text-slate-800">{project.client_name || 'Internal'}</span>
-                        </div>
-                        <div>
-                          <span className="text-[10px] uppercase font-bold text-slate-400 block">Project Manager</span>
-                          <span className="font-semibold text-slate-800">{project.project_manager_name || 'Unassigned'}</span>
-                        </div>
-                      </div>
-
-                      <div>
-                        <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Project Description</span>
-                        <div className="text-xs text-slate-700 leading-relaxed whitespace-pre-wrap bg-slate-50/70 p-4 rounded-xl border border-slate-200/60 max-h-60 overflow-y-auto">
-                          {project.description || <span className="text-slate-400 italic">No description provided.</span>}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Workload Summary Table */}
-                    <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs space-y-3.5">
-                      <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                        <div>
-                          <h4 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">Workload Summary</h4>
-                          <p className="text-[11px] text-slate-400 mt-0.5">Task distribution, completion rates, and logged hours per member</p>
-                        </div>
-                        <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200">
-                          {personWiseSummary.length} {personWiseSummary.length === 1 ? 'Member' : 'Members'}
-                        </span>
-                      </div>
-
-                      {personWiseSummary.length === 0 ? (
-                        <div className="py-8 text-center text-xs text-slate-400">
-                          No team members assigned to calculate workload.
-                        </div>
-                      ) : (
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-left text-xs">
-                            <thead>
-                              <tr className="border-b border-slate-100 text-[10px] uppercase text-slate-400 font-bold">
-                                <th className="py-2.5">Member</th>
-                                <th className="py-2.5 text-center">Tasks</th>
-                                <th className="py-2.5 text-center">Completed</th>
-                                <th className="py-2.5 text-center">Logged Hours</th>
-                                <th className="py-2.5 text-right">Progress</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                              {personWiseSummary.map((item) => (
-                                <tr key={item.emp_id} className="hover:bg-slate-50/60 transition">
-                                  <td className="py-2.5 font-semibold text-slate-800">
-                                    <div className="flex items-center gap-2">
-                                      <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-[10px]">
-                                        {item.name.substring(0, 2).toUpperCase()}
-                                      </div>
-                                      <div>
-                                        <div>{item.name}</div>
-                                        <div className="text-[10px] text-slate-400 font-normal">{item.role}</div>
-                                      </div>
-                                    </div>
-                                  </td>
-                                  <td className="py-2.5 text-center font-bold text-slate-700">{item.totalTasks}</td>
-                                  <td className="py-2.5 text-center font-bold text-emerald-600">{item.completedTasks}</td>
-                                  <td className="py-2.5 text-center font-mono font-medium text-slate-700">{item.actHours}h</td>
-                                  <td className="py-2.5 text-right">
-                                    <div className="flex items-center justify-end gap-2">
-                                      <div className="w-16 bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                                        <div
-                                          className="bg-emerald-500 h-full rounded-full"
-                                          style={{ width: `${item.completionRate}%` }}
-                                        />
-                                      </div>
-                                      <span className="font-mono text-[11px] font-semibold text-slate-600 w-8 text-right">
-                                        {item.completionRate}%
-                                      </span>
-                                    </div>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Team Members List */}
-                    <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs space-y-3.5">
-                      <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                        <div>
-                          <h4 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">Assigned Team</h4>
-                          <p className="text-[11px] text-slate-400 mt-0.5">Project manager and contributors</p>
-                        </div>
-                        {isManagerOrAdmin && (
-                          <button
-                            type="button"
-                            onClick={() => setIsEditProjectModalOpen(true)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-semibold transition cursor-pointer"
-                          >
-                            <Users className="w-3.5 h-3.5" />
-                            <span>Manage Team</span>
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {project.members?.map((m) => {
-                          const isPm = m.employee_id === project.project_manager_id;
-                          return (
-                            <div
-                              key={m.employee_id}
-                              className="p-3 bg-slate-50/80 border border-slate-200/80 rounded-xl flex items-center justify-between"
-                            >
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                <div className={`w-8 h-8 rounded-full font-bold flex items-center justify-center text-xs shrink-0 ${
-                                  isPm ? 'bg-indigo-100 text-indigo-700 ring-2 ring-indigo-200' : 'bg-blue-100 text-blue-700'
-                                }`}>
-                                  {m.name.substring(0, 2).toUpperCase()}
-                                </div>
-                                <div className="min-w-0">
-                                  <div className="text-xs font-bold text-slate-900 truncate flex items-center gap-1.5">
-                                    <span>{m.name}</span>
-                                    {isPm && (
-                                      <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase tracking-wider bg-indigo-100 text-indigo-800">
-                                        PM
-                                      </span>
-                                    )}
-                                  </div>
-                                  <div className="text-[10px] text-slate-400 truncate">{m.email}</div>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
+                {/* TAB: TIMELINE */}
+                {activeTab === 'timeline' && (
+                  <ProjectTimelineView project={project} sprints={sprints} tasks={empTasks} bugs={empBugs} onOpenBug={setSelectedBugId} onOpenIssue={(id) => { setActiveTab('tasks'); setTasksSubTab('board'); setSelectedDrawerTaskId(id); }} />
                 )}
 
-                {/* 4. TAB: ACTIVITY LOG */}
+                {/* TAB: TIME LOG (admin and project manager) */}
+                {activeTab === 'timelog' && isManagerOrAdmin && (
+                  <ProjectTimeReport
+                    projectName={project.project_name}
+                    sprints={sprints}
+                    tasks={empTasks}
+                    bugs={empBugs}
+                    onOpenIssue={(id) => { setActiveTab('tasks'); setTasksSubTab('board'); setSelectedDrawerTaskId(id); }}
+                  />
+                )}
+
+                {/* 3. TAB: SUMMARY */}
+                {activeTab === 'overview' && (
+                  <ProjectSummaryView
+                    project={project}
+                    tasks={empTasks}
+                    kpi={kpiData}
+                    workload={personWiseSummary}
+                    canEdit={isAdmin}
+                    canManageTeam={isManagerOrAdmin}
+                    onEdit={() => setIsEditProjectModalOpen(true)}
+                    delivery={isManagerOrAdmin ? delivery : null}
+                    onDeliver={isManagerOrAdmin ? () => setDeliverOpen(true) : undefined}
+                  />
+                )}
+
+                {/* 4. TAB: ACTIVITY */}
                 {activeTab === 'activity' && (
-                  <div className="space-y-3">
+                  <div className="mx-auto max-w-3xl">
+                    <h3 className="mb-4 text-[20px] font-medium text-[#172B4D]">Activity</h3>
                     {activityLogs.length === 0 ? (
-                      <div className="py-12 text-center bg-white rounded-2xl border border-dashed border-slate-200 text-xs text-slate-400">
-                        No activity recorded yet
-                      </div>
+                      <div className="rounded-[3px] bg-[#F4F5F7] py-12 text-center text-[14px] text-[#5E6C84]">No activity recorded yet</div>
                     ) : (
-                      activityLogs.map((log) => (
-                        <div key={log.log_id} className="p-3 bg-white border border-slate-200/80 rounded-xl flex items-start gap-3 shadow-2xs">
-                          <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 mt-0.5">
-                            <History className="w-3.5 h-3.5" />
-                          </div>
-                          <div className="flex-1 min-w-0 text-xs">
-                            <div className="flex items-center justify-between">
-                              <span className="font-bold text-slate-900">{log.actor_name}</span>
-                              <span className="text-[10px] text-slate-400">
-                                {new Date(log.created_at).toLocaleDateString('en-GB')}
-                              </span>
-                            </div>
-                            <p className="text-slate-600 mt-0.5">{log.description}</p>
-                          </div>
-                        </div>
+                      activityByDay.map((day) => (
+                        <section key={day.label} className="mb-6">
+                          <h4 className="mb-1 text-[12px] font-bold uppercase tracking-[0.04em] text-[#5E6C84]">{day.label}</h4>
+                          <ul className="divide-y divide-[#DFE1E6] border-y border-[#DFE1E6]">
+                            {day.items.map((log) => (
+                              <li key={log.log_id} className="flex items-start gap-3 py-3">
+                                {log.actor_avatar ? (
+                                  <img src={log.actor_avatar} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
+                                ) : (
+                                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[color:var(--ac-main,#0052CC)] text-[12px] font-semibold text-white">
+                                    {log.actor_name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join('') || '?'}
+                                  </span>
+                                )}
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-[14px] leading-5 text-[#172B4D]">
+                                    <b className="font-semibold">{log.actor_name}</b> <span className="text-[#42526E]">{log.description}</span>
+                                  </p>
+                                  <p className="mt-0.5 text-[12px] text-[#5E6C84]">
+                                    {new Date(log.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                                  </p>
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        </section>
                       ))
                     )}
                   </div>
                 )}
+              </div>
               </div>
             </>
           )}
@@ -1213,9 +870,64 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
         projectId={projectId}
         projectMembers={project?.members || []}
         sprints={sprints}
+        defaultSprintId={taskModalSprintId}
+        projectDeadline={project?.deadline}
         isOpen={isTaskModalOpen}
         onClose={() => setIsTaskModalOpen(false)}
         onSubmit={handleCreateTask}
+      />
+
+      {deliverOpen && project && (
+        <DeliverProjectDialog
+          projectId={project.project_id}
+          projectName={project.project_name}
+          isAdmin={isAdmin}
+          onClose={() => setDeliverOpen(false)}
+          onConfirm={deliverProject}
+        />
+      )}
+
+      <AddSubTaskModal
+        parent={childOf}
+        members={project?.members || []}
+        projectDeadline={project?.deadline}
+        onClose={() => setChildOf(null)}
+        onSubmit={async (payload) => {
+          if (!childOf || !projectId) return;
+          await addSubTask(projectId, childOf.task_id, payload);
+          await refreshPlanning();
+          await reloadTaskDetail(childOf.task_id);
+        }}
+      />
+
+      <TaskFormModal
+        isOpen={editTask !== null}
+        initialData={editTask}
+        title="Edit issue"
+        projectDeadline={project?.deadline}
+        mode="project"
+        taskTypeOptions={[]}
+        employees={Array.from(new Map((project?.members || []).map((m) => [m.employee_id, m])).values()).map((m) => ({
+          emp_id: m.employee_id,
+          name: m.name,
+          email: m.email,
+          avatar_url: m.profile_picture ?? null,
+          role_name: m.role_in_project,
+        }))}
+        sprintOptions={sprints.map((x) => ({ id: x.sprint_id, label: x.sprint_name }))}
+        onClose={() => setEditTask(null)}
+        onSubmit={async (data) => {
+          if (!editTask) return;
+          // The sprint is changed from the backlog; the task update endpoint does not take it
+          const { sprint_id: _sprint, ...rest } = data as unknown as Record<string, unknown>;
+          await customFetch(taskUrl(editTask.task_id), {
+            method: 'PATCH',
+            body: JSON.stringify(rest),
+            headers: { 'Content-Type': 'application/json' },
+          });
+          await refreshPlanning();
+          if (selectedDrawerTaskId) await reloadTaskDetail(selectedDrawerTaskId);
+        }}
       />
 
       <CreateBugModal
@@ -1233,6 +945,7 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
         isOpen={selectedBugId !== null}
         onClose={() => setSelectedBugId(null)}
         onBugUpdated={loadProjectData}
+        canEditDates={isManagerOrAdmin}
       />
 
       {/* Reason Modal for On-Hold or Cancelled Status */}

@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   FolderKanban,
-  CheckCircle2,
-  RotateCw,
   AlertCircle,
   Plus,
 } from 'lucide-react';
@@ -38,7 +36,7 @@ export const ProjectsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   // View & Filters
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [pmFilter, setPmFilter] = useState('all');
@@ -49,6 +47,10 @@ export const ProjectsPage: React.FC = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<ProjectItem | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(id ? Number(id) : null);
+  // /projects/:id?task=12 or ?bug=3 opens that issue straight away (links from My tasks and My bugs)
+  const [searchParams] = useSearchParams();
+  const linkedTaskId = searchParams.get('task') ? Number(searchParams.get('task')) : null;
+  const linkedBugId = searchParams.get('bug') ? Number(searchParams.get('bug')) : null;
 
   useEffect(() => {
     if (id) {
@@ -56,11 +58,8 @@ export const ProjectsPage: React.FC = () => {
     }
   }, [id]);
 
-  const canCreate = Boolean(
-    user?.access?.can_manage_organization ||
-      user?.role?.role_name?.toLowerCase().includes('admin') ||
-      user?.role?.role_name?.toLowerCase().includes('manager')
-  );
+  // Only the Admin can create a project (Project BFD 2.8).
+  const canCreate = Boolean(user?.access?.can_manage_organization);
 
   const loadData = async () => {
     try {
@@ -180,74 +179,40 @@ export const ProjectsPage: React.FC = () => {
   return (
     <div className="space-y-3.5 w-full min-w-0 max-w-full">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 mb-1">
+          <nav aria-label="Breadcrumb" className="mb-1 flex items-center gap-1.5 text-[12px] text-[#5E6C84]">
             <span>Workspace</span>
-            <span>/</span>
-            <span className="text-blue-600">Projects</span>
-          </div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-            Projects
-          </h1>
+            <span aria-hidden>/</span>
+            <span>Projects</span>
+          </nav>
+          <h1 className="text-[24px] font-medium leading-8 text-[#172B4D]">Projects</h1>
         </div>
 
         {canCreate && (
           <button
             onClick={() => setIsCreateOpen(true)}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-md shadow-blue-500/20 transition shrink-0"
+            className="inline-flex h-8 shrink-0 cursor-pointer items-center justify-center gap-1.5 self-start rounded-[3px] bg-[color:var(--ac-main,#0052CC)] px-3 text-[14px] font-medium text-white transition hover:bg-[color:var(--ac-hover,#0065FF)] active:bg-[#0747A6]"
           >
-            <Plus className="w-4 h-4 stroke-[2.5]" />
-            Create Project
+            <Plus className="h-4 w-4" strokeWidth={2.5} />
+            Create project
           </button>
         )}
       </div>
 
-      {/* KPI Stats Strip matching Image 3 */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {/* Total */}
-        <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3.5">
-          <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
-            <FolderKanban className="w-4 h-4" />
-          </div>
-          <div>
-            <h3 className="text-xl font-bold text-slate-900 leading-tight">{stats.total}</h3>
-            <span className="text-[11px] font-medium text-slate-400">Total</span>
-          </div>
-        </div>
-
-        {/* In Progress */}
-        <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3.5">
-          <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-            <RotateCw className="w-4 h-4" />
-          </div>
-          <div>
-            <h3 className="text-xl font-bold text-slate-900 leading-tight">{stats.inProgress}</h3>
-            <span className="text-[11px] font-medium text-slate-400">In Progress</span>
-          </div>
-        </div>
-
-        {/* Delivered */}
-        <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3.5">
-          <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-            <CheckCircle2 className="w-4 h-4" />
-          </div>
-          <div>
-            <h3 className="text-xl font-bold text-slate-900 leading-tight">{stats.delivered}</h3>
-            <span className="text-[11px] font-medium text-slate-400">Delivered</span>
-          </div>
-        </div>
-
-        {/* On Hold */}
-        <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3.5">
-          <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-            <AlertCircle className="w-4 h-4" />
-          </div>
-          <div>
-            <h3 className="text-xl font-bold text-slate-900 leading-tight">{stats.onHold}</h3>
-            <span className="text-[11px] font-medium text-slate-400">On Hold</span>
-          </div>
-        </div>
+      {/* Slim summary, instead of big cards */}
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[14px] text-[#42526E]">
+        {[
+          { label: 'Projects', value: stats.total, dot: 'bg-[#42526E]' },
+          { label: 'In progress', value: stats.inProgress, dot: 'bg-[color:var(--ac-main,#0052CC)]' },
+          { label: 'Delivered', value: stats.delivered, dot: 'bg-[#36B37E]' },
+          { label: 'On hold', value: stats.onHold, dot: 'bg-[#FF8B00]' },
+        ].map((k) => (
+          <span key={k.label} className="inline-flex items-center gap-1.5">
+            <span aria-hidden className={`h-2 w-2 rounded-full ${k.dot}`} />
+            <b className="font-semibold text-[#172B4D]">{k.value}</b> {k.label}
+          </span>
+        ))}
       </div>
 
       {/* Filter and View Mode Switcher */}
@@ -321,7 +286,7 @@ export const ProjectsPage: React.FC = () => {
           ) : null}
         </div>
       ) : viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filteredProjects.map((project) => (
             <ProjectCard
               key={project.project_id}
@@ -357,6 +322,8 @@ export const ProjectsPage: React.FC = () => {
       <ProjectDetailsDrawer
         projectId={selectedProjectId}
         isOpen={selectedProjectId !== null}
+        initialTaskId={linkedTaskId}
+        initialBugId={linkedBugId}
         onClose={() => {
           setSelectedProjectId(null);
           if (window.location.pathname.startsWith('/projects/')) {

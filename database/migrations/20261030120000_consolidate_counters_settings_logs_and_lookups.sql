@@ -129,3 +129,7 @@ ALTER TABLE software_license_assignments
 DROP TABLE IF EXISTS software_license_revoke_reasons CASCADE;
 DROP TABLE IF EXISTS software_license_discontinue_reasons CASCADE;
 
+
+-- migrate:down
+-- Irreversible: the old per-module counter and settings-log tables were dropped after their data was merged.
+DO $$ BEGIN RAISE EXCEPTION 'Migration 20261030120000 is irreversible (old counter/settings log tables were dropped). Restore from backup instead.'; END $$;

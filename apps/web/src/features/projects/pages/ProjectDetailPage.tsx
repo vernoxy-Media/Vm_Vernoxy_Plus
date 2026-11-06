@@ -98,10 +98,8 @@ export const ProjectDetailPage: React.FC = () => {
   const { user } = useAuth();
   const projectId = Number(id);
 
-  const isAdmin = Boolean(
-    user?.access?.can_manage_organization ||
-    user?.role?.role_name?.toLowerCase().includes('admin')
-  );
+  // Admin = role marked is_admin (same rule as the API).
+  const isAdmin = Boolean(user?.access?.can_manage_organization);
 
   const { socket, joinProject, leaveProject } = useSocket();
 
@@ -1936,7 +1934,7 @@ export const ProjectDetailPage: React.FC = () => {
                               <span
                                 className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${sprint.status === 'completed'
                                     ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                    : sprint.status === 'in_progress'
+                                    : sprint.status === 'active'
                                       ? 'bg-amber-50 text-amber-700 border border-amber-200'
                                       : 'bg-slate-100 text-slate-700 border border-slate-200'
                                   }`}
@@ -2001,6 +1999,7 @@ export const ProjectDetailPage: React.FC = () => {
                       task={drawerTaskDetail}
                       isOpen={true}
                       isAdmin={isAdmin}
+                      canApprove={isManagerOrAdmin}
                       embedded={true}
                       onClose={() => setSelectedDrawerTaskId(null)}
                       onMoveStage={handleMoveStage}
@@ -2499,6 +2498,7 @@ export const ProjectDetailPage: React.FC = () => {
         task={drawerTaskDetail}
         isOpen={selectedDrawerTaskId !== null && activeTab !== 'tasks'}
         isAdmin={isAdmin}
+        canApprove={isManagerOrAdmin}
         onClose={() => setSelectedDrawerTaskId(null)}
         onMoveStage={handleMoveStage}
         onTrackWorkSession={async (taskId, action, note) => {

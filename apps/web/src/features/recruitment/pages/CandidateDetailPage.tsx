@@ -375,66 +375,79 @@ export const CandidateDetailPage: React.FC = () => {
                 </button>
               )}
 
-              {isConverted ? (
-                isAlreadyActive ? (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Account Active</span>
-                  </span>
-                ) : (
-                  <div className="relative group">
-                    <button
-                      type="button"
-                      disabled={!activationStatus?.can_activate || activateMutation.isPending}
-                      onClick={handleOpenActivateModal}
-                      className={`px-4 py-2 text-xs font-semibold rounded-xl transition flex items-center gap-1.5 shadow-xs ${
-                        activationStatus?.can_activate
-                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer ring-2 ring-emerald-500/20'
-                          : 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
-                      }`}
-                    >
-                      {activateMutation.isPending ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : activationStatus?.can_activate ? (
-                        <Sparkles className="w-3.5 h-3.5 text-emerald-100" />
-                      ) : (
-                        <Lock className="w-3.5 h-3.5 text-slate-400" />
-                      )}
-                      <span>Activate Account</span>
-                    </button>
-
-                    {!activationStatus?.can_activate && (
-                      <div className="absolute right-0 top-11 w-72 p-3 bg-slate-900 text-white text-2xs rounded-xl shadow-xl z-30 hidden group-hover:block pointer-events-none animate-in fade-in duration-150">
-                        {activationStatus?.missing_documents && activationStatus.missing_documents.length > 0 ? (
-                          <>
-                            <p className="font-bold text-amber-300 mb-1">Upload required documents to activate:</p>
-                            <ul className="list-disc pl-3.5 space-y-0.5 text-slate-300">
-                              {activationStatus.missing_documents.map((m, idx) => (
-                                <li key={idx}>{m}</li>
-                              ))}
-                            </ul>
-                          </>
-                        ) : !activationStatus?.is_details_completed ? (
-                          <p className="font-bold text-amber-300">
-                            Please fill employee details (PF, OT, Bank, Emergency Contact) before activating account.
-                          </p>
-                        ) : (
-                          <p className="text-slate-300">Account will be activated once onboarding steps are complete.</p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )
-              ) : isSelected ? (
+              {!isConverted && isSelected && (
                 <button
                   type="button"
                   onClick={() => setIsConvertModalOpen(true)}
                   className="px-4 py-2 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition flex items-center gap-1.5 cursor-pointer"
                 >
                   <UserCheck className="w-4 h-4" />
-                  <span>Start Onboarding</span>
+                  <span>Convert to Employee</span>
                 </button>
-              ) : null}
+              )}
+
+              {isConverted && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('onboarding')}
+                    className="px-4 py-2 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <UserCheck className="w-4 h-4" />
+                    <span>Start Onboarding</span>
+                  </button>
+
+                  {isAlreadyActive ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Account Active</span>
+                    </span>
+                  ) : (
+                    <div className="relative group">
+                      <button
+                        type="button"
+                        disabled={!activationStatus?.can_activate || activateMutation.isPending}
+                        onClick={handleOpenActivateModal}
+                        className={`px-4 py-2 text-xs font-semibold rounded-xl transition flex items-center gap-1.5 shadow-xs ${
+                          activationStatus?.can_activate
+                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer ring-2 ring-emerald-500/20'
+                            : 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+                        }`}
+                      >
+                        {activateMutation.isPending ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : activationStatus?.can_activate ? (
+                          <Sparkles className="w-3.5 h-3.5 text-emerald-100" />
+                        ) : (
+                          <Lock className="w-3.5 h-3.5 text-slate-400" />
+                        )}
+                        <span>Activate Account</span>
+                      </button>
+
+                      {!activationStatus?.can_activate && (
+                        <div className="absolute right-0 top-11 w-72 p-3 bg-slate-900 text-white text-2xs rounded-xl shadow-xl z-30 hidden group-hover:block pointer-events-none animate-in fade-in duration-150">
+                          {activationStatus?.missing_documents && activationStatus.missing_documents.length > 0 ? (
+                            <>
+                              <p className="font-bold text-amber-300 mb-1">Upload required documents to activate:</p>
+                              <ul className="list-disc pl-3.5 space-y-0.5 text-slate-300">
+                                {activationStatus.missing_documents.map((m, idx) => (
+                                  <li key={idx}>{m}</li>
+                                ))}
+                              </ul>
+                            </>
+                          ) : !activationStatus?.is_details_completed ? (
+                            <p className="font-bold text-amber-300">
+                              Please fill employee details (PF, OT, Bank, Emergency Contact) before activating account.
+                            </p>
+                          ) : (
+                            <p className="text-slate-300">Account will be activated once onboarding steps are complete.</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </div>

@@ -1,12 +1,5 @@
-import React, { useState } from 'react';
-import {
-  Search,
-  LayoutGrid,
-  List,
-  Kanban,
-  SlidersHorizontal,
-  X,
-} from 'lucide-react';
+import React from 'react';
+import { Search, LayoutGrid, List, Kanban, X } from 'lucide-react';
 import type { AssignableEmployee } from '../types';
 
 export type ViewMode = 'grid' | 'list' | 'kanban';
@@ -41,6 +34,16 @@ const STAGE_PILLS = [
   { id: 'cancelled', label: 'Cancelled' },
 ];
 
+const VIEWS: { id: ViewMode; label: string; icon: React.ElementType }[] = [
+  { id: 'grid', label: 'Cards', icon: LayoutGrid },
+  { id: 'list', label: 'List', icon: List },
+  { id: 'kanban', label: 'Board', icon: Kanban },
+];
+
+const CONTROL =
+  'h-8 rounded-[3px] border-2 border-[#DFE1E6] bg-[#FAFBFC] px-2 text-[14px] text-[#172B4D] transition-colors hover:bg-[#EBECF0] focus:border-[color:var(--ac-400,#4C9AFF)] focus:bg-white focus:outline-none';
+
+/** Search, filters and the view switch, laid out like a Jira filter bar: everything is visible, nothing hides behind an icon. */
 export const ProjectFilterBar: React.FC<ProjectFilterBarProps> = ({
   viewMode,
   onViewModeChange,
@@ -57,155 +60,89 @@ export const ProjectFilterBar: React.FC<ProjectFilterBarProps> = ({
   onClearFilters,
   hasActiveFilters,
   managers,
-}) => {
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-
-  return (
-    <div className="space-y-2">
-      {/* Sleek unified bar matching Image 3 */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-2 rounded-2xl border border-slate-200/80 shadow-2xs">
-        {/* Left: Search input */}
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
-          <input
-            type="text"
-            placeholder="Search projects..."
-            value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
-          />
-        </div>
-
-        {/* Center/Right: Stage Pills matching Image 3 */}
-        <div className="flex items-center gap-1 overflow-x-auto py-0.5 scrollbar-none">
-          {STAGE_PILLS.map((pill) => {
-            const isActive = status === pill.id;
-            return (
-              <button
-                key={pill.id}
-                type="button"
-                onClick={() => onStatusChange(pill.id)}
-                className={`px-3 py-1 rounded-lg text-xs transition-colors shrink-0 ${
-                  isActive
-                    ? 'border border-slate-400 bg-slate-100 text-slate-900 font-semibold shadow-2xs'
-                    : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50 font-medium'
-                }`}
-              >
-                {pill.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Far Right: View Mode Toggle & Advanced Filters */}
-        <div className="flex items-center gap-1.5 shrink-0 ml-auto">
-          {/* Advanced Filters Toggle Button */}
-          <button
-            type="button"
-            onClick={() => setShowAdvancedFilters((prev) => !prev)}
-            title="Additional Filters (Manager, Date)"
-            className={`p-1.5 rounded-lg border text-xs transition-colors ${
-              showAdvancedFilters || (projectManagerId !== 'all' || startDate || endDate)
-                ? 'bg-blue-50 border-blue-300 text-blue-600'
-                : 'border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-50'
-            }`}
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5" />
-          </button>
-
-          {/* View Mode Buttons */}
-          <div className="flex items-center gap-1 p-0.5 bg-slate-100/80 rounded-xl border border-slate-200/70">
-            <button
-              type="button"
-              onClick={() => onViewModeChange('grid')}
-              title="Grid View"
-              className={`p-1.5 rounded-lg transition ${
-                viewMode === 'grid'
-                  ? 'bg-white text-slate-900 shadow-2xs'
-                  : 'text-slate-400 hover:text-slate-700'
-              }`}
-            >
-              <LayoutGrid className="w-3.5 h-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => onViewModeChange('list')}
-              title="List View"
-              className={`p-1.5 rounded-lg transition ${
-                viewMode === 'list'
-                  ? 'bg-white text-slate-900 shadow-2xs'
-                  : 'text-slate-400 hover:text-slate-700'
-              }`}
-            >
-              <List className="w-3.5 h-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => onViewModeChange('kanban')}
-              title="Kanban Board"
-              className={`p-1.5 rounded-lg transition ${
-                viewMode === 'kanban'
-                  ? 'bg-white text-slate-900 shadow-2xs'
-                  : 'text-slate-400 hover:text-slate-700'
-              }`}
-            >
-              <Kanban className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
+}) => (
+  <div className="space-y-2.5">
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="relative min-w-[200px] flex-1 sm:max-w-xs">
+        <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#5E6C84]" />
+        <input
+          type="text"
+          placeholder="Search projects"
+          aria-label="Search projects"
+          value={search}
+          onChange={(e) => onSearchChange(e.target.value)}
+          className={`${CONTROL} w-full pl-7 placeholder:text-[#7A869A]`}
+        />
       </div>
 
-      {/* Collapsible Advanced Filters (Manager, Date Range) */}
-      {showAdvancedFilters && (
-        <div className="flex flex-wrap items-center gap-3 bg-white p-3 rounded-2xl border border-slate-200/80 shadow-2xs animate-in fade-in-50 duration-150">
-          {/* Project Manager Dropdown */}
-          <div className="w-48">
-            <select
-              value={projectManagerId}
-              onChange={(e) => onProjectManagerChange(e.target.value)}
-              className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 truncate"
-            >
-              <option value="all">All Managers</option>
-              {managers.map((m) => (
-                <option key={m.emp_id} value={m.emp_id}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-          </div>
+      <select
+        value={projectManagerId}
+        onChange={(e) => onProjectManagerChange(e.target.value)}
+        aria-label="Project manager"
+        className={`${CONTROL} max-w-[180px] truncate`}
+      >
+        <option value="all">All managers</option>
+        {managers.map((m) => (
+          <option key={m.emp_id} value={m.emp_id}>
+            {m.name}
+          </option>
+        ))}
+      </select>
 
-          {/* Date Filters */}
-          <div className="flex items-center gap-1.5 text-xs text-slate-500">
-            <span className="text-[11px] text-slate-400 font-medium">Dates:</span>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => onStartDateChange(e.target.value)}
-              title="Start date filter"
-              className="px-2 py-1 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-700"
-            />
-            <span className="text-slate-400">to</span>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => onEndDateChange(e.target.value)}
-              title="End date filter"
-              className="px-2 py-1 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-700"
-            />
-          </div>
+      <div className="flex items-center gap-1.5 text-[13px] text-[#5E6C84]">
+        <input type="date" value={startDate} onChange={(e) => onStartDateChange(e.target.value)} aria-label="Start date from" title="Start date from" className={`${CONTROL} w-[140px]`} />
+        <span>to</span>
+        <input type="date" value={endDate} onChange={(e) => onEndDateChange(e.target.value)} aria-label="End date until" title="End date until" className={`${CONTROL} w-[140px]`} />
+      </div>
 
-          {/* Clear Filters */}
-          {hasActiveFilters && (
-            <button
-              onClick={onClearFilters}
-              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-xl transition ml-auto"
-            >
-              <X className="w-3.5 h-3.5" />
-              Clear
-            </button>
-          )}
-        </div>
+      {hasActiveFilters && (
+        <button
+          type="button"
+          onClick={onClearFilters}
+          className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-[3px] px-2 text-[14px] font-medium text-[#42526E] hover:bg-[rgba(9,30,66,0.08)]"
+        >
+          <X className="h-3.5 w-3.5" /> Clear filters
+        </button>
       )}
+
+      <div role="group" aria-label="View" className="ml-auto inline-flex rounded-[3px] bg-[rgba(9,30,66,0.04)] p-0.5">
+        {VIEWS.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            type="button"
+            aria-pressed={viewMode === id}
+            onClick={() => onViewModeChange(id)}
+            title={`${label} view`}
+            className={`inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-[3px] px-2.5 text-[13px] font-medium transition ${
+              viewMode === id ? 'bg-white text-[color:var(--ac-main,#0052CC)] shadow-[0_1px_1px_rgba(9,30,66,0.25)]' : 'text-[#42526E] hover:bg-[rgba(9,30,66,0.08)]'
+            }`}
+          >
+            <Icon className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">{label}</span>
+          </button>
+        ))}
+      </div>
     </div>
-  );
-};
+
+    {/* Status, one click each; scrolls sideways on a narrow screen */}
+    <div role="tablist" aria-label="Project status" className="-mx-1 flex items-center gap-1 overflow-x-auto px-1 pb-1 [scrollbar-width:thin]">
+      {STAGE_PILLS.map((pill) => {
+        const active = status === pill.id;
+        return (
+          <button
+            key={pill.id}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onClick={() => onStatusChange(pill.id)}
+            className={`h-8 shrink-0 cursor-pointer rounded-[3px] px-3 text-[14px] font-medium transition-colors ${
+              active ? 'bg-[color:var(--ac-50,#DEEBFF)] text-[color:var(--ac-main,#0052CC)]' : 'text-[#42526E] hover:bg-[rgba(9,30,66,0.08)]'
+            }`}
+          >
+            {pill.label}
+          </button>
+        );
+      })}
+    </div>
+  </div>
+);

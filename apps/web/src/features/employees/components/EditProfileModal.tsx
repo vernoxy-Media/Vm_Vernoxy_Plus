@@ -5,13 +5,18 @@ import {
   X,
   User,
   Building2,
-  Landmark,
   ShieldCheck,
   AlertCircle,
   AlertTriangle,
   Loader2,
+  Lock,
   Upload,
-  CheckCircle,
+  Camera,
+  HeartHandshake,
+  Calendar,
+  CreditCard,
+  Briefcase,
+  Landmark,
 } from 'lucide-react';
 import {
   useDepartmentOptionsQuery,
@@ -39,6 +44,7 @@ interface EditProfileModalProps {
   onClose: () => void;
   employee: any;
   onSuccess?: () => void;
+  isAdmin?: boolean;
 }
 
 export const EditProfileModal: React.FC<EditProfileModalProps> = ({
@@ -46,13 +52,16 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   onClose,
   employee,
   onSuccess,
+  isAdmin,
 }) => {
   const { user: currentUser, refreshProfile } = useAuth();
-  const [activeTab, setActiveTab] = useState<'personal' | 'job' | 'salary' | 'security'>('personal');
+  const isOrgAdmin = isAdmin !== undefined ? isAdmin : Boolean(currentUser?.access?.can_manage_organization);
+  const [activeTab, setActiveTab] = useState<'personal' | 'job'>('personal');
   const [globalError, setGlobalError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [selectedPhotoFile, setSelectedPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [showConfirmLeave, setShowConfirmLeave] = useState(false);
+  const formContainerRef = React.useRef<HTMLFormElement>(null);
 
   // TanStack Queries
   const { data: deptOptions = [] } = useDepartmentOptionsQuery();
@@ -62,6 +71,14 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   const { data: bloodGroupLookups = [] } = useLookupsQuery('blood_group');
   const { data: leavePolicies = [] } = useLeavePoliciesQuery();
   const { data: attendanceSettings } = useAttendanceSettingsQuery();
+
+  const defaultEmploymentTypes = React.useMemo(() => [
+    { id: 143, label: 'Full-time' },
+    { id: 144, label: 'Part-time' },
+    { id: 145, label: 'Intern' },
+    { id: 146, label: 'Contract' },
+  ], []);
+  const effectiveEmploymentTypes = employmentTypeLookups.length > 0 ? employmentTypeLookups : defaultEmploymentTypes;
 
   // Mutations
   const updateMutation = useUpdateEmployeeMutation();
@@ -109,6 +126,9 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
       bank_name: '',
       account_number: '',
       ifsc_code: '',
+      probation_period: '0',
+      notice_period: '0',
+      exit_date: '',
       status: 'Active',
     },
   });
@@ -119,6 +139,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     reset,
     watch,
     setValue,
+    trigger,
     formState: { errors, isSubmitting },
   } = form;
 
@@ -136,12 +157,19 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   const primaryDepId = watchedDepIds.length > 0 ? watchedDepIds[0] : undefined;
   const { data: roleOptions = [] } = useRoleOptionsQuery(primaryDepId);
 
+  // Automatically scroll form to top when active tab changes
+  useEffect(() => {
+    if (formContainerRef.current) {
+      formContainerRef.current.scrollTop = 0;
+    }
+  }, [activeTab]);
+
   // Populate data when employee changes
   useEffect(() => {
     if (employee && isOpen) {
-      const assignedDepIds =
+      const depIds =
         employee.departments && employee.departments.length > 0
-          ? employee.departments.map((d: any) => d.dep_id)
+          ? employee.departments.map((d: any) => d.id || d.dep_id)
           : employee.dep_id
           ? [employee.dep_id]
           : [];
@@ -150,52 +178,47 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
         name: employee.name || '',
         email: employee.email || '',
         personal_email: employee.personal_email || '',
-        office_email: employee.office_email || employee.email || '',
+        office_email: employee.office_email || '',
         mob: employee.mob || '',
-        gender_id: employee.gender_id ?? ('' as any),
+        gender_id: employee.gender_id || ('' as any),
         emergency_contact_name: employee.emergency_contact_name || '',
         emergency_contact_number: employee.emergency_contact_number || '',
         emergency_contact_relation: employee.emergency_contact_relation || '',
-        birth_date: employee.birth_date
-          ? new Date(employee.birth_date).toISOString().split('T')[0]
-          : '',
+        birth_date: employee.birth_date ? new Date(employee.birth_date).toISOString().split('T')[0] : '',
         blood_group: employee.blood_group || '',
         address: employee.address || '',
-        dep_id: employee.dep_id || (assignedDepIds[0] ?? 1),
-        department_ids: assignedDepIds,
-        role_id: employee.role_id ?? ('' as any),
-        reporting_manager: employee.reporting_manager ?? null,
-        leave_policy_id: employee.leave_policy_id ?? ('' as any),
-        employment_type_id: employee.employment_type_id ?? ('' as any),
+        dep_id: employee.dep_id || depIds[0] || 1,
+        department_ids: depIds,
+        role_id: employee.role_id || ('' as any),
+        reporting_manager: employee.reporting_manager || null,
+        employment_type_id: employee.employment_type_id || ('' as any),
         joining_date: employee.joining_date
           ? new Date(employee.joining_date).toISOString().split('T')[0]
           : todayStr,
-        salary: employee.salary ? Number(employee.salary) : 0,
-        pf: employee.pf ? Number(employee.pf) : 0,
-        ot_eligible: Boolean(employee.ot_eligible ?? employee.pay_policy?.ot_eligible),
-        ot_rate_type: (employee.ot_rate_type ?? employee.pay_policy?.ot_rate_type) || 'MULTIPLIER',
-        ot_rate: (employee.ot_rate ?? employee.pay_policy?.ot_rate) ?? ('' as any),
-        ot_multiplier: Number(employee.ot_multiplier ?? employee.pay_policy?.ot_multiplier ?? 1.5),
-        minimum_ot_per_day: Number(employee.minimum_ot_per_day ?? employee.pay_policy?.minimum_ot_per_day ?? 0),
-        ot_paid_as: (employee.ot_paid_as ?? employee.pay_policy?.ot_paid_as) || 'SALARY',
-        pf_applicable: Boolean(employee.pf_applicable ?? employee.pay_policy?.pf_applicable ?? (Number(employee.pf) > 0)),
-        uan: (employee.uan ?? employee.pay_policy?.uan) || '',
-        employee_pf_pct: Number(employee.employee_pf_pct ?? employee.pay_policy?.employee_pf_pct ?? 12),
-        employer_pf_pct: Number(employee.employer_pf_pct ?? employee.pay_policy?.employer_pf_pct ?? 12),
-        payment_mode: (employee.payment_mode ?? employee.pay_policy?.payment_mode) || 'BANK_TRANSFER',
-        bank_name: (employee.bank_name ?? employee.pay_policy?.bank_name) || '',
-        account_number: (employee.account_number ?? employee.pay_policy?.account_number) || '',
-        ifsc_code: (employee.ifsc_code ?? employee.pay_policy?.ifsc_code) || '',
-        probation_period: employee.probation_period || '90 Days (3 Months)',
-        notice_period: employee.notice_period || '30 Days',
-        exit_date: employee.exit_date
-          ? new Date(employee.exit_date).toISOString().split('T')[0]
-          : '',
+        salary: Number(employee.salary || 0),
+        pf: Number(employee.pf || 0),
+        ot_eligible: Boolean(employee.ot_eligible),
+        ot_rate_type: employee.ot_rate_type || 'MULTIPLIER',
+        ot_rate: employee.ot_rate ?? ('' as any),
+        ot_multiplier: employee.ot_multiplier ?? 1.5,
+        minimum_ot_per_day: employee.minimum_ot_per_day ?? 0,
+        ot_paid_as: employee.ot_paid_as || 'SALARY',
+        pf_applicable: Boolean(employee.pf_applicable),
+        uan: employee.uan || '',
+        employee_pf_pct: employee.employee_pf_pct ?? 12,
+        employer_pf_pct: employee.employer_pf_pct ?? 12,
+        payment_mode: employee.payment_mode || 'BANK_TRANSFER',
+        bank_name: employee.bank_name || '',
+        account_number: employee.account_number || '',
+        ifsc_code: employee.ifsc_code || '',
+        probation_period: employee.probation_period ?? '0',
+        notice_period: employee.notice_period ?? '0',
+        exit_date: employee.exit_date ? new Date(employee.exit_date).toISOString().split('T')[0] : '',
         status: employee.status || 'Active',
       });
 
-      if (employee.profile_picture_url) {
-        setPhotoPreview(employee.profile_picture_url);
+      if (employee.photo_url) {
+        setPhotoPreview(employee.photo_url);
       } else {
         setPhotoPreview(null);
       }
@@ -208,8 +231,9 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
       }
 
       setGlobalError(null);
-      setSuccessMessage(null);
       setSelectedPhotoFile(null);
+      setShowConfirmLeave(false);
+      setActiveTab('personal');
     }
   }, [employee, isOpen, reset, todayStr, attendanceSettings]);
 
@@ -221,12 +245,20 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     }
   };
 
-  const handleClose = () => {
+  const requestClose = () => {
+    if (form.formState.isDirty) {
+      setShowConfirmLeave(true);
+    } else {
+      handleForceClose();
+    }
+  };
+
+  const handleForceClose = () => {
+    setShowConfirmLeave(false);
     reset();
     setPhotoPreview(null);
     setSelectedPhotoFile(null);
     setGlobalError(null);
-    setSuccessMessage(null);
     setActiveTab('personal');
     onClose();
   };
@@ -234,71 +266,77 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   const onSubmit = async (values: EmployeeEditFormValues) => {
     if (!employee?.emp_id) return;
 
-    // Prevent premature submission before reaching the final Emergency & Access tab
-    if (activeTab !== 'security') {
-      if (activeTab === 'personal') setActiveTab('job');
-      else if (activeTab === 'job') setActiveTab('salary');
-      else if (activeTab === 'salary') setActiveTab('security');
+    // If on personal tab, validate and move to organization tab
+    if (activeTab === 'personal') {
+      const isValid = await trigger(['name', 'email']);
+      if (isValid) {
+        setActiveTab('job');
+        if (formContainerRef.current) formContainerRef.current.scrollTop = 0;
+      }
       return;
     }
 
     setGlobalError(null);
-    setSuccessMessage(null);
 
     const primaryDep = Number(values.dep_id) || (values.department_ids?.[0] ? Number(values.department_ids[0]) : 1);
     const departmentIds = Array.from(
       new Set([primaryDep, ...(values.department_ids || [])]),
     );
 
+    const updatePayload: any = {
+      name: values.name.trim(),
+      personal_email: values.personal_email?.trim() || undefined,
+      office_email: values.office_email?.trim() || undefined,
+      mob: values.mob?.trim() || undefined,
+      gender_id: values.gender_id ? Number(values.gender_id) : null,
+      emergency_contact_name: values.emergency_contact_name?.trim() || undefined,
+      emergency_contact_number: values.emergency_contact_number?.trim() || undefined,
+      emergency_contact_relation: values.emergency_contact_relation?.trim() || undefined,
+      birth_date: values.birth_date || null,
+      blood_group: values.blood_group || undefined,
+      address: values.address?.trim() || undefined,
+    };
+
+    if (isOrgAdmin) {
+      updatePayload.dep_id = primaryDep;
+      updatePayload.department_ids = departmentIds;
+      updatePayload.role_id = values.role_id ? Number(values.role_id) : null;
+      updatePayload.reporting_manager = values.reporting_manager ? Number(values.reporting_manager) : null;
+      updatePayload.leave_policy_id = values.leave_policy_id ? Number(values.leave_policy_id) : undefined;
+      updatePayload.employment_type_id = values.employment_type_id ? Number(values.employment_type_id) : null;
+      updatePayload.joining_date = values.joining_date;
+      updatePayload.salary = Number(values.salary || 0);
+      updatePayload.pf = Number(values.pf || 0);
+      updatePayload.ot_eligible = Boolean(values.ot_eligible);
+      updatePayload.ot_rate_type = values.ot_eligible ? (values.ot_rate_type || 'MULTIPLIER') : null;
+      updatePayload.ot_rate =
+        values.ot_eligible && values.ot_rate !== undefined && values.ot_rate !== null && values.ot_rate !== ('' as any)
+          ? Number(values.ot_rate)
+          : null;
+      updatePayload.ot_multiplier =
+        values.ot_eligible && values.ot_multiplier !== undefined && values.ot_multiplier !== null && values.ot_multiplier !== ('' as any)
+          ? Number(values.ot_multiplier)
+          : null;
+      updatePayload.minimum_ot_per_day = Number(values.minimum_ot_per_day || 0);
+      updatePayload.ot_paid_as = values.ot_paid_as || 'SALARY';
+      updatePayload.pf_applicable = Boolean(values.pf_applicable);
+      updatePayload.uan = values.uan?.trim() || null;
+      updatePayload.employee_pf_pct = Number(values.employee_pf_pct || 12);
+      updatePayload.employer_pf_pct = Number(values.employer_pf_pct || 12);
+      updatePayload.payment_mode = values.payment_mode || null;
+      updatePayload.bank_name = values.bank_name?.trim() || null;
+      updatePayload.account_number = values.account_number?.trim() || null;
+      updatePayload.ifsc_code = values.ifsc_code?.trim() || null;
+      updatePayload.probation_period = values.probation_period?.trim() || null;
+      updatePayload.notice_period = values.notice_period?.trim() || null;
+      updatePayload.exit_date = values.exit_date || employee.exit_date || null;
+      updatePayload.status = values.status || employee.status || 'Active';
+    }
+
     try {
       await updateMutation.mutateAsync({
         id: employee.emp_id,
-        data: {
-          name: values.name.trim(),
-          personal_email: values.personal_email?.trim() || undefined,
-          office_email: values.office_email?.trim() || undefined,
-          mob: values.mob?.trim() || undefined,
-          dep_id: primaryDep,
-          department_ids: departmentIds,
-          role_id: values.role_id ? Number(values.role_id) : null,
-          reporting_manager: values.reporting_manager ? Number(values.reporting_manager) : null,
-          gender_id: values.gender_id ? Number(values.gender_id) : null,
-          emergency_contact_name: values.emergency_contact_name?.trim() || undefined,
-          emergency_contact_number: values.emergency_contact_number?.trim() || undefined,
-          emergency_contact_relation: values.emergency_contact_relation?.trim() || undefined,
-          birth_date: values.birth_date || null,
-          blood_group: values.blood_group || undefined,
-          address: values.address?.trim() || undefined,
-          leave_policy_id: values.leave_policy_id ? Number(values.leave_policy_id) : undefined,
-          employment_type_id: values.employment_type_id ? Number(values.employment_type_id) : null,
-          joining_date: values.joining_date,
-          salary: Number(values.salary || 0),
-          pf: Number(values.pf || 0),
-          ot_eligible: Boolean(values.ot_eligible),
-          ot_rate_type: values.ot_eligible ? (values.ot_rate_type || 'MULTIPLIER') : null,
-          ot_rate:
-            values.ot_eligible && values.ot_rate !== undefined && values.ot_rate !== null && values.ot_rate !== ('' as any)
-              ? Number(values.ot_rate)
-              : null,
-          ot_multiplier:
-            values.ot_eligible && values.ot_multiplier !== undefined && values.ot_multiplier !== null && values.ot_multiplier !== ('' as any)
-              ? Number(values.ot_multiplier)
-              : null,
-          minimum_ot_per_day: Number(values.minimum_ot_per_day || 0),
-          ot_paid_as: values.ot_paid_as || 'SALARY',
-          pf_applicable: Boolean(values.pf_applicable),
-          uan: values.uan?.trim() || null,
-          employee_pf_pct: Number(values.employee_pf_pct || 12),
-          employer_pf_pct: Number(values.employer_pf_pct || 12),
-          payment_mode: values.payment_mode || null,
-          bank_name: values.bank_name?.trim() || null,
-          account_number: values.account_number?.trim() || null,
-          ifsc_code: values.ifsc_code?.trim() || null,
-          probation_period: values.probation_period?.trim() || null,
-          notice_period: values.notice_period?.trim() || null,
-          exit_date: values.exit_date || employee.exit_date || null,
-          status: values.status || employee.status || 'Active',
-        } as any,
+        data: updatePayload,
       });
 
       // Photo upload if selected
@@ -308,29 +346,27 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
             id: employee.emp_id,
             file: selectedPhotoFile,
           });
-        } catch {
-          // Photo upload optional
+        } catch (photoErr) {
+          console.warn('Photo upload failed:', photoErr);
         }
       }
 
-      // Shift assignment sync
-      const targetShiftId = selectedShiftId === 'default' ? null : parseInt(selectedShiftId, 10);
-      try {
-        await assignShiftMutation.mutateAsync({ empId: employee.emp_id, shiftId: targetShiftId });
-      } catch {}
+      // Shift assignment sync (admin only)
+      if (isOrgAdmin) {
+        const targetShiftId = selectedShiftId === 'default' ? null : parseInt(selectedShiftId, 10);
+        try {
+          await assignShiftMutation.mutateAsync({ empId: employee.emp_id, shiftId: targetShiftId });
+        } catch (shiftErr) {
+          console.warn('Shift sync failed:', shiftErr);
+        }
+      }
 
       if (currentUser?.emp_id === employee.emp_id) {
         await refreshProfile();
       }
 
-      setSuccessMessage('Employee updated successfully!');
-      if (onSuccess) {
-        onSuccess();
-      }
-
-      setTimeout(() => {
-        handleClose();
-      }, 700);
+      handleForceClose();
+      onSuccess?.();
     } catch (err: any) {
       setGlobalError(err?.detail || err?.message || 'Failed to update employee. Please check inputs.');
     }
@@ -340,29 +376,32 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="relative w-full max-w-3xl h-[660px] max-h-[90vh] bg-white rounded-3xl shadow-2xl border border-slate-100 flex flex-col overflow-hidden">
-        {/* Header (Same format as Add Employee) */}
+      <div className="relative w-full max-w-4xl h-[720px] max-h-[92vh] bg-white rounded-3xl shadow-2xl border border-slate-100 flex flex-col overflow-hidden">
+        {/* Header */}
         <div className="flex items-center justify-between px-7 py-5 border-b border-slate-100">
           <div>
             <h2 className="text-xl font-bold text-slate-900">Edit Employee</h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              Update employee details, job & organizational assignments, compensation, and access
+              Update employee profile details, assignments, compensation, and service terms
             </p>
           </div>
           <button
             type="button"
-            onClick={handleClose}
+            onClick={requestClose}
             className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Tab Navigation (Matching Add Employee Pill Design) */}
+        {/* Tab Navigation (Pill design matching Add Employee) */}
         <div className="px-7 pt-3.5 pb-2.5 border-b border-slate-100 bg-slate-50/50 flex items-center gap-2 overflow-x-auto">
           <button
             type="button"
-            onClick={() => setActiveTab('personal')}
+            onClick={() => {
+              setActiveTab('personal');
+              if (formContainerRef.current) formContainerRef.current.scrollTop = 0;
+            }}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
               activeTab === 'personal'
                 ? 'bg-blue-600 text-white shadow-2xs'
@@ -370,12 +409,15 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
             }`}
           >
             <User className="w-3.5 h-3.5" />
-            <span>Personal</span>
+            <span>Personal Details</span>
           </button>
 
           <button
             type="button"
-            onClick={() => setActiveTab('job')}
+            onClick={() => {
+              setActiveTab('job');
+              if (formContainerRef.current) formContainerRef.current.scrollTop = 0;
+            }}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
               activeTab === 'job'
                 ? 'bg-blue-600 text-white shadow-2xs'
@@ -383,48 +425,29 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
             }`}
           >
             <Building2 className="w-3.5 h-3.5" />
-            <span>Job & Org</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('salary')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
-              activeTab === 'salary'
-                ? 'bg-blue-600 text-white shadow-2xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
-          >
-            <Landmark className="w-3.5 h-3.5" />
-            <span>Salary & Bank</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('security')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
-              activeTab === 'security'
-                ? 'bg-blue-600 text-white shadow-2xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
-          >
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Emergency & Access</span>
+            <span>Organization Details</span>
+            {!isOrgAdmin && (
+              <span className={`inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${
+                activeTab === 'job' ? 'bg-blue-700/80 text-blue-100' : 'bg-slate-200/80 text-slate-500'
+              }`}>
+                <Lock className="w-2.5 h-2.5" /> Locked
+              </span>
+            )}
           </button>
         </div>
 
         {/* Scrollable Form Body */}
         <form
+          ref={formContainerRef}
           onSubmit={handleSubmit(onSubmit)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT' && activeTab !== 'security') {
+            if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT' && activeTab !== 'job') {
               e.preventDefault();
-              if (activeTab === 'personal') setActiveTab('job');
-              else if (activeTab === 'job') setActiveTab('salary');
-              else if (activeTab === 'salary') setActiveTab('security');
+              setActiveTab('job');
+              if (formContainerRef.current) formContainerRef.current.scrollTop = 0;
             }
           }}
-          className="flex-1 overflow-y-auto p-7 space-y-5 custom-scrollbar"
+          className="flex-1 overflow-y-auto p-7 space-y-6 custom-scrollbar"
         >
           {globalError && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2.5 text-xs text-red-600 font-medium animate-in fade-in">
@@ -433,491 +456,610 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
             </div>
           )}
 
-          {successMessage && (
-            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-2.5 text-xs text-emerald-700 font-medium animate-in fade-in">
-              <CheckCircle className="w-4 h-4 shrink-0" />
-              <span>{successMessage}</span>
-            </div>
-          )}
-
-          {/* TAB 1: PERSONAL INFO */}
+          {/* TAB 1: PERSONAL DETAILS */}
           {activeTab === 'personal' && (
-            <div className="space-y-4.5 animate-in fade-in duration-150">
-              {/* Full Name */}
-              <div className="space-y-1.5">
-                <label className="text-[13px] font-semibold text-slate-700 tracking-tight">
-                  Full Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  {...register('name')}
-                  placeholder="Enter full name (e.g. Rahul Sharma)"
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                />
-                {errors.name && <p className="text-[11px] text-red-500 font-medium">{errors.name.message}</p>}
-              </div>
-
-              {/* Login Email & Mobile Number */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div className="space-y-1.5">
-                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">
-                    Primary / Login Email <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    {...register('email')}
-                    placeholder="name@company.com"
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                  />
-                  {errors.email && <p className="text-[11px] text-red-500 font-medium">{errors.email.message}</p>}
-                </div>
-
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Mobile Number</label>
-                    <span className="text-[11px] text-slate-400">10 digits</span>
-                  </div>
-                  <CountryPhoneInput
-                    value={watch('mob') || ''}
-                    onChange={(val) => setValue('mob', val, { shouldValidate: true, shouldDirty: true })}
-                    placeholder="9876543210"
-                    error={errors.mob?.message}
-                  />
-                </div>
-              </div>
-
-              {/* Personal Email & Official Email */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div className="space-y-1.5">
-                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Personal Email</label>
-                  <input
-                    type="email"
-                    {...register('personal_email')}
-                    placeholder="personal@gmail.com"
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                  />
-                  {errors.personal_email && (
-                    <p className="text-[11px] text-red-500 font-medium">{errors.personal_email.message}</p>
-                  )}
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Office Email</label>
-                  <input
-                    type="email"
-                    {...register('office_email')}
-                    placeholder="office@company.com"
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                  />
-                </div>
-              </div>
-
-              {/* Gender & Blood Group */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div className="space-y-1.5">
-                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Gender</label>
-                  <select
-                    {...register('gender_id')}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition cursor-pointer"
-                  >
-                    <option value="">Select Gender</option>
-                    {genderLookups.map((g) => (
-                      <option key={g.id} value={g.id}>
-                        {g.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Blood Group</label>
-                  <select
-                    {...register('blood_group')}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition cursor-pointer"
-                  >
-                    <option value="">Select Blood Group</option>
-                    {bloodGroupLookups.map((bg) => (
-                      <option key={bg.code} value={bg.code}>
-                        {bg.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Date of Birth & Photo */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Date of Birth</label>
-                    <span className="text-[11px] text-slate-400">18+ required</span>
-                  </div>
-                  <input
-                    type="date"
-                    {...register('birth_date')}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition cursor-pointer"
-                  />
-                  {errors.birth_date && (
-                    <p className="text-[11px] text-red-500 font-medium">{errors.birth_date.message}</p>
-                  )}
-                </div>
-
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Profile Photo</label>
-                    <span className="text-[11px] text-slate-400">Optional</span>
-                  </div>
-                  <label className="flex items-center gap-2.5 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 hover:bg-slate-100 transition cursor-pointer">
+            <div className="space-y-6 animate-in fade-in duration-150">
+              {/* Profile Photo at top */}
+              <div className="flex flex-col sm:flex-row items-center gap-5 p-5 bg-slate-50/80 rounded-2xl border border-slate-200/80">
+                <div className="relative group shrink-0">
+                  <div className="w-20 h-20 rounded-full border-2 border-dashed border-slate-300 bg-white overflow-hidden flex items-center justify-center shadow-xs">
                     {photoPreview ? (
-                      <img src={photoPreview} alt="Preview" className="w-5 h-5 rounded-full object-cover shrink-0" />
+                      <img src={photoPreview} alt="Profile Preview" className="w-full h-full object-cover" />
                     ) : (
-                      <Upload className="w-4 h-4 text-slate-400 shrink-0" />
+                      <User className="w-9 h-9 text-slate-300" />
                     )}
-                    <span className="truncate">
-                      {selectedPhotoFile ? selectedPhotoFile.name : photoPreview ? 'Change photo' : 'Choose photo (JPG/PNG)'}
-                    </span>
+                  </div>
+                  <label className="absolute inset-0 flex items-center justify-center bg-black/40 text-white rounded-full opacity-0 group-hover:opacity-100 transition cursor-pointer">
+                    <Camera className="w-5 h-5" />
+                    <input type="file" accept="image/*" onChange={handlePhotoSelect} className="hidden" />
+                  </label>
+                </div>
+                <div className="flex-1 text-center sm:text-left space-y-1">
+                  <h4 className="text-xs font-bold text-slate-800">Profile Photo</h4>
+                  <p className="text-[11px] text-slate-400">
+                    Upload employee portrait photo (JPG, PNG). Recommended size 400x400px.
+                  </p>
+                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 mt-1 rounded-xl bg-white border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition shadow-2xs cursor-pointer">
+                    <Upload className="w-3.5 h-3.5 text-slate-500" />
+                    <span>{selectedPhotoFile ? selectedPhotoFile.name : photoPreview ? 'Change Photo' : 'Upload Photo'}</span>
                     <input type="file" accept="image/*" onChange={handlePhotoSelect} className="hidden" />
                   </label>
                 </div>
               </div>
 
-              {/* Address */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Current Address</label>
-                  <span className="text-[11px] text-slate-400">Optional</span>
-                </div>
-                <textarea
-                  rows={2}
-                  {...register('address')}
-                  placeholder="Street, City, State, PIN code..."
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition resize-none"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* TAB 2: JOB & ORGANIZATION */}
-          {activeTab === 'job' && (
-            <div className="space-y-4.5 animate-in fade-in duration-150">
-              {/* Department Selection with Search Bar & Checkbox Dropdown */}
-              <div className="space-y-1.5">
-                <label className="text-[13px] font-semibold text-slate-700 tracking-tight">
-                  Assigned Department(s) <span className="text-red-500">*</span>
-                </label>
-                <DepartmentMultiSelect
-                  departments={deptOptions}
-                  selectedIds={watchedDepIds}
-                  onChange={(ids) => {
-                    setValue('department_ids', ids, { shouldValidate: true, shouldDirty: true });
-                    setValue('dep_id', ids.length > 0 ? (ids[0] as any) : (1 as any), { shouldValidate: true });
-                  }}
-                  placeholder="Select Department(s)..."
-                  error={errors.department_ids?.message}
-                />
-              </div>
-
-              {/* Designation & Employment Type */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div className="space-y-1.5">
-                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">
-                    Designation / Role
-                  </label>
-                  <SearchableSelect
-                    options={roleOptions.map((r: any) => ({
-                      value: r.role_id,
-                      label: r.role_name || r.name,
-                    }))}
-                    value={watch('role_id')}
-                    onChange={(val) =>
-                      setValue('role_id', val ? Number(val) : ('' as any), {
-                        shouldValidate: true,
-                        shouldDirty: true,
-                      })
-                    }
-                    placeholder="Select Designation"
-                    searchPlaceholder="Search designation..."
-                    error={errors.role_id?.message}
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Employment Type</label>
-                  <select
-                    {...register('employment_type_id')}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition cursor-pointer"
-                  >
-                    <option value="">Select Type</option>
-                    {employmentTypeLookups.map((et) => (
-                      <option key={et.id} value={et.id}>
-                        {et.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Reporting Manager & Joining Date */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div className="space-y-1.5">
-                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Reporting Manager</label>
-                  <ReportingManagerSelect
-                    options={managerOptions.filter((mgr) => mgr.emp_id !== employee.emp_id)}
-                    value={watch('reporting_manager')}
-                    onChange={(val) =>
-                      setValue('reporting_manager', val ? Number(val) : ('' as any), {
-                        shouldValidate: true,
-                        shouldDirty: true,
-                      })
-                    }
-                    placeholder="None / Self"
-                    searchPlaceholder="Search by name or Emp ID..."
-                    error={errors.reporting_manager?.message}
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">
-                    Joining Date <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    {...register('joining_date')}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition cursor-pointer"
-                  />
-                  {errors.joining_date && (
-                    <p className="text-[11px] text-red-500 font-medium">{errors.joining_date.message}</p>
-                  )}
-                  {joiningCheck && joiningCheck.severity === 'warning' && (
-                    <div className="p-2 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-1.5 text-xs text-amber-800 animate-in fade-in">
-                      <AlertTriangle className="w-3.5 h-3.5 text-amber-600 mt-0.5 shrink-0" />
-                      <div>
-                        <span className="font-semibold">Notice: </span>
-                        <span>{joiningCheck.message}</span>
-                      </div>
-                    </div>
-                  )}
-                  {joiningCheck && joiningCheck.severity === 'ok' && watchedJoiningDate && (
-                    <p className="text-[11px] text-emerald-600 font-medium flex items-center gap-1.5">
-                      <CheckCircle className="w-3.5 h-3.5" />
-                      <span>{joiningCheck.message}</span>
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Shift & Leave Policy */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div className="space-y-1.5">
-                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Assigned Shift</label>
-                  <select
-                    value={selectedShiftId}
-                    onChange={(e) => setSelectedShiftId(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition cursor-pointer"
-                  >
-                    <option value="default">Default Company Shift</option>
-                    {attendanceSettings?.shifts?.map((s) => (
-                      <option key={s.shift_id} value={String(s.shift_id)}>
-                        {s.shift_name} ({s.start_time} - {s.end_time})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Leave Policy</label>
-                  <select
-                    {...register('leave_policy_id')}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition cursor-pointer"
-                  >
-                    <option value="">Default Leave Policy</option>
-                    {leavePolicies.map((p) => (
-                      <option key={p.policy_id} value={p.policy_id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Probation & Notice Period */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div className="space-y-1.5">
-                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">
-                    Probation Period
-                  </label>
-                  <input
-                    type="text"
-                    list="edit-probation-options"
-                    {...register('probation_period')}
-                    placeholder="e.g. 90 Days (3 Months)"
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                  />
-                  <datalist id="edit-probation-options">
-                    <option value="None" />
-                    <option value="30 Days" />
-                    <option value="60 Days" />
-                    <option value="90 Days (3 Months)" />
-                    <option value="6 Months" />
-                    <option value="1 Year" />
-                  </datalist>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">
-                    Notice Period
-                  </label>
-                  <input
-                    type="text"
-                    list="edit-notice-options"
-                    {...register('notice_period')}
-                    placeholder="e.g. 30 Days"
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                  />
-                  <datalist id="edit-notice-options">
-                    <option value="Immediate" />
-                    <option value="15 Days" />
-                    <option value="30 Days" />
-                    <option value="60 Days" />
-                    <option value="90 Days" />
-                  </datalist>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 3: SALARY & BANKING */}
-          {activeTab === 'salary' && (
-            <div className="space-y-4.5 animate-in fade-in duration-150">
-              {/* Gross Salary & PF Applicable */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div className="space-y-1.5">
-                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">
-                    Gross Monthly Salary (₹)
-                  </label>
-                  <input
-                    type="number"
-                    step="any"
-                    {...register('salary')}
-                    placeholder="e.g. 50000"
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">PF Scheme</label>
-                  <div className="flex items-center gap-2 pt-2">
-                    <label className="inline-flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700">
-                      <input
-                        type="checkbox"
-                        {...register('pf_applicable')}
-                        className="rounded text-blue-600 focus:ring-blue-500"
-                      />
-                      <span>PF Applicable</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              {/* UAN & Overtime */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                {watchedPfApplicable && (
+              {/* Basic Information: Emp ID & Full Name & Gender & Phone */}
+              <div className="bg-slate-50/70 rounded-2xl p-5 border border-slate-200/80 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  {/* Marker 1: Emp ID */}
                   <div className="space-y-1.5">
-                    <label className="text-[13px] font-semibold text-slate-700 tracking-tight">UAN Number</label>
+                    <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                      Emp ID
+                      <Lock className="w-3 h-3 text-slate-400" />
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        disabled
+                        value={employee.emp_code || (employee.emp_id ? `EMP-${String(employee.emp_id).padStart(4, '0')}` : '')}
+                        className="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-500 font-mono cursor-not-allowed select-all"
+                      />
+                      <Lock className="w-3.5 h-3.5 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    </div>
+                  </div>
+
+                  {/* Marker 2: Full Name */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">
+                      Full Name <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="text"
-                      {...register('uan')}
-                      placeholder="12-digit UAN"
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                      {...register('name')}
+                      placeholder="The name as it is on the Aadhaar Card"
+                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                    />
+                    {errors.name && <p className="text-[11px] text-red-500 font-medium">{errors.name.message}</p>}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  {/* Marker 3: Gender */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Gender</label>
+                    <select
+                      {...register('gender_id')}
+                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition cursor-pointer"
+                    >
+                      <option value="">Select Gender</option>
+                      {genderLookups.map((g) => (
+                        <option key={g.id} value={g.id}>
+                          {g.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Marker 4: Phone Number */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Phone Number</label>
+                    <CountryPhoneInput
+                      value={watch('mob') || ''}
+                      onChange={(val) => setValue('mob', val, { shouldValidate: true, shouldDirty: true })}
+                      placeholder="9876543210"
+                      error={errors.mob?.message}
                     />
                   </div>
-                )}
+                </div>
+              </div>
 
-                <div className="space-y-1.5 sm:col-span-2">
-                  <label className="text-[13px] font-semibold text-slate-700 tracking-tight">Overtime Policy</label>
-                  <div className="flex items-center gap-2 pt-1">
-                    <label className="inline-flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700">
+              {/* Marker 5 & 6: Emergency Contact */}
+              <div className="bg-slate-50/70 rounded-2xl p-5 border border-slate-200/80 space-y-4">
+                <div className="flex items-center gap-2 pb-2.5 border-b border-slate-200/60">
+                  <HeartHandshake className="w-4 h-4 text-rose-600" />
+                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Emergency Contact</h3>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  {/* Marker 5: Emergency Contact Name */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Emergency Contact Name</label>
+                    <input
+                      type="text"
+                      {...register('emergency_contact_name')}
+                      placeholder="Who to call in an emergency"
+                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                    />
+                  </div>
+
+                  {/* Relationship */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Relationship</label>
+                    <input
+                      type="text"
+                      {...register('emergency_contact_relation')}
+                      placeholder="How they are related (e.g. Father, Spouse)"
+                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                    />
+                  </div>
+                </div>
+
+                {/* Marker 6: Emergency Contact Number */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-700">Emergency Contact Number</label>
+                  <CountryPhoneInput
+                    value={watch('emergency_contact_number') || ''}
+                    onChange={(val) =>
+                      setValue('emergency_contact_number', val, {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                      })
+                    }
+                    placeholder="9876543210"
+                    error={errors.emergency_contact_number?.message}
+                  />
+                </div>
+              </div>
+
+              {/* Marker 7, 8, 9, 10, 11: Personal & Office Info */}
+              <div className="bg-slate-50/70 rounded-2xl p-5 border border-slate-200/80 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  {/* Marker 7: Personal Email */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Personal Email</label>
+                    <input
+                      type="email"
+                      {...register('personal_email')}
+                      placeholder="personal@gmail.com"
+                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                    />
+                    {errors.personal_email && (
+                      <p className="text-[11px] text-red-500 font-medium">{errors.personal_email.message}</p>
+                    )}
+                  </div>
+
+                  {/* Marker 8: Office Email */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">
+                      Office Email <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      {...register('office_email')}
+                      placeholder="name@company.com"
+                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                    />
+                    {errors.office_email && (
+                      <p className="text-[11px] text-red-500 font-medium">{errors.office_email.message}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  {/* Marker 9: Birth Date */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Birth Date</label>
+                    <input
+                      type="date"
+                      {...register('birth_date')}
+                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition cursor-pointer"
+                    />
+                    {errors.birth_date && <p className="text-[11px] text-red-500 font-medium">{errors.birth_date.message}</p>}
+                  </div>
+
+                  {/* Marker 10: Blood Group */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Blood Group</label>
+                    <select
+                      {...register('blood_group')}
+                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition cursor-pointer"
+                    >
+                      <option value="">Select Blood Group</option>
+                      {bloodGroupLookups.map((bg) => (
+                        <option key={bg.id} value={bg.label}>
+                          {bg.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Marker 11: Address */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-700">Residential Address</label>
+                  <textarea
+                    rows={2}
+                    {...register('address')}
+                    placeholder="Full residential address in one box..."
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition resize-none"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: ORGANIZATION DETAILS */}
+          {activeTab === 'job' && (
+            <div className="space-y-6 animate-in fade-in duration-150">
+              {/* Employee Warning Banner when fields are locked */}
+              {!isOrgAdmin && (
+                <div className="p-4 rounded-2xl bg-amber-50/90 border border-amber-200 flex items-start gap-3 shadow-2xs animate-in fade-in">
+                  <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 mt-0.5 border border-amber-200">
+                    <Lock className="w-4 h-4" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <h4 className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                      Organization Information Locked
+                    </h4>
+                    <p className="text-xs text-amber-800 leading-relaxed">
+                      Placement, compensation, statutory details, policies, and service terms are managed by Administrators and HR. These fields are read-only for employees. Contact HR or your administrator to request updates.
+                    </p>
+                  </div>
+                </div>
+              )}
+              {/* SECTION 1: ORGANIZATIONAL ROLE & DEPARTMENT */}
+              <div className="bg-slate-50/70 rounded-2xl p-5 border border-slate-200/80 space-y-4">
+                <div className="flex items-center gap-2 pb-2.5 border-b border-slate-200/60">
+                  <Briefcase className="w-4 h-4 text-blue-600" />
+                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Placement & Role</h3>
+                  {!isOrgAdmin && (
+                    <span className="ml-auto inline-flex items-center gap-1 text-[10px] text-slate-500 bg-slate-200/80 px-2 py-0.5 rounded-md font-semibold">
+                      <Lock className="w-2.5 h-2.5" /> Read-Only
+                    </span>
+                  )}
+                </div>
+
+                {/* Department MultiSelect */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-700">Department(s)</label>
+                  <DepartmentMultiSelect
+                    departments={deptOptions}
+                    selectedIds={watchedDepIds}
+                    disabled={!isOrgAdmin}
+                    onChange={(ids) => {
+                      if (!isOrgAdmin) return;
+                      setValue('department_ids', ids, { shouldValidate: true, shouldDirty: true });
+                      setValue('dep_id', ids[0] || 1, { shouldValidate: true, shouldDirty: true });
+                    }}
+                    placeholder="Select Department(s)..."
+                    error={errors.department_ids?.message}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  {/* Designation */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Designation</label>
+                    <SearchableSelect
+                      options={roleOptions.map((r: any) => ({
+                        value: r.role_id,
+                        label: r.role_name || r.name,
+                      }))}
+                      value={watch('role_id')}
+                      disabled={!isOrgAdmin}
+                      onChange={(val) => {
+                        if (!isOrgAdmin) return;
+                        setValue('role_id', val ? Number(val) : ('' as any), {
+                          shouldValidate: true,
+                          shouldDirty: true,
+                        });
+                      }}
+                      placeholder="Select Designation"
+                      searchPlaceholder="Search designation..."
+                      error={errors.role_id?.message}
+                    />
+                  </div>
+
+                  {/* Reporting Manager */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Reporting Manager</label>
+                    <ReportingManagerSelect
+                      options={managerOptions}
+                      value={watch('reporting_manager')}
+                      disabled={!isOrgAdmin}
+                      onChange={(val) => {
+                        if (!isOrgAdmin) return;
+                        setValue('reporting_manager', val ? Number(val) : (null as any), {
+                          shouldValidate: true,
+                          shouldDirty: true,
+                        });
+                      }}
+                      placeholder="None / Self"
+                      searchPlaceholder="Search by name or Emp ID..."
+                      error={errors.reporting_manager?.message}
+                    />
+                  </div>
+
+                  {/* Employment Type */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Employment Type</label>
+                    <select
+                      {...register('employment_type_id')}
+                      disabled={!isOrgAdmin}
+                      className={`w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs font-medium focus:outline-hidden transition ${
+                        !isOrgAdmin
+                          ? 'bg-slate-100 text-slate-500 cursor-not-allowed select-none'
+                          : 'bg-white text-slate-800 cursor-pointer focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500'
+                      }`}
+                    >
+                      <option value="">Select Employment Type</option>
+                      {effectiveEmploymentTypes.map((et) => (
+                        <option key={et.id} value={et.id}>
+                          {et.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Assigned Shift */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Assigned Shift</label>
+                    <select
+                      value={selectedShiftId}
+                      disabled={!isOrgAdmin}
+                      onChange={(e) => setSelectedShiftId(e.target.value)}
+                      className={`w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs font-medium focus:outline-hidden transition ${
+                        !isOrgAdmin
+                          ? 'bg-slate-100 text-slate-500 cursor-not-allowed select-none'
+                          : 'bg-white text-slate-800 cursor-pointer focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500'
+                      }`}
+                    >
+                      <option value="default">Default Company Shift</option>
+                      {attendanceSettings?.shifts?.map((s) => (
+                        <option key={s.shift_id} value={String(s.shift_id)}>
+                          {s.shift_name} ({s.start_time} - {s.end_time})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 2: JOINING & SERVICE TERMS */}
+              <div className="bg-slate-50/70 rounded-2xl p-5 border border-slate-200/80 space-y-4">
+                <div className="flex items-center gap-2 pb-2.5 border-b border-slate-200/60">
+                  <Calendar className="w-4 h-4 text-purple-600" />
+                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Joining & Service Terms</h3>
+                  {!isOrgAdmin && (
+                    <span className="ml-auto inline-flex items-center gap-1 text-[10px] text-slate-500 bg-slate-200/80 px-2 py-0.5 rounded-md font-semibold">
+                      <Lock className="w-2.5 h-2.5" /> Read-Only
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  {/* Joining Date */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Joining Date</label>
+                    <input
+                      type="date"
+                      {...register('joining_date')}
+                      disabled={!isOrgAdmin}
+                      className={`w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs focus:outline-hidden transition ${
+                        !isOrgAdmin
+                          ? 'bg-slate-100 text-slate-500 cursor-not-allowed select-none'
+                          : 'bg-white text-slate-900 cursor-pointer focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500'
+                      }`}
+                    />
+                    {joiningCheck && joiningCheck.severity === 'warning' && (
+                      <div className="p-2 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-1.5 text-xs text-amber-800 animate-in fade-in">
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-600 mt-0.5 shrink-0" />
+                        <div>
+                          <span className="font-semibold">Notice: </span>
+                          <span>{joiningCheck.message}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Leave Policy */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Leave Policy</label>
+                    <select
+                      {...register('leave_policy_id')}
+                      disabled={!isOrgAdmin}
+                      className={`w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs font-medium focus:outline-hidden transition ${
+                        !isOrgAdmin
+                          ? 'bg-slate-100 text-slate-500 cursor-not-allowed select-none'
+                          : 'bg-white text-slate-800 cursor-pointer focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500'
+                      }`}
+                    >
+                      <option value="">Default Leave Policy</option>
+                      {leavePolicies.map((lp) => (
+                        <option key={lp.policy_id} value={lp.policy_id}>
+                          {lp.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  {/* Probation Period */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Probation Period</label>
+                    <input
+                      type="text"
+                      list="edit-probation-options"
+                      {...register('probation_period')}
+                      disabled={!isOrgAdmin}
+                      placeholder="0"
+                      className={`w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs focus:outline-hidden transition ${
+                        !isOrgAdmin
+                          ? 'bg-slate-100 text-slate-500 cursor-not-allowed select-none'
+                          : 'bg-white text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500'
+                      }`}
+                    />
+                    <datalist id="edit-probation-options">
+                      <option value="0" />
+                      <option value="None" />
+                      <option value="30 Days" />
+                      <option value="60 Days" />
+                      <option value="90 Days (3 Months)" />
+                      <option value="6 Months" />
+                      <option value="1 Year" />
+                    </datalist>
+                  </div>
+
+                  {/* Notice Period */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Notice Period</label>
+                    <input
+                      type="text"
+                      list="edit-notice-options"
+                      {...register('notice_period')}
+                      disabled={!isOrgAdmin}
+                      placeholder="0"
+                      className={`w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs focus:outline-hidden transition ${
+                        !isOrgAdmin
+                          ? 'bg-slate-100 text-slate-500 cursor-not-allowed select-none'
+                          : 'bg-white text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500'
+                      }`}
+                    />
+                    <datalist id="edit-notice-options">
+                      <option value="0" />
+                      <option value="Immediate" />
+                      <option value="15 Days" />
+                      <option value="30 Days" />
+                      <option value="60 Days" />
+                      <option value="90 Days" />
+                    </datalist>
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 3: COMPENSATION & STATUTORY */}
+              <div className="bg-slate-50/70 rounded-2xl p-5 border border-slate-200/80 space-y-4">
+                <div className="flex items-center gap-2 pb-2.5 border-b border-slate-200/60">
+                  <CreditCard className="w-4 h-4 text-emerald-600" />
+                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Compensation & Statutory</h3>
+                  {!isOrgAdmin && (
+                    <span className="ml-auto inline-flex items-center gap-1 text-[10px] text-slate-500 bg-slate-200/80 px-2 py-0.5 rounded-md font-semibold">
+                      <Lock className="w-2.5 h-2.5" /> Read-Only
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  {/* Salary */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Salary (Monthly ₹)</label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-xs">₹</span>
+                      <input
+                        type="number"
+                        step="any"
+                        min="0"
+                        {...register('salary')}
+                        disabled={!isOrgAdmin}
+                        placeholder="0"
+                        className={`w-full pl-8 pr-3.5 py-2.5 border border-slate-200 rounded-xl text-xs font-medium focus:outline-hidden transition ${
+                          !isOrgAdmin
+                            ? 'bg-slate-100 text-slate-500 cursor-not-allowed select-none'
+                            : 'bg-white text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500'
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  {/* PF */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">PF (Monthly ₹)</label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-xs">₹</span>
+                      <input
+                        type="number"
+                        step="any"
+                        min="0"
+                        {...register('pf')}
+                        disabled={!isOrgAdmin}
+                        placeholder="0"
+                        className={`w-full pl-8 pr-3.5 py-2.5 border border-slate-200 rounded-xl text-xs font-medium focus:outline-hidden transition ${
+                          !isOrgAdmin
+                            ? 'bg-slate-100 text-slate-500 cursor-not-allowed select-none'
+                            : 'bg-white text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500'
+                        }`}
+                      />
+                    </div>
+                    <div className="flex items-center gap-4 pt-1">
+                      <label className={`inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 ${!isOrgAdmin ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
+                        <input
+                          type="checkbox"
+                          {...register('pf_applicable')}
+                          disabled={!isOrgAdmin}
+                          className={`rounded text-blue-600 focus:ring-blue-500 ${!isOrgAdmin ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                        />
+                        <span>PF Applicable</span>
+                      </label>
+                      {watchedPfApplicable && (
+                        <div className="flex-1">
+                          <input
+                            type="text"
+                            {...register('uan')}
+                            disabled={!isOrgAdmin}
+                            placeholder="12-digit UAN"
+                            className={`w-full px-2.5 py-1 text-xs border border-slate-200 rounded-lg focus:outline-hidden ${
+                              !isOrgAdmin
+                                ? 'bg-slate-100 text-slate-500 cursor-not-allowed select-none'
+                                : 'bg-white text-slate-900 focus:border-blue-500'
+                            }`}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Overtime Policy */}
+                <div className="space-y-2 pt-2 border-t border-slate-200/60">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-slate-700">Overtime Policy</label>
+                    <label className={`inline-flex items-center gap-2 text-xs font-semibold text-slate-700 ${!isOrgAdmin ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
                       <input
                         type="checkbox"
                         {...register('ot_eligible')}
-                        className="rounded text-blue-600 focus:ring-blue-500"
+                        disabled={!isOrgAdmin}
+                        className={`rounded text-blue-600 focus:ring-blue-500 ${!isOrgAdmin ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                       />
                       <span>OT Eligible</span>
                     </label>
                   </div>
 
                   {watchedOtEligible && (
-                    <div className="mt-3 p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3.5 animate-in fade-in duration-150">
+                    <div className="p-4 rounded-xl bg-white border border-slate-200 space-y-3 animate-in fade-in duration-150">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                         <div className="space-y-1.5">
                           <label className="text-xs font-semibold text-slate-700">OT Rate Calculation</label>
                           <select
                             {...register('ot_rate_type')}
-                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                            disabled={!isOrgAdmin}
+                            className={`w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-medium focus:outline-hidden transition ${
+                              !isOrgAdmin
+                                ? 'bg-slate-100 text-slate-500 cursor-not-allowed select-none'
+                                : 'bg-slate-50 text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500'
+                            }`}
                           >
-                            <option value="MULTIPLIER">Multiplier (e.g. 1.5x of hourly pay)</option>
-                            <option value="FIXED">Fixed Hourly Rate (₹ per hour)</option>
+                            <option value="MULTIPLIER">Multiplier (e.g. 1.5x of hourly rate)</option>
+                            <option value="FIXED">Fixed Hourly Rate (₹ / hour)</option>
                           </select>
                         </div>
 
-                        {watchedOtRateType === 'FIXED' ? (
-                          <div className="space-y-1.5">
-                            <label className="text-xs font-semibold text-slate-700">Hourly OT Rate (₹)</label>
-                            <input
-                              type="number"
-                              step="1"
-                              min="0"
-                              {...register('ot_rate')}
-                              placeholder="e.g. 250"
-                              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono font-medium focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                            />
-                            {errors.ot_rate && (
-                              <p className="text-[11px] text-red-500 font-medium">{errors.ot_rate.message}</p>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="space-y-1.5">
-                            <label className="text-xs font-semibold text-slate-700">OT Multiplier</label>
-                            <input
-                              type="number"
-                              step="0.1"
-                              min="1"
-                              max="5"
-                              {...register('ot_multiplier')}
-                              placeholder="1.5"
-                              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono font-medium focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                            />
-                            {errors.ot_multiplier && (
-                              <p className="text-[11px] text-red-500 font-medium">{errors.ot_multiplier.message}</p>
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                         <div className="space-y-1.5">
-                          <label className="text-xs font-semibold text-slate-700">Daily Minimum OT Threshold (Mins)</label>
+                          <label className="text-xs font-semibold text-slate-700">
+                            {watchedOtRateType === 'FIXED' ? 'Hourly Rate (₹)' : 'Multiplier Value'}
+                          </label>
                           <input
                             type="number"
-                            step="5"
+                            step="any"
                             min="0"
-                            {...register('minimum_ot_per_day')}
-                            placeholder="0 (e.g. 30 mins)"
-                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono font-medium focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                            {...register(watchedOtRateType === 'FIXED' ? 'ot_rate' : 'ot_multiplier')}
+                            disabled={!isOrgAdmin}
+                            placeholder={watchedOtRateType === 'FIXED' ? 'e.g. 150' : 'e.g. 1.5'}
+                            className={`w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-medium focus:outline-hidden transition ${
+                              !isOrgAdmin
+                                ? 'bg-slate-100 text-slate-500 cursor-not-allowed select-none'
+                                : 'bg-slate-50 text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500'
+                            }`}
                           />
-                          <p className="text-[10px] text-slate-400">Minutes worked past shift before OT accumulates</p>
-                        </div>
-
-                        <div className="space-y-1.5">
-                          <label className="text-xs font-semibold text-slate-700">Disbursement Method</label>
-                          <select
-                            {...register('ot_paid_as')}
-                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                          >
-                            <option value="SALARY">Direct Payroll Payout (₹)</option>
-                            <option value="COMP_OFF">Compensatory Off (Leave)</option>
-                          </select>
-                          <p className="text-[10px] text-slate-400">Whether OT is paid or credited as comp-off leave</p>
                         </div>
                       </div>
                     </div>
@@ -925,37 +1067,109 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 </div>
               </div>
 
-              {/* Bank Details */}
-              <div className="pt-2 border-t border-slate-100 space-y-3">
-                <h4 className="text-[13px] font-semibold text-slate-700 tracking-tight">Bank Account Details</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* SECTION 4: BANK ACCOUNT DETAILS */}
+              <div className="bg-slate-50/70 rounded-2xl p-5 border border-slate-200/80 space-y-4">
+                <div className="flex items-center gap-2 pb-2.5 border-b border-slate-200/60">
+                  <Landmark className="w-4 h-4 text-slate-700" />
+                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Bank Account Details</h3>
+                  {!isOrgAdmin && (
+                    <span className="ml-auto inline-flex items-center gap-1 text-[10px] text-slate-500 bg-slate-200/80 px-2 py-0.5 rounded-md font-semibold">
+                      <Lock className="w-2.5 h-2.5" /> Read-Only
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-600">Bank Name</label>
+                    <label className="text-xs font-semibold text-slate-700">Bank Name</label>
                     <input
                       type="text"
                       {...register('bank_name')}
+                      disabled={!isOrgAdmin}
                       placeholder="e.g. HDFC Bank"
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                      className={`w-full px-3 py-2.5 border border-slate-200 rounded-xl text-xs focus:outline-hidden transition ${
+                        !isOrgAdmin
+                          ? 'bg-slate-100 text-slate-500 cursor-not-allowed select-none'
+                          : 'bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500'
+                      }`}
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-600">Account Number</label>
+                    <label className="text-xs font-semibold text-slate-700">Account Number</label>
                     <input
                       type="text"
                       {...register('account_number')}
+                      disabled={!isOrgAdmin}
                       placeholder="e.g. 501002345678"
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                      className={`w-full px-3 py-2.5 border border-slate-200 rounded-xl text-xs focus:outline-hidden transition ${
+                        !isOrgAdmin
+                          ? 'bg-slate-100 text-slate-500 cursor-not-allowed select-none'
+                          : 'bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500'
+                      }`}
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-600">IFSC Code</label>
+                    <label className="text-xs font-semibold text-slate-700">IFSC Code</label>
                     <input
                       type="text"
                       {...register('ifsc_code')}
+                      disabled={!isOrgAdmin}
                       placeholder="e.g. HDFC0001234"
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                      className={`w-full px-3 py-2.5 border border-slate-200 rounded-xl text-xs focus:outline-hidden transition ${
+                        !isOrgAdmin
+                          ? 'bg-slate-100 text-slate-500 cursor-not-allowed select-none'
+                          : 'bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500'
+                      }`}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 5: EMPLOYMENT STATUS & LIFECYCLE */}
+              <div className="bg-slate-50/70 rounded-2xl p-5 border border-slate-200/80 space-y-4">
+                <div className="flex items-center gap-2 pb-2.5 border-b border-slate-200/60">
+                  <ShieldCheck className="w-4 h-4 text-blue-600" />
+                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Status & Lifecycle</h3>
+                  {!isOrgAdmin && (
+                    <span className="ml-auto inline-flex items-center gap-1 text-[10px] text-slate-500 bg-slate-200/80 px-2 py-0.5 rounded-md font-semibold">
+                      <Lock className="w-2.5 h-2.5" /> Read-Only
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Status</label>
+                    <select
+                      {...register('status')}
+                      disabled={!isOrgAdmin}
+                      className={`w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs font-medium focus:outline-hidden transition ${
+                        !isOrgAdmin
+                          ? 'bg-slate-100 text-slate-500 cursor-not-allowed select-none'
+                          : 'bg-white text-slate-800 cursor-pointer focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500'
+                      }`}
+                    >
+                      <option value="Active">Active</option>
+                      <option value="Inactive">Inactive</option>
+                      <option value="On Leave">On Leave</option>
+                      <option value="Terminated">Terminated</option>
+                      <option value="Resigned">Resigned</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Exit Date (if applicable)</label>
+                    <input
+                      type="date"
+                      {...register('exit_date')}
+                      disabled={!isOrgAdmin}
+                      className={`w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs focus:outline-hidden transition ${
+                        !isOrgAdmin
+                          ? 'bg-slate-100 text-slate-500 cursor-not-allowed select-none'
+                          : 'bg-white text-slate-900 cursor-pointer focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500'
+                      }`}
                     />
                   </div>
                 </div>
@@ -963,74 +1177,23 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
             </div>
           )}
 
-          {/* TAB 4: EMERGENCY & ACCESS */}
-          {activeTab === 'security' && (
-            <div className="space-y-4.5 animate-in fade-in duration-150">
-              {/* Emergency Contact */}
-              <div className="space-y-2.5">
-                <h4 className="text-[13px] font-semibold text-slate-700 tracking-tight">
-                  Emergency Contact Information
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-600">Contact Name</label>
-                    <input
-                      type="text"
-                      {...register('emergency_contact_name')}
-                      placeholder="Relative / Guardian"
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-600">Relationship</label>
-                    <input
-                      type="text"
-                      {...register('emergency_contact_relation')}
-                      placeholder="e.g. Father, Spouse"
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5 sm:col-span-1">
-                    <label className="text-xs font-semibold text-slate-600">Emergency Phone</label>
-                    <CountryPhoneInput
-                      value={watch('emergency_contact_number') || ''}
-                      onChange={(val) =>
-                        setValue('emergency_contact_number', val, {
-                          shouldValidate: true,
-                          shouldDirty: true,
-                        })
-                      }
-                      placeholder="9876543210"
-                      error={errors.emergency_contact_number?.message}
-                    />
-                  </div>
-                </div>
-              </div>
-
-
-            </div>
-          )}
-
-          {/* Modal Footer (Same format as Add Employee) */}
+          {/* Modal Footer */}
           <div className="flex items-center justify-between pt-4 border-t border-slate-100">
             <button
               type="button"
-              onClick={handleClose}
+              onClick={requestClose}
               className="px-5 py-2.5 border border-slate-200 hover:bg-slate-50 rounded-xl text-xs font-bold text-slate-600 transition cursor-pointer"
             >
               Cancel
             </button>
 
             <div className="flex items-center gap-2">
-              {activeTab !== 'personal' && (
+              {activeTab === 'job' && (
                 <button
                   type="button"
                   onClick={() => {
-                    if (activeTab === 'security') setActiveTab('salary');
-                    else if (activeTab === 'salary') setActiveTab('job');
-                    else if (activeTab === 'job') setActiveTab('personal');
+                    setActiveTab('personal');
+                    if (formContainerRef.current) formContainerRef.current.scrollTop = 0;
                   }}
                   className="px-4 py-2.5 border border-slate-200 hover:bg-slate-50 rounded-xl text-xs font-bold text-slate-600 transition cursor-pointer"
                 >
@@ -1038,42 +1201,71 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 </button>
               )}
 
-              {activeTab !== 'security' ? (
+              {activeTab === 'personal' ? (
                 <button
                   key="btn-next-step"
                   type="button"
-                  onClick={(e) => {
+                  onClick={async (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    if (activeTab === 'personal') setActiveTab('job');
-                    else if (activeTab === 'job') setActiveTab('salary');
-                    else if (activeTab === 'salary') setActiveTab('security');
+                    const isValid = await trigger(['name', 'email']);
+                    if (isValid) {
+                      setActiveTab('job');
+                      if (formContainerRef.current) formContainerRef.current.scrollTop = 0;
+                    }
                   }}
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white rounded-xl transition cursor-pointer"
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
                 >
-                  Next Step
+                  Next: Organization Details
                 </button>
               ) : (
                 <button
-                  key="btn-save-changes"
+                  key="btn-save-employee"
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white rounded-xl transition shadow-xs cursor-pointer flex items-center gap-2 disabled:opacity-50"
+                  className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-2 cursor-pointer disabled:opacity-50"
                 >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Saving Changes...</span>
-                    </>
-                  ) : (
-                    <span>Save Changes</span>
-                  )}
+                  {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                  <span>Save Changes</span>
                 </button>
               )}
             </div>
           </div>
         </form>
       </div>
+
+      {/* Confirmation Modal when Leaving with Unsaved Changes */}
+      {showConfirmLeave && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-2xs animate-in fade-in duration-150">
+          <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl border border-slate-100 p-6 space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-start gap-3.5">
+              <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5 stroke-[2]" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 tracking-tight">Leave this page?</h3>
+                <p className="text-xs text-slate-500 mt-1">The details you typed will be lost.</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowConfirmLeave(false)}
+                className="px-4 py-2 border border-slate-200 hover:bg-slate-50 rounded-xl text-xs font-semibold text-slate-700 transition cursor-pointer"
+              >
+                Stay
+              </button>
+              <button
+                type="button"
+                onClick={handleForceClose}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold shadow-xs transition cursor-pointer"
+              >
+                Leave
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -10,6 +10,8 @@ import {
   ParseIntPipe,
   UseGuards,
   Req,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { Request } from 'express';
@@ -138,6 +140,7 @@ export class LookupController {
   }
 
   @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
   @UseGuards(OrganizationAdminGuard)
   @ApiOperation({ summary: 'Delete (soft delete) a lookup item' })
   @ApiResponse({ status: 204 })

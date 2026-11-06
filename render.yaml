@@ -1,0 +1,57 @@
+# Render blueprint: the API for the QA (test) environment.
+# The web app goes to Vercel (see apps/web/vercel.json). Secrets are filled in on Render's dashboard (sync: false).
+services:
+  - type: web
+    name: vernoxy-pulse-api-qa
+    runtime: node
+    plan: starter            # the free plan sleeps after 15 min, which breaks sockets and background jobs
+    region: singapore
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @vernoxy-pulse/api exec prisma generate && pnpm --filter @vernoxy-pulse/api build
+    startCommand: pnpm --filter @vernoxy-pulse/api start:prod
+    healthCheckPath: /api/v1/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: NODE_ENV
+        value: production
+      - key: ALLOW_DATA_FLUSH          # QA only: shows the "Reset data" tool for Admins. Never set on production.
+        value: "true"
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: JOBS_WORKER_ENABLED
+        value: "true"
+      - key: STORAGE_DRIVER            # Render's disk is wiped on every deploy, so uploads go to Cloudinary
+        value: cloudinary
+      - key: DATABASE_URL              # Neon POOLED url of the QA database
+        sync: false
+      - key: DIRECT_URL                # Neon DIRECT url of the QA database
+        sync: false
+      - key: WEB_ORIGIN                # your Vercel url, e.g. https://vernoxy-pulse-qa.vercel.app (no trailing slash)
+        sync: false
+      - key: JWT_PRIVATE_KEY
+        sync: false
+      - key: JWT_PUBLIC_KEY
+        sync: false
+      - key: JWT_KEY_ID
+        sync: false
+      - key: OTP_HMAC_SECRET           # 32+ characters
+        sync: false
+      - key: FILE_URL_SECRET           # 32+ characters
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: MAIL_FROM
+        sync: false

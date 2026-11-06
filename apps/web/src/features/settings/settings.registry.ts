@@ -4,7 +4,6 @@ import {
   ShieldCheck,
   Factory,
   Users,
-  CalendarDays,
   Tag,
   Coffee,
   LayoutGrid,
@@ -36,21 +35,17 @@ import {
   Compass,
   Map as MapIcon,
   PhoneOff,
+  Trash2,
+  Building,
   LucideIcon,
 } from 'lucide-react';
 import type { MeResponseDto } from '@vernoxy-pulse/api-client';
 
-const SettingsRolesSection = React.lazy(() =>
-  import('./sections/SettingsRolesSection').then((m) => ({ default: m.SettingsRolesSection }))
-);
 const SettingsIndustriesSection = React.lazy(() =>
   import('./sections/SettingsIndustriesSection').then((m) => ({ default: m.SettingsIndustriesSection }))
 );
 const SettingsCustomerTypesSection = React.lazy(() =>
   import('./sections/SettingsCustomerTypesSection').then((m) => ({ default: m.SettingsCustomerTypesSection }))
-);
-const SettingsHrPolicySection = React.lazy(() =>
-  import('./sections/SettingsHrPolicySection').then((m) => ({ default: m.SettingsHrPolicySection }))
 );
 const SettingsTaskTypesSection = React.lazy(() =>
   import('./sections/SettingsTaskTypesSection').then((m) => ({ default: m.SettingsTaskTypesSection }))
@@ -96,6 +91,12 @@ const SettingsComplaintSettingsSection = React.lazy(() =>
 );
 const SettingsLicenseSection = React.lazy(() =>
   import('./sections/SettingsLicenseSection').then((m) => ({ default: m.SettingsLicenseSection }))
+);
+const SettingsClientLoginsSection = React.lazy(() =>
+  import('./sections/SettingsClientLoginsSection').then((m) => ({ default: m.SettingsClientLoginsSection }))
+);
+const SettingsResetDataSection = React.lazy(() =>
+  import('./sections/SettingsResetDataSection').then((m) => ({ default: m.SettingsResetDataSection }))
 );
 const SettingsKnowledgeBaseSection = React.lazy(() =>
   import('./sections/SettingsKnowledgeBaseSection').then((m) => ({ default: m.SettingsKnowledgeBaseSection }))
@@ -175,26 +176,6 @@ export interface SettingsSectionConfig {
 }
 
 export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
-  // ── Organization ──────────────────────────────────
-    {
-    id: 'roles',
-    label: 'Roles',
-    path: '/admin/settings/roles',
-    icon: ShieldCheck,
-    component: SettingsRolesSection,
-    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
-    group: 'Organization',
-  },
-  {
-    id: 'hr-policy',
-    label: 'HR Policy',
-    path: '/admin/settings/hr-policy',
-    icon: CalendarDays,
-    component: SettingsHrPolicySection,
-    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
-    group: 'Organization',
-  },
-
   // ── Employee ──────────────────────────────────────
   {
     id: 'employment-types',
@@ -485,10 +466,32 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     group: 'Knowledge Base',
   },
 
+  // ── Client portal ──────────────────────────────────
+  {
+    id: 'client-logins',
+    label: 'Client logins',
+    path: '/admin/settings/client-logins',
+    icon: Building,
+    component: SettingsClientLoginsSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Clients',
+  },
+
+  // ── Test data (QA) ─────────────────────────────────
+  {
+    id: 'reset-data',
+    label: 'Reset data',
+    path: '/admin/settings/reset-data',
+    icon: Trash2,
+    component: SettingsResetDataSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Test data',
+  },
+
   // ── Performance Management ─────────────────────────
   {
     id: 'performance-cycles',
-    label: 'Performance Cycles',
+    label: 'Cycle Master',
     path: '/admin/settings/performance-cycles',
     icon: Award,
     component: SettingsPerformanceSection,
@@ -497,7 +500,7 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
   },
   {
     id: 'performance-forms',
-    label: 'Performance Forms',
+    label: 'Question Master',
     path: '/admin/settings/performance-forms',
     icon: ClipboardCheck,
     component: SettingsPerformanceSection,
@@ -589,7 +592,6 @@ export interface SettingsMainGroup {
 }
 
 export const SETTINGS_MAIN_GROUPS: SettingsMainGroup[] = [
-  { id: 'Organization', name: 'Organization', icon: Building2 },
   { id: 'Employee', name: 'Employee', icon: UserCheck },
   { id: 'CRM', name: 'CRM', icon: Users },
   { id: 'Tasks', name: 'Tasks', icon: Tag },
@@ -598,4 +600,6 @@ export const SETTINGS_MAIN_GROUPS: SettingsMainGroup[] = [
   { id: 'Recruitment', name: 'Recruitment', icon: UserPlus },
   { id: 'Knowledge Base', name: 'Knowledge Base', icon: BookOpen },
   { id: 'Performance', name: 'Performance', icon: Award },
+  { id: 'Clients', name: 'Clients', icon: Building },
+  { id: 'Test data', name: 'Test data', icon: Trash2 },
 ];

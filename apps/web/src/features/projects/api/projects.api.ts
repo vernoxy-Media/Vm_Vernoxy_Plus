@@ -1,9 +1,11 @@
 import { customFetch } from '@vernoxy-pulse/api-client';
 import type {
   AssignableEmployee,
+  ClientOption,
   CreateProjectPayload,
   CreateProjectTaskPayload,
   CreateSprintPayload,
+  DeliveryReadiness,
   ProjectActivityLogItem,
   ProjectBugItem,
   CreateProjectBugPayload,
@@ -84,13 +86,50 @@ export async function updateProject(
 export async function updateProjectStatus(
   projectId: number,
   status: ProjectStatus,
-  reason?: string
+  reason?: string,
+  /** Admin only: deliver even though work is still open (a reason is required). */
+  force?: boolean
 ): Promise<ProjectItem> {
   return customFetch<ProjectItem>(`${BASE_URL}/${projectId}/status`, {
     method: 'PATCH',
-    body: JSON.stringify({ status, reason }),
+    body: JSON.stringify({ status, reason, force }),
     headers: { 'Content-Type': 'application/json' },
   });
+}
+
+/** What is still open in the project, for the delivery check. */
+export async function fetchDeliveryReadiness(projectId: number): Promise<DeliveryReadiness> {
+  return customFetch<DeliveryReadiness>(`${BASE_URL}/${projectId}/delivery-readiness`);
+}
+
+/** A bug from any project that is assigned to, or was reported by, the signed-in employee. */
+export interface MyBugItem {
+  bug_id: number;
+  bug_code: string;
+  project_id: number;
+  project_no: string | null;
+  project_name: string | null;
+  task_id?: number | null;
+  title: string;
+  priority: string;
+  status: string;
+  assigned_to: number | null;
+  assigned_to_name: string;
+  reported_by: number | null;
+  reported_by_name: string;
+  start_date: string | null;
+  due_date: string | null;
+  created_at: string;
+}
+
+/** Admin: pass an employee id, or 'all', to see their bugs instead of your own. */
+export async function fetchMyBugs(employeeId?: string): Promise<MyBugItem[]> {
+  return customFetch<MyBugItem[]>(`${BASE_URL}/my-bugs${employeeId ? `?employee_id=${encodeURIComponent(employeeId)}` : ''}`);
+}
+
+/** Clients to choose from when creating or editing a project. */
+export async function fetchClientOptions(): Promise<ClientOption[]> {
+  return customFetch<ClientOption[]>(`${BASE_URL}/client-options`);
 }
 
 export async function fetchProjectSprints(projectId: number): Promise<SprintItem[]> {
@@ -191,13 +230,44 @@ export async function fetchProjectBugs(projectId: number): Promise<ProjectBugIte
   }
 }
 
+export const BUG_ATTACHMENT_MAX_BYTES = 5 * 1024 * 1024;
+
 export async function createProjectBug(
   projectId: number,
   payload: CreateProjectBugPayload
 ): Promise<ProjectBugItem> {
+  const { attachment_file, ...body } = payload;
+  if (attachment_file) {
+    // BFD 3.5: Attachment is optional, a screenshot or document of at most 5 MB.
+    if (attachment_file.size > BUG_ATTACHMENT_MAX_BYTES) {
+      throw new Error('The attachment cannot be larger than 5 MB.');
+    }
+    const form = new FormData();
+    form.append('file', attachment_file);
+    form.append('entity_type', 'project_bug');
+    form.append('entity_id', '0');
+    const uploaded = await customFetch<{ attachment_id: number; file_url?: string }>('/api/v1/attachments/upload', {
+      method: 'POST',
+      body: form,
+    });
+    body.attachment_url = `/api/v1/attachments/${uploaded.attachment_id}/download`;
+  }
   return customFetch<ProjectBugItem>(`${BASE_URL}/${projectId}/bugs`, {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: JSON.stringify(body),
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+/** Change the start / due date of a bug. A date left out stays; null clears it. */
+export async function updateBugDates(
+  projectId: number,
+  bugId: number,
+  dates: { start_date?: string | null; due_date?: string | null },
+): Promise<ProjectBugItem> {
+  return customFetch<ProjectBugItem>(`${BASE_URL}/${projectId}/bugs/${bugId}/dates`, {
+    method: 'PATCH',
+    body: JSON.stringify(dates),
     headers: { 'Content-Type': 'application/json' },
   });
 }
@@ -236,3 +306,46 @@ export async function addProjectBugComment(
 
 
 
+
+/** Moves a task (with its sub-tasks) into a sprint, or back to the backlog when sprintId is null. */
+export async function moveTaskToSprint(projectId: number, taskId: number, sprintId: number | null): Promise<void> {
+  await customFetch(`${BASE_URL}/${projectId}/tasks/${taskId}/sprint`, {
+    method: 'PATCH',
+    body: JSON.stringify({ sprint_id: sprintId }),
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+/** Completes a sprint; unfinished tasks go to moveToSprintId, or to the backlog when it is null. */
+export async function completeSprint(
+  projectId: number,
+  sprintId: number,
+  moveToSprintId: number | null,
+): Promise<{ sprint: SprintItem; moved_tasks: number }> {
+  return customFetch<{ sprint: SprintItem; moved_tasks: number }>(`${BASE_URL}/${projectId}/sprints/${sprintId}/complete`, {
+    method: 'POST',
+    body: JSON.stringify({ move_to_sprint_id: moveToSprintId }),
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+export interface AddSubTaskPayload {
+  title: string;
+  description?: string;
+  priority?: 'low' | 'medium' | 'high';
+  allocated_minutes: number;
+  assignee_ids: number[];
+  start_date?: string;
+  due_date?: string;
+  task_type_id?: number;
+  other_task_type?: string;
+}
+
+/** Adds a sub-task to a task that already exists. The parent's estimate becomes the total of its sub-tasks. */
+export async function addSubTask(projectId: number, taskId: number, payload: AddSubTaskPayload): Promise<void> {
+  await customFetch(`${BASE_URL}/${projectId}/tasks/${taskId}/sub-tasks`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    headers: { 'Content-Type': 'application/json' },
+  });
+}

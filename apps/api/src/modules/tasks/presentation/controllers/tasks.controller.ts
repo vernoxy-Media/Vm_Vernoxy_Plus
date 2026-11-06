@@ -112,8 +112,10 @@ export class TasksController {
   async createTask(@Req() req: Request, @Body() dto: CreateTaskDto): Promise<any> {
     try {
       const empId = req.user!.emp_id;
+      // Tasks created in My Tasks are Personal Tasks (BFD 2); Project Tasks come from Project Management.
       const res = await this.createTaskUseCase.execute({
         ...dto,
+        source: 'personal',
         assignee_ids: dto.assignee_ids || [],
         creator_emp_id: empId,
       });

@@ -274,6 +274,7 @@ export async function fetchRegularizations(
   if (params.to_date) query.append('to_date', params.to_date);
   if (params.search) query.append('search', params.search);
   if (params.scope) query.append('scope', params.scope);
+  if (params.emp_id) query.append('emp_id', String(params.emp_id));
 
   const qs = query.toString();
   return await customFetch<AttendanceRegularization[]>(
@@ -336,5 +337,159 @@ export async function bulkApproveRegularizationRequests(
   );
 }
 
+// ── Attendance Register (Admin) ──────────────────────
+
+export interface AttendanceRegisterQuery {
+  date?: string;
+  departmentId?: number;
+  shiftId?: number;
+  status?: string;
+  search?: string;
+}
+
+export interface AttendanceRegisterRecord {
+  emp_id: number;
+  employee_code: string;
+  name: string;
+  department: string;
+  department_id: number;
+  shift_id: number | null;
+  shift_name: string;
+  in_time: string;
+  out_time: string;
+  working_hours: string;
+  production_minutes: number;
+  status: string;
+  is_late?: boolean;
+  date: string;
+  attendance_id: number | null;
+}
+
+export interface AttendanceRegisterResponse {
+  date: string;
+  formatted_date: string;
+  summary: {
+    total_employees: number;
+    present_count: number;
+    absent_count: number;
+    on_leave_count: number;
+    half_day_count: number;
+    missing_punch_count: number;
+  };
+  records: AttendanceRegisterRecord[];
+  departments: Array<{ id: number; name: string }>;
+  shifts: Array<{ id: number; name: string }>;
+  statuses?: string[];
+}
+
+export async function fetchAttendanceRegister(
+  params: AttendanceRegisterQuery,
+): Promise<AttendanceRegisterResponse> {
+  const query = new URLSearchParams();
+  if (params.date) query.append('date', params.date);
+  if (params.departmentId) query.append('departmentId', String(params.departmentId));
+  if (params.shiftId) query.append('shiftId', String(params.shiftId));
+  if (params.status) query.append('status', params.status);
+  if (params.search) query.append('search', params.search);
+
+  const qs = query.toString();
+  return await customFetch<AttendanceRegisterResponse>(
+    `${BASE_URL}/register${qs ? `?${qs}` : ''}`
+  );
+}
+
+export interface AttendanceReportsQuery {
+  reportType?: 'daily' | 'monthly_summary' | 'employee' | 'department' | 'late_early' | 'regularization';
+  fromDate?: string;
+  toDate?: string;
+  departmentId?: string;
+  employeeId?: number;
+  shiftId?: number;
+  status?: string;
+}
+
+export interface AttendanceReportsResponse {
+  report_type: string;
+  from_date: string;
+  to_date: string;
+  data: {
+    type: string;
+    columns?: string[];
+    date_columns?: string[];
+    employee?: {
+      emp_id: number;
+      employee_code: string;
+      name: string;
+      department: string;
+    } | null;
+    rows: any[];
+  };
+  departments: Array<{ id: number; name: string }>;
+  shifts: Array<{ id: number; name: string }>;
+  statuses: string[];
+  employees: Array<{ id: number; code: string; name: string; department: string }>;
+}
+
+export async function fetchAttendanceReports(
+  params: AttendanceReportsQuery,
+): Promise<AttendanceReportsResponse> {
+  const query = new URLSearchParams();
+  if (params.reportType) query.append('reportType', params.reportType);
+  if (params.fromDate) query.append('fromDate', params.fromDate);
+  if (params.toDate) query.append('toDate', params.toDate);
+  if (params.departmentId) query.append('departmentId', params.departmentId);
+  if (params.employeeId) query.append('employeeId', String(params.employeeId));
+  if (params.shiftId) query.append('shiftId', String(params.shiftId));
+  if (params.status) query.append('status', params.status);
+
+  const qs = query.toString();
+  return await customFetch<AttendanceReportsResponse>(
+    `${BASE_URL}/reports${qs ? `?${qs}` : ''}`
+  );
+}
 
 
+/** Current position from the browser, or null when it is denied, unavailable or slow. */
+export function getBrowserLocation(timeoutMs = 10000): Promise<{ latitude: number; longitude: number; accuracy: number } | null> {
+  if (typeof navigator === 'undefined' || !navigator.geolocation) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      (p) => resolve({ latitude: p.coords.latitude, longitude: p.coords.longitude, accuracy: p.coords.accuracy }),
+      () => resolve(null),
+      { enableHighAccuracy: true, timeout: timeoutMs, maximumAge: 0 },
+    );
+  });
+}
+
+const addressCache = new Map<string, Promise<string | null>>();
+
+/** Human-readable address for a coordinate (OpenStreetMap Nominatim), cached per ~11 m cell. */
+export function reverseGeocode(latitude: number, longitude: number): Promise<string | null> {
+  const key = `${latitude.toFixed(4)},${longitude.toFixed(4)}`;
+  let hit = addressCache.get(key);
+  if (!hit) {
+    hit = fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&lat=${latitude}&lon=${longitude}`, {
+      headers: { Accept: 'application/json' },
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => (j?.display_name as string | undefined) ?? null)
+      .catch(() => null);
+    addressCache.set(key, hit);
+  }
+  return hit;
+}
+
+/** Remembers where a punch happened. Best effort: a failure here never affects the punch itself. */
+export async function savePunchLocation(kind: 'in' | 'out'): Promise<void> {
+  try {
+    const loc = await getBrowserLocation();
+    if (!loc) return;
+    await customFetch(`${BASE_URL}/me/punch-location`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kind, ...loc }),
+    });
+  } catch {
+    /* ignored on purpose */
+  }
+}

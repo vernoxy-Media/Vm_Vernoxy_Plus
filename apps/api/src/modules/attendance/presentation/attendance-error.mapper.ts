@@ -215,7 +215,11 @@ export function mapAttendanceErrorToHttp(error: unknown): HttpException {
     );
   }
 
-  if (msg.includes('ux_attendance_days_emp_date')) {
+  // Prisma reports the unique index as P2002 / "Unique constraint failed", not by its name.
+  const isDuplicateDay =
+    msg.includes('ux_attendance_days_emp_date') ||
+    ((error as any)?.code === 'P2002' && String((error as any)?.meta?.modelName ?? '') === 'attendance_days');
+  if (isDuplicateDay) {
     return new HttpException(
       {
         type: 'about:blank',

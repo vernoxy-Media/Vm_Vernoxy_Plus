@@ -227,6 +227,8 @@ export class CreateEmployeeUseCase {
         {
           emp_id: created.emp_id,
           password: command.password,
+          // The password the Admin hands over is temporary: the employee chooses their own at the first sign in
+          must_change_password: true,
           actor_emp_id: command.acting_admin_id,
         },
         tx,
@@ -253,18 +255,19 @@ export class CreateEmployeeUseCase {
     });
 
     if (this.mailPort) {
-      try {
-        const targetOfficeEmail = (command.office_email || command.email).trim().toLowerCase();
-        await this.mailPort.sendWelcomeCredentials({
+      const targetOfficeEmail = (command.office_email || command.email).trim().toLowerCase();
+      // Send welcome credentials email asynchronously in the background so employee creation is instant
+      this.mailPort
+        .sendWelcomeCredentials({
           officeEmail: targetOfficeEmail,
           personalEmail: command.personal_email?.trim().toLowerCase() || undefined,
           employeeName: command.name,
           temporaryPassword: command.password,
           loginUrl: process.env.WEB_ORIGIN || 'http://localhost:5173',
+        })
+        .catch((mailErr: any) => {
+          this.logger.warn(`Failed to dispatch welcome email: ${mailErr.message}`);
         });
-      } catch (mailErr: any) {
-        this.logger.warn(`Failed to dispatch welcome email: ${mailErr.message}`);
-      }
     }
 
     return createdEmployee;

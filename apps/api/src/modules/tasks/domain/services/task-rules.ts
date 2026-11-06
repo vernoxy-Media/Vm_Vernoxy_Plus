@@ -16,6 +16,26 @@ export function validateAssigneeIds(ids: number[]): { valid: boolean; error?: st
   return { valid: true };
 }
 
+/**
+ * A due date arrives as YYYY-MM-DD, or empty / null to clear it.
+ * Returns the clean value, or `undefined` when it is not a real calendar date.
+ */
+export function parseDueDate(value: unknown): string | null | undefined {
+  if (value === null || value === undefined || value === '') return null;
+  if (typeof value !== 'string') return undefined;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(value.trim());
+  if (!m) return undefined;
+  const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const real = new Date(Date.UTC(y, mo - 1, d));
+  if (real.getUTCFullYear() !== y || real.getUTCMonth() !== mo - 1 || real.getUTCDate() !== d) return undefined;
+  return `${m[1]}-${m[2]}-${m[3]}`;
+}
+
+/** Returns an error message when the start date falls after the due date, otherwise null. */
+export function validateDateRange(start: string | null | undefined, due: string | null | undefined): string | null {
+  return start && due && start > due ? 'Start date cannot be after the Due Date.' : null;
+}
+
 export function formatTaskCode(year: number, sequenceNumber: number): string {
   return `TSK-${year}-${sequenceNumber.toString().padStart(4, '0')}`;
 }
@@ -46,7 +66,15 @@ export function canTransitionStage(
   }
 
   if (fromStage === 'requested') {
-    if (toStage === 'in_progress') return { allowed: true };
+    if (toStage === 'in_progress') {
+      if (!isAdmin) {
+        return {
+          allowed: false,
+          reason: 'Only administrators or project managers can return submitted tasks for rework',
+        };
+      }
+      return { allowed: true };
+    }
     if (toStage === 'completed') {
       if (!isAdmin) {
         return { allowed: false, reason: 'Only administrators or project managers can approve tasks' };

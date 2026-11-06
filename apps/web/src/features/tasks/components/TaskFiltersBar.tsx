@@ -1,117 +1,59 @@
 import React from 'react';
-import { Search, X, AlertCircle } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import type { TaskBoardQueryDto } from '../types';
+import { useLookupsQuery } from '@/features/organization/hooks/use-master-data';
+import { stageName } from '../utils/stage-labels';
 
 export interface TaskFiltersBarProps {
   filters: TaskBoardQueryDto;
   onChange: (filters: TaskBoardQueryDto) => void;
   taskTypeOptions?: { id: number; label: string }[];
+  /** Admin: filter by Employee (BFD 2.2). */
   assigneeOptions?: { emp_id: number; name: string }[];
+  /** Employee Tasks screen: filter by Source (BFD 3.2). */
+  showSource?: boolean;
 }
 
+const SELECT =
+  'h-8 rounded-[3px] border-2 border-[#DFE1E6] bg-[#FAFBFC] px-2 text-[14px] text-[#172B4D] transition-colors hover:bg-[#EBECF0] focus:border-[color:var(--ac-400,#4C9AFF)] focus:bg-white focus:outline-none';
+
+/** Search and filters. Stage, Priority, Task Type and Source options come from master data. */
 export const TaskFiltersBar: React.FC<TaskFiltersBarProps> = ({
   filters,
   onChange,
   taskTypeOptions = [],
   assigneeOptions = [],
+  showSource = false,
 }) => {
+  const { data: stages = [] } = useLookupsQuery('task_stage');
+  const { data: priorities = [] } = useLookupsQuery('task_priority');
+  const { data: sources = [] } = useLookupsQuery('task_source');
+
   const hasActiveFilters = Boolean(
-    filters.search ||
-      filters.priority ||
-      filters.task_type_id ||
-      filters.assignee_id ||
-      filters.stage ||
-      filters.overdue_only,
+    filters.search || filters.priority || filters.task_type_id || filters.assignee_id || filters.stage || filters.source,
   );
 
-  const resetFilters = () => {
-    onChange({});
-  };
-
   return (
-    <div className="flex flex-wrap items-center gap-2.5 rounded-2xl bg-white p-3 border border-slate-200/80 shadow-xs mb-4">
-      {/* Search Bar */}
-      <div className="relative min-w-[180px] flex-1">
-        <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="relative min-w-[200px] flex-1 sm:max-w-xs">
+        <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#5E6C84]" />
         <input
           type="text"
-          placeholder="Search by title or code..."
+          placeholder="Search by key or summary"
+          aria-label="Search tasks"
           value={filters.search || ''}
           onChange={(e) => onChange({ ...filters, search: e.target.value || undefined })}
-          className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500"
+          className="h-8 w-full rounded-[3px] border-2 border-[#DFE1E6] bg-[#FAFBFC] pl-7 pr-2 text-[14px] text-[#172B4D] placeholder:text-[#7A869A] hover:bg-[#EBECF0] focus:border-[color:var(--ac-400,#4C9AFF)] focus:bg-white focus:outline-none"
         />
       </div>
 
-      {/* Stage Dropdown (5 stages) */}
-      <select
-        value={filters.stage || ''}
-        onChange={(e) =>
-          onChange({
-            ...filters,
-            stage: (e.target.value as any) || undefined,
-          })
-        }
-        className="rounded-xl border border-slate-200 bg-white py-1.5 px-2.5 text-xs text-slate-700 focus:outline-none focus:border-blue-500"
-      >
-        <option value="">All Stages</option>
-        <option value="assigned">To Do</option>
-        <option value="in_progress">In Progress</option>
-        <option value="hold">Hold</option>
-        <option value="requested">Submitted</option>
-        <option value="completed">Approved</option>
-      </select>
-
-      {/* Priority Dropdown */}
-      <select
-        value={filters.priority || ''}
-        onChange={(e) =>
-          onChange({
-            ...filters,
-            priority: (e.target.value as any) || undefined,
-          })
-        }
-        className="rounded-xl border border-slate-200 bg-white py-1.5 px-2.5 text-xs text-slate-700 focus:outline-none focus:border-blue-500"
-      >
-        <option value="">All Priorities</option>
-        <option value="high">High</option>
-        <option value="medium">Medium</option>
-        <option value="low">Low</option>
-      </select>
-
-      {/* Task Type Dropdown */}
-      {taskTypeOptions.length > 0 && (
-        <select
-          value={filters.task_type_id ? String(filters.task_type_id) : ''}
-          onChange={(e) =>
-            onChange({
-              ...filters,
-              task_type_id: e.target.value ? parseInt(e.target.value, 10) : undefined,
-            })
-          }
-          className="rounded-xl border border-slate-200 bg-white py-1.5 px-2.5 text-xs text-slate-700 focus:outline-none focus:border-blue-500"
-        >
-          <option value="">All Types</option>
-          {taskTypeOptions.map((opt) => (
-            <option key={opt.id} value={opt.id}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-      )}
-
-      {/* Assignee Dropdown */}
       {assigneeOptions.length > 0 && (
         <select
           value={filters.assignee_id ? String(filters.assignee_id) : ''}
-          onChange={(e) =>
-            onChange({
-              ...filters,
-              assignee_id: e.target.value ? parseInt(e.target.value, 10) : undefined,
-            })
-          }
-          className="rounded-xl border border-slate-200 bg-white py-1.5 px-2.5 text-xs text-slate-700 focus:outline-none focus:border-blue-500 max-w-[150px] truncate"
+          onChange={(e) => onChange({ ...filters, assignee_id: e.target.value ? parseInt(e.target.value, 10) : undefined })}
+          className={`${SELECT} max-w-[160px] truncate`}
         >
-          <option value="">All Assignees</option>
+          <option value="">All Employees</option>
           {assigneeOptions.map((a) => (
             <option key={a.emp_id} value={a.emp_id}>
               {a.name}
@@ -120,28 +62,69 @@ export const TaskFiltersBar: React.FC<TaskFiltersBarProps> = ({
         </select>
       )}
 
-      {/* Overdue Checkbox Toggle */}
-      <button
-        type="button"
-        onClick={() => onChange({ ...filters, overdue_only: !filters.overdue_only })}
-        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-medium transition-colors cursor-pointer ${
-          filters.overdue_only
-            ? 'bg-rose-50 border-rose-300 text-rose-700'
-            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-        }`}
+      <select
+        value={filters.priority || ''}
+        onChange={(e) => onChange({ ...filters, priority: (e.target.value as any) || undefined })}
+        className={SELECT}
       >
-        <AlertCircle className="w-3.5 h-3.5" />
-        Overdue Only
-      </button>
+        <option value="">All Priorities</option>
+        {priorities.map((p) => (
+          <option key={p.code} value={p.code}>
+            {p.label}
+          </option>
+        ))}
+      </select>
 
-      {/* Clear Filters */}
+      {taskTypeOptions.length > 0 && (
+        <select
+          value={filters.task_type_id ? String(filters.task_type_id) : ''}
+          onChange={(e) => onChange({ ...filters, task_type_id: e.target.value ? parseInt(e.target.value, 10) : undefined })}
+          className={SELECT}
+        >
+          <option value="">All Task Types</option>
+          {taskTypeOptions.map((opt) => (
+            <option key={opt.id} value={opt.id}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      )}
+
+      {showSource && (
+        <select
+          value={filters.source || ''}
+          onChange={(e) => onChange({ ...filters, source: (e.target.value as any) || undefined })}
+          className={SELECT}
+        >
+          <option value="">All Sources</option>
+          {sources.map((s) => (
+            <option key={s.code} value={s.code}>
+              {s.label}
+            </option>
+          ))}
+        </select>
+      )}
+
+      <select
+        value={filters.stage || ''}
+        onChange={(e) => onChange({ ...filters, stage: (e.target.value as any) || undefined })}
+        className={SELECT}
+      >
+        <option value="">All Stages</option>
+        {stages.map((s) => (
+          <option key={s.code} value={s.code}>
+            {stageName(s.code) !== s.code ? stageName(s.code) : s.label}
+          </option>
+        ))}
+      </select>
+
       {hasActiveFilters && (
         <button
           type="button"
-          onClick={resetFilters}
-          className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 px-2 py-1 transition-colors cursor-pointer"
+          onClick={() => onChange({})}
+          className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-[3px] px-2 text-[14px] font-medium text-[#42526E] hover:bg-[rgba(9,30,66,0.08)]"
         >
-          <X className="w-3.5 h-3.5" /> Reset
+          <X className="h-3.5 w-3.5" /> Clear filters
         </button>
       )}
     </div>

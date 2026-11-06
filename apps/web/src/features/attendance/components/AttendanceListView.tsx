@@ -39,7 +39,7 @@ export const AttendanceListView: React.FC<AttendanceListViewProps> = ({
     const ampm = m[3]?.toUpperCase();
     if (ampm === 'PM' && h < 12) h += 12;
     if (ampm === 'AM' && h === 12) h = 0;
-    return h * 60 + min > 580; // After 09:40 AM
+    return h * 60 + min > 585; // After 09:45 AM (09:30 AM + 15m grace)
   };
 
   return (

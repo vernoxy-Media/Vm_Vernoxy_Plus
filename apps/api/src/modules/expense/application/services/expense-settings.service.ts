@@ -1,10 +1,14 @@
 import {
   Injectable,
+  Logger,
+  Optional,
   NotFoundException,
   BadRequestException,
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../../core/prisma/prisma.service';
+import { ExpenseAccessService } from './expense-access.service';
+import { ExpenseNotifierService } from './expense-notifier.service';
 import {
   CreateExpenseCategoryDto,
   UpdateExpenseCategoryDto,
@@ -16,7 +20,40 @@ import {
 
 @Injectable()
 export class ExpenseSettingsService {
-  constructor(private readonly prisma: PrismaService) { }
+  private readonly logger = new Logger(ExpenseSettingsService.name);
+  /** Set by ExpenseSchedulerService so approver changes move waiting claims (BFD 12). */
+  reassignHook: ((actorId: number) => Promise<unknown>) | null = null;
+
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly access?: ExpenseAccessService,
+    @Optional() private readonly notifier?: ExpenseNotifierService,
+  ) { }
+
+  /** BFD 13: every Expense Settings change is told to all Admins. */
+  async notifyAdmins(text: string, actorId: number) {
+    if (!this.access || !this.notifier) return;
+    try {
+      const [me] = await this.prisma.$queryRaw<any[]>`SELECT name FROM employees WHERE emp_id = ${actorId}`;
+      await this.notifier.notify({
+        recipients: (await this.access.adminIds()).filter((id) => id !== actorId),
+        kind: 'expense_settings_changed',
+        title: 'Expense Settings changed',
+        body: `${me?.name || 'An Admin'} changed Expense Settings: ${text}`,
+        actorId,
+      });
+    } catch (err: any) {
+      this.logger.warn(`Settings change notice failed: ${err?.message}`);
+    }
+  }
+
+  private async reassign(actorId: number) {
+    try {
+      if (this.reassignHook) await this.reassignHook(actorId);
+    } catch (err: any) {
+      this.logger.warn(`Reassigning waiting claims failed: ${err?.message}`);
+    }
+  }
 
   // ===========================================================================
   // 1. EXPENSE CATEGORIES (MASTER DATA CRUD)
@@ -200,7 +237,14 @@ export class ExpenseSettingsService {
         },
       });
     }
-    return settings;
+    const [extra] = await this.prisma.$queryRaw<any[]>`
+      SELECT COALESCE(s.accounts_emp_ids, '{}') AS ids,
+             COALESCE(json_agg(json_build_object('emp_id', e.emp_id, 'name', e.name)) FILTER (WHERE e.emp_id IS NOT NULL), '[]') AS people
+      FROM expense_general_settings s LEFT JOIN employees e ON e.emp_id = ANY(s.accounts_emp_ids)
+      WHERE s.setting_id = ${settings.setting_id}
+      GROUP BY s.accounts_emp_ids;
+    `;
+    return { ...settings, accounts_emp_ids: (extra?.ids || []).map(Number), accounts_users: extra?.people || [] };
   }
 
   async updateGeneralSettings(dto: UpdateExpenseGeneralSettingsDto, adminId: number) {
@@ -215,24 +259,46 @@ export class ExpenseSettingsService {
       'currency',
     ];
 
+    const changed: string[] = [];
     for (const field of fieldsToTrack) {
       if (dto[field] !== undefined) {
         const oldVal = (current as any)[field];
         const newVal = (dto as any)[field];
         if (String(oldVal) !== String(newVal)) {
+          changed.push(`${String(field).replace(/_/g, ' ')} ${oldVal} → ${newVal}`);
           await this.logChange('GENERAL_SETTINGS', current.setting_id, field, String(oldVal), String(newVal), adminId);
         }
       }
     }
 
-    return this.prisma.expense_general_settings.update({
+    const { accounts_emp_ids, ...rest } = dto;
+    await this.prisma.expense_general_settings.update({
       where: { setting_id: current.setting_id },
       data: {
-        ...dto,
+        ...rest,
         updated_at: new Date(),
         updated_by: adminId,
       },
     });
+
+    if (accounts_emp_ids !== undefined) {
+      const ids = Array.from(new Set(accounts_emp_ids.map(Number)));
+      if (ids.length) {
+        const found = await this.prisma.employees.count({ where: { emp_id: { in: ids }, deleted_at: null, status: 'Active' } });
+        if (found !== ids.length) throw new BadRequestException('Accounts users must be active employees.');
+      }
+      const old = [...current.accounts_emp_ids].sort().join(',');
+      if (old !== [...ids].sort().join(',')) {
+        await this.prisma.$executeRaw`
+          UPDATE expense_general_settings SET accounts_emp_ids = ${ids}::int[], updated_at = clock_timestamp(), updated_by = ${adminId}
+          WHERE setting_id = ${current.setting_id};
+        `;
+        await this.logChange('GENERAL_SETTINGS', current.setting_id, 'accounts_emp_ids', old || 'NONE', ids.join(',') || 'NONE', adminId);
+        changed.push('Accounts users updated');
+      }
+    }
+    if (changed.length) await this.notifyAdmins(changed.join('; '), adminId);
+    return this.getGeneralSettings();
   }
 
   // ===========================================================================
@@ -298,6 +364,9 @@ export class ExpenseSettingsService {
     if (!emp) {
       throw new NotFoundException(`Employee with ID ${approver_emp_id} not found`);
     }
+    if (emp.status !== 'Active') {
+      throw new BadRequestException('The Authorised Approver must be an active employee.');
+    }
 
     // Check if mapping exists (including soft-deleted)
     const existing = await this.prisma.expense_authorised_approvers.findFirst({
@@ -348,6 +417,8 @@ export class ExpenseSettingsService {
       );
     }
 
+    await this.reassign(adminId);
+    await this.notifyAdmins(`${emp.name} is now the Authorised Approver of ${dept.name}`, adminId);
     return result;
   }
 
@@ -373,13 +444,16 @@ export class ExpenseSettingsService {
       adminId,
     );
 
-    return this.prisma.expense_authorised_approvers.update({
+    const removed = await this.prisma.expense_authorised_approvers.update({
       where: { approver_mapping_id: existing.approver_mapping_id },
       data: {
         deleted_at: new Date(),
         deleted_by: adminId,
       },
     });
+    await this.reassign(adminId);
+    await this.notifyAdmins(`Authorised Approver removed for ${existing.departments?.name || 'a department'}; claims go to the Admin`, adminId);
+    return removed;
   }
 
   // ===========================================================================

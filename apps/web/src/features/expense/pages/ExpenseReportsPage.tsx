@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import {
   useExpenseReports,
+  exportExpenseReports,
+  errorText,
   ExpenseReportsFilter,
   ExpenseReportClaimItem,
   ExpenseReportBreakdownItem,
@@ -95,7 +97,20 @@ export const ExpenseReportsPage: React.FC = (): React.ReactElement => {
     selectedStatus,
   ]);
 
-  const { data, isLoading } = useExpenseReports(reportFilter);
+  const { data, isLoading, error: reportError } = useExpenseReports(reportFilter);
+  const [excelBusy, setExcelBusy] = useState(false);
+  const [excelError, setExcelError] = useState<string | null>(null);
+  const handleExportExcel = async () => {
+    setExcelBusy(true);
+    setExcelError(null);
+    try {
+      await exportExpenseReports(reportFilter);
+    } catch (e: any) {
+      setExcelError(e?.message || 'Export failed.');
+    } finally {
+      setExcelBusy(false);
+    }
+  };
 
   // Quick Pick date range helpers
   const handleQuickPick = (pick: 'this_month' | 'last_month' | 'this_quarter' | 'last_quarter' | 'this_fy') => {
@@ -396,8 +411,22 @@ export const ExpenseReportsPage: React.FC = (): React.ReactElement => {
             <Download className="h-4 w-4" />
             Export CSV
           </button>
+          <button
+            type="button"
+            onClick={handleExportExcel}
+            disabled={excelBusy}
+            className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-xl bg-emerald-600 px-4 text-[13px] font-semibold text-white shadow-sm shadow-emerald-600/25 transition hover:bg-emerald-700 disabled:opacity-50"
+          >
+            <Download className="h-4 w-4" />
+            {excelBusy ? 'Preparing…' : 'Export Excel'}
+          </button>
         </div>
       </div>
+      {(excelError || reportError) && (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-[12.5px] font-medium text-rose-700">
+          {excelError || errorText(reportError)}
+        </div>
+      )}
 
       {/* Report type */}
       <div className="-mx-1 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">

@@ -65,6 +65,7 @@ export class PrismaSalesCompanyRepository implements SalesCompanyRepositoryPort 
           client_code: true,
           clients: { where: { deleted_at: null }, take: 1, select: { client_id: true } },
           industries_companies_industry_idToindustries: { select: { name: true } },
+          industries_companies_sub_industry_idToindustries: { select: { name: true } },
           company_persons: {
             where: { is_primary: true, deleted_at: null },
             take: 1,
@@ -88,7 +89,7 @@ export class PrismaSalesCompanyRepository implements SalesCompanyRepositoryPort 
         name: r.name,
         initials: initialsOf(r.name),
         city: r.city,
-        industry: r.industries_companies_industry_idToindustries?.name ?? null,
+        industry: r.industries_companies_sub_industry_idToindustries?.name ?? r.industries_companies_industry_idToindustries?.name ?? null,
         contact_person: r.company_persons[0]?.persons.name ?? r.contact_person ?? null,
         website_quality: r.website_quality,
         lead,
@@ -243,6 +244,7 @@ export class PrismaSalesCompanyRepository implements SalesCompanyRepositoryPort 
       where: { company_id: companyId, deleted_at: null },
       include: {
         industries_companies_industry_idToindustries: { select: { industry_id: true, name: true } },
+        industries_companies_sub_industry_idToindustries: { select: { industry_id: true, name: true } },
         employees_companies_created_byToemployees: { select: { emp_id: true, name: true } },
         leads: LATEST_LEAD_SELECT,
         clients: { where: { deleted_at: null }, take: 1, select: { client_id: true } },
@@ -270,7 +272,7 @@ export class PrismaSalesCompanyRepository implements SalesCompanyRepositoryPort 
       gidc_name: c.gidc_name,
       gidc_area_phase: c.gidc_area_phase,
       nature_of_business: c.nature_of_business,
-      industry: c.industries_companies_industry_idToindustries?.name ?? null,
+      industry: c.industries_companies_sub_industry_idToindustries?.name ?? c.industries_companies_industry_idToindustries?.name ?? null,
       products_services: c.products_services,
       estimated_employees: c.estimated_employees,
       estimated_turnover: c.estimated_turnover === null ? null : Number(c.estimated_turnover),
@@ -291,8 +293,11 @@ export class PrismaSalesCompanyRepository implements SalesCompanyRepositoryPort 
       company_code: c.company_code,
       fields,
       brochure_url: c.brochure_url,
-      industry: c.industries_companies_industry_idToindustries
-        ? { id: c.industries_companies_industry_idToindustries.industry_id, name: c.industries_companies_industry_idToindustries.name }
+      industry: (c.industries_companies_sub_industry_idToindustries ?? c.industries_companies_industry_idToindustries)
+        ? {
+            id: (c.industries_companies_sub_industry_idToindustries ?? c.industries_companies_industry_idToindustries)!.industry_id,
+            name: (c.industries_companies_sub_industry_idToindustries ?? c.industries_companies_industry_idToindustries)!.name,
+          }
         : null,
       contacts: c.company_persons.map((cp) => ({
         company_person_id: cp.company_person_id,
@@ -374,7 +379,7 @@ export class PrismaSalesCompanyRepository implements SalesCompanyRepositoryPort 
 
   async create(data: CreateSalesCompanyData): Promise<{ company_id: number; company_code: string }> {
     return this.prisma.$transaction(async (tx) => {
-      const industryId = await this.resolveIndustryId(tx, data.fields.industry, true);
+      const industry = (await this.resolveIndustry(tx, data.fields.industry, true))!;
       const customerTypeId = await this.resolveCustomerTypeId(tx);
 
       const company = await tx.companies.create({
@@ -382,7 +387,8 @@ export class PrismaSalesCompanyRepository implements SalesCompanyRepositoryPort 
           ...this.toColumns(data.fields),
           ...this.toContactColumns(data.contact),
           customer_type_id: customerTypeId,
-          industry_id: industryId as number,
+          industry_id: industry.industryId,
+          sub_industry_id: industry.subIndustryId,
           created_by: data.actor_emp_id,
         },
         select: { company_id: true, company_code: true },
@@ -410,8 +416,8 @@ export class PrismaSalesCompanyRepository implements SalesCompanyRepositoryPort 
       });
       if (!before) return;
 
-      const industryId = data.fields.industry
-        ? await this.resolveIndustryId(tx, data.fields.industry, false)
+      const industry = data.fields.industry
+        ? await this.resolveIndustry(tx, data.fields.industry, false)
         : undefined;
 
       const columns = this.toColumns(data.fields);
@@ -420,7 +426,7 @@ export class PrismaSalesCompanyRepository implements SalesCompanyRepositoryPort 
         data: {
           ...columns,
           ...this.toContactColumns(data.contact),
-          ...(industryId ? { industry_id: industryId } : {}),
+          ...(industry ? { industry_id: industry.industryId, sub_industry_id: industry.subIndustryId } : {}),
           updated_by: data.actor_emp_id,
         },
       });
@@ -627,25 +633,37 @@ export class PrismaSalesCompanyRepository implements SalesCompanyRepositoryPort 
     });
   }
 
-  /** industries.name -> id. On create, falls back to "Unclassified" (BFD: only Company Name is required). */
-  private async resolveIndustryId(tx: Tx, name: string | null, fallback: boolean): Promise<number | undefined> {
+  /**
+   * industries.name -> { industry_id, sub_industry_id }. A company points at a top-level industry; when the user
+   * picks a sub-industry (e.g. "Weaving") it is stored as the sub-industry of its parent ("Textile and Apparel").
+   * On create, falls back to "Unclassified" (BFD: only Company Name is required).
+   */
+  private async resolveIndustry(
+    tx: Tx,
+    name: string | null,
+    fallback: boolean,
+  ): Promise<{ industryId: number; subIndustryId: number | null } | undefined> {
     if (name) {
       const hit = await tx.industries.findFirst({
         where: { name: { equals: name, mode: 'insensitive' }, deleted_at: null, is_active: true },
-        select: { industry_id: true },
+        select: { industry_id: true, parent_id: true },
       });
-      if (hit) return hit.industry_id;
+      if (hit) {
+        return hit.parent_id
+          ? { industryId: hit.parent_id, subIndustryId: hit.industry_id }
+          : { industryId: hit.industry_id, subIndustryId: null };
+      }
       throw new FieldValidationError([{ field: 'industry', message: 'Choose an industry from the list.' }]);
     }
     if (!fallback) return undefined;
     const def =
       (await tx.industries.findFirst({
-        where: { name: { equals: DEFAULT_INDUSTRY, mode: 'insensitive' }, deleted_at: null },
+        where: { name: { equals: DEFAULT_INDUSTRY, mode: 'insensitive' }, deleted_at: null, parent_id: null },
         select: { industry_id: true },
       })) ??
-      (await tx.industries.findFirst({ where: { deleted_at: null, is_active: true }, orderBy: { industry_id: 'asc' }, select: { industry_id: true } }));
+      (await tx.industries.findFirst({ where: { deleted_at: null, is_active: true, parent_id: null }, orderBy: { industry_id: 'asc' }, select: { industry_id: true } }));
     if (!def) throw new Error('No industry exists in the master list; add one in Settings first.');
-    return def.industry_id;
+    return { industryId: def.industry_id, subIndustryId: null };
   }
 
   private async resolveCustomerTypeId(tx: Tx): Promise<number> {
