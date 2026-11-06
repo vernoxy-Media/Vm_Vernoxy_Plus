@@ -11,7 +11,7 @@ import {
 } from '../settings.registry';
 
 /** Tab strip that scrolls with arrow buttons, the mouse wheel or touch when the tabs do not fit. */
-const ScrollableTabs: React.FC<{ label: string; watch?: string; children: React.ReactNode }> = ({ label, watch, children }) => {
+const ScrollableTabs: React.FC<{ label: string; watch?: string; watchPrefix?: string; variant?: 'underline' | 'pills'; children: React.ReactNode }> = ({ label, watch, watchPrefix = 'settings-subtab-', variant = 'underline', children }) => {
   const ref = React.useRef<HTMLDivElement>(null);
   const [edge, setEdge] = React.useState({ left: false, right: false });
 
@@ -41,27 +41,46 @@ const ScrollableTabs: React.FC<{ label: string; watch?: string; children: React.
   }, [update, children]);
 
   React.useEffect(() => {
-    document.getElementById(`settings-subtab-${watch}`)?.scrollIntoView({ block: 'nearest', inline: 'center' });
-  }, [watch]);
+    document.getElementById(`${watchPrefix}${watch}`)?.scrollIntoView({ block: 'nearest', inline: 'center' });
+  }, [watch, watchPrefix]);
 
   const nudge = (dir: -1 | 1) => ref.current?.scrollBy({ left: dir * Math.max(200, ref.current.clientWidth * 0.6), behavior: 'smooth' });
   const arrow =
     'absolute top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900 cursor-pointer';
 
+  const pills = variant === 'pills';
+
   return (
-    <div className="relative border-b border-slate-200 px-4 sm:px-6">
+    <div className={pills ? 'relative' : 'relative border-b border-slate-200 px-4 sm:px-6'}>
       {edge.left && (
-        <button type="button" aria-label="Scroll tabs left" onClick={() => nudge(-1)} className={`${arrow} left-2`}>
-          <ChevronLeft className="h-4 w-4" />
-        </button>
+        <>
+          {pills && <span aria-hidden className="pointer-events-none absolute inset-y-0 left-0 z-[5] w-14 rounded-l-2xl bg-gradient-to-r from-white via-white/90 to-transparent" />}
+          <button type="button" aria-label="Scroll tabs left" onClick={() => nudge(-1)} className={`${arrow} left-2`}>
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+        </>
       )}
-      <div ref={ref} onScroll={update} role="tablist" aria-label={label} className="-mb-px flex gap-6 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div
+        ref={ref}
+        onScroll={update}
+        role="tablist"
+        aria-label={label}
+        className={
+          pills
+            ? // Small screens scroll sideways; from md up the categories wrap onto a second line so every one stays visible
+              'flex gap-1.5 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm [scrollbar-width:none] md:flex-wrap md:overflow-visible [&::-webkit-scrollbar]:hidden'
+            : '-mb-px flex gap-6 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+        }
+      >
         {children}
       </div>
       {edge.right && (
-        <button type="button" aria-label="Scroll tabs right" onClick={() => nudge(1)} className={`${arrow} right-2`}>
-          <ChevronRight className="h-4 w-4" />
-        </button>
+        <>
+          {pills && <span aria-hidden className="pointer-events-none absolute inset-y-0 right-0 z-[5] w-14 rounded-r-2xl bg-gradient-to-l from-white via-white/90 to-transparent" />}
+          <button type="button" aria-label="Scroll tabs right" onClick={() => nudge(1)} className={`${arrow} right-2`}>
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </>
       )}
     </div>
   );
@@ -111,11 +130,7 @@ export const SettingsPage: React.FC = () => {
         </div>
 
         {/* Categories */}
-        <nav
-          role="tablist"
-          aria-label="Settings Categories"
-          className="flex gap-1.5 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        >
+        <ScrollableTabs label="Settings Categories" variant="pills" watch={groups.find((g) => g.name === currentGroup)?.id.toLowerCase()} watchPrefix="settings-group-">
           {groups.map((group) => {
             const active = currentGroup === group.name;
             const GroupIcon = group.icon;
@@ -129,22 +144,22 @@ export const SettingsPage: React.FC = () => {
                 aria-selected={active}
                 aria-label={group.name}
                 title={group.name}
-                className={`group flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-3 py-2.5 text-[13.5px] font-semibold transition-all duration-200 min-[1830px]:px-3.5 ${
+                className={`group flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-3 py-2 text-[13.5px] font-semibold transition-all duration-200 ${
                   active
                     ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/30'
                     : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                 }`}
               >
-                <GroupIcon className={`h-4 w-4 ${active ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'}`} />
-                {/* Narrow screens keep the label only on the open tab; the rest are icons */}
-                <span className={active ? '' : 'hidden min-[1450px]:inline'}>{group.name}</span>
-                <span className={`hidden rounded-full px-1.5 py-0.5 text-[10.5px] font-bold leading-none min-[1830px]:inline-block ${active ? 'bg-white/25 text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-white'}`}>
+                <GroupIcon className={`h-4 w-4 shrink-0 ${active ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'}`} />
+                {/* On a phone only the open category keeps its name; the others are icons */}
+                <span className={active ? '' : 'hidden sm:inline'}>{group.name}</span>
+                <span className={`rounded-full px-1.5 py-0.5 text-[10.5px] font-bold leading-none ${active ? 'bg-white/25 text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-white'}`}>
                   {count}
                 </span>
               </NavLink>
             );
           })}
-        </nav>
+        </ScrollableTabs>
 
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           {/* Pages of the chosen category */}
