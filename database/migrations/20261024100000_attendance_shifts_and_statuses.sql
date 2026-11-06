@@ -16,7 +16,7 @@ CREATE TABLE attendance_statuses (
     CONSTRAINT pk_attendance_statuses PRIMARY KEY (status_id)
 );
 
--- Seed default statuses from US01 spec
+-- Seed default statuses from US01 spec 
 INSERT INTO attendance_statuses (code, label, short_code, color, is_active, is_system, sort_order) VALUES
 ('present', 'Present', 'P', 'emerald', true, true, 10),
 ('half_day', 'Half Day', 'HD', 'amber', true, true, 20),

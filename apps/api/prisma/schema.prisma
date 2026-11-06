@@ -205,6 +205,7 @@ model employees {
   leave_policy_id                                                                            Int?
   probation_end_date                                                                         DateTime?                         @db.Date
   leave_approver_id                                                                          Int?
+  ui_theme                                                                                   String?                           @db.VarChar(30)
   probation_period                                                                           String?                           @db.VarChar(100)
   notice_period                                                                              String?                           @db.VarChar(100)
   leave_policy_assigned_at                                                                   DateTime?                         @db.Date
@@ -1034,6 +1035,7 @@ model tasks {
   priority                                    task_priority     @default(medium)
   task_type_id                                Int?
   due_date                                    DateTime?         @db.Date
+  start_date                                  DateTime?         @db.Date
   allocated_minutes                           Int?
   stage                                       task_stage        @default(assigned)
   review_note                                 String?           @db.VarChar(500)
@@ -1183,6 +1185,8 @@ model project_bugs {
   dev_ended_at                                  DateTime?      @db.Timestamptz(6)
   qa_started_at                                 DateTime?      @db.Timestamptz(6)
   qa_ended_at                                   DateTime?      @db.Timestamptz(6)
+  start_date                                    DateTime?      @db.Date
+  due_date                                      DateTime?      @db.Date
   total_time_minutes                            Int            @default(0)
   row_version                                   Int            @default(1)
   created_at                                    DateTime       @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
@@ -1310,6 +1314,7 @@ model projects {
   project_manager_id                               Int
   status_change_reason                             String?
   client_name                                      String?                @db.VarChar(150)
+  client_id                                        Int?
   lead_received_date                               DateTime?              @db.Date
   project_approved_date                            DateTime?              @db.Date
   tech_frontend                                    String?
@@ -1791,6 +1796,7 @@ model crm_communications {
   deleted_at          DateTime?        @db.Timestamptz(6)
   call_status         String?          @db.VarChar(20)
   not_received_reason String?          @db.VarChar(150)
+  call_duration_seconds Int?
   companies           companies?       @relation(fields: [company_id], references: [company_id], onDelete: Cascade, onUpdate: NoAction)
   persons             persons?         @relation(fields: [contact_id], references: [person_id], onUpdate: NoAction)
   employees           employees?       @relation(fields: [created_by], references: [emp_id], onUpdate: NoAction)
@@ -3333,4 +3339,26 @@ enum payroll_ot_rounding {
 enum payroll_missing_punch {
   UNPAID
   FULL
+}
+
+model client_users {
+  client_user_id       Int       @id(map: "client_users_pkey") @default(autoincrement())
+  client_id            Int
+  name                 String    @db.VarChar(150)
+  email                String    @db.VarChar(255)
+  password_hash        String    @db.VarChar(255)
+  must_change_password Boolean   @default(true)
+  is_active            Boolean   @default(true)
+  failed_attempts      Int       @default(0) @db.SmallInt
+  locked_until         DateTime? @db.Timestamptz(6)
+  last_login_at        DateTime? @db.Timestamptz(6)
+  reset_code_hash      String?   @db.Char(64)
+  reset_expires_at     DateTime? @db.Timestamptz(6)
+  reset_attempts       Int       @default(0) @db.SmallInt
+  created_at           DateTime  @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  created_by           Int?
+  updated_at           DateTime? @db.Timestamptz(6)
+  updated_by           Int?
+  deleted_at           DateTime? @db.Timestamptz(6)
+  deleted_by           Int?
 }
