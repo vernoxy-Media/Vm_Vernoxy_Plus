@@ -1,0 +1,1 @@
+Vernoxy Pulse QA build marker. Pushed to make Vercel build the qa branch (it skips commits that change nothing inside apps/web).
