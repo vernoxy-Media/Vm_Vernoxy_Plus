@@ -3,7 +3,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://YOUR-RENDER-SERVICE.onrender.com/api/:path*"
+      "destination": "https://vernoxy-pulse-api-qa.onrender.com/api/:path*"
     },
     {
       "source": "/(.*)",
