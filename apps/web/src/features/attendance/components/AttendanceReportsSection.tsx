@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   FileSpreadsheet,
   Download,
@@ -8,9 +8,9 @@ import {
   Building2,
   Clock,
   FileCheck,
-  ChevronRight,
 } from 'lucide-react';
 import { useAttendanceReports } from '../hooks/use-attendance';
+import { Pagination } from '@/shared/ui/Pagination';
 
 const REPORT_TYPES = [
   { id: 'daily', label: 'Daily Attendance', icon: Calendar, desc: 'Attendance of all employees for one or several days' },
@@ -51,6 +51,8 @@ export const AttendanceReportsSection: React.FC = () => {
   const [employeeFilter, setEmployeeFilter] = useState<number | undefined>(undefined);
   const [shiftFilter, setShiftFilter] = useState<number | undefined>(undefined);
   const [statusFilter, setStatusFilter] = useState<string>('All');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [exportFormat, setExportFormat] = useState<'Excel' | 'PDF' | 'CSV'>('Excel');
 
   // Query triggers when "View Report" or initial mount
@@ -108,6 +110,9 @@ export const AttendanceReportsSection: React.FC = () => {
   };
 
   const { data, isLoading, error, refetch } = useAttendanceReports(appliedFilters);
+
+  // Back to the first page whenever a different report is loaded
+  useEffect(() => setPage(1), [appliedFilters, pageSize]);
 
   const departments = data?.departments || [];
   const shifts = data?.shifts || [];
@@ -229,34 +234,19 @@ export const AttendanceReportsSection: React.FC = () => {
     document.body.removeChild(link);
   };
 
+  const allRows: any[] = reportResult?.rows ?? [];
+  const safePage = Math.min(page, Math.max(1, Math.ceil(allRows.length / pageSize)));
+  const pagedRows = allRows.slice((safePage - 1) * pageSize, safePage * pageSize);
+
   const activeReportObj = REPORT_TYPES.find((r) => r.id === activeReportType)!;
 
   return (
     <div className="space-y-6">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-        <span className="text-slate-400">HRMS</span>
-        <ChevronRight className="w-3 h-3 text-slate-300" />
-        <span className="text-slate-400">Attendance</span>
-        <ChevronRight className="w-3 h-3 text-slate-300" />
-        <span className="text-slate-800 font-semibold">Reports</span>
-      </div>
-
-      {/* Main Header */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#1E293B]">
-          Attendance Reports
-        </h1>
-        <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-          Generate, preview and download organizational attendance reports
-        </p>
-      </div>
-
       {/* Layout: Left Sidebar (Report Types) + Right Content (Filters & Table) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Side: Report Types Selector */}
-        <div className="lg:col-span-3 bg-white rounded-2xl border border-slate-200 shadow-xs p-3 space-y-1.5">
-          <div className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+        <div className="lg:col-span-3 bg-white rounded-2xl border border-slate-200 shadow-xs p-2 lg:p-3 flex gap-1.5 overflow-x-auto lg:block lg:space-y-1.5 lg:overflow-visible">
+          <div className="hidden lg:block px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
             Report Type
           </div>
           {REPORT_TYPES.map((rep) => {
@@ -267,18 +257,18 @@ export const AttendanceReportsSection: React.FC = () => {
                 key={rep.id}
                 type="button"
                 onClick={() => handleSelectReportType(rep.id)}
-                className={`w-full text-left px-3.5 py-3 rounded-xl transition-all flex items-start gap-3 cursor-pointer ${
+                className={`shrink-0 lg:w-full text-left px-3.5 py-2.5 lg:py-3 rounded-xl transition-all flex items-start gap-2.5 lg:gap-3 cursor-pointer ${
                   isSelected
-                    ? 'bg-teal-900 text-white font-bold shadow-xs'
+                    ? 'bg-blue-600 text-white font-bold shadow-sm shadow-blue-600/25'
                     : 'text-slate-700 hover:bg-slate-50 font-medium'
                 }`}
               >
-                <Icon className={`w-4 h-4 shrink-0 mt-0.5 ${isSelected ? 'text-teal-300' : 'text-slate-400'}`} />
+                <Icon className={`w-4 h-4 shrink-0 mt-0.5 ${isSelected ? 'text-blue-200' : 'text-slate-400'}`} />
                 <div className="min-w-0">
                   <div className="text-xs tracking-tight">{rep.label}</div>
                   <div
-                    className={`text-[10px] line-clamp-1 mt-0.5 ${
-                      isSelected ? 'text-teal-200' : 'text-slate-400 font-normal'
+                    className={`hidden lg:block text-[10px] line-clamp-1 mt-0.5 ${
+                      isSelected ? 'text-blue-100' : 'text-slate-400 font-normal'
                     }`}
                   >
                     {rep.desc}
@@ -306,7 +296,7 @@ export const AttendanceReportsSection: React.FC = () => {
                   type="date"
                   value={fromDate}
                   onChange={(e) => setFromDate(e.target.value)}
-                  className="w-full px-3 py-2 text-xs font-semibold rounded-xl border border-slate-300 bg-white text-slate-800 shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  className="w-full h-10 px-3 text-[13px] font-medium rounded-xl border border-slate-200 bg-slate-50/70 text-slate-800 transition focus:outline-none focus:bg-white focus:ring-4 focus:ring-blue-500/15"
                 />
               </div>
 
@@ -320,7 +310,7 @@ export const AttendanceReportsSection: React.FC = () => {
                   value={toDate}
                   min={fromDate}
                   onChange={(e) => setToDate(e.target.value)}
-                  className="w-full px-3 py-2 text-xs font-semibold rounded-xl border border-slate-300 bg-white text-slate-800 shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  className="w-full h-10 px-3 text-[13px] font-medium rounded-xl border border-slate-200 bg-slate-50/70 text-slate-800 transition focus:outline-none focus:bg-white focus:ring-4 focus:ring-blue-500/15"
                 />
               </div>
 
@@ -332,7 +322,7 @@ export const AttendanceReportsSection: React.FC = () => {
                 <select
                   value={departmentFilter}
                   onChange={(e) => setDepartmentFilter(e.target.value)}
-                  className="w-full px-3 py-2 text-xs font-semibold rounded-xl border border-slate-300 bg-white text-slate-800 shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer"
+                  className="w-full h-10 px-3 text-[13px] font-medium rounded-xl border border-slate-200 bg-slate-50/70 text-slate-800 transition focus:outline-none focus:bg-white focus:ring-4 focus:ring-blue-500/15 cursor-pointer"
                 >
                   <option value="all">All Departments</option>
                   {departments.map((dep) => (
@@ -351,7 +341,7 @@ export const AttendanceReportsSection: React.FC = () => {
                 <select
                   value={employeeFilter ?? ''}
                   onChange={(e) => setEmployeeFilter(e.target.value ? Number(e.target.value) : undefined)}
-                  className="w-full px-3 py-2 text-xs font-semibold rounded-xl border border-slate-300 bg-white text-slate-800 shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer"
+                  className="w-full h-10 px-3 text-[13px] font-medium rounded-xl border border-slate-200 bg-slate-50/70 text-slate-800 transition focus:outline-none focus:bg-white focus:ring-4 focus:ring-blue-500/15 cursor-pointer"
                 >
                   <option value="">{activeReportType === 'employee' ? 'Select Employee' : 'All Employees'}</option>
                   {employees.map((emp) => (
@@ -370,7 +360,7 @@ export const AttendanceReportsSection: React.FC = () => {
                 <select
                   value={shiftFilter ?? ''}
                   onChange={(e) => setShiftFilter(e.target.value ? Number(e.target.value) : undefined)}
-                  className="w-full px-3 py-2 text-xs font-semibold rounded-xl border border-slate-300 bg-white text-slate-800 shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer"
+                  className="w-full h-10 px-3 text-[13px] font-medium rounded-xl border border-slate-200 bg-slate-50/70 text-slate-800 transition focus:outline-none focus:bg-white focus:ring-4 focus:ring-blue-500/15 cursor-pointer"
                 >
                   <option value="">All Shifts</option>
                   {shifts.map((s) => (
@@ -389,7 +379,7 @@ export const AttendanceReportsSection: React.FC = () => {
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="w-full px-3 py-2 text-xs font-semibold rounded-xl border border-slate-300 bg-white text-slate-800 shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer"
+                  className="w-full h-10 px-3 text-[13px] font-medium rounded-xl border border-slate-200 bg-slate-50/70 text-slate-800 transition focus:outline-none focus:bg-white focus:ring-4 focus:ring-blue-500/15 cursor-pointer"
                 >
                   {statuses.map((s) => (
                     <option key={s} value={s}>
@@ -407,7 +397,7 @@ export const AttendanceReportsSection: React.FC = () => {
                 <select
                   value={exportFormat}
                   onChange={(e) => setExportFormat(e.target.value as any)}
-                  className="w-full px-3 py-2 text-xs font-semibold rounded-xl border border-slate-300 bg-white text-slate-800 shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer"
+                  className="w-full h-10 px-3 text-[13px] font-medium rounded-xl border border-slate-200 bg-slate-50/70 text-slate-800 transition focus:outline-none focus:bg-white focus:ring-4 focus:ring-blue-500/15 cursor-pointer"
                 >
                   <option value="Excel">Excel (.xlsx / .csv)</option>
                   <option value="CSV">CSV (.csv)</option>
@@ -420,7 +410,7 @@ export const AttendanceReportsSection: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleExport}
-                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 shadow-2xs transition cursor-pointer"
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 px-3 text-xs font-bold rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 shadow-2xs transition cursor-pointer"
                 >
                   <Download className="w-3.5 h-3.5 text-slate-500" />
                   <span>Export</span>
@@ -428,7 +418,7 @@ export const AttendanceReportsSection: React.FC = () => {
 
                 <button
                   type="submit"
-                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl bg-teal-800 hover:bg-teal-900 text-white shadow-2xs transition cursor-pointer"
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 px-3 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-2xs transition cursor-pointer"
                 >
                   <Eye className="w-3.5 h-3.5" />
                   <span>View Report</span>
@@ -447,7 +437,7 @@ export const AttendanceReportsSection: React.FC = () => {
                 <p className="text-[11px] text-slate-500 mt-0.5">
                   Period: {appliedFilters.fromDate} to {appliedFilters.toDate}
                   {activeReportType === 'employee' && reportResult?.employee && (
-                    <span className="ml-2 font-semibold text-teal-800">
+                    <span className="ml-2 font-semibold text-blue-700">
                       · {reportResult.employee.name} ({reportResult.employee.employee_code})
                     </span>
                   )}
@@ -481,11 +471,11 @@ export const AttendanceReportsSection: React.FC = () => {
                 No report records match the selected filters.
               </div>
             ) : (
-              <div className="overflow-x-auto max-h-[600px]">
+              <div className="overflow-x-auto">
                 {/* 1. DAILY ATTENDANCE TABLE */}
                 {activeReportType === 'daily' && (
                   <table className="w-full text-left text-xs border-collapse">
-                    <thead className="bg-slate-50 text-[11px] font-bold text-slate-500 uppercase tracking-wider sticky top-0 border-b border-slate-200">
+                    <thead className="bg-slate-50 text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
                       <tr>
                         <th className="px-4 py-3">Emp ID</th>
                         <th className="px-4 py-3">Name</th>
@@ -499,7 +489,7 @@ export const AttendanceReportsSection: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 font-medium">
-                      {reportResult.rows.map((row: any, idx: number) => (
+                      {pagedRows.map((row: any, idx: number) => (
                         <tr key={`${row.emp_id}_${row.date}_${idx}`} className="hover:bg-slate-50/70 transition-colors">
                           <td className="px-4 py-3 font-mono font-bold text-slate-800 whitespace-nowrap">{row.employee_code}</td>
                           <td className="px-4 py-3 font-semibold text-slate-900 whitespace-nowrap">{row.name}</td>
@@ -523,7 +513,7 @@ export const AttendanceReportsSection: React.FC = () => {
                 {/* 2. MONTHLY SUMMARY MATRIX TABLE */}
                 {activeReportType === 'monthly_summary' && (
                   <table className="w-full text-left text-xs border-collapse">
-                    <thead className="bg-slate-50 text-[10px] font-bold text-slate-500 uppercase tracking-wider sticky top-0 border-b border-slate-200">
+                    <thead className="bg-slate-50 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
                       <tr>
                         <th className="px-3 py-3 whitespace-nowrap sticky left-0 bg-slate-50 z-10 shadow-xs">Emp ID</th>
                         <th className="px-3 py-3 whitespace-nowrap sticky left-24 bg-slate-50 z-10 shadow-xs">Name</th>
@@ -547,7 +537,7 @@ export const AttendanceReportsSection: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 font-medium">
-                      {reportResult.rows.map((row: any) => (
+                      {pagedRows.map((row: any) => (
                         <tr key={row.emp_id} className="hover:bg-slate-50/70 transition-colors">
                           <td className="px-3 py-2.5 font-mono font-bold text-slate-800 whitespace-nowrap sticky left-0 bg-white z-10 shadow-xs">{row.employee_code}</td>
                           <td className="px-3 py-2.5 font-semibold text-slate-900 whitespace-nowrap sticky left-24 bg-white z-10 shadow-xs">{row.name}</td>
@@ -592,7 +582,7 @@ export const AttendanceReportsSection: React.FC = () => {
                 {/* 3. EMPLOYEE-WISE TABLE */}
                 {activeReportType === 'employee' && (
                   <table className="w-full text-left text-xs border-collapse">
-                    <thead className="bg-slate-50 text-[11px] font-bold text-slate-500 uppercase tracking-wider sticky top-0 border-b border-slate-200">
+                    <thead className="bg-slate-50 text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
                       <tr>
                         <th className="px-4 py-3">Date</th>
                         <th className="px-4 py-3">Shift</th>
@@ -605,7 +595,7 @@ export const AttendanceReportsSection: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 font-medium">
-                      {reportResult.rows.map((row: any, idx: number) => (
+                      {pagedRows.map((row: any, idx: number) => (
                         <tr key={`${row.date}_${idx}`} className="hover:bg-slate-50/70 transition-colors">
                           <td className="px-4 py-3 font-mono font-bold text-slate-800 whitespace-nowrap">{row.date}</td>
                           <td className="px-4 py-3 text-slate-600 whitespace-nowrap">{row.shift}</td>
@@ -628,7 +618,7 @@ export const AttendanceReportsSection: React.FC = () => {
                 {/* 4. DEPARTMENT-WISE TABLE */}
                 {activeReportType === 'department' && (
                   <table className="w-full text-left text-xs border-collapse">
-                    <thead className="bg-slate-50 text-[11px] font-bold text-slate-500 uppercase tracking-wider sticky top-0 border-b border-slate-200">
+                    <thead className="bg-slate-50 text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
                       <tr>
                         <th className="px-4 py-3">Department</th>
                         <th className="px-4 py-3 text-center">Employees</th>
@@ -641,7 +631,7 @@ export const AttendanceReportsSection: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 font-medium">
-                      {reportResult.rows.map((row: any) => (
+                      {pagedRows.map((row: any) => (
                         <tr key={row.department_id} className="hover:bg-slate-50/70 transition-colors">
                           <td className="px-4 py-3.5 font-bold text-slate-900 whitespace-nowrap">{row.department}</td>
                           <td className="px-4 py-3.5 text-center font-bold text-slate-700">{row.employees}</td>
@@ -660,7 +650,7 @@ export const AttendanceReportsSection: React.FC = () => {
                 {/* 5. LATE AND EARLY EXIT TABLE */}
                 {activeReportType === 'late_early' && (
                   <table className="w-full text-left text-xs border-collapse">
-                    <thead className="bg-slate-50 text-[11px] font-bold text-slate-500 uppercase tracking-wider sticky top-0 border-b border-slate-200">
+                    <thead className="bg-slate-50 text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
                       <tr>
                         <th className="px-4 py-3">Date</th>
                         <th className="px-4 py-3">Emp ID</th>
@@ -673,7 +663,7 @@ export const AttendanceReportsSection: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 font-medium">
-                      {reportResult.rows.map((row: any, idx: number) => (
+                      {pagedRows.map((row: any, idx: number) => (
                         <tr key={`${row.emp_id}_${row.date}_${idx}`} className="hover:bg-slate-50/70 transition-colors">
                           <td className="px-4 py-3 font-mono font-bold text-slate-800 whitespace-nowrap">{row.date}</td>
                           <td className="px-4 py-3 font-mono text-slate-700 whitespace-nowrap">{row.employee_code}</td>
@@ -696,7 +686,7 @@ export const AttendanceReportsSection: React.FC = () => {
                 {/* 6. REGULARIZATION TABLE */}
                 {activeReportType === 'regularization' && (
                   <table className="w-full text-left text-xs border-collapse">
-                    <thead className="bg-slate-50 text-[11px] font-bold text-slate-500 uppercase tracking-wider sticky top-0 border-b border-slate-200">
+                    <thead className="bg-slate-50 text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
                       <tr>
                         <th className="px-4 py-3">Request ID</th>
                         <th className="px-4 py-3">Employee</th>
@@ -708,7 +698,7 @@ export const AttendanceReportsSection: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 font-medium">
-                      {reportResult.rows.map((row: any) => (
+                      {pagedRows.map((row: any) => (
                         <tr key={row.request_id} className="hover:bg-slate-50/70 transition-colors">
                           <td className="px-4 py-3 font-mono font-bold text-indigo-600 whitespace-nowrap">{row.request_id}</td>
                           <td className="px-4 py-3 whitespace-nowrap font-semibold text-slate-900">
@@ -729,6 +719,10 @@ export const AttendanceReportsSection: React.FC = () => {
                   </table>
                 )}
               </div>
+            )}
+
+            {!isLoading && !error && allRows.length > 0 && (
+              <Pagination page={safePage} pageSize={pageSize} total={allRows.length} onPageChange={setPage} onPageSizeChange={setPageSize} pageSizes={[10, 25, 50, 100]} />
             )}
           </div>
         </div>

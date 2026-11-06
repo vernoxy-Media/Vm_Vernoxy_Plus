@@ -290,7 +290,7 @@ export const Composer: React.FC<Props> = (p) => {
           aria-label={p.editing ? 'Save edit' : 'Send'}
           disabled={!canSend}
           onClick={submit}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#4F46E5] text-white shadow-sm transition hover:bg-[#4338CA] disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--chat-accent,#4F46E5)] text-white shadow-sm transition hover:bg-[var(--chat-accent-dark,#4338CA)] disabled:cursor-not-allowed disabled:opacity-40"
         >
           <Send className="h-5 w-5" />
         </button>

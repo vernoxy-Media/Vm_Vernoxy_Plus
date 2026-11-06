@@ -89,6 +89,7 @@ export const ChangePasswordPage: React.FC = () => {
           <label htmlFor="current-password" className="block text-sm font-medium text-slate-700">
             Current password
           </label>
+          <p className="mt-0.5 text-xs text-slate-500">The temporary password you just signed in with. If the browser filled in an old one, clear it and type the temporary password.</p>
           <div className="relative mt-1">
             <input
               id="current-password"

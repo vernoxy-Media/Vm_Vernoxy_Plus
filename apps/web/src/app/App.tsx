@@ -13,6 +13,8 @@ import { ForgotPasswordPage } from '@/features/auth/pages/ForgotPasswordPage';
 import { ResetPasswordPage } from '@/features/auth/pages/ResetPasswordPage';
 import { ChangePasswordPage } from '@/features/auth/pages/ChangePasswordPage';
 import { HomePage } from '@/features/home/pages/HomePage';
+import { ClientPortalApp } from '@/features/client-portal/ClientPortalApp';
+import { AppThemeSync } from '@/shared/theme/AppThemeSync';
 import { NotFoundPage } from './NotFoundPage';
 import { SettingsPage } from '@/features/settings/pages/SettingsPage';
 import { AttendanceSettingsPage } from '@/features/attendance/pages/AttendanceSettingsPage';
@@ -76,6 +78,7 @@ export const App: React.FC = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <AppThemeSync />
         <SocketProvider>
           <BrowserRouter>
             <MessengerProvider>
@@ -86,6 +89,8 @@ export const App: React.FC = () => {
               <Route path="/login/verify" element={<VerifyOtpPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
+              {/* Clients: their own sign in and a read-only view of their projects */}
+              <Route path="/client/*" element={<ClientPortalApp />} />
 
               {/* Authenticated Routes */}
               <Route

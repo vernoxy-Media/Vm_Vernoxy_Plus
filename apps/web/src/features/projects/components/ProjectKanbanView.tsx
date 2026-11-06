@@ -398,7 +398,7 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
       } catch (err: any) {
         console.error('Failed to change project status:', err);
         setLocalProjects(previousProjects);
-        alert(err?.message || 'Failed to update project status. Please try again.');
+        alert(err?.detail || err?.message || 'Failed to update project status. Please try again.');
       }
     }
   };

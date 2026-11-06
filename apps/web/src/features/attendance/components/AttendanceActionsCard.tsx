@@ -132,7 +132,7 @@ export const AttendanceActionsCard: React.FC<AttendanceActionsCardProps> = ({
   return (
     <div
       id="attendance-actions-card"
-      className="relative flex flex-col justify-between gap-4 overflow-hidden rounded-2xl bg-gradient-to-br from-[#0B1B4A] via-[#16358F] to-[#2563EB] p-4 text-white shadow-lg shadow-blue-900/10 sm:p-5"
+      className="relative flex flex-col justify-between gap-4 overflow-hidden rounded-2xl bg-gradient-to-br from-[#0B1B4A] via-[#16358F] to-[color:var(--ac-main,#2563EB)] p-4 text-white shadow-lg shadow-blue-900/10 sm:p-5"
     >
       <span aria-hidden className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
       <div className="relative flex flex-wrap items-start justify-between gap-x-6 gap-y-4">

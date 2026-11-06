@@ -204,9 +204,9 @@ export function MasterDataPage<T>({
               ))}
             </ul>
 
-            <div className="hidden max-h-[calc(100vh-380px)] min-h-[320px] overflow-auto md:block">
+            <div className="hidden overflow-x-auto md:block">
               <table className="relative w-full min-w-[560px] text-left text-sm" id={tableId}>
-                <thead className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur-xs">
+                <thead className="bg-slate-50/95">
                   <tr className="border-b border-slate-200 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
                     {columns.map((col) => (
                       <th key={col.key} className={`whitespace-nowrap px-5 py-3 ${col.align === 'right' ? 'text-right' : ''}`}>

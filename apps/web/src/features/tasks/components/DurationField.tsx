@@ -81,12 +81,12 @@ export const DurationField: React.FC<DurationFieldProps> = ({
   return (
     <div className="space-y-1.5">
       {label && (
-        <label htmlFor={id} className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
+        <label htmlFor={id} className="block text-[12px] font-semibold text-[#5E6C84]">
           {label}
         </label>
       )}
-      <div className="relative rounded-xl shadow-xs">
-        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+      <div className="relative">
+        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[#7A869A]">
           <Clock className="h-4 w-4" />
         </div>
         <input
@@ -97,11 +97,11 @@ export const DurationField: React.FC<DurationFieldProps> = ({
           onChange={(e) => setText(e.target.value)}
           onBlur={handleBlur}
           placeholder="e.g. 2h 30m, 45m"
-          className={`block w-full rounded-xl border bg-white py-2 pl-9 pr-3 text-sm transition-all focus:outline-none focus:ring-2 ${
+          className={`block w-full rounded-[3px] border-2 bg-[#FAFBFC] py-1.5 pl-9 pr-3 text-[14px] leading-5 transition-colors hover:bg-[#EBECF0] focus:bg-white focus:outline-none ${
             error
-              ? 'border-rose-300 text-rose-900 focus:border-rose-500 focus:ring-rose-200'
-              : 'border-slate-200 text-slate-900 focus:border-blue-500 focus:ring-blue-100'
-          } ${disabled ? 'bg-slate-50 cursor-not-allowed opacity-75' : ''}`}
+              ? 'border-[#FF8F73] text-[#172B4D] focus:border-[#DE350B]'
+              : 'border-[#DFE1E6] text-[#172B4D] focus:border-[color:var(--ac-400,#4C9AFF)]'
+          } ${disabled ? 'cursor-not-allowed bg-[#F4F5F7] opacity-75' : ''}`}
         />
       </div>
 
@@ -119,14 +119,14 @@ export const DurationField: React.FC<DurationFieldProps> = ({
             type="button"
             onClick={() => setPreset(p.mins)}
             disabled={disabled}
-            className="rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors"
+            className="cursor-pointer rounded-[3px] bg-[rgba(9,30,66,0.04)] px-2 py-0.5 text-[12px] font-medium text-[#42526E] transition-colors hover:bg-[rgba(9,30,66,0.08)]"
           >
             {p.label}
           </button>
         ))}
       </div>
 
-      {error && <p className="text-xs text-rose-600 mt-1">{error}</p>}
+      {error && <p role="alert" className="mt-1 text-[12px] text-[#BF2600]">{error}</p>}
     </div>
   );
 };

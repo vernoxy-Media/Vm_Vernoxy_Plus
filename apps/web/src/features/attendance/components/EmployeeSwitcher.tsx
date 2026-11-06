@@ -59,7 +59,7 @@ export const EmployeeSwitcher: React.FC<{
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
         className={`inline-flex h-10 max-w-[16rem] items-center gap-2 rounded-xl border bg-white px-2.5 text-xs font-semibold text-slate-800 shadow-2xs transition hover:bg-slate-50 cursor-pointer ${
-          value ? 'border-[#5B4CF8] ring-2 ring-[#5B4CF8]/15' : 'border-[#E2E8F0]'
+          value ? 'border-[color:var(--ac-main,#5B4CF8)] ring-2 ring-[rgb(var(--ac-main-rgb,91_76_248)/0.15)]' : 'border-[#E2E8F0]'
         }`}
       >
         <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[10px] font-bold text-indigo-700">
@@ -97,7 +97,7 @@ export const EmployeeSwitcher: React.FC<{
                 <span className="block truncate font-medium text-slate-900">My attendance</span>
                 <span className="block truncate text-xs text-slate-500">{me.name}</span>
               </span>
-              {!value && <Check className="h-4 w-4 text-[#5B4CF8]" />}
+              {!value && <Check className="h-4 w-4 text-[color:var(--ac-main,#5B4CF8)]" />}
             </button>
 
             {options
@@ -118,7 +118,7 @@ export const EmployeeSwitcher: React.FC<{
                     <span className="block truncate font-medium text-slate-900">{o.name}</span>
                     <span className="block truncate text-xs text-slate-500">{o.employee_code ?? o.email}</span>
                   </span>
-                  {value?.emp_id === o.emp_id && <Check className="h-4 w-4 text-[#5B4CF8]" />}
+                  {value?.emp_id === o.emp_id && <Check className="h-4 w-4 text-[color:var(--ac-main,#5B4CF8)]" />}
                 </button>
               ))}
 

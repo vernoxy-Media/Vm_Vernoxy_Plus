@@ -1,18 +1,10 @@
 import React, { useState } from 'react';
-import {
-  CheckSquare,
-  Clock,
-  AlertTriangle,
-  Send,
-  CheckCircle2,
-  LayoutGrid,
-  List,
-  Zap,
-} from 'lucide-react';
+import { Bug, CheckSquare, LayoutGrid, Zap } from 'lucide-react';
 import {
   useMyTasksControllerGetBoard,
   useMyTasksControllerGetSummary,
   useMyTasksControllerGetTaskDetail,
+  useTasksControllerGetAssignableEmployees,
   useMyTasksControllerMoveStage,
   useMyTasksControllerTrackWorkSession,
   customFetch,
@@ -26,12 +18,13 @@ import type {
   TaskDetailDto,
 } from '../types';
 import { useLookupsQuery } from '@/features/organization/hooks/use-master-data';
-import { SummaryCards } from '@/shared/ui/SummaryCards';
 import { TaskFiltersBar } from '../components/TaskFiltersBar';
 import { TaskBoard } from '../components/TaskBoard';
 import { TaskListView } from '../components/TaskListView';
-import { TaskDrawer } from '../components/TaskDrawer';
+import { TaskIssuePanel } from '../components/TaskIssuePanel';
+import { PRIMARY_BUTTON, TaskPageHeader, TaskStatStrip, UnderlineTabs, ViewSwitch } from '../components/TaskPageChrome';
 import { QuickTaskModal } from '../components/QuickTaskModal';
+import { MyBugsView } from '../components/MyBugsView';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useSocket } from '@/shared/socket/SocketContext';
@@ -150,100 +143,24 @@ export const MyTasksView: React.FC = () => {
   const submittedCount = summary?.submitted ?? (summary?.requested ?? 0);
   const approvedCount = summary?.approved ?? 0;
 
-  const summaryItems = [
-    {
-      id: 'total',
-      label: 'Total Tasks',
-      count: summary?.total ?? 0,
-      icon: CheckSquare,
-      colorClass: 'bg-slate-100 text-slate-700',
-      borderClass: 'border-slate-200 hover:border-slate-300 bg-gradient-to-br from-slate-50/60 via-white to-white',
-    },
-    {
-      id: 'in_progress',
-      label: 'To Do / In Progress',
-      count: todoOrInProgress,
-      icon: Clock,
-      colorClass: 'bg-blue-50 text-blue-700',
-      borderClass: 'border-blue-200 hover:border-blue-300 bg-gradient-to-br from-blue-50/40 via-white to-white',
-    },
-    {
-      id: 'hold',
-      label: 'On Hold',
-      count: onHoldCount,
-      icon: AlertTriangle,
-      colorClass: 'bg-amber-50 text-amber-700',
-      borderClass: 'border-amber-200 hover:border-amber-300 bg-gradient-to-br from-amber-50/40 via-white to-white',
-    },
-    {
-      id: 'submitted',
-      label: 'Submitted',
-      count: submittedCount,
-      icon: Send,
-      colorClass: 'bg-purple-50 text-purple-700',
-      borderClass: 'border-purple-200 hover:border-purple-300 bg-gradient-to-br from-purple-50/40 via-white to-white',
-    },
-    {
-      id: 'approved',
-      label: 'Approved',
-      count: approvedCount,
-      icon: CheckCircle2,
-      colorClass: 'bg-emerald-50 text-emerald-700',
-      borderClass: 'border-emerald-200 hover:border-emerald-300 bg-gradient-to-br from-emerald-50/40 via-white to-white',
-    },
+  const statItems = [
+    { label: 'Total', value: summary?.total ?? 0, dot: 'bg-[#42526E]' },
+    { label: 'To Do / In Progress', value: todoOrInProgress, dot: 'bg-[color:var(--ac-main,#0052CC)]' },
+    { label: 'On Hold', value: onHoldCount, dot: 'bg-[#FF991F]' },
+    { label: 'In Review', value: submittedCount, dot: 'bg-[#6554C0]' },
+    { label: 'Done', value: approvedCount, dot: 'bg-[#36B37E]' },
   ];
 
   return (
     <div className="space-y-6">
-      {/* Top Header with Quick Task & View Switcher */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">My Tasks</h1>
-        </div>
+      <TaskPageHeader crumbs={['Tasks']} title="My tasks">
+        <ViewSwitch value={viewMode} onChange={setViewMode} />
+        <button type="button" onClick={() => setIsQuickTaskOpen(true)} className={PRIMARY_BUTTON}>
+          <Zap className="h-4 w-4" /> Create quick task
+        </button>
+      </TaskPageHeader>
 
-        <div className="flex items-center gap-3">
-          {/* Dual View Toggle (Kanban / List) */}
-          <div className="inline-flex rounded-xl bg-slate-100 p-1 border border-slate-200">
-            <button
-              type="button"
-              onClick={() => setViewMode('kanban')}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                viewMode === 'kanban'
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              <LayoutGrid className="w-3.5 h-3.5" />
-              Kanban
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('list')}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                viewMode === 'list'
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              <List className="w-3.5 h-3.5" />
-              List
-            </button>
-          </div>
-
-          {/* Add Quick Task Button (BFD Section 2.3 & 3.5) */}
-          <button
-            type="button"
-            onClick={() => setIsQuickTaskOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl text-white bg-purple-600 hover:bg-purple-700 shadow-xs transition-colors cursor-pointer"
-          >
-            <Zap className="w-3.5 h-3.5" />
-            Add Quick Task
-          </button>
-        </div>
-      </div>
-
-      {/* 5 Summary KPI Cards */}
-      <SummaryCards items={summaryItems} />
+      <TaskStatStrip items={statItems} />
 
       {/* Filter Bar */}
       <TaskFiltersBar
@@ -274,11 +191,12 @@ export const MyTasksView: React.FC = () => {
         />
       )}
 
-      {/* Task Detail Drawer */}
-      <TaskDrawer
+      {/* The task, as a Jira issue */}
+      <TaskIssuePanel
         task={detailData || null}
         isOpen={selectedTaskId !== null}
         isAdmin={false}
+        heading="My tasks"
         onClose={() => setSelectedTaskId(null)}
         onMoveStage={handleMoveStage}
         onTrackWorkSession={handleTrackWorkSession}
@@ -301,55 +219,33 @@ export const MyTasksPage: React.FC = () => {
   const isAdmin = Boolean(user?.access?.can_manage_organization);
 
   const [searchParams, setSearchParams] = useSearchParams();
+  const { data: rawEmployees } = useTasksControllerGetAssignableEmployees({ query: { enabled: isAdmin } });
+  const people = (Array.isArray(rawEmployees) ? rawEmployees : Array.isArray((rawEmployees as any)?.data) ? (rawEmployees as any).data : []).map((e: any) => ({ id: e.emp_id as number, name: e.name as string, avatar: e.avatar_url as string | null }));
   const currentTab = searchParams.get('tab');
-  const activeTab = isAdmin && currentTab === 'management' ? 'management' : 'my-tasks';
+  const activeTab = currentTab === 'bugs' ? 'bugs' : isAdmin && currentTab === 'management' ? 'management' : 'my-tasks';
 
-  const handleTabChange = (tab: 'my-tasks' | 'management') => {
-    if (tab === 'management') {
-      setSearchParams({ tab: 'management' });
-    } else {
-      setSearchParams({});
-    }
+  const handleTabChange = (tab: 'my-tasks' | 'bugs' | 'management') => {
+    if (tab === 'my-tasks') setSearchParams({});
+    else setSearchParams({ tab });
   };
 
   return (
     <div className="space-y-6">
-      {/* 2 Navigation Tabs: My Tasks & Task Management (Task Management is only visible to Admin) */}
-      {isAdmin && (
-        <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
-          <button
-            type="button"
-            id="tab-my-tasks"
-            onClick={() => handleTabChange('my-tasks')}
-            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition cursor-pointer ${
-              activeTab === 'my-tasks'
-                ? 'bg-slate-900 text-white shadow-xs dark:bg-slate-100 dark:text-slate-900'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200'
-            }`}
-          >
-            <CheckSquare className="w-4 h-4 text-blue-500" />
-            <span>My Tasks</span>
-          </button>
-
-          <button
-            type="button"
-            id="tab-task-management"
-            onClick={() => handleTabChange('management')}
-            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition cursor-pointer ${
-              activeTab === 'management'
-                ? 'bg-slate-900 text-white shadow-xs dark:bg-slate-100 dark:text-slate-900'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200'
-            }`}
-          >
-            <LayoutGrid className="w-4 h-4 text-purple-500" />
-            <span>Task Management</span>
-          </button>
-        </div>
-      )}
+      <UnderlineTabs
+        tabs={[
+          { id: 'my-tasks', label: 'My tasks', icon: CheckSquare },
+          { id: 'bugs', label: 'My bugs', icon: Bug },
+          ...(isAdmin ? [{ id: 'management', label: 'Task management', icon: LayoutGrid }] : []),
+        ]}
+        value={activeTab}
+        onChange={(id) => handleTabChange(id as 'my-tasks' | 'bugs' | 'management')}
+      />
 
       {/* Tab Content */}
       {activeTab === 'management' && isAdmin ? (
         <TaskManagementPage />
+      ) : activeTab === 'bugs' ? (
+        <MyBugsView isAdmin={isAdmin} people={people} />
       ) : (
         <MyTasksView />
       )}

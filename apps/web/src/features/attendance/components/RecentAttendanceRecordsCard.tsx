@@ -18,7 +18,7 @@ import {
 import type { DayRecord } from '../types/attendance.types';
 import { AttendanceInsightDrawer } from './AttendanceInsightDrawer';
 import { MyRegularizationsDrawer } from './MyRegularizationsDrawer';
-import { fetchRegularizations } from '../api/attendance.api';
+import { fetchRegularizations, reverseGeocode } from '../api/attendance.api';
 import { arrivalOf, describeMinutes, formatClock, overtimeMinutes, resolveShift } from '../utils/attendance-metrics';
 import { Pagination } from '@/shared/ui/Pagination';
 
@@ -132,6 +132,18 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
   }, [hover]);
   const keepHover = () => window.clearTimeout(hoverTimer.current);
   const [mapFor, setMapFor] = useState<{ record: DayRecord; x: number; y: number } | null>(null);
+  const [mapAddress, setMapAddress] = useState<string | null | undefined>(undefined);
+  const mapLat = mapFor?.record.latitude ?? null;
+  const mapLng = mapFor?.record.longitude ?? null;
+  useEffect(() => {
+    if (mapLat == null || mapLng == null) return;
+    let live = true;
+    setMapAddress(undefined);
+    reverseGeocode(mapLat, mapLng).then((a) => live && setMapAddress(a));
+    return () => {
+      live = false;
+    };
+  }, [mapLat, mapLng]);
 
   const [preset, setPreset] = useState<'7' | '30' | 'month'>('month');
   const applyPreset = (p: '7' | '30' | 'month') => {
@@ -528,12 +540,7 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
                                 aria-label="Show punch location"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  const r = e.currentTarget.getBoundingClientRect();
-                                  setMapFor((cur) =>
-                                    cur?.record.date === record.date
-                                      ? null
-                                      : { record, x: Math.max(8, Math.min(window.innerWidth - 328, r.left - 150)), y: r.top - 196 < 8 ? r.bottom + 6 : r.top - 196 },
-                                  );
+                                  window.open(`https://www.openstreetmap.org/?mlat=${record.latitude}&mlon=${record.longitude}#map=18/${record.latitude}/${record.longitude}`, '_blank', 'noopener,noreferrer');
                                 }}
                                 onMouseEnter={(e) => {
                                   const r = e.currentTarget.getBoundingClientRect();
@@ -680,6 +687,9 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
               loading="lazy"
               src={`https://www.openstreetmap.org/export/embed.html?bbox=${mapFor.record.longitude - 0.004}%2C${mapFor.record.latitude - 0.003}%2C${mapFor.record.longitude + 0.004}%2C${mapFor.record.latitude + 0.003}&layer=mapnik&marker=${mapFor.record.latitude}%2C${mapFor.record.longitude}`}
             />
+            <p className="border-t border-[#E4E8EF] px-3 py-2 text-[12px] leading-snug text-slate-700">
+              {mapAddress === undefined ? 'Finding address…' : mapAddress ?? `${mapFor.record.latitude.toFixed(5)}, ${mapFor.record.longitude.toFixed(5)}`}
+            </p>
           </div>,
           document.body,
         )}
@@ -702,7 +712,7 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
                   type="button"
                   onClick={() => handleOpenInsight(record)}
                   className={`w-full rounded-2xl border p-3.5 text-left transition active:scale-[0.99] ${
-                    selectedDate === record.date ? 'border-[#5B4CF8]/40 bg-indigo-50/50' : 'border-[#E2E8F0] bg-white hover:bg-[#F8FAFC]'
+                    selectedDate === record.date ? 'border-[rgb(var(--ac-main-rgb,91_76_248)/0.4)] bg-indigo-50/50' : 'border-[#E2E8F0] bg-white hover:bg-[#F8FAFC]'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
@@ -710,7 +720,7 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
                     <span className={`text-[10px] uppercase tracking-wider ${status.className}`}>{status.label}</span>
                   </div>
                   <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-                    <div className="h-full rounded-full bg-gradient-to-r from-[#5B4CF8] to-[#6C63FF]" style={{ width: `${pct}%` }} />
+                    <div className="h-full rounded-full bg-gradient-to-r from-[color:var(--ac-main,#5B4CF8)] to-[color:var(--ac-hover,#6C63FF)]" style={{ width: `${pct}%` }} />
                   </div>
                   <dl className="mt-3 grid grid-cols-3 gap-2 text-xs">
                     <div>

@@ -5,6 +5,7 @@ import { Sidebar } from './Sidebar';
 import { UserMenu } from './UserMenu';
 import { Menu, X, ShieldAlert, Calendar } from 'lucide-react';
 import { NotificationBell } from '@/features/notifications/components/NotificationBell';
+import { ThemeMenu } from '@/shared/theme/ThemeMenu';
 
 export interface AppLayoutProps {
   children: React.ReactNode;
@@ -48,7 +49,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           </p>
           <Link
             to="/"
-            className="inline-flex items-center justify-center px-5 py-2.5 rounded-[14px] bg-gradient-to-r from-[#5B4CF8] to-[#6C63FF] text-sm font-semibold text-white hover:from-[#4E3FE3] hover:to-[#5E55EC] transition-all duration-150 shadow-sm"
+            className="inline-flex items-center justify-center px-5 py-2.5 rounded-[14px] bg-gradient-to-r from-[color:var(--ac-main,#5B4CF8)] to-[color:var(--ac-hover,#6C63FF)] text-sm font-semibold text-white hover:from-[#4E3FE3] hover:to-[#5E55EC] transition-all duration-150 shadow-sm"
           >
             Return to Dashboard
           </Link>
@@ -88,7 +89,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
             <Menu className="w-5 h-5 stroke-[1.75]" />
           </button>
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#5B4CF8] to-[#6C63FF] text-white flex items-center justify-center font-extrabold text-base shadow-sm">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[color:var(--ac-main,#5B4CF8)] to-[color:var(--ac-hover,#6C63FF)] text-white flex items-center justify-center font-extrabold text-base shadow-sm">
               V
             </div>
             <span className="font-bold text-[#1E293B] text-base">Vernoxy Pulse</span>
@@ -96,6 +97,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
+          <ThemeMenu className="p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer" />
           <NotificationBell />
           <Link
             to="/calendar"
@@ -157,6 +159,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           </div>
 
           <div className="flex shrink-0 items-center gap-2.5">
+            <ThemeMenu className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900" />
             <NotificationBell />
             <Link
               to="/calendar"

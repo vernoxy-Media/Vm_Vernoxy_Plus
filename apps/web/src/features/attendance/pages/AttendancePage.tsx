@@ -186,7 +186,7 @@ export const AttendancePage: React.FC = () => {
       {/* Top Header matching reference image */}
       <div className="flex items-center justify-between pb-1">
         <div className="flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-2xl bg-indigo-50/80 border border-indigo-100 text-[#5B4CF8] flex items-center justify-center shrink-0 shadow-2xs">
+          <div className="w-11 h-11 rounded-2xl bg-indigo-50/80 border border-indigo-100 text-[color:var(--ac-main,#5B4CF8)] flex items-center justify-center shrink-0 shadow-2xs">
             <ClipboardCheck className="w-5 h-5 stroke-[1.75]" />
           </div>
           <div>
@@ -260,7 +260,7 @@ export const AttendancePage: React.FC = () => {
             }}
             className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-3.5 py-3 text-[13px] font-semibold transition-colors cursor-pointer ${
               attendanceTab === 'timesheet'
-                ? 'border-[#5B4CF8] text-[#5B4CF8]'
+                ? 'border-[color:var(--ac-main,#5B4CF8)] text-[color:var(--ac-main,#5B4CF8)]'
                 : 'border-transparent text-slate-500 hover:text-slate-900 hover:border-slate-300'
             }`}
           >
@@ -277,10 +277,10 @@ export const AttendancePage: React.FC = () => {
               setAttendanceTab('calendar');
               setSearchParams({ tab: 'calendar' });
             }}
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-3.5 py-3 text-[13px] font-semibold transition-colors cursor-pointer ${
               attendanceTab === 'calendar'
-                ? 'bg-white text-indigo-600 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                ? 'border-[color:var(--ac-main,#5B4CF8)] text-[color:var(--ac-main,#5B4CF8)]'
+                : 'border-transparent text-slate-500 hover:text-slate-900 hover:border-slate-300'
             }`}
           >
             <Calendar className="w-3.5 h-3.5" />
@@ -298,7 +298,7 @@ export const AttendancePage: React.FC = () => {
             }}
             className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-3.5 py-3 text-[13px] font-semibold transition-colors cursor-pointer ${
               attendanceTab === 'regularization'
-                ? 'border-[#5B4CF8] text-[#5B4CF8]'
+                ? 'border-[color:var(--ac-main,#5B4CF8)] text-[color:var(--ac-main,#5B4CF8)]'
                 : 'border-transparent text-slate-500 hover:text-slate-900 hover:border-slate-300'
             }`}
           >
@@ -318,7 +318,7 @@ export const AttendancePage: React.FC = () => {
               }}
               className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-3.5 py-3 text-[13px] font-semibold transition-colors cursor-pointer ${
                 attendanceTab === 'approvals'
-                  ? 'border-[#5B4CF8] text-[#5B4CF8]'
+                  ? 'border-[color:var(--ac-main,#5B4CF8)] text-[color:var(--ac-main,#5B4CF8)]'
                   : 'border-transparent text-slate-500 hover:text-slate-900 hover:border-slate-300'
               }`}
             >
@@ -326,17 +326,21 @@ export const AttendancePage: React.FC = () => {
               <span>Approvals</span>
             </button>
           )}
-        </div>
 
-        {canManageAttendance && (
-          <Link
-            to="/attendance/register"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-[14px] text-xs font-bold shadow-2xs transition cursor-pointer border border-indigo-200"
-          >
-            <ClipboardCheck className="w-3.5 h-3.5" />
-            <span>Attendance Register</span>
-          </Link>
-        )}
+          {canManageAttendance && (
+            <>
+              <span aria-hidden className="mx-1 h-5 w-px shrink-0 bg-slate-200" />
+              <Link
+                to="/attendance/register"
+                title="Everyone's daily attendance and reports"
+                className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 border-transparent px-3.5 py-3 text-[13px] font-semibold text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-900"
+              >
+                <ClipboardCheck className="w-3.5 h-3.5" />
+                <span>Attendance Register</span>
+              </Link>
+            </>
+          )}
+        </div>
       </div>
 
       {attendanceTab === 'timesheet' && (
@@ -389,7 +393,7 @@ export const AttendancePage: React.FC = () => {
           <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 text-[#5B4CF8] flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 text-[color:var(--ac-main,#5B4CF8)] flex items-center justify-center">
                   <Download className="w-4 h-4 stroke-[2]" />
                 </div>
                 <div>
@@ -461,7 +465,7 @@ export const AttendancePage: React.FC = () => {
                 type="button"
                 onClick={() => handleExportCsv()}
                 disabled={isExporting}
-                className="px-4 py-2 rounded-xl bg-[#5B4CF8] hover:bg-indigo-600 text-white text-xs font-semibold shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                className="px-4 py-2 rounded-xl bg-[color:var(--ac-main,#5B4CF8)] hover:bg-indigo-600 text-white text-xs font-semibold shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>{isExporting ? 'Exporting...' : 'Download CSV'}</span>

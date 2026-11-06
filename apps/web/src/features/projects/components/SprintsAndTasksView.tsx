@@ -51,9 +51,9 @@ export const SprintsAndTasksView: React.FC<SprintsAndTasksViewProps> = ({
       setSprints(sprintList);
       setTasks(taskList);
 
-      // Default select the first active/in_progress sprint, or first sprint, or 'all'
+      // Default select the first active sprint, or first sprint, or 'all'
       if (sprintList.length > 0) {
-        const active = sprintList.find((s) => s.status === 'in_progress');
+        const active = sprintList.find((s) => s.status === 'active');
         setSelectedSprintId(active ? active.sprint_id : sprintList[0].sprint_id);
       } else {
         setSelectedSprintId('all');
@@ -223,7 +223,7 @@ export const SprintsAndTasksView: React.FC<SprintsAndTasksViewProps> = ({
                 const isSelected = selectedSprintId === sprint.sprint_id;
                 const statusColors = {
                   planned: 'bg-amber-50 text-amber-700 border-amber-200',
-                  in_progress: 'bg-blue-50 text-blue-700 border-blue-200',
+                  active: 'bg-blue-50 text-blue-700 border-blue-200',
                   completed: 'bg-emerald-50 text-emerald-700 border-emerald-200',
                 };
 
@@ -261,7 +261,7 @@ export const SprintsAndTasksView: React.FC<SprintsAndTasksViewProps> = ({
                         }`}
                       >
                         <option value="planned">Planned</option>
-                        <option value="in_progress">In Progress</option>
+                        <option value="active">In Progress</option>
                         <option value="completed">Completed</option>
                       </select>
                     </div>

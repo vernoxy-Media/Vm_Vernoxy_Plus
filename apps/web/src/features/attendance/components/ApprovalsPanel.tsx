@@ -12,7 +12,7 @@ const TABS = ['pending', 'approved', 'rejected'] as const;
 type Tab = (typeof TABS)[number];
 
 const field =
-  'h-9 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-xs text-slate-800 focus:border-[#5B4CF8] focus:outline-none focus:ring-2 focus:ring-[#5B4CF8]/15';
+  'h-9 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-xs text-slate-800 focus:border-[color:var(--ac-main,#5B4CF8)] focus:outline-none focus:ring-2 focus:ring-[rgb(var(--ac-main-rgb,91_76_248)/0.15)]';
 
 export const ApprovalsPanel: React.FC<{
   /** An administrator looking at one employee: only that employee's requests are listed */
@@ -105,7 +105,7 @@ export const ApprovalsPanel: React.FC<{
 
   const Check_ = ({ id, on }: { id: number; on: boolean }) => (
     <button type="button" aria-label={on ? 'Deselect request' : 'Select request'} onClick={(e) => { e.stopPropagation(); toggleSelect(id); }} className="text-slate-300 hover:text-slate-600 cursor-pointer">
-      {on ? <CheckSquare className="h-4 w-4 text-[#5B4CF8]" /> : <Square className="h-4 w-4" />}
+      {on ? <CheckSquare className="h-4 w-4 text-[color:var(--ac-main,#5B4CF8)]" /> : <Square className="h-4 w-4" />}
     </button>
   );
 
@@ -134,7 +134,7 @@ export const ApprovalsPanel: React.FC<{
                 aria-selected={activeTab === t}
                 onClick={() => setActiveTab(t)}
                 className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-3 py-3 text-[13px] font-semibold capitalize transition-colors cursor-pointer ${
-                  activeTab === t ? 'border-[#5B4CF8] text-[#5B4CF8]' : 'border-transparent text-slate-500 hover:text-slate-900'
+                  activeTab === t ? 'border-[color:var(--ac-main,#5B4CF8)] text-[color:var(--ac-main,#5B4CF8)]' : 'border-transparent text-slate-500 hover:text-slate-900'
                 }`}
               >
                 {t}
@@ -197,7 +197,7 @@ export const ApprovalsPanel: React.FC<{
                 {activeTab === 'pending' && (
                   <th className="w-10 py-3 pl-5 pr-2">
                     <button type="button" aria-label="Select all on this page" onClick={togglePage} className="text-slate-300 hover:text-slate-600 cursor-pointer">
-                      {allOnPageSelected ? <CheckSquare className="h-4 w-4 text-[#5B4CF8]" /> : <Square className="h-4 w-4" />}
+                      {allOnPageSelected ? <CheckSquare className="h-4 w-4 text-[color:var(--ac-main,#5B4CF8)]" /> : <Square className="h-4 w-4" />}
                     </button>
                   </th>
                 )}
@@ -242,7 +242,7 @@ export const ApprovalsPanel: React.FC<{
                         <button
                           type="button"
                           onClick={(e) => { e.stopPropagation(); open(r); }}
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-indigo-200 hover:text-[#5B4CF8] cursor-pointer"
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-indigo-200 hover:text-[color:var(--ac-main,#5B4CF8)] cursor-pointer"
                         >
                           <Eye className="h-3.5 w-3.5" /> {activeTab === 'pending' ? 'Review' : 'View'}
                         </button>

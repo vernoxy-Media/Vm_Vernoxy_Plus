@@ -1,10 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   ClipboardCheck,
   Search,
   Eye,
-  ChevronRight,
   Users,
   CheckCircle2,
   XCircle,
@@ -12,7 +11,9 @@ import {
   AlertTriangle,
   CalendarOff,
   FileSpreadsheet,
+  Loader2,
 } from 'lucide-react';
+import { Pagination } from '@/shared/ui/Pagination';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useAttendanceRegister } from '../hooks/use-attendance';
 import { AttendanceDetailModal } from '../components/AttendanceDetailModal';
@@ -45,9 +46,29 @@ const STATUS_COLORS: Record<string, string> = {
   Late: 'bg-yellow-100 text-yellow-700',
 };
 
+const AVATAR_TONES = ['bg-sky-100 text-sky-700', 'bg-violet-100 text-violet-700', 'bg-emerald-100 text-emerald-700', 'bg-amber-100 text-amber-700', 'bg-rose-100 text-rose-700', 'bg-indigo-100 text-indigo-700'];
+
+const Avatar: React.FC<{ name: string }> = ({ name }) => {
+  const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join('') || '?';
+  const tone = AVATAR_TONES[[...name].reduce((n, c) => n + c.charCodeAt(0), 0) % AVATAR_TONES.length];
+  return <span aria-hidden className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold ${tone}`}>{initials}</span>;
+};
+
+const StatusBadge: React.FC<{ row: { status: string; is_late?: boolean } }> = ({ row }) => {
+  const late = row.status === 'Present' && row.is_late;
+  return (
+    <span className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold ${late ? 'bg-amber-100 text-amber-800' : STATUS_COLORS[row.status] || 'bg-slate-100 text-slate-600'}`}>
+      <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-current opacity-70" />
+      {row.status}
+      {late && <span className="text-[9px] font-extrabold uppercase">· Late</span>}
+    </span>
+  );
+};
+
 export const AttendanceRegisterPage: React.FC<AttendanceRegisterPageProps> = ({ defaultView }) => {
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [searchParams, setSearchParams] = useSearchParams();
 
   // View switcher: 'daily' or 'reports'
@@ -87,6 +108,9 @@ export const AttendanceRegisterPage: React.FC<AttendanceRegisterPageProps> = ({ 
     searchTimerRef.current = setTimeout(() => setDebouncedSearch(val), 350);
   };
 
+  // Back to the first page whenever the filters change
+  React.useEffect(() => setPage(1), [selectedDate, departmentFilter, shiftFilter, statusFilter, debouncedSearch, pageSize]);
+
   const { data, isLoading, error } = useAttendanceRegister({
     date: selectedDate,
     departmentId: departmentFilter,
@@ -123,6 +147,10 @@ export const AttendanceRegisterPage: React.FC<AttendanceRegisterPageProps> = ({ 
     missing_punch_count: 0,
   };
   const records = data?.records || [];
+  const safePage = Math.min(page, Math.max(1, Math.ceil(records.length / pageSize)));
+  const pagedRecords = records.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const openDetail = (row: (typeof records)[number]) =>
+    setDetailModal({ isOpen: true, empId: row.emp_id, empCode: row.employee_code, name: row.name, department: row.department, date: row.date, record: row });
   const departments = data?.departments || [];
   const shifts = data?.shifts || [];
   const statusOptions = data?.statuses && data.statuses.length > 0 ? data.statuses : STATUS_OPTIONS;
@@ -148,25 +176,39 @@ export const AttendanceRegisterPage: React.FC<AttendanceRegisterPageProps> = ({ 
 
   return (
     <div className="space-y-6">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-        <span className="text-slate-400">HRMS</span>
-        <ChevronRight className="w-3 h-3 text-slate-300" />
-        <button
-          type="button"
-          onClick={() => navigate('/attendance')}
-          className="hover:text-indigo-600 transition-colors cursor-pointer"
-        >
-          Attendance
-        </button>
-        <ChevronRight className="w-3 h-3 text-slate-300" />
-        <span className="text-slate-800">Attendance Register</span>
-      </div>
+      {/* Same section tabs as the Attendance page, so this reads as part of it */}
+      <nav aria-label="Attendance Sections" className="border-b border-slate-200">
+        <div className="-mb-px flex items-center gap-1 overflow-x-auto scrollbar-thin">
+          {[
+            { label: 'Timesheet & Dashboard', to: '/attendance', icon: Clock },
+            { label: 'My Attendance & Calendar', to: '/attendance?tab=calendar', icon: CalendarOff },
+            { label: 'My Regularizations', to: '/attendance?tab=regularization', icon: FileSpreadsheet },
+            { label: 'Approvals', to: '/attendance?tab=approvals', icon: CheckCircle2 },
+          ].map(({ label, to, icon: Icon }) => (
+            <Link
+              key={to}
+              to={to}
+              className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 border-transparent px-3.5 py-3 text-[13px] font-semibold text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-900"
+            >
+              <Icon className="w-3.5 h-3.5" />
+              <span>{label}</span>
+            </Link>
+          ))}
+          <span aria-hidden className="mx-1 h-5 w-px shrink-0 bg-slate-200" />
+          <span
+            aria-current="page"
+            className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 border-[color:var(--ac-main,#5B4CF8)] px-3.5 py-3 text-[13px] font-semibold text-[color:var(--ac-main,#5B4CF8)]"
+          >
+            <ClipboardCheck className="w-3.5 h-3.5" />
+            <span>Attendance Register</span>
+          </span>
+        </div>
+      </nav>
 
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-2xl bg-indigo-50/80 border border-indigo-100 text-[#5B4CF8] flex items-center justify-center shrink-0 shadow-2xs">
+          <div className="w-11 h-11 rounded-2xl bg-indigo-50/80 border border-indigo-100 text-[color:var(--ac-main,#5B4CF8)] flex items-center justify-center shrink-0 shadow-2xs">
             <ClipboardCheck className="w-5 h-5 stroke-[1.75]" />
           </div>
           <div>
@@ -236,7 +278,7 @@ export const AttendanceRegisterPage: React.FC<AttendanceRegisterPageProps> = ({ 
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="w-full px-3 py-2 text-xs font-semibold rounded-xl border border-slate-300 bg-white text-slate-800 shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              className="w-full h-10 px-3 text-[13px] font-medium rounded-xl border border-slate-200 bg-slate-50/70 text-slate-800 transition focus:outline-none focus:bg-white focus:ring-4 focus:ring-blue-500/15 focus:border-blue-500"
             />
           </div>
 
@@ -250,7 +292,7 @@ export const AttendanceRegisterPage: React.FC<AttendanceRegisterPageProps> = ({ 
               onChange={(e) =>
                 setDepartmentFilter(e.target.value ? Number(e.target.value) : undefined)
               }
-              className="w-full px-3 py-2 text-xs font-semibold rounded-xl border border-slate-300 bg-white text-slate-800 shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
+              className="w-full h-10 px-3 text-[13px] font-medium rounded-xl border border-slate-200 bg-slate-50/70 text-slate-800 transition focus:outline-none focus:bg-white focus:ring-4 focus:ring-blue-500/15 focus:border-blue-500 cursor-pointer"
             >
               <option value="">All</option>
               {departments.map((dep) => (
@@ -271,7 +313,7 @@ export const AttendanceRegisterPage: React.FC<AttendanceRegisterPageProps> = ({ 
               onChange={(e) =>
                 setShiftFilter(e.target.value ? Number(e.target.value) : undefined)
               }
-              className="w-full px-3 py-2 text-xs font-semibold rounded-xl border border-slate-300 bg-white text-slate-800 shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
+              className="w-full h-10 px-3 text-[13px] font-medium rounded-xl border border-slate-200 bg-slate-50/70 text-slate-800 transition focus:outline-none focus:bg-white focus:ring-4 focus:ring-blue-500/15 focus:border-blue-500 cursor-pointer"
             >
               <option value="">All</option>
               {shifts.map((s) => (
@@ -290,7 +332,7 @@ export const AttendanceRegisterPage: React.FC<AttendanceRegisterPageProps> = ({ 
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-3 py-2 text-xs font-semibold rounded-xl border border-slate-300 bg-white text-slate-800 shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
+              className="w-full h-10 px-3 text-[13px] font-medium rounded-xl border border-slate-200 bg-slate-50/70 text-slate-800 transition focus:outline-none focus:bg-white focus:ring-4 focus:ring-blue-500/15 focus:border-blue-500 cursor-pointer"
             >
               {statusOptions.map((s) => (
                 <option key={s} value={s}>
@@ -312,7 +354,7 @@ export const AttendanceRegisterPage: React.FC<AttendanceRegisterPageProps> = ({ 
                 placeholder="Name or ID"
                 value={searchQuery}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-xs font-semibold rounded-xl border border-slate-300 bg-white text-slate-800 shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                className="w-full pl-9 pr-3 h-10 text-[13px] font-medium rounded-xl border border-slate-200 bg-slate-50/70 text-slate-800 transition focus:outline-none focus:bg-white focus:ring-4 focus:ring-blue-500/15 focus:border-blue-500"
               />
             </div>
           </div>
@@ -346,126 +388,104 @@ export const AttendanceRegisterPage: React.FC<AttendanceRegisterPageProps> = ({ 
 
       {/* Daily Register Table */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100">
-          <h2 className="text-sm font-bold text-slate-900">
-            Daily Register • {formattedDate}
-          </h2>
+        <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-4 sm:px-5 border-b border-slate-100">
+          <div>
+            <h2 className="text-sm font-bold text-slate-900">Daily Register</h2>
+            <p className="mt-0.5 text-xs text-slate-500">{formattedDate}</p>
+          </div>
+          {!isLoading && !error && (
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+              {records.length} {records.length === 1 ? 'employee' : 'employees'}
+            </span>
+          )}
         </div>
 
         {isLoading ? (
-          <div className="p-12 text-center text-slate-400 text-xs font-semibold">
-            Loading attendance register…
+          <div className="flex flex-col items-center gap-3 p-14 text-slate-400">
+            <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+            <span className="text-xs font-semibold">Loading attendance register…</span>
           </div>
         ) : error ? (
-          <div className="p-12 text-center text-red-500 text-xs font-semibold">
+          <div className="p-14 text-center text-red-500 text-xs font-semibold">
             Failed to load register. Please try again.
           </div>
         ) : records.length === 0 ? (
-          <div className="p-12 text-center text-slate-400 text-xs font-semibold">
+          <div className="p-14 text-center text-slate-400 text-xs font-semibold">
             No records found for the selected filters.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="bg-slate-50/80 border-b border-slate-100">
-                  <th className="text-left px-5 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">
-                    Emp ID
-                  </th>
-                  <th className="text-left px-4 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">
-                    Name
-                  </th>
-                  <th className="text-left px-4 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">
-                    Department
-                  </th>
-                  <th className="text-left px-4 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">
-                    Shift
-                  </th>
-                  <th className="text-left px-4 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">
-                    In
-                  </th>
-                  <th className="text-left px-4 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">
-                    Out
-                  </th>
-                  <th className="text-left px-4 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">
-                    Hours
-                  </th>
-                  <th className="text-left px-4 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">
-                    Status
-                  </th>
-                  <th className="text-center px-4 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">
-                    Action
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100/80">
-                {records.map((row) => (
-                  <tr
-                    key={row.emp_id}
-                    className="hover:bg-slate-50/60 transition-colors"
-                  >
-                    <td className="px-5 py-3 font-semibold text-slate-700 whitespace-nowrap">
-                      {row.employee_code}
-                    </td>
-                    <td className="px-4 py-3 font-semibold text-slate-900 whitespace-nowrap">
-                      {row.name}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
-                      {row.department}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
-                      {row.shift_name}
-                    </td>
-                    <td className="px-4 py-3 font-medium text-slate-700 whitespace-nowrap">
-                      {row.in_time}
-                    </td>
-                    <td className="px-4 py-3 font-medium text-slate-700 whitespace-nowrap">
-                      {row.out_time}
-                    </td>
-                    <td className="px-4 py-3 font-semibold text-slate-800 whitespace-nowrap">
-                      {row.working_hours}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <span
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold ${
-                          row.status === 'Present' && row.is_late
-                            ? 'bg-amber-100 text-amber-800 border border-amber-200/60'
-                            : STATUS_COLORS[row.status] || 'bg-slate-100 text-slate-600'
-                        }`}
-                      >
-                        {row.status}
-                        {row.is_late && row.status === 'Present' && (
-                          <span className="text-[9px] px-1 py-0.5 rounded bg-amber-200/80 text-amber-900 font-extrabold uppercase">
-                            Late
-                          </span>
-                        )}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-center whitespace-nowrap">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setDetailModal({
-                            isOpen: true,
-                            empId: row.emp_id,
-                            empCode: row.employee_code,
-                            name: row.name,
-                            department: row.department,
-                            date: row.date,
-                            record: row,
-                          })
-                        }
-                        className="inline-flex items-center gap-1 px-3 py-1.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors cursor-pointer"
-                      >
-                        <Eye className="w-3 h-3" />
-                        View
-                      </button>
-                    </td>
+          <>
+            {/* Phones: one card per employee */}
+            <ul className="divide-y divide-slate-100 md:hidden">
+              {pagedRecords.map((row) => (
+                <li key={row.emp_id}>
+                  <button type="button" onClick={() => openDetail(row)} className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition active:bg-slate-50 cursor-pointer">
+                    <Avatar name={row.name} />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-slate-900">{row.name}</p>
+                      <p className="truncate text-xs text-slate-500">{row.employee_code} · {row.department}</p>
+                      <p className="mt-1 text-xs text-slate-600">
+                        {row.in_time} <span className="text-slate-300">→</span> {row.out_time}
+                        <span className="ml-2 font-semibold text-slate-800">{row.working_hours}</span>
+                      </p>
+                    </div>
+                    <StatusBadge row={row} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+
+            {/* Tablets and desktops: table */}
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full text-[13px]">
+                <thead>
+                  <tr className="bg-slate-50/80 border-b border-slate-100 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    <th className="px-5 py-3">Employee</th>
+                    <th className="px-4 py-3">Department</th>
+                    <th className="hidden px-4 py-3 lg:table-cell">Shift</th>
+                    <th className="px-4 py-3">In</th>
+                    <th className="px-4 py-3">Out</th>
+                    <th className="px-4 py-3">Hours</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3 text-right">Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-100/80">
+                  {pagedRecords.map((row) => (
+                    <tr key={row.emp_id} className="transition-colors hover:bg-slate-50/60">
+                      <td className="px-5 py-3 whitespace-nowrap">
+                        <div className="flex items-center gap-3">
+                          <Avatar name={row.name} />
+                          <div className="min-w-0">
+                            <p className="font-semibold text-slate-900">{row.name}</p>
+                            <p className="text-xs text-slate-500">{row.employee_code}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-slate-600 whitespace-nowrap">{row.department}</td>
+                      <td className="hidden px-4 py-3 text-slate-600 whitespace-nowrap lg:table-cell">{row.shift_name}</td>
+                      <td className="px-4 py-3 font-medium text-slate-700 whitespace-nowrap">{row.in_time}</td>
+                      <td className="px-4 py-3 font-medium text-slate-700 whitespace-nowrap">{row.out_time}</td>
+                      <td className="px-4 py-3 font-semibold text-slate-800 whitespace-nowrap">{row.working_hours}</td>
+                      <td className="px-4 py-3 whitespace-nowrap"><StatusBadge row={row} /></td>
+                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={() => openDetail(row)}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-600 transition-colors hover:bg-indigo-100 cursor-pointer"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          View
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <Pagination page={safePage} pageSize={pageSize} total={records.length} onPageChange={setPage} onPageSizeChange={setPageSize} />
+          </>
         )}
       </div>
 

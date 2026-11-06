@@ -7,6 +7,7 @@ interface CreateProjectTaskModalProps {
   projectMembers: ProjectMember[];
   sprints: SprintItem[];
   defaultSprintId?: number | null;
+  projectDeadline?: string | null;
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (payload: CreateProjectTaskPayload) => Promise<void>;
@@ -21,6 +22,7 @@ export const CreateProjectTaskModal: React.FC<CreateProjectTaskModalProps> = ({
   projectMembers,
   sprints,
   defaultSprintId,
+  projectDeadline,
   isOpen,
   onClose,
   onSubmit,
@@ -45,10 +47,11 @@ export const CreateProjectTaskModal: React.FC<CreateProjectTaskModalProps> = ({
       onSubmit={(data) => onSubmit(data as unknown as CreateProjectTaskPayload)}
       employees={employees}
       taskTypeOptions={[]}
-      title="Create Task"
+      title="Create issue"
       mode="project"
       sprintOptions={sprintOptions}
-      defaultSprintId={defaultSprintId ?? (sprints[0]?.sprint_id || null)}
+      defaultSprintId={defaultSprintId ?? null}
+      projectDeadline={projectDeadline}
     />
   );
 };

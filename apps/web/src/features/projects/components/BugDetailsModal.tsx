@@ -1,20 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import {
-  X,
-  Bug,
-  CheckCircle2,
-  ArrowRight,
-  RotateCcw,
-  Send,
-  Play,
-  Check,
-} from 'lucide-react';
+import { Bug, CalendarDays, CheckCircle2, ChevronDown, ChevronUp, ChevronsUp, Equal, Loader2, Play, RotateCcw, X } from 'lucide-react';
 import type { BugStatus, ProjectBugItem } from '../types';
-import {
-  fetchProjectBugDetail,
-  updateProjectBugStatus,
-  addProjectBugComment,
-} from '../api/projects.api';
+import { useAuth } from '@/features/auth/context/AuthContext';
+import { JiraAvatar } from '@/shared/ui/JiraAvatar';
+import { fetchProjectBugDetail, updateProjectBugStatus, addProjectBugComment, updateBugDates } from '../api/projects.api';
 
 interface BugDetailsModalProps {
   projectId: number;
@@ -22,39 +11,89 @@ interface BugDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onBugUpdated?: () => void;
+  /** Admin or project manager: may change the bug's dates. */
+  canEditDates?: boolean;
 }
 
 const LIFECYCLE_STEPS: { status: BugStatus; label: string }[] = [
   { status: 'new', label: 'New' },
   { status: 'open', label: 'Open' },
-  { status: 'ready_for_dev', label: 'Ready for Dev' },
-  { status: 'dev_in_progress', label: 'Dev in Progress' },
+  { status: 'ready_for_dev', label: 'Ready for dev' },
+  { status: 'dev_in_progress', label: 'In development' },
   { status: 'ready_for_qa', label: 'Ready for QA' },
-  { status: 'qa_in_progress', label: 'QA in Progress' },
+  { status: 'qa_in_progress', label: 'In QA' },
   { status: 'done', label: 'Done' },
 ];
 
-export const BugDetailsModal: React.FC<BugDetailsModalProps> = ({
-  projectId,
-  bugId,
-  isOpen,
-  onClose,
-  onBugUpdated,
-}) => {
+const STATUS_LOZENGE: Record<string, string> = {
+  new: 'bg-[#FFEBE6] text-[#BF2600]',
+  open: 'bg-[#FFEBE6] text-[#BF2600]',
+  ready_for_dev: 'bg-[#FFF0B3] text-[#172B4D]',
+  dev_in_progress: 'bg-[#DEEBFF] text-[#0747A6]',
+  ready_for_qa: 'bg-[#EAE6FF] text-[#403294]',
+  qa_in_progress: 'bg-[#EAE6FF] text-[#403294]',
+  done: 'bg-[#E3FCEF] text-[#006644]',
+  not_a_bug: 'bg-[#DFE1E6] text-[#42526E]',
+};
+const statusName = (s: string) => LIFECYCLE_STEPS.find((x) => x.status === s)?.label ?? (s === 'not_a_bug' ? 'Not a bug' : s.replace(/_/g, ' '));
+
+const PRIORITY: Record<string, { label: string; icon: React.ElementType; color: string }> = {
+  critical: { label: 'Highest', icon: ChevronsUp, color: 'text-[#CD1317]' },
+  high: { label: 'High', icon: ChevronUp, color: 'text-[#E9494A]' },
+  medium: { label: 'Medium', icon: Equal, color: 'text-[#E97F33]' },
+  low: { label: 'Low', icon: ChevronDown, color: 'text-[#2D8738]' },
+};
+
+const BTN = 'inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-[3px] px-3 text-[14px] font-medium transition disabled:cursor-not-allowed disabled:opacity-50';
+const PRIMARY = `${BTN} bg-[color:var(--ac-main,#0052CC)] text-white hover:bg-[color:var(--ac-hover,#0065FF)]`;
+const SUBTLE = `${BTN} bg-[rgba(9,30,66,0.04)] text-[#42526E] hover:bg-[rgba(9,30,66,0.08)]`;
+const DATE_FIELD = 'h-8 w-full rounded-[3px] border-2 border-[#DFE1E6] bg-[#FAFBFC] px-2 text-[13px] text-[#172B4D] hover:bg-[#EBECF0] focus:border-[color:var(--ac-400,#4C9AFF)] focus:bg-white focus:outline-none';
+
+const when = (d?: string | null) => (d ? new Date(d).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—');
+const day = (d?: string | null) => (d ? new Date(`${d.slice(0, 10)}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'None');
+
+const Row: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
+  <div className="grid grid-cols-[110px_1fr] items-center gap-2 py-1.5 text-[14px]">
+    <dt className="text-[12px] font-semibold text-[#5E6C84]">{label}</dt>
+    <dd className="min-w-0 text-[#172B4D]">{children}</dd>
+  </div>
+);
+
+const Person: React.FC<{ id?: number | null; name?: string | null; empty: string }> = ({ id, name, empty }) =>
+  id ? (
+    <span className="inline-flex items-center gap-2">
+      <JiraAvatar name={name} id={id} size={24} /> <span className="truncate">{name}</span>
+    </span>
+  ) : (
+    <span className="text-[#7A869A]">{empty}</span>
+  );
+
+const Block: React.FC<{ title: string; children: React.ReactNode; mono?: boolean }> = ({ title, children, mono }) => (
+  <section>
+    <h3 className="mb-1.5 text-[14px] font-semibold text-[#172B4D]">{title}</h3>
+    <div className={`whitespace-pre-wrap text-[14px] leading-6 text-[#172B4D] ${mono ? 'rounded-[3px] bg-[#F4F5F7] p-3 font-mono text-[13px]' : ''}`}>{children}</div>
+  </section>
+);
+
+/** A bug, opened like a Jira issue: summary and workflow on the left, Details on the right. */
+export const BugDetailsModal: React.FC<BugDetailsModalProps> = ({ projectId, bugId, isOpen, onClose, onBugUpdated, canEditDates }) => {
   const [bug, setBug] = useState<ProjectBugItem | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
-  const [statusNote, setStatusNote] = useState('');
-  const [newComment, setNewComment] = useState('');
-  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
-  const [activeTab, setActiveTab] = useState<'details' | 'comments' | 'history'>('details');
+  const [busy, setBusy] = useState(false);
+  const [tab, setTab] = useState<'comments' | 'history'>('comments');
+  const [comment, setComment] = useState('');
+  const [posting, setPosting] = useState(false);
+  const [start, setStart] = useState('');
+  const [due, setDue] = useState('');
+  const [dateBusy, setDateBusy] = useState(false);
+  const [dateErr, setDateErr] = useState<string | null>(null);
+  const { user } = useAuth();
 
   const loadBug = async () => {
     if (!bugId) return;
     try {
       setIsLoading(true);
-      const data = await fetchProjectBugDetail(projectId, bugId);
-      setBug(data);
+      setBug(await fetchProjectBugDetail(projectId, bugId));
     } catch (err) {
       console.error('Failed to load bug details:', err);
     } finally {
@@ -65,559 +104,375 @@ export const BugDetailsModal: React.FC<BugDetailsModalProps> = ({
   useEffect(() => {
     if (isOpen && bugId) {
       loadBug();
-      setActiveTab('details');
-      setStatusNote('');
+      setTab('comments');
+      setComment('');
     } else {
       setBug(null);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, bugId]);
+
+  useEffect(() => {
+    setStart((bug?.start_date ?? '').slice(0, 10));
+    setDue((bug?.due_date ?? '').slice(0, 10));
+    setDateErr(null);
+  }, [bug?.bug_id, bug?.start_date, bug?.due_date]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [isOpen, onClose]);
 
   if (!isOpen || !bugId) return null;
 
-  const handleStatusTransition = async (newStatus: BugStatus, note?: string) => {
+  // Who moves a bug on: triage is the manager's, the developer's stages belong to the assignee and
+  // the QA stages to the reporter. The server enforces the same rule.
+  const stageOwner = (() => {
+    if (!bug) return null;
+    if (bug.status === 'ready_for_dev' || bug.status === 'dev_in_progress') return { id: bug.assigned_to, label: bug.assigned_to_name || 'the assignee' };
+    if (bug.status === 'ready_for_qa' || bug.status === 'qa_in_progress') return { id: bug.reported_by, label: `${bug.reported_by_name || 'the reporter'} to verify it` };
+    return { id: null, label: 'the project manager' };
+  })();
+  const canMove = Boolean(canEditDates) || (stageOwner?.id != null && stageOwner.id === user?.emp_id);
+
+  const move = async (status: BugStatus, note?: string) => {
+    if (!canMove || !bugId) return;
     try {
-      setIsUpdatingStatus(true);
-      const updated = await updateProjectBugStatus(projectId, bugId, newStatus, note || statusNote);
-      setBug(updated);
-      setStatusNote('');
+      setBusy(true);
+      setBug(await updateProjectBugStatus(projectId, bugId, status, note));
       onBugUpdated?.();
-    } catch (err: any) {
-      console.error('Failed to update bug status:', err);
-      alert(err?.detail || err?.message || 'Failed to update bug status');
+    } catch (err) {
+      const e = err as { detail?: string; message?: string } | null;
+      alert(e?.detail || e?.message || 'Failed to update bug status');
     } finally {
-      setIsUpdatingStatus(false);
+      setBusy(false);
     }
   };
 
-  const handleAddComment = async (e: React.FormEvent) => {
+  const post = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newComment.trim() || isSubmittingComment) return;
-
+    if (!comment.trim() || posting || !bugId) return;
     try {
-      setIsSubmittingComment(true);
-      await addProjectBugComment(projectId, bugId, newComment.trim());
-      setNewComment('');
+      setPosting(true);
+      await addProjectBugComment(projectId, bugId, comment.trim());
+      setComment('');
       loadBug();
-    } catch (err: any) {
-      console.error('Failed to add comment:', err);
-      alert(err?.detail || err?.message || 'Failed to post comment');
+    } catch (err) {
+      const x = err as { detail?: string; message?: string } | null;
+      alert(x?.detail || x?.message || 'Failed to post comment');
     } finally {
-      setIsSubmittingComment(false);
+      setPosting(false);
     }
   };
 
-  const formatDateTime = (dateStr?: string | null) => {
-    if (!dateStr) return '—';
+  const dirty = bug ? start !== (bug.start_date ?? '').slice(0, 10) || due !== (bug.due_date ?? '').slice(0, 10) : false;
+  const saveDates = async () => {
+    if (!bug) return;
+    if (start && due && start > due) return setDateErr('Start date cannot be after the due date.');
+    setDateBusy(true);
+    setDateErr(null);
     try {
-      const d = new Date(dateStr);
-      return d.toLocaleString('en-GB', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-    } catch {
-      return dateStr;
+      await updateBugDates(projectId, bug.bug_id, { start_date: start || null, due_date: due || null });
+      await loadBug();
+      onBugUpdated?.();
+    } catch (err) {
+      const x = err as { detail?: string; message?: string } | null;
+      setDateErr(x?.detail || x?.message || 'Could not save the dates');
+    } finally {
+      setDateBusy(false);
     }
   };
 
-  const currentStepIdx = bug
-    ? LIFECYCLE_STEPS.findIndex((s) => s.status === bug.status)
-    : -1;
+  const stepIdx = bug ? LIFECYCLE_STEPS.findIndex((s) => s.status === bug.status) : -1;
+  const closed = bug?.status === 'done' || bug?.status === 'not_a_bug';
+  const pr = PRIORITY[bug?.priority ?? 'medium'] ?? PRIORITY.medium;
+  const PIcon = pr.icon;
+  const overdue = Boolean(bug && !closed && bug.due_date && bug.due_date.slice(0, 10) < new Date().toISOString().slice(0, 10));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden my-8 flex flex-col max-h-[90vh]">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/70 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
-              <Bug className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-xs font-bold px-2 py-0.5 bg-rose-50 text-rose-700 border border-rose-200 rounded-lg">
-                  {bug?.bug_code || `BUG-${bugId}`}
-                </span>
-                <span
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider ${
-                    bug?.priority === 'high'
-                      ? 'bg-red-100 text-red-700'
-                      : bug?.priority === 'medium'
-                      ? 'bg-amber-100 text-amber-700'
-                      : 'bg-slate-100 text-slate-700'
-                  }`}
-                >
-                  {bug?.priority || 'low'} priority
-                </span>
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 capitalize">
-                  {bug?.bug_type}
-                </span>
-              </div>
-              <h2 className="text-base font-bold text-slate-900 mt-1 line-clamp-1">
-                {bug?.title || 'Loading bug details...'}
-              </h2>
-            </div>
+    <div className="fixed inset-0 z-50 flex justify-end bg-[rgba(9,30,66,0.54)]" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <aside role="dialog" aria-modal="true" aria-label="Bug details" className="flex h-full w-screen flex-col bg-white shadow-[0_8px_16px_-4px_rgba(9,30,66,0.25),0_0_1px_rgba(9,30,66,0.31)] animate-in slide-in-from-right duration-200 sm:max-w-3xl xl:max-w-[1000px]">
+        {/* Top bar */}
+        <header className="flex items-center justify-between gap-3 border-b border-[#DFE1E6] px-4 py-3 sm:px-6">
+          <div className="flex min-w-0 items-center gap-2 text-[14px] text-[#5E6C84]">
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-[3px] bg-[#E5493A]">
+              <Bug className="h-3.5 w-3.5 text-white" />
+            </span>
+            <span className="font-medium">{bug?.bug_code || `BUG-${bugId}`}</span>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition"
-          >
-            <X className="w-5 h-5" />
+          <button type="button" onClick={onClose} aria-label="Close" className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-[3px] text-[#42526E] hover:bg-[rgba(9,30,66,0.08)]">
+            <X className="h-5 w-5" />
           </button>
-        </div>
+        </header>
 
-        {/* Content Body */}
         {isLoading || !bug ? (
-          <div className="p-12 text-center text-slate-400 text-xs">
-            <div className="w-8 h-8 rounded-full border-2 border-rose-500 border-t-transparent animate-spin mx-auto mb-2" />
-            Loading bug details...
+          <div className="flex flex-1 items-center justify-center gap-2 text-[14px] text-[#5E6C84]">
+            <Loader2 className="h-4 w-4 animate-spin" /> Loading bug…
           </div>
         ) : (
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            {/* Section 3.6 Bug Lifecycle Progression Stepper */}
-            <div className="bg-slate-50/80 p-4 rounded-2xl border border-slate-200/80 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                  Lifecycle Status: <strong className="text-slate-900">{bug.status.replace(/_/g, ' ').toUpperCase()}</strong>
-                </span>
-                {bug.status === 'not_a_bug' && (
-                  <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded-md text-[10px] font-bold uppercase">
-                    Closed: Not a Bug
-                  </span>
-                )}
-              </div>
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="grid gap-6 p-4 sm:p-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+              {/* ─── Left: the bug and its workflow ─── */}
+              <div className="min-w-0 space-y-6">
+                <h1 className="text-[24px] font-medium leading-8 text-[#172B4D]">{bug.title}</h1>
 
-              {/* Progress Steps */}
-              {bug.status !== 'not_a_bug' && (
-                <div className="overflow-x-auto pb-1">
-                  <div className="flex items-center min-w-[500px] justify-between">
-                    {LIFECYCLE_STEPS.map((step, idx) => {
-                      const isCompleted = currentStepIdx > idx;
-                      const isCurrent = currentStepIdx === idx;
-                      return (
-                        <React.Fragment key={step.status}>
-                          <div className="flex flex-col items-center">
-                            <div
-                              className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition ${
-                                isCompleted
-                                  ? 'bg-emerald-500 text-white shadow-xs'
-                                  : isCurrent
-                                  ? 'bg-rose-600 text-white ring-4 ring-rose-100 shadow-xs'
-                                  : 'bg-slate-200 text-slate-600'
-                              }`}
-                            >
-                              {isCompleted ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : idx + 1}
-                            </div>
-                            <span
-                              className={`text-[10px] mt-1 whitespace-nowrap font-medium ${
-                                isCurrent ? 'text-rose-600 font-bold' : 'text-slate-500'
-                              }`}
-                            >
-                              {step.label}
-                            </span>
-                          </div>
-                          {idx < LIFECYCLE_STEPS.length - 1 && (
-                            <div
-                              className={`flex-1 h-0.5 mx-1.5 transition-colors ${
-                                isCompleted ? 'bg-emerald-500' : 'bg-slate-200'
-                              }`}
-                            />
-                          )}
-                        </React.Fragment>
-                      );
-                    })}
+                {/* Workflow */}
+                <section className="space-y-3 rounded-[3px] border border-[#DFE1E6] p-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={`rounded-[3px] px-2 py-1 text-[12px] font-bold uppercase ${STATUS_LOZENGE[bug.status] ?? STATUS_LOZENGE.new}`}>{statusName(bug.status)}</span>
+                    {!closed && (canMove ? <span className="text-[13px] text-[#5E6C84]">Move it on:</span> : <span className="text-[13px] text-[#5E6C84]">Waiting for {stageOwner?.label ?? 'someone else'}</span>)}
+                    {closed && <span className="text-[13px] text-[#5E6C84]">This bug is closed.</span>}
                   </div>
-                </div>
-              )}
 
-              {/* Lifecycle Actions */}
-              <div className="pt-2 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2">
-                <span className="text-[11px] text-slate-500">Advance bug workflow:</span>
-                <div className="flex flex-wrap items-center gap-2">
-                  {bug.status === 'new' && (
-                    <>
-                      <button
-                        type="button"
-                        disabled={isUpdatingStatus}
-                        onClick={() => handleStatusTransition('open')}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-xs disabled:opacity-50"
-                      >
-                        Accept Bug (Open) <ArrowRight className="w-3.5 h-3.5" />
-                      </button>
-                    </>
+                  {bug.status !== 'not_a_bug' && (
+                    <ol className="flex gap-1" aria-label="Progress">
+                      {LIFECYCLE_STEPS.map((s, i) => (
+                        <li key={s.status} className="min-w-0 flex-1" title={s.label}>
+                          <div className={`h-1.5 rounded-full ${i < stepIdx ? 'bg-[#36B37E]' : i === stepIdx ? (closed ? 'bg-[#36B37E]' : 'bg-[color:var(--ac-main,#0052CC)]') : 'bg-[#DFE1E6]'}`} />
+                          <p className={`mt-1 hidden truncate text-[11px] sm:block ${i === stepIdx ? 'font-semibold text-[#172B4D]' : 'text-[#7A869A]'}`}>{s.label}</p>
+                        </li>
+                      ))}
+                    </ol>
                   )}
 
-                  {bug.status === 'open' && (
-                    <>
-                      <button
-                        type="button"
-                        disabled={isUpdatingStatus}
-                        onClick={() => handleStatusTransition('ready_for_dev')}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-xs disabled:opacity-50"
-                      >
-                        Ready for Dev <ArrowRight className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        disabled={isUpdatingStatus}
-                        onClick={() => handleStatusTransition('not_a_bug')}
-                        className="px-3 py-1.5 text-slate-600 hover:bg-slate-200 rounded-xl text-xs font-medium"
-                      >
-                        Not a Bug
-                      </button>
-                    </>
-                  )}
-
-                  {bug.status === 'ready_for_dev' && (
-                    <button
-                      type="button"
-                      disabled={isUpdatingStatus}
-                      onClick={() => handleStatusTransition('dev_in_progress')}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-semibold shadow-xs disabled:opacity-50"
-                    >
-                      <Play className="w-3.5 h-3.5 fill-current" />
-                      Start Dev (Dev in Progress)
-                    </button>
-                  )}
-
-                  {bug.status === 'dev_in_progress' && (
-                    <button
-                      type="button"
-                      disabled={isUpdatingStatus}
-                      onClick={() => handleStatusTransition('ready_for_qa')}
-                      className="inline-flex items-center gap-1 px-3.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-semibold shadow-xs disabled:opacity-50"
-                    >
-                      Complete Dev (Ready for QA) <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-
-                  {bug.status === 'ready_for_qa' && (
-                    <button
-                      type="button"
-                      disabled={isUpdatingStatus}
-                      onClick={() => handleStatusTransition('qa_in_progress')}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-xs disabled:opacity-50"
-                    >
-                      <Play className="w-3.5 h-3.5 fill-current" />
-                      Start QA Testing
-                    </button>
-                  )}
-
-                  {bug.status === 'qa_in_progress' && (
-                    <>
-                      <button
-                        type="button"
-                        disabled={isUpdatingStatus}
-                        onClick={() => handleStatusTransition('done')}
-                        className="inline-flex items-center gap-1 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-xs disabled:opacity-50"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        QA Passed (Done)
-                      </button>
-                      <button
-                        type="button"
-                        disabled={isUpdatingStatus}
-                        onClick={() => handleStatusTransition('ready_for_dev', 'QA failed, returning to dev')}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-rose-100 hover:bg-rose-200 text-rose-700 rounded-xl text-xs font-semibold disabled:opacity-50"
-                      >
-                        <RotateCcw className="w-3.5 h-3.5" />
-                        QA Failed (Back to Dev)
-                      </button>
-                    </>
-                  )}
-
-                  {(bug.status === 'done' || bug.status === 'not_a_bug') && (
-                    <span className="text-[11px] text-slate-500">This bug is closed.</span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Section 3.7 Time Tracking Strip */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200/80">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Dev Work Time
-                </span>
-                <div className="text-xs font-semibold text-slate-800">
-                  {bug.dev_started_at ? (
-                    <div>
-                      <span>{formatDateTime(bug.dev_started_at)}</span>
-                      {bug.dev_ended_at ? (
-                        <span className="text-slate-500 block text-[10px]">
-                          Finished: {formatDateTime(bug.dev_ended_at)}
-                        </span>
-                      ) : (
-                        <span className="text-amber-600 block text-[10px] font-bold">● Active Now</span>
+                  {!closed && (
+                    <div className={`flex flex-wrap items-center gap-2 ${canMove ? '' : 'pointer-events-none opacity-40'}`} aria-disabled={!canMove}>
+                      {bug.status === 'new' && (
+                        <button type="button" disabled={busy} onClick={() => move('open')} className={PRIMARY}>
+                          Accept bug
+                        </button>
                       )}
-                    </div>
-                  ) : (
-                    <span className="text-slate-400">Not started yet</span>
-                  )}
-                </div>
-              </div>
-
-              <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200/80">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  QA Testing Time
-                </span>
-                <div className="text-xs font-semibold text-slate-800">
-                  {bug.qa_started_at ? (
-                    <div>
-                      <span>{formatDateTime(bug.qa_started_at)}</span>
-                      {bug.qa_ended_at ? (
-                        <span className="text-slate-500 block text-[10px]">
-                          Finished: {formatDateTime(bug.qa_ended_at)}
-                        </span>
-                      ) : (
-                        <span className="text-indigo-600 block text-[10px] font-bold">● Active Now</span>
+                      {bug.status === 'open' && (
+                        <>
+                          <button type="button" disabled={busy} onClick={() => move('ready_for_dev')} className={PRIMARY}>
+                            Ready for dev
+                          </button>
+                          <button type="button" disabled={busy} onClick={() => move('not_a_bug')} className={SUBTLE}>
+                            Not a bug
+                          </button>
+                        </>
                       )}
+                      {bug.status === 'ready_for_dev' && (
+                        <button type="button" disabled={busy} onClick={() => move('dev_in_progress')} className={PRIMARY}>
+                          <Play className="h-3.5 w-3.5 fill-current" /> Start development
+                        </button>
+                      )}
+                      {bug.status === 'dev_in_progress' && (
+                        <button type="button" disabled={busy} onClick={() => move('ready_for_qa')} className={PRIMARY}>
+                          Send to QA
+                        </button>
+                      )}
+                      {bug.status === 'ready_for_qa' && (
+                        <button type="button" disabled={busy} onClick={() => move('qa_in_progress')} className={PRIMARY}>
+                          <Play className="h-3.5 w-3.5 fill-current" /> Start QA testing
+                        </button>
+                      )}
+                      {bug.status === 'qa_in_progress' && (
+                        <>
+                          <button type="button" disabled={busy} onClick={() => move('done')} className={`${BTN} bg-[#36B37E] text-white hover:bg-[#57D9A3] hover:text-[#172B4D]`}>
+                            <CheckCircle2 className="h-4 w-4" /> QA passed
+                          </button>
+                          <button type="button" disabled={busy} onClick={() => move('ready_for_dev', 'QA failed, returning to dev')} className={SUBTLE}>
+                            <RotateCcw className="h-3.5 w-3.5" /> QA failed, back to dev
+                          </button>
+                        </>
+                      )}
+                      {busy && <Loader2 className="h-4 w-4 animate-spin text-[#5E6C84]" />}
                     </div>
-                  ) : (
-                    <span className="text-slate-400">Not started yet</span>
                   )}
-                </div>
-              </div>
+                </section>
 
-              <div className="bg-blue-50 p-3 rounded-2xl border border-blue-200/80">
-                <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider block mb-1">
-                  Total Time Taken (Dev + QA)
-                </span>
-                <div className="text-base font-black text-blue-900">
-                  {bug.total_time_minutes > 0 ? (
-                    <>
-                      {Math.floor(bug.total_time_minutes / 60)}h {bug.total_time_minutes % 60}m
-                    </>
-                  ) : (
-                    <span className="text-xs font-semibold text-blue-600">Pending calculation</span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Sub-Tabs: Details, Comments, History */}
-            <div className="border-b border-slate-200 flex gap-4 text-xs font-bold">
-              <button
-                type="button"
-                onClick={() => setActiveTab('details')}
-                className={`pb-2 border-b-2 transition ${
-                  activeTab === 'details'
-                    ? 'border-rose-600 text-rose-600'
-                    : 'border-transparent text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                Bug Details
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('comments')}
-                className={`pb-2 border-b-2 transition flex items-center gap-1.5 ${
-                  activeTab === 'comments'
-                    ? 'border-rose-600 text-rose-600'
-                    : 'border-transparent text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                <span>Comments</span>
-                <span className="px-1.5 py-0.2 rounded-full bg-slate-200 text-slate-700 text-[10px]">
-                  {bug.comments?.length || 0}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('history')}
-                className={`pb-2 border-b-2 transition flex items-center gap-1.5 ${
-                  activeTab === 'history'
-                    ? 'border-rose-600 text-rose-600'
-                    : 'border-transparent text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                <span>Status History</span>
-                <span className="px-1.5 py-0.2 rounded-full bg-slate-200 text-slate-700 text-[10px]">
-                  {bug.history?.length || 0}
-                </span>
-              </button>
-            </div>
-
-            {/* TAB: Details */}
-            {activeTab === 'details' && (
-              <div className="space-y-4 text-xs">
-                {/* Assignees & Reporter */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-xs">
-                      {bug.assigned_to_name ? bug.assigned_to_name.substring(0, 2).toUpperCase() : 'U'}
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 block font-semibold">Assigned To</span>
-                      <span className="font-bold text-slate-800">{bug.assigned_to_name}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-xs">
-                      {bug.reported_by_name ? bug.reported_by_name.substring(0, 2).toUpperCase() : 'R'}
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 block font-semibold">Reported By</span>
-                      <span className="font-bold text-slate-800">{bug.reported_by_name}</span>
-                      <span className="text-[10px] text-slate-400 block">
-                        {formatDateTime(bug.created_at)}
-                      </span>
-                    </div>
-                  </div>
+                <Block title="Description">{bug.description || <span className="text-[#7A869A]">No description.</span>}</Block>
+                <Block title="Steps to reproduce" mono>
+                  {bug.steps_to_reproduce || <span className="font-sans text-[#7A869A]">No steps provided.</span>}
+                </Block>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <section>
+                    <h3 className="mb-1.5 text-[14px] font-semibold text-[#172B4D]">Expected result</h3>
+                    <p className="whitespace-pre-wrap rounded-[3px] border-l-4 border-[#36B37E] bg-[#E3FCEF]/50 p-3 text-[14px] text-[#172B4D]">{bug.expected_result || '—'}</p>
+                  </section>
+                  <section>
+                    <h3 className="mb-1.5 text-[14px] font-semibold text-[#172B4D]">Actual result</h3>
+                    <p className="whitespace-pre-wrap rounded-[3px] border-l-4 border-[#DE350B] bg-[#FFEBE6]/50 p-3 text-[14px] text-[#172B4D]">{bug.actual_result || '—'}</p>
+                  </section>
                 </div>
 
-                {/* Description */}
-                <div>
-                  <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                    Description
-                  </h4>
-                  <div className="p-3 bg-white border border-slate-200 rounded-xl text-slate-700 whitespace-pre-wrap">
-                    {bug.description || 'No detailed description provided.'}
-                  </div>
-                </div>
-
-                {/* Steps to Reproduce */}
-                <div>
-                  <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                    Steps to Reproduce
-                  </h4>
-                  <div className="p-3 bg-white border border-slate-200 rounded-xl text-slate-700 whitespace-pre-wrap font-mono text-[11px]">
-                    {bug.steps_to_reproduce || 'No steps provided.'}
-                  </div>
-                </div>
-
-                {/* Expected & Actual Result */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                      Expected Result
-                    </h4>
-                    <div className="p-3 bg-emerald-50/50 border border-emerald-200/80 rounded-xl text-slate-700 whitespace-pre-wrap">
-                      {bug.expected_result || '—'}
-                    </div>
-                  </div>
-                  <div>
-                    <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                      Actual Result
-                    </h4>
-                    <div className="p-3 bg-rose-50/50 border border-rose-200/80 rounded-xl text-slate-700 whitespace-pre-wrap">
-                      {bug.actual_result || '—'}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* TAB: Comments */}
-            {activeTab === 'comments' && (
-              <div className="space-y-4">
-                <div className="space-y-3 max-h-60 overflow-y-auto">
-                  {bug.comments && bug.comments.length > 0 ? (
-                    bug.comments.map((comment) => (
-                      <div
-                        key={comment.comment_id}
-                        className="p-3 bg-slate-50 border border-slate-100 rounded-2xl flex items-start gap-3 text-xs"
-                      >
-                        <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-[10px] shrink-0">
-                          {comment.author_name ? comment.author_name.substring(0, 2).toUpperCase() : 'U'}
-                        </div>
-                        <div className="flex-1 space-y-1">
-                          <div className="flex items-center justify-between">
-                            <span className="font-bold text-slate-900">{comment.author_name}</span>
-                            <span className="text-[10px] text-slate-400">
-                              {formatDateTime(comment.created_at)}
-                            </span>
-                          </div>
-                          <p className="text-slate-700 whitespace-pre-wrap">{comment.comment}</p>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-xs text-slate-400 italic py-6 text-center">
-                      No comments yet on this bug.
-                    </p>
-                  )}
-                </div>
-
-                <form onSubmit={handleAddComment} className="flex gap-2 pt-2 border-t border-slate-100">
-                  <input
-                    type="text"
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    placeholder="Write a comment..."
-                    className="flex-1 px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-rose-500"
-                  />
-                  <button
-                    type="submit"
-                    disabled={!newComment.trim() || isSubmittingComment}
-                    className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold shadow-xs disabled:opacity-50 flex items-center gap-1.5"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    <span>Post</span>
-                  </button>
-                </form>
-              </div>
-            )}
-
-            {/* TAB: History */}
-            {activeTab === 'history' && (
-              <div className="space-y-3">
-                {bug.history && bug.history.length > 0 ? (
-                  <div className="relative pl-6 space-y-4 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
-                    {bug.history.map((h) => (
-                      <div key={h.history_id} className="relative flex items-start gap-3 text-xs">
-                        <div className="absolute -left-6 mt-1 w-2.5 h-2.5 rounded-full bg-rose-600 ring-4 ring-white" />
-                        <div className="flex-1 bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="font-bold text-slate-900">{h.actor_name}</span>
-                            <span className="text-[10px] text-slate-400">
-                              {formatDateTime(h.created_at)}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1.5 font-medium text-slate-700">
-                            {h.from_status ? (
-                              <>
-                                <span className="capitalize">{h.from_status.replace(/_/g, ' ')}</span>
-                                <ArrowRight className="w-3 h-3 text-slate-400" />
-                              </>
-                            ) : null}
-                            <span className="font-bold text-rose-600 capitalize">
-                              {h.to_status.replace(/_/g, ' ')}
-                            </span>
-                          </div>
-                          {h.note && (
-                            <p className="text-[11px] text-slate-500 mt-1 italic">
-                              "{h.note}"
-                            </p>
-                          )}
-                        </div>
-                      </div>
+                {/* Activity */}
+                <section>
+                  <h3 className="mb-2 text-[14px] font-semibold text-[#172B4D]">Activity</h3>
+                  <div role="tablist" className="mb-4 flex gap-1">
+                    {(
+                      [
+                        ['comments', 'Comments', bug.comments?.length ?? 0],
+                        ['history', 'History', bug.history?.length ?? 0],
+                      ] as const
+                    ).map(([id, label, n]) => (
+                      <button key={id} type="button" role="tab" aria-selected={tab === id} onClick={() => setTab(id)} className={`inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-[3px] px-3 text-[14px] font-medium ${tab === id ? 'bg-[color:var(--ac-50,#DEEBFF)] text-[color:var(--ac-main,#0052CC)]' : 'text-[#42526E] hover:bg-[rgba(9,30,66,0.08)]'}`}>
+                        {label}
+                        <span className="rounded-full bg-[rgba(9,30,66,0.08)] px-1.5 text-[11px] font-semibold">{n}</span>
+                      </button>
                     ))}
                   </div>
-                ) : (
-                  <p className="text-xs text-slate-400 italic py-6 text-center">
-                    No history logged yet.
-                  </p>
-                )}
+
+                  {tab === 'comments' && (
+                    <div className="space-y-4">
+                      <form onSubmit={post} className="flex gap-3">
+                        <JiraAvatar name={user?.name ?? 'You'} id={user?.emp_id ?? 0} size={32} />
+                        <div className="min-w-0 flex-1">
+                          <textarea
+                            value={comment}
+                            onChange={(e) => setComment(e.target.value)}
+                            rows={comment ? 3 : 1}
+                            placeholder="Add a comment…"
+                            aria-label="Add a comment"
+                            className="w-full resize-none rounded-[3px] border-2 border-[#DFE1E6] bg-[#FAFBFC] px-3 py-2 text-[14px] text-[#172B4D] placeholder:text-[#7A869A] focus:border-[color:var(--ac-400,#4C9AFF)] focus:bg-white focus:outline-none"
+                          />
+                          {comment.trim() && (
+                            <div className="mt-2 flex gap-2">
+                              <button type="submit" disabled={posting} className={PRIMARY}>
+                                {posting && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Save
+                              </button>
+                              <button type="button" onClick={() => setComment('')} className={SUBTLE}>
+                                Cancel
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </form>
+                      {(bug.comments ?? []).length === 0 ? (
+                        <p className="py-4 text-center text-[14px] text-[#7A869A]">No comments yet.</p>
+                      ) : (
+                        bug.comments!.map((c) => (
+                          <div key={c.comment_id} className="flex gap-3">
+                            <JiraAvatar name={c.author_name} id={c.comment_id} size={32} />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[14px]">
+                                <b className="font-semibold text-[#172B4D]">{c.author_name}</b> <span className="ml-1 text-[12px] text-[#5E6C84]">{when(c.created_at)}</span>
+                              </p>
+                              <p className="mt-0.5 whitespace-pre-wrap text-[14px] leading-6 text-[#172B4D]">{c.comment}</p>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+
+                  {tab === 'history' &&
+                    ((bug.history ?? []).length === 0 ? (
+                      <p className="py-4 text-center text-[14px] text-[#7A869A]">No history yet.</p>
+                    ) : (
+                      <ul className="space-y-3">
+                        {bug.history!.map((h) => (
+                          <li key={h.history_id} className="flex gap-3">
+                            <JiraAvatar name={h.actor_name} id={(h.actor_name ?? "").length} size={32} />
+                            <div className="min-w-0 flex-1 text-[14px]">
+                              <p>
+                                <b className="font-semibold text-[#172B4D]">{h.actor_name}</b> <span className="text-[#5E6C84]">changed the status</span>
+                                <span className="ml-2 text-[12px] text-[#5E6C84]">{when(h.created_at)}</span>
+                              </p>
+                              <p className="mt-1 flex flex-wrap items-center gap-1.5">
+                                {h.from_status && <span className={`rounded-[3px] px-1.5 py-px text-[11px] font-bold uppercase ${STATUS_LOZENGE[h.from_status] ?? STATUS_LOZENGE.new}`}>{statusName(h.from_status)}</span>}
+                                {h.from_status && <span className="text-[#5E6C84]">→</span>}
+                                <span className={`rounded-[3px] px-1.5 py-px text-[11px] font-bold uppercase ${STATUS_LOZENGE[h.to_status] ?? STATUS_LOZENGE.new}`}>{statusName(h.to_status)}</span>
+                              </p>
+                              {h.note && <p className="mt-1 text-[13px] italic text-[#5E6C84]">“{h.note}”</p>}
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    ))}
+                </section>
               </div>
-            )}
+
+              {/* ─── Right: Details, dates, time ─── */}
+              <div className="space-y-4">
+                <section className="rounded-[3px] border border-[#DFE1E6]">
+                  <h2 className="border-b border-[#DFE1E6] px-4 py-3 text-[14px] font-semibold text-[#172B4D]">Details</h2>
+                  <dl className="px-4 py-2">
+                    <Row label="Assignee">
+                      <Person id={bug.assigned_to} name={bug.assigned_to_name} empty="Unassigned" />
+                    </Row>
+                    <Row label="Reporter">
+                      <Person id={bug.reported_by} name={bug.reported_by_name} empty="Unknown" />
+                    </Row>
+                    <Row label="Priority">
+                      <span className="inline-flex items-center gap-1.5">
+                        <PIcon className={`h-4 w-4 ${pr.color}`} strokeWidth={3} /> {pr.label}
+                      </span>
+                    </Row>
+                    <Row label="Type">
+                      <span className="capitalize">{bug.bug_type === 'other' && bug.other_bug_type ? bug.other_bug_type : bug.bug_type}</span>
+                    </Row>
+                    <Row label="Start date">
+                      {canEditDates ? <input type="date" value={start} max={due || undefined} onChange={(e) => setStart(e.target.value)} aria-label="Start date" className={DATE_FIELD} /> : <span>{day(bug.start_date)}</span>}
+                    </Row>
+                    <Row label="Due date">
+                      {canEditDates ? (
+                        <input type="date" value={due} min={start || undefined} onChange={(e) => setDue(e.target.value)} aria-label="Due date" className={DATE_FIELD} />
+                      ) : (
+                        <span className={`inline-flex items-center gap-1 ${overdue ? 'font-semibold text-[#BF2600]' : ''}`}>
+                          <CalendarDays className="h-3.5 w-3.5" /> {day(bug.due_date)}
+                        </span>
+                      )}
+                    </Row>
+                    {dateErr && (
+                      <p role="alert" className="pb-1 text-[12px] text-[#BF2600]">
+                        {dateErr}
+                      </p>
+                    )}
+                    {canEditDates && dirty && (
+                      <div className="flex gap-2 pb-2 pt-1">
+                        <button type="button" disabled={dateBusy} onClick={saveDates} className={PRIMARY}>
+                          {dateBusy ? 'Saving…' : 'Save'}
+                        </button>
+                        <button type="button" disabled={dateBusy} onClick={() => { setStart((bug.start_date ?? '').slice(0, 10)); setDue((bug.due_date ?? '').slice(0, 10)); setDateErr(null); }} className={SUBTLE}>
+                          Cancel
+                        </button>
+                      </div>
+                    )}
+                    <Row label="Created">
+                      <span className="text-[13px]">{when(bug.created_at)}</span>
+                    </Row>
+                  </dl>
+                </section>
+
+                <section className="rounded-[3px] border border-[#DFE1E6]">
+                  <h2 className="border-b border-[#DFE1E6] px-4 py-3 text-[14px] font-semibold text-[#172B4D]">Time tracking</h2>
+                  <dl className="px-4 py-2">
+                    <Row label="Development">
+                      {bug.dev_started_at ? (
+                        <span className="text-[13px]">
+                          {when(bug.dev_started_at)}
+                          <br />
+                          {bug.dev_ended_at ? <span className="text-[#5E6C84]">to {when(bug.dev_ended_at)}</span> : <span className="font-semibold text-[color:var(--ac-main,#0052CC)]">● In progress</span>}
+                        </span>
+                      ) : (
+                        <span className="text-[#7A869A]">Not started</span>
+                      )}
+                    </Row>
+                    <Row label="QA testing">
+                      {bug.qa_started_at ? (
+                        <span className="text-[13px]">
+                          {when(bug.qa_started_at)}
+                          <br />
+                          {bug.qa_ended_at ? <span className="text-[#5E6C84]">to {when(bug.qa_ended_at)}</span> : <span className="font-semibold text-[#6554C0]">● In progress</span>}
+                        </span>
+                      ) : (
+                        <span className="text-[#7A869A]">Not started</span>
+                      )}
+                    </Row>
+                    <Row label="Total">
+                      {bug.total_time_minutes > 0 ? <b>{Math.floor(bug.total_time_minutes / 60)}h {bug.total_time_minutes % 60}m</b> : <span className="text-[#7A869A]">Not yet</span>}
+                    </Row>
+                  </dl>
+                </section>
+              </div>
+            </div>
           </div>
         )}
-
-        {/* Footer */}
-        <div className="px-6 py-3 border-t border-slate-100 bg-slate-50/70 flex justify-end shrink-0">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-semibold transition"
-          >
-            Close
-          </button>
-        </div>
-      </div>
+      </aside>
     </div>
   );
 };
