@@ -20,16 +20,19 @@ import { AdminUpsertDayUseCase } from './application/use-cases/admin-upsert-day.
 import { GetTeamAttendanceUseCase } from './application/use-cases/get-team-attendance.use-case';
 import { GetAttendanceReportUseCase } from './application/use-cases/get-attendance-report.use-case';
 import { AttendanceController } from './presentation/attendance.controller';
+import { AttendanceMonthLockController } from './presentation/attendance-month-lock.controller';
+import { AttendanceMonthLockService } from './application/services/attendance-month-lock.service';
 import { AttendanceAdminGuard } from './presentation/guards/attendance-admin.guard';
 
 @Module({
   imports: [PrismaModule, AuthModule, TasksModule],
-  controllers: [AttendanceController],
+  controllers: [AttendanceController, AttendanceMonthLockController],
   providers: [
     PrismaAttendanceRepository,
     PrismaAppSettingsRepository,
     SystemClock,
     AttendanceAdminGuard,
+    AttendanceMonthLockService,
     {
       provide: ATTENDANCE_TOKENS.ATTENDANCE_REPOSITORY,
       useExisting: PrismaAttendanceRepository,

@@ -1,526 +1,339 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../../core/prisma/prisma.service';
+import { CalcResult, DayInput, OtProposal, calculateSalary, proposeOt, round2, salaryOn } from '../../domain/payroll-rules';
 
-export interface EmployeeCalculationInput {
+export interface PayrollSettingsRow {
+  settings_id: number;
+  default_employee_pf_pct: number;
+  default_employer_pf_pct: number;
+  apply_pf_wage_limit: boolean;
+  pf_wage_limit: number;
+  missing_punch_default: 'UNPAID' | 'FULL';
+  ot_rounding: 'NONE' | 'FIFTEEN' | 'THIRTY';
+  total_salary_rounding: 'NEAREST_RUPEE' | 'NONE';
+  pay_day: number;
+  accounts_emp_ids: number[];
+  company_name: string | null;
+  company_address: string | null;
+}
+
+export interface MonthContext {
+  year: number;
+  month: number;
+  start: string;
+  end: string;
+  dates: string[];
+  settings: PayrollSettingsRow;
+  holidays: Map<string, string>;
+  shifts: Map<number, { shift_id: number; shift_name: string; full_day_hours: number; weekly_off_days: number[] }>;
+  defaultShiftId: number | null;
+  employeeShifts: Record<string, number>;
+  fullDayHours: number;
+  attendanceLocked: boolean;
+  attendanceLockedAt: Date | null;
+}
+
+export interface PayrollEmployeeRow {
   emp_id: number;
   name: string;
-  employee_code?: string;
-  department_names?: string;
-  role_name?: string;
   status: string;
-  joining_date: Date;
-  exit_date?: Date | null;
-  termination_date?: Date | null;
-  salary: number; // Monthly gross
-  pf: number;
-  payPolicy?: any;
+  joining_date: Date | null;
+  termination_date: Date | null;
+  exit_date: Date | null;
+  salary: number;
+  role_name: string | null;
+  department_name: string | null;
+  reporting_manager: number | null;
+  pay: any;
 }
 
-export interface DayCalculationItem {
-  date: string; // YYYY-MM-DD
-  attendance_code: string; // P, HD, L, A, MP, WO, H
-  day_type: string; // WORKING_DAY, WEEKLY_OFF, HOLIDAY, NOT_EMPLOYED
-  is_working_day: boolean;
-  holiday_name?: string | null;
-  paid_as: 'FULL' | 'HALF' | 'UNPAID' | 'NOT_APPLICABLE';
-  daily_rate: number;
-  calculated_amount: number;
-  is_adjusted: boolean;
-  original_paid_as?: 'FULL' | 'HALF' | 'UNPAID' | 'NOT_APPLICABLE';
+export interface EmployeeMonthData {
+  attendance: Map<string, any>;
+  leaves: Map<string, Array<{ part: string; paid: boolean }>>;
+  timeline: Array<{ from: string; salary: number }>;
 }
 
-export interface EmployeeCalculationOutput {
-  emp_id: number;
-  employee_code: string;
-  employee_name: string;
-  department_names: string;
-  role_name: string;
-  shift_name: string;
-  monthly_salary: number;
-  daily_rate: number;
-  pf_applicable: boolean;
-  uan: string | null;
-  payment_mode: string;
-  bank_name: string | null;
-  account_number: string | null;
-  ifsc_code: string | null;
-  total_working_days: number;
-  present_days: number;
-  paid_leave_days: number;
-  unpaid_leave_days: number;
-  absent_days: number;
-  missing_punch_days: number;
-  not_employed_days: number;
-  full_days: number;
-  half_days: number;
-  paid_days: number;
-  lop_days: number;
-  basic_salary: number;
-  ot_hours: number;
-  ot_rate: number;
-  ot_amount: number;
-  pf_wage: number;
-  employee_pf: number;
-  employer_pf: number;
-  total_additions: number;
-  total_deductions: number;
-  gross_earnings: number;
-  total_salary: number;
-  flag: 'NONE' | 'ERROR' | 'WARNING' | 'JOINED_IN_MONTH' | 'LEFT_IN_MONTH' | 'ADJUSTED';
-  validation_message: string | null;
-  days: DayCalculationItem[];
+export interface EmployeeCalculation {
+  emp: PayrollEmployeeRow;
+  result: CalcResult;
+  proposals: OtProposal[];
+  shiftName: string;
+  /** Hourly rate (before multiplier) of each day, for OT entries. */
+  hourlyRateOf: (date: string) => number;
 }
+
+const ymd = (d: Date | string | null | undefined) => (d ? (typeof d === 'string' ? d.slice(0, 10) : d.toISOString().slice(0, 10)) : null);
+export const empCode = (id: number) => `EMP-${String(id).padStart(4, '0')}`;
+
+const SETTINGS_COLUMNS = `settings_id, default_employee_pf_pct, default_employer_pf_pct, apply_pf_wage_limit, pf_wage_limit,
+  missing_punch_default, ot_rounding, total_salary_rounding, pay_day, accounts_emp_ids, company_name, company_address`;
 
 @Injectable()
 export class PayrollCalculationService {
-  private readonly logger = new Logger(PayrollCalculationService.name);
-
   constructor(private readonly prisma: PrismaService) {}
 
-  /**
-   * Helper: round to 2 decimals
-   */
-  round2(num: number): number {
-    return Math.round((num + Number.EPSILON) * 100) / 100;
-  }
-
-  /**
-   * Helper: round to nearest integer rupee
-   */
-  roundRupee(num: number): number {
-    return Math.round(num);
-  }
-
-  /**
-   * Helper: formats YYYY-MM-DD
-   */
-  formatYMD(d: Date): string {
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
-
-  /**
-   * Calculate single employee's payroll for given month
-   */
-  async calculateEmployeePayroll(
-    emp: EmployeeCalculationInput,
-    year: number,
-    month: number,
-    settings: any,
-    holidays: any[],
-    shifts: any[],
-    existingAdjustments: any[] = [],
-    existingOtEntries: any[] = [],
-  ): Promise<EmployeeCalculationOutput> {
-    const daysInMonth = new Date(year, month, 0).getDate();
-    const startDateStr = `${year}-${String(month).padStart(2, '0')}-01`;
-    const endDateStr = `${year}-${String(month).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
-
-    // 1. Shift & Weekly Off assignment
-    const defaultShift = shifts.find((s) => s.is_default) || shifts[0] || {
-      shift_id: 1,
-      shift_name: 'General Shift',
-      full_day_hours: 8.0,
-      weekly_off_days: [0], // Sunday
+  async settings(): Promise<PayrollSettingsRow> {
+    let [s] = await this.prisma.$queryRawUnsafe<any[]>(`SELECT ${SETTINGS_COLUMNS} FROM payroll_settings ORDER BY settings_id LIMIT 1`);
+    if (!s) {
+      await this.prisma.$executeRaw`INSERT INTO payroll_settings DEFAULT VALUES;`;
+      [s] = await this.prisma.$queryRawUnsafe<any[]>(`SELECT ${SETTINGS_COLUMNS} FROM payroll_settings ORDER BY settings_id LIMIT 1`);
+    }
+    return {
+      ...s,
+      default_employee_pf_pct: Number(s.default_employee_pf_pct),
+      default_employer_pf_pct: Number(s.default_employer_pf_pct),
+      pf_wage_limit: Number(s.pf_wage_limit),
+      accounts_emp_ids: (s.accounts_emp_ids || []).map(Number),
     };
-    const shift = defaultShift;
-    const weeklyOffDays: number[] = Array.isArray(shift.weekly_off_days)
-      ? shift.weekly_off_days
-      : [0];
-    const fullDayHours = Number(shift.full_day_hours) || 8.0;
+  }
 
-    // 2. Fetch attendance days for this employee in the month
-    const attendanceRecords = await this.prisma.$queryRaw<any[]>`
-      SELECT attendance_id, work_date, check_in_at, check_out_at, day_status, production_minutes
-      FROM attendance_days
-      WHERE emp_id = ${emp.emp_id}
-        AND work_date >= ${startDateStr}::date
-        AND work_date <= ${endDateStr}::date
-        AND deleted_at IS NULL
+  async readSetting(key: string): Promise<any> {
+    const [r] = await this.prisma.$queryRaw<any[]>`
+      SELECT setting_value FROM app_settings WHERE lower(setting_key) = lower(${key}) AND deleted_at IS NULL LIMIT 1;
     `;
-    const attendanceMap = new Map<string, any>();
-    for (const rec of attendanceRecords) {
-      // Placeholder rows written by the earlier leave implementation are not check-ins.
-      if (String(rec.day_status || '') === 'leave') continue;
-      attendanceMap.set(this.formatYMD(new Date(rec.work_date)), rec);
-    }
-
-    // 2b. Approved leave days from Leave Management. Each day is paid by the
-    // Paid/Unpaid value saved on the request (Leave BFD Section 9).
-    const leaveMap = new Map<string, Array<{ day_part: string; is_paid: boolean }>>();
+    if (!r?.setting_value) return null;
     try {
-      const leaveRows = await this.prisma.$queryRaw<any[]>`
-        SELECT d.leave_date, d.day_part, r.is_paid
-        FROM leave_request_days d
-        JOIN leave_requests r ON r.request_id = d.request_id
-        WHERE d.emp_id = ${emp.emp_id}
-          AND d.leave_date >= ${startDateStr}::date
-          AND d.leave_date <= ${endDateStr}::date
-          AND r.status IN ('APPROVED', 'CANCELLATION_REQUESTED')
-      `;
-      for (const l of leaveRows) {
-        const key = this.formatYMD(new Date(l.leave_date));
-        const list = leaveMap.get(key) || [];
-        list.push({ day_part: l.day_part, is_paid: Boolean(l.is_paid) });
-        leaveMap.set(key, list);
-      }
+      return JSON.parse(r.setting_value);
     } catch {
-      /* leave tables not migrated yet */
+      return r.setting_value;
     }
+  }
 
-    // 3. Holiday map
-    const holidayMap = new Map<string, string>();
-    for (const h of holidays) {
-      holidayMap.set(this.formatYMD(new Date(h.holiday_date)), h.name);
-    }
+  /** Full Day Hours from Attendance Settings (BFD 5 Part 3: hourly rate for OT). */
+  async fullDayHours(): Promise<number> {
+    const hours = await this.readSetting('attendance_default_hours');
+    if (hours && Number(hours.full_day_hours) > 0) return Number(hours.full_day_hours);
+    const [d] = await this.prisma.$queryRaw<any[]>`
+      SELECT full_day_hours FROM attendance_shifts WHERE deleted_at IS NULL ORDER BY is_default DESC, shift_id LIMIT 1;
+    `;
+    return Number(d?.full_day_hours) || 8;
+  }
 
-    // 4. Employee Dates
-    const empJoiningStr = emp.joining_date ? this.formatYMD(new Date(emp.joining_date)) : '1970-01-01';
-    const empTermDate = emp.termination_date || emp.exit_date;
-    const empTermStr = empTermDate ? this.formatYMD(new Date(empTermDate)) : '2099-12-31';
-
-    // 5. Build Day Grid
-    const dayItems: DayCalculationItem[] = [];
-    let totalWorkingDaysCount = 0;
-    let presentDaysCount = 0;
-    let paidLeaveDaysCount = 0;
-    let unpaidLeaveDaysCount = 0;
-    let absentDaysCount = 0;
-    let missingPunchDaysCount = 0;
-    let notEmployedDaysCount = 0;
-
-    for (let d = 1; d <= daysInMonth; d++) {
-      const dateObj = new Date(year, month - 1, d);
-      const dateStr = this.formatYMD(dateObj);
-      const dayOfWeek = dateObj.getDay();
-
-      const isHoliday = holidayMap.has(dateStr);
-      const isWeeklyOff = weeklyOffDays.includes(dayOfWeek);
-      const isBeforeJoining = dateStr < empJoiningStr;
-      const isAfterTerm = dateStr > empTermStr;
-
-      if (isBeforeJoining || isAfterTerm) {
-        dayItems.push({
-          date: dateStr,
-          attendance_code: '-',
-          day_type: 'NOT_EMPLOYED',
-          is_working_day: true,
-          holiday_name: null,
-          paid_as: 'UNPAID',
-          daily_rate: 0,
-          calculated_amount: 0,
-          is_adjusted: false,
-        });
-        totalWorkingDaysCount++;
-        notEmployedDaysCount++;
-        continue;
-      }
-
-      if (isHoliday) {
-        dayItems.push({
-          date: dateStr,
-          attendance_code: 'H',
-          day_type: 'HOLIDAY',
-          is_working_day: false,
-          holiday_name: holidayMap.get(dateStr) || 'Holiday',
-          paid_as: 'NOT_APPLICABLE',
-          daily_rate: 0,
-          calculated_amount: 0,
-          is_adjusted: false,
-        });
-        continue;
-      }
-
-      if (isWeeklyOff) {
-        dayItems.push({
-          date: dateStr,
-          attendance_code: 'WO',
-          day_type: 'WEEKLY_OFF',
-          is_working_day: false,
-          holiday_name: null,
-          paid_as: 'NOT_APPLICABLE',
-          daily_rate: 0,
-          calculated_amount: 0,
-          is_adjusted: false,
-        });
-        continue;
-      }
-
-      // Normal Working Day
-      totalWorkingDaysCount++;
-      const att = attendanceMap.get(dateStr);
-      let code = 'A';
-      let paidAs: 'FULL' | 'HALF' | 'UNPAID' = 'UNPAID';
-
-      const dayLeaves = leaveMap.get(dateStr);
-      if (dayLeaves && dayLeaves.length) {
-        const full = dayLeaves.find((l) => l.day_part === 'FULL_DAY');
-        if (full) {
-          // L -- Full Day: paid type = Full day; unpaid type = LOP
-          code = 'L';
-          paidAs = full.is_paid ? 'FULL' : 'UNPAID';
-          if (full.is_paid) paidLeaveDaysCount++;
-          else unpaidLeaveDaysCount++;
-        } else {
-          // Half-day leave: the other half comes from the check-ins.
-          let paidUnits = 0;
-          for (const l of dayLeaves) {
-            if (l.is_paid) {
-              paidUnits += 0.5;
-              paidLeaveDaysCount += 0.5;
-            } else {
-              unpaidLeaveDaysCount += 0.5;
-            }
-          }
-          const coveredByLeave = dayLeaves.length >= 2;
-          const status = String(att?.day_status || '').toLowerCase();
-          const workedOtherHalf =
-            !coveredByLeave && Boolean(att?.check_in_at) && Boolean(att?.check_out_at) &&
-            ['present', 'completed', 'half_day', 'short'].includes(status);
-          if (workedOtherHalf) {
-            paidUnits += 0.5;
-            presentDaysCount += 0.5;
-          } else if (!coveredByLeave) {
-            absentDaysCount += 0.5;
-          }
-          paidAs = paidUnits >= 1 ? 'FULL' : paidUnits >= 0.5 ? 'HALF' : 'UNPAID';
-          code = paidUnits >= 1 ? (workedOtherHalf ? 'L/P' : 'L') : workedOtherHalf ? 'HD' : 'L/A';
-        }
-        dayItems.push({
-          date: dateStr,
-          attendance_code: code,
-          day_type: 'WORKING_DAY',
-          is_working_day: true,
-          holiday_name: null,
-          paid_as: paidAs,
-          daily_rate: 0,
-          calculated_amount: 0,
-          is_adjusted: false,
-        });
-        continue;
-      }
-
-      if (att) {
-        const status = (att.day_status || '').toLowerCase();
-        if (status === 'present' || status === 'completed') {
-          code = 'P';
-          paidAs = 'FULL';
-          presentDaysCount++;
-        } else if (status === 'half_day') {
-          code = 'HD';
-          paidAs = 'HALF';
-        } else if (status === 'leave') {
-          // Paid vs unpaid
-          code = 'L';
-          paidAs = 'FULL'; // Default paid leave
-          paidLeaveDaysCount++;
-        } else if (status === 'unpaid_leave' || status === 'lwp') {
-          code = 'L';
-          paidAs = 'UNPAID';
-          unpaidLeaveDaysCount++;
-        } else if (status === 'incomplete' || (att.check_in_at && !att.check_out_at)) {
-          code = 'MP';
-          missingPunchDaysCount++;
-          paidAs = settings.missing_punch_default === 'FULL' ? 'FULL' : 'UNPAID';
-        } else {
-          code = 'A';
-          paidAs = 'UNPAID';
-          absentDaysCount++;
-        }
-      } else {
-        code = 'A';
-        paidAs = 'UNPAID';
-        absentDaysCount++;
-      }
-
-      dayItems.push({
-        date: dateStr,
-        attendance_code: code,
-        day_type: 'WORKING_DAY',
-        is_working_day: true,
-        holiday_name: null,
-        paid_as: paidAs,
-        daily_rate: 0,
-        calculated_amount: 0,
-        is_adjusted: false,
+  async context(year: number, month: number): Promise<MonthContext> {
+    const days = new Date(Date.UTC(year, month, 0)).getUTCDate();
+    const start = `${year}-${String(month).padStart(2, '0')}-01`;
+    const end = `${year}-${String(month).padStart(2, '0')}-${String(days).padStart(2, '0')}`;
+    const [settings, holidays, shifts, employeeShifts, fullDayHours, lockRows] = await Promise.all([
+      this.settings(),
+      this.prisma.$queryRaw<any[]>`
+        SELECT holiday_date, name FROM company_holidays
+        WHERE deleted_at IS NULL AND holiday_date BETWEEN ${start}::date AND ${end}::date;
+      `,
+      this.prisma.$queryRaw<any[]>`
+        SELECT shift_id, shift_name, full_day_hours, weekly_off_days, is_default, is_active FROM attendance_shifts WHERE deleted_at IS NULL;
+      `,
+      this.readSetting('attendance_employee_shifts'),
+      this.fullDayHours(),
+      this.prisma.$queryRaw<any[]>`
+        SELECT is_locked, locked_at FROM attendance_month_locks WHERE lock_year = ${year} AND lock_month = ${month};
+      `,
+    ]);
+    const shiftMap = new Map<number, any>();
+    for (const s of shifts) {
+      shiftMap.set(Number(s.shift_id), {
+        shift_id: Number(s.shift_id),
+        shift_name: s.shift_name,
+        full_day_hours: Number(s.full_day_hours) || 8,
+        weekly_off_days: Array.isArray(s.weekly_off_days) ? s.weekly_off_days.map(Number) : [0],
       });
     }
+    const def = shifts.find((s) => s.is_default && s.is_active) || shifts.find((s) => s.is_active) || null;
+    return {
+      year,
+      month,
+      start,
+      end,
+      dates: Array.from({ length: days }, (_, i) => `${year}-${String(month).padStart(2, '0')}-${String(i + 1).padStart(2, '0')}`),
+      settings,
+      holidays: new Map(holidays.map((h) => [ymd(h.holiday_date)!, h.name])),
+      shifts: shiftMap,
+      defaultShiftId: def ? Number(def.shift_id) : null,
+      employeeShifts: employeeShifts && typeof employeeShifts === 'object' ? employeeShifts : {},
+      fullDayHours,
+      attendanceLocked: Boolean(lockRows[0]?.is_locked),
+      attendanceLockedAt: lockRows[0]?.is_locked ? lockRows[0].locked_at : null,
+    };
+  }
 
-    // 6. Day Adjustments Application
-    const empDayAdjustments = existingAdjustments.filter(
-      (adj) => adj.type === 'DAY_ADJUSTMENT' && adj.is_active,
-    );
-    for (const adj of empDayAdjustments) {
-      if (!adj.related_date) continue;
-      const targetDateStr = this.formatYMD(new Date(adj.related_date));
-      const dayItem = dayItems.find((d) => d.date === targetDateStr && d.is_working_day && d.day_type === 'WORKING_DAY');
-      if (dayItem) {
-        dayItem.original_paid_as = dayItem.paid_as;
-        dayItem.paid_as = adj.new_paid_as || 'FULL';
-        dayItem.is_adjusted = true;
-      }
+  /** BFD 4 Part 2 "Who is included in the run". */
+  async eligibleEmployees(ctx: MonthContext, empIds?: number[]): Promise<PayrollEmployeeRow[]> {
+    const ids = empIds && empIds.length ? empIds : null;
+    const rows = await this.prisma.$queryRaw<any[]>`
+      SELECT e.emp_id, e.name, e.status::text AS status, e.joining_date, e.termination_date, e.exit_date, e.salary,
+             e.reporting_manager, r.role_name, d.name AS department_name,
+             pp.pf_applicable, pp.uan, pp.employee_pf_pct, pp.employer_pf_pct, pp.ot_eligible, pp.ot_rate_type::text AS ot_rate_type,
+             pp.ot_rate, pp.ot_multiplier, pp.minimum_ot_per_day, pp.ot_paid_as::text AS ot_paid_as, pp.payment_mode::text AS payment_mode,
+             pp.bank_name, pp.account_number, pp.ifsc_code, (pp.emp_id IS NOT NULL) AS has_policy
+      FROM employees e
+      LEFT JOIN roles r ON r.role_id = e.role_id
+      LEFT JOIN departments d ON d.dep_id = e.dep_id
+      LEFT JOIN employee_pay_policies pp ON pp.emp_id = e.emp_id
+      WHERE e.deleted_at IS NULL
+        AND e.joining_date IS NOT NULL AND e.joining_date <= ${ctx.end}::date
+        AND (
+          e.status IN ('Active', 'Onboarding')
+          OR (e.status = 'Inactive' AND COALESCE(e.termination_date, e.exit_date) >= ${ctx.start}::date)
+        )
+        AND (${ids}::int[] IS NULL OR e.emp_id = ANY(${ids}::int[]))
+      ORDER BY e.emp_id;
+    `;
+    return rows.map((r) => ({
+      emp_id: Number(r.emp_id),
+      name: r.name,
+      status: r.status,
+      joining_date: r.joining_date,
+      termination_date: r.termination_date,
+      exit_date: r.exit_date,
+      salary: Number(r.salary) || 0,
+      role_name: r.role_name,
+      department_name: r.department_name,
+      reporting_manager: r.reporting_manager ? Number(r.reporting_manager) : null,
+      pay: {
+        pfApplicable: r.has_policy ? Boolean(r.pf_applicable) : false,
+        uan: r.uan || null,
+        employeePfPct: r.employee_pf_pct != null ? Number(r.employee_pf_pct) : ctx.settings.default_employee_pf_pct,
+        employerPfPct: r.employer_pf_pct != null ? Number(r.employer_pf_pct) : ctx.settings.default_employer_pf_pct,
+        otEligible: Boolean(r.ot_eligible),
+        otPaidAs: r.ot_paid_as === 'COMP_OFF' ? 'COMP_OFF' : 'SALARY',
+        otRateType: r.ot_rate_type === 'FIXED' ? 'FIXED' : 'MULTIPLIER',
+        otRate: Number(r.ot_rate) || 0,
+        otMultiplier: Number(r.ot_multiplier) || 1,
+        minimumOtPerDay: Number(r.minimum_ot_per_day) || 0,
+        paymentMode: r.payment_mode || 'BANK_TRANSFER',
+        bankName: r.bank_name || null,
+        accountNumber: r.account_number || null,
+        ifsc: r.ifsc_code || null,
+      },
+    }));
+  }
+
+  /** Attendance, approved leave and salary timeline of the given employees for the month. */
+  async monthData(ctx: MonthContext, empIds: number[]): Promise<Map<number, EmployeeMonthData>> {
+    const out = new Map<number, EmployeeMonthData>();
+    for (const id of empIds) out.set(id, { attendance: new Map(), leaves: new Map(), timeline: [] });
+    if (!empIds.length) return out;
+    const [att, leaves, timeline] = await Promise.all([
+      this.prisma.$queryRaw<any[]>`
+        SELECT emp_id, work_date, check_in_at, check_out_at, break_minutes, production_minutes, day_status, shift_id
+        FROM attendance_days
+        WHERE emp_id = ANY(${empIds}::int[]) AND deleted_at IS NULL
+          AND work_date BETWEEN ${ctx.start}::date AND ${ctx.end}::date;
+      `,
+      this.prisma
+        .$queryRaw<any[]>`
+          SELECT d.emp_id, d.leave_date, d.day_part, r.is_paid
+          FROM leave_request_days d JOIN leave_requests r ON r.request_id = d.request_id
+          WHERE d.emp_id = ANY(${empIds}::int[]) AND d.leave_date BETWEEN ${ctx.start}::date AND ${ctx.end}::date
+            AND r.status IN ('APPROVED', 'CANCELLATION_REQUESTED');
+        `
+        .catch(() => [] as any[]),
+      this.prisma.$queryRaw<any[]>`
+        SELECT entity_id AS emp_id, (details->>'salary')::numeric AS salary,
+               CASE WHEN details->>'effective_date' ~ '^\\d{4}-\\d{2}-\\d{2}' THEN substring(details->>'effective_date', 1, 10)
+                    ELSE to_char(performed_at, 'YYYY-MM-DD') END AS from_date
+        FROM activity_logs
+        WHERE entity_type = 'EMPLOYEE' AND event IN ('HIRED', 'SALARY_REVISION') AND entity_id = ANY(${empIds}::int[])
+          AND details->>'salary' ~ '^[0-9.]+$'
+        ORDER BY performed_at, log_id;
+      `,
+    ]);
+    for (const a of att) {
+      if (String(a.day_status || '') === 'leave') continue; // old placeholder rows are not check-ins
+      out.get(Number(a.emp_id))?.attendance.set(ymd(a.work_date)!, a);
     }
-
-    // 7. Calculate Counts & Basic Salary
-    const monthlySalary = Number(emp.salary) || 0;
-    const dailyRate = totalWorkingDaysCount > 0 ? this.round2(monthlySalary / totalWorkingDaysCount) : 0;
-
-    let fullDaysCount = 0;
-    let halfDaysCount = 0;
-
-    for (const day of dayItems) {
-      day.daily_rate = dailyRate;
-      if (day.paid_as === 'FULL') {
-        fullDaysCount += 1;
-        day.calculated_amount = dailyRate;
-      } else if (day.paid_as === 'HALF') {
-        halfDaysCount += 1;
-        day.calculated_amount = this.round2(dailyRate * 0.5);
-      } else {
-        day.calculated_amount = 0;
-      }
+    for (const l of leaves) {
+      const m = out.get(Number(l.emp_id))?.leaves;
+      if (!m) continue;
+      const key = ymd(l.leave_date)!;
+      const list = m.get(key) || [];
+      list.push({ part: l.day_part, paid: Boolean(l.is_paid) });
+      m.set(key, list);
     }
+    for (const t of timeline) {
+      out.get(Number(t.emp_id))?.timeline.push({ from: t.from_date, salary: Number(t.salary) || 0 });
+    }
+    for (const v of out.values()) v.timeline.sort((a, b) => (a.from < b.from ? -1 : a.from > b.from ? 1 : 0));
+    return out;
+  }
 
-    const paidDays = this.round2(fullDaysCount + halfDaysCount * 0.5);
-    const lopDays = Math.max(0, this.round2(totalWorkingDaysCount - notEmployedDaysCount - paidDays));
-    const basicSalary = this.round2(fullDaysCount * dailyRate + halfDaysCount * dailyRate * 0.5);
+  /** The shift of one employee on one day: attendance record, else assignment, else default. */
+  private shiftFor(ctx: MonthContext, empId: number, att: any) {
+    const fromDay = att?.shift_id ? ctx.shifts.get(Number(att.shift_id)) : null;
+    if (fromDay) return fromDay;
+    const assigned = ctx.employeeShifts[String(empId)];
+    if (assigned && ctx.shifts.get(Number(assigned))) return ctx.shifts.get(Number(assigned))!;
+    return ctx.defaultShiftId ? ctx.shifts.get(ctx.defaultShiftId) || null : null;
+  }
 
-    // 8. Overtime Calculation
-    const payPolicy = emp.payPolicy || {};
-    const otEligible = Boolean(payPolicy.ot_eligible);
-    const otPaidAs = payPolicy.ot_paid_as || 'SALARY';
-    let otHours = 0;
-    let otRate = 0;
-    let otAmount = 0;
-
-    if (otEligible && otPaidAs === 'SALARY') {
-      if (payPolicy.ot_rate_type === 'FIXED') {
-        otRate = Number(payPolicy.ot_rate) || 0;
-      } else {
-        // Multiplier
-        const multiplier = Number(payPolicy.ot_multiplier) || 1.5;
-        const hourlyRate = fullDayHours > 0 ? dailyRate / fullDayHours : 0;
-        otRate = this.round2(hourlyRate * multiplier);
-      }
-
-      // Sum approved OT entries (only if paid as SALARY, not COMP_OFF)
-      for (const ot of existingOtEntries) {
-        if ((ot.status === 'APPROVED' || ot.status === 'REDUCED') && ot.ot_paid_as !== 'COMP_OFF') {
-          otHours += Number(ot.approved_hours) || 0;
+  calculate(
+    ctx: MonthContext,
+    emp: PayrollEmployeeRow,
+    data: EmployeeMonthData,
+    adjustments: any[],
+    otEntries: any[],
+  ): EmployeeCalculation {
+    const joining = ymd(emp.joining_date);
+    const termination = emp.status === 'Inactive' ? ymd(emp.termination_date || emp.exit_date) : ymd(emp.termination_date);
+    const inEmployment = (d: string) => (!joining || d >= joining) && (!termination || d <= termination);
+    let shiftName = '';
+    const days: DayInput[] = ctx.dates.map((date) => {
+      const att = data.attendance.get(date) || null;
+      const shift = this.shiftFor(ctx, emp.emp_id, att);
+      if (shift && inEmployment(date)) shiftName = shift.shift_name;
+      const dow = new Date(`${date}T00:00:00Z`).getUTCDay();
+      let worked = 0;
+      if (att) {
+        if (att.production_minutes != null && Number(att.production_minutes) > 0) worked = Number(att.production_minutes);
+        else if (att.check_in_at && att.check_out_at) {
+          worked = Math.max(0, (new Date(att.check_out_at).getTime() - new Date(att.check_in_at).getTime()) / 60000 - (Number(att.break_minutes) || 0));
         }
       }
-      otAmount = this.round2(otHours * otRate);
-    }
+      return {
+        date,
+        weeklyOff: shift ? shift.weekly_off_days.includes(dow) : false,
+        holidayName: ctx.holidays.get(date) || null,
+        hasShift: Boolean(shift),
+        attendance: att
+          ? { status: String(att.day_status || ''), checkIn: Boolean(att.check_in_at), checkOut: Boolean(att.check_out_at), workedMinutes: worked }
+          : null,
+        leaves: data.leaves.get(date) || [],
+        monthlySalary: salaryOn(date, data.timeline, emp.salary),
+      };
+    });
 
-    // 9. Provident Fund (PF)
-    const pfApplicable = Boolean(payPolicy.pf_applicable ?? (Number(emp.pf) > 0));
-    const uan = payPolicy.uan || null;
-    const employeePfPct = Number(payPolicy.employee_pf_pct ?? settings.default_employee_pf_pct) || 12.0;
-    const employerPfPct = Number(payPolicy.employer_pf_pct ?? settings.default_employer_pf_pct) || 12.0;
-    const applyPfWageLimit = settings.apply_pf_wage_limit !== false;
-    const pfWageLimit = Number(settings.pf_wage_limit) || 15000.0;
+    const active = adjustments.filter((a) => a.is_active);
+    const dayAdjustments: Record<string, 'FULL' | 'HALF' | 'UNPAID'> = {};
+    for (const a of active) if (a.type === 'DAY_ADJUSTMENT' && a.related_date) dayAdjustments[ymd(a.related_date)!] = a.new_paid_as;
+    const amount = (t: string) => round2(active.filter((a) => a.type === t).reduce((s, a) => s + Number(a.amount || 0), 0));
 
-    let pfWage = 0;
-    let employeePf = 0;
-    let employerPf = 0;
+    const result = calculateSalary({
+      monthStart: ctx.start,
+      monthEnd: ctx.end,
+      employeeStatus: emp.status,
+      joining,
+      termination,
+      days,
+      pay: emp.pay,
+      settings: {
+        missingPunch: ctx.settings.missing_punch_default,
+        applyPfWageLimit: ctx.settings.apply_pf_wage_limit,
+        pfWageLimit: ctx.settings.pf_wage_limit,
+        rounding: ctx.settings.total_salary_rounding,
+      },
+      fullDayHours: ctx.fullDayHours,
+      dayAdjustments,
+      additions: amount('ADDITION'),
+      deductions: amount('DEDUCTION'),
+      hasAmountAdjustments: active.some((a) => a.type !== 'DAY_ADJUSTMENT'),
+      otEntries: otEntries.map((o) => ({ date: ymd(o.attendance_date)!, approvedHours: Number(o.approved_hours) || 0, status: o.status })),
+    });
 
-    if (pfApplicable) {
-      pfWage = applyPfWageLimit ? Math.min(basicSalary, pfWageLimit) : basicSalary;
-      employeePf = this.round2((pfWage * employeePfPct) / 100);
-      employerPf = this.round2((pfWage * employerPfPct) / 100);
-    }
-
-    // 10. Additions & Deductions
-    let totalAdditions = 0;
-    let totalDeductions = 0;
-    for (const adj of existingAdjustments) {
-      if (!adj.is_active) continue;
-      if (adj.type === 'ADDITION') {
-        totalAdditions += Number(adj.amount) || 0;
-      } else if (adj.type === 'DEDUCTION') {
-        totalDeductions += Number(adj.amount) || 0;
-      }
-    }
-    totalAdditions = this.round2(totalAdditions);
-    totalDeductions = this.round2(totalDeductions);
-
-    // 11. Gross & Total Salary (Net Pay)
-    const grossEarnings = this.round2(basicSalary + otAmount + totalAdditions);
-    let totalSalary = grossEarnings - (employeePf + totalDeductions);
-    if (settings.total_salary_rounding === 'NEAREST_RUPEE') {
-      totalSalary = this.roundRupee(totalSalary);
-    } else {
-      totalSalary = this.round2(totalSalary);
-    }
-
-    // 12. Flags & Validation Messages
-    let flag: 'NONE' | 'ERROR' | 'WARNING' | 'JOINED_IN_MONTH' | 'LEFT_IN_MONTH' | 'ADJUSTED' = 'NONE';
-    let validationMessage: string | null = null;
-
-    if (monthlySalary <= 0) {
-      flag = 'ERROR';
-      validationMessage = 'Monthly Salary is not set in the Employee Master';
-    } else if (totalSalary < 0) {
-      flag = 'ERROR';
-      validationMessage = 'Total Salary cannot be less than 0. Reduce the deduction.';
-    } else if (empJoiningStr >= startDateStr && empJoiningStr <= endDateStr) {
-      flag = 'JOINED_IN_MONTH';
-      validationMessage = `Joined on ${empJoiningStr}`;
-    } else if (empTermStr >= startDateStr && empTermStr <= endDateStr) {
-      flag = 'LEFT_IN_MONTH';
-      validationMessage = `Left on ${empTermStr}`;
-    } else if (empDayAdjustments.length > 0 || existingAdjustments.length > 0) {
-      flag = 'ADJUSTED';
-    } else if (pfApplicable && !uan) {
-      flag = 'WARNING';
-      validationMessage = 'PF Applicable is Yes, but UAN is empty';
-    } else if (payPolicy.payment_mode === 'BANK_TRANSFER' && (!payPolicy.account_number || !payPolicy.ifsc_code)) {
-      flag = 'WARNING';
-      validationMessage = 'Bank Transfer mode but Account or IFSC is missing';
-    }
-
-    return {
-      emp_id: emp.emp_id,
-      employee_code: emp.employee_code || `EMP-${String(emp.emp_id).padStart(4, '0')}`,
-      employee_name: emp.name,
-      department_names: emp.department_names || 'General',
-      role_name: emp.role_name || '-',
-      shift_name: shift.shift_name,
-      monthly_salary: monthlySalary,
-      daily_rate: dailyRate,
-      pf_applicable: pfApplicable,
-      uan: uan,
-      payment_mode: payPolicy.payment_mode || 'BANK_TRANSFER',
-      bank_name: payPolicy.bank_name || null,
-      account_number: payPolicy.account_number || null,
-      ifsc_code: payPolicy.ifsc_code || null,
-      total_working_days: totalWorkingDaysCount,
-      present_days: presentDaysCount,
-      paid_leave_days: paidLeaveDaysCount,
-      unpaid_leave_days: unpaidLeaveDaysCount,
-      absent_days: absentDaysCount,
-      missing_punch_days: missingPunchDaysCount,
-      not_employed_days: notEmployedDaysCount,
-      full_days: fullDaysCount,
-      half_days: halfDaysCount,
-      paid_days: paidDays,
-      lop_days: lopDays,
-      basic_salary: basicSalary,
-      ot_hours: otHours,
-      ot_rate: otRate,
-      ot_amount: otAmount,
-      pf_wage: pfWage,
-      employee_pf: employeePf,
-      employer_pf: employerPf,
-      total_additions: totalAdditions,
-      total_deductions: totalDeductions,
-      gross_earnings: grossEarnings,
-      total_salary: totalSalary,
-      flag: flag,
-      validation_message: validationMessage,
-      days: dayItems,
-    };
+    const proposals = emp.pay.otEligible
+      ? proposeOt(days, inEmployment, ctx.fullDayHours, emp.pay.minimumOtPerDay, ctx.settings.ot_rounding)
+      : [];
+    const rateByDate = new Map(result.days.map((d) => [d.date, d.daily_rate]));
+    const hourlyRateOf = (date: string) =>
+      ctx.fullDayHours > 0 ? round2((rateByDate.get(date) || result.daily_rate) / ctx.fullDayHours) : 0;
+    return { emp, result, proposals, shiftName: shiftName || (ctx.defaultShiftId ? ctx.shifts.get(ctx.defaultShiftId)?.shift_name || '' : ''), hourlyRateOf };
   }
 }

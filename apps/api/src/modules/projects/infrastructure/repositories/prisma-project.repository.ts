@@ -712,6 +712,7 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
       where,
       include: {
         project_sprints: true,
+        master_lookup: { select: { label: true } },
         task_assignees: {
           where: { deleted_at: null },
           include: {
@@ -748,6 +749,14 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
         };
       }),
       created_at: t.created_at.toISOString(),
+      task_type: t.other_task_type || t.master_lookup?.label || null,
+      // Worked time, including the running session (Project BFD 3.4: Actual Work Hours).
+      actual_minutes:
+        (t.actual_minutes || 0) +
+        (t.is_timer_running && t.timer_started_at ? Math.max(0, Math.floor((Date.now() - new Date(t.timer_started_at).getTime()) / 60000)) : 0),
+      started_at: t.started_at ? t.started_at.toISOString() : null,
+      requested_at: t.requested_at ? t.requested_at.toISOString() : null,
+      completed_at: t.completed_at ? t.completed_at.toISOString() : null,
     }));
   }
 

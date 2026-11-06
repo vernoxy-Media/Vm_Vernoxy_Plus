@@ -135,6 +135,9 @@ export interface MoveStageRepoInput {
   note?: string | null;
   hold_reason?: string | null;
   self_approved?: boolean;
+  /** Start the work clock: set when an assignee moves the task into In Progress. */
+  start_timer?: boolean;
+  actor_name?: string;
 }
 
 export interface TrackWorkSessionRepoInput {

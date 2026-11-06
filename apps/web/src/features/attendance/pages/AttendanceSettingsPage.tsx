@@ -10,7 +10,8 @@ import { AttendanceHolidaysCard } from '../components/settings/AttendanceHoliday
 import { AttendanceDefaultHoursCard } from '../components/settings/AttendanceDefaultHoursCard';
 import { AttendanceEmployeeHoursCard } from '../components/settings/AttendanceEmployeeHoursCard';
 import { AttendanceStatusesCard } from '../components/settings/AttendanceStatusesCard';
-import { Tag, ClipboardCheck, HelpCircle } from 'lucide-react';
+import { AttendanceMonthLockCard } from '../components/settings/AttendanceMonthLockCard';
+import { Tag, ClipboardCheck, HelpCircle, Lock } from 'lucide-react';
 
 const SettingsRequestTypesSection = React.lazy(() =>
   import('@/features/settings/sections/SettingsRequestTypesSection').then((m) => ({ default: m.SettingsRequestTypesSection }))
@@ -30,7 +31,8 @@ type TabSection =
   | 'reasons'
   | 'working_days'
   | 'holidays'
-  | 'employee_hours';
+  | 'employee_hours'
+  | 'month_lock';
 
 export const AttendanceSettingsPage: React.FC = () => {
   const { data, isLoading, error } = useAttendanceSettingsQuery();
@@ -45,6 +47,7 @@ export const AttendanceSettingsPage: React.FC = () => {
     { id: 'working_days', label: 'Working & Off Days', icon: Calendar },
     { id: 'holidays', label: 'Official Holidays', icon: CalendarDays },
     { id: 'employee_hours', label: 'Employee Assignments', icon: Users },
+    { id: 'month_lock', label: 'Month Lock', icon: Lock },
   ] as const;
 
   return (
@@ -147,6 +150,8 @@ export const AttendanceSettingsPage: React.FC = () => {
             {activeSection === 'holidays' && (
               <AttendanceHolidaysCard holidays={data.holidays} />
             )}
+
+            {activeSection === 'month_lock' && <AttendanceMonthLockCard />}
 
             {activeSection === 'employee_hours' && (
               <AttendanceEmployeeHoursCard

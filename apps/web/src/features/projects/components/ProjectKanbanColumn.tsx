@@ -13,6 +13,7 @@ export interface ProjectKanbanColumnProps {
   projects: ProjectItem[];
   onSelectProject: (project: ProjectItem) => void;
   isDraggingAny?: boolean;
+  canMove?: (project: ProjectItem) => boolean;
 }
 
 export const ProjectKanbanColumn: React.FC<ProjectKanbanColumnProps> = ({
@@ -24,6 +25,7 @@ export const ProjectKanbanColumn: React.FC<ProjectKanbanColumnProps> = ({
   projects,
   onSelectProject,
   isDraggingAny = false,
+  canMove,
 }) => {
   const { setNodeRef, isOver } = useDroppable({
     id: status,
@@ -83,6 +85,7 @@ export const ProjectKanbanColumn: React.FC<ProjectKanbanColumnProps> = ({
                   key={project.project_id}
                   project={project}
                   onSelectProject={onSelectProject}
+                  canMove={canMove ? canMove(project) : true}
                 />
               ))}
             </>

@@ -40,6 +40,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
+  /**
+   * Auto clock-in: the first time the employee opens Pulse each day (fresh login
+   * or a restored session), punch in through the normal attendance endpoint so
+   * leave rules apply (no check-in on a full-day leave, or before the second half
+   * on a first-half leave). The API ignores a second punch-in the same day.
+   */
+  const autoClockIn = useCallback(
+    async (empId: number | undefined) => {
+      if (!empId) return;
+      const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
+      const key = `pulse_auto_clock_in_${empId}`;
+      try {
+        if (localStorage.getItem(key) === today) return;
+      } catch {
+        /* storage unavailable: just try */
+      }
+      try {
+        await customFetch('/api/v1/attendance/check-in', { method: 'POST' });
+      } catch (err: any) {
+        // Only "already checked in / out today" (409) settles the day. Leave
+        // blocks (e.g. a first-half leave before the second half starts),
+        // network or server errors are tried again on the next app load.
+        if (Number(err?.status) !== 409) return;
+      }
+      try {
+        localStorage.setItem(key, today);
+      } catch {
+        /* ignore */
+      }
+      queryClient.invalidateQueries({ queryKey: ['attendance_dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['attendance_day_detail'] });
+    },
+    [queryClient],
+  );
+
   // Initialize session on app load
   useEffect(() => {
     let isMounted = true;
@@ -48,7 +83,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const token = await restoreSession();
         if (token && isMounted) {
-          await fetchProfile();
+          const profile = await fetchProfile();
+          void autoClockIn(profile?.emp_id);
         }
       } catch {
         if (isMounted) setUser(null);
@@ -72,19 +108,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isMounted = false;
       unsubscribe();
     };
-  }, [fetchProfile, queryClient]);
+  }, [fetchProfile, queryClient, autoClockIn]);
 
   const handleLoginSuccess = async (data: VerifyLoginResponseDto) => {
     setAccessToken(data.access_token);
-    await fetchProfile();
-    try {
-      // Auto punch-in on login
-      await customFetch('/api/v1/attendance/check-in', { method: 'POST' });
-    } catch {
-      // Gracefully ignore 409 (already punched in) or network delays so login always succeeds
-    }
-    queryClient.invalidateQueries({ queryKey: ['attendance_dashboard'] });
-    queryClient.invalidateQueries({ queryKey: ['attendance_day_detail'] });
+    const profile = await fetchProfile();
+    // Auto punch-in on login; never blocks the login itself.
+    await autoClockIn(profile?.emp_id ?? data.user?.emp_id);
   };
 
   const logout = async () => {

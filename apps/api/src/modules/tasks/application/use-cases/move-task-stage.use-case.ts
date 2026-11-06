@@ -79,12 +79,20 @@ export class MoveTaskStageUseCase {
       }
     }
 
+    // The work clock starts when an assignee moves the task into In Progress.
+    // An approver sending a task back for rework does not start anyone's clock;
+    // a main task with sub-tasks is timed on its sub-tasks.
+    const startTimer =
+      command.targetStage === 'in_progress' && (isAssignee || isLead) && !isApproverAction && !existing.has_sub_tasks;
+
     const updated = await this.taskRepo.moveStage(command.taskId, {
       target_stage: command.targetStage,
       actor_emp_id: command.actorEmpId,
+      actor_name: command.actorName,
       note: command.note?.trim() || null,
       hold_reason: command.targetStage === 'hold' ? (command.hold_reason?.trim() || command.note?.trim() || null) : null,
       self_approved: isApprover,
+      start_timer: startTimer,
     });
 
     // Handle notifications asynchronously without failing the stage transition

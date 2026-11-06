@@ -39,9 +39,12 @@ import {
   UserPlus,
   FilePlus,
   Award,
+  FileText,
+  Clock3,
   type LucideIcon,
 } from 'lucide-react';
 import { useSalesRights } from '@/features/sales/hooks/useSalesRights';
+import { usePayrollMe } from '@/features/payroll/hooks/use-payroll';
 import { useFollowUpCounters } from '@/features/sales/hooks/useFollowUpCounters';
 
 export interface SidebarProps {
@@ -85,6 +88,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggleC
   const { totalUnread: messengerUnread } = useMessenger();
   const location = useLocation();
   const { canAccessSales, isAdmin, canImport, canExport } = useSalesRights();
+  const { data: payrollMe } = usePayrollMe();
   const { totalDueCount } = useFollowUpCounters();
   /** Sub-menus the person opened or closed by hand; the rest follow the current page. */
   const [toggled, setToggled] = useState<Record<string, boolean>>({});
@@ -155,6 +159,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggleC
     entry('Expenses', '/expense', Receipt, own(starts('/expense', '/expenses'), expenseAdmin)),
     entry('Complaints', '/complaints', AlertCircle, own(starts('/complaints', '/complaint'), complaintAdmin)),
     entry('Licenses', '/licenses', Laptop, starts('/licenses', '/my-software')),
+    entry('Salary Slips', '/salary-slips', FileText, starts('/salary-slips'), 'salary-slips'),
+    // Payroll BFD 14: Accounts run payroll (admins find it under Finance); Reporting Managers approve OT.
+    ...(payrollMe?.can_use_payroll && !isOrgAdmin ? [entry('Payroll', '/admin/payroll', Banknote, starts('/admin/payroll'), 'payroll-accounts')] : []),
+    ...(payrollMe?.can_approve_ot && !payrollMe?.can_use_payroll ? [entry('OT Approvals', '/payroll/ot-approvals', Clock3, starts('/payroll/ot-approvals'), 'ot-approvals')] : []),
     entry('Support', '/support', LifeBuoy, starts('/support')),
   ];
 

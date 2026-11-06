@@ -345,12 +345,24 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
     return this.prisma.$transaction(async (tx) => {
       const existing = await tx.tasks.findUnique({
         where: { task_id: taskId },
-        select: { stage: true, parent_task_id: true, task_code: true },
+        select: {
+          stage: true,
+          parent_task_id: true,
+          task_code: true,
+          started_at: true,
+          actual_minutes: true,
+          is_timer_running: true,
+          timer_started_at: true,
+          work_logs: true,
+        },
       });
       if (!existing) throw new Error(`Task #${taskId} not found`);
 
       const fromStage = existing.stage as TaskStage;
       const toStage = input.target_stage;
+      const clockNow = new Date();
+      const workLogs = Array.isArray(existing.work_logs) ? [...(existing.work_logs as any[])] : [];
+      const newLogId = () => `log_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
       let eventType: any = 'stage_changed';
       if (toStage === 'hold') {
@@ -420,6 +432,40 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
             },
           });
         }
+      }
+
+      // Work clock follows the stage: In Progress runs it, any other stage stops it.
+      if (toStage === 'in_progress' && input.start_timer && !existing.is_timer_running) {
+        updateData.is_timer_running = true;
+        updateData.timer_started_at = clockNow;
+        if (!existing.started_at) updateData.started_at = clockNow;
+        workLogs.push({
+          log_id: newLogId(),
+          employee_id: input.actor_emp_id,
+          employee_name: input.actor_name || 'Employee',
+          action: existing.started_at ? 'resume' : 'start',
+          timestamp: clockNow.toISOString(),
+          note: 'Clock started: task moved to In Progress',
+        });
+        updateData.work_logs = workLogs;
+      } else if (toStage !== 'in_progress' && existing.is_timer_running) {
+        const elapsedSeconds = existing.timer_started_at
+          ? Math.max(0, Math.floor((clockNow.getTime() - new Date(existing.timer_started_at).getTime()) / 1000))
+          : 0;
+        const addMins = elapsedSeconds > 0 ? Math.max(1, Math.round(elapsedSeconds / 60)) : 0;
+        updateData.actual_minutes = (existing.actual_minutes || 0) + addMins;
+        updateData.is_timer_running = false;
+        updateData.timer_started_at = null;
+        workLogs.push({
+          log_id: newLogId(),
+          employee_id: input.actor_emp_id,
+          employee_name: input.actor_name || 'Employee',
+          action: toStage === 'hold' ? 'pause' : 'finish',
+          timestamp: clockNow.toISOString(),
+          duration_seconds: elapsedSeconds,
+          note: `Clock stopped: task moved to ${toStage === 'requested' ? 'Submitted' : toStage === 'hold' ? 'Hold' : toStage}`,
+        });
+        updateData.work_logs = workLogs;
       }
 
       if (toStage === 'hold') {

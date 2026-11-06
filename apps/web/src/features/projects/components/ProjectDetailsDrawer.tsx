@@ -14,6 +14,7 @@ import {
   FileText,
   AlertTriangle,
   RotateCcw,
+  Code2,
 } from 'lucide-react';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useSocket } from '@/shared/socket/SocketContext';
@@ -53,6 +54,7 @@ import { CreateProjectTaskModal } from './CreateProjectTaskModal';
 import { CreateBugModal } from './CreateBugModal';
 import { BugDetailsModal } from './BugDetailsModal';
 import { CreateProjectModal } from './CreateProjectModal';
+import { ProjectClientTechTab } from './ProjectClientTechTab';
 import { WhatsAppChat } from '@/shared/components/chat/WhatsAppChat';
 import type { TaskDetailDto } from '@vernoxy-pulse/api-client';
 
@@ -73,6 +75,17 @@ const STAGE_CONFIG: Record<TaskStage, { label: string; badge: string }> = {
   hold: { label: 'Hold', badge: 'bg-amber-100 text-amber-800 border-amber-200' },
   requested: { label: 'Submitted', badge: 'bg-purple-100 text-purple-700 border-purple-200' },
   completed: { label: 'Approved', badge: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+};
+
+const BUG_STATUS: Record<string, { label: string; cls: string }> = {
+  new: { label: 'New', cls: 'border-slate-200 bg-slate-50 text-slate-700' },
+  open: { label: 'Open', cls: 'border-blue-200 bg-blue-50 text-blue-700' },
+  ready_for_dev: { label: 'Ready for Dev', cls: 'border-indigo-200 bg-indigo-50 text-indigo-700' },
+  dev_in_progress: { label: 'Dev in Progress', cls: 'border-amber-200 bg-amber-50 text-amber-700' },
+  ready_for_qa: { label: 'Ready for QA', cls: 'border-violet-200 bg-violet-50 text-violet-700' },
+  qa_in_progress: { label: 'QA in Progress', cls: 'border-orange-200 bg-orange-50 text-orange-700' },
+  done: { label: 'Done', cls: 'border-emerald-200 bg-emerald-50 text-emerald-700' },
+  not_a_bug: { label: 'Not a Bug', cls: 'border-slate-200 bg-slate-100 text-slate-500' },
 };
 
 export interface ProjectDetailsDrawerProps {
@@ -111,12 +124,15 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   // Final 4 Tabs: Tasks, Discussion, Overview, Activity Logs
-  const [activeTab, setActiveTab] = useState<'tasks' | 'discussion' | 'overview' | 'activity'>('tasks');
+  const [activeTab, setActiveTab] = useState<'tasks' | 'discussion' | 'overview' | 'details' | 'activity'>('tasks');
   const [tasksSubTab, setTasksSubTab] = useState<'board' | 'bugs'>('board');
 
   // Filters
   const [selectedEmpFilter, setSelectedEmpFilter] = useState('all');
   const [selectedSprintFilter, setSelectedSprintFilter] = useState<string>('all');
+  // Overview filters (BFD 2.6): Date period + Employee drive the KPI cards and Person-wise Summary.
+  const [periodFrom, setPeriodFrom] = useState('');
+  const [periodTo, setPeriodTo] = useState('');
 
   // Dedicated Bug Tab Filters
   const [bugSearch, setBugSearch] = useState('');
@@ -244,23 +260,31 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
   }, [selectedDrawerTaskId, isAdmin]);
 
   // KPI Calculations
-  const kpiData = useMemo(() => {
-    if (!project) return { estHours: 0, actHours: 0, startDate: '', deadline: '', actualEndDate: null };
-
-    const estHours = project.total_estimated_minutes
-      ? Math.round(((project.total_estimated_minutes || 0) / 60) * 10) / 10
-      : 0;
-    const actMinutes = tasks.reduce((acc, t) => acc + ((t as any).actual_minutes || 0), 0);
-    const actHours = Math.round((actMinutes / 60) * 10) / 10;
-
-    return {
-      estHours,
-      actHours,
-      startDate: project.start_date ? new Date(project.start_date).toLocaleDateString('en-GB') : '---',
-      deadline: project.deadline ? new Date(project.deadline).toLocaleDateString('en-GB') : '---',
-      actualEndDate: project.actual_end_date ? new Date(project.actual_end_date).toLocaleDateString('en-GB') : null,
+  // Tasks inside the selected period and employee (BFD 2.6 filters).
+  const periodTasks = useMemo(() => {
+    const inPeriod = (t: ProjectTaskItem) => {
+      if (!periodFrom && !periodTo) return true;
+      const dates = [t.created_at, t.started_at, t.requested_at, t.completed_at].filter(Boolean).map((d) => String(d).slice(0, 10));
+      return dates.some((d) => (!periodFrom || d >= periodFrom) && (!periodTo || d <= periodTo));
     };
-  }, [project, tasks]);
+    return tasks.filter(
+      (t) => inPeriod(t) && (selectedEmpFilter === 'all' || t.assignees?.some((a) => String(a.emp_id) === selectedEmpFilter)),
+    );
+  }, [tasks, periodFrom, periodTo, selectedEmpFilter]);
+
+  const kpiData = useMemo(() => {
+    const dmy = (d?: string | null) => (d ? d.slice(0, 10).split('-').reverse().join('-') : '—'); // DD-MM-YYYY
+    if (!project) return { estHours: 0, actHours: 0, startDate: '—', deadline: '—', actualEndDate: '—' };
+    const estMinutes = periodTasks.reduce((acc, t) => acc + (t.allocated_minutes || 0), 0);
+    const actMinutes = periodTasks.reduce((acc, t) => acc + (t.actual_minutes || 0), 0);
+    return {
+      estHours: Math.round((estMinutes / 60) * 10) / 10,
+      actHours: Math.round((actMinutes / 60) * 10) / 10,
+      startDate: dmy(project.start_date),
+      deadline: dmy(project.deadline),
+      actualEndDate: project.actual_end_date ? dmy(project.actual_end_date) : '—',
+    };
+  }, [project, periodTasks]);
 
   // Filtered Tasks
   const filteredTasks = useMemo(() => {
@@ -337,7 +361,7 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
   const bugStats = useMemo(() => {
     return {
       total: bugs.length,
-      open: bugs.filter((b) => b.status === 'new').length,
+      open: bugs.filter((b) => b.status === 'new' || b.status === 'open').length,
       dev: bugs.filter((b) => ['ready_for_dev', 'dev_in_progress'].includes(b.status)).length,
       qa: bugs.filter((b) => ['ready_for_qa', 'qa_in_progress'].includes(b.status)).length,
       done: bugs.filter((b) => b.status === 'done').length,
@@ -363,14 +387,14 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
     return project.members
       .filter((m) => selectedEmpFilter === 'all' || String(m.employee_id) === selectedEmpFilter)
       .map((member) => {
-        const memberTasks = tasks.filter((t) =>
+        const memberTasks = periodTasks.filter((t) =>
           t.assignees?.some((a) => a.emp_id === member.employee_id)
         );
 
         const totalTasks = memberTasks.length;
         const completedTasks = memberTasks.filter((t) => t.stage === 'completed').length;
         const estMinutes = memberTasks.reduce((sum, t) => sum + (t.allocated_minutes || 0), 0);
-        const actMinutes = memberTasks.reduce((sum, t) => sum + ((t as any).actual_minutes || 0), 0);
+        const actMinutes = memberTasks.reduce((sum, t) => sum + (t.actual_minutes || 0), 0);
 
         return {
           emp_id: member.employee_id,
@@ -384,7 +408,7 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
           completionRate: totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0,
         };
       });
-  }, [project, tasks, selectedEmpFilter]);
+  }, [project, periodTasks, selectedEmpFilter]);
 
   // Status Update Handlers
   const promptStatusChange = (newStatus: ProjectStatus) => {
@@ -477,6 +501,7 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
     { id: 'tasks', label: 'TASKS', icon: CheckSquare, badge: filteredTasks.length },
     { id: 'discussion', label: 'DISCUSSION', icon: MessageSquare, badge: discussions.length },
     { id: 'overview', label: 'OVERVIEW', icon: FileText },
+    { id: 'details', label: 'CLIENT & TECH', icon: Code2 },
     { id: 'activity', label: 'ACTIVITY LOG', icon: History, badge: activityLogs.length },
   ];
 
@@ -711,7 +736,7 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
                               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-semibold transition cursor-pointer"
                             >
                               <Bug className="w-3.5 h-3.5" />
-                              <span>Report Bug</span>
+                              <span>Create Bug</span>
                             </button>
                             {isManagerOrAdmin && (
                               <>
@@ -722,7 +747,7 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
                                   title="Create a new sprint"
                                 >
                                   <Layers className="w-3.5 h-3.5 text-slate-500" />
-                                  <span>Add Sprint</span>
+                                  <span>Create Sprint</span>
                                 </button>
                                 <button
                                   type="button"
@@ -730,7 +755,7 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
                                   className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-xs transition cursor-pointer"
                                 >
                                   <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                                  <span>Add Task</span>
+                                  <span>Create Task</span>
                                 </button>
                               </>
                             )}
@@ -836,7 +861,7 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
                                         )}
                                       </div>
                                       <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
-                                        {grp.tasks.length} {grp.tasks.length === 1 ? 'task' : 'tasks'}
+                                        {grp.tasks.filter((t) => t.stage === 'completed').length} / {grp.tasks.length} completed
                                       </span>
                                     </div>
 
@@ -865,6 +890,19 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
                                               <p className="text-xs text-slate-500 mt-1">
                                                 Assigned to: <span className="font-medium text-slate-700">{assigneesText}</span>
                                               </p>
+                                              <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10.5px] font-semibold">
+                                                {t.priority && (
+                                                  <span className={`rounded-md px-1.5 py-0.5 capitalize ${t.priority === 'high' ? 'bg-rose-50 text-rose-700' : t.priority === 'medium' ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-600'}`}>
+                                                    {t.priority}
+                                                  </span>
+                                                )}
+                                                {t.task_type && <span className="rounded-md bg-violet-50 px-1.5 py-0.5 text-violet-700">{t.task_type}</span>}
+                                                {t.allocated_minutes ? (
+                                                  <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-slate-600">
+                                                    {Math.floor(t.allocated_minutes / 60)}h {t.allocated_minutes % 60}m
+                                                  </span>
+                                                ) : null}
+                                              </div>
                                             </div>
 
                                             <div className="flex items-center gap-3">
@@ -935,8 +973,16 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
                                         </span>
                                         <span className="text-xs font-bold text-slate-900">{b.title}</span>
                                       </div>
+                                      <p className="mt-1 text-[11px] text-slate-500">
+                                        Assigned to <span className="font-medium text-slate-700">{b.assigned_to_name || '—'}</span>
+                                        <span className={`ml-2 rounded px-1.5 py-0.5 text-[10px] font-semibold capitalize ${b.priority === 'high' ? 'bg-rose-50 text-rose-700' : b.priority === 'medium' ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-600'}`}>
+                                          {b.priority}
+                                        </span>
+                                      </p>
                                     </div>
-                                    <span className="text-[10px] font-semibold text-slate-500 uppercase">{b.status}</span>
+                                    <span className={`whitespace-nowrap rounded-full border px-2 py-0.5 text-[10.5px] font-semibold ${BUG_STATUS[b.status]?.cls || 'border-slate-200 bg-slate-50 text-slate-600'}`}>
+                                      {BUG_STATUS[b.status]?.label || b.status}
+                                    </span>
                                   </div>
                                 ))
                               )}
@@ -968,25 +1014,61 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
                 {/* 3. TAB: OVERVIEW (merged Project Info + Workload Summary + Team) */}
                 {activeTab === 'overview' && (
                   <div className="space-y-5">
-                    {/* KPI Strip */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs">
-                        <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Est. Hours</span>
-                        <span className="text-base font-black text-slate-900">{kpiData.estHours} hrs</span>
-                      </div>
-                      <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs">
-                        <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Actual Hours</span>
-                        <span className="text-base font-black text-emerald-600">{kpiData.actHours} hrs</span>
-                      </div>
-                      <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs">
-                        <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Start Date</span>
-                        <span className="text-xs font-bold text-slate-800">{kpiData.startDate}</span>
-                      </div>
-                      <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs">
-                        <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Deadline</span>
-                        <span className="text-xs font-bold text-slate-800">{kpiData.deadline}</span>
-                      </div>
-                    </div>
+                    {/* Filters + KPI cards (BFD 2.6). Not shown to employees (BFD 3.3). */}
+                    {isManagerOrAdmin && (
+                      <>
+                        <div className="flex flex-wrap items-end gap-3 rounded-2xl border border-slate-200/80 bg-white p-3.5 shadow-2xs">
+                          <div>
+                            <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-400">From</span>
+                            <input type="date" value={periodFrom} max={periodTo || undefined} onChange={(e) => setPeriodFrom(e.target.value)} className="h-9 rounded-xl border border-slate-200 px-2.5 text-xs text-slate-700" />
+                          </div>
+                          <div>
+                            <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-400">To</span>
+                            <input type="date" value={periodTo} min={periodFrom || undefined} onChange={(e) => setPeriodTo(e.target.value)} className="h-9 rounded-xl border border-slate-200 px-2.5 text-xs text-slate-700" />
+                          </div>
+                          <div>
+                            <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-400">Employee</span>
+                            <select value={selectedEmpFilter} onChange={(e) => setSelectedEmpFilter(e.target.value)} className="h-9 rounded-xl border border-slate-200 px-2.5 text-xs text-slate-700">
+                              <option value="all">All employees</option>
+                              {project.members?.map((m) => (
+                                <option key={m.employee_id} value={m.employee_id}>
+                                  {m.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          {(periodFrom || periodTo || selectedEmpFilter !== 'all') && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPeriodFrom('');
+                                setPeriodTo('');
+                                setSelectedEmpFilter('all');
+                              }}
+                              className="inline-flex h-9 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold text-blue-600 hover:bg-blue-50"
+                            >
+                              <RotateCcw className="h-3.5 w-3.5" /> Reset
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+                          {[
+                            { label: 'Total Estimated Work Hours', value: `${kpiData.estHours} hrs`, tone: 'text-slate-900', bar: 'from-blue-500 to-indigo-500' },
+                            { label: 'Actual Work Hours', value: `${kpiData.actHours} hrs`, tone: 'text-emerald-600', bar: 'from-emerald-400 to-teal-500' },
+                            { label: 'Start Date', value: kpiData.startDate, tone: 'text-slate-800', bar: 'from-slate-300 to-slate-400' },
+                            { label: 'Estimated End Date', value: kpiData.deadline, tone: 'text-amber-600', bar: 'from-amber-400 to-orange-500' },
+                            { label: 'Actual End Date', value: kpiData.actualEndDate, tone: 'text-violet-600', bar: 'from-violet-400 to-fuchsia-500' },
+                          ].map((k) => (
+                            <div key={k.label} className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-3.5 shadow-2xs">
+                              <span className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${k.bar}`} aria-hidden />
+                              <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">{k.label}</span>
+                              <span className={`mt-1 block text-sm font-black ${k.tone}`}>{k.value}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
 
                     {/* Project Information Card */}
                     <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs space-y-4">
@@ -1027,10 +1109,12 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
                           <span className="text-[10px] uppercase font-bold text-slate-400 block">Category</span>
                           <span className="font-semibold text-slate-800 capitalize">{project.category.replace(/_/g, ' ')}</span>
                         </div>
-                        <div>
-                          <span className="text-[10px] uppercase font-bold text-slate-400 block">Client</span>
-                          <span className="font-semibold text-slate-800">{project.client_name || 'Internal'}</span>
-                        </div>
+                        {isManagerOrAdmin && (
+                          <div>
+                            <span className="text-[10px] uppercase font-bold text-slate-400 block">Client</span>
+                            <span className="font-semibold text-slate-800">{project.client_name || '—'}</span>
+                          </div>
+                        )}
                         <div>
                           <span className="text-[10px] uppercase font-bold text-slate-400 block">Project Manager</span>
                           <span className="font-semibold text-slate-800">{project.project_manager_name || 'Unassigned'}</span>
@@ -1045,15 +1129,16 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
                       </div>
                     </div>
 
-                    {/* Workload Summary Table */}
+                    {/* Person-wise Summary (BFD 2.6) — Admin and Project Manager only */}
+                    {isManagerOrAdmin && (
                     <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs space-y-3.5">
                       <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                         <div>
                           <h4 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">Workload Summary</h4>
                           <p className="text-[11px] text-slate-400 mt-0.5">Task distribution, completion rates, and logged hours per member</p>
                         </div>
-                        <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200">
-                          {personWiseSummary.length} {personWiseSummary.length === 1 ? 'Member' : 'Members'}
+                        <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                          Total Hours Worked: {personWiseSummary.reduce((sum, p) => sum + Number(p.actHours), 0).toFixed(1)}h
                         </span>
                       </div>
 
@@ -1069,7 +1154,8 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
                                 <th className="py-2.5">Member</th>
                                 <th className="py-2.5 text-center">Tasks</th>
                                 <th className="py-2.5 text-center">Completed</th>
-                                <th className="py-2.5 text-center">Logged Hours</th>
+                                <th className="py-2.5 text-center">Estimated Hours</th>
+                                <th className="py-2.5 text-center">Hours Worked</th>
                                 <th className="py-2.5 text-right">Progress</th>
                               </tr>
                             </thead>
@@ -1089,6 +1175,7 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
                                   </td>
                                   <td className="py-2.5 text-center font-bold text-slate-700">{item.totalTasks}</td>
                                   <td className="py-2.5 text-center font-bold text-emerald-600">{item.completedTasks}</td>
+                                  <td className="py-2.5 text-center font-mono font-medium text-slate-700">{item.estHours}h</td>
                                   <td className="py-2.5 text-center font-mono font-medium text-slate-700">{item.actHours}h</td>
                                   <td className="py-2.5 text-right">
                                     <div className="flex items-center justify-end gap-2">
@@ -1110,6 +1197,7 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
                         </div>
                       )}
                     </div>
+                    )}
 
                     {/* Team Members List */}
                     <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs space-y-3.5">
@@ -1162,6 +1250,18 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
                       </div>
                     </div>
                   </div>
+                )}
+
+                {/* TAB: CLIENT & TECH (BFD 2.3 Additional Details, 2.4 Tech Stack, 2.5 Deployment) */}
+                {activeTab === 'details' && (
+                  <ProjectClientTechTab
+                    project={project}
+                    canManage={isManagerOrAdmin}
+                    onSaved={(updated) => {
+                      setProject((prev) => (prev ? { ...prev, ...updated } : updated));
+                      onProjectUpdated?.();
+                    }}
+                  />
                 )}
 
                 {/* 4. TAB: ACTIVITY LOG */}

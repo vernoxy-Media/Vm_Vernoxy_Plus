@@ -107,6 +107,8 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick }) =>
       !['delivered', 'cancelled'].includes(project.project_status),
   );
 
+  const dmy = (d?: string | null) => (d ? d.slice(0, 10).split('-').reverse().join('-') : '—'); // DD-MM-YYYY
+
   const formatDate = (dateStr?: string | null) => {
     if (!dateStr) return 'N/A';
     try {
@@ -175,6 +177,16 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick }) =>
             </span>
             <span className="text-slate-400">Project Manager</span>
             <span className="font-semibold text-slate-800 truncate">{project.project_manager_name}</span>
+          </div>
+
+          <div className="flex items-center justify-between text-[11px] text-slate-500 pt-0.5">
+            <span>
+              <strong className="text-slate-700">Type</strong>{' '}
+              <span className="capitalize">{(project.project_type || '—').replace(/_/g, ' ')}</span>
+            </span>
+            <span>
+              <strong className="text-slate-700">Created</strong> {dmy(project.created_at)}
+            </span>
           </div>
 
           <div className="flex items-center justify-between text-[11px] text-slate-500 pt-0.5">

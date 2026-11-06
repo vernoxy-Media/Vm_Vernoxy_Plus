@@ -1,246 +1,204 @@
-import React, { useState } from 'react';
-import { X, PlusCircle, MinusCircle, Loader2, AlertCircle } from 'lucide-react';
-import { useAddAdjustmentMutation } from '../hooks/use-payroll';
+import React, { useEffect, useRef, useState } from 'react';
+import { Loader2, Paperclip, X } from 'lucide-react';
+import { errorText, fieldErrors, uploadAdjustmentFile, useAddAdjustmentMutation, usePayrollSettingsQuery } from '../hooks/use-payroll';
+import { Banner, FieldError, Modal, btn, inputCls, money } from './payroll-ui';
 
-interface AddAdjustmentModalProps {
-  isOpen: boolean;
+const MAX_BYTES = 5 * 1024 * 1024;
+
+/** Screen 7: Add Adjustment pop-up (BFD 8 Part 2). Categories come from Payroll Settings. */
+export const AddAdjustmentModal: React.FC<{
+  open: boolean;
   onClose: () => void;
   payrollEmployeeId: number;
-  employeeName?: string;
-}
-
-export const AddAdjustmentModal: React.FC<AddAdjustmentModalProps> = ({
-  isOpen,
-  onClose,
-  payrollEmployeeId,
-  employeeName,
-}) => {
-  const addMutation = useAddAdjustmentMutation();
-
+  employeeLabel: string;
+  totalSalary: number;
+  monthStart: string;
+  monthEnd: string;
+}> = ({ open, onClose, payrollEmployeeId, employeeLabel, totalSalary, monthStart, monthEnd }) => {
+  const { data: settings } = usePayrollSettingsQuery(open);
+  const add = useAddAdjustmentMutation();
   const [kind, setKind] = useState<'ADDITION' | 'DEDUCTION'>('ADDITION');
-  const [categoryCode, setCategoryCode] = useState<string>('bonus');
-  const [amount, setAmount] = useState<string>('');
-  const [relatedDate, setRelatedDate] = useState<string>('');
-  const [referenceNumber, setReferenceNumber] = useState<string>('');
-  const [reason, setReason] = useState<string>('');
-  const [error, setError] = useState<string | null>(null);
+  const [categoryId, setCategoryId] = useState('');
+  const [amount, setAmount] = useState('');
+  const [relatedDate, setRelatedDate] = useState('');
+  const [reference, setReference] = useState('');
+  const [reason, setReason] = useState('');
+  const [file, setFile] = useState<{ url: string; name: string } | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [errs, setErrs] = useState<Record<string, string>>({});
+  const [banner, setBanner] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (!open) return;
+    setKind('ADDITION');
+    setCategoryId('');
+    setAmount('');
+    setRelatedDate('');
+    setReference('');
+    setReason('');
+    setFile(null);
+    setErrs({});
+    setBanner(null);
+  }, [open]);
 
-  const additionCategories = [
-    { code: 'bonus', label: 'Bonus / Incentive' },
-    { code: 'referral_bonus', label: 'Referral Bonus' },
-    { code: 'arrears', label: 'Arrears' },
-    { code: 'reimbursement', label: 'Reimbursement' },
-    { code: 'other', label: 'Other Addition' },
-  ];
+  const cats = (settings?.adjustment_categories || []).filter((c) => c.kind === kind && c.is_active);
+  const cat = cats.find((c) => String(c.category_id) === categoryId);
+  const amt = Number(amount);
 
-  const deductionCategories = [
-    { code: 'salary_advance_recovery', label: 'Salary Advance Recovery' },
-    { code: 'loan_instalment', label: 'Loan Instalment' },
-    { code: 'penalty', label: 'Penalty' },
-    { code: 'excess_payment_recovery', label: 'Excess Payment Recovery' },
-    { code: 'other', label: 'Other Deduction' },
-  ];
-
-  const currentCategories = kind === 'ADDITION' ? additionCategories : deductionCategories;
-
-  const handleKindChange = (newKind: 'ADDITION' | 'DEDUCTION') => {
-    setKind(newKind);
-    setCategoryCode(newKind === 'ADDITION' ? 'bonus' : 'salary_advance_recovery');
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const numAmount = parseFloat(amount);
-    if (!numAmount || numAmount <= 0) {
-      setError('Please enter an amount more than 0.');
-      return;
-    }
-    if (reason.trim().length < 10) {
-      setError('Please write at least 10 characters explaining the reason.');
-      return;
-    }
-
+  const submit = async () => {
+    const e: Record<string, string> = {};
+    if (!categoryId) e.category_id = 'Please fill this field.';
+    if (!amount) e.amount = 'Please fill this field.';
+    else if (!(amt > 0) || !/^\d+(\.\d{1,2})?$/.test(amount)) e.amount = 'Please enter an amount more than 0.';
+    else if (kind === 'DEDUCTION' && totalSalary - amt < 0) e.amount = 'Total Salary cannot be less than 0. Reduce the deduction.';
+    if (reason.trim().length < 10) e.reason = reason.trim() ? 'Please write at least 10 characters.' : 'Please fill this field.';
+    if (Object.keys(e).length) return setErrs(e);
+    setBanner(null);
     try {
-      await addMutation.mutateAsync({
-        payrollEmployeeId,
+      await add.mutateAsync({
+        peId: payrollEmployeeId,
         data: {
           kind,
-          category_code: categoryCode,
-          amount: numAmount,
+          category_id: Number(categoryId),
+          amount: amt,
           related_date: relatedDate || undefined,
-          reference_number: referenceNumber || undefined,
+          reference_number: reference.trim() || undefined,
           reason: reason.trim(),
+          attachment_url: file?.url,
         },
       });
       onClose();
-    } catch (err: any) {
-      setError(err.message || 'Failed to add adjustment');
+    } catch (err) {
+      const fe = fieldErrors(err);
+      if (Object.keys(fe).length) setErrs(fe);
+      else setBanner(errorText(err));
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div
-        className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-100 overflow-hidden transform transition-all animate-in zoom-in-95 duration-200"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-bold text-slate-900 tracking-tight">Add Adjustment</h3>
-            <p className="text-xs text-slate-500 mt-0.5">
-              One-time addition or deduction for {employeeName || 'employee'} in this month.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition"
-          >
-            <X className="w-5 h-5" />
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Add Adjustment"
+      subtitle={employeeLabel}
+      footer={
+        <>
+          <button type="button" className={btn.secondary} onClick={onClose}>
+            Cancel
           </button>
+          <button type="button" className={btn.primary} disabled={add.isPending || uploading} onClick={submit}>
+            {add.isPending && <Loader2 className="h-4 w-4 animate-spin" />} Add
+          </button>
+        </>
+      }
+    >
+      <div className="space-y-3.5">
+        {banner && <Banner>{banner}</Banner>}
+        <div>
+          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            Kind<span className="text-rose-500">*</span>
+          </p>
+          <div className="flex gap-2">
+            {(['ADDITION', 'DEDUCTION'] as const).map((k) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => {
+                  setKind(k);
+                  setCategoryId('');
+                }}
+                className={`rounded-xl border px-3 py-2 text-[12.5px] font-semibold ${kind === k ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+              >
+                {k === 'ADDITION' ? 'Addition' : 'Deduction'}
+              </button>
+            ))}
+          </div>
         </div>
-
-        {/* Body */}
-        <form onSubmit={handleSubmit}>
-          <div className="p-6 space-y-4">
-            {error && (
-              <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            {/* Kind Toggle */}
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => handleKindChange('ADDITION')}
-                className={`p-3 rounded-2xl border flex items-center justify-center gap-2 font-bold text-xs transition ${
-                  kind === 'ADDITION'
-                    ? 'border-emerald-500 bg-emerald-50/60 text-emerald-800 ring-2 ring-emerald-500/20'
-                    : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                }`}
-              >
-                <PlusCircle className="w-4 h-4 text-emerald-600" />
-                <span>Addition (+)</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleKindChange('DEDUCTION')}
-                className={`p-3 rounded-2xl border flex items-center justify-center gap-2 font-bold text-xs transition ${
-                  kind === 'DEDUCTION'
-                    ? 'border-rose-500 bg-rose-50/60 text-rose-800 ring-2 ring-rose-500/20'
-                    : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                }`}
-              >
-                <MinusCircle className="w-4 h-4 text-rose-600" />
-                <span>Deduction (-)</span>
-              </button>
-            </div>
-
-            {/* Category */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                Category <span className="text-rose-500">*</span>
-              </label>
-              <select
-                value={categoryCode}
-                onChange={(e) => setCategoryCode(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 bg-white"
-              >
-                {currentCategories.map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Amount */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                Amount (₹) <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0.01"
-                placeholder="2000.00"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
-              />
-            </div>
-
-            {/* Related date & Reference */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-2xs font-semibold text-slate-600 mb-1">
-                  Related Date (Optional)
-                </label>
-                <input
-                  type="date"
-                  value={relatedDate}
-                  onChange={(e) => setRelatedDate(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
-                />
-              </div>
-
-              <div>
-                <label className="block text-2xs font-semibold text-slate-600 mb-1">
-                  Reference (Optional)
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. CAN-0043, ADV-102"
-                  value={referenceNumber}
-                  onChange={(e) => setReferenceNumber(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
-                />
-              </div>
-            </div>
-
-            {/* Reason */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                Reason <span className="text-rose-500">*</span> (10 to 250 characters)
-              </label>
-              <textarea
-                rows={3}
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                placeholder="Referral bonus for candidate who joined, per company policy..."
-                maxLength={250}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
-              />
-              <p className="text-3xs text-slate-400 mt-1">{reason.length} / 250 characters</p>
-            </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              Category<span className="text-rose-500">*</span>
+            </p>
+            <select className={inputCls} value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+              <option value="">Select category</option>
+              {cats.map((c) => (
+                <option key={c.category_id} value={c.category_id}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+            <FieldError msg={errs.category_id} />
           </div>
-
-          {/* Footer */}
-          <div className="p-6 bg-slate-50/70 border-t border-slate-100 flex items-center justify-end gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={addMutation.isPending}
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs hover:shadow-md transition cursor-pointer disabled:opacity-50"
-            >
-              {addMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-              <span>Add adjustment</span>
-            </button>
+          <div>
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              Amount (₹)<span className="text-rose-500">*</span>
+            </p>
+            <input type="number" min="0.01" step="0.01" className={inputCls} value={amount} onChange={(e) => setAmount(e.target.value)} />
+            <FieldError msg={errs.amount} />
           </div>
-        </form>
+          <div>
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Related date</p>
+            <input type="date" className={inputCls} min={monthStart} max={monthEnd} value={relatedDate} onChange={(e) => setRelatedDate(e.target.value)} />
+            <FieldError msg={errs.related_date} />
+          </div>
+          <div>
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Reference</p>
+            <input className={inputCls} maxLength={80} placeholder="Candidate ID, advance or bill no." value={reference} onChange={(e) => setReference(e.target.value)} />
+          </div>
+        </div>
+        <div>
+          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            Reason<span className="text-rose-500">*</span>
+          </p>
+          <textarea rows={2} maxLength={250} className={`${inputCls} h-auto py-2`} value={reason} onChange={(e) => setReason(e.target.value)} />
+          <FieldError msg={errs.reason} />
+        </div>
+        <div>
+          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Attachment</p>
+          {file ? (
+            <div className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-[12.5px]">
+              <Paperclip className="h-3.5 w-3.5 text-blue-500" />
+              <span className="flex-1 truncate">{file.name}</span>
+              <button type="button" onClick={() => setFile(null)} className="text-slate-400 hover:text-rose-600" aria-label="Remove file">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ) : (
+            <button type="button" className={btn.secondary} disabled={uploading} onClick={() => fileRef.current?.click()}>
+              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />} Upload PDF, JPG or PNG up to 5 MB
+            </button>
+          )}
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".pdf,.jpg,.jpeg,.png"
+            className="hidden"
+            onChange={async (e) => {
+              const f = e.target.files?.[0];
+              e.target.value = '';
+              if (!f) return;
+              if (!/\.(pdf|jpe?g|png)$/i.test(f.name) || f.size > MAX_BYTES) return setErrs((x) => ({ ...x, file: 'Only PDF, JPG or PNG up to 5 MB.' }));
+              setErrs((x) => ({ ...x, file: '' }));
+              setUploading(true);
+              try {
+                setFile({ url: await uploadAdjustmentFile(f), name: f.name });
+              } catch (err) {
+                setErrs((x) => ({ ...x, file: errorText(err) }));
+              } finally {
+                setUploading(false);
+              }
+            }}
+          />
+          <FieldError msg={errs.file} />
+        </div>
+        <div>
+          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Shown on the Salary Slip as</p>
+          <div className={`${inputCls} flex items-center bg-slate-50 text-slate-600`}>
+            {cat ? `${kind === 'ADDITION' ? 'Earnings' : 'Deductions'} · ${cat.label} · ${money(amt || 0)}` : '—'}
+          </div>
+        </div>
       </div>
-    </div>
+    </Modal>
   );
 };

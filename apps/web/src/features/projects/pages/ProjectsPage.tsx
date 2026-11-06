@@ -42,6 +42,7 @@ export const ProjectsPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [pmFilter, setPmFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
   const [startDateFilter, setStartDateFilter] = useState('');
   const [endDateFilter, setEndDateFilter] = useState('');
 
@@ -118,16 +119,17 @@ export const ProjectsPage: React.FC = () => {
 
   // Client-side quick filter on search for snappy UX
   const filteredProjects = useMemo(() => {
-    if (!search.trim()) return projects;
+    const byType = typeFilter === 'all' ? projects : projects.filter((p) => p.project_type === typeFilter);
+    if (!search.trim()) return byType;
     const q = search.toLowerCase().trim();
-    return projects.filter(
+    return byType.filter(
       (p) =>
         p.project_name.toLowerCase().includes(q) ||
         p.project_no.toLowerCase().includes(q) ||
         (p.client_name && p.client_name.toLowerCase().includes(q)) ||
         p.project_manager_name.toLowerCase().includes(q)
     );
-  }, [projects, search]);
+  }, [projects, search, typeFilter]);
 
   const stats = useMemo(() => {
     const total = projects.length;
@@ -162,6 +164,7 @@ export const ProjectsPage: React.FC = () => {
   const hasActiveFilters =
     statusFilter !== 'all' ||
     pmFilter !== 'all' ||
+    typeFilter !== 'all' ||
     Boolean(startDateFilter) ||
     Boolean(endDateFilter) ||
     Boolean(search);
@@ -169,6 +172,7 @@ export const ProjectsPage: React.FC = () => {
   const handleClearFilters = () => {
     setStatusFilter('all');
     setPmFilter('all');
+    setTypeFilter('all');
     setStartDateFilter('');
     setEndDateFilter('');
     setSearch('');
@@ -245,6 +249,8 @@ export const ProjectsPage: React.FC = () => {
         onStartDateChange={setStartDateFilter}
         endDate={endDateFilter}
         onEndDateChange={setEndDateFilter}
+        projectType={typeFilter}
+        onProjectTypeChange={setTypeFilter}
         onClearFilters={handleClearFilters}
         hasActiveFilters={hasActiveFilters}
         managers={employees}
@@ -323,6 +329,7 @@ export const ProjectsPage: React.FC = () => {
           onSelectProject={(p) => setSelectedProjectId(p.project_id)}
           onStatusChange={handleUpdateStatus}
           activeStatus={statusFilter}
+          canMove={(p) => canCreate || (user?.emp_id != null && p.project_manager_id === user.emp_id)}
         />
       )}
 

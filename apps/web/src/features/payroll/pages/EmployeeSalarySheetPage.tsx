@@ -1,563 +1,382 @@
 import React, { useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import {
-  ArrowLeft,
-  ChevronLeft,
-  ChevronRight,
-  Plus,
-  Edit2,
-  FileText,
-} from 'lucide-react';
-import {
-  useEmployeeSalarySheetQuery,
-  usePayrollRegisterQuery,
-  PayrollDayItem,
-} from '../hooks/use-payroll';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ChevronLeft, ChevronRight, FileText, Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
+import { PayrollAdjustmentItem, PayrollDayItem, errorText, useEmployeeSalarySheetQuery, useRemoveAdjustmentMutation, useSalarySlipQuery } from '../hooks/use-payroll';
 import { DayAdjustmentModal } from '../components/DayAdjustmentModal';
 import { AddAdjustmentModal } from '../components/AddAdjustmentModal';
 import { SalarySlipModal } from '../components/SalarySlipModal';
+import { KindChip } from './PayrollRegisterPage';
+import { Banner, FieldError, Modal, RunStatusBadge, btn, fmtDate, fmtStamp, inputCls, money, num } from '../components/payroll-ui';
 
+type Tab = 'summary' | 'day_wise' | 'history';
+
+const DAY_TONE: Record<string, string> = {
+  FULL: 'border-emerald-200 bg-emerald-50/60',
+  HALF: 'border-amber-200 bg-amber-50/70',
+  UNPAID: 'border-rose-200 bg-rose-50/60',
+  NOT_APPLICABLE: 'border-slate-200 bg-slate-50 text-slate-400',
+};
+
+/** Screens 4 and 5: Employee Salary Sheet (BFD Section 7). */
 export const EmployeeSalarySheetPage: React.FC = () => {
-  const { year: yearParam, month: monthParam, empId: empIdParam } = useParams<{
-    year: string;
-    month: string;
-    empId: string;
-  }>();
+  const p = useParams();
+  const year = Number(p.year);
+  const month = Number(p.month);
+  const empId = Number(p.empId);
   const navigate = useNavigate();
-
-  const year = parseInt(yearParam || '2026', 10);
-  const month = parseInt(monthParam || '9', 10);
-  const empId = parseInt(empIdParam || '1', 10);
-
-  const [activeTab, setActiveTab] = useState<'summary' | 'day_wise' | 'history'>('summary');
-  const [selectedDay, setSelectedDay] = useState<PayrollDayItem | null>(null);
-  const [isDayAdjModalOpen, setIsDayAdjModalOpen] = useState(false);
-  const [isAddAdjModalOpen, setIsAddAdjModalOpen] = useState(false);
-  const [isSlipModalOpen, setIsSlipModalOpen] = useState(false);
-
-  const { data: sheetData, isLoading, error } = useEmployeeSalarySheetQuery(year, month, empId);
-  const { data: registerData } = usePayrollRegisterQuery(year, month);
+  const { data, isLoading, error } = useEmployeeSalarySheetQuery(year, month, empId);
+  const [tab, setTab] = useState<Tab>('summary');
+  const [day, setDay] = useState<PayrollDayItem | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [slipOpen, setSlipOpen] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState<PayrollAdjustmentItem | null>(null);
+  const slip = useSalarySlipQuery(year, month, empId, slipOpen);
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      <div className="flex h-64 items-center justify-center text-slate-400">
+        <Loader2 className="h-6 w-6 animate-spin" />
       </div>
     );
   }
-
-  if (error || !sheetData) {
+  if (error || !data) {
     return (
-      <div className="p-8 text-center">
-        <p className="text-rose-600 font-semibold text-sm">Failed to load employee salary sheet.</p>
-        <button
-          onClick={() => navigate(`/admin/payroll/${year}/${month}`)}
-          className="mt-4 px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-semibold"
-        >
-          Back to Register
-        </button>
+      <div className="space-y-3">
+        <Link to={`/admin/payroll/${year}/${month}`} className={btn.link}>
+          ← Payroll Register
+        </Link>
+        <Banner>{errorText(error)}</Banner>
       </div>
     );
   }
 
-  const { employee, days, adjustments, history, run } = sheetData;
-  const isLockedOrPaid = run.status === 'LOCKED' || run.status === 'PAID';
+  const { run, employee: e, days, adjustments, history } = data;
+  const isDraft = run.status === 'DRAFT';
+  const label = `${e.employee_name} · ${e.employee_code} · Payroll ${run.month_label} (${run.status[0] + run.status.slice(1).toLowerCase()})`;
+  const additions = adjustments.filter((a) => a.is_active && a.type === 'ADDITION');
+  const deductions = adjustments.filter((a) => a.is_active && a.type === 'DEDUCTION');
+  const holidays = days.filter((d) => d.day_type === 'HOLIDAY').length;
+  const weeklyOffs = days.filter((d) => d.day_type === 'WEEKLY_OFF').length;
+  const adjustedDays = days.filter((d) => d.is_adjusted).length;
+  const otRateLine = e.ot_hours > 0 ? `OT Amount = ${num(e.ot_hours)} h × ${money(e.ot_rate)}` : 'OT Amount';
+  const pfLine = e.pf_applicable
+    ? `PF = ${num(e.pf_wage)} × ${e.pf_wage && e.employee_pf ? Math.round((e.employee_pf / e.pf_wage) * 100) : 0}%${e.pf_wage < e.basic_salary ? ' (wage limit applied)' : ''}`
+    : 'PF (not applicable)';
 
-  // Prev / Next employee navigation
-  const empList = registerData?.employees || [];
-  const currentIndex = empList.findIndex((e) => e.emp_id === empId);
-  const prevEmp = currentIndex > 0 ? empList[currentIndex - 1] : null;
-  const nextEmp = currentIndex >= 0 && currentIndex < empList.length - 1 ? empList[currentIndex + 1] : null;
+  const go = (id: number | null) => id && navigate(`/admin/payroll/${year}/${month}/employee/${id}`);
+  const first = days[0] ? new Date(`${days[0].attendance_date}T00:00:00`).getDay() : 0;
+  const lead = (first + 6) % 7; // Monday first
 
   return (
-    <>
-    <div className="space-y-6 pb-12">
-        {/* Navigation Breadcrumb & Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Link
-              to={`/admin/payroll/${year}/${month}`}
-              className="p-2.5 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 transition shadow-2xs"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Link>
-            <div>
-              <p className="text-2xs font-semibold text-slate-500 uppercase tracking-wider">
-                Payroll / {run.payroll_year}-{String(run.payroll_month).padStart(2, '0')} / {employee.employee_code}
-              </p>
-              <h1 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
-                <span>{employee.employee_name}</span>
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 font-bold border border-slate-200">
-                  {employee.employee_code}
-                </span>
-              </h1>
-              <p className="text-xs text-slate-500 mt-0.5">
-                {employee.role_name} • {employee.shift_name} • PF: {employee.pf_applicable ? 'Yes' : 'No'} • OT: {employee.ot_hours > 0 ? 'Yes' : 'No'}
-              </p>
-            </div>
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <Link to={`/admin/payroll/${year}/${month}`} className="mb-1 inline-flex items-center gap-1 text-[12px] font-semibold text-slate-500 hover:text-slate-700">
+            <ChevronLeft className="h-3.5 w-3.5" /> Payroll / {run.month_label}
+          </Link>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">
+              {e.employee_name} · {e.employee_code}
+            </h1>
+            <RunStatusBadge status={run.status} />
           </div>
-
-          <div className="flex items-center gap-2">
-            <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 text-right mr-2 hidden sm:block">
-              <p className="text-3xs font-bold text-slate-400 uppercase">Daily Rate</p>
-              <p className="text-sm font-black text-slate-800">₹ {employee.daily_rate.toLocaleString()}</p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setIsSlipModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold transition shadow-2xs"
-              title="Preview / Print Official Payslip"
-            >
-              <FileText className="w-4 h-4" />
-              <span>Payslip</span>
-            </button>
-
-            {prevEmp && (
-              <button
-                type="button"
-                onClick={() => navigate(`/admin/payroll/${year}/${month}/employee/${prevEmp.emp_id}`)}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition shadow-2xs"
-              >
-                <ChevronLeft className="w-4 h-4" />
-                <span>Previous</span>
-              </button>
-            )}
-
-            {nextEmp && (
-              <button
-                type="button"
-                onClick={() => navigate(`/admin/payroll/${year}/${month}/employee/${nextEmp.emp_id}`)}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition shadow-2xs"
-              >
-                <span>Next</span>
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            )}
-          </div>
+          <p className="mt-0.5 text-[12.5px] text-slate-500">
+            {[e.role_name, e.shift_name, `PF ${e.pf_applicable ? 'Yes' : 'No'}`, `OT ${e.ot_eligible ? `Yes${e.ot_label ? ` (${e.ot_label})` : ''}` : 'No'}`].filter(Boolean).join(' · ')}
+          </p>
         </div>
-
-        {/* Tabs Bar */}
-        <div className="border-b border-slate-200 flex items-center gap-6">
-          <button
-            type="button"
-            onClick={() => setActiveTab('summary')}
-            className={`pb-3 text-xs font-bold transition border-b-2 ${
-              activeTab === 'summary'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            Summary
+        <div className="flex gap-2">
+          <button type="button" className={btn.secondary} onClick={() => setSlipOpen(true)}>
+            <FileText className="h-4 w-4" /> Salary Slip
           </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('day_wise')}
-            className={`pb-3 text-xs font-bold transition border-b-2 ${
-              activeTab === 'day_wise'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            Day-wise
+          <button type="button" className={btn.secondary} disabled={!data.previous_emp_id} onClick={() => go(data.previous_emp_id)}>
+            <ChevronLeft className="h-4 w-4" /> Previous
           </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('history')}
-            className={`pb-3 text-xs font-bold transition border-b-2 ${
-              activeTab === 'history'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            History ({history.length})
+          <button type="button" className={btn.secondary} disabled={!data.next_emp_id} onClick={() => go(data.next_emp_id)}>
+            Next <ChevronRight className="h-4 w-4" />
           </button>
         </div>
+      </div>
 
-        {/* TAB 1: SUMMARY */}
-        {activeTab === 'summary' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Days in the month card */}
-            <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-2xs space-y-5">
-              <h3 className="text-sm font-bold text-slate-900 tracking-tight">Days in the Month</h3>
+      {e.issues.filter((i) => i.level !== 'INFO').map((i, idx) => (
+        <Banner key={idx} tone={i.level === 'ERROR' ? 'error' : 'warn'}>
+          {i.message}
+        </Banner>
+      ))}
 
-              <div className="grid grid-cols-4 gap-3 text-center">
-                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100">
-                  <p className="text-3xs font-semibold text-slate-400 uppercase">Calendar</p>
-                  <p className="text-base font-black text-slate-800 mt-0.5">{days.length}</p>
-                </div>
-                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100">
-                  <p className="text-3xs font-semibold text-slate-400 uppercase">Weekly Offs</p>
-                  <p className="text-base font-black text-slate-800 mt-0.5">
-                    {days.filter((d) => d.day_type === 'WEEKLY_OFF').length}
-                  </p>
-                </div>
-                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100">
-                  <p className="text-3xs font-semibold text-slate-400 uppercase">Holidays</p>
-                  <p className="text-base font-black text-slate-800 mt-0.5">
-                    {days.filter((d) => d.day_type === 'HOLIDAY').length}
-                  </p>
-                </div>
-                <div className="p-3 rounded-2xl bg-blue-50/60 border border-blue-100">
-                  <p className="text-3xs font-semibold text-blue-600 uppercase">Working Days</p>
-                  <p className="text-base font-black text-blue-900 mt-0.5">{employee.total_working_days}</p>
-                </div>
-              </div>
+      <div className="flex gap-1.5 border-b border-slate-200">
+        {(
+          [
+            ['summary', 'Summary'],
+            ['day_wise', 'Day-wise'],
+            ['history', 'History'],
+          ] as Array<[Tab, string]>
+        ).map(([k, l]) => (
+          <button key={k} type="button" onClick={() => setTab(k)} className={`-mb-px border-b-2 px-3 pb-2.5 text-[13px] font-semibold ${tab === k ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+            {l}
+          </button>
+        ))}
+      </div>
 
-              <div className="pt-2 border-t border-slate-100 grid grid-cols-4 gap-3 text-center text-xs">
-                <div>
-                  <p className="text-3xs text-slate-400">Present</p>
-                  <p className="font-bold text-slate-800">{employee.present_days}</p>
-                </div>
-                <div>
-                  <p className="text-3xs text-slate-400">Paid Leave</p>
-                  <p className="font-bold text-slate-800">{employee.paid_leave_days}</p>
-                </div>
-                <div>
-                  <p className="text-3xs text-slate-400">Half Days</p>
-                  <p className="font-bold text-slate-800">{employee.half_days}</p>
-                </div>
-                <div>
-                  <p className="text-3xs text-slate-400">Unpaid / Absent</p>
-                  <p className="font-bold text-slate-800">{employee.absent_days + employee.unpaid_leave_days}</p>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-around text-center">
-                <div>
-                  <p className="text-2xs font-bold text-emerald-700 uppercase">Full Days Paid</p>
-                  <p className="text-lg font-black text-emerald-900 mt-0.5">{employee.full_days}</p>
-                </div>
-                <div className="h-8 w-px bg-slate-200" />
-                <div>
-                  <p className="text-2xs font-bold text-blue-700 uppercase">Paid Days</p>
-                  <p className="text-lg font-black text-blue-900 mt-0.5">{employee.paid_days}</p>
-                </div>
-                <div className="h-8 w-px bg-slate-200" />
-                <div>
-                  <p className="text-2xs font-bold text-rose-700 uppercase">LOP Days</p>
-                  <p className="text-lg font-black text-rose-900 mt-0.5">{employee.lop_days}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Calculation Breakdown Card */}
-            <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-2xs space-y-4">
-              <h3 className="text-sm font-bold text-slate-900 tracking-tight">Calculation Breakdown</h3>
-
-              <div className="space-y-2.5 text-xs">
-                <div className="flex items-center justify-between py-1.5 border-b border-slate-100">
-                  <span className="text-slate-600">Monthly Salary (Gross)</span>
-                  <span className="font-bold text-slate-900">₹ {employee.monthly_salary.toLocaleString()}</span>
-                </div>
-
-                <div className="flex items-center justify-between py-1.5 border-b border-slate-100">
-                  <span className="text-slate-600">
-                    Daily Rate ({employee.monthly_salary.toLocaleString()} ÷ {employee.total_working_days})
-                  </span>
-                  <span className="font-bold text-slate-900">₹ {employee.daily_rate.toLocaleString()}</span>
-                </div>
-
-                <div className="flex items-center justify-between py-1.5 border-b border-slate-100">
-                  <span className="text-slate-600">
-                    Basic Salary ({employee.full_days} × {employee.daily_rate} + {employee.half_days} × {Math.round(employee.daily_rate * 0.5)})
-                  </span>
-                  <span className="font-bold text-slate-900">₹ {employee.basic_salary.toLocaleString()}</span>
-                </div>
-
-                <div className="flex items-center justify-between py-1.5 border-b border-slate-100">
-                  <span className="text-slate-600">
-                    OT Amount ({employee.ot_hours} hrs × ₹ {employee.ot_rate})
-                  </span>
-                  <span className="font-bold text-slate-900">₹ {employee.ot_amount.toLocaleString()}</span>
-                </div>
-
-                <div className="flex items-center justify-between py-1.5 border-b border-slate-100">
-                  <span className="text-slate-600">Additions (Bonuses, Arrears, etc.)</span>
-                  <span className="font-bold text-emerald-700">+ ₹ {employee.total_additions.toLocaleString()}</span>
-                </div>
-
-                <div className="flex items-center justify-between py-1.5 border-b border-slate-100">
-                  <span className="text-slate-600">
-                    Employee PF {employee.pf_applicable ? `(12% on ₹ ${employee.pf_wage.toLocaleString()})` : '(Not applicable)'}
-                  </span>
-                  <span className="font-bold text-rose-700">- ₹ {employee.employee_pf.toLocaleString()}</span>
-                </div>
-
-                <div className="flex items-center justify-between py-1.5 border-b border-slate-100">
-                  <span className="text-slate-600">Deductions (Advance, Loan, Penalty)</span>
-                  <span className="font-bold text-rose-700">- ₹ {employee.total_deductions.toLocaleString()}</span>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-blue-50/60 border border-blue-200/80 flex items-center justify-between">
-                  <div>
-                    <p className="text-2xs font-bold text-blue-700 uppercase tracking-wider">Total Salary (Net Pay)</p>
-                    <p className="text-2xl font-black text-blue-900 mt-0.5">
-                      ₹ {employee.total_salary.toLocaleString()}
-                    </p>
-                  </div>
-                  <div className="text-right text-2xs text-slate-500">
-                    <p>Employer PF (not deducted):</p>
-                    <p className="font-bold text-slate-700">₹ {employee.employer_pf.toLocaleString()}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Adjustments Section */}
-            <div className="lg:col-span-2 p-6 rounded-3xl bg-white border border-slate-200/80 shadow-2xs space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900 tracking-tight">Salary Adjustments</h3>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Day-wise pay overrides, one-time bonuses, advances, and deductions.
-                  </p>
-                </div>
-                {!isLockedOrPaid && (
-                  <button
-                    type="button"
-                    onClick={() => setIsAddAdjModalOpen(true)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition shadow-2xs cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Add adjustment</span>
-                  </button>
-                )}
-              </div>
-
-              {adjustments.length === 0 ? (
-                <div className="p-8 text-center bg-slate-50 rounded-2xl border border-slate-100">
-                  <p className="text-xs text-slate-500">No adjustments added for this month.</p>
-                </div>
-              ) : (
-                <div className="divide-y divide-slate-100 border border-slate-200/80 rounded-2xl overflow-hidden">
-                  {adjustments.map((adj) => (
-                    <div key={adj.payroll_adjustment_id} className="p-3.5 flex items-center justify-between hover:bg-slate-50 text-xs">
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`px-2 py-0.5 rounded-md font-bold text-3xs ${
-                              adj.type === 'ADDITION'
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : adj.type === 'DEDUCTION'
-                                ? 'bg-rose-100 text-rose-800'
-                                : 'bg-blue-100 text-blue-800'
-                            }`}
-                          >
-                            {adj.type === 'DAY_ADJUSTMENT' ? 'Day' : adj.type}
-                          </span>
-                          <span className="font-bold text-slate-800">
-                            {adj.category_label || (adj.type === 'DAY_ADJUSTMENT' ? `Day ${adj.related_date}` : 'Adjustment')}
-                          </span>
-                          {adj.reference_number && (
-                            <span className="text-slate-400 text-3xs font-medium">Ref: {adj.reference_number}</span>
-                          )}
-                        </div>
-                        <p className="text-slate-600 text-2xs italic">&ldquo;{adj.reason}&rdquo;</p>
-                      </div>
-
-                      <div className="text-right">
-                        <p
-                          className={`font-bold ${
-                            adj.type === 'ADDITION'
-                              ? 'text-emerald-700'
-                              : adj.type === 'DEDUCTION'
-                              ? 'text-rose-700'
-                              : 'text-slate-800'
-                          }`}
-                        >
-                          {adj.type === 'ADDITION' ? `+ ₹ ${adj.amount.toLocaleString()}` : adj.type === 'DEDUCTION' ? `- ₹ ${adj.amount.toLocaleString()}` : 'Day Override'}
-                        </p>
-                        <p className="text-3xs text-slate-400">by {adj.created_by_name || 'Admin'}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* TAB 2: DAY-WISE CALENDAR GRID (Screen 5 / Section 7 Part 2) */}
-        {activeTab === 'day_wise' && (
-          <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-2xs space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <h3 className="text-sm font-bold text-slate-900 tracking-tight">Day-wise Attendance & Pay Value</h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Click any working day to change how it is paid (Full, Half, or Unpaid). Attendance records are kept unchanged.
-                </p>
-              </div>
-
-              {/* Legend */}
-              <div className="flex flex-wrap items-center gap-3 text-3xs font-semibold text-slate-600">
-                <span className="flex items-center gap-1">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Present (P)
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500" /> Half Day (HD)
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500" /> Absent (A)
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="w-2.5 h-2.5 rounded-full bg-blue-500" /> Leave (L)
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="w-2.5 h-2.5 rounded-full bg-purple-500" /> Holiday (H)
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="w-2.5 h-2.5 rounded-full bg-slate-400" /> Weekly Off (WO)
-                </span>
-              </div>
-            </div>
-
-            {/* Calendar Grid (7 columns: Mon to Sun) */}
-            <div className="grid grid-cols-7 gap-2">
-              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((dayName) => (
-                <div key={dayName} className="text-center font-bold text-2xs text-slate-400 py-1">
-                  {dayName}
-                </div>
-              ))}
-
-              {days.map((dayItem) => {
-                const dateObj = new Date(dayItem.attendance_date);
-                const dayNum = dateObj.getDate();
-                const isWorking = dayItem.is_working_day && dayItem.day_type === 'WORKING_DAY';
-                const isAdjusted = dayItem.is_adjusted;
-
-                return (
-                  <div
-                    key={dayItem.payroll_employee_day_id}
-                    onClick={() => {
-                      if (isWorking && !isLockedOrPaid) {
-                        setSelectedDay(dayItem);
-                        setIsDayAdjModalOpen(true);
-                      }
-                    }}
-                    className={`p-2.5 rounded-2xl border flex flex-col justify-between min-h-[85px] transition ${
-                      isAdjusted
-                        ? 'border-amber-400 ring-2 ring-amber-400/20 bg-amber-50/30'
-                        : !dayItem.is_working_day
-                        ? 'bg-slate-50/70 border-slate-200/60 text-slate-400 cursor-not-allowed'
-                        : 'bg-white border-slate-200 hover:border-blue-400 hover:shadow-xs cursor-pointer'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <span className="text-xs font-bold text-slate-800">{dayNum}</span>
-                      <div className="flex items-center gap-1">
-                        {isAdjusted && <Edit2 className="w-3 h-3 text-amber-600" />}
-                        <span
-                          className={`text-3xs px-1.5 py-0.5 rounded-md font-black ${
-                            dayItem.attendance_code === 'P'
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : dayItem.attendance_code === 'HD'
-                              ? 'bg-amber-100 text-amber-800'
-                              : dayItem.attendance_code === 'A'
-                              ? 'bg-rose-100 text-rose-800'
-                              : dayItem.attendance_code === 'L'
-                              ? 'bg-blue-100 text-blue-800'
-                              : dayItem.attendance_code === 'H'
-                              ? 'bg-purple-100 text-purple-800'
-                              : 'bg-slate-200 text-slate-600'
-                          }`}
-                        >
-                          {dayItem.attendance_code}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="mt-2 text-2xs">
-                      {dayItem.day_type === 'HOLIDAY' ? (
-                        <p className="text-3xs font-medium text-purple-700 truncate" title={dayItem.holiday_name || ''}>
-                          {dayItem.holiday_name}
-                        </p>
-                      ) : dayItem.day_type === 'WEEKLY_OFF' ? (
-                        <p className="text-3xs text-slate-400">Weekly off</p>
-                      ) : (
-                        <div>
-                          <p className="font-bold text-slate-800">
-                            {dayItem.paid_as === 'FULL'
-                              ? 'Full'
-                              : dayItem.paid_as === 'HALF'
-                              ? 'Half'
-                              : 'Unpaid'}
-                          </p>
-                          <p className="text-3xs font-semibold text-slate-500">
-                            ₹ {dayItem.calculated_amount.toLocaleString()}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Grid Footer Totals */}
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between text-xs">
-              <span className="text-slate-600">
-                Full days: {employee.full_days} × ₹ {employee.daily_rate} = ₹ {(employee.full_days * employee.daily_rate).toLocaleString()} • Half days: {employee.half_days} × ₹ {Math.round(employee.daily_rate * 0.5)} = ₹ {(employee.half_days * Math.round(employee.daily_rate * 0.5)).toLocaleString()}
-              </span>
-              <span className="font-bold text-slate-900">
-                Basic Salary: ₹ {employee.basic_salary.toLocaleString()}
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 3: HISTORY */}
-        {activeTab === 'history' && (
-          <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-2xs space-y-4">
-            <h3 className="text-sm font-bold text-slate-900 tracking-tight">Audit & Change History</h3>
-            {history.length === 0 ? (
-              <p className="text-xs text-slate-500">No history records yet.</p>
-            ) : (
-              <div className="divide-y divide-slate-100">
-                {history.map((h: any) => (
-                  <div key={h.history_id} className="py-3 flex items-center justify-between text-xs">
-                    <div>
-                      <p className="font-bold text-slate-800">{h.action}</p>
-                      <p className="text-slate-600 text-2xs">{h.reason || 'Calculation run'}</p>
-                    </div>
-                    <div className="text-right text-2xs text-slate-400">
-                      <p>{h.performed_by_name || 'System'}</p>
-                      <p>{new Date(h.performed_at).toLocaleString()}</p>
-                    </div>
+      {tab === 'summary' && (
+        <>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <h2 className="mb-3 text-[14px] font-bold text-slate-900">Days in the month</h2>
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  ['Calendar days', days.length],
+                  ['Weekly Offs', weeklyOffs],
+                  ['Holidays', holidays],
+                  ['Total Working Days', e.total_working_days, 'bg-blue-50'],
+                  ['Present', e.present_days],
+                  ['Paid Leave', e.paid_leave_days],
+                  ['Half Day', e.half_days],
+                  ['Unpaid Leave', e.unpaid_leave_days],
+                  ['Absent', e.absent_days, '', adjustedDays ? `${adjustedDays} changed by adj.` : ''],
+                  ['Full Days', e.full_days, 'bg-emerald-50'],
+                  ['Half Days', e.half_days, 'bg-amber-50'],
+                  ['LOP Days', e.lop_days, 'bg-rose-50'],
+                  ...(e.not_employed_days ? [['Not employed', e.not_employed_days]] : []),
+                  ...(e.missing_punch_days ? [['Missing Punch', e.missing_punch_days]] : []),
+                ].map(([k, v, bg, note]: any) => (
+                  <div key={k} className={`rounded-xl px-2.5 py-2 ${bg || 'bg-slate-50'}`}>
+                    <p className="text-[10.5px] text-slate-500">{k}</p>
+                    <p className="text-[16px] font-bold text-slate-900">{num(v)}</p>
+                    {note && <p className="text-[10px] text-orange-600">{note}</p>}
                   </div>
                 ))}
               </div>
-            )}
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <h2 className="mb-3 text-[14px] font-bold text-slate-900">Calculation</h2>
+              <ul className="divide-y divide-slate-100 text-[12.5px]">
+                <CalcRow label="Monthly Salary" value={money(e.monthly_salary)} />
+                <CalcRow label={`Daily Rate = ${num(e.monthly_salary)} ÷ ${num(e.total_working_days)}`} value={money(e.daily_rate)} />
+                <CalcRow label={`Basic Salary = ${num(e.full_days)} × ${num(e.daily_rate)} + ${num(e.half_days)} × ${num(e.daily_rate)} × 0.5`} value={money(e.basic_salary)} />
+                <CalcRow label={otRateLine} value={money(e.ot_amount)} />
+                {additions.map((a) => (
+                  <CalcRow key={a.payroll_adjustment_id} label={`Additions: ${a.category_label}`} value={money(a.amount)} />
+                ))}
+                <CalcRow label={pfLine} value={`− ${money(e.employee_pf)}`} />
+                {deductions.map((a) => (
+                  <CalcRow key={a.payroll_adjustment_id} label={`Deductions: ${a.category_label}`} value={`− ${money(a.amount)}`} />
+                ))}
+                <li className="flex justify-between pt-3 text-[15px] font-extrabold text-slate-900">
+                  <span>Total Salary</span>
+                  <span>{money(e.total_salary, 0)}</span>
+                </li>
+              </ul>
+              <p className="mt-2 text-[11.5px] text-slate-400">Employer PF (not deducted): {money(e.employer_pf)}</p>
+            </div>
           </div>
-        )}
-      </div>
 
-      {/* Day Adjustment Modal */}
-      <DayAdjustmentModal
-        isOpen={isDayAdjModalOpen}
-        onClose={() => setIsDayAdjModalOpen(false)}
-        day={selectedDay}
-        payrollEmployeeId={employee.payroll_employee_id}
-        employeeName={employee.employee_name}
-        dailyRate={employee.daily_rate}
-      />
+          <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+              <h2 className="text-[14px] font-bold text-slate-900">Adjustments</h2>
+              {isDraft && (
+                <button type="button" className={btn.primary} onClick={() => setAddOpen(true)}>
+                  <Plus className="h-4 w-4" /> Add adjustment
+                </button>
+              )}
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[720px] text-left text-[12.5px]">
+                <thead className="bg-slate-50 text-[10.5px] font-semibold uppercase tracking-wider text-slate-500">
+                  <tr>
+                    <th className="px-4 py-2.5">Kind</th>
+                    <th className="px-3 py-2.5">Date</th>
+                    <th className="px-3 py-2.5">Detail</th>
+                    <th className="px-3 py-2.5 text-right">Effect</th>
+                    <th className="px-3 py-2.5">By</th>
+                    <th className="px-4 py-2.5" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {adjustments.map((a) => (
+                    <tr key={a.payroll_adjustment_id} className={a.is_active ? '' : 'opacity-50'}>
+                      <td className="px-4 py-2.5">
+                        <KindChip type={a.type} />
+                      </td>
+                      <td className="px-3 py-2.5 text-slate-600">{a.related_date ? fmtDate(a.related_date) : '—'}</td>
+                      <td className="px-3 py-2.5 text-slate-700">
+                        {a.type === 'DAY_ADJUSTMENT' ? `${a.old_paid_as} → ${a.new_paid_as} · ${a.reason}${a.note ? ` · ${a.note}` : ''}` : `${a.category_label} · ${a.reason}`}
+                        {a.reference_number ? ` · ${a.reference_number}` : ''}
+                        {a.attachment_url && (
+                          <a href={a.attachment_url} target="_blank" rel="noreferrer" className={`${btn.link} ml-1`}>
+                            File
+                          </a>
+                        )}
+                        {!a.is_active && <p className="text-[11px] text-rose-500">Removed: {a.removed_reason}</p>}
+                      </td>
+                      <td className={`px-3 py-2.5 text-right font-semibold ${a.effect < 0 ? 'text-rose-600' : 'text-emerald-700'}`}>
+                        {a.effect > 0 ? '+' : ''}
+                        {money(a.effect)}
+                      </td>
+                      <td className="px-3 py-2.5 text-slate-600">{a.created_by_name || '—'}</td>
+                      <td className="px-4 py-2.5 text-right">
+                        {isDraft && a.is_active && a.type !== 'DAY_ADJUSTMENT' && (
+                          <button type="button" className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600" title="Remove" onClick={() => setRemoveTarget(a)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                  {!adjustments.length && (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-8 text-center text-[12.5px] text-slate-400">
+                        No adjustments this month.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
 
-      {/* Add Adjustment Modal */}
+      {tab === 'day_wise' && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-[11.5px] text-slate-500">
+            <span>
+              <b>Legend</b> P Present · HD Half Day · L Paid Leave · LWP Unpaid Leave · A Absent · MP Missing Punch · WO Weekly Off · H Holiday
+              <span className="ml-2 text-orange-600">Orange border = day adjustment</span>
+            </span>
+            <span className="rounded-lg bg-slate-100 px-2 py-1 font-semibold text-slate-700">Daily Rate {money(e.daily_rate)}</span>
+          </div>
+          <div className="overflow-x-auto">
+            <div className="grid min-w-[700px] grid-cols-7 gap-1.5">
+              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => (
+                <div key={d} className="pb-1 text-center text-[11px] font-semibold text-slate-500">
+                  {d}
+                </div>
+              ))}
+              {Array.from({ length: lead }).map((_, i) => (
+                <div key={`l${i}`} />
+              ))}
+              {days.map((d) => {
+                const clickable = d.day_type === 'WORKING_DAY';
+                return (
+                  <button
+                    key={d.payroll_employee_day_id}
+                    type="button"
+                    disabled={!clickable}
+                    onClick={() => clickable && setDay(d)}
+                    className={`min-h-[72px] rounded-xl border p-2 text-left text-[11px] transition ${DAY_TONE[d.day_type === 'WORKING_DAY' || d.day_type === 'NOT_EMPLOYED' ? d.paid_as : 'NOT_APPLICABLE']} ${
+                      d.is_adjusted ? 'ring-2 ring-orange-400' : ''
+                    } ${clickable ? 'hover:shadow-sm' : 'cursor-default'}`}
+                  >
+                    <div className="flex items-center justify-between font-bold text-slate-700">
+                      <span>{Number(d.attendance_date.slice(8))}</span>
+                      <span className="text-[10px]">
+                        {d.is_adjusted && d.original_paid_as ? `${d.attendance_code}→${d.paid_as[0]}` : d.day_type === 'WEEKLY_OFF' ? 'WO' : d.day_type === 'HOLIDAY' ? 'H' : d.attendance_code}
+                      </span>
+                    </div>
+                    {d.day_type === 'WORKING_DAY' ? (
+                      <div className="mt-1 text-slate-600">
+                        {d.paid_as === 'FULL' ? 'Full' : d.paid_as === 'HALF' ? 'Half' : 'Unpaid'}
+                        {d.is_adjusted && <Pencil className="ml-1 inline h-3 w-3 text-orange-500" />}
+                        <div className="font-semibold text-slate-800">{money(d.calculated_amount, 0)}</div>
+                      </div>
+                    ) : d.day_type === 'NOT_EMPLOYED' ? (
+                      <div className="mt-1 text-slate-400">Not employed</div>
+                    ) : (
+                      <div className="mt-1 text-slate-400">{d.holiday_name || 'not a working day'}</div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <p className="mt-3 text-[12.5px] text-slate-700">
+            <b>Totals</b> Full days {num(e.full_days)} × {money(e.daily_rate)} + Half days {num(e.half_days)} × {money(e.daily_rate * 0.5)} · Unpaid{' '}
+            {days.filter((d) => d.day_type === 'WORKING_DAY' && d.paid_as === 'UNPAID').length} · <b>Basic Salary {money(e.basic_salary)}</b>
+          </p>
+        </div>
+      )}
+
+      {tab === 'history' && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <ol className="relative space-y-3 border-l border-slate-200 pl-4">
+            {history.map((h) => (
+              <li key={h.history_id} className="text-[12.5px]">
+                <span className="absolute -left-[5px] mt-1.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-blue-500" />
+                <p className="font-semibold text-slate-800">
+                  {h.action.replace(/_/g, ' ').toLowerCase().replace(/^\w/, (c) => c.toUpperCase())}
+                  <span className="font-normal text-slate-400"> · {fmtStamp(h.performed_at)}{h.performed_by_name ? ` · ${h.performed_by_name}` : ''}</span>
+                </p>
+                {h.reason && <p className="text-slate-500">{h.reason}</p>}
+              </li>
+            ))}
+            {!history.length && <li className="text-[12.5px] text-slate-400">No history yet.</li>}
+          </ol>
+        </div>
+      )}
+
+      <DayAdjustmentModal open={!!day} onClose={() => setDay(null)} day={day} payrollEmployeeId={e.payroll_employee_id} employeeLabel={label} basicSalary={e.basic_salary} locked={!isDraft} />
       <AddAdjustmentModal
-        isOpen={isAddAdjModalOpen}
-        onClose={() => setIsAddAdjModalOpen(false)}
-        payrollEmployeeId={employee.payroll_employee_id}
-        employeeName={employee.employee_name}
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        payrollEmployeeId={e.payroll_employee_id}
+        employeeLabel={label}
+        totalSalary={e.total_salary}
+        monthStart={days[0]?.attendance_date || ''}
+        monthEnd={days[days.length - 1]?.attendance_date || ''}
       />
+      <RemoveAdjustmentModal target={removeTarget} onClose={() => setRemoveTarget(null)} />
+      <SalarySlipModal open={slipOpen} onClose={() => setSlipOpen(false)} slip={slip.data} loading={slip.isLoading} error={slip.error} />
+    </div>
+  );
+};
 
-      {/* Salary Slip Modal */}
-      <SalarySlipModal
-        isOpen={isSlipModalOpen}
-        onClose={() => setIsSlipModalOpen(false)}
-        year={year}
-        month={month}
-        empId={empId}
-      />
-    </>
+const CalcRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
+  <li className="flex justify-between gap-3 py-2">
+    <span className="text-slate-600">{label}</span>
+    <span className="font-semibold text-slate-900">{value}</span>
+  </li>
+);
+
+const RemoveAdjustmentModal: React.FC<{ target: PayrollAdjustmentItem | null; onClose: () => void }> = ({ target, onClose }) => {
+  const remove = useRemoveAdjustmentMutation();
+  const [reason, setReason] = useState('');
+  const [err, setErr] = useState<string | null>(null);
+  return (
+    <Modal
+      open={!!target}
+      onClose={onClose}
+      title={`Remove ${target?.type === 'ADDITION' ? 'addition' : 'deduction'}?`}
+      subtitle={target ? `${target.category_label} · ${money(target.amount)}` : undefined}
+      footer={
+        <>
+          <button type="button" className={btn.secondary} onClick={onClose}>
+            Cancel
+          </button>
+          <button
+            type="button"
+            className={btn.danger}
+            disabled={remove.isPending}
+            onClick={async () => {
+              if (reason.trim().length < 10) return setErr('Please write at least 10 characters.');
+              try {
+                await remove.mutateAsync({ id: target!.payroll_adjustment_id, reason: reason.trim() });
+                setReason('');
+                onClose();
+              } catch (e) {
+                setErr(errorText(e));
+              }
+            }}
+          >
+            Remove
+          </button>
+        </>
+      }
+    >
+      <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+        Reason<span className="text-rose-500">*</span>
+      </label>
+      <textarea rows={2} maxLength={250} className={`${inputCls} h-auto py-2`} value={reason} onChange={(e) => setReason(e.target.value)} />
+      <FieldError msg={err} />
+    </Modal>
   );
 };

@@ -8,6 +8,7 @@ import {
   X,
 } from 'lucide-react';
 import type { AssignableEmployee } from '../types';
+import { useLookupsQuery } from '@/features/organization/hooks/use-master-data';
 
 export type ViewMode = 'grid' | 'list' | 'kanban';
 
@@ -24,6 +25,8 @@ interface ProjectFilterBarProps {
   onStartDateChange: (val: string) => void;
   endDate: string;
   onEndDateChange: (val: string) => void;
+  projectType?: string;
+  onProjectTypeChange?: (val: string) => void;
   onClearFilters: () => void;
   hasActiveFilters: boolean;
   managers: AssignableEmployee[];
@@ -54,11 +57,15 @@ export const ProjectFilterBar: React.FC<ProjectFilterBarProps> = ({
   onStartDateChange,
   endDate,
   onEndDateChange,
+  projectType = 'all',
+  onProjectTypeChange,
   onClearFilters,
   hasActiveFilters,
   managers,
 }) => {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  // Project Type options come from master data (Settings → Project Type).
+  const { data: projectTypes = [] } = useLookupsQuery('project_type');
 
   return (
     <div className="space-y-2">
@@ -105,7 +112,7 @@ export const ProjectFilterBar: React.FC<ProjectFilterBarProps> = ({
             onClick={() => setShowAdvancedFilters((prev) => !prev)}
             title="Additional Filters (Manager, Date)"
             className={`p-1.5 rounded-lg border text-xs transition-colors ${
-              showAdvancedFilters || (projectManagerId !== 'all' || startDate || endDate)
+              showAdvancedFilters || (projectManagerId !== 'all' || projectType !== 'all' || startDate || endDate)
                 ? 'bg-blue-50 border-blue-300 text-blue-600'
                 : 'border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-50'
             }`}
@@ -173,6 +180,24 @@ export const ProjectFilterBar: React.FC<ProjectFilterBarProps> = ({
               ))}
             </select>
           </div>
+
+          {/* Project Type Dropdown */}
+          {onProjectTypeChange && (
+            <div className="w-44">
+              <select
+                value={projectType}
+                onChange={(e) => onProjectTypeChange(e.target.value)}
+                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 truncate"
+              >
+                <option value="all">All Project Types</option>
+                {projectTypes.map((t) => (
+                  <option key={t.code} value={t.code}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Date Filters */}
           <div className="flex items-center gap-1.5 text-xs text-slate-500">

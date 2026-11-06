@@ -129,4 +129,9 @@ export interface ProjectTaskEntity {
     profile_picture?: string | null;
   }>;
   created_at: string;
+  task_type?: string | null;
+  actual_minutes?: number;
+  started_at?: string | null;
+  requested_at?: string | null;
+  completed_at?: string | null;
 }
