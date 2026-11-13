@@ -930,7 +930,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
       leave: { type_name: string; part: string; [key: string]: any } | null;
       holiday_name: string | null;
       flags: Record<string, any>;
-      breaks: Array<{ started_at: Date; ended_at: Date | null }>;
+      breaks: Array<{ started_at: Date; ended_at: Date | null; break_type?: string | null }>;
     }>;
   }> {
     const monthStartStr = `${yearMonth}-01`;

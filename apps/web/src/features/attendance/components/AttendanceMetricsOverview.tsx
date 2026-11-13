@@ -248,6 +248,14 @@ export const AttendanceBreakdownRow: React.FC<{
 
   const productiveSec = monthSummary.total_working_seconds || records.reduce((a, r) => a + (r.production_seconds || 0), 0);
   const breakSec = monthSummary.total_break_seconds || records.reduce((a, r) => a + (r.break_seconds || 0), 0);
+  // Time clocked out before "Resume work": not worked and not a break, but it must not vanish from the summary
+  const awaySec = records.reduce((sum, r) => {
+    for (const b of r.breaks ?? []) {
+      if (b.break_type !== 'Clocked out' || !b.ended_at) continue;
+      sum += Math.max(0, Math.floor((new Date(b.ended_at).getTime() - new Date(b.started_at).getTime()) / 1000));
+    }
+    return sum;
+  }, 0);
   const grossSec = productiveSec + breakSec;
   const productivePct = grossSec ? Math.round((productiveSec / grossSec) * 100) : 0;
 
@@ -342,6 +350,13 @@ export const AttendanceBreakdownRow: React.FC<{
             <div className="text-[10px] font-semibold uppercase tracking-wide opacity-70">Overtime</div>
           </div>
         </div>
+
+        {awaySec >= 60 && (
+          <p className="mt-3 flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">
+            <span>Clocked out and resumed (not counted as work or break)</span>
+            <span className="font-semibold tabular-nums text-slate-800">{hm(awaySec)}</span>
+          </p>
+        )}
 
         <div className="mt-auto pt-4">
           <div className="mb-2 flex items-center justify-between text-xs text-slate-500">

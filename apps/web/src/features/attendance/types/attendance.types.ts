@@ -102,7 +102,7 @@ export interface DayRecord {
   holiday_name?: string | null;
   leave_type?: string | null;
   /** Breaks taken that day (ISO times), drawn as gaps in the attendance visual */
-  breaks?: Array<{ started_at: string; ended_at: string | null }>;
+  breaks?: Array<{ started_at: string; ended_at: string | null; break_type?: string | null }>;
   /** Which half is on leave, when it is a half-day leave */
   leave_half?: 'FIRST_HALF' | 'SECOND_HALF' | null;
   /** Where the punch happened, when the clock-in captured a location */
