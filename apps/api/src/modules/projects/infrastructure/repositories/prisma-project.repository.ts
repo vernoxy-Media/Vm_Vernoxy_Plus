@@ -46,7 +46,38 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
     }
   }
 
-  private mapProject(p: any, requestingEmpId?: number, isAdmin?: boolean): ProjectEntity {
+  /**
+   * Time and overdue figures for whole projects, sub-tasks included. The estimate is the sum of the top-level
+   * tasks (a parent's estimate is already the total of its sub-tasks); the time worked is every logged session
+   * on every task and sub-task, so it matches what the issue view and the deliver dialog show.
+   */
+  private async timeRollup(projectIds: number[]): Promise<Map<number, { estimated: number; actual: number; overdue: number }>> {
+    const out = new Map<number, { estimated: number; actual: number; overdue: number }>();
+    if (projectIds.length === 0) return out;
+    const today = new Date().toISOString().slice(0, 10);
+    const rows = await this.prisma.tasks.findMany({
+      where: { project_id: { in: projectIds }, deleted_at: null },
+      select: { project_id: true, parent_task_id: true, stage: true, due_date: true, allocated_minutes: true, actual_minutes: true, work_logs: true },
+    });
+    for (const r of rows) {
+      if (r.project_id == null) continue;
+      const acc = out.get(r.project_id) ?? { estimated: 0, actual: 0, overdue: 0 };
+      acc.actual += Math.round((loggedSeconds(r.work_logs) || (r.actual_minutes || 0) * 60) / 60);
+      if (!r.parent_task_id) {
+        acc.estimated += r.allocated_minutes || 0;
+        if (r.stage !== 'completed' && r.due_date && r.due_date.toISOString().slice(0, 10) < today) acc.overdue += 1;
+      }
+      out.set(r.project_id, acc);
+    }
+    return out;
+  }
+
+  private mapProject(
+    p: any,
+    requestingEmpId?: number,
+    isAdmin?: boolean,
+    rollup?: { estimated: number; actual: number; overdue: number },
+  ): ProjectEntity {
     const pm = p.employees_projects_project_manager_idToemployees;
     const members: ProjectMemberEntity[] = (p.project_members || []).map((m: any) => {
       const emp = m.employees_project_members_employee_idToemployees;
@@ -132,8 +163,9 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
       total_tasks_count: totalTasks,
       completed_tasks_count: completedTasks,
       progress_percentage: progress,
-      total_estimated_minutes: totalEstimatedMinutes,
-      actual_work_minutes: actualWorkMinutes,
+      total_estimated_minutes: rollup ? rollup.estimated : totalEstimatedMinutes,
+      actual_work_minutes: rollup ? rollup.actual : actualWorkMinutes,
+      overdue_tasks_count: rollup?.overdue ?? 0,
       created_at: p.created_at.toISOString(),
       created_by: p.created_by,
     };
@@ -341,7 +373,8 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
       orderBy: { created_at: 'desc' },
     });
 
-    return rows.map((r) => this.mapProject(r, filter.employee_id, filter.is_admin));
+    const rollups = await this.timeRollup(rows.map((r) => r.project_id));
+    return rows.map((r) => this.mapProject(r, filter.employee_id, filter.is_admin, rollups.get(r.project_id)));
   }
 
   async getProjectById(
@@ -387,7 +420,8 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
       throw new ForbiddenException('You are not a member of this project.');
     }
 
-    return this.mapProject(project, requestingEmpId, isAdmin);
+    const rollup = (await this.timeRollup([project.project_id])).get(project.project_id);
+    return this.mapProject(project, requestingEmpId, isAdmin, rollup);
   }
 
   async updateProjectStatus(

@@ -1,7 +1,7 @@
 /**
  * The colour theme of the app, chosen by each employee.
  *
- * The app's blue and indigo (buttons, active items, links, badges) read their colours from CSS variables with the
+ * The app's blue, indigo, sky, cyan, violet, purple and fuchsia (buttons, active items, links, badges, tiles) read their colours from CSS variables with the
  * original colours as fallback. The default theme sets no variable at all, so nothing changes for it; any other
  * theme sets the variables and every blue / indigo turns into that colour.
  */
@@ -52,7 +52,10 @@ function hexOf(accent: string, amount: number): string {
   return '#' + shade(accent, amount).split(' ').map((c) => Number(c).toString(16).padStart(2, '0')).join('');
 }
 
-const ALL_VARS = ['blue', 'indigo']
+/** Every Tailwind palette that turns into the theme colour (see tailwind.config.js). */
+const THEMED_FAMILIES = ['blue', 'indigo', 'sky', 'cyan', 'violet', 'purple', 'fuchsia'];
+
+const ALL_VARS = THEMED_FAMILIES
   .flatMap((p) => SHADES.map((s) => `--tw-${p}-${s}`))
   .concat(['--brand-primary-rgb', '--brand-primary-hover-rgb', '--primary', '--ring'])
   .concat(Object.keys(AC).map((k) => `--${k}`), Object.keys(AC_RGB).map((k) => `--${k}`));
@@ -85,7 +88,7 @@ export function applyAppTheme(id: string | null | undefined): void {
   for (const v of ALL_VARS) root.style.removeProperty(v);
   const theme = themeById(id);
   if (theme.id !== DEFAULT_THEME_ID) {
-    for (const p of ['blue', 'indigo']) for (const s of SHADES) root.style.setProperty(`--tw-${p}-${s}`, shade(theme.accent, MIX[s]));
+    for (const p of THEMED_FAMILIES) for (const s of SHADES) root.style.setProperty(`--tw-${p}-${s}`, shade(theme.accent, MIX[s]));
     root.style.setProperty('--brand-primary-rgb', shade(theme.accent, 0));
     root.style.setProperty('--brand-primary-hover-rgb', shade(theme.accent, -0.15));
     root.style.setProperty('--primary', hslOf(theme.accent));

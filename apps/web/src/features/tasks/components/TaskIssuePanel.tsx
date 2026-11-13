@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { ExternalLink, FolderKanban, Loader2, Zap } from 'lucide-react';
 import type { TaskDetailDto } from '@vernoxy-pulse/api-client';
@@ -38,7 +39,9 @@ export const TaskIssuePanel: React.FC<TaskIssuePanelProps> = ({ task, isOpen, is
 
   if (!isOpen) return null;
 
-  return (
+  // Drawn on the body, not inside the page: a parent with a transform or filter would otherwise make "fixed" relative to it,
+  // leaving a strip at the top of the screen that the dim layer does not cover.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex justify-end bg-[rgba(9,30,66,0.54)]" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <aside role="dialog" aria-modal="true" aria-label="Task details" className="flex h-full w-screen flex-col bg-white shadow-[0_8px_16px_-4px_rgba(9,30,66,0.25),0_0_1px_rgba(9,30,66,0.31)] animate-in slide-in-from-right duration-200 sm:max-w-3xl xl:max-w-[1100px]">
         <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
@@ -47,10 +50,10 @@ export const TaskIssuePanel: React.FC<TaskIssuePanelProps> = ({ task, isOpen, is
               {task.project_id ? (
                 <Link
                   to={`/projects/${task.project_id}?task=${task.task_id}`}
-                  className="inline-flex items-center gap-1.5 rounded-[3px] bg-[#DEEBFF] px-2 py-1 font-medium text-[#0747A6] hover:bg-[#B3D4FF]"
+                  className="inline-flex items-center gap-1.5 rounded-[3px] bg-[color:var(--ac-50,#DEEBFF)] px-2 py-1 font-medium text-[color:var(--ac-dark,#0747A6)] hover:bg-[color:var(--ac-200,#B3D4FF)]"
                 >
                   <FolderKanban className="h-3.5 w-3.5" />
-                  {task.project_no ? `${task.project_no} · ` : ''}{task.project_name || 'Project'}
+                  {task.project_no ?? 'Project'}
                   <ExternalLink className="h-3 w-3" /> Open in project
                 </Link>
               ) : (
@@ -87,6 +90,7 @@ export const TaskIssuePanel: React.FC<TaskIssuePanelProps> = ({ task, isOpen, is
           )}
         </div>
       </aside>
-    </div>
+    </div>,
+    document.body,
   );
 };

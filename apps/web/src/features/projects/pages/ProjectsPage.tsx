@@ -192,7 +192,7 @@ export const ProjectsPage: React.FC = () => {
         {canCreate && (
           <button
             onClick={() => setIsCreateOpen(true)}
-            className="inline-flex h-8 shrink-0 cursor-pointer items-center justify-center gap-1.5 self-start rounded-[3px] bg-[color:var(--ac-main,#0052CC)] px-3 text-[14px] font-medium text-white transition hover:bg-[color:var(--ac-hover,#0065FF)] active:bg-[#0747A6]"
+            className="inline-flex h-8 shrink-0 cursor-pointer items-center justify-center gap-1.5 self-start rounded-[3px] bg-[color:var(--ac-main,#0052CC)] px-3 text-[14px] font-medium text-white transition hover:bg-[color:var(--ac-hover,#0065FF)] active:bg-[color:var(--ac-dark,#0747A6)]"
           >
             <Plus className="h-4 w-4" strokeWidth={2.5} />
             Create project

@@ -92,6 +92,7 @@ export interface ProjectItem {
   progress_percentage: number;
   total_estimated_minutes?: number;
   actual_work_minutes?: number;
+  overdue_tasks_count?: number;
   created_at: string;
   created_by?: number | null;
 }

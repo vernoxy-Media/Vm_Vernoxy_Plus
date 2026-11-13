@@ -12,7 +12,7 @@ interface ProjectTableViewProps {
 const LOZENGE: Record<ProjectStatus, { label: string; cls: string }> = {
   new: { label: 'New', cls: 'bg-[#DFE1E6] text-[#42526E]' },
   planning: { label: 'Planning', cls: 'bg-[#EAE6FF] text-[#403294]' },
-  in_progress: { label: 'In Progress', cls: 'bg-[#DEEBFF] text-[#0747A6]' },
+  in_progress: { label: 'In Progress', cls: 'bg-[color:var(--ac-50,#DEEBFF)] text-[color:var(--ac-dark,#0747A6)]' },
   pending: { label: 'Pending', cls: 'bg-[#FFF0B3] text-[#172B4D]' },
   review: { label: 'Review', cls: 'bg-[#EAE6FF] text-[#403294]' },
   delivered: { label: 'Delivered', cls: 'bg-[#E3FCEF] text-[#006644]' },

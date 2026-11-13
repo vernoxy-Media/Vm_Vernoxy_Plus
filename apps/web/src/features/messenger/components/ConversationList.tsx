@@ -96,7 +96,7 @@ export const ConversationList: React.FC<Props> = ({ selectedId, onSelect, onOpen
         <button type="button" onClick={() => setStarredView((v) => !v)} aria-label="Starred messages" aria-pressed={starredView} className={`rounded-full p-2.5 text-slate-600 hover:bg-slate-200 ${starredView ? 'bg-slate-200 text-amber-500' : ''}`}><Star className="h-5 w-5" /></button>
         <button type="button" onClick={() => setSettingsOpen(true)} aria-label="Messenger settings" className="rounded-full p-2.5 text-slate-600 hover:bg-slate-200"><Settings className="h-5 w-5" /></button>
         <button type="button" onClick={() => onNew('group')} aria-label="New group" className="rounded-full p-2.5 text-slate-600 hover:bg-slate-200"><Users className="h-5 w-5" /></button>
-        <button type="button" onClick={() => onNew('chat')} aria-label="New chat" className="rounded-full bg-[#4F46E5] p-2.5 text-white shadow-sm hover:bg-[#4338CA]"><MessageSquarePlus className="h-5 w-5" /></button>
+        <button type="button" onClick={() => onNew('chat')} aria-label="New chat" className="rounded-full bg-[color:var(--ac-main,#4F46E5)] p-2.5 text-white shadow-sm hover:bg-[color:var(--ac-dark,#4338CA)]"><MessageSquarePlus className="h-5 w-5" /></button>
       </div>
 
       {notifAsk && (
@@ -137,7 +137,7 @@ export const ConversationList: React.FC<Props> = ({ selectedId, onSelect, onOpen
                 {isError && conversations.length === 0 && (
                   <li className="flex flex-col items-center gap-3 px-8 py-16 text-center">
                     <p className="text-sm font-semibold text-slate-700">Could not load your chats.</p>
-                    <button type="button" onClick={reload} className="rounded-full bg-[#4F46E5] px-4 py-2 text-sm font-semibold text-white hover:bg-[#4338CA]">Retry</button>
+                    <button type="button" onClick={reload} className="rounded-full bg-[color:var(--ac-main,#4F46E5)] px-4 py-2 text-sm font-semibold text-white hover:bg-[color:var(--ac-dark,#4338CA)]">Retry</button>
                   </li>
                 )}
                 {!isLoading && !isError && visible.length === 0 && (
@@ -145,7 +145,7 @@ export const ConversationList: React.FC<Props> = ({ selectedId, onSelect, onOpen
                     <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50 text-slate-300 ring-1 ring-slate-100"><MessagesSquare className="h-7 w-7" /></span>
                     <p className="text-sm font-semibold text-slate-700">{filter === 'all' ? 'No chats yet' : 'Nothing here'}</p>
                     <p className="text-xs text-slate-500">{filter === 'all' ? 'Start a conversation with a teammate or create a group.' : 'No chats match this filter.'}</p>
-                    {filter === 'all' && <button type="button" onClick={() => onNew('chat')} className="rounded-full bg-[#4F46E5] px-4 py-2 text-sm font-semibold text-white hover:bg-[#4338CA]">Start a chat</button>}
+                    {filter === 'all' && <button type="button" onClick={() => onNew('chat')} className="rounded-full bg-[color:var(--ac-main,#4F46E5)] px-4 py-2 text-sm font-semibold text-white hover:bg-[color:var(--ac-dark,#4338CA)]">Start a chat</button>}
                   </li>
                 )}
                 {visible.map((c) => (
@@ -223,7 +223,7 @@ const ConversationRow: React.FC<{
                 {muted && <BellOff className="h-3.5 w-3.5 text-slate-400" aria-label="Muted" />}
                 {c.pinned_at && <Pin className="h-3.5 w-3.5 text-slate-400" aria-label="Pinned" />}
                 {(unread > 0 || c.marked_unread) && (
-                  <span className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-bold text-white ${muted ? 'bg-slate-400' : 'bg-[#4F46E5]'}`} aria-label={`${unread || 1} unread`}>
+                  <span className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-bold text-white ${muted ? 'bg-slate-400' : 'bg-[color:var(--ac-main,#4F46E5)]'}`} aria-label={`${unread || 1} unread`}>
                     {unread > 99 ? '99+' : unread || ''}
                   </span>
                 )}
@@ -401,11 +401,11 @@ const StatusMenu: React.FC<{ current?: PresenceState; name: string; photo?: stri
                 aria-checked={status === o.value}
                 onClick={() => setStatus(o.value)}
                 title={o.hint}
-                className={`flex h-10 items-center gap-2 rounded-xl border px-3 text-left text-sm transition ${status === o.value ? 'border-[#4F46E5] bg-[#4F46E5]/5 font-semibold text-slate-900' : 'border-slate-200 text-slate-700 hover:bg-slate-50'}`}
+                className={`flex h-10 items-center gap-2 rounded-xl border px-3 text-left text-sm transition ${status === o.value ? 'border-[color:var(--ac-main,#4F46E5)] bg-[color:var(--ac-main,#4F46E5)]/5 font-semibold text-slate-900' : 'border-slate-200 text-slate-700 hover:bg-slate-50'}`}
               >
                 <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${o.dot}`} />
                 <span className="min-w-0 flex-1 truncate">{o.label}</span>
-                {status === o.value && <Check className="h-4 w-4 shrink-0 text-[#4F46E5]" />}
+                {status === o.value && <Check className="h-4 w-4 shrink-0 text-[color:var(--ac-main,#4F46E5)]" />}
               </button>
             ))}
           </div>
@@ -413,8 +413,8 @@ const StatusMenu: React.FC<{ current?: PresenceState; name: string; photo?: stri
         </section>
 
         <section>
-          <label htmlFor="status-text" className="mb-1 block text-xs font-semibold text-[#4F46E5]">About</label>
-          <div className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 focus-within:border-[#4F46E5] focus-within:ring-2 focus-within:ring-[#4F46E5]/15">
+          <label htmlFor="status-text" className="mb-1 block text-xs font-semibold text-[color:var(--ac-main,#4F46E5)]">About</label>
+          <div className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 focus-within:border-[color:var(--ac-main,#4F46E5)] focus-within:ring-2 focus-within:ring-[color:var(--ac-main,#4F46E5)]/15">
             <input
               id="status-text"
               value={text}
@@ -439,7 +439,7 @@ const StatusMenu: React.FC<{ current?: PresenceState; name: string; photo?: stri
                   type="button"
                   aria-pressed={on}
                   onClick={() => setText(on ? '' : p.text)}
-                  className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition ${on ? 'border-[#4F46E5] bg-[#4F46E5]/10 font-semibold text-[#4F46E5]' : 'border-slate-200 text-slate-700 hover:bg-slate-50'}`}
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition ${on ? 'border-[color:var(--ac-main,#4F46E5)] bg-[color:var(--ac-main,#4F46E5)]/10 font-semibold text-[color:var(--ac-main,#4F46E5)]' : 'border-slate-200 text-slate-700 hover:bg-slate-50'}`}
                 >
                   <span aria-hidden>{p.emoji}</span>
                   {p.text}
@@ -451,7 +451,7 @@ const StatusMenu: React.FC<{ current?: PresenceState; name: string; photo?: stri
 
         <label htmlFor="status-for" className="flex items-center justify-between gap-3">
           <span className="text-sm text-slate-800">Clear after</span>
-          <select id="status-for" value={duration} onChange={(e) => setDuration(Number(e.target.value))} className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-800 focus:border-[#4F46E5] focus:outline-none">
+          <select id="status-for" value={duration} onChange={(e) => setDuration(Number(e.target.value))} className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-800 focus:border-[color:var(--ac-main,#4F46E5)] focus:outline-none">
             {DURATIONS.map(([l], i) => <option key={l} value={i}>{l}</option>)}
           </select>
         </label>
@@ -460,7 +460,7 @@ const StatusMenu: React.FC<{ current?: PresenceState; name: string; photo?: stri
 
       <div className="flex gap-2 border-t border-slate-100 p-3">
         <button type="button" onClick={onClose} className="flex-1 rounded-full bg-slate-100 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-200">Cancel</button>
-        <button type="button" disabled={busy} onClick={save} className="flex-1 rounded-full bg-[#4F46E5] py-2 text-sm font-semibold text-white transition hover:bg-[#4338CA] disabled:opacity-60">{busy ? 'Saving…' : 'Save'}</button>
+        <button type="button" disabled={busy} onClick={save} className="flex-1 rounded-full bg-[color:var(--ac-main,#4F46E5)] py-2 text-sm font-semibold text-white transition hover:bg-[color:var(--ac-dark,#4338CA)] disabled:opacity-60">{busy ? 'Saving…' : 'Save'}</button>
       </div>
     </div>
   );

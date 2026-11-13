@@ -1,3 +1,14 @@
+import colors from 'tailwindcss/colors';
+
+const SHADES = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
+const rgbOf = (hex) => {
+  const n = parseInt(hex.slice(1), 16);
+  return `${(n >> 16) & 255} ${(n >> 8) & 255} ${n & 255}`;
+};
+/** A Tailwind palette that follows the colour theme the employee chose; with no theme it is Tailwind's own palette. */
+const themed = (name) =>
+  Object.fromEntries(SHADES.map((s) => [s, `rgb(var(--tw-${name}-${s}, ${rgbOf(colors[name][s])}) / <alpha-value>)`]));
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
@@ -45,6 +56,12 @@ export default {
           900: 'rgb(var(--tw-indigo-900, 49 46 129) / <alpha-value>)',
           950: 'rgb(var(--tw-indigo-950, 30 27 75) / <alpha-value>)',
         },
+        // The accent palettes (sky, cyan, violet, purple, fuchsia) follow the theme too, so no screen keeps a colour of its own
+        sky: themed('sky'),
+        cyan: themed('cyan'),
+        violet: themed('violet'),
+        purple: themed('purple'),
+        fuchsia: themed('fuchsia'),
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',

@@ -6,7 +6,7 @@ import type { ProjectStatus } from '../types';
 export const STATUS_LOZENGE: Record<ProjectStatus, { label: string; cls: string; hover: string }> = {
   new: { label: 'New', cls: 'bg-[#DFE1E6] text-[#42526E]', hover: 'hover:bg-[#C1C7D0]' },
   planning: { label: 'Planning', cls: 'bg-[#EAE6FF] text-[#403294]', hover: 'hover:bg-[color:var(--ac-200,#C0B6F2)]' },
-  in_progress: { label: 'In Progress', cls: 'bg-[#DEEBFF] text-[#0747A6]', hover: 'hover:bg-[#B3D4FF]' },
+  in_progress: { label: 'In Progress', cls: 'bg-[color:var(--ac-50,#DEEBFF)] text-[color:var(--ac-dark,#0747A6)]', hover: 'hover:bg-[color:var(--ac-200,#B3D4FF)]' },
   pending: { label: 'Pending', cls: 'bg-[#FFF0B3] text-[#172B4D]', hover: 'hover:bg-[#FFE380]' },
   review: { label: 'Review', cls: 'bg-[#EAE6FF] text-[#403294]', hover: 'hover:bg-[color:var(--ac-200,#C0B6F2)]' },
   delivered: { label: 'Delivered', cls: 'bg-[#E3FCEF] text-[#006644]', hover: 'hover:bg-[#ABF5D1]' },

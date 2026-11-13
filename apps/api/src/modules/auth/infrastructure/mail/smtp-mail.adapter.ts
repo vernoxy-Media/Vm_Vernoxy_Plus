@@ -1,12 +1,16 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import { MailPort, WelcomeCredentialsParams, DocumentRequestMailParams } from '../../application/ports/auth.ports';
 
 @Injectable()
-export class SmtpMailAdapter implements MailPort {
+export class SmtpMailAdapter implements MailPort, OnModuleInit {
   private readonly logger = new Logger(SmtpMailAdapter.name);
   private readonly transporter: nodemailer.Transporter;
   private readonly from: string;
+  private readonly host: string;
+  private readonly port: number;
+  private readonly user: string;
+  private readonly fromIsDefault: boolean;
 
   constructor() {
     const host = process.env.SMTP_HOST || 'localhost';
@@ -16,6 +20,10 @@ export class SmtpMailAdapter implements MailPort {
     // Strip spaces for Gmail app passwords
     const pass = host.includes('gmail.com') ? rawPass.replace(/\s+/g, '') : rawPass;
     this.from = process.env.MAIL_FROM || 'Vernoxy Pulse <no-reply@vernoxy.com>';
+    this.host = host;
+    this.port = port;
+    this.user = user;
+    this.fromIsDefault = !process.env.MAIL_FROM;
 
     this.transporter = nodemailer.createTransport({
       host,
@@ -23,6 +31,29 @@ export class SmtpMailAdapter implements MailPort {
       secure: port === 465,
       auth: user ? { user, pass } : undefined,
     });
+  }
+
+  /**
+   * Checks the mail settings when the API starts and says plainly in the log whether mail can go out, and if not why.
+   * An OTP or welcome email that never arrives is almost always a wrong login, sender or port, and this shows which.
+   * It never stops the API from starting.
+   */
+  async onModuleInit(): Promise<void> {
+    if (process.env.NODE_ENV === 'test') return;
+    const maskedUser = this.user ? this.user.replace(/(.{3})(.*)(@.*|$)/, '$1***$3') : '(none)';
+    this.logger.log(`Mail: ${this.host}:${this.port}, login ${maskedUser}, sender "${this.from}"`);
+    if (this.fromIsDefault && process.env.NODE_ENV === 'production') {
+      this.logger.warn('Mail: MAIL_FROM is not set, so "no-reply@vernoxy.com" is used. Providers such as Brevo only deliver from a verified sender: set MAIL_FROM to one.');
+    }
+    if (this.host === 'localhost' && process.env.NODE_ENV === 'production') {
+      this.logger.warn('Mail: SMTP_HOST is not set, so mail is sent to localhost and will never arrive.');
+    }
+    try {
+      await this.transporter.verify();
+      this.logger.log('Mail: the SMTP server accepted the login. Email can be sent.');
+    } catch (err: any) {
+      this.logger.error(`Mail: the SMTP server did NOT accept the settings (${err.code ?? 'error'}: ${err.message}). OTP and welcome emails will not be delivered until SMTP_HOST, SMTP_PORT, SMTP_USER and SMTP_PASS are fixed.`);
+    }
   }
 
   async sendOtp(to: string, code: string, purpose: 'login_2fa' | 'password_reset'): Promise<void> {

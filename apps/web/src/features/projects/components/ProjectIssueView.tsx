@@ -22,6 +22,7 @@ import { StageDecisionDialog } from '@/features/tasks/components/StageDecisionDi
 import type { TaskStage } from '@/features/tasks/types';
 import { JiraAvatar } from '@/shared/ui/JiraAvatar';
 import { useContainerWidth } from '@/shared/ui/useContainerWidth';
+import { dueLabel, isPastDate } from '@/shared/utils/schedule.utils';
 import { ProjectComments } from './ProjectComments';
 import type { ProjectDiscussionItem, ProjectMember } from '../types';
 
@@ -29,7 +30,7 @@ import type { ProjectDiscussionItem, ProjectMember } from '../types';
 
 const STAGES: Record<string, { label: string; cls: string }> = {
   assigned: { label: 'To Do', cls: 'bg-[#DFE1E6] text-[#42526E]' },
-  in_progress: { label: 'In Progress', cls: 'bg-[#DEEBFF] text-[#0747A6]' },
+  in_progress: { label: 'In Progress', cls: 'bg-[color:var(--ac-50,#DEEBFF)] text-[color:var(--ac-dark,#0747A6)]' },
   hold: { label: 'On Hold', cls: 'bg-[#FFF0B3] text-[#172B4D]' },
   requested: { label: 'In Review', cls: 'bg-[#EAE6FF] text-[#403294]' },
   completed: { label: 'Done', cls: 'bg-[#E3FCEF] text-[#006644]' },
@@ -229,7 +230,7 @@ export const ProjectIssueView: React.FC<ProjectIssueViewProps> = ({
   const overBy = Math.max(0, spentSec - estimateSec);
   const pct = estimateSec ? Math.min(100, Math.round((spentSec / estimateSec) * 100)) : 0;
 
-  const overdue = stage !== 'completed' && Boolean(task.due_date && new Date(task.due_date).getTime() < new Date().setHours(0, 0, 0, 0));
+  const overdue = stage !== 'completed' && isPastDate(task.due_date);
   const doneSubs = subs.filter((s) => s.stage === 'completed').length;
 
   const run = async (key: string, fn: () => void | Promise<void>) => {
@@ -263,7 +264,7 @@ export const ProjectIssueView: React.FC<ProjectIssueViewProps> = ({
     return (
       <>
         {st === 'assigned' && (
-          <button type="button" disabled={wait} onClick={() => session(t, 'start')} className={`${b} ${big ? 'bg-[color:var(--ac-main,#0052CC)] text-white hover:bg-[color:var(--ac-hover,#0065FF)]' : 'bg-[#DEEBFF] text-[#0747A6] hover:bg-[#B3D4FF]'}`}>
+          <button type="button" disabled={wait} onClick={() => session(t, 'start')} className={`${b} ${big ? 'bg-[color:var(--ac-main,#0052CC)] text-white hover:bg-[color:var(--ac-hover,#0065FF)]' : 'bg-[color:var(--ac-50,#DEEBFF)] text-[color:var(--ac-dark,#0747A6)] hover:bg-[color:var(--ac-200,#B3D4FF)]'}`}>
             <Play className="h-3.5 w-3.5" /> Start work
           </button>
         )}
@@ -274,7 +275,7 @@ export const ProjectIssueView: React.FC<ProjectIssueViewProps> = ({
                 <Pause className="h-3.5 w-3.5" /> Pause
               </button>
             ) : (
-              <button type="button" disabled={wait} onClick={() => session(t, 'start')} className={`${b} bg-[#DEEBFF] text-[#0747A6] hover:bg-[#B3D4FF]`}>
+              <button type="button" disabled={wait} onClick={() => session(t, 'start')} className={`${b} bg-[color:var(--ac-50,#DEEBFF)] text-[color:var(--ac-dark,#0747A6)] hover:bg-[color:var(--ac-200,#B3D4FF)]`}>
                 <Play className="h-3.5 w-3.5" /> Resume
               </button>
             )}
@@ -284,7 +285,7 @@ export const ProjectIssueView: React.FC<ProjectIssueViewProps> = ({
           </>
         )}
         {st === 'hold' && (
-          <button type="button" disabled={wait} onClick={() => run(`${t.task_id}_resume`, () => onMoveStage(t.task_id, 'in_progress'))} className={`${b} bg-[#DEEBFF] text-[#0747A6] hover:bg-[#B3D4FF]`}>
+          <button type="button" disabled={wait} onClick={() => run(`${t.task_id}_resume`, () => onMoveStage(t.task_id, 'in_progress'))} className={`${b} bg-[color:var(--ac-50,#DEEBFF)] text-[color:var(--ac-dark,#0747A6)] hover:bg-[color:var(--ac-200,#B3D4FF)]`}>
             <Play className="h-3.5 w-3.5" /> Resume
           </button>
         )}
@@ -543,7 +544,7 @@ export const ProjectIssueView: React.FC<ProjectIssueViewProps> = ({
                         <p className="text-[14px] leading-5 text-[#172B4D]">
                           <b className="font-semibold">{l.employee_name}</b> <span className="text-[#42526E]">{WORK_ACTION[l.action] ?? l.action}</span>
                           {l.code !== task.task_code && <span className="ml-1.5 rounded-[3px] bg-[#DFE1E6] px-1 py-px text-[11px] font-semibold text-[#42526E]">{l.code}</span>}
-                          {typeof l.duration_seconds === 'number' && l.duration_seconds > 0 && <span className="ml-2 inline-flex items-center gap-1 rounded-[3px] bg-[#DEEBFF] px-1 py-px text-[12px] font-medium text-[#0747A6]"><Clock className="h-3 w-3" />{dur(l.duration_seconds)}</span>}
+                          {typeof l.duration_seconds === 'number' && l.duration_seconds > 0 && <span className="ml-2 inline-flex items-center gap-1 rounded-[3px] bg-[color:var(--ac-50,#DEEBFF)] px-1 py-px text-[12px] font-medium text-[color:var(--ac-dark,#0747A6)]"><Clock className="h-3 w-3" />{dur(l.duration_seconds)}</span>}
                         </p>
                         {l.note && <p className="mt-1 whitespace-pre-wrap text-[14px] text-[#172B4D]">{l.note}</p>}
                         <p className="mt-0.5 text-[12px] text-[#5E6C84]">{fmtDateTime(l.timestamp)}</p>
@@ -613,6 +614,7 @@ export const ProjectIssueView: React.FC<ProjectIssueViewProps> = ({
               {sprintName !== undefined && <Row label="Sprint"><span className={sprintName ? '' : 'text-[#7A869A]'}>{sprintName || 'Backlog'}</span></Row>}
               <Row label="Start date">
                 <DueDateRow
+                  label="start date"
                   value={(task as TaskDetailDto & { start_date?: string | null }).start_date}
                   overdue={false}
                   canEdit={canEditDates && stage !== 'completed'}
@@ -701,12 +703,14 @@ export const ProjectIssueView: React.FC<ProjectIssueViewProps> = ({
 
 /** The due date in the Details panel. Admins change it in place, like clicking a field in Jira. */
 const DueDateRow: React.FC<{
+  /** What the date is called, for the screen reader and the tooltip. */
+  label?: string;
   value?: string | null;
   overdue: boolean;
   canEdit: boolean;
   projectDeadline?: string | null;
   onSave?: (date: string | null) => Promise<void>;
-}> = ({ value, overdue, canEdit, projectDeadline, onSave }) => {
+}> = ({ label = 'due date', value, overdue, canEdit, projectDeadline, onSave }) => {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
@@ -724,7 +728,7 @@ const DueDateRow: React.FC<{
       setEditing(false);
     } catch (e) {
       const x = e as { detail?: string; message?: string } | null;
-      setErr(x?.detail || x?.message || 'Could not save the due date');
+      setErr(x?.detail || x?.message || `Could not save the ${label}`);
     } finally {
       setBusy(false);
     }
@@ -738,7 +742,7 @@ const DueDateRow: React.FC<{
           autoFocus
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          aria-label="Due date"
+          aria-label={label}
           className="block h-8 w-full rounded-[3px] border-2 border-[color:var(--ac-400,#4C9AFF)] bg-white px-2 text-[14px] text-[#172B4D] focus:outline-none"
         />
         {err && <p role="alert" className="text-[12px] text-[#BF2600]">{err}</p>}
@@ -760,14 +764,14 @@ const DueDateRow: React.FC<{
       <div className="flex items-center gap-2">
         <span className={current ? (overdue ? 'font-medium text-[#BF2600]' : '') : 'text-[#7A869A]'}>
           {current ? fmtDate(current) : 'None'}
-          {overdue && ' · overdue'}
+          {overdue && ` · ${dueLabel(current) ?? 'overdue'}`}
         </span>
         {canEdit && onSave && (
           <button
             type="button"
             onClick={() => { setDraft(current); setEditing(true); }}
-            aria-label="Change due date"
-            title="Change due date"
+            aria-label={`Change ${label}`}
+            title={`Change ${label}`}
             className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-[3px] text-[#5E6C84] hover:bg-[rgba(9,30,66,0.08)]"
           >
             <Pencil className="h-3.5 w-3.5" />

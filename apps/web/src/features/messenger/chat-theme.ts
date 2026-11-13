@@ -15,7 +15,18 @@ export interface ChatTheme {
 }
 
 export const CHAT_THEMES: ChatTheme[] = [
-  { id: 'indigo', name: 'Indigo', accent: '#4F46E5', accentDark: '#4338CA', mine: '#e0e7ff', bg: '#eef1f8', dot: '#dfe5f3' },
+  // The default: it wears the colour theme chosen for the whole app (the palette in the top bar). The values read the
+  // same CSS variables as the rest of the app, so the chat changes colour the moment the app theme does; with the
+  // default app theme the fallbacks are the original indigo.
+  {
+    id: 'indigo',
+    name: 'App colour',
+    accent: 'var(--ac-main, #4F46E5)',
+    accentDark: 'var(--ac-dark, #4338CA)',
+    mine: 'rgb(var(--tw-indigo-100, 224 231 255))',
+    bg: 'rgb(var(--tw-indigo-50, 238 241 248))',
+    dot: 'rgb(var(--tw-indigo-100, 223 229 243))',
+  },
   { id: 'ocean', name: 'Ocean', accent: '#0284C7', accentDark: '#0369A1', mine: '#d6efff', bg: '#e9f4fb', dot: '#d3e8f5' },
   { id: 'emerald', name: 'Emerald', accent: '#059669', accentDark: '#047857', mine: '#d4f5e4', bg: '#eaf6f0', dot: '#d3ebdf' },
   { id: 'rose', name: 'Rose', accent: '#E11D48', accentDark: '#BE123C', mine: '#ffdce5', bg: '#fbeef1', dot: '#f4dae0' },

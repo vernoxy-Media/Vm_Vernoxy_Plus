@@ -74,8 +74,8 @@ export const TickingWorkedTimer: React.FC<TickingWorkedTimerProps> = ({
       Working
     </span>
   );
-  let gradFrom = '#2563eb';
-  let gradTo = '#4f46e5';
+  let gradFrom = 'var(--ac-main,#2563eb)';
+  let gradTo = 'var(--ac-dark,#4f46e5)';
 
   if (state === 'not_started') {
     statusBadge = (

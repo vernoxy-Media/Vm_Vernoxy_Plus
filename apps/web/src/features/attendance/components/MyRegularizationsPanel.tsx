@@ -82,7 +82,7 @@ export const MyRegularizationsPanel: React.FC<{
         <button
           type="button"
           onClick={() => setIsAddOpen(true)}
-          className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#1471DD] px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#0F5FBF] cursor-pointer"
+          className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[color:var(--ac-main,#1471DD)] px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#0F5FBF] cursor-pointer"
         >
           <Plus className="h-4 w-4" />
           {viewing ? 'Add for employee' : 'Add new'}

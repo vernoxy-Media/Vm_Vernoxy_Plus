@@ -127,7 +127,7 @@ export const ClientPicker: React.FC<ClientPickerProps> = ({ value, onChange, id 
             >
               {r.kind === 'client' ? (
                 <>
-                  <span aria-hidden className="flex h-6 w-6 shrink-0 items-center justify-center rounded-[3px] bg-[#DEEBFF] text-[12px] font-bold text-[#0747A6]">{r.client.name.charAt(0).toUpperCase()}</span>
+                  <span aria-hidden className="flex h-6 w-6 shrink-0 items-center justify-center rounded-[3px] bg-[color:var(--ac-50,#DEEBFF)] text-[12px] font-bold text-[color:var(--ac-dark,#0747A6)]">{r.client.name.charAt(0).toUpperCase()}</span>
                   <span className={`min-w-0 flex-1 truncate ${r.client.name === value ? 'font-semibold text-[color:var(--ac-main,#0052CC)]' : 'text-[#172B4D]'}`}>{r.client.name}</span>
                   {r.client.client_code && <span className="shrink-0 text-[12px] text-[#5E6C84]">{r.client.client_code}</span>}
                 </>

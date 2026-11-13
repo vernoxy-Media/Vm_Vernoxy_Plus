@@ -16,8 +16,8 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
   size = 180,
   strokeWidth = 12,
   ringColor,
-  gradientFrom = '#3b82f6',
-  gradientTo = '#6366f1',
+  gradientFrom = 'var(--ac-400,#3b82f6)',
+  gradientTo = 'var(--ac-main,#6366f1)',
   trackColor = '#f1f5f9',
   children,
 }) => {

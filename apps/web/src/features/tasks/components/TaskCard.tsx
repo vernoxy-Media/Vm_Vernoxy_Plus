@@ -25,6 +25,7 @@ import { JiraAvatar } from '@/shared/ui/JiraAvatar';
 import type { TaskPriority, TaskStage } from '../types';
 import { formatMinutesToHuman } from './DurationField';
 import { formatDisplayDate } from '@/shared/utils/date.utils';
+import { dueLabel, minutesOverEstimate } from '@/shared/utils/schedule.utils';
 
 export interface TaskCardProps {
   task: TaskBoardCardDto;
@@ -69,6 +70,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   const { user } = useAuth();
   const stage = (task.stage as TaskStage) || 'assigned';
   const isCompleted = stage === 'completed';
+  const overBy = minutesOverEstimate(task.allocated_minutes, task.actual_minutes);
   const isAssignee = task.assignees?.some((a) => a.employee_id === user?.emp_id);
   const isApproverMove = isAdmin && stage === 'requested';
   const canDrag = isCompleted ? false : isApproverMove || Boolean(isAssignee);
@@ -135,7 +137,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
             </span>
           )}
           {task.parent_task_id && (
-            <span className="inline-flex items-center gap-1 rounded-[3px] bg-[#DEEBFF] px-1 py-px font-medium text-[#0747A6]">
+            <span className="inline-flex items-center gap-1 rounded-[3px] bg-[color:var(--ac-50,#DEEBFF)] px-1 py-px font-medium text-[color:var(--ac-dark,#0747A6)]">
               <GitBranch className="h-3 w-3" /> {task.parent_task_code || 'Parent'}
             </span>
           )}
@@ -149,7 +151,12 @@ export const TaskCard: React.FC<TaskCardProps> = ({
               <UserCheck className="h-3.5 w-3.5" /> {task.lead_employee_name}
             </span>
           )}
-          {task.is_overdue && <span className="rounded-[3px] bg-[#FFEBE6] px-1 py-px font-semibold text-[#BF2600]">Overdue</span>}
+          {task.is_overdue && <span className="rounded-[3px] bg-[#FFEBE6] px-1 py-px font-semibold text-[#BF2600]" title={dueLabel(task.due_date) ?? undefined}>Overdue</span>}
+          {overBy > 0 && !isCompleted && (
+            <span className="rounded-[3px] bg-[#FFF0B3] px-1 py-px font-semibold text-[#974F0C]" title={`${formatMinutesToHuman(task.actual_minutes)} spent of ${formatMinutesToHuman(task.allocated_minutes)} estimated`}>
+              Over estimate +{formatMinutesToHuman(overBy)}
+            </span>
+          )}
           {task.is_timer_running ? (
             <span className="inline-flex items-center gap-1 font-semibold text-[#006644]"><span className="h-2 w-2 animate-pulse rounded-full bg-[#36B37E]" /> Timer running</span>
           ) : (task.actual_minutes ?? 0) > 0 ? (
@@ -211,7 +218,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
             </>
           )}
           {isAssignee && stage === 'assigned' && onStart && (
-            <button type="button" onClick={() => onStart(task.task_id)} className={`${ACTION} bg-[#DEEBFF] text-[#0747A6] hover:bg-[#B3D4FF]`}>
+            <button type="button" onClick={() => onStart(task.task_id)} className={`${ACTION} bg-[color:var(--ac-50,#DEEBFF)] text-[color:var(--ac-dark,#0747A6)] hover:bg-[color:var(--ac-200,#B3D4FF)]`}>
               <Play className="h-3 w-3" /> Start
             </button>
           )}
@@ -230,7 +237,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
             </>
           )}
           {isAssignee && stage === 'hold' && onResume && (
-            <button type="button" onClick={() => onResume(task.task_id)} className={`${ACTION} bg-[#DEEBFF] text-[#0747A6] hover:bg-[#B3D4FF]`}>
+            <button type="button" onClick={() => onResume(task.task_id)} className={`${ACTION} bg-[color:var(--ac-50,#DEEBFF)] text-[color:var(--ac-dark,#0747A6)] hover:bg-[color:var(--ac-200,#B3D4FF)]`}>
               <RotateCcw className="h-3 w-3" /> Resume
             </button>
           )}

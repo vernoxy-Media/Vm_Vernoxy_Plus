@@ -14,7 +14,7 @@ const Switch: React.FC<{ checked: boolean; onChange: (v: boolean) => void; label
       aria-checked={checked}
       aria-label={label}
       onClick={() => onChange(!checked)}
-      className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${checked ? 'bg-[#4F46E5]' : 'bg-slate-300'}`}
+      className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${checked ? 'bg-[color:var(--ac-main,#4F46E5)]' : 'bg-slate-300'}`}
     >
       <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${checked ? 'translate-x-5' : ''}`} />
     </button>
@@ -50,7 +50,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                 role="radio"
                 aria-checked={s.textSize === v}
                 onClick={() => updateSettings({ textSize: v })}
-                className={`h-8 rounded-full text-sm font-semibold transition ${s.textSize === v ? 'bg-white text-[#4F46E5] shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                className={`h-8 rounded-full text-sm font-semibold transition ${s.textSize === v ? 'bg-white text-[color:var(--ac-main,#4F46E5)] shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
               >
                 {label}
               </button>

@@ -45,13 +45,13 @@ services:
         sync: false
       - key: CLOUDINARY_API_SECRET
         sync: false
-      - key: SMTP_HOST
+      - key: SMTP_HOST                 # Brevo: smtp-relay.brevo.com
         sync: false
-      - key: SMTP_PORT
+      - key: SMTP_PORT                 # 587
         sync: false
-      - key: SMTP_USER
+      - key: SMTP_USER                 # Brevo: the SMTP login shown on Brevo > SMTP & API (not always your own email)
         sync: false
-      - key: SMTP_PASS
+      - key: SMTP_PASS                 # Brevo: an SMTP key (starts with xsmtpsib-)
         sync: false
-      - key: MAIL_FROM
+      - key: MAIL_FROM                 # a sender verified in Brevo, e.g. Vernoxy Pulse <you@your-domain.com>. Without it OTP mails are rejected
         sync: false
