@@ -116,7 +116,7 @@ export const EmployeeLeaveCard: React.FC<{ empId: number; employeeName: string; 
       {summary?.policy_id && (
         <div>
           <h5 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Balances</h5>
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {summary.balances.map((b) => (
               <div key={b.leave_type_id} className="space-y-1">
                 <BalanceCardView b={b} />

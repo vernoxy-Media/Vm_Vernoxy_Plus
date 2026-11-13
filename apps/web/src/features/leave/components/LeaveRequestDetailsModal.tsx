@@ -223,10 +223,24 @@ export const LeaveRequestDetailsModal: React.FC<{ requestId: number | null; onCl
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
           {/* Left: Request + remarks */}
           <div className="lg:col-span-3 space-y-4">
-            {message && <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700">{message}</div>}
+            {message && <div role="alert" className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700">{message}</div>}
 
-            <section className="rounded-2xl border border-slate-200 p-4">
-              <h4 className="font-bold text-slate-900 text-xs mb-2">Request</h4>
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white p-4">
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-blue-700">{r.leave_type_name}</p>
+                <p className="mt-0.5 text-base font-bold text-slate-900">
+                  {dateRangeLabel(r.from_date, r.to_date)}
+                  <span className="ml-1.5 text-sm font-medium text-slate-500">· {durationLabel(r.duration)}</span>
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-3xl font-extrabold leading-none tabular-nums text-blue-700">{fmtDays(r.leave_days)}</p>
+                <p className="mt-1 text-[11px] text-slate-500">{Number(r.leave_days) === 1 ? 'day' : 'days'}</p>
+              </div>
+            </div>
+
+            <section className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs">
+              <h4 className="mb-3 text-[13px] font-bold text-slate-900">Request</h4>
               <dl className="divide-y divide-slate-100">
                 {[
                   ['Leave type', <span key="t" className="inline-flex items-center gap-1.5 font-semibold text-slate-800">{r.leave_type_name} <PaidTag paid={r.is_paid} /></span>],
@@ -264,7 +278,7 @@ export const LeaveRequestDetailsModal: React.FC<{ requestId: number | null; onCl
 
             {textLabel && (
               <section>
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                <label className="mb-1.5 block text-xs font-semibold text-slate-700">
                   {textLabel} <span className="font-normal text-slate-400">{textHint}</span>
                 </label>
                 <textarea
@@ -276,7 +290,7 @@ export const LeaveRequestDetailsModal: React.FC<{ requestId: number | null; onCl
                     setFieldErr('');
                   }}
                   disabled={busy}
-                  className={`w-full px-3 py-2 rounded-xl border bg-white text-xs ${fieldErr ? 'border-rose-300' : 'border-slate-200'}`}
+                  className={`w-full rounded-xl border bg-white px-3 py-2 text-[13px] transition focus:outline-none focus:ring-2 ${fieldErr ? 'border-rose-300 focus:ring-rose-200' : 'border-slate-200 hover:border-slate-300 focus:border-blue-400 focus:ring-blue-500/20'}`}
                   placeholder="Write a remark…"
                 />
                 <FieldError message={fieldErr} />
@@ -287,15 +301,15 @@ export const LeaveRequestDetailsModal: React.FC<{ requestId: number | null; onCl
           {/* Right: Balance, Checks, History */}
           <div className="lg:col-span-2 space-y-4">
             {data.balance ? (
-              <section className="rounded-2xl border border-slate-200 p-4">
-                <h4 className="font-bold text-slate-900 text-xs mb-2">{r.leave_type_name} balance</h4>
+              <section className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs">
+                <h4 className="mb-3 text-[13px] font-bold text-slate-900">{r.leave_type_name} balance</h4>
                 {[
                   ['Credited this year', data.balance.credited],
                   ['Taken', data.balance.taken],
                   ['This request', data.balance.this_request],
                   ...(data.balance.other_pending ? [['Other pending', data.balance.other_pending] as [string, number]] : []),
                 ].map(([k, v]) => (
-                  <div key={String(k)} className="flex justify-between py-1 text-slate-600">
+                  <div key={String(k)} className="flex justify-between py-1 text-[13px] text-slate-600">
                     <span>{k}</span>
                     <span className="font-semibold text-slate-800">{fmtDays(Number(v))}</span>
                   </div>
@@ -306,14 +320,14 @@ export const LeaveRequestDetailsModal: React.FC<{ requestId: number | null; onCl
                 </div>
               </section>
             ) : (
-              <section className="rounded-2xl border border-slate-200 p-4 text-slate-500">
+              <section className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs text-slate-500">
                 {r.leave_type_name}: no balance is kept (No limit).
               </section>
             )}
 
             {isAdminView || data.viewer_role === 'REPORTING_MANAGER' ? (
-              <section className="rounded-2xl border border-slate-200 p-4">
-                <h4 className="font-bold text-slate-900 text-xs mb-2">Checks on these dates</h4>
+              <section className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs">
+                <h4 className="mb-3 text-[13px] font-bold text-slate-900">Checks on these dates</h4>
                 <ul className="space-y-1.5">
                   {data.checks.map((c, i) => (
                     <li key={i} className={`flex items-start gap-1.5 ${c.info ? 'text-amber-700' : c.ok ? 'text-slate-700' : 'text-rose-700'}`}>
@@ -331,12 +345,13 @@ export const LeaveRequestDetailsModal: React.FC<{ requestId: number | null; onCl
               </section>
             ) : null}
 
-            <section className="rounded-2xl border border-slate-200 p-4">
-              <h4 className="font-bold text-slate-900 text-xs mb-2">History</h4>
-              <ol className="space-y-2 max-h-64 overflow-y-auto pr-1">
+            <section className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs">
+              <h4 className="mb-3 text-[13px] font-bold text-slate-900">History</h4>
+              <ol className="relative max-h-64 space-y-3.5 overflow-y-auto border-l border-slate-200 pl-4 pr-1">
                 {data.history.length === 0 && <li className="text-slate-400">No events yet.</li>}
                 {data.history.map((h) => (
-                  <li key={h.history_id} className="text-[11px]">
+                  <li key={h.history_id} className="relative text-[11px]">
+                    <span aria-hidden className="absolute -left-[21px] top-1 h-2 w-2 rounded-full bg-blue-500 ring-4 ring-white" />
                     <div className="text-slate-400">{fmtDateTime(h.performed_at)} · {h.performed_by_name}</div>
                     <div className="text-slate-700">
                       <span className="font-semibold">{h.event}</span>

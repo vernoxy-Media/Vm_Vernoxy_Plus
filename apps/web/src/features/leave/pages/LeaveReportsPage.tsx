@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { Download, Printer, ChevronDown } from 'lucide-react';
+import { Download, Printer, ChevronDown, CalendarDays, Wallet, TriangleAlert, Hourglass, FilterX, FileSearch } from 'lucide-react';
+import { KpiStat } from '@/shared/ui/dashboard/DashboardShell';
 import {
   LeaveReportsFilters,
   leaveExportUrl,
@@ -95,45 +96,51 @@ export const LeaveReportsPage: React.FC = () => {
     setStatus('');
   };
 
-  const sel = 'px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700';
+  const sel =
+    'h-9 cursor-pointer rounded-xl border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 transition hover:border-slate-300 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20';
 
   return (
-    <div className="w-full space-y-4">
-      {/* 1 Title · 2 Export */}
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Leave Reports</h1>
-          <p className="text-xs text-slate-500 mt-0.5">Approved leave only, unless the Status filter says otherwise</p>
+    <div className="w-full space-y-5">
+      <section className="rounded-3xl border border-slate-200/80 bg-gradient-to-br from-blue-50 via-white to-white p-5 shadow-2xs sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-[28px]">Leave Reports</h1>
+            <p className="mt-1 text-xs text-slate-500">Approved leave only, unless the Status filter says otherwise</p>
+          </div>
+          <div className="relative self-start sm:self-auto">
+            <button
+              type="button"
+              onClick={() => setExportOpen(!exportOpen)}
+              disabled={isDownloading || !data}
+              aria-haspopup="menu"
+              aria-expanded={exportOpen}
+              className="inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Download className="h-4 w-4" /> Export <ChevronDown className="h-3.5 w-3.5" />
+            </button>
+            {exportOpen && (
+              <div role="menu" className="absolute right-0 z-20 mt-1 w-40 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-[13px] shadow-lg">
+                <button type="button" role="menuitem" onClick={() => doExport('xlsx')} className="block w-full cursor-pointer px-3.5 py-2 text-left hover:bg-slate-50">Excel (.xlsx)</button>
+                <button type="button" role="menuitem" onClick={() => doExport('pdf')} className="flex w-full cursor-pointer items-center gap-1.5 px-3.5 py-2 text-left hover:bg-slate-50"><Printer className="h-3.5 w-3.5" /> PDF / Print</button>
+                <button type="button" role="menuitem" onClick={() => doExport('csv')} className="block w-full cursor-pointer px-3.5 py-2 text-left hover:bg-slate-50">CSV</button>
+              </div>
+            )}
+          </div>
         </div>
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setExportOpen(!exportOpen)}
-            disabled={isDownloading || !data}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer disabled:opacity-50"
-          >
-            <Download className="w-3.5 h-3.5" /> Export <ChevronDown className="w-3.5 h-3.5" />
-          </button>
-          {exportOpen && (
-            <div className="absolute right-0 mt-1 w-36 bg-white border border-slate-200 rounded-xl shadow-lg z-20 py-1 text-xs">
-              <button type="button" onClick={() => doExport('xlsx')} className="block w-full text-left px-3 py-2 hover:bg-slate-50 cursor-pointer">Excel</button>
-              <button type="button" onClick={() => doExport('pdf')} className="flex items-center gap-1.5 w-full text-left px-3 py-2 hover:bg-slate-50 cursor-pointer"><Printer className="w-3 h-3" /> PDF</button>
-              <button type="button" onClick={() => doExport('csv')} className="block w-full text-left px-3 py-2 hover:bg-slate-50 cursor-pointer">CSV</button>
-            </div>
-          )}
-        </div>
-      </div>
-      {exportError && <p className="text-xs text-rose-600">{exportError}</p>}
+      </section>
+      {exportError && <p role="alert" className="text-xs text-rose-600">{exportError}</p>}
 
       {/* 3 Report tabs */}
-      <div className="flex flex-wrap gap-1.5">
+      <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Report">
         {REPORTS.map((r) => (
           <button
             key={r.id}
             type="button"
+            role="tab"
+            aria-selected={report === r.id}
             onClick={() => setReport(r.id)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold border cursor-pointer ${
-              report === r.id ? 'bg-blue-50 border-blue-300 text-blue-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+            className={`shrink-0 cursor-pointer whitespace-nowrap rounded-full border px-3.5 py-1.5 text-xs font-semibold transition ${
+              report === r.id ? 'border-blue-600 bg-blue-600 text-white shadow-sm' : 'border-slate-200 bg-white text-slate-600 hover:border-blue-300 hover:text-blue-700'
             }`}
           >
             {r.label}
@@ -142,7 +149,7 @@ export const LeaveReportsPage: React.FC = () => {
       </div>
 
       {/* 4 Filters */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200/80 bg-white p-3.5 shadow-2xs">
         {usesPeriod && (
           <>
             <select value={periodMode} onChange={(e) => setPeriodMode(e.target.value as any)} className={sel}>
@@ -179,7 +186,7 @@ export const LeaveReportsPage: React.FC = () => {
             <option key={d.dep_id ?? d.id} value={d.dep_id ?? d.id}>{d.name}</option>
           ))}
         </select>
-        <div className="w-48">
+        <div className="w-52">
           <SearchableSelect
             options={(employees as any[]).map((e) => ({ value: e.emp_id, label: e.name }))}
             value={empId ?? null}
@@ -199,35 +206,37 @@ export const LeaveReportsPage: React.FC = () => {
         )}
       </div>
 
-      {error && <p className="text-xs text-rose-600">{errMessage(error)}</p>}
-      {isLoading && !data && <div className="py-10 text-center text-slate-400 text-xs">Loading…</div>}
+      {error && <p role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700">{errMessage(error)}</p>}
+      {isLoading && !data && (
+        <div className="space-y-3" aria-busy="true" aria-label="Loading report">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {[0, 1, 2, 3].map((n) => (
+              <div key={n} className="h-[104px] animate-pulse rounded-2xl bg-slate-100" />
+            ))}
+          </div>
+          <div className="h-56 animate-pulse rounded-2xl bg-slate-100" />
+        </div>
+      )}
 
       {data && (
         <>
-          <p className="text-[11px] text-slate-500">{data.period_label}</p>
+          <p className="text-xs font-semibold text-slate-600">{data.period_label}</p>
 
           {report === 'summary' && data.totals && (
             <>
               {/* 5 Totals */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                {[
-                  ['Leave days taken', fmtDays(data.totals.taken)],
-                  ['Paid leave days', fmtDays(data.totals.paid)],
-                  ['Unpaid leave days (LOP)', fmtDays(data.totals.unpaid)],
-                  ['Pending requests', String(data.totals.pending_requests ?? 0)],
-                ].map(([l, v]) => (
-                  <div key={l} className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-2xs">
-                    <div className="text-2xl font-extrabold text-slate-900">{v}</div>
-                    <div className="text-xs text-slate-500 mt-0.5">{l}</div>
-                  </div>
-                ))}
+              <div className="grid grid-cols-2 gap-3 sm:gap-3.5 lg:grid-cols-4">
+                <KpiStat label="Leave days taken" value={fmtDays(data.totals.taken)} hint="Paid and unpaid together" icon={CalendarDays} tone="blue" />
+                <KpiStat label="Paid leave days" value={fmtDays(data.totals.paid)} hint="Salary is paid" icon={Wallet} tone="emerald" />
+                <KpiStat label="Unpaid leave (LOP)" value={fmtDays(data.totals.unpaid)} hint="Salary is cut" icon={TriangleAlert} tone={data.totals.unpaid ? 'rose' : 'slate'} />
+                <KpiStat label="Pending requests" value={data.totals.pending_requests ?? 0} hint="Waiting for a decision" icon={Hourglass} tone={data.totals.pending_requests ? 'amber' : 'slate'} />
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* 6 Trend */}
-                <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-2xs">
-                  <h3 className="text-xs font-bold text-slate-800 mb-3">Leave days, last 6 months</h3>
-                  <div className="flex items-end gap-4 h-40 px-2">
+                <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs sm:p-5">
+                  <h3 className="mb-4 text-sm font-bold text-slate-800">Leave days, last 6 months</h3>
+                  <div className="flex h-44 items-end gap-3 px-1 sm:gap-4 sm:px-2">
                     {(data.trend || []).map((t) => (
                       <button
                         key={t.month}
@@ -240,8 +249,8 @@ export const LeaveReportsPage: React.FC = () => {
                         className="flex-1 flex flex-col items-center justify-end h-full gap-1 cursor-pointer group"
                       >
                         <div className="w-full flex items-end justify-center gap-1 h-full">
-                          <div className="w-1/3 bg-blue-500 rounded-t group-hover:bg-blue-600" style={{ height: `${(t.paid / maxTrend) * 100}%` }} />
-                          <div className="w-1/3 bg-orange-500 rounded-t group-hover:bg-orange-600" style={{ height: `${(t.unpaid / maxTrend) * 100}%` }} />
+                          <div className="w-1/3 min-h-[2px] rounded-t-md bg-blue-500 transition group-hover:bg-blue-600" style={{ height: `${(t.paid / maxTrend) * 100}%` }} />
+                          <div className="w-1/3 min-h-[2px] rounded-t-md bg-orange-500 transition group-hover:bg-orange-600" style={{ height: `${(t.unpaid / maxTrend) * 100}%` }} />
                         </div>
                         <span className={`text-[10px] ${t.month === month ? 'font-bold text-slate-800' : 'text-slate-500'}`}>{t.label}</span>
                       </button>
@@ -254,9 +263,9 @@ export const LeaveReportsPage: React.FC = () => {
                 </div>
 
                 {/* 7 Breakdown */}
-                <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-2xs">
+                <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs sm:p-5">
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-xs font-bold text-slate-800">By {GROUPS.find((g) => g.id === groupBy)?.label.toLowerCase()}</h3>
+                    <h3 className="text-sm font-bold text-slate-800">By {GROUPS.find((g) => g.id === groupBy)?.label.toLowerCase()}</h3>
                     <select value={groupBy} onChange={(e) => setGroupBy(e.target.value)} className={sel}>
                       {GROUPS.map((g) => (
                         <option key={g.id} value={g.id}>Group by: {g.label}</option>
@@ -309,9 +318,9 @@ export const LeaveReportsPage: React.FC = () => {
           )}
 
           {report !== 'summary' && (
-            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="border-b border-slate-100 bg-slate-50">
+            <div className="overflow-x-auto rounded-2xl border border-slate-200/80 bg-white shadow-2xs">
+              <table className="w-full text-left text-[13px]">
+                <thead className="border-b border-slate-100 bg-slate-50/80">
                   <tr className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                     {data.table.columns.map((c) => (
                       <th key={c.key} className="py-2.5 px-3 whitespace-nowrap">{c.label}</th>
@@ -321,9 +330,14 @@ export const LeaveReportsPage: React.FC = () => {
                 <tbody className="divide-y divide-slate-100">
                   {data.table.rows.length === 0 ? (
                     <tr>
-                      <td colSpan={data.table.columns.length} className="py-10 text-center text-slate-500">
-                        No leave matches your filters.{' '}
-                        <button type="button" onClick={clearFilters} className="text-blue-600 font-semibold hover:underline cursor-pointer">Clear filters</button>
+                      <td colSpan={data.table.columns.length} className="py-14 text-center">
+                        <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
+                          <FileSearch className="h-6 w-6" />
+                        </span>
+                        <p className="text-sm font-semibold text-slate-700">No leave matches your filters</p>
+                        <button type="button" onClick={clearFilters} className="mt-2 inline-flex cursor-pointer items-center gap-1.5 text-xs font-semibold text-blue-600 hover:underline">
+                          <FilterX className="h-3.5 w-3.5" /> Clear filters
+                        </button>
                       </td>
                     </tr>
                   ) : (
