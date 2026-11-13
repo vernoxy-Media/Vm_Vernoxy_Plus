@@ -237,8 +237,8 @@ describe('AttendanceUseCases with TestClock', () => {
 
     clock.advanceMinutes(90); // 13:00
     await punchOut.execute(1);
-    // 09:00 to 13:00 is 240 minutes, of which 30 were spent clocked out
-    expect(inMemoryDay.breakMinutes).toBe(30);
+    // 09:00 to 13:00 is 240 minutes, of which 30 were spent clocked out: not worked, and not a break either
+    expect(inMemoryDay.breakMinutes).toBe(0);
     expect(inMemoryDay.productionMinutes).toBe(210);
   });
 

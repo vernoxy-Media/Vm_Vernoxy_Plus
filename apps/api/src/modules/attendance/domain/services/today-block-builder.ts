@@ -116,7 +116,7 @@ export function buildTodayBlock(params: TodayBlockParams): TodayAttendanceBlock 
       const calc = calculateOpenDayMinutes(
         params.attendanceDay.checkInAt,
         params.now,
-        params.breaks.map((b) => ({ startedAt: b.startedAt, endedAt: b.endedAt })),
+        params.breaks.map((b) => ({ startedAt: b.startedAt, endedAt: b.endedAt, breakType: b.breakType })),
       );
       workedMinutes = calc.workedMinutesSoFar;
       breakMinutes = calc.breakMinutesSoFar;
