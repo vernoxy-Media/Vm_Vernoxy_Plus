@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { parseApiError } from '@/shared/utils/api-error';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -368,7 +369,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
       handleForceClose();
       onSuccess?.();
     } catch (err: any) {
-      setGlobalError(err?.detail || err?.message || 'Failed to update employee. Please check inputs.');
+      setGlobalError(parseApiError(err, 'Failed to update employee. Please check inputs.').message);
     }
   };
 

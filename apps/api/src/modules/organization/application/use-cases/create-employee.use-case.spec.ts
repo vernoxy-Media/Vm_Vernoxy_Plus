@@ -182,6 +182,57 @@ describe('CreateEmployeeUseCase', () => {
     await expect(useCase.execute(validCommand)).rejects.toThrow(UnprocessableDomainError);
   });
 
+  const department = (dep_id: number, name: string) => ({
+    dep_id,
+    name,
+    is_active: true,
+    created_at: new Date(),
+    created_by: null,
+    updated_at: null,
+    updated_by: null,
+    deleted_at: null,
+    deleted_by: null,
+  });
+  const role = (dep_id: number, role_name: string) => ({
+    role_id: 2,
+    role_name,
+    dep_id,
+    description: null,
+    is_active: true,
+    is_admin: false,
+    created_at: new Date(),
+    created_by: null,
+    updated_at: null,
+    updated_by: null,
+    deleted_at: null,
+    deleted_by: null,
+  });
+
+  it('makes the department of the designation the main one when several departments are selected', async () => {
+    // Departments Admin (1) and QA (2) are selected; the designation "Quality Assurance" belongs to QA
+    departmentRepo.findById.mockImplementation(async (id: number) => (id === 1 ? department(1, 'Admin') : department(2, 'QA')));
+    roleRepo.findById.mockResolvedValue(role(2, 'Quality Assurance'));
+    employeeRepo.findByEmail.mockResolvedValue(null);
+    employeeRepo.findByMobile.mockResolvedValue(null);
+    employeeRepo.create.mockImplementation(async (data: any) => ({ emp_id: 11, ...data } as any));
+
+    await useCase.execute({ ...validCommand, dep_id: 1, department_ids: [1, 2] });
+
+    const saved = employeeRepo.create.mock.calls[0]![0] as any;
+    expect(saved.dep_id).toBe(2);
+    expect([...saved.department_ids].sort()).toEqual([1, 2]);
+  });
+
+  it('says plainly which designation does not fit when it belongs to none of the selected departments', async () => {
+    departmentRepo.findById.mockResolvedValue(department(1, 'Admin'));
+    roleRepo.findById.mockResolvedValue(role(7, 'Quality Assurance'));
+
+    await expect(useCase.execute({ ...validCommand, dep_id: 1, department_ids: [1, 2] })).rejects.toMatchObject({
+      field: 'role_id',
+      message: expect.stringContaining('"Quality Assurance"'),
+    });
+  });
+
   it('rejects if email already exists', async () => {
     departmentRepo.findById.mockResolvedValue({
       dep_id: 1,

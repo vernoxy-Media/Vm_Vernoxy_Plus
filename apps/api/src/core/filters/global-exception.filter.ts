@@ -55,6 +55,12 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       detail = exception.message;
     }
 
+    // A server fault is logged in full below, but the person only sees a plain message: the text of a database or
+    // library error would show table and column names.
+    if (status >= 500 && process.env.NODE_ENV === 'production') {
+      detail = 'Something went wrong on the server. Please try again, and tell the administrator if it keeps happening.';
+    }
+
     const title = HTTP_STATUS_TITLES[status] || (status >= 500 ? 'Server Error' : 'Client Error');
 
     const problemDetails: Record<string, any> = {

@@ -117,6 +117,8 @@ export class UpdateEmployeeUseCase {
     }
 
     const targetDepId = command.dep_id !== undefined ? command.dep_id : employee.dep_id;
+    // The designation decides the main department when several are selected (see CreateEmployeeUseCase)
+    let effectiveDepId: number | undefined = command.dep_id;
     const targetRoleId = command.role_id !== undefined ? command.role_id : employee.role_id;
 
     let targetRole = targetRoleId && employee.role_id === targetRoleId
@@ -153,7 +155,15 @@ export class UpdateEmployeeUseCase {
           );
         }
 
-        OrganizationPolicyService.validateRoleBelongsToDepartment(targetRole.dep_id, targetDepId);
+        const selectedDepIds = Array.from(new Set([targetDepId, ...(command.department_ids ?? [])]));
+        const roleDepId = OrganizationPolicyService.validateRoleBelongsToAnyDepartment(targetRole.dep_id, selectedDepIds, targetRole.role_name);
+        if (roleDepId !== targetDepId) {
+          const roleDepartment = await this.departmentRepo.findById(roleDepId);
+          if (!roleDepartment || !roleDepartment.is_active) {
+            throw new UnprocessableDomainError('DEPARTMENT_INACTIVE', 'The department of this designation is not active', 'department_ids');
+          }
+          effectiveDepId = roleDepId;
+        }
       }
     }
 
@@ -282,12 +292,12 @@ export class UpdateEmployeeUseCase {
       });
     }
 
-    if (command.dep_id !== undefined && command.dep_id !== employee.dep_id) {
-      const newDep = await this.departmentRepo.findById(command.dep_id);
+    if (effectiveDepId !== undefined && effectiveDepId !== employee.dep_id) {
+      const newDep = await this.departmentRepo.findById(effectiveDepId);
       await this.employeeRepo.addHistory({
         emp_id: command.id,
         event_type: 'TRANSFER',
-        title: `Department transferred to ${newDep?.name ?? 'Department #' + command.dep_id}`,
+        title: `Department transferred to ${newDep?.name ?? 'Department #' + effectiveDepId}`,
         department_ids: targetDepartmentIds,
         role_id: command.role_id !== undefined ? command.role_id : employee.role_id,
         manager_id: command.reporting_manager !== undefined ? command.reporting_manager : employee.reporting_manager,
@@ -314,7 +324,7 @@ export class UpdateEmployeeUseCase {
       name: trimmedName,
       email: command.email,
       mob: normalizedMob,
-      dep_id: command.dep_id,
+      dep_id: effectiveDepId,
       department_ids: command.department_ids,
       role_id: command.role_id,
       reporting_manager: command.reporting_manager,

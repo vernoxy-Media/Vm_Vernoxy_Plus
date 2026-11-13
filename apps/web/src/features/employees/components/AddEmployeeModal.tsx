@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { parseApiError } from '@/shared/utils/api-error';
+import { fieldLabel, formFieldName, isKnownField, tabOfField } from '../utils/employee-form-fields';
 import {
   X,
   Check,
@@ -76,6 +78,8 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'personal' | 'job'>('personal');
   const [globalError, setGlobalError] = useState<string | null>(null);
+  /** What is wrong, field by field: from the form's own checks, or from the server's answer. */
+  const [issues, setIssues] = useState<Array<{ field?: string; label: string; message: string }>>([]);
   const [selectedPhotoFile, setSelectedPhotoFile] = useState<File | null>(null);
   const formContainerRef = React.useRef<HTMLFormElement>(null);
 
@@ -192,6 +196,37 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
 
 
 
+  /** Opens the tab a field is on and puts the cursor in it. */
+  const goToField = (field?: string) => {
+    if (!isKnownField(field)) return;
+    const name = formFieldName(field);
+    setActiveTab(tabOfField(field));
+    window.setTimeout(() => {
+      try {
+        form.setFocus(name as keyof EmployeeFormValues);
+      } catch {
+        /* a custom control that cannot take focus */
+      }
+      document.querySelector(`[name="${name}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }, 90);
+  };
+
+  const showIssues = (list: Array<{ field?: string; message: string }>, fallback?: string) => {
+    const withLabels = list.map((i) => ({ field: i.field, label: fieldLabel(i.field), message: i.message }));
+    setIssues(withLabels);
+    setGlobalError(withLabels.length ? null : fallback ?? null);
+    const first = withLabels.find((i) => isKnownField(i.field));
+    if (first) goToField(first.field);
+  };
+
+  /** The form's own checks failed: say which fields, and take the person to the first one. */
+  const onInvalid = (formErrors: Record<string, { message?: unknown } | undefined>) => {
+    const list = Object.entries(formErrors)
+      .filter(([, e]) => e)
+      .map(([field, e]) => ({ field, message: typeof e?.message === 'string' && e.message ? e.message : 'Please check this value.' }));
+    showIssues(list, 'Please check the form: some values are missing or wrong.');
+  };
+
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -208,6 +243,8 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
     }
 
     setGlobalError(null);
+    setIssues([]);
+    form.clearErrors();
     try {
       const pDepId = Number(values.dep_id);
       const depIds = Array.from(new Set([pDepId, ...(values.department_ids || [])]));
@@ -282,7 +319,13 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
       handleForceClose();
       onSuccess?.();
     } catch (err: any) {
-      setGlobalError(err?.message || 'Failed to create employee profile. Please check the values and try again.');
+      // The server says what is wrong and, most of the time, which field: show exactly that
+      const parsed = parseApiError(err, 'The employee could not be created. Please try again.');
+      const list = parsed.issues.length ? parsed.issues : [{ message: parsed.message }];
+      for (const i of list) {
+        if (isKnownField(i.field)) form.setError(formFieldName(i.field) as keyof EmployeeFormValues, { type: 'server', message: i.message });
+      }
+      showIssues(list, parsed.message);
     }
   };
 
@@ -301,6 +344,7 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
     setPhotoPreview(null);
     setSelectedPhotoFile(null);
     setGlobalError(null);
+    setIssues([]);
     setActiveTab('personal');
     onClose();
   };
@@ -365,7 +409,7 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
         {/* Scrollable Form Body */}
         <form
           ref={formContainerRef}
-          onSubmit={handleSubmit(onSubmit)}
+          onSubmit={handleSubmit(onSubmit, onInvalid as never)}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT' && activeTab !== 'job') {
               e.preventDefault();
@@ -375,10 +419,33 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
           }}
           className="flex-1 overflow-y-auto p-7 space-y-6 custom-scrollbar"
         >
-          {globalError && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2.5 text-xs text-red-600 font-medium animate-in fade-in">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{globalError}</span>
+          {(globalError || issues.length > 0) && (
+            <div role="alert" className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 animate-in fade-in">
+              <div className="flex items-center gap-2.5 font-semibold">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>
+                  {issues.length > 1
+                    ? `The employee was not created. ${issues.length} fields need your attention:`
+                    : issues.length === 1
+                      ? 'The employee was not created. One field needs your attention:'
+                      : globalError}
+                </span>
+              </div>
+              {issues.length > 0 && (
+                <ul className="mt-2 space-y-1 pl-6">
+                  {issues.map((i, n) => (
+                    <li key={`${i.field ?? 'x'}-${n}`} className="list-disc">
+                      {i.label && <b className="font-semibold">{i.label}: </b>}
+                      {i.message}
+                      {isKnownField(i.field) && (
+                        <button type="button" onClick={() => goToField(i.field)} className="ml-2 cursor-pointer font-semibold underline underline-offset-2 hover:text-red-900">
+                          Go to field
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           )}
 
