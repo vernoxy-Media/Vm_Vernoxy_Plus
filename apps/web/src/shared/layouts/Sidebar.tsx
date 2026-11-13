@@ -202,7 +202,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggleC
         entry('Settings', '/admin/settings/employment-types', Settings, (p) => p.startsWith('/admin/settings') && !p.startsWith('/admin/settings/knowledge-base'), 'settings'),
       );
     }
-    if (user.access?.can_manage_companies) admin.push(entry('Companies (legacy)', '/companies', Building2, starts('/companies'), 'companies'));
     groups.push({ label: 'Admin', entries: admin });
   }
 
