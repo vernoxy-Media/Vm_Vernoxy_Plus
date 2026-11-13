@@ -19,6 +19,7 @@ import {
 import type { MonthSummary, DayRecord, AttendanceStatistics } from '../types/attendance.types';
 import { describeMinutes, summarize, type ShiftConfig } from '../utils/attendance-metrics';
 
+import { localToday } from '@/shared/utils/schedule.utils';
 export interface AttendanceMetricsOverviewProps {
   todayWorkedSeconds: number;
   todayBreakSeconds: number;
@@ -118,7 +119,7 @@ export const AttendanceStatsSummaryCard: React.FC<{
       out.push({
         date: key,
         label: d.toLocaleDateString('en-US', { weekday: 'narrow' }),
-        sec: rec ? (key === new Date().toISOString().slice(0, 10) ? Math.max(rec.production_seconds || 0, todayWorkedSeconds) : rec.production_seconds || 0) : 0,
+        sec: rec ? (key === localToday() ? Math.max(rec.production_seconds || 0, todayWorkedSeconds) : rec.production_seconds || 0) : 0,
         today: i === 0,
       });
     }

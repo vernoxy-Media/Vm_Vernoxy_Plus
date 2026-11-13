@@ -2,12 +2,13 @@ import React from 'react';
 import { AlarmClock, CalendarOff, CheckCircle2, Hourglass, Sunrise, UserX } from 'lucide-react';
 import type { DayRecord } from '../types/attendance.types';
 
+import { localToday } from '@/shared/utils/schedule.utils';
 export interface AttendanceMonthSummaryTilesProps {
   records: DayRecord[];
 }
 
 export const AttendanceMonthSummaryTiles: React.FC<AttendanceMonthSummaryTilesProps> = ({ records }) => {
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = localToday();
 
   // Filter only past dates and today (future dates do not contribute to stats)
   const activeRecords = records.filter((r) => r.date <= todayStr);

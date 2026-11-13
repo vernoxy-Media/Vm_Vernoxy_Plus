@@ -13,6 +13,7 @@ import { ApprovalsPanel } from '../components/ApprovalsPanel';
 import { MyAttendanceCalendarSection } from '../components/MyAttendanceCalendarSection';
 import { AttendanceAnalyticsDashboardTab } from '../components/analytics/AttendanceAnalyticsDashboardTab';
 
+import { localToday } from '@/shared/utils/schedule.utils';
 const MONTH_OPTIONS = [
   { value: '01', label: 'January' },
   { value: '02', label: 'February' },
@@ -33,7 +34,7 @@ export const AttendancePage: React.FC = () => {
   // Only administrators manage other people's attendance; everyone else works on their own.
   const canManageAttendance = Boolean(user?.access?.can_manage_organization);
 
-  const todayDateStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const todayDateStr = useMemo(() => localToday(), []);
   const currentMonthStr = useMemo(() => todayDateStr.slice(0, 7), [todayDateStr]);
 
   const [searchParams, setSearchParams] = useSearchParams();

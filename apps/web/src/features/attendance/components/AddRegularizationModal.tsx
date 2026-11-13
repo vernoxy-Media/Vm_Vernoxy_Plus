@@ -5,6 +5,7 @@ import { createRegularizationRequest, fetchDayDetail } from '../api/attendance.a
 import { useLookupsQuery } from '@/features/organization/hooks/use-master-data';
 import type { CreateRegularizationPayload } from '../types/attendance.types';
 
+import { localToday } from '@/shared/utils/schedule.utils';
 interface AddRegularizationModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -59,7 +60,7 @@ export const AddRegularizationModal: React.FC<AddRegularizationModalProps> = ({
       : REASONS;
 
   const [attendanceDate, setAttendanceDate] = useState(
-    initialDate || new Date().toISOString().slice(0, 10)
+    initialDate || localToday()
   );
   const [requestType, setRequestType] = useState('Missing Clock Out');
   const [currentCheckIn, setCurrentCheckIn] = useState(initialCheckIn || '--');
@@ -305,7 +306,7 @@ export const AddRegularizationModal: React.FC<AddRegularizationModalProps> = ({
                 <input
                   type="date"
                   required
-                  max={new Date().toISOString().slice(0, 10)}
+                  max={localToday()}
                   value={attendanceDate}
                   onChange={(e) => setAttendanceDate(e.target.value)}
                   className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-500 transition shadow-2xs cursor-pointer font-mono"

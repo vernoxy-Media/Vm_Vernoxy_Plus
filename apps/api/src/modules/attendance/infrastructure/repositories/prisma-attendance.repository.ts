@@ -1,4 +1,5 @@
 import type { AnalyticsEmployee, AnalyticsShift } from '../../domain/services/attendance-analytics';
+import { formatTimeIst, hourInIst, todayInIst } from '../../domain/services/attendance-analytics';
 import type { AnalyticsSource } from '../../domain/ports/attendance.repository.port';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../../core/prisma/prisma.service';
@@ -1539,11 +1540,11 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
     status?: string;
     search?: string;
   }): Promise<any> {
-    const workDateStr = query.date || new Date().toISOString().slice(0, 10);
+    const workDateStr = query.date || todayInIst();
     const [year, month, day] = workDateStr.split('-').map(Number);
     const workDateObj = new Date(Date.UTC(year, month - 1, day));
     const dayOfWeek = workDateObj.getUTCDay();
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = todayInIst();
     const isPastDate = workDateStr < todayStr;
     const isToday = workDateStr === todayStr;
 
@@ -1626,11 +1627,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
       if (!d) return null;
       const dateObj = typeof d === 'string' ? new Date(d) : d;
       if (isNaN(dateObj.getTime())) return null;
-      return dateObj.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true,
-      });
+      return formatTimeIst(dateObj);
     };
 
     const formatRegisterHours = (minutes: number): string => {
@@ -1683,7 +1680,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
             if (isPastDate) {
               status = 'Missing Punch';
             } else if (isToday) {
-              const nowHour = new Date().getHours();
+              const nowHour = hourInIst();
               status = nowHour >= 20 ? 'Missing Punch' : 'Present';
             } else {
               status = 'Present';
@@ -1835,7 +1832,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
     status?: string;
   }): Promise<any> {
     const reportType = query.reportType || 'daily';
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = todayInIst();
 
     // Default dates
     let fromDateStr = query.fromDate;
@@ -1986,7 +1983,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
       if (!d) return '--';
       const dateObj = typeof d === 'string' ? new Date(d) : d;
       if (isNaN(dateObj.getTime())) return '--';
-      return dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+      return formatTimeIst(dateObj);
     };
 
     const formatMins = (minutes: number): string => {
@@ -2127,7 +2124,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
               status = 'Missing Punch';
               statusCode = 'MP';
             } else if (isToday) {
-              const nowH = new Date().getHours();
+              const nowH = hourInIst();
               status = nowH >= 20 ? 'Missing Punch' : 'Present';
               statusCode = nowH >= 20 ? 'MP' : 'P';
             } else {

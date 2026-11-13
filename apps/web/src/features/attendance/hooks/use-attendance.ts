@@ -25,6 +25,7 @@ import type {
   AttendanceReportsResponse,
 } from '../api/attendance.api';
 
+import { localToday } from '@/shared/utils/schedule.utils';
 export const ATTENDANCE_QUERY_KEY = 'attendance_dashboard';
 export const ATTENDANCE_DAY_QUERY_KEY = 'attendance_day_detail';
 export const ATTENDANCE_REGISTER_QUERY_KEY = 'attendance_register';
@@ -32,7 +33,7 @@ export const ATTENDANCE_REPORTS_QUERY_KEY = 'attendance_reports';
 
 function mapApiTodayBlock(t: any): TodayAttendanceData {
   if (!t) {
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = localToday();
     return {
       date: todayStr,
       company_timezone: 'Asia/Kolkata',

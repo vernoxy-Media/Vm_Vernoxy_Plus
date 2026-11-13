@@ -22,6 +22,7 @@ import { describeLocationAccuracy, fetchRegularizations, googleMapEmbedUrl, goog
 import { arrivalOf, describeMinutes, formatClock, overtimeMinutes, resolveShift } from '../utils/attendance-metrics';
 import { Pagination } from '@/shared/ui/Pagination';
 
+import { localToday } from '@/shared/utils/schedule.utils';
 export interface RecentAttendanceRecordsCardProps {
   records: DayRecord[];
   shift?: {
@@ -63,7 +64,7 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
 
   // Missing Day Selection Modal state
   const [isSelectDateModalOpen, setIsSelectDateModalOpen] = useState<boolean>(false);
-  const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const todayStr = useMemo(() => localToday(), []);
   const [missingDayDateInput, setMissingDayDateInput] = useState<string>(todayStr);
 
   const loadPendingCount = () => {

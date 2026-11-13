@@ -714,8 +714,8 @@ export class AttendanceController {
     try {
       return await this.attendanceRepo.getAttendanceReports({
         reportType: query.reportType || 'daily',
-        fromDate: query.fromDate || new Date().toISOString().slice(0, 10),
-        toDate: query.toDate || query.fromDate || new Date().toISOString().slice(0, 10),
+        fromDate: query.fromDate || todayInIst(),
+        toDate: query.toDate || query.fromDate || todayInIst(),
         departmentId: query.departmentId,
         employeeId: query.employeeId ? Number(query.employeeId) : undefined,
         shiftId: query.shiftId ? Number(query.shiftId) : undefined,
