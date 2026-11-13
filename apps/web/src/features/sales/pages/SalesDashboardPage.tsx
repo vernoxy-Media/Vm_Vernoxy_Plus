@@ -146,8 +146,8 @@ export const SalesDashboardPage: React.FC = () => {
         allowedCards={allowed}
       />
 
-      {/* 4. Three-Column Card Layout for 10 Visual Charts (US02 - US11) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      {/* 4. Responsive Card Layout for 10 Visual Charts (US02 - US11) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-5">
         {/* US02: Lead Status Overview */}
         {allowed.us02 !== false && (
           <div className="min-h-[340px]">
@@ -225,7 +225,7 @@ export const SalesDashboardPage: React.FC = () => {
 
         {/* US11: Sales Profitability (Spans 2 columns on wide screen per reference mockup) */}
         {allowed.us11 !== false && (
-          <div className="min-h-[340px] md:col-span-2 lg:col-span-2">
+          <div className="min-h-[340px] md:col-span-2 2xl:col-span-2">
             <SalesProfitabilityComboChart data={data?.us11_profitability} />
           </div>
         )}
