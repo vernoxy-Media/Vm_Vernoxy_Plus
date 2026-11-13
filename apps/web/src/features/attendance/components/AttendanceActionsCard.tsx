@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
+  CheckCircle2,
   ChevronDown,
   Coffee,
   Utensils,
@@ -98,6 +99,8 @@ export const AttendanceActionsCard: React.FC<AttendanceActionsCardProps> = ({
 
   const isWorking = today.state === 'working';
   const isOnBreak = today.state === 'on_break';
+  // Clocked out: there is one clock-in per day, so offering "Web Clock-in" again could only fail with a 409
+  const isDone = today.state === 'done';
 
   const handleSelectBreak = (type: BreakOption) => {
     setBreakDropdownOpen(false);
@@ -112,6 +115,16 @@ export const AttendanceActionsCard: React.FC<AttendanceActionsCardProps> = ({
       className="w-full rounded-xl bg-white/15 px-5 py-4 text-base font-semibold text-white/50 cursor-not-allowed whitespace-nowrap"
     >
       Web Clock-out
+    </button>
+  ) : isDone ? (
+    <button
+      type="button"
+      disabled
+      title="You have clocked out for today. Clock-in opens again tomorrow."
+      className="inline-flex w-full cursor-not-allowed items-center justify-center gap-2.5 rounded-xl bg-white/15 px-5 py-4 text-base font-semibold text-white/80 whitespace-nowrap"
+    >
+      <CheckCircle2 className="h-5 w-5" />
+      Clocked out for today
     </button>
   ) : (
     <button
@@ -150,6 +163,8 @@ export const AttendanceActionsCard: React.FC<AttendanceActionsCardProps> = ({
                 <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-900" />
                 Working
               </span>
+            ) : isDone ? (
+              <span className="rounded-full bg-white/20 px-3 py-1 text-[11px] font-bold text-white">Day complete</span>
             ) : (
               <span className="rounded-full bg-white/20 px-3 py-1 text-[11px] font-bold text-white">Ready to Clock In</span>
             )}

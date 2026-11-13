@@ -190,6 +190,21 @@ describe('AttendanceUseCases with TestClock', () => {
     );
   });
 
+  it('refuses a second Punch In on the same day, and says so plainly after the day was closed', async () => {
+    const punchInUseCase = new PunchInUseCase(repo, clock);
+    const punchOutUseCase = new PunchOutUseCase(repo, clock);
+
+    await punchInUseCase.execute(1);
+    await expect(punchInUseCase.execute(1)).rejects.toMatchObject({ code: 'ALREADY_PUNCHED_IN', message: 'Already punched in today' });
+
+    clock.advanceMinutes(480);
+    await punchOutUseCase.execute(1);
+    await expect(punchInUseCase.execute(1)).rejects.toMatchObject({
+      code: 'ALREADY_PUNCHED_IN',
+      message: expect.stringContaining('already clocked out today'),
+    });
+  });
+
   it('rejects repeated Punch Out with AlreadyPunchedOutError when day is already closed', async () => {
     const punchInUseCase = new PunchInUseCase(repo, clock);
     const punchOutUseCase = new PunchOutUseCase(repo, clock);

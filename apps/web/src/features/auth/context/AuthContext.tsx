@@ -77,12 +77,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const handleLoginSuccess = async (data: VerifyLoginResponseDto) => {
     setAccessToken(data.access_token);
     await fetchProfile();
-    try {
-      // Auto punch-in on login
-      await customFetch('/api/v1/attendance/check-in', { method: 'POST' });
-    } catch {
-      // Gracefully ignore 409 (already punched in) or network delays so login always succeeds
-    }
+    // The server clocks the person in as part of the login itself. Asking again here only produced a 409 on every sign-in.
     queryClient.invalidateQueries({ queryKey: ['attendance_dashboard'] });
     queryClient.invalidateQueries({ queryKey: ['attendance_day_detail'] });
   };
