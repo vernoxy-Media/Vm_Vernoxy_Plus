@@ -36,25 +36,25 @@ export const ConversationActivityTrendChart: React.FC<ConversationActivityTrendC
   return (
     <div className="relative flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs h-full">
       {/* Header */}
-      <div className="flex items-start justify-between border-b border-slate-100 pb-3">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+      <div className="flex flex-wrap items-start justify-between gap-2 border-b border-slate-100 pb-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
             <MessageSquare className="h-4 w-4" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-bold text-slate-900 tracking-tight">Conversation Activity Trend</h3>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <h3 className="text-sm font-bold text-slate-900 tracking-tight whitespace-nowrap">Conversation Activity Trend</h3>
               {peakPeriod && (
-                <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
+                <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200 shrink-0">
                   Peak: {peakPeriod}
                 </span>
               )}
             </div>
-            <p className="text-[11px] text-slate-500">Outreach volume across 5 conversation types</p>
+            <p className="text-[11px] text-slate-500 line-clamp-1">Outreach volume across 5 conversation types</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 shrink-0 ml-auto">
           <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-[10px] font-semibold">
             {(['day', 'week', 'month'] as const).map((g) => (
               <button
