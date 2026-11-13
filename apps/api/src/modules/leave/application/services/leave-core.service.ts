@@ -102,9 +102,13 @@ export class LeaveCoreService {
   // ---------------------------------------------------------------------------
 
   async getSettings(db: Db = this.prisma): Promise<LeaveSettings> {
-    const [row] = await db.$queryRaw<any[]>`SELECT * FROM leave_general_settings ORDER BY setting_id ASC LIMIT 1`;
+    let [row] = await db.$queryRaw<any[]>`SELECT * FROM leave_general_settings ORDER BY setting_id ASC LIMIT 1`;
     if (!row) {
-      throw new NotFoundException('Leave General settings are missing. Please run the database migrations.');
+      // The one settings row is gone (a data reset, or a database built without the seed). Every column has a default,
+      // so put the row back instead of leaving everyone without a Leave page.
+      await db.$executeRaw`INSERT INTO leave_general_settings DEFAULT VALUES`;
+      [row] = await db.$queryRaw<any[]>`SELECT * FROM leave_general_settings ORDER BY setting_id ASC LIMIT 1`;
+      if (!row) throw new NotFoundException('Leave General settings are missing and could not be created.');
     }
     return {
       ...row,

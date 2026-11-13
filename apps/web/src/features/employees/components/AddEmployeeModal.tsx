@@ -190,6 +190,22 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
   const watchedOtRateType = watch('ot_rate_type') || 'MULTIPLIER';
   const watchedJoiningDate = watch('joining_date');
 
+  // Start with the company's standard leave policy chosen, so a new employee is not left without one
+  const policyDefaulted = React.useRef(false);
+  React.useEffect(() => {
+    if (!isOpen) {
+      policyDefaulted.current = false;
+      return;
+    }
+    if (policyDefaulted.current || leavePolicies.length === 0 || form.getValues('leave_policy_id')) return;
+    const active = leavePolicies.filter((p) => String((p as { status?: string }).status ?? 'ACTIVE').toUpperCase() === 'ACTIVE');
+    const standard = active.find((p) => /standard/i.test(p.name)) ?? active[0];
+    if (standard) {
+      policyDefaulted.current = true;
+      form.setValue('leave_policy_id', String(standard.policy_id) as never);
+    }
+  }, [isOpen, leavePolicies, form]);
+
   const joiningCheck = React.useMemo(() => {
     return checkJoiningDateConflict(watchedJoiningDate, attendanceSettings, selectedShiftId);
   }, [watchedJoiningDate, attendanceSettings, selectedShiftId]);
@@ -268,6 +284,8 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
         blood_group: values.blood_group || undefined,
         address: values.address?.trim() || undefined,
         employment_type_id: values.employment_type_id ? Number(values.employment_type_id) : undefined,
+        // The policy chosen in the form. It used to be left out, so every new employee had "No leave policy assigned".
+        leave_policy_id: values.leave_policy_id ? Number(values.leave_policy_id) : undefined,
         joining_date: values.joining_date,
         salary: Number(values.salary || 0),
         pf: Number(values.pf || 0),
@@ -818,7 +836,7 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
                       {...register('leave_policy_id')}
                       className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition cursor-pointer"
                     >
-                      <option value="">Default Leave Policy</option>
+                      <option value="">No policy yet (assign later)</option>
                       {leavePolicies.map((p) => (
                         <option key={p.policy_id} value={p.policy_id}>
                           {p.name}
