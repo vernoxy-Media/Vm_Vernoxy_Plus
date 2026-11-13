@@ -36,7 +36,6 @@ import {
   BarChart3,
   Briefcase,
   BadgeCheck,
-  UserPlus,
   FilePlus,
   Award,
   type LucideIcon,
@@ -173,8 +172,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggleC
     if (isOrgAdmin) {
       admin.push(
         parent('People', Users, 'people', [
-          child('All Employees', '/admin/employees', (p) => p.startsWith('/admin/employees') && p !== '/admin/employees/new', 'employees'),
-          child('Add Employee', '/admin/employees/new', exact('/admin/employees/new'), 'add-employee'),
+          child('All Employees', '/admin/employees', starts('/admin/employees'), 'employees'),
           child('Department', '/departments', starts('/departments', '/admin/departments'), 'departments'),
           child('Recruitment', '/recruitment', starts('/recruitment', '/admin/recruitment'), 'recruitment'),
         ]),
@@ -543,7 +541,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggleC
 function childIcon(idKey: string, fallback: LucideIcon): LucideIcon {
   const map: Record<string, LucideIcon> = {
     employees: Users,
-    'add-employee': UserPlus,
     departments: Building2,
     recruitment: Briefcase,
     'attendance-management': Clock,
