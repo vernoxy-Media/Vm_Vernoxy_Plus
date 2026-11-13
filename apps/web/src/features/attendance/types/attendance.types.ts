@@ -104,6 +104,8 @@ export interface DayRecord {
   /** Where the punch happened, when the clock-in captured a location */
   latitude?: number | null;
   longitude?: number | null;
+  /** How far off the location can be, in metres: a laptop's WiFi/IP location is often 1 to 3 km, a phone's GPS about 10 to 50 m */
+  location_accuracy_m?: number | null;
   /** 'half' when only the first or second half is approved leave. */
   leave_part?: 'full' | 'half' | null;
   can_request_correction: boolean;

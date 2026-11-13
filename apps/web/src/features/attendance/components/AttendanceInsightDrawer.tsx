@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { googleMapEmbedUrl, reverseGeocode } from '../api/attendance.api';
+import { describeLocationAccuracy, googleMapEmbedUrl, reverseGeocode } from '../api/attendance.api';
 import { createPortal } from 'react-dom';
 import {
   X,
@@ -493,12 +493,22 @@ export const AttendanceInsightDrawer: React.FC<AttendanceInsightDrawerProps> = (
                     />
                   </div>
                 )}
-                {punchPlace && (
-                  <div className="-mt-3 flex items-center gap-1.5 text-xs text-slate-500">
-                    <MapPin className="h-3.5 w-3.5 text-slate-400" />
-                    <span>{punchPlace}</span>
-                  </div>
-                )}
+                {punchPlace && (() => {
+                  const acc = describeLocationAccuracy(record?.location_accuracy_m);
+                  return (
+                    <div className="-mt-3 space-y-1 text-xs text-slate-500">
+                      <div className="flex items-start gap-1.5">
+                        <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" />
+                        <span>{acc?.coarse && geoPlace ? `Near ${punchPlace}` : punchPlace}</span>
+                      </div>
+                      {acc && (
+                        <p className={`pl-5 ${acc.coarse ? 'font-medium text-amber-700' : ''}`}>
+                          {acc.coarse ? `Approximate location ${acc.text}: a laptop gives a WiFi/IP guess, not GPS. Punch from a phone for an exact place.` : `Accurate to ${acc.text}`}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* Activity log (vertical timeline) */}
                 <div>

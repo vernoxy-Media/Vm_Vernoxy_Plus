@@ -483,6 +483,17 @@ export function reverseGeocode(latitude: number, longitude: number): Promise<str
   return hit;
 }
 
+/**
+ * How sure the location is. A phone's GPS is good to about 10 to 50 m; a laptop has no GPS and the browser guesses from
+ * WiFi or the internet connection, which can be 1 to 3 km off. No address service can be more exact than the point it is given.
+ */
+export function describeLocationAccuracy(metres?: number | null): { text: string; coarse: boolean } | null {
+  if (metres == null || !Number.isFinite(metres) || metres <= 0) return null;
+  const km = metres / 1000;
+  const text = metres >= 1000 ? `±${km >= 10 ? Math.round(km) : km.toFixed(1).replace(/\.0$/, '')} km` : `±${Math.round(metres)} m`;
+  return { text, coarse: metres > 300 };
+}
+
 /** The Google map of a point, for an <iframe>. It needs no key. */
 export function googleMapEmbedUrl(latitude: number, longitude: number, zoom = 17): string {
   return `https://maps.google.com/maps?q=${latitude},${longitude}&z=${zoom}&hl=en&output=embed`;

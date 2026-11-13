@@ -168,6 +168,7 @@ function mapApiDashboardToUiModel(apiData: any): AttendanceDashboardResponse {
       breaks: d.breaks || [],
       latitude: (d.punch_location?.in ?? d.punch_location?.out)?.latitude ?? null,
       longitude: (d.punch_location?.in ?? d.punch_location?.out)?.longitude ?? null,
+      location_accuracy_m: (d.punch_location?.in ?? d.punch_location?.out)?.accuracyM ?? null,
       leave_part: (d.leave?.part as 'full' | 'half' | undefined) || null,
       can_request_correction: d.date <= today.date,
       is_today: d.date === today.date,

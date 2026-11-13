@@ -122,12 +122,22 @@ const STATUS_STYLES: Record<string, string> = {
   CANCELLED: 'bg-slate-100 text-slate-600 border-slate-200',
 };
 
+const STATUS_DOT: Record<string, string> = {
+  PENDING: 'bg-amber-500',
+  APPROVED: 'bg-emerald-500',
+  REJECTED: 'bg-rose-500',
+  WITHDRAWN: 'bg-slate-400',
+  CANCELLATION_REQUESTED: 'bg-orange-500',
+  CANCELLED: 'bg-slate-400',
+};
+
 export const StatusBadge: React.FC<{ status: LeaveStatus | string; label?: string }> = ({ status, label }) => (
   <span
-    className={`inline-flex items-center whitespace-nowrap px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${
+    className={`inline-flex items-center gap-1.5 whitespace-nowrap px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${
       STATUS_STYLES[status] || STATUS_STYLES.WITHDRAWN
     }`}
   >
+    <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT[status] || STATUS_DOT.WITHDRAWN}`} />
     {label || status}
   </span>
 );
@@ -156,6 +166,9 @@ export const FieldError: React.FC<{ message?: string | null }> = ({ message }) =
 // Modal shell
 // -----------------------------------------------------------------------------
 
+let openDialogs = 0;
+let pageOverflowBefore = '';
+
 export const Modal: React.FC<{
   open: boolean;
   title: React.ReactNode;
@@ -165,21 +178,50 @@ export const Modal: React.FC<{
   footer?: React.ReactNode;
   width?: string;
 }> = ({ open, title, subtitle, onClose, children, footer, width = 'max-w-2xl' }) => {
+  React.useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    // Counted, so a dialog opened over another one never leaves the page stuck without scrolling
+    if (openDialogs++ === 0) pageOverflowBefore = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      if (--openDialogs === 0) document.body.style.overflow = pageOverflowBefore;
+    };
+  }, [open, onClose]);
+
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
-      <div className={`bg-white rounded-2xl shadow-xl w-full ${width} border border-slate-200 max-h-[92vh] flex flex-col text-xs`}>
-        <div className="flex items-start justify-between gap-3 px-6 pt-5 pb-3 border-b border-slate-100">
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/45 backdrop-blur-xs sm:items-center sm:p-4"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        className={`flex max-h-[94vh] w-full flex-col overflow-hidden rounded-t-3xl border border-slate-200 bg-white text-[13px] shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200 sm:max-h-[92vh] sm:rounded-2xl ${width}`}
+      >
+        <div className="flex items-start justify-between gap-3 border-b border-slate-100 px-5 pb-3 pt-5 sm:px-6">
           <div className="min-w-0">
-            <h3 className="text-base font-bold text-slate-900">{title}</h3>
-            {subtitle && <div className="text-[11px] text-slate-500 mt-0.5">{subtitle}</div>}
+            <h3 className="text-base font-bold tracking-tight text-slate-900">{title}</h3>
+            {subtitle && <div className="mt-0.5 text-xs text-slate-500">{subtitle}</div>}
           </div>
-          <button type="button" onClick={onClose} className="p-1 text-slate-400 hover:text-slate-700 rounded-lg cursor-pointer" aria-label="Close">
-            <X className="w-4 h-4" />
+          <button
+            type="button"
+            onClick={onClose}
+            className="-mr-1 flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" />
           </button>
         </div>
-        <div className="px-6 py-4 overflow-y-auto flex-1">{children}</div>
-        {footer && <div className="px-6 py-3 border-t border-slate-100 flex flex-wrap justify-end gap-2">{footer}</div>}
+        <div className="flex-1 overflow-y-auto px-5 py-4 sm:px-6">{children}</div>
+        {footer && <div className="flex flex-wrap justify-end gap-2 border-t border-slate-100 bg-slate-50/60 px-5 py-3 sm:px-6">{footer}</div>}
       </div>
     </div>
   );
@@ -189,20 +231,20 @@ export const Btn: React.FC<
   React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'danger' | 'success' | 'ghost'; loading?: boolean }
 > = ({ variant = 'secondary', loading, children, className = '', disabled, ...rest }) => {
   const styles: Record<string, string> = {
-    primary: 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600',
-    secondary: 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200',
-    danger: 'bg-white hover:bg-rose-50 text-rose-700 border-rose-200',
-    success: 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600',
-    ghost: 'bg-transparent hover:bg-slate-100 text-slate-600 border-transparent',
+    primary: 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600 shadow-sm focus-visible:ring-blue-300',
+    secondary: 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 focus-visible:ring-slate-300',
+    danger: 'bg-white hover:bg-rose-50 text-rose-700 border-rose-200 focus-visible:ring-rose-200',
+    success: 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600 shadow-sm focus-visible:ring-emerald-300',
+    ghost: 'bg-transparent hover:bg-slate-100 text-slate-600 border-transparent focus-visible:ring-slate-300',
   };
   return (
     <button
       type="button"
       {...rest}
       disabled={disabled || loading}
-      className={`inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl border text-xs font-semibold shadow-2xs transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${styles[variant]} ${className}`}
+      className={`inline-flex min-h-9 items-center justify-center gap-1.5 rounded-xl border px-3.5 py-2 text-[13px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 active:scale-[0.98] cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 ${styles[variant]} ${className}`}
     >
-      {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+      {loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
       {children}
     </button>
   );

@@ -63,8 +63,8 @@ export interface DashboardResponseDto {
       breaks?: Array<{ started_at: string; ended_at: string | null }>;
       /** Filled in by the controller when the punch captured a location */
       punch_location?: {
-        in: { latitude: number; longitude: number } | null;
-        out: { latitude: number; longitude: number } | null;
+        in: { latitude: number; longitude: number; accuracyM?: number | null } | null;
+        out: { latitude: number; longitude: number; accuracyM?: number | null } | null;
       };
     }>;
     month_label: string;

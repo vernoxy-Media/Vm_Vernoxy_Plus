@@ -18,7 +18,7 @@ import {
 import type { DayRecord } from '../types/attendance.types';
 import { AttendanceInsightDrawer } from './AttendanceInsightDrawer';
 import { MyRegularizationsDrawer } from './MyRegularizationsDrawer';
-import { fetchRegularizations, googleMapEmbedUrl, googleMapsLink, reverseGeocode } from '../api/attendance.api';
+import { describeLocationAccuracy, fetchRegularizations, googleMapEmbedUrl, googleMapsLink, reverseGeocode } from '../api/attendance.api';
 import { arrivalOf, describeMinutes, formatClock, overtimeMinutes, resolveShift } from '../utils/attendance-metrics';
 import { Pagination } from '@/shared/ui/Pagination';
 
@@ -687,9 +687,25 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
               loading="lazy"
               src={googleMapEmbedUrl(mapFor.record.latitude, mapFor.record.longitude)}
             />
-            <p className="border-t border-[#E4E8EF] px-3 py-2 text-[12px] leading-snug text-slate-700">
-              {mapAddress === undefined ? 'Finding address…' : mapAddress ?? `${mapFor.record.latitude.toFixed(5)}, ${mapFor.record.longitude.toFixed(5)}`}
-            </p>
+            {(() => {
+              const acc = describeLocationAccuracy(mapFor.record.location_accuracy_m);
+              return (
+                <div className="border-t border-[#E4E8EF] px-3 py-2 text-[12px] leading-snug">
+                  <p className="text-slate-700">
+                    {mapAddress === undefined
+                      ? 'Finding address…'
+                      : mapAddress
+                        ? `${acc?.coarse ? 'Near ' : ''}${mapAddress}`
+                        : `${mapFor.record.latitude!.toFixed(5)}, ${mapFor.record.longitude!.toFixed(5)}`}
+                  </p>
+                  {acc && (
+                    <p className={`mt-1 text-[11px] ${acc.coarse ? 'font-medium text-amber-700' : 'text-slate-500'}`}>
+                      {acc.coarse ? `Approximate location ${acc.text}: a laptop gives a WiFi/IP guess, not GPS` : `Accurate to ${acc.text}`}
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
           </div>,
           document.body,
         )}
