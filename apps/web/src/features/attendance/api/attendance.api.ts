@@ -463,20 +463,34 @@ export function getBrowserLocation(timeoutMs = 10000): Promise<{ latitude: numbe
 
 const addressCache = new Map<string, Promise<string | null>>();
 
-/** Human-readable address for a coordinate (OpenStreetMap Nominatim), cached per ~11 m cell. */
+/**
+ * A readable address for a coordinate. The API makes it (Google when a key is set there, OpenStreetMap otherwise) so
+ * the key never reaches the browser; the answer is also kept here per ~11 m cell.
+ */
 export function reverseGeocode(latitude: number, longitude: number): Promise<string | null> {
   const key = `${latitude.toFixed(4)},${longitude.toFixed(4)}`;
   let hit = addressCache.get(key);
   if (!hit) {
-    hit = fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&lat=${latitude}&lon=${longitude}`, {
-      headers: { Accept: 'application/json' },
-    })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j) => (j?.display_name as string | undefined) ?? null)
+    hit = customFetch<{ address: string | null }>(`/api/v1/attendance/geocode?lat=${latitude}&lng=${longitude}`)
+      .then((r) => r?.address ?? null)
       .catch(() => null);
+    // A failed lookup is not remembered, so the next hover tries again
+    hit.then((a) => {
+      if (!a) addressCache.delete(key);
+    });
     addressCache.set(key, hit);
   }
   return hit;
+}
+
+/** The Google map of a point, for an <iframe>. It needs no key. */
+export function googleMapEmbedUrl(latitude: number, longitude: number, zoom = 17): string {
+  return `https://maps.google.com/maps?q=${latitude},${longitude}&z=${zoom}&hl=en&output=embed`;
+}
+
+/** The same point in Google Maps itself, to open in a new tab. */
+export function googleMapsLink(latitude: number, longitude: number): string {
+  return `https://www.google.com/maps?q=${latitude},${longitude}`;
 }
 
 /** Remembers where a punch happened. Best effort: a failure here never affects the punch itself. */

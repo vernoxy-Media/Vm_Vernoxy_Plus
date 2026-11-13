@@ -53,5 +53,7 @@ services:
         sync: false
       - key: SMTP_PASS                 # Brevo: an SMTP key (starts with xsmtpsib-)
         sync: false
+      - key: GOOGLE_MAPS_API_KEY       # optional: Google Geocoding API key. With it the attendance address is read like Google Maps; without it OpenStreetMap is used
+        sync: false
       - key: MAIL_FROM                 # a sender verified in Brevo, e.g. Vernoxy Pulse <you@your-domain.com>. Without it OTP mails are rejected
         sync: false

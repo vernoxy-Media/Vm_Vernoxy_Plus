@@ -7,6 +7,7 @@ import { StorageModule } from '../storage/public-api';
 import { PrismaBirthdayRepository } from './infrastructure/repositories/prisma-birthday.repository';
 import { PrismaAttendanceRepository } from './infrastructure/repositories/prisma-attendance.repository';
 import { PrismaAppSettingsRepository } from './infrastructure/repositories/prisma-app-settings.repository';
+import { ReverseGeocoder } from './infrastructure/geocoding/reverse-geocoder';
 import { PrismaPunchLocationRepository } from './infrastructure/repositories/prisma-punch-location.repository';
 import { SystemClock } from './infrastructure/adapters/system-clock.adapter';
 import { PunchInUseCase } from './application/use-cases/punch-in.use-case';
@@ -31,6 +32,7 @@ import { AttendanceAdminGuard } from './presentation/guards/attendance-admin.gua
   providers: [
     PrismaAttendanceRepository,
     PrismaAppSettingsRepository,
+    ReverseGeocoder,
     PrismaPunchLocationRepository,
     PrismaBirthdayRepository,
     {

@@ -18,7 +18,7 @@ import {
 import type { DayRecord } from '../types/attendance.types';
 import { AttendanceInsightDrawer } from './AttendanceInsightDrawer';
 import { MyRegularizationsDrawer } from './MyRegularizationsDrawer';
-import { fetchRegularizations, reverseGeocode } from '../api/attendance.api';
+import { fetchRegularizations, googleMapEmbedUrl, googleMapsLink, reverseGeocode } from '../api/attendance.api';
 import { arrivalOf, describeMinutes, formatClock, overtimeMinutes, resolveShift } from '../utils/attendance-metrics';
 import { Pagination } from '@/shared/ui/Pagination';
 
@@ -540,7 +540,7 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
                                 aria-label="Show punch location"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  window.open(`https://www.openstreetmap.org/?mlat=${record.latitude}&mlon=${record.longitude}#map=18/${record.latitude}/${record.longitude}`, '_blank', 'noopener,noreferrer');
+                                  if (record.latitude != null && record.longitude != null) window.open(googleMapsLink(record.latitude, record.longitude), '_blank', 'noopener,noreferrer');
                                 }}
                                 onMouseEnter={(e) => {
                                   const r = e.currentTarget.getBoundingClientRect();
@@ -685,7 +685,7 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
               title="Punch location"
               className="h-44 w-full"
               loading="lazy"
-              src={`https://www.openstreetmap.org/export/embed.html?bbox=${mapFor.record.longitude - 0.004}%2C${mapFor.record.latitude - 0.003}%2C${mapFor.record.longitude + 0.004}%2C${mapFor.record.latitude + 0.003}&layer=mapnik&marker=${mapFor.record.latitude}%2C${mapFor.record.longitude}`}
+              src={googleMapEmbedUrl(mapFor.record.latitude, mapFor.record.longitude)}
             />
             <p className="border-t border-[#E4E8EF] px-3 py-2 text-[12px] leading-snug text-slate-700">
               {mapAddress === undefined ? 'Finding address…' : mapAddress ?? `${mapFor.record.latitude.toFixed(5)}, ${mapFor.record.longitude.toFixed(5)}`}

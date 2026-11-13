@@ -1,3 +1,4 @@
+import { ReverseGeocoder } from '../infrastructure/geocoding/reverse-geocoder';
 import { buildAnalyticsRecords, DEFAULT_SHIFT, empCodeOf, todayInIst } from '../domain/services/attendance-analytics';
 import { TASK_TOKENS } from '../../tasks/public-api';
 import type { TaskRepositoryPort } from '../../tasks/public-api';
@@ -104,6 +105,7 @@ export class AttendanceController {
     private readonly accessPolicy: AccessPolicy,
     @Inject(ATTENDANCE_TOKENS.BIRTHDAY_REPOSITORY)
     private readonly birthdays: BirthdayRepository,
+    private readonly geocoder: ReverseGeocoder,
     @Optional() @Inject(TASK_TOKENS.TaskRepository)
     private readonly taskRepo?: TaskRepositoryPort,
   ) {}
@@ -173,6 +175,20 @@ export class AttendanceController {
     const n = Number(daysParam);
     const days = Number.isInteger(n) && n >= 0 ? Math.min(n, 90) : 30;
     return this.birthdays.findUpcoming(days);
+  }
+
+  @Get('geocode')
+  @Throttle({ default: { limit: 60, ttl: 60000 } })
+  @ApiOperation({ summary: 'A readable address for a coordinate (Google when a key is set, OpenStreetMap otherwise)' })
+  @ApiQuery({ name: 'lat', required: true, type: Number })
+  @ApiQuery({ name: 'lng', required: true, type: Number })
+  async geocode(@Query('lat') lat?: string, @Query('lng') lng?: string) {
+    const latitude = Number(lat);
+    const longitude = Number(lng);
+    if (!lat || !lng || !Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
+      throw new BadRequestException('Give lat and lng as numbers: lat between -90 and 90, lng between -180 and 180.');
+    }
+    return this.geocoder.lookup(latitude, longitude);
   }
 
   @Post('me/punch-location')

@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { googleMapEmbedUrl, reverseGeocode } from '../api/attendance.api';
 import { createPortal } from 'react-dom';
 import {
   X,
@@ -150,6 +151,23 @@ export const AttendanceInsightDrawer: React.FC<AttendanceInsightDrawerProps> = (
       return () => window.removeEventListener('keydown', handleKeyDown);
     }
   }, [isOpen, onClose]);
+
+  // Where the clock-in happened, in words: made from the coordinates
+  const [geoPlace, setGeoPlace] = useState<string | null | undefined>(undefined);
+  const lat = record?.latitude ?? null;
+  const lng = record?.longitude ?? null;
+  useEffect(() => {
+    if (!isOpen || lat == null || lng == null) {
+      setGeoPlace(undefined);
+      return;
+    }
+    let live = true;
+    setGeoPlace(undefined);
+    reverseGeocode(lat, lng).then((a) => live && setGeoPlace(a));
+    return () => {
+      live = false;
+    };
+  }, [isOpen, lat, lng]);
 
   if (!isOpen || !date) return null;
 
@@ -339,7 +357,8 @@ export const AttendanceInsightDrawer: React.FC<AttendanceInsightDrawerProps> = (
   const gapsMin = (record?.breaks || [])
     .map((b) => ({ s: clockMinutes(b.started_at), e: clockMinutes(b.ended_at) }))
     .filter((g): g is { s: number; e: number } => g.s !== null && g.e !== null && g.e > g.s);
-  const punchPlace = record?.check_in_location || null;
+  const hasPoint = record?.latitude != null && record.longitude != null;
+  const punchPlace = record?.check_in_location || (hasPoint ? (geoPlace === undefined ? 'Finding address…' : geoPlace) : null);
 
   return createPortal(
     <div
@@ -470,7 +489,7 @@ export const AttendanceInsightDrawer: React.FC<AttendanceInsightDrawerProps> = (
                       title="Punch location"
                       loading="lazy"
                       className="h-40 w-full"
-                      src={`https://www.openstreetmap.org/export/embed.html?bbox=${record.longitude - 0.004}%2C${record.latitude - 0.003}%2C${record.longitude + 0.004}%2C${record.latitude + 0.003}&layer=mapnik&marker=${record.latitude}%2C${record.longitude}`}
+                      src={googleMapEmbedUrl(record.latitude, record.longitude)}
                     />
                   </div>
                 )}
