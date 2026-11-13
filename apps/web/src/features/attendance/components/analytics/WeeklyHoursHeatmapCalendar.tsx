@@ -47,7 +47,7 @@ export const WeeklyHoursHeatmapCalendar: React.FC<WeeklyHoursHeatmapCalendarProp
   };
 
   return (
-    <div className="relative flex flex-col justify-between rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs col-span-1 lg:col-span-3">
+    <div className="relative flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs transition-shadow hover:shadow-md sm:p-5">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
         <div className="flex items-center gap-2">

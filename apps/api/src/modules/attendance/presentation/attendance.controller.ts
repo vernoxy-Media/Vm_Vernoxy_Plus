@@ -1,3 +1,4 @@
+import { buildAnalyticsRecords, DEFAULT_SHIFT, empCodeOf, todayInIst } from '../domain/services/attendance-analytics';
 import { TASK_TOKENS } from '../../tasks/public-api';
 import type { TaskRepositoryPort } from '../../tasks/public-api';
 import {
@@ -584,6 +585,53 @@ export class AttendanceController {
         status,
         search,
       });
+    } catch (err) {
+      throw mapAttendanceErrorToHttp(err);
+    }
+  }
+
+  @Get('analytics')
+  @UseGuards(AttendanceAdminGuard)
+  @ApiOperation({ summary: 'Attendance Analytics dashboard data for a date range (administrators)' })
+  @ApiQuery({ name: 'from', required: true, type: String, example: '2026-11-01' })
+  @ApiQuery({ name: 'to', required: true, type: String, example: '2026-11-30' })
+  @ApiResponse({ status: 200 })
+  async getAnalytics(@Query('from') from?: string, @Query('to') to?: string) {
+    const iso = /^\d{4}-\d{2}-\d{2}$/;
+    if (!from || !to || !iso.test(from) || !iso.test(to) || Number.isNaN(Date.parse(from)) || Number.isNaN(Date.parse(to))) {
+      throw new BadRequestException('Give a from and a to date as YYYY-MM-DD.');
+    }
+    if (from > to) throw new BadRequestException('The from date cannot be after the to date.');
+    if ((Date.parse(to) - Date.parse(from)) / 86_400_000 > 366) throw new BadRequestException('Choose a range of at most one year.');
+    try {
+      const [source, settings] = await Promise.all([
+        this.attendanceRepo.getAnalyticsSource(from, to),
+        this.appSettingsRepo.getAttendanceSettings(),
+      ]);
+      const records = buildAnalyticsRecords({
+        employees: source.employees,
+        days: source.days,
+        leaves: source.leaves,
+        workingDays: settings.working_days,
+        holidays: settings.holidays.map((h) => h.date),
+        from,
+        to,
+        today: todayInIst(),
+        defaultShift: source.defaultShift ?? DEFAULT_SHIFT,
+      });
+      const byId = new Map(source.employees.map((e) => [e.emp_id, e]));
+      return {
+        from,
+        to,
+        records,
+        employees: source.employees.map((e) => ({ id: e.emp_id, name: e.name, empCode: empCodeOf(e.emp_id), department: e.department, designation: e.designation })),
+        regularizations: source.regularizations.map((r) => ({
+          ...r,
+          employeeName: byId.get(r.empId)?.name ?? `Employee ${r.empId}`,
+          department: byId.get(r.empId)?.department ?? 'Unassigned',
+          designation: byId.get(r.empId)?.designation ?? 'Staff',
+        })),
+      };
     } catch (err) {
       throw mapAttendanceErrorToHttp(err);
     }

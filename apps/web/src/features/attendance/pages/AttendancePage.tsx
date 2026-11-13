@@ -47,7 +47,9 @@ export const AttendancePage: React.FC = () => {
     'approvals',
   ];
   // "dashboard" is the old name of the analytics tab and still opens it
-  const initialTab: AttendanceTabKey = urlTab === 'dashboard' ? 'analytics' : validTabs.includes(urlTab as AttendanceTabKey) ? (urlTab as AttendanceTabKey) : 'timesheet';
+  const wantedTab: AttendanceTabKey = urlTab === 'dashboard' ? 'analytics' : validTabs.includes(urlTab as AttendanceTabKey) ? (urlTab as AttendanceTabKey) : 'timesheet';
+  // Only administrators may open the analytics: the server refuses everyone else
+  const initialTab: AttendanceTabKey = wantedTab === 'analytics' && !canManageAttendance ? 'timesheet' : wantedTab;
 
   const [selectedDate, setSelectedDate] = useState<string>(todayDateStr);
   const [selectedMonth, setSelectedMonth] = useState<string>(currentMonthStr);
@@ -276,6 +278,7 @@ export const AttendancePage: React.FC = () => {
             <span>Timesheet &amp; Clock-in</span>
           </button>
 
+          {canManageAttendance && (
           <button
             type="button"
             id="attendance-tab-analytics"
@@ -291,6 +294,7 @@ export const AttendancePage: React.FC = () => {
             <BarChart3 className="w-3.5 h-3.5" />
             <span>Analytics Dashboard</span>
           </button>
+          )}
 
           <button
             type="button"
@@ -367,7 +371,7 @@ export const AttendancePage: React.FC = () => {
         </div>
       </div>
 
-      {attendanceTab === 'analytics' && (
+      {attendanceTab === 'analytics' && canManageAttendance && (
         <AttendanceAnalyticsDashboardTab />
       )}
 

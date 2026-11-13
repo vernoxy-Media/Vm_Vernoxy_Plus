@@ -22,9 +22,9 @@ export const AttendanceStatusDonutChart: React.FC<AttendanceStatusDonutChartProp
   let accumulatedPercent = 0;
 
   return (
-    <div className="relative flex flex-col justify-between rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs h-full">
+    <div className="relative flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs transition-shadow hover:shadow-md sm:p-5 h-full">
       {/* Header */}
-      <div className="flex items-start justify-between border-b border-slate-100 pb-3">
+      <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2 border-b border-slate-100 pb-3">
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
             <PieChart className="h-4 w-4" />
@@ -152,7 +152,7 @@ export const AttendanceStatusDonutChart: React.FC<AttendanceStatusDonutChartProp
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 border-t border-slate-100 pt-3 text-xs">
         <span className="text-[11px] text-slate-500">
           Consolidated per employee per date
         </span>
