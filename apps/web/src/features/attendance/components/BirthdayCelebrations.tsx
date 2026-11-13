@@ -16,6 +16,9 @@ interface Birthday {
 
 const when = (n: number) => (n === 1 ? 'Tomorrow' : `In ${n} days`);
 
+/** Colour of the countdown chip: the closer the birthday, the warmer it gets */
+const chipTone = (n: number) => (n <= 2 ? 'bg-rose-50 text-rose-600 ring-rose-200' : n <= 5 ? 'bg-amber-50 text-amber-700 ring-amber-200' : 'bg-slate-50 text-slate-500 ring-slate-200');
+
 const BALLOONS = [
   { c: 'bg-rose-400', l: '8%', d: '0s', h: 44 },
   { c: 'bg-yellow-300', l: '22%', d: '0.6s', h: 52 },
@@ -41,13 +44,13 @@ export const BirthdayCelebrations: React.FC<{ className?: string }> = ({ classNa
   const { user } = useAuth();
   const { data = [] } = useQuery({
     queryKey: ['birthdays'],
-    queryFn: () => customFetch<Birthday[]>('/api/v1/attendance/birthdays?days=30'),
+    queryFn: () => customFetch<Birthday[]>('/api/v1/attendance/birthdays?days=10'),
     staleTime: 5 * 60_000,
     refetchOnWindowFocus: true,
   });
 
   const today = data.filter((b) => b.days_until === 0);
-  const next = data.filter((b) => b.days_until > 0).slice(0, 4);
+  const next = data.filter((b) => b.days_until > 0).slice(0, 8);
   if (today.length === 0 && next.length === 0) return null;
 
   return (
@@ -125,28 +128,41 @@ export const BirthdayCelebrations: React.FC<{ className?: string }> = ({ classNa
       )}
 
       {next.length > 0 && (
-        <div className="rounded-2xl border border-[#E4E8EF] bg-white p-4 shadow-sm sm:p-5">
-          <div className="mb-3 flex items-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-pink-50 text-pink-500">
-              <Gift className="h-4 w-4" />
-            </span>
-            <div>
-              <h3 className="text-[15px] font-semibold tracking-tight text-slate-900">Upcoming birthdays</h3>
-              <p className="text-xs text-slate-500">In the next 30 days</p>
+        <div className="overflow-hidden rounded-2xl border border-[#E4E8EF] bg-white shadow-sm">
+          <div className="flex items-center justify-between gap-3 bg-gradient-to-r from-pink-50 via-rose-50 to-amber-50 px-4 py-3.5 sm:px-5">
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-pink-500 shadow-sm">
+                <Gift className="h-4 w-4" />
+              </span>
+              <div>
+                <h3 className="text-[15px] font-semibold tracking-tight text-slate-900">Birthday reminders</h3>
+                <p className="text-xs text-slate-500">Coming up in the next 10 days</p>
+              </div>
             </div>
+            <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-pink-600 shadow-sm ring-1 ring-pink-100">{next.length} upcoming</span>
           </div>
-          <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
+          <ul className="grid grid-cols-1 gap-2.5 p-4 sm:grid-cols-2 sm:p-5 xl:grid-cols-4">
             {next.map((b, i) => {
               const [y, m, d] = b.date.split('-').map(Number);
-              const label = new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
+              const dt = new Date(Date.UTC(y, m - 1, d));
+              const month = dt.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' });
+              const weekday = dt.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' });
               return (
-                <li key={b.emp_id} style={{ animationDelay: `${i * 70}ms` }} className="hol-rise flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5">
+                <li
+                  key={b.emp_id}
+                  style={{ animationDelay: `${i * 70}ms` }}
+                  className="hol-rise group flex items-center gap-3 rounded-xl border border-slate-100 bg-white p-2.5 transition hover:border-pink-200 hover:shadow-sm"
+                >
+                  <div className="flex h-12 w-11 shrink-0 flex-col items-center justify-center rounded-lg bg-gradient-to-b from-rose-500 to-pink-600 text-white shadow-sm">
+                    <span className="text-[9px] font-bold uppercase leading-none tracking-wide opacity-90">{month}</span>
+                    <span className="text-lg font-bold leading-tight tabular-nums">{d}</span>
+                  </div>
                   <Avatar name={b.name} src={b.photo_url} size={36} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-slate-900">{b.name}</p>
-                    <p className="truncate text-xs text-slate-500">{label}</p>
+                    <p className="truncate text-xs text-slate-500">{weekday}</p>
                   </div>
-                  <span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-500 ring-1 ring-slate-200">{when(b.days_until)}</span>
+                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${chipTone(b.days_until)}`}>{when(b.days_until)}</span>
                 </li>
               );
             })}
