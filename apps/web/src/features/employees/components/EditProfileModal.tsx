@@ -865,7 +865,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                           : 'bg-white text-slate-800 cursor-pointer focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500'
                       }`}
                     >
-                      <option value="">Default Leave Policy</option>
+                      <option value="">No leave policy (cannot apply for leave)</option>
                       {leavePolicies.map((lp) => (
                         <option key={lp.policy_id} value={lp.policy_id}>
                           {lp.name}

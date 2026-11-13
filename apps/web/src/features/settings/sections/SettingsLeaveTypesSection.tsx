@@ -738,6 +738,46 @@ export const SettingsLeaveTypesSection: React.FC = () => {
               <p className="text-[10px] text-slate-400 mt-1">Half of it makes half a day.</p>
             </div>
           </div>
+          <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3.5 space-y-2.5">
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-1">Default Leave Policy</label>
+              <select
+                value={generalForm.default_policy_id ?? ''}
+                onChange={(e) =>
+                  setGeneralForm({
+                    ...generalForm,
+                    default_policy_id: e.target.value ? Number(e.target.value) : null,
+                    assign_to_employees_without_policy: false,
+                  })
+                }
+                className={inputCls}
+              >
+                <option value="">None: a policy must be given to each employee</option>
+                {policies
+                  .filter((p) => p.status === 'ACTIVE' || p.policy_id === generalForm.default_policy_id)
+                  .map((p) => (
+                    <option key={p.policy_id} value={p.policy_id}>{p.name}</option>
+                  ))}
+              </select>
+              <p className="text-[10px] text-slate-400 mt-1">A new employee gets this policy unless another one is chosen. An employee with no policy cannot apply for leave.</p>
+            </div>
+            {generalForm.default_policy_id && (general?.employees_without_policy ?? 0) > 0 && (
+              <label className="flex items-start gap-2 text-xs cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={Boolean(generalForm.assign_to_employees_without_policy)}
+                  onChange={(e) => setGeneralForm({ ...generalForm, assign_to_employees_without_policy: e.target.checked })}
+                  className="mt-0.5"
+                />
+                <span>
+                  <span className="font-semibold text-slate-800 block">
+                    Also give it now to the {general?.employees_without_policy} active {general?.employees_without_policy === 1 ? 'employee' : 'employees'} who have no policy
+                  </span>
+                  <span className="text-slate-500">They can apply for leave right away. Employees who already have a policy are not changed.</span>
+                </span>
+              </label>
+            )}
+          </div>
           <label className="flex items-start gap-2 text-xs cursor-pointer">
             <input type="checkbox" checked={generalForm.count_sandwich_leave} onChange={(e) => setGeneralForm({ ...generalForm, count_sandwich_leave: e.target.checked })} className="mt-0.5" />
             <span>
@@ -767,6 +807,8 @@ export const SettingsLeaveTypesSection: React.FC = () => {
                     approve_after_leave_started: generalForm.approve_after_leave_started,
                     year_end_processing: generalForm.year_end_processing,
                     comp_off_hours_per_day: generalForm.comp_off_hours_per_day,
+                    default_policy_id: generalForm.default_policy_id ?? null,
+                    assign_to_employees_without_policy: Boolean(generalForm.assign_to_employees_without_policy),
                   });
                   flash(true, 'General settings saved.');
                 } catch (e: any) {

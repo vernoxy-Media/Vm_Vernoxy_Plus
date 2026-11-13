@@ -30,7 +30,7 @@ import {
 } from '@/features/organization/hooks/use-organization';
 import { useLookupsQuery } from '@/features/organization/hooks/use-master-data';
 import { useAttendanceSettingsQuery, useAssignEmployeeShiftMutation } from '@/features/attendance/hooks/use-attendance-settings';
-import { useLeavePoliciesQuery } from '@/features/leave/hooks/use-leave';
+import { useLeaveGeneralSettingsQuery, useLeavePoliciesQuery } from '@/features/leave/hooks/use-leave';
 import { checkJoiningDateConflict } from '@/features/attendance/utils/joining-date-check';
 import { employeeCreateSchema, type EmployeeFormValues } from '../schemas/employee-form.schema';
 import { SetPasswordLinkField } from './SetPasswordLinkField';
@@ -115,6 +115,7 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
   const effectiveEmploymentTypes = employmentTypeLookups.length > 0 ? employmentTypeLookups : defaultEmploymentTypes;
   const { data: bloodGroupLookups = [] } = useLookupsQuery('blood_group');
   const { data: leavePolicies = [] } = useLeavePoliciesQuery();
+  const { data: leaveGeneral } = useLeaveGeneralSettingsQuery();
   const { data: attendanceSettings } = useAttendanceSettingsQuery();
 
   // Mutations
@@ -199,13 +200,15 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
       return;
     }
     if (policyDefaulted.current || leavePolicies.length === 0 || form.getValues('leave_policy_id')) return;
-    const active = leavePolicies.filter((p) => String((p as { status?: string }).status ?? 'ACTIVE').toUpperCase() === 'ACTIVE');
-    const standard = active.find((p) => /standard/i.test(p.name)) ?? active[0];
-    if (standard) {
+    // The default is the one the Admin chose in Leave Settings, General
+    const chosen = leavePolicies.find(
+      (p) => p.policy_id === leaveGeneral?.default_policy_id && String((p as { status?: string }).status ?? 'ACTIVE').toUpperCase() === 'ACTIVE',
+    );
+    if (chosen) {
       policyDefaulted.current = true;
-      form.setValue('leave_policy_id', String(standard.policy_id) as never);
+      form.setValue('leave_policy_id', String(chosen.policy_id) as never);
     }
-  }, [isOpen, leavePolicies, form]);
+  }, [isOpen, leavePolicies, leaveGeneral, form]);
 
   const joiningCheck = React.useMemo(() => {
     return checkJoiningDateConflict(watchedJoiningDate, attendanceSettings, selectedShiftId);
