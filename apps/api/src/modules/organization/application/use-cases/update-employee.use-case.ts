@@ -71,10 +71,12 @@ export class UpdateEmployeeUseCase {
       throw new NotFoundDomainError('Employee', command.id);
     }
 
+    // The edit form sends the department, designation and status every time, also when they are unchanged. Only a real
+    // change to one of them is a self-modification.
     OrganizationPolicyService.validateSelfModification(command.acting_admin_id, command.id, {
-      dep_id: command.dep_id,
-      role_id: command.role_id,
-      status: command.status,
+      dep_id: command.dep_id !== undefined && command.dep_id !== employee.dep_id ? command.dep_id : undefined,
+      role_id: command.role_id !== undefined && command.role_id !== employee.role_id ? command.role_id : undefined,
+      status: command.status !== undefined && command.status !== employee.status ? command.status : undefined,
     });
 
     let trimmedName: string | undefined;
