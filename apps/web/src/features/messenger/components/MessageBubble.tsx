@@ -185,6 +185,13 @@ export const MessageBubble: React.FC<Props> = (p) => {
         }}
         onTouchEnd={() => clearTimeout(pressTimer.current)}
         onTouchMove={() => clearTimeout(pressTimer.current)}
+        onDoubleClick={(e) => {
+          // Double-click (or double-tap) a message to reply to it, as in WhatsApp. Links, buttons and pictures keep their own click.
+          if (noMenu || p.selecting || deleted || conv.is_closed) return;
+          if ((e.target as HTMLElement).closest('a,button,img,video,audio,input,textarea')) return;
+          window.getSelection()?.removeAllRanges();
+          p.onReply();
+        }}
         onContextMenu={(e) => {
           if (noMenu || p.selecting) return;
           e.preventDefault();
