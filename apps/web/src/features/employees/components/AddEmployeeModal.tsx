@@ -104,6 +104,7 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
   const { data: deptOptions = [] } = useDepartmentOptionsQuery();
   const { data: managerOptions = [] } = useEmployeeOptionsQuery();
   const { data: genderLookups = [] } = useLookupsQuery('gender');
+  const { data: probationLookups = [] } = useLookupsQuery('probation_period');
   const { data: employmentTypeLookups = [] } = useLookupsQuery('employment_type');
   const defaultEmploymentTypes = React.useMemo(() => [
     { id: 143, label: 'Full-time' },
@@ -858,13 +859,9 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
                       className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
                     />
                     <datalist id="add-probation-options">
-                      <option value="0" />
-                      <option value="None" />
-                      <option value="30 Days" />
-                      <option value="60 Days" />
-                      <option value="90 Days (3 Months)" />
-                      <option value="6 Months" />
-                      <option value="1 Year" />
+                      {probationLookups.map((p) => (
+                        <option key={p.id} value={p.label} />
+                      ))}
                     </datalist>
                   </div>
 

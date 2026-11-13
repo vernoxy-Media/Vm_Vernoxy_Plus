@@ -29,6 +29,7 @@ export const ALLOWED_LOOKUP_TYPES = [
   'candidate_source',
   'job_portal',
   'notice_period',
+  'probation_period',
   'candidate_stage',
   'rejection_reason',
   'addition_category',

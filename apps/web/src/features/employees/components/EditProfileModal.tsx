@@ -68,6 +68,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   const { data: deptOptions = [] } = useDepartmentOptionsQuery();
   const { data: managerOptions = [] } = useEmployeeOptionsQuery();
   const { data: genderLookups = [] } = useLookupsQuery('gender');
+  const { data: probationLookups = [] } = useLookupsQuery('probation_period');
   const { data: employmentTypeLookups = [] } = useLookupsQuery('employment_type');
   const { data: bloodGroupLookups = [] } = useLookupsQuery('blood_group');
   const { data: leavePolicies = [] } = useLeavePoliciesQuery();
@@ -891,13 +892,9 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                       }`}
                     />
                     <datalist id="edit-probation-options">
-                      <option value="0" />
-                      <option value="None" />
-                      <option value="30 Days" />
-                      <option value="60 Days" />
-                      <option value="90 Days (3 Months)" />
-                      <option value="6 Months" />
-                      <option value="1 Year" />
+                      {probationLookups.map((p) => (
+                        <option key={p.id} value={p.label} />
+                      ))}
                     </datalist>
                   </div>
 
