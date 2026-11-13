@@ -81,6 +81,7 @@ export const AttendancePage: React.FC = () => {
   const {
     punchInMutation,
     punchOutMutation,
+    resumeWorkMutation,
     startBreakMutation,
     resumeBreakMutation,
     isPending,
@@ -115,6 +116,7 @@ export const AttendancePage: React.FC = () => {
 
   const handlePunchIn = () => runAction(() => punchInMutation.mutateAsync(), 'Failed to punch in');
   const handlePunchOut = () => runAction(() => punchOutMutation.mutateAsync(), 'Failed to punch out');
+  const handleResumeWork = () => runAction(() => resumeWorkMutation.mutateAsync(), 'Failed to resume work');
   const handleStartBreak = (breakType?: string, reason?: string) =>
     runAction(() => startBreakMutation.mutateAsync({ breakType, reason }), 'Failed to start break');
   const handleResumeBreak = () => runAction(() => resumeBreakMutation.mutateAsync(), 'Failed to resume break');
@@ -385,6 +387,7 @@ export const AttendancePage: React.FC = () => {
           isPending={isPending}
           onPunchIn={handlePunchIn}
           onPunchOut={handlePunchOut}
+          onResumeWork={handleResumeWork}
           onStartBreak={handleStartBreak}
           onResumeBreak={handleResumeBreak}
           actionError={actionError}

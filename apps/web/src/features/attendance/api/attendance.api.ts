@@ -52,6 +52,12 @@ export async function punchIn(): Promise<{ success: boolean; today: TodayAttenda
   }
 }
 
+/** Carry on working after a clock-out today. The time since the clock-out is kept as a break. */
+export async function resumeWork(): Promise<TodayAttendanceData> {
+  const res = await customFetch<any>(`${BASE_URL}/me/resume`, { method: 'POST' });
+  return (res as any)?.today ?? (res as any)?.data ?? res;
+}
+
 export async function punchOut(): Promise<{ success: boolean; today: TodayAttendanceData; message?: string }> {
   try {
     const res = await customFetch<{ success: boolean; today: TodayAttendanceData; message?: string }>(

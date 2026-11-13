@@ -61,7 +61,7 @@ export class PunchInUseCase {
       });
       // One clock-in per day. Say which of the two it is, so a person who has clocked out is not told they are "in"
       throw new AlreadyPunchedInError(
-        existingDay.checkOutAt ? 'You have already clocked out today. You can clock in again tomorrow.' : 'Already punched in today',
+        existingDay.checkOutAt ? 'You have already clocked out today. If you are still working, use Resume work.' : 'Already punched in today',
         { today: todayBlock },
       );
     }

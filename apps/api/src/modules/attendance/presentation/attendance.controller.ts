@@ -36,6 +36,7 @@ import type { Request, Response } from 'express';
 import { JwtAuthGuard } from '../../auth/public-api';
 import { AttendanceAdminGuard } from './guards/attendance-admin.guard';
 import { PunchInUseCase } from '../application/use-cases/punch-in.use-case';
+import { ResumeWorkUseCase } from '../application/use-cases/resume-work.use-case';
 import { PunchOutUseCase } from '../application/use-cases/punch-out.use-case';
 import { StartBreakUseCase } from '../application/use-cases/start-break.use-case';
 import { EndBreakUseCase } from '../application/use-cases/end-break.use-case';
@@ -83,6 +84,7 @@ import {
 export class AttendanceController {
   constructor(
     private readonly punchInUseCase: PunchInUseCase,
+    private readonly resumeWorkUseCase: ResumeWorkUseCase,
     private readonly punchOutUseCase: PunchOutUseCase,
     private readonly startBreakUseCase: StartBreakUseCase,
     private readonly endBreakUseCase: EndBreakUseCase,
@@ -147,6 +149,18 @@ export class AttendanceController {
     try {
       const empId = req.user!.emp_id;
       return await this.punchInUseCase.execute(empId);
+    } catch (err) {
+      throw mapAttendanceErrorToHttp(err);
+    }
+  }
+
+  @Post('me/resume')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Carry on working after a clock-out today (the time since the clock-out is kept as a break)' })
+  @ApiResponse({ status: 200, type: TodayAttendanceBlockDto })
+  async resumeWork(@Req() req: Request): Promise<TodayAttendanceBlockDto> {
+    try {
+      return await this.resumeWorkUseCase.execute(req.user!.emp_id);
     } catch (err) {
       throw mapAttendanceErrorToHttp(err);
     }

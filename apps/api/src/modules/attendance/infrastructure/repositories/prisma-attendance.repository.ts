@@ -12,7 +12,7 @@ import {
   determineDayStatus,
   formatWorkDate,
 } from '../../domain/services/attendance-calculations';
-import { AlreadyPunchedOutError, AttendanceNotFoundError, AttendanceDomainError } from '../../domain/errors/attendance.errors';
+import { AlreadyPunchedInError, AlreadyPunchedOutError, AttendanceNotFoundError, AttendanceDomainError } from '../../domain/errors/attendance.errors';
 
 @Injectable()
 export class PrismaAttendanceRepository implements AttendanceRepository {
@@ -193,6 +193,31 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
         where: { attendance_id: attendanceId },
       });
 
+      return this.mapDayRowToEntity(updated!);
+    });
+  }
+
+  async reopenAttendanceDay(attendanceId: number, previousCheckOutAt: Date, resumedAt: Date): Promise<AttendanceDayEntity> {
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Open the day again, only if it really is closed
+      const reopened = await tx.attendance_days.updateMany({
+        where: { attendance_id: attendanceId, deleted_at: null, check_out_at: { not: null } },
+        data: { check_out_at: null, day_status: 'incomplete', updated_at: new Date() },
+      });
+      if (reopened.count === 0) throw new AlreadyPunchedInError();
+
+      // 2. The time between the clock-out and now was not worked: a finished break
+      await tx.attendance_breaks.create({
+        data: {
+          attendance_id: attendanceId,
+          started_at: previousCheckOutAt,
+          ended_at: resumedAt,
+          break_type: 'Clocked out',
+          reason: 'Clocked out and resumed work',
+        },
+      });
+
+      const updated = await tx.attendance_days.findUnique({ where: { attendance_id: attendanceId } });
       return this.mapDayRowToEntity(updated!);
     });
   }

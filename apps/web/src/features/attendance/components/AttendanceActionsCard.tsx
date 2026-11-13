@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  CheckCircle2,
   ChevronDown,
   Coffee,
   Utensils,
@@ -17,6 +16,7 @@ export interface AttendanceActionsCardProps {
   isPending: boolean;
   onPunchIn: () => Promise<any>;
   onPunchOut: () => Promise<any>;
+  onResumeWork: () => Promise<any>;
   onStartBreak: (breakType?: string, reason?: string) => Promise<any>;
   onResumeBreak: () => Promise<any>;
   errorMessage?: string | null;
@@ -41,6 +41,7 @@ export const AttendanceActionsCard: React.FC<AttendanceActionsCardProps> = ({
   isPending,
   onPunchIn,
   onPunchOut,
+  onResumeWork,
   onStartBreak,
   onResumeBreak,
   onRegularize,
@@ -97,6 +98,15 @@ export const AttendanceActionsCard: React.FC<AttendanceActionsCardProps> = ({
     return `${Math.floor(t / 60)}h ${String(t % 60).padStart(2, '0')}m`;
   };
 
+  // One tap on the red button only asks; a second tap within a few seconds clocks out. A clock-out by mistake used to
+  // end the day with no way back.
+  const [confirmOut, setConfirmOut] = useState(false);
+  useEffect(() => {
+    if (!confirmOut) return;
+    const t = window.setTimeout(() => setConfirmOut(false), 6000);
+    return () => window.clearTimeout(t);
+  }, [confirmOut]);
+
   const isWorking = today.state === 'working';
   const isOnBreak = today.state === 'on_break';
   // Clocked out: there is one clock-in per day, so offering "Web Clock-in" again could only fail with a 409
@@ -119,18 +129,41 @@ export const AttendanceActionsCard: React.FC<AttendanceActionsCardProps> = ({
   ) : isDone ? (
     <button
       type="button"
-      disabled
-      title="You have clocked out for today. Clock-in opens again tomorrow."
-      className="inline-flex w-full cursor-not-allowed items-center justify-center gap-2.5 rounded-xl bg-white/15 px-5 py-4 text-base font-semibold text-white/80 whitespace-nowrap"
+      disabled={isPending}
+      onClick={() => void onResumeWork()}
+      title="Still working? This opens today again. The time since you clocked out is counted as a break."
+      className="inline-flex w-full items-center justify-center gap-2.5 rounded-xl bg-white px-5 py-4 text-base font-bold text-[color:var(--ac-dark,#1D4ED8)] shadow-md transition hover:bg-sky-50 active:scale-[0.98] disabled:opacity-60 cursor-pointer whitespace-nowrap"
     >
-      <CheckCircle2 className="h-5 w-5" />
-      Clocked out for today
+      {isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <LogIn className="h-5 w-5" />}
+      Resume work
     </button>
+  ) : isWorking && confirmOut ? (
+    <div className="grid grid-cols-[1fr_auto] gap-2">
+      <button
+        type="button"
+        disabled={isPending}
+        onClick={() => {
+          setConfirmOut(false);
+          void onPunchOut();
+        }}
+        className="inline-flex items-center justify-center gap-2 rounded-xl bg-rose-500 px-4 py-4 text-base font-bold text-white shadow-md transition hover:bg-rose-600 active:scale-[0.98] disabled:opacity-60 cursor-pointer whitespace-nowrap"
+      >
+        <LogOut className="h-5 w-5" />
+        Yes, clock out
+      </button>
+      <button
+        type="button"
+        onClick={() => setConfirmOut(false)}
+        className="rounded-xl bg-white/15 px-4 py-4 text-sm font-semibold text-white transition hover:bg-white/25 cursor-pointer"
+      >
+        Keep working
+      </button>
+    </div>
   ) : (
     <button
       type="button"
       disabled={isPending}
-      onClick={() => (isWorking ? onPunchOut() : onPunchIn())}
+      onClick={() => (isWorking ? setConfirmOut(true) : onPunchIn())}
       className={`inline-flex w-full items-center justify-center gap-2.5 rounded-xl px-5 py-4 text-base font-bold shadow-md transition active:scale-[0.98] disabled:opacity-50 whitespace-nowrap cursor-pointer ${
         isWorking ? 'bg-rose-500 text-white hover:bg-rose-600' : 'cta-pulse bg-white text-[color:var(--ac-dark,#1D4ED8)] hover:bg-sky-50'
       }`}
@@ -164,7 +197,7 @@ export const AttendanceActionsCard: React.FC<AttendanceActionsCardProps> = ({
                 Working
               </span>
             ) : isDone ? (
-              <span className="rounded-full bg-white/20 px-3 py-1 text-[11px] font-bold text-white">Day complete</span>
+              <span className="rounded-full bg-white/20 px-3 py-1 text-[11px] font-bold text-white">Clocked out</span>
             ) : (
               <span className="rounded-full bg-white/20 px-3 py-1 text-[11px] font-bold text-white">Ready to Clock In</span>
             )}

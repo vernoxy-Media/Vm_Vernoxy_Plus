@@ -16,7 +16,7 @@ import type {
   TodayAttendanceData,
   CorrectionRequestPayload,
 } from '../types/attendance.types';
-import { startBreak, savePunchLocation } from '../api/attendance.api';
+import { startBreak, savePunchLocation, resumeWork } from '../api/attendance.api';
 import { fetchAttendanceRegister, fetchAttendanceReports } from '../api/attendance.api';
 import type {
   AttendanceRegisterQuery,
@@ -359,6 +359,17 @@ export function usePunchActions({ month, onConflict, onAnnounce }: PunchMutation
     },
   });
 
+  const resumeWorkMutation = useMutation({
+    mutationFn: () => resumeWork(),
+    onSuccess: (data) => {
+      updateTodayData(data);
+      onAnnounce?.('Back at work. The time since you clocked out is counted as a break.');
+    },
+    onError: (err: any) => {
+      handleConflict(err);
+    },
+  });
+
   const startBreakMutation = useMutation({
     mutationFn: async (variables?: { breakType?: string; reason?: string }) => {
       try {
@@ -398,12 +409,14 @@ export function usePunchActions({ month, onConflict, onAnnounce }: PunchMutation
   const isPending =
     punchInMutation.isPending ||
     punchOutMutation.isPending ||
+    resumeWorkMutation.isPending ||
     startBreakMutation.isPending ||
     resumeBreakMutation.isPending;
 
   return {
     punchInMutation,
     punchOutMutation,
+    resumeWorkMutation,
     startBreakMutation,
     resumeBreakMutation,
     isPending,

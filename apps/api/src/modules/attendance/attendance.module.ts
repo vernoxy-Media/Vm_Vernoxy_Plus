@@ -11,6 +11,7 @@ import { ReverseGeocoder } from './infrastructure/geocoding/reverse-geocoder';
 import { PrismaPunchLocationRepository } from './infrastructure/repositories/prisma-punch-location.repository';
 import { SystemClock } from './infrastructure/adapters/system-clock.adapter';
 import { PunchInUseCase } from './application/use-cases/punch-in.use-case';
+import { ResumeWorkUseCase } from './application/use-cases/resume-work.use-case';
 import { PunchOutUseCase } from './application/use-cases/punch-out.use-case';
 import { StartBreakUseCase } from './application/use-cases/start-break.use-case';
 import { EndBreakUseCase } from './application/use-cases/end-break.use-case';
@@ -56,6 +57,11 @@ import { AttendanceAdminGuard } from './presentation/guards/attendance-admin.gua
     {
       provide: ATTENDANCE_TOKENS.CLOCK,
       useExisting: SystemClock,
+    },
+    {
+      provide: ResumeWorkUseCase,
+      useFactory: (repo: PrismaAttendanceRepository, clock: SystemClock) => new ResumeWorkUseCase(repo, clock),
+      inject: [PrismaAttendanceRepository, SystemClock],
     },
     {
       provide: PunchInUseCase,
@@ -147,6 +153,7 @@ import { AttendanceAdminGuard } from './presentation/guards/attendance-admin.gua
     ATTENDANCE_TOKENS.APP_SETTINGS_REPOSITORY,
     ATTENDANCE_TOKENS.CLOCK,
     PunchInUseCase,
+    ResumeWorkUseCase,
     PunchOutUseCase,
     StartBreakUseCase,
     EndBreakUseCase,
