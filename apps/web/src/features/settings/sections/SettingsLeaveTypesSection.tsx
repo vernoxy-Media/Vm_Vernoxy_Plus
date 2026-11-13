@@ -61,7 +61,7 @@ const emptyType: Partial<LeaveType> = {
 };
 
 const LeaveTypeModal: React.FC<{ open: boolean; editing: LeaveType | null; onClose: () => void }> = ({ open, editing, onClose }) => {
-  const { data: lookups } = useLeaveLookupsQuery();
+  const { data: lookups, isLoading: lookupsLoading, isError: lookupsFailed, refetch: refetchLookups } = useLeaveLookupsQuery();
   const createMut = useCreateLeaveTypeMutation();
   const updateMut = useUpdateLeaveTypeMutation();
   const [form, setForm] = useState<Partial<LeaveType>>(emptyType);
@@ -134,6 +134,17 @@ const LeaveTypeModal: React.FC<{ open: boolean; editing: LeaveType | null; onClo
     >
       <div className="space-y-4">
         {errors.general && <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700">{errors.general}</div>}
+        {(lookupsFailed || (!lookupsLoading && (!lookups?.leave_applies_to?.length || !lookups?.leave_calendar_color?.length))) && (
+          <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800">
+            <span>
+              The options for "Applies to" and "Colour in calendar" could not be loaded. Check your connection and try again. If it still fails, the leave
+              lookups are missing on the server (the leave database update has not been run).
+            </span>
+            <button type="button" onClick={() => refetchLookups()} className="shrink-0 px-3 py-1.5 rounded-lg bg-white border border-amber-300 font-semibold hover:bg-amber-100 cursor-pointer">
+              Retry
+            </button>
+          </div>
+        )}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="block text-[11px] font-semibold text-slate-700 mb-1">Leave Type Name <span className="text-rose-500">*</span></label>
@@ -175,8 +186,9 @@ const LeaveTypeModal: React.FC<{ open: boolean; editing: LeaveType | null; onClo
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="block text-[11px] font-semibold text-slate-700 mb-1">Applies to</label>
+            <label className="block text-[11px] font-semibold text-slate-700 mb-1">Applies to <span className="text-rose-500">*</span></label>
             <select value={form.applies_to || ''} onChange={(e) => set({ applies_to: e.target.value as any })} className={inputCls}>
+              <option value="" disabled>{lookupsLoading ? 'Loading...' : 'Select who it applies to'}</option>
               {(lookups?.leave_applies_to || []).map((o) => (
                 <option key={o.value} value={o.value}>{o.label}</option>
               ))}
@@ -184,10 +196,11 @@ const LeaveTypeModal: React.FC<{ open: boolean; editing: LeaveType | null; onClo
             <FieldError message={errors.applies_to} />
           </div>
           <div>
-            <label className="block text-[11px] font-semibold text-slate-700 mb-1">Colour in calendar</label>
+            <label className="block text-[11px] font-semibold text-slate-700 mb-1">Colour in calendar <span className="text-rose-500">*</span></label>
             <div className="flex items-center gap-2">
               <span className={`w-4 h-4 rounded ${colorStyle(form.calendar_color).dot}`} />
               <select value={form.calendar_color || ''} onChange={(e) => set({ calendar_color: e.target.value })} className={inputCls}>
+                <option value="" disabled>{lookupsLoading ? 'Loading...' : 'Select a colour'}</option>
                 {(lookups?.leave_calendar_color || []).map((o) => (
                   <option key={o.value} value={o.value}>{o.label}</option>
                 ))}

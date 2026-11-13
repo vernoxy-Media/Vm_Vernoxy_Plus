@@ -30,6 +30,8 @@ export const ALLOWED_LOOKUP_TYPES = [
   'attendance_reason',
   'shift_type',
   'leave_type',
+  'leave_applies_to',
+  'leave_calendar_color',
   'employment_type',
   'gender',
   'blood_group',

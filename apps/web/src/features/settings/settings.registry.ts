@@ -37,6 +37,7 @@ import {
   PhoneOff,
   Trash2,
   Building,
+  Palette,
   LucideIcon,
 } from 'lucide-react';
 import type { MeResponseDto } from '@vernoxy-pulse/api-client';
@@ -118,6 +119,12 @@ const SettingsDeactivationReasonsSection = React.lazy(() =>
 );
 const SettingsCandidateSourcesSection = React.lazy(() =>
   import('./sections/SettingsCandidateSourcesSection').then((m) => ({ default: m.SettingsCandidateSourcesSection }))
+);
+const SettingsLeaveAppliesToSection = React.lazy(() =>
+  import('./sections/SettingsLeaveAppliesToSection').then((m) => ({ default: m.SettingsLeaveAppliesToSection }))
+);
+const SettingsLeaveColoursSection = React.lazy(() =>
+  import('./sections/SettingsLeaveColoursSection').then((m) => ({ default: m.SettingsLeaveColoursSection }))
 );
 const SettingsJobPortalsSection = React.lazy(() =>
   import('./sections/SettingsJobPortalsSection').then((m) => ({ default: m.SettingsJobPortalsSection }))
@@ -425,6 +432,24 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     path: '/admin/settings/leave-types',
     icon: CalendarOff,
     component: SettingsLeaveTypesSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'HR',
+  },
+  {
+    id: 'leave-applies-to',
+    label: 'Leave Applies To',
+    path: '/admin/settings/leave-applies-to',
+    icon: Users,
+    component: SettingsLeaveAppliesToSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'HR',
+  },
+  {
+    id: 'leave-colours',
+    label: 'Leave Calendar Colours',
+    path: '/admin/settings/leave-colours',
+    icon: Palette,
+    component: SettingsLeaveColoursSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
     group: 'HR',
   },

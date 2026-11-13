@@ -22,6 +22,10 @@ interface SettingsLookupSectionProps {
   addLabel: string;
   searchPlaceholder?: string;
   icon: LucideIcon;
+  /** A fixed list (its values drive rules or database checks): rows can be renamed and switched off, not added or deleted */
+  fixedList?: boolean;
+  /** Extra help shown under the Code field */
+  codeHelp?: string;
 }
 
 export const SettingsLookupSection: React.FC<SettingsLookupSectionProps> = ({
@@ -32,6 +36,8 @@ export const SettingsLookupSection: React.FC<SettingsLookupSectionProps> = ({
   searchPlaceholder,
   icon: Icon,
   parent,
+  fixedList = false,
+  codeHelp,
 }) => {
   const [search, setSearch] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -131,7 +137,7 @@ export const SettingsLookupSection: React.FC<SettingsLookupSectionProps> = ({
       label: 'Code (optional)',
       type: 'text',
       placeholder: 'Auto-generated from name if left blank',
-      helpText: 'Unique identifier used in API and exports. Use lowercase_snake_case.',
+      helpText: codeHelp ?? 'Unique identifier used in API and exports. Use lowercase_snake_case.',
     },
     {
       name: 'sort_order',
@@ -229,9 +235,9 @@ export const SettingsLookupSection: React.FC<SettingsLookupSectionProps> = ({
         error={error ? `Failed to load ${title.toLowerCase()}` : null}
         icon={<Icon className="w-5 h-5" />}
         emptyIcon={<Icon className="w-8 h-8" />}
-        onAdd={handleOpenAdd}
+        onAdd={fixedList ? undefined : handleOpenAdd}
         onEdit={handleOpenEdit}
-        onDelete={handleDelete}
+        onDelete={fixedList ? undefined : handleDelete}
       />
 
       <MasterDataDialog
