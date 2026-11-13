@@ -259,7 +259,7 @@ export class MessengerController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const meta = await this.service.fileOf(me(req), id);
-    const stream = this.files.open(meta.path);
+    const stream = await this.files.open(meta.path);
     if (!stream) throw new NotFoundException('File not available.');
     res.set({
       'Content-Type': meta.mime,
