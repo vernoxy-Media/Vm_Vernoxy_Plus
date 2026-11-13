@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Settings, ClipboardCheck, RefreshCw, Download, Clock, FileText, CheckCircle2, X, Calendar } from 'lucide-react';
+import { Settings, ClipboardCheck, RefreshCw, Download, Clock, FileText, CheckCircle2, X, Calendar, BarChart3 } from 'lucide-react';
 import { getAccessToken } from '@vernoxy-pulse/api-client';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useAttendanceDashboard, usePunchActions } from '../hooks/use-attendance';
@@ -11,6 +11,7 @@ import { AddRegularizationModal } from '../components/AddRegularizationModal';
 import { MyRegularizationsPanel } from '../components/MyRegularizationsPanel';
 import { ApprovalsPanel } from '../components/ApprovalsPanel';
 import { MyAttendanceCalendarSection } from '../components/MyAttendanceCalendarSection';
+import { AttendanceAnalyticsDashboardTab } from '../components/analytics/AttendanceAnalyticsDashboardTab';
 
 const MONTH_OPTIONS = [
   { value: '01', label: 'January' },
@@ -37,20 +38,27 @@ export const AttendancePage: React.FC = () => {
 
   const [searchParams, setSearchParams] = useSearchParams();
   const urlTab = searchParams.get('tab');
-  const validTabs: Array<'timesheet' | 'calendar' | 'regularization' | 'approvals'> = [
+  type AttendanceTabKey = 'timesheet' | 'analytics' | 'calendar' | 'regularization' | 'approvals';
+  const validTabs: AttendanceTabKey[] = [
     'timesheet',
+    'analytics',
     'calendar',
     'regularization',
     'approvals',
   ];
-  const initialTab = validTabs.includes(urlTab as any) ? (urlTab as any) : 'timesheet';
+  // "dashboard" is the old name of the analytics tab and still opens it
+  const initialTab: AttendanceTabKey = urlTab === 'dashboard' ? 'analytics' : validTabs.includes(urlTab as AttendanceTabKey) ? (urlTab as AttendanceTabKey) : 'timesheet';
 
   const [selectedDate, setSelectedDate] = useState<string>(todayDateStr);
   const [selectedMonth, setSelectedMonth] = useState<string>(currentMonthStr);
   const [announcement, setAnnouncement] = useState<string>('');
   const [infoToast, setInfoToast] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [attendanceTab, setAttendanceTab] = useState<'timesheet' | 'calendar' | 'regularization' | 'approvals'>(initialTab);
+  const [attendanceTab, setAttendanceTab] = useState<AttendanceTabKey>(initialTab);
+  const handleTabChange = (newTab: AttendanceTabKey) => {
+    setAttendanceTab(newTab);
+    setSearchParams(newTab === 'timesheet' ? {} : { tab: newTab });
+  };
   const [correctionModalDate, setCorrectionModalDate] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -265,7 +273,23 @@ export const AttendancePage: React.FC = () => {
             }`}
           >
             <Clock className="w-3.5 h-3.5" />
-            <span>Timesheet &amp; Dashboard</span>
+            <span>Timesheet &amp; Clock-in</span>
+          </button>
+
+          <button
+            type="button"
+            id="attendance-tab-analytics"
+            role="tab"
+            aria-selected={attendanceTab === 'analytics'}
+            onClick={() => handleTabChange('analytics')}
+            className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-3.5 py-3 text-[13px] font-semibold transition-colors cursor-pointer ${
+              attendanceTab === 'analytics'
+                ? 'border-[color:var(--ac-main,#5B4CF8)] text-[color:var(--ac-main,#5B4CF8)]'
+                : 'border-transparent text-slate-500 hover:text-slate-900 hover:border-slate-300'
+            }`}
+          >
+            <BarChart3 className="w-3.5 h-3.5" />
+            <span>Analytics Dashboard</span>
           </button>
 
           <button
@@ -342,6 +366,10 @@ export const AttendancePage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {attendanceTab === 'analytics' && (
+        <AttendanceAnalyticsDashboardTab />
+      )}
 
       {attendanceTab === 'timesheet' && (
         <AttendanceDashboardCards
