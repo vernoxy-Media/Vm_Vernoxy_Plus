@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { describeLocationAccuracy, googleMapEmbedUrl, reverseGeocode } from '../api/attendance.api';
 import { createPortal } from 'react-dom';
 import {
