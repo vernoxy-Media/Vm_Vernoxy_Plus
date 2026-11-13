@@ -29,7 +29,7 @@ export const DepartmentDistributionChart: React.FC<DepartmentDistributionChartPr
   };
 
   return (
-    <div className="relative flex flex-col justify-between rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs h-full">
+    <div className="relative flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs transition-shadow hover:shadow-md sm:p-5 h-full">
       {/* Card Header */}
       <div className="flex items-start justify-between border-b border-slate-100 pb-3 mb-3">
         <div className="flex items-center gap-2">

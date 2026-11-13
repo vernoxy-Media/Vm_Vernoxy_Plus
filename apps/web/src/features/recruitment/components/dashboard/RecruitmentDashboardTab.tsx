@@ -1,121 +1,95 @@
 import React, { useState, useMemo } from 'react';
-import {
-  Loader2,
-  AlertTriangle,
-  RefreshCw,
-} from 'lucide-react';
+import { Users, UserCheck, UserPlus, UserX } from 'lucide-react';
 import { useAllCandidatesQuery, CandidateItem } from '../../hooks/use-recruitment';
 import { useRoleOptionsQuery, useDepartmentOptionsQuery } from '@/features/organization/hooks/use-organization';
-import {
-  DashboardFilterState,
-  INITIAL_FILTER_STATE,
-  filterCandidates,
-} from './dashboard.utils';
+import { DashboardFilterState, INITIAL_FILTER_STATE, filterCandidates, isOpenStage, normalizeStage } from './dashboard.utils';
 import { DashboardFilterBar } from './DashboardFilterBar';
 import { PipelineStageChart } from './PipelineStageChart';
 import { CandidateSourcesChart } from './CandidateSourcesChart';
 import { CandidatesByPositionChart } from './CandidatesByPositionChart';
 import { ExperienceTypeChart } from './ExperienceTypeChart';
+import {
+  DashboardEmpty,
+  DashboardError,
+  DashboardHeader,
+  DashboardSkeleton,
+  KpiStat,
+} from '@/shared/ui/dashboard/DashboardShell';
 
 export const RecruitmentDashboardTab: React.FC = () => {
-  // Global Filters state
   const [filters, setFilters] = useState<DashboardFilterState>(INITIAL_FILTER_STATE);
 
-  // Data Queries
-  const {
-    data: candidateData,
-    isLoading,
-    isError,
-    refetch,
-    isFetching,
-  } = useAllCandidatesQuery();
-
+  const { data: candidateData, isLoading, isError, refetch, isFetching } = useAllCandidatesQuery();
   const { data: roles = [] } = useRoleOptionsQuery();
   const { data: departments = [] } = useDepartmentOptionsQuery();
 
   const allCandidates: CandidateItem[] = candidateData?.items || [];
 
-  // Central Shared Filtered Dataset (all 4 charts use this exact dataset)
-  const filteredCandidates = useMemo(() => {
-    return filterCandidates(allCandidates, filters);
-  }, [allCandidates, filters]);
+  // One filtered list feeds all four charts
+  const filteredCandidates = useMemo(() => filterCandidates(allCandidates, filters), [allCandidates, filters]);
 
-  const handleClearFilters = () => {
-    setFilters(INITIAL_FILTER_STATE);
-  };
+  const kpi = useMemo(() => {
+    const stages = filteredCandidates.map((c) => normalizeStage(c.stage));
+    const total = stages.length;
+    const open = stages.filter(isOpenStage).length;
+    const joined = stages.filter((s) => s === 'Joined').length;
+    const rejected = stages.filter((s) => s === 'Rejected').length;
+    return { total, open, joined, rejected, openPct: total ? Math.round((open / total) * 100) : 0 };
+  }, [filteredCandidates]);
+
+  const handleClearFilters = () => setFilters(INITIAL_FILTER_STATE);
+
+  if (isLoading) return <DashboardSkeleton kpis={4} cards={4} />;
 
   return (
-    <div className="space-y-6">
-      {/* Global Filters & Search Component */}
-      <DashboardFilterBar
-        filters={filters}
-        onChangeFilters={setFilters}
-        onClearFilters={handleClearFilters}
-        roles={roles}
-        departments={departments}
-        totalFilteredCount={filteredCandidates.length}
-        totalUnfilteredCount={allCandidates.length}
+    <div className="w-full min-w-0 max-w-full space-y-5 sm:space-y-6">
+      <DashboardHeader
+        title="Recruitment dashboard"
+        subtitle={`${allCandidates.length} candidates · ${filteredCandidates.length} match the filters`}
+        onRefresh={() => void refetch()}
+        loading={isFetching}
       />
 
-      {/* Content Area */}
-      {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-28 rounded-2xl border border-slate-200 bg-white">
-          <Loader2 className="w-8 h-8 text-blue-600 animate-spin mb-3" />
-          <p className="text-sm font-semibold text-slate-700">Loading dashboard data...</p>
-          <p className="text-xs text-slate-400 mt-1">Calculating pipeline and sourcing statistics</p>
-        </div>
-      ) : isError ? (
-        <div className="flex flex-col items-center justify-center py-24 rounded-2xl border border-slate-200 bg-white text-center px-4">
-          <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center mb-3">
-            <AlertTriangle className="w-6 h-6" />
-          </div>
-          <h3 className="text-base font-bold text-slate-900">Failed to load recruitment data</h3>
-          <p className="text-xs text-slate-500 mt-1 max-w-md">
-            There was an issue fetching candidate records from the server.
-          </p>
-          <button
-            type="button"
-            onClick={() => refetch()}
-            className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition cursor-pointer"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            <span>Retry</span>
-          </button>
-        </div>
+      {isError ? (
+        <DashboardError title="The recruitment data could not be loaded" message="There was a problem reading the candidates from the server." onRetry={() => void refetch()} />
       ) : (
-        <div className={`transition-opacity duration-200 ${isFetching ? 'opacity-70' : 'opacity-100'}`}>
-          {/* 4 Dashboard Charts Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Chart 1: Candidate Pipeline by Stage */}
-            <div className="min-h-[380px]">
-              <PipelineStageChart
-                candidates={filteredCandidates}
-                selectedStageFilter={filters.stage}
-              />
-            </div>
-
-            {/* Chart 2: Candidate Sources */}
-            <div className="min-h-[380px]">
-              <CandidateSourcesChart
-                candidates={filteredCandidates}
-              />
-            </div>
-
-            {/* Chart 3: Candidates by Position */}
-            <div className="min-h-[380px]">
-              <CandidatesByPositionChart
-                candidates={filteredCandidates}
-              />
-            </div>
-
-            {/* Chart 4: Candidates by Experience Type */}
-            <div className="min-h-[380px]">
-              <ExperienceTypeChart
-                candidates={filteredCandidates}
-              />
-            </div>
+        <>
+          <div className={`grid grid-cols-2 gap-3 transition-opacity sm:gap-3.5 lg:grid-cols-4 ${isFetching ? 'opacity-60' : ''}`}>
+            <KpiStat label="Candidates" value={kpi.total} hint="Matching the filters" icon={Users} tone="blue" />
+            <KpiStat label="In the pipeline" value={kpi.open} suffix={`${kpi.openPct}%`} percent={kpi.openPct} hint="New to onboarding" icon={UserPlus} tone="amber" />
+            <KpiStat label="Joined" value={kpi.joined} hint="Started working" icon={UserCheck} tone="emerald" />
+            <KpiStat label="Rejected" value={kpi.rejected} hint="Not taken forward" icon={UserX} tone="rose" />
           </div>
-        </div>
+
+          <DashboardFilterBar
+            filters={filters}
+            onChangeFilters={setFilters}
+            onClearFilters={handleClearFilters}
+            roles={roles}
+            departments={departments}
+            totalFilteredCount={filteredCandidates.length}
+            totalUnfilteredCount={allCandidates.length}
+          />
+
+          {filteredCandidates.length === 0 ? (
+            <DashboardEmpty icon={Users} title="No candidates found for the selected filters." hint="Try another stage, position, source or search word." onClear={handleClearFilters} />
+          ) : (
+            <div className={`grid grid-cols-1 gap-4 transition-opacity duration-200 sm:gap-5 lg:grid-cols-2 ${isFetching ? 'opacity-70' : ''}`}>
+              <div className="min-h-[380px] min-w-0">
+                <PipelineStageChart candidates={filteredCandidates} selectedStageFilter={filters.stage} />
+              </div>
+              <div className="min-h-[380px] min-w-0">
+                <CandidateSourcesChart candidates={filteredCandidates} />
+              </div>
+              <div className="min-h-[380px] min-w-0">
+                <CandidatesByPositionChart candidates={filteredCandidates} />
+              </div>
+              <div className="min-h-[380px] min-w-0">
+                <ExperienceTypeChart candidates={filteredCandidates} />
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

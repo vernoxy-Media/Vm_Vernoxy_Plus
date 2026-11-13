@@ -30,9 +30,9 @@ export const PersonWiseWorkHoursChart: React.FC<PersonWiseWorkHoursChartProps> =
   );
 
   return (
-    <div className="relative flex flex-col justify-between rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs h-full">
+    <div className="relative flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs transition-shadow hover:shadow-md sm:p-5 h-full">
       {/* Header */}
-      <div className="flex items-start justify-between border-b border-slate-100 pb-3">
+      <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2 border-b border-slate-100 pb-3">
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
             <Users2 className="h-4 w-4" />
@@ -198,7 +198,7 @@ export const PersonWiseWorkHoursChart: React.FC<PersonWiseWorkHoursChartProps> =
       </div>
 
       {/* Footer / All View */}
-      <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 border-t border-slate-100 pt-3 text-xs">
         <div className="flex items-center gap-3">
           <span className="flex items-center gap-1.5 text-[10px] text-slate-500">
             <span className="w-2.5 h-2.5 rounded-full border border-blue-600 bg-white"></span> Estimated

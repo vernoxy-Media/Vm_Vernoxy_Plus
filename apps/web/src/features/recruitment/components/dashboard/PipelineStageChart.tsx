@@ -54,7 +54,7 @@ export const PipelineStageChart: React.FC<PipelineStageChartProps> = ({
   const ticks = Array.from({ length: tickCount + 1 }, (_, i) => Math.round((yAxisMax / tickCount) * i));
 
   return (
-    <div className="relative flex flex-col rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs h-full">
+    <div className="relative flex flex-col rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs transition-shadow hover:shadow-md sm:p-5 h-full">
       <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
         <div>
           <h3 className="text-base font-bold text-slate-900 tracking-tight">Candidate Pipeline by Stage</h3>
