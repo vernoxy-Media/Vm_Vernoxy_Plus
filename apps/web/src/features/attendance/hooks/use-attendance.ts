@@ -135,10 +135,13 @@ function mapApiDashboardToUiModel(apiData: any): AttendanceDashboardResponse {
 
   const monthSummary = {
     scheduled_days: summary.scheduled_working_days ?? 0,
+    days_so_far: summary.working_days_so_far ?? summary.scheduled_working_days ?? 0,
     present_days: summary.days_present ?? 0,
     total_working_seconds: (summary.total_production_minutes ?? 0) * 60,
     total_break_seconds: (summary.total_break_minutes ?? 0) * 60,
     leave_days: summary.leave_days ?? 0,
+    weekly_offs: summary.weekly_offs ?? 0,
+    holidays: summary.holidays ?? 0,
     absent_days: summary.days_absent ?? 0,
     remaining_days: Math.max(0, (summary.scheduled_working_days ?? 0) - (summary.days_present ?? 0)),
   };

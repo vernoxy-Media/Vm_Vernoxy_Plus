@@ -896,8 +896,9 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
     return {
       empId: emp.emp_id,
       status: emp.status,
-      joiningDate: emp.joining_date.toISOString().slice(0, 10),
-      exitDate: emp.exit_date ? emp.exit_date.toISOString().slice(0, 10) : null,
+      // Joining dates are stored as Indian midnight (18:30 UTC the day before), so the UTC date is one day early
+      joiningDate: formatWorkDate(emp.joining_date),
+      exitDate: emp.exit_date ? formatWorkDate(emp.exit_date) : null,
     };
   }
 
@@ -1044,7 +1045,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
             const openCalc = calculateOpenDayMinutes(
               new Date(r.check_in_at),
               now,
-              breaksList.map((b) => ({ startedAt: b.started_at, endedAt: b.ended_at })),
+              breaksList.map((b) => ({ startedAt: b.started_at, endedAt: b.ended_at, breakType: b.break_type })),
             );
             prodMinutes = openCalc.workedMinutesSoFar;
             brkMinutes = openCalc.breakMinutesSoFar;

@@ -78,10 +78,14 @@ export interface AttendanceStatistics {
 
 export interface MonthSummary {
   scheduled_days: number;
+  /** Working days from the joining date up to today; the base for the % present */
+  days_so_far?: number;
   present_days: number;
   total_working_seconds: number;
   total_break_seconds: number;
   leave_days: number;
+  weekly_offs?: number;
+  holidays?: number;
   absent_days: number;
   remaining_days: number;
 }

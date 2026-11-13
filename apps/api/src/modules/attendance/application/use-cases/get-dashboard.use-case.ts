@@ -35,6 +35,7 @@ export interface DashboardResponseDto {
   month: {
     summary: {
       scheduled_working_days: number;
+      working_days_so_far: number;
       days_present: number;
       days_full: number;
       days_half: number;
@@ -127,6 +128,7 @@ export class GetDashboardUseCase {
     );
 
     // Filter/trim days based on employee joining/exit date
+    // profile dates are Indian calendar dates (see getEmployeeProfile)
     const joiningDate = profile.joiningDate;
     const exitDate = profile.exitDate;
 
