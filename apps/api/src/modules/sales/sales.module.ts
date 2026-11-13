@@ -85,6 +85,10 @@ import { PrismaSalesExportRepository } from './infrastructure/persistence/prisma
 import { PrismaSalesRightsRepository } from './infrastructure/persistence/prisma-sales-rights.repository';
 import { ExcelJsSalesImportTemplateAdapter } from './infrastructure/adapters/exceljs-sales-import-template.adapter';
 import { SalesImportExportController } from './presentation/controllers/sales-import-export.controller';
+import { SalesDashboardController } from './presentation/controllers/sales-dashboard.controller';
+import { SalesDashboardUseCases } from './application/use-cases/sales-dashboard.use-cases';
+import { SalesDashboardRepositoryPort } from './application/ports/sales-dashboard.repository.port';
+import { PrismaSalesDashboardRepository } from './infrastructure/persistence/prisma-sales-dashboard.repository';
 
 const useCase = <T>(cls: new (repo: SalesCompanyRepositoryPort) => T) => ({
   provide: cls,
@@ -112,8 +116,11 @@ const leadUseCase = <T>(cls: new (repo: SalesLeadRepositoryPort) => T) => ({
     SalesClientController,
     SalesReportController,
     SalesImportExportController,
+    SalesDashboardController,
   ],
   providers: [
+    { provide: SalesDashboardRepositoryPort, useClass: PrismaSalesDashboardRepository },
+    SalesDashboardUseCases,
     { provide: SALES_COMPANY_REPOSITORY_PORT_TOKEN, useClass: PrismaSalesCompanyRepository },
     { provide: SALES_ACCESS_POLICY_PORT_TOKEN, useClass: PrismaSalesAccessPolicyAdapter },
     { provide: SALES_LEAD_REPOSITORY_PORT_TOKEN, useClass: PrismaSalesLeadRepository },

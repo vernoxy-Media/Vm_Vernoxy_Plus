@@ -130,6 +130,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggleC
 
   // The sales screens, in the order the Sales team uses them
   const salesChildren: NavChild[] = [
+    child('Dashboard', '/sales/dashboard', starts('/sales/dashboard'), 'sales-dashboard'),
     child('Company Database', '/sales/companies', starts('/sales/companies'), 'sales-companies'),
     child('Lead Pipeline', '/sales/leads', starts('/sales/leads'), 'sales-leads'),
     child('Follow-ups', '/sales/follow-ups', starts('/sales/follow-ups'), 'sales-follow-ups', followUpBadge),
@@ -558,6 +559,8 @@ function childIcon(idKey: string, fallback: LucideIcon): LucideIcon {
 /** Icons for the sales entries when they are shown as a plain list. */
 function salesIcon(idKey: string): LucideIcon {
   switch (idKey) {
+    case 'sales-dashboard':
+      return LayoutDashboard;
     case 'sales-companies':
       return Building2;
     case 'sales-leads':
