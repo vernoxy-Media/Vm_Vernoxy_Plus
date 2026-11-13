@@ -15,7 +15,7 @@ const dur = (sec: number) => {
 
 const STAGE: Record<string, { label: string; cls: string }> = {
   assigned: { label: 'To Do', cls: 'bg-[#DFE1E6] text-[#42526E]' },
-  in_progress: { label: 'In Progress', cls: 'bg-[#DEEBFF] text-[#0747A6]' },
+  in_progress: { label: 'In Progress', cls: 'bg-[color:var(--ac-50,#DEEBFF)] text-[color:var(--ac-dark,#0747A6)]' },
   hold: { label: 'On Hold', cls: 'bg-[#FFF0B3] text-[#172B4D]' },
   requested: { label: 'In Review', cls: 'bg-[#EAE6FF] text-[#403294]' },
   completed: { label: 'Done', cls: 'bg-[#E3FCEF] text-[#006644]' },

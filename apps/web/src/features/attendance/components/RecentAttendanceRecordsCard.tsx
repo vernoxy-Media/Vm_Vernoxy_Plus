@@ -336,14 +336,14 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          <div role="group" aria-label="Period" className="inline-flex overflow-hidden rounded border border-[#1471DD]">
+          <div role="group" aria-label="Period" className="inline-flex overflow-hidden rounded border border-[color:var(--ac-main,#1471DD)]">
             {([['7', '7 Days'], ['30', '30 Days'], ['month', 'This Month']] as const).map(([v, label]) => (
               <button
                 key={v}
                 type="button"
                 aria-pressed={preset === v}
                 onClick={() => applyPreset(v)}
-                className={`px-3.5 py-1.5 text-xs font-medium transition cursor-pointer ${preset === v ? 'bg-[#1471DD] text-white' : 'bg-white text-[#1471DD] hover:bg-blue-50'}`}
+                className={`px-3.5 py-1.5 text-xs font-medium transition cursor-pointer ${preset === v ? 'bg-[color:var(--ac-main,#1471DD)] text-white' : 'bg-white text-[color:var(--ac-main,#1471DD)] hover:bg-blue-50'}`}
               >
                 {label}
               </button>
@@ -355,7 +355,7 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
             value={fromDate}
             max={todayStr}
             onChange={(e) => setFromDate(e.target.value)}
-            className="rounded border border-[#D4DCE6] bg-white px-2 py-1.5 text-xs text-slate-700 focus:border-[#1471DD] focus:outline-none"
+            className="rounded border border-[#D4DCE6] bg-white px-2 py-1.5 text-xs text-slate-700 focus:border-[color:var(--ac-main,#1471DD)] focus:outline-none"
           />
           <span className="text-xs text-slate-400">to</span>
           <input
@@ -364,7 +364,7 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
             value={toDate}
             max={todayStr}
             onChange={(e) => setToDate(e.target.value)}
-            className="rounded border border-[#D4DCE6] bg-white px-2 py-1.5 text-xs text-slate-700 focus:border-[#1471DD] focus:outline-none"
+            className="rounded border border-[#D4DCE6] bg-white px-2 py-1.5 text-xs text-slate-700 focus:border-[color:var(--ac-main,#1471DD)] focus:outline-none"
           />
           <button
             type="button"
@@ -547,7 +547,7 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
                                   setMapFor({ record, x: Math.max(8, Math.min(window.innerWidth - 328, r.left - 150)), y: r.top - 196 < 8 ? r.bottom + 6 : r.top - 196 });
                                 }}
                                 onMouseLeave={() => setMapFor(null)}
-                                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sky-50 text-[#1471DD] ring-1 ring-sky-100 transition hover:bg-sky-100 cursor-pointer"
+                                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sky-50 text-[color:var(--ac-main,#1471DD)] ring-1 ring-sky-100 transition hover:bg-sky-100 cursor-pointer"
                               >
                                 <MapPin className="h-3.5 w-3.5" />
                               </button>
@@ -569,7 +569,7 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
                           <span
                             aria-hidden
                             className="h-5 w-5 shrink-0 rounded-full ring-1 ring-sky-200"
-                            style={{ background: `conic-gradient(#38BDF8 ${effectivePct * 3.6}deg, #F1F5F9 0deg)` }}
+                            style={{ background: `conic-gradient(var(--ac-400,#38BDF8) ${effectivePct * 3.6}deg, #F1F5F9 0deg)` }}
                           />
                           <span className="text-[13px] text-slate-800">{formatHrs(record.production_seconds)}</span>
                           {overtimeMinutes(record, shift) > 0 && (
@@ -661,7 +661,7 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
                 setInsightDrawerDate(hover.record.date);
                 setInsightDrawerMode('regularize');
               }}
-              className="mt-2.5 inline-flex items-center gap-1.5 text-[13px] text-[#1471DD] hover:underline cursor-pointer"
+              className="mt-2.5 inline-flex items-center gap-1.5 text-[13px] text-[color:var(--ac-main,#1471DD)] hover:underline cursor-pointer"
             >
               <Pencil className="h-3 w-3" /> Regularise
             </button>

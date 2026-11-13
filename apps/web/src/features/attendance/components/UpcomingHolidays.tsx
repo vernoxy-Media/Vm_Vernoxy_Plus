@@ -79,7 +79,7 @@ export const UpcomingHolidays: React.FC<{ limit?: number; className?: string }> 
             <p className="text-xs text-slate-500">{upcoming.length ? `${thisYearLeft} more this year` : 'Nothing scheduled yet'}</p>
           </div>
         </div>
-        <Link to="/calendar" className="text-xs font-semibold text-[#1471DD] hover:underline">
+        <Link to="/calendar" className="text-xs font-semibold text-[color:var(--ac-main,#1471DD)] hover:underline">
           View calendar
         </Link>
       </div>

@@ -15,7 +15,7 @@ export const STAGE_NAME: Record<TaskStage, string> = {
 /** Status lozenge colours, as in Jira: small uppercase pills. */
 export const STAGE_LOZENGE: Record<TaskStage, string> = {
   assigned: 'bg-[#DFE1E6] text-[#42526E]',
-  in_progress: 'bg-[#DEEBFF] text-[#0747A6]',
+  in_progress: 'bg-[color:var(--ac-50,#DEEBFF)] text-[color:var(--ac-dark,#0747A6)]',
   hold: 'bg-[#FFF0B3] text-[#172B4D]',
   requested: 'bg-[#EAE6FF] text-[#403294]',
   completed: 'bg-[#E3FCEF] text-[#006644]',

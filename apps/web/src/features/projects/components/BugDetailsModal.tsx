@@ -29,7 +29,7 @@ const STATUS_LOZENGE: Record<string, string> = {
   new: 'bg-[#FFEBE6] text-[#BF2600]',
   open: 'bg-[#FFEBE6] text-[#BF2600]',
   ready_for_dev: 'bg-[#FFF0B3] text-[#172B4D]',
-  dev_in_progress: 'bg-[#DEEBFF] text-[#0747A6]',
+  dev_in_progress: 'bg-[color:var(--ac-50,#DEEBFF)] text-[color:var(--ac-dark,#0747A6)]',
   ready_for_qa: 'bg-[#EAE6FF] text-[#403294]',
   qa_in_progress: 'bg-[#EAE6FF] text-[#403294]',
   done: 'bg-[#E3FCEF] text-[#006644]',

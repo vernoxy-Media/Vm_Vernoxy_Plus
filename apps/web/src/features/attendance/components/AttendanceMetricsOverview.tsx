@@ -137,7 +137,7 @@ export const AttendanceStatsSummaryCard: React.FC<{
               type="button"
               aria-pressed={range === v}
               onClick={() => setRange(v)}
-              className={`rounded-md px-2.5 py-1 transition cursor-pointer ${range === v ? 'bg-white text-[#1471DD] shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+              className={`rounded-md px-2.5 py-1 transition cursor-pointer ${range === v ? 'bg-white text-[color:var(--ac-main,#1471DD)] shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
             >
               {label}
             </button>
@@ -263,7 +263,7 @@ export const AttendanceBreakdownRow: React.FC<{
           tone="bg-indigo-50 text-indigo-600"
           icon={<Calendar className="h-4 w-4" />}
           right={
-            <Ring pct={presentPct} stroke="#6366F1" size={44}>
+            <Ring pct={presentPct} stroke="var(--ac-main,#6366F1)" size={44}>
               <span className="text-[10px] font-bold text-slate-700">{presentPct}%</span>
             </Ring>
           }

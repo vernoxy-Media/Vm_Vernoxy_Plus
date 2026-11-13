@@ -89,7 +89,7 @@ export const ForwardDialog: React.FC<{ messageIds: number[]; onClose: () => void
         <div className="space-y-2">
           {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
           <input value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Add a comment (optional)" aria-label="Comment" className="h-10 w-full rounded-xl border border-slate-200 px-3 text-base focus:border-indigo-500 sm:text-sm focus:outline-none" />
-          <button type="button" disabled={!picked.length || busy} onClick={send} className={`${btn} w-full bg-[#4F46E5] text-white hover:bg-[#4338CA]`}>
+          <button type="button" disabled={!picked.length || busy} onClick={send} className={`${btn} w-full bg-[color:var(--ac-main,#4F46E5)] text-white hover:bg-[color:var(--ac-dark,#4338CA)]`}>
             {busy ? 'Forwarding…' : `Forward${picked.length ? ` to ${picked.length}` : ''}`}
           </button>
         </div>
@@ -139,7 +139,7 @@ export const InfoDialog: React.FC<{ message: Message; conversation: Conversation
   return (
     <Modal title="Message info" onClose={onClose}>
       <div className="space-y-4 p-5">
-        <p className="rounded-xl bg-[#e0e7ff] p-3 text-sm text-slate-800">{message.body ?? message.file?.name}</p>
+        <p className="rounded-xl bg-[color:var(--ac-50,#e0e7ff)] p-3 text-sm text-slate-800">{message.body ?? message.file?.name}</p>
         <p className="text-xs text-slate-500">Sent {new Date(message.created_at).toLocaleString()}</p>
         {isLoading ? (
           <Loader2 className="mx-auto h-5 w-5 animate-spin text-slate-400" />
@@ -221,13 +221,13 @@ export const NewChatModal: React.FC<{
           <div className="space-y-2">
             {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
             {step === 'members' ? (
-              <button type="button" disabled={!picked.length} onClick={() => { setError(null); setStep('details'); }} className={`${btn} w-full bg-[#4F46E5] text-white hover:bg-[#4338CA]`}>
+              <button type="button" disabled={!picked.length} onClick={() => { setError(null); setStep('details'); }} className={`${btn} w-full bg-[color:var(--ac-main,#4F46E5)] text-white hover:bg-[color:var(--ac-dark,#4338CA)]`}>
                 Next{picked.length ? ` (${picked.length})` : ''}
               </button>
             ) : (
               <div className="flex gap-2">
                 <button type="button" onClick={() => setStep('members')} className={`${btn} flex-1 bg-slate-100 text-slate-700 hover:bg-slate-200`}>Back</button>
-                <button type="button" disabled={busy} onClick={createGroup} className={`${btn} flex-1 bg-[#4F46E5] text-white hover:bg-[#4338CA]`}>{busy ? 'Creating…' : 'Create group'}</button>
+                <button type="button" disabled={busy} onClick={createGroup} className={`${btn} flex-1 bg-[color:var(--ac-main,#4F46E5)] text-white hover:bg-[color:var(--ac-dark,#4338CA)]`}>{busy ? 'Creating…' : 'Create group'}</button>
               </div>
             )}
           </div>

@@ -4,6 +4,7 @@ import {
   FolderKanban,
   AlertCircle,
   Plus,
+  BarChart3,
 } from 'lucide-react';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useSocket } from '@/shared/socket/SocketContext';
@@ -25,11 +26,24 @@ import { ProjectKanbanView } from '../components/ProjectKanbanView';
 import { ProjectFilterBar, ViewMode } from '../components/ProjectFilterBar';
 import { CreateProjectModal } from '../components/CreateProjectModal';
 import { ProjectDetailsDrawer } from '../components/ProjectDetailsDrawer';
+import { ProjectDashboardTab } from '../components/dashboard/ProjectDashboardTab';
 
 export const ProjectsPage: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id?: string }>();
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentTab = searchParams.get('tab') === 'dashboard' ? 'dashboard' : 'projects';
+
+  const setTab = (tab: 'projects' | 'dashboard') => {
+    const next = new URLSearchParams(searchParams);
+    if (tab === 'dashboard') {
+      next.set('tab', 'dashboard');
+    } else {
+      next.delete('tab');
+    }
+    setSearchParams(next, { replace: true });
+  };
   const [projects, setProjects] = useState<ProjectItem[]>([]);
   const [employees, setEmployees] = useState<AssignableEmployee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -48,7 +62,6 @@ export const ProjectsPage: React.FC = () => {
   const [selectedProject, setSelectedProject] = useState<ProjectItem | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(id ? Number(id) : null);
   // /projects/:id?task=12 or ?bug=3 opens that issue straight away (links from My tasks and My bugs)
-  const [searchParams] = useSearchParams();
   const linkedTaskId = searchParams.get('task') ? Number(searchParams.get('task')) : null;
   const linkedBugId = searchParams.get('bug') ? Number(searchParams.get('bug')) : null;
 
@@ -189,16 +202,42 @@ export const ProjectsPage: React.FC = () => {
           <h1 className="text-[24px] font-medium leading-8 text-[#172B4D]">Projects</h1>
         </div>
 
-        {canCreate && (
+        {canCreate && currentTab === 'projects' && (
           <button
             onClick={() => setIsCreateOpen(true)}
-            className="inline-flex h-8 shrink-0 cursor-pointer items-center justify-center gap-1.5 self-start rounded-[3px] bg-[color:var(--ac-main,#0052CC)] px-3 text-[14px] font-medium text-white transition hover:bg-[color:var(--ac-hover,#0065FF)] active:bg-[#0747A6]"
+            className="inline-flex h-8 shrink-0 cursor-pointer items-center justify-center gap-1.5 self-start rounded-[3px] bg-[color:var(--ac-main,#0052CC)] px-3 text-[14px] font-medium text-white transition hover:bg-[color:var(--ac-hover,#0065FF)] active:bg-[color:var(--ac-dark,#0747A6)]"
           >
             <Plus className="h-4 w-4" strokeWidth={2.5} />
             Create project
           </button>
         )}
       </div>
+
+      {/* Projects / Dashboard tabs */}
+      <div role="tablist" className="flex gap-1 border-b border-[#DFE1E6]">
+        {([['projects', 'Projects', FolderKanban], ['dashboard', 'Dashboard', BarChart3]] as const).map(([key, label, Icon]) => (
+          <button
+            key={key}
+            type="button"
+            role="tab"
+            id={`tab-${key}-btn`}
+            aria-selected={currentTab === key}
+            onClick={() => setTab(key)}
+            className={`-mb-px inline-flex cursor-pointer items-center gap-1.5 border-b-2 px-3 py-2 text-[14px] font-medium transition ${
+              currentTab === key
+                ? 'border-[color:var(--ac-main,#0052CC)] text-[color:var(--ac-main,#0052CC)]'
+                : 'border-transparent text-[#42526E] hover:text-[#172B4D]'
+            }`}
+          >
+            <Icon className="h-4 w-4" /> {label}
+          </button>
+        ))}
+      </div>
+
+      {currentTab === 'dashboard' ? (
+        <ProjectDashboardTab />
+      ) : (
+        <>
 
       {/* Slim summary, instead of big cards */}
       <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[14px] text-[#42526E]">
@@ -308,6 +347,9 @@ export const ProjectsPage: React.FC = () => {
           onStatusChange={handleUpdateStatus}
           activeStatus={statusFilter}
         />
+      )}
+
+        </>
       )}
 
       {/* Create Project Modal */}

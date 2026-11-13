@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../../core/prisma/prisma.service';
 import {
   MasterLookupRepositoryPort,
@@ -7,6 +8,22 @@ import {
   CreateMasterLookupInput,
   UpdateMasterLookupInput,
 } from '../../application/ports/master-lookup.repository.port';
+
+/**
+ * A code is made from a name: lower case, words joined by _, only a-z 0-9 _. A plus or a minus sign at the end is
+ * kept as a word, otherwise "A+" and "A-" would both become "a" (blood groups: A+, A-, AB+, AB-, O+, O-).
+ */
+export function codeFromLabel(text: string): string {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/\+/g, '_plus')
+    .replace(/(?<=[a-z0-9])\s*-$/, '_minus')
+    .replace(/\s+/g, '_')
+    .replace(/[^a-z0-9_]/g, '')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
 
 @Injectable()
 export class PrismaMasterLookupRepository implements MasterLookupRepositoryPort {
@@ -72,12 +89,9 @@ export class PrismaMasterLookupRepository implements MasterLookupRepositoryPort 
 
   async create(input: CreateMasterLookupInput): Promise<MasterLookupItem> {
     // Auto-generate code from label if not provided
-    let code = (input.code || input.label)
-      .toLowerCase()
-      .trim()
-      .replace(/\s+/g, '_')
-      .replace(/[^a-z0-9_]/g, '')
-      .replace(/^_+|_+$/g, '');
+    const typedCode = Boolean(input.code && input.code.trim());
+    let code = codeFromLabel(input.code || input.label);
+    if (!code) throw new ConflictException('Enter a name or a code made of letters or numbers.');
 
     // Codes are unique per type, and "Phase I" exists under many GIDCs, so a child carries its parent's code.
     if (input.parent_id) {
@@ -86,6 +100,38 @@ export class PrismaMasterLookupRepository implements MasterLookupRepositoryPort 
         select: { code: true },
       });
       if (parent) code = `${parent.code}__${code}`.slice(0, 50);
+    }
+
+    // The same name twice in a list is a mistake (a child may repeat a name under another parent)
+    if (!input.parent_id) {
+      const sameName = await this.prisma.master_lookup.findFirst({
+        where: { lookup_type: input.lookup_type, parent_id: null, deleted_at: null, label: { equals: input.label.trim(), mode: 'insensitive' } },
+        select: { label: true },
+      });
+      if (sameName) throw new ConflictException(`"${sameName.label}" already exists in this list.`);
+    }
+
+    // The code must be free. Deleted rows still hold their code, so they count too.
+    const taken = await this.prisma.master_lookup.findFirst({
+      where: { lookup_type: input.lookup_type, code },
+      select: { label: true, deleted_at: true },
+    });
+    if (taken) {
+      if (typedCode) {
+        throw new ConflictException(
+          `The code "${code}" is already used by "${taken.label}"${taken.deleted_at ? ' (deleted)' : ''}. Choose another code or leave it blank.`,
+        );
+      }
+      // A code made from the name: add a number until it is free
+      const base = code.slice(0, 46);
+      for (let n = 2; n < 100; n++) {
+        const candidate = `${base}_${n}`;
+        const used = await this.prisma.master_lookup.findFirst({ where: { lookup_type: input.lookup_type, code: candidate }, select: { lookup_id: true } });
+        if (!used) {
+          code = candidate;
+          break;
+        }
+      }
     }
 
     // Get max sort_order for this type to append at end
@@ -101,21 +147,28 @@ export class PrismaMasterLookupRepository implements MasterLookupRepositoryPort 
 
     const actor = this.actorId(input.actor_id);
 
-    const row = await this.prisma.master_lookup.create({
-      data: {
-        lookup_type: input.lookup_type,
-        code,
-        label: input.label.trim(),
-        sort_order: sortOrder,
-        is_active: input.is_active ?? true,
-        parent_id: input.parent_id ?? null,
-        created_by: actor,
-        updated_by: actor,
-      },
-      include: { parent: { select: { label: true } } },
-    });
-
-    return this.toItem(row);
+    try {
+      const row = await this.prisma.master_lookup.create({
+        data: {
+          lookup_type: input.lookup_type,
+          code,
+          label: input.label.trim(),
+          sort_order: sortOrder,
+          is_active: input.is_active ?? true,
+          parent_id: input.parent_id ?? null,
+          created_by: actor,
+          updated_by: actor,
+        },
+        include: { parent: { select: { label: true } } },
+      });
+      return this.toItem(row);
+    } catch (err) {
+      // Someone else saved the same code a moment ago: say so plainly, never show the database message
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        throw new ConflictException(`The code "${code}" is already in use. Choose another code.`);
+      }
+      throw err;
+    }
   }
 
   async update(input: UpdateMasterLookupInput): Promise<MasterLookupItem> {
@@ -128,13 +181,19 @@ export class PrismaMasterLookupRepository implements MasterLookupRepositoryPort 
     if (input.is_active !== undefined) data.is_active = input.is_active;
     if (input.parent_id !== undefined) data.parent_id = input.parent_id;
 
-    const row = await this.prisma.master_lookup.update({
-      where: { lookup_id: input.id },
-      data,
-      include: { parent: { select: { label: true } } },
-    });
-
-    return this.toItem(row);
+    try {
+      const row = await this.prisma.master_lookup.update({
+        where: { lookup_id: input.id },
+        data,
+        include: { parent: { select: { label: true } } },
+      });
+      return this.toItem(row);
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        throw new ConflictException('That code is already used by another item in this list. Choose another code.');
+      }
+      throw err;
+    }
   }
 
   async delete(id: number, actorId?: number): Promise<void> {

@@ -1,6 +1,7 @@
 import React from 'react';
-import { CalendarDays, ExternalLink } from 'lucide-react';
+import { CalendarDays, Clock, ExternalLink } from 'lucide-react';
 import { JiraAvatar } from '@/shared/ui/JiraAvatar';
+import { dueLabel, isPastDate, minutesOverEstimate } from '@/shared/utils/schedule.utils';
 import type { ProjectItem, ProjectStatus } from '../types';
 
 interface ProjectCardProps {
@@ -13,7 +14,7 @@ interface ProjectCardProps {
 const LOZENGE: Record<ProjectStatus, { label: string; cls: string }> = {
   new: { label: 'New', cls: 'bg-[#DFE1E6] text-[#42526E]' },
   planning: { label: 'Planning', cls: 'bg-[#EAE6FF] text-[#403294]' },
-  in_progress: { label: 'In Progress', cls: 'bg-[#DEEBFF] text-[#0747A6]' },
+  in_progress: { label: 'In Progress', cls: 'bg-[color:var(--ac-50,#DEEBFF)] text-[color:var(--ac-dark,#0747A6)]' },
   pending: { label: 'Pending', cls: 'bg-[#FFF0B3] text-[#172B4D]' },
   review: { label: 'Review', cls: 'bg-[#EAE6FF] text-[#403294]' },
   delivered: { label: 'Delivered', cls: 'bg-[#E3FCEF] text-[#006644]' },
@@ -48,9 +49,11 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick }) =>
   const category = categoryLabels[project.category] || project.other_category || 'General';
   const pct = Math.min(100, Math.max(0, project.progress_percentage));
   const total = project.total_tasks_count || 0;
-  const overdue = Boolean(
-    project.deadline && project.deadline.slice(0, 10) < new Date().toISOString().slice(0, 10) && !['delivered', 'cancelled'].includes(project.project_status),
-  );
+  const finished = ['delivered', 'cancelled'].includes(project.project_status);
+  const overdue = !finished && isPastDate(project.deadline);
+  const overBy = finished ? 0 : minutesOverEstimate(project.total_estimated_minutes, project.actual_work_minutes);
+  const overdueTasks = finished ? 0 : project.overdue_tasks_count ?? 0;
+  const mins = (n: number) => `${Math.floor(n / 60)}h${n % 60 ? ` ${n % 60}m` : ''}`;
   const team = Array.from(new Map((project.members ?? []).map((m) => [m.employee_id, m])).values());
 
   return (
@@ -111,9 +114,27 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick }) =>
                 <CalendarDays className="h-3.5 w-3.5 text-[#5E6C84]" />
                 {formatDate(project.start_date, false)} – {formatDate(project.deadline)}
               </span>
-              {overdue && <span className="rounded-[3px] bg-[#FFEBE6] px-1 py-px text-[11px] font-bold uppercase text-[#BF2600]">Overdue</span>}
+              {overdue && <span title={dueLabel(project.deadline) ?? undefined} className="rounded-[3px] bg-[#FFEBE6] px-1 py-px text-[11px] font-bold uppercase text-[#BF2600]">Overdue</span>}
             </dd>
           </div>
+          {(project.total_estimated_minutes ?? 0) > 0 || (project.actual_work_minutes ?? 0) > 0 ? (
+            <div className="flex items-center gap-2">
+              <dt className="w-10 shrink-0 text-[12px] text-[#5E6C84]">Time</dt>
+              <dd className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[#42526E]">
+                <span className="inline-flex items-center gap-1">
+                  <Clock className="h-3.5 w-3.5 text-[#5E6C84]" />
+                  {mins(project.actual_work_minutes ?? 0)} of {mins(project.total_estimated_minutes ?? 0)}
+                </span>
+                {overBy > 0 && <span className="rounded-[3px] bg-[#FFF0B3] px-1 py-px text-[11px] font-bold uppercase text-[#974F0C]" title={`${mins(overBy)} over the estimate`}>Over estimate</span>}
+                {overdueTasks > 0 && <span className="rounded-[3px] bg-[#FFEBE6] px-1 py-px text-[11px] font-bold text-[#BF2600]">{overdueTasks} overdue task{overdueTasks === 1 ? '' : 's'}</span>}
+              </dd>
+            </div>
+          ) : overdueTasks > 0 ? (
+            <div className="flex items-center gap-2">
+              <dt className="w-10 shrink-0 text-[12px] text-[#5E6C84]">Tasks</dt>
+              <dd><span className="rounded-[3px] bg-[#FFEBE6] px-1 py-px text-[11px] font-bold text-[#BF2600]">{overdueTasks} overdue task{overdueTasks === 1 ? '' : 's'}</span></dd>
+            </div>
+          ) : null}
         </dl>
       </div>
 

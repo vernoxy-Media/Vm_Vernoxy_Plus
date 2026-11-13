@@ -81,6 +81,8 @@ export interface ProjectEntity {
   progress_percentage: number;
   total_estimated_minutes?: number;
   actual_work_minutes?: number;
+  /** Open top-level tasks whose due date has passed. */
+  overdue_tasks_count?: number;
   created_at: string;
   created_by?: number | null;
 }

@@ -656,7 +656,7 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
                 <ProjectDateRange project={project} />
                 {!isManagerOrAdmin && (
                   <p className="mt-1.5 flex flex-wrap items-center gap-2 text-[13px] text-[#42526E]">
-                    <span className="rounded-[3px] bg-[#DEEBFF] px-1.5 py-px text-[12px] font-semibold text-[#0747A6]">Your view</span>
+                    <span className="rounded-[3px] bg-[color:var(--ac-50,#DEEBFF)] px-1.5 py-px text-[12px] font-semibold text-[color:var(--ac-dark,#0747A6)]">Your view</span>
                     You see only the work assigned to you in this project.
                   </p>
                 )}

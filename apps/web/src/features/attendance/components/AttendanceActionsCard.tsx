@@ -119,7 +119,7 @@ export const AttendanceActionsCard: React.FC<AttendanceActionsCardProps> = ({
       disabled={isPending}
       onClick={() => (isWorking ? onPunchOut() : onPunchIn())}
       className={`inline-flex w-full items-center justify-center gap-2.5 rounded-xl px-5 py-4 text-base font-bold shadow-md transition active:scale-[0.98] disabled:opacity-50 whitespace-nowrap cursor-pointer ${
-        isWorking ? 'bg-rose-500 text-white hover:bg-rose-600' : 'cta-pulse bg-white text-[#1D4ED8] hover:bg-sky-50'
+        isWorking ? 'bg-rose-500 text-white hover:bg-rose-600' : 'cta-pulse bg-white text-[color:var(--ac-dark,#1D4ED8)] hover:bg-sky-50'
       }`}
     >
       {isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : isWorking ? <LogOut className="h-5 w-5" /> : <LogIn className="h-5 w-5" />}
@@ -132,7 +132,7 @@ export const AttendanceActionsCard: React.FC<AttendanceActionsCardProps> = ({
   return (
     <div
       id="attendance-actions-card"
-      className="relative flex flex-col justify-between gap-4 overflow-hidden rounded-2xl bg-gradient-to-br from-[#0B1B4A] via-[#16358F] to-[color:var(--ac-main,#2563EB)] p-4 text-white shadow-lg shadow-blue-900/10 sm:p-5"
+      className="relative flex flex-col justify-between gap-4 overflow-hidden rounded-2xl bg-gradient-to-br from-[color:rgb(var(--tw-indigo-950,11_27_74))] via-[color:var(--ac-dark,#16358F)] to-[color:var(--ac-main,#2563EB)] p-4 text-white shadow-lg shadow-blue-900/10 sm:p-5"
     >
       <span aria-hidden className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
       <div className="relative flex flex-wrap items-start justify-between gap-x-6 gap-y-4">

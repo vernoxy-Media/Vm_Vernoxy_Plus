@@ -48,7 +48,7 @@ const JIRA = {
   card: 'shadow-[0_1px_1px_rgba(9,30,66,0.25),0_0_1px_rgba(9,30,66,0.31)]',
 };
 
-const BTN_PRIMARY = 'inline-flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-[3px] bg-[color:var(--ac-main,#0052CC)] px-3 text-[14px] font-medium text-white transition hover:bg-[color:var(--ac-hover,#0065FF)] active:bg-[#0747A6] disabled:cursor-not-allowed disabled:opacity-50';
+const BTN_PRIMARY = 'inline-flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-[3px] bg-[color:var(--ac-main,#0052CC)] px-3 text-[14px] font-medium text-white transition hover:bg-[color:var(--ac-hover,#0065FF)] active:bg-[color:var(--ac-dark,#0747A6)] disabled:cursor-not-allowed disabled:opacity-50';
 const BTN_SUBTLE = 'inline-flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-[3px] bg-[rgba(9,30,66,0.04)] px-3 text-[14px] font-medium text-[#42526E] transition hover:bg-[rgba(9,30,66,0.08)] disabled:cursor-not-allowed disabled:opacity-50';
 
 /** The five task stages, named the way a Jira board names them. */
@@ -63,7 +63,7 @@ const COLUMNS = [
 /** Status lozenges: uppercase, bold, small, exactly like Jira's. */
 const LOZENGE: Record<string, string> = {
   assigned: 'bg-[#DFE1E6] text-[#42526E]',
-  in_progress: 'bg-[#DEEBFF] text-[#0747A6]',
+  in_progress: 'bg-[color:var(--ac-50,#DEEBFF)] text-[color:var(--ac-dark,#0747A6)]',
   hold: 'bg-[#FFF0B3] text-[#172B4D]',
   requested: 'bg-[#EAE6FF] text-[#403294]',
   completed: 'bg-[#E3FCEF] text-[#006644]',
@@ -655,7 +655,7 @@ export const ProjectSprintBoard: React.FC<ProjectSprintBoardProps> = ({
     return (
       <span className="flex shrink-0 items-center gap-1" aria-label={`${todo} to do, ${doing} in progress, ${done} done`}>
         <span title="To do" className={`${pill} bg-[#DFE1E6] text-[#42526E]`}>{todo}</span>
-        <span title="In progress" className={`${pill} bg-[#DEEBFF] text-[#0747A6]`}>{doing}</span>
+        <span title="In progress" className={`${pill} bg-[color:var(--ac-50,#DEEBFF)] text-[color:var(--ac-dark,#0747A6)]`}>{doing}</span>
         <span title="Done" className={`${pill} bg-[#E3FCEF] text-[#006644]`}>{done}</span>
       </span>
     );
@@ -670,7 +670,7 @@ export const ProjectSprintBoard: React.FC<ProjectSprintBoardProps> = ({
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
             <h3 className={`text-[20px] font-medium leading-7 ${JIRA.text}`}>{sprint ? sprint.sprint_name : 'All work'}</h3>
-            {sprint && <span className={`rounded-[3px] px-1 py-px text-[11px] font-bold uppercase ${sprint.status === 'active' ? 'bg-[#DEEBFF] text-[#0747A6]' : sprint.status === 'completed' ? 'bg-[#E3FCEF] text-[#006644]' : 'bg-[#DFE1E6] text-[#42526E]'}`}>{SPRINT_STATUS[sprint.status]}</span>}
+            {sprint && <span className={`rounded-[3px] px-1 py-px text-[11px] font-bold uppercase ${sprint.status === 'active' ? 'bg-[color:var(--ac-50,#DEEBFF)] text-[color:var(--ac-dark,#0747A6)]' : sprint.status === 'completed' ? 'bg-[#E3FCEF] text-[#006644]' : 'bg-[#DFE1E6] text-[#42526E]'}`}>{SPRINT_STATUS[sprint.status]}</span>}
             {sprint && sprintInfo && sprint.status !== 'completed' && (
               <span className={`inline-flex items-center gap-1 rounded-[3px] bg-[rgba(9,30,66,0.08)] px-1.5 py-0.5 text-[12px] font-medium ${sprintInfo.daysLeft < 0 ? 'text-[#BF2600]' : 'text-[#42526E]'}`}>
                 <Clock className="h-3 w-3" />
@@ -838,7 +838,7 @@ export const ProjectSprintBoard: React.FC<ProjectSprintBoardProps> = ({
                     {g.sprint && <span className="hidden shrink-0 text-[12px] text-[#5E6C84] sm:inline">{fmt(g.sprint.start_date)} – {fmt(g.sprint.end_date)}</span>}
                     <span className="shrink-0 text-[12px] text-[#5E6C84]">({g.tasks.length} issue{g.tasks.length === 1 ? '' : 's'})</span>
                     {g.sprint && g.sprint.status !== 'planned' && (
-                      <span className={`ml-1 shrink-0 rounded-[3px] px-1 py-px text-[11px] font-bold uppercase ${g.sprint.status === 'active' ? 'bg-[#DEEBFF] text-[#0747A6]' : 'bg-[#E3FCEF] text-[#006644]'}`}>{SPRINT_STATUS[g.sprint.status]}</span>
+                      <span className={`ml-1 shrink-0 rounded-[3px] px-1 py-px text-[11px] font-bold uppercase ${g.sprint.status === 'active' ? 'bg-[color:var(--ac-50,#DEEBFF)] text-[color:var(--ac-dark,#0747A6)]' : 'bg-[#E3FCEF] text-[#006644]'}`}>{SPRINT_STATUS[g.sprint.status]}</span>
                     )}
                   </button>
                   <Counters list={g.tasks} />

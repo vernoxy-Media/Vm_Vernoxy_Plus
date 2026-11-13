@@ -6,6 +6,9 @@ export interface CandidateFilterParams {
   depId?: number;
   source?: string;
   stage?: string;
+  experienceType?: string;
+  startDate?: string;
+  endDate?: string;
   limit?: number;
   offset?: number;
 }

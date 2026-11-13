@@ -7,7 +7,7 @@ const STATUS: Record<BugStatus, { label: string; cls: string }> = {
   new: { label: 'New', cls: 'bg-[#FFEBE6] text-[#BF2600]' },
   open: { label: 'Open', cls: 'bg-[#FFEBE6] text-[#BF2600]' },
   ready_for_dev: { label: 'Ready for dev', cls: 'bg-[#FFF0B3] text-[#172B4D]' },
-  dev_in_progress: { label: 'In dev', cls: 'bg-[#DEEBFF] text-[#0747A6]' },
+  dev_in_progress: { label: 'In dev', cls: 'bg-[color:var(--ac-50,#DEEBFF)] text-[color:var(--ac-dark,#0747A6)]' },
   ready_for_qa: { label: 'Ready for QA', cls: 'bg-[#EAE6FF] text-[#403294]' },
   qa_in_progress: { label: 'In QA', cls: 'bg-[#EAE6FF] text-[#403294]' },
   done: { label: 'Done', cls: 'bg-[#E3FCEF] text-[#006644]' },
@@ -50,7 +50,7 @@ export const ProjectBugsView: React.FC<ProjectBugsViewProps> = ({ bugs, onOpenBu
 
   return (
     <div className="space-y-3">
-      {scopeNote && <p className="rounded-[3px] bg-[#DEEBFF] px-3 py-2 text-[13px] text-[#0747A6]">{scopeNote}</p>}
+      {scopeNote && <p className="rounded-[3px] bg-[color:var(--ac-50,#DEEBFF)] px-3 py-2 text-[13px] text-[color:var(--ac-dark,#0747A6)]">{scopeNote}</p>}
       <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
         <div role="tablist" aria-label="Filter bugs" className="flex flex-wrap gap-1.5">
           {GROUPS.map((g) => {

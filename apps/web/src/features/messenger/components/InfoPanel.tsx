@@ -93,7 +93,7 @@ export const InfoPanel: React.FC<Props> = ({ conversation: conv, onClose, onOpen
             <textarea value={desc} onChange={(e) => setDesc(e.target.value)} maxLength={500} rows={3} aria-label="Description" placeholder="Group description" className="w-full resize-none rounded-xl border border-slate-200 px-3 py-2 text-base focus:border-indigo-500 sm:text-sm focus:outline-none" />
             <div className="flex gap-2">
               <button type="button" onClick={() => setEditing(false)} className="flex-1 rounded-xl bg-slate-100 py-2 text-sm font-semibold text-slate-700">Cancel</button>
-              <button type="button" onClick={() => run(() => messengerApi.updateGroup(id, { name, description: desc }), () => setEditing(false))} className="flex-1 rounded-xl bg-[#4F46E5] py-2 text-sm font-semibold text-white">Save</button>
+              <button type="button" onClick={() => run(() => messengerApi.updateGroup(id, { name, description: desc }), () => setEditing(false))} className="flex-1 rounded-xl bg-[color:var(--ac-main,#4F46E5)] py-2 text-sm font-semibold text-white">Save</button>
             </div>
           </div>
         ) : (
@@ -269,7 +269,7 @@ const AddMembersModal: React.FC<{ conversationId: number; existing: number[]; on
       footer={
         <div className="space-y-2">
           {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
-          <button type="button" disabled={!picked.length || busy} onClick={async () => { setBusy(true); try { await messengerApi.addMembers(conversationId, picked.map((p) => p.emp_id)); onDone(); } catch (e) { setError(errorMessage(e)); setBusy(false); } }} className="w-full rounded-xl bg-[#4F46E5] py-2.5 text-sm font-semibold text-white disabled:opacity-50">
+          <button type="button" disabled={!picked.length || busy} onClick={async () => { setBusy(true); try { await messengerApi.addMembers(conversationId, picked.map((p) => p.emp_id)); onDone(); } catch (e) { setError(errorMessage(e)); setBusy(false); } }} className="w-full rounded-xl bg-[color:var(--ac-main,#4F46E5)] py-2.5 text-sm font-semibold text-white disabled:opacity-50">
             Add{picked.length ? ` (${picked.length})` : ''}
           </button>
         </div>

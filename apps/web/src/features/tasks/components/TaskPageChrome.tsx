@@ -38,7 +38,7 @@ export const ViewSwitch: React.FC<{ value: 'kanban' | 'list'; onChange: (v: 'kan
 );
 
 export const PRIMARY_BUTTON =
-  'inline-flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-[3px] bg-[color:var(--ac-main,#0052CC)] px-3 text-[14px] font-medium text-white transition hover:bg-[color:var(--ac-hover,#0065FF)] active:bg-[#0747A6]';
+  'inline-flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-[3px] bg-[color:var(--ac-main,#0052CC)] px-3 text-[14px] font-medium text-white transition hover:bg-[color:var(--ac-hover,#0065FF)] active:bg-[color:var(--ac-dark,#0747A6)]';
 
 /** The counts above a board, as one slim line instead of five large cards. */
 export const TaskStatStrip: React.FC<{ items: Array<{ label: string; value: number; dot: string }> }> = ({ items }) => (

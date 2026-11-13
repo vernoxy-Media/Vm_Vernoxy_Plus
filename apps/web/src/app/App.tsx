@@ -404,6 +404,12 @@ export const App: React.FC = () => {
                 path="/admin/roles"
                 element={<Navigate to="/admin/settings/roles" replace />}
               />
+              <Route path="/admin/projects/dashboard" element={<Navigate to="/projects?tab=dashboard" replace />} />
+              <Route path="/projects/dashboard" element={<Navigate to="/projects?tab=dashboard" replace />} />
+              <Route path="/admin/attendance/dashboard" element={<Navigate to="/attendance?tab=analytics" replace />} />
+              <Route path="/attendance/dashboard" element={<Navigate to="/attendance?tab=analytics" replace />} />
+              <Route path="/admin/employees/dashboard" element={<Navigate to="/admin/employees?tab=dashboard" replace />} />
+              <Route path="/admin/employee-dashboard" element={<Navigate to="/admin/employees?tab=dashboard" replace />} />
               <Route
                 path="/admin/employees"
                 element={

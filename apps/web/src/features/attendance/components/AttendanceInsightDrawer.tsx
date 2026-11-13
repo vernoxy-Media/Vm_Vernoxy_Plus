@@ -407,7 +407,7 @@ export const AttendanceInsightDrawer: React.FC<AttendanceInsightDrawerProps> = (
                     <button
                       onClick={() => setMode('regularize')}
                       type="button"
-                      className="inline-flex items-center gap-1.5 text-[13px] text-[#1471DD] hover:underline cursor-pointer"
+                      className="inline-flex items-center gap-1.5 text-[13px] text-[color:var(--ac-main,#1471DD)] hover:underline cursor-pointer"
                     >
                       <Edit3 className="w-3.5 h-3.5" />
                       Regularise
