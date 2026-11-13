@@ -741,7 +741,12 @@ export class AttendanceController {
   @UseGuards(AttendanceAdminGuard)
   @ApiOperation({ summary: 'Update working and work off days' })
   async updateWorkingDays(@Req() req: Request, @Body() body: { working_days: number[] }) {
-    await this.appSettingsRepo.saveWorkingDays(body.working_days, req.user!.emp_id);
+    const days = body?.working_days;
+    // 0 = Sunday ... 6 = Saturday. At least one working day, no repeats, nothing outside the week.
+    if (!Array.isArray(days) || days.length === 0 || days.length > 7 || days.some((d) => !Number.isInteger(d) || d < 0 || d > 6) || new Set(days).size !== days.length) {
+      throw new BadRequestException('Select at least one working day. Days must be numbers from 0 (Sunday) to 6 (Saturday), each only once.');
+    }
+    await this.appSettingsRepo.saveWorkingDays([...days].sort((a, b) => a - b), req.user!.emp_id);
     return await this.appSettingsRepo.getAttendanceSettings();
   }
 
