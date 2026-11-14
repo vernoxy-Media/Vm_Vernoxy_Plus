@@ -13,6 +13,7 @@ import {
   Loader2,
   
 } from 'lucide-react';
+import { CallDurationInput, EMPTY_DURATION, durationError, durationSeconds, type DurationValue } from '../common/CallDurationInput';
 import { ConversationBodyDtoOutcome, useSalesFollowUpControllerComplete } from '@vernoxy-pulse/api-client';
 
 import { Modal } from '../common/Modal';
@@ -41,6 +42,7 @@ export const CompleteFollowUpModal: React.FC<CompleteFollowUpModalProps> = ({
 
   const [outcome, setOutcome] = useState('');
   const [whatHappened, setWhatHappened] = useState('');
+  const [duration, setDuration] = useState<DurationValue>(EMPTY_DURATION);
   const [nextAction, setNextAction] = useState<NextStepAction>('schedule');
 
   // Next schedule parameters
@@ -83,6 +85,13 @@ export const CompleteFollowUpModal: React.FC<CompleteFollowUpModalProps> = ({
     if (!whatHappened.trim()) {
       setErrorMessage('Please describe what happened during this follow-up');
       return;
+    }
+    if (followUp.type === 'Call') {
+      const de = durationError(duration);
+      if (de) {
+        setErrorMessage(de);
+        return;
+      }
     }
 
     // Build next_step object
@@ -141,6 +150,7 @@ export const CompleteFollowUpModal: React.FC<CompleteFollowUpModalProps> = ({
         data: {
           outcome: outcome as never,
           what_happened: whatHappened.trim(),
+          ...(followUp.type === 'Call' ? { call_duration_seconds: durationSeconds(duration) as number } : {}),
           next_step: nextStepPayload as never,
         },
       });
@@ -178,6 +188,9 @@ export const CompleteFollowUpModal: React.FC<CompleteFollowUpModalProps> = ({
             </div>
           </div>
         )}
+
+        {/* A call: how long it lasted */}
+        {followUp.type === 'Call' && <CallDurationInput value={duration} onChange={setDuration} />}
 
         {/* Outcome */}
         <div>

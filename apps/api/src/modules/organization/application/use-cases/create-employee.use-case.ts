@@ -130,6 +130,7 @@ export class CreateEmployeeUseCase {
     }
 
     let assignedRoleId: number | null = null;
+    let primaryDepId = command.dep_id;
     if (command.role_id) {
       const role = await this.roleRepo.findById(command.role_id);
       if (!role) {
@@ -143,7 +144,15 @@ export class CreateEmployeeUseCase {
         );
       }
 
-      OrganizationPolicyService.validateRoleBelongsToDepartment(role.dep_id, command.dep_id);
+      // The designation decides the main department: it may belong to any of the departments that were selected
+      const selectedDepIds = Array.from(new Set([command.dep_id, ...(command.department_ids || [])]));
+      primaryDepId = OrganizationPolicyService.validateRoleBelongsToAnyDepartment(role.dep_id, selectedDepIds, role.role_name);
+      if (primaryDepId !== command.dep_id) {
+        const roleDepartment = await this.departmentRepo.findById(primaryDepId);
+        if (!roleDepartment || !roleDepartment.is_active) {
+          throw new UnprocessableDomainError('DEPARTMENT_INACTIVE', 'The department of this designation is not active', 'department_ids');
+        }
+      }
       assignedRoleId = role.role_id;
     }
 
@@ -178,7 +187,7 @@ export class CreateEmployeeUseCase {
       }
     }
 
-    const allDepIds = Array.from(new Set([command.dep_id, ...(command.department_ids || [])]));
+    const allDepIds = Array.from(new Set([primaryDepId, command.dep_id, ...(command.department_ids || [])]));
 
     const createdEmployee = await this.unitOfWork.run(async (tx) => {
       const created = await this.employeeRepo.create(
@@ -186,7 +195,7 @@ export class CreateEmployeeUseCase {
           name: trimmedName,
           email: normalizedEmail,
           mob: normalizedMob,
-          dep_id: command.dep_id,
+          dep_id: primaryDepId,
           department_ids: allDepIds,
           role_id: assignedRoleId,
           reporting_manager: command.reporting_manager || null,
@@ -227,6 +236,8 @@ export class CreateEmployeeUseCase {
         {
           emp_id: created.emp_id,
           password: command.password,
+          // The password the Admin hands over is temporary: the employee chooses their own at the first sign in
+          must_change_password: true,
           actor_emp_id: command.acting_admin_id,
         },
         tx,

@@ -3,8 +3,11 @@ import { PrismaModule } from '../../core/prisma/prisma.module';
 import { AuthModule } from '../auth/auth.module';
 import { TasksModule } from '../tasks/public-api';
 import { ATTENDANCE_TOKENS } from './domain/ports/tokens';
+import { StorageModule } from '../storage/public-api';
+import { PrismaBirthdayRepository } from './infrastructure/repositories/prisma-birthday.repository';
 import { PrismaAttendanceRepository } from './infrastructure/repositories/prisma-attendance.repository';
 import { PrismaAppSettingsRepository } from './infrastructure/repositories/prisma-app-settings.repository';
+import { PrismaPunchLocationRepository } from './infrastructure/repositories/prisma-punch-location.repository';
 import { SystemClock } from './infrastructure/adapters/system-clock.adapter';
 import { PunchInUseCase } from './application/use-cases/punch-in.use-case';
 import { PunchOutUseCase } from './application/use-cases/punch-out.use-case';
@@ -25,14 +28,24 @@ import { AttendanceMonthLockService } from './application/services/attendance-mo
 import { AttendanceAdminGuard } from './presentation/guards/attendance-admin.guard';
 
 @Module({
-  imports: [PrismaModule, AuthModule, TasksModule],
+  imports: [PrismaModule, AuthModule, StorageModule, TasksModule],
   controllers: [AttendanceController, AttendanceMonthLockController],
   providers: [
     PrismaAttendanceRepository,
     PrismaAppSettingsRepository,
+    PrismaPunchLocationRepository,
+    PrismaBirthdayRepository,
+    {
+      provide: ATTENDANCE_TOKENS.BIRTHDAY_REPOSITORY,
+      useExisting: PrismaBirthdayRepository,
+    },
     SystemClock,
     AttendanceAdminGuard,
     AttendanceMonthLockService,
+    {
+      provide: ATTENDANCE_TOKENS.PUNCH_LOCATION_REPOSITORY,
+      useExisting: PrismaPunchLocationRepository,
+    },
     {
       provide: ATTENDANCE_TOKENS.ATTENDANCE_REPOSITORY,
       useExisting: PrismaAttendanceRepository,

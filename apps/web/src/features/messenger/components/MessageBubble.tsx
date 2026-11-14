@@ -150,7 +150,7 @@ export const MessageBubble: React.FC<Props> = (p) => {
     fn();
   };
 
-  const bubble = mine ? 'bg-[#e0e7ff] rounded-tr-none' : 'bg-white rounded-tl-none';
+  const bubble = mine ? 'bg-[var(--chat-mine,#e0e7ff)] rounded-tr-none' : 'bg-white rounded-tl-none';
   const radius = p.firstOfRun ? '' : mine ? 'rounded-tr-lg' : 'rounded-tl-lg';
 
   const row = (Icon: React.ElementType, label: string, fn: () => void, danger?: boolean) => (
@@ -250,7 +250,7 @@ export const MessageBubble: React.FC<Props> = (p) => {
             aria-haspopup="menu"
             aria-expanded={menu}
             onClick={() => (menu ? setMenu(false) : openMenu())}
-            className={`absolute right-1 top-1 rounded-full bg-gradient-to-l ${mine ? 'from-[#e0e7ff]' : 'from-white'} to-transparent p-1 text-slate-500 opacity-0 transition focus:opacity-100 group-hover:opacity-100 max-sm:hidden`}
+            className={`absolute right-1 top-1 rounded-full bg-gradient-to-l ${mine ? 'from-[var(--chat-mine,#e0e7ff)]' : 'from-white'} to-transparent p-1 text-slate-500 opacity-0 transition focus:opacity-100 group-hover:opacity-100 max-sm:hidden`}
           >
             <ChevronDown className="h-4 w-4" />
           </button>
@@ -320,11 +320,11 @@ export const MessageBubble: React.FC<Props> = (p) => {
                 {!deleted && (
                   <div className="flex items-center justify-between rounded-full bg-white px-2 py-1.5 shadow-[0_8px_24px_rgba(15,23,42,0.18)] ring-1 ring-black/5">
                     {QUICK_REACTIONS.map((e) => (
-                      <button key={e} type="button" onClick={act(() => p.onReact(e))} className="flex h-9 w-9 items-center justify-center rounded-full text-[22px] leading-none transition hover:scale-110 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4F46E5]" aria-label={`React ${e}`}>
+                      <button key={e} type="button" onClick={act(() => p.onReact(e))} className="flex h-9 w-9 items-center justify-center rounded-full text-[22px] leading-none transition hover:scale-110 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ac-main,#4F46E5)]" aria-label={`React ${e}`}>
                         {e}
                       </button>
                     ))}
-                    <button type="button" onClick={act(p.onMoreReactions)} className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-lg leading-none text-slate-600 transition hover:bg-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4F46E5]" aria-label="More reactions">+</button>
+                    <button type="button" onClick={act(p.onMoreReactions)} className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-lg leading-none text-slate-600 transition hover:bg-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ac-main,#4F46E5)]" aria-label="More reactions">+</button>
                   </div>
                 )}
                 <div className="max-h-[calc(100dvh-110px)] overflow-y-auto rounded-2xl bg-white py-1.5 shadow-[0_8px_24px_rgba(15,23,42,0.18)] ring-1 ring-black/5">

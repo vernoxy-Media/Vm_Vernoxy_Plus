@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
  X,
  Plus,
@@ -11,7 +11,7 @@ import { useCreateSoftwareMutation } from '../hooks/use-licenses';
 import {
  useLicenseCategoriesQuery,
  useLicenseVendorsQuery,
- useCreateLicenseVendorMutation,
+ useLicenseSettingsQuery,
 } from '../hooks/use-license-settings';
 import { useEmployeeOptionsQuery } from '@/features/organization/hooks/use-organization';
 import { useUploadAttachmentMutation } from '@/shared/hooks/use-attachments';
@@ -47,9 +47,11 @@ export const AddSoftwareModal: React.FC<AddSoftwareModalProps> = ({
  const { data: categories = [] } = useLicenseCategoriesQuery();
  const { data: vendors = [] } = useLicenseVendorsQuery();
  const { data: employeeOptions = [] } = useEmployeeOptionsQuery();
+ // Types switched off in License Settings are not offered (BFD 11).
+ const { data: licenseSettings } = useLicenseSettingsQuery();
+ const typeOptions = LICENSE_TYPES.filter((t) => !(licenseSettings?.disabled_license_types || []).includes(t));
 
  const createSoftwareMutation = useCreateSoftwareMutation();
- const createVendorMutation = useCreateLicenseVendorMutation();
  const uploadAttachmentMutation = useUploadAttachmentMutation();
 
  // Form states
@@ -59,6 +61,10 @@ export const AddSoftwareModal: React.FC<AddSoftwareModalProps> = ({
  const [newVendorName, setNewVendorName] = useState('');
  const [categoryId, setCategoryId] = useState<number | ''>('');
  const [licenseType, setLicenseType] = useState('Subscription · Per User');
+ useEffect(() => {
+ if (typeOptions.length && !typeOptions.includes(licenseType)) setLicenseType(typeOptions[0]);
+ // eslint-disable-next-line react-hooks/exhaustive-deps
+ }, [licenseSettings]);
  const [totalSeats, setTotalSeats] = useState<number | ''>('');
  const [ownerId, setOwnerId] = useState<number | ''>('');
  const [boughtFrom, setBoughtFrom] = useState('');
@@ -77,88 +83,135 @@ export const AddSoftwareModal: React.FC<AddSoftwareModalProps> = ({
  const [expenseClaimNo, setExpenseClaimNo] = useState('');
  const [remarks, setRemarks] = useState('');
 
- // Uploaded files
- const [selectedFile, setSelectedFile] = useState<File | null>(null);
+ // Uploaded files (BFD 4 Part 1, marker 11: up to 5 files, PDF/JPG/PNG, 10 MB each)
+ const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+ const [uploadedIds, setUploadedIds] = useState<number[] | null>(null);
  const [errorMsg, setErrorMsg] = useState('');
+ // "Confirm" checks from the server (term vs cycle, possible duplicate, already expired)
+ const [confirmMsgs, setConfirmMsgs] = useState<string[] | null>(null);
+ const [confirmDiscard, setConfirmDiscard] = useState(false);
+
+ // What the License Type needs (BFD 4 Part 2)
+ const seatsCounted = licenseType.endsWith('Per User') || licenseType === 'Trial';
+ const needsExpiry = licenseType.startsWith('Subscription') || licenseType === 'Trial';
+ const needsCycle = licenseType.startsWith('Subscription') || licenseType.startsWith('Perpetual');
+ const isFree = licenseType === 'Free / Open Source' || licenseType === 'Trial';
 
  if (!isOpen) return null;
 
- const handleSubmit = async (e: React.FormEvent) => {
- e.preventDefault();
+ const dirty = Boolean(
+ softwareName.trim() || vendorId || newVendorName.trim() || categoryId || totalSeats !== '' || ownerId ||
+ boughtFrom.trim() || licenseKey.trim() || expiryDate || cost !== '' || invoiceOrderNo.trim() ||
+ expenseClaimNo.trim() || remarks.trim() || selectedFiles.length,
+ );
+ const requestClose = () => {
+ if (dirty && !createSoftwareMutation.isPending) setConfirmDiscard(true);
+ else onClose();
+ };
+
+ const ALLOWED = ['application/pdf', 'image/jpeg', 'image/png'];
+ const pickFiles = (list: FileList | null) => {
+ const files = Array.from(list || []);
+ const all = [...selectedFiles, ...files];
+ if (all.length > 5 || files.some((f) => !ALLOWED.includes(f.type) || f.size > 10 * 1024 * 1024)) {
+ setErrorMsg('Only PDF, JPG or PNG up to 10 MB, up to 5 files.');
+ return;
+ }
  setErrorMsg('');
+ setSelectedFiles(all);
+ setUploadedIds(null);
+ };
 
- if (!softwareName.trim()) {
- setErrorMsg('Please enter a software name');
- return;
+ /** The same "Stops" checks as the server (BFD 4 Part 4), so most mistakes show before saving. */
+ const checkForm = (): string | null => {
+ const name = softwareName.trim();
+ if (name.length < 2 || name.length > 100) return 'Software Name must be 2 to 100 characters.';
+ if (!vendorId && !newVendorName.trim()) return 'Please choose the Vendor / Publisher.';
+ if (!categoryId) return 'Please choose the Category.';
+ if (seatsCounted && (totalSeats === '' || !Number.isInteger(Number(totalSeats)) || Number(totalSeats) < 1 || Number(totalSeats) > 10000)) {
+ return 'Please enter the number of seats bought, from 1 to 10,000.';
  }
- if (!categoryId) {
- setErrorMsg('Please select a category');
- return;
+ if (!isFree) {
+ const c = Number(cost);
+ if (cost === '' || !Number.isFinite(c) || c < 0 || c > 10000000 || Math.abs(c * 100 - Math.round(c * 100)) > 1e-6) {
+ return 'Please enter the amount paid for one cycle.';
  }
- if (!ownerId) {
- setErrorMsg('Please select a software owner');
- return;
  }
- if (!vendorId && !newVendorName.trim()) {
- setErrorMsg('Please select or specify a vendor');
- return;
+ if (!purchaseDate) return 'Please fill the Purchase Date.';
+ if (purchaseDate > todayStr) return 'The purchase date cannot be in the future.';
+ if (!startDate) return 'Please fill the Start Date.';
+ if (needsExpiry) {
+ if (!expiryDate) return 'Please fill the Expiry Date.';
+ if (expiryDate <= startDate) return 'The expiry date must be after the start date.';
  }
- const isExpiringType = licenseType.startsWith('Subscription') || licenseType === 'Trial';
- if (isExpiringType && !expiryDate) {
- setErrorMsg(`Expiry date is required for ${licenseType} licenses`);
- return;
- }
+ if (!ownerId) return 'Please choose an active employee as owner.';
+ return null;
+ };
 
+ const save = async (confirm: boolean) => {
+ setErrorMsg('');
+ const problem = checkForm();
+ if (problem) {
+ setErrorMsg(problem);
+ return;
+ }
  try {
- let finalVendorId = vendorId;
- if (isAddingNewVendor && newVendorName.trim()) {
- const createdVen = await createVendorMutation.mutateAsync({
- name: newVendorName.trim(),
- });
- finalVendorId = createdVen.vendor_id;
- }
-
- // 1. Pre-upload file if selected
- const attachmentIds: number[] = [];
- if (selectedFile) {
+ // Upload the documents once; a "Save anyway?" retry reuses them.
+ let attachmentIds = uploadedIds;
+ if (!attachmentIds) {
+ attachmentIds = [];
+ for (let k = 0; k < selectedFiles.length; k++) {
  const uploaded = await uploadAttachmentMutation.mutateAsync({
  entityType: 'TEMP_LICENSE_TERM',
- file: selectedFile,
- displayOrder: 1,
+ file: selectedFiles[k],
+ displayOrder: k + 1,
  });
- if (uploaded?.attachment_id) {
- attachmentIds.push(uploaded.attachment_id);
+ if (uploaded?.attachment_id) attachmentIds.push(uploaded.attachment_id);
  }
+ setUploadedIds(attachmentIds);
  }
 
- // 2. Create Software + Term
  await createSoftwareMutation.mutateAsync({
  software_name: softwareName.trim(),
- vendor_id: typeof finalVendorId === 'number' ? finalVendorId : undefined,
+ // A new vendor is created by the server only after every check passes.
+ vendor_id: !isAddingNewVendor && typeof vendorId === 'number' ? vendorId : undefined,
  vendor_name: isAddingNewVendor ? newVendorName.trim() : undefined,
  category_id: Number(categoryId),
  license_type: licenseType,
- total_seats: totalSeats !== '' ? Number(totalSeats) : undefined,
+ total_seats: seatsCounted ? Number(totalSeats) : undefined,
  software_owner_id: Number(ownerId),
  bought_from: boughtFrom.trim() || undefined,
  license_key: licenseKey.trim() || undefined,
  auto_renews: autoRenews,
- purchase_date: purchaseDate || undefined,
+ purchase_date: purchaseDate,
  start_date: startDate,
- expiry_date: expiryDate || undefined,
- billing_cycle: billingCycle,
- cost: cost !== '' ? Number(cost) : 0,
+ expiry_date: needsExpiry ? expiryDate : undefined,
+ billing_cycle: needsCycle ? billingCycle : undefined,
+ cost: isFree ? 0 : Number(cost),
  invoice_order_no: invoiceOrderNo.trim() || undefined,
  expense_claim_no: expenseClaimNo.trim() || undefined,
  remarks: remarks.trim() || undefined,
  attachment_ids: attachmentIds.length > 0 ? attachmentIds : undefined,
+ confirm,
  });
 
+ setConfirmMsgs(null);
  onSuccess?.();
  onClose();
  } catch (err: any) {
- setErrorMsg(err?.message || 'Failed to register software license');
+ if (err?.code === 'CONFIRM_REQUIRED') {
+ const msgs = Array.isArray(err?.errors) ? err.errors.map((x: any) => x.message) : [err?.detail || err?.message];
+ setConfirmMsgs(msgs.filter(Boolean));
+ return;
  }
+ setConfirmMsgs(null);
+ setErrorMsg(err?.detail || err?.message || 'Failed to register software license');
+ }
+ };
+
+ const handleSubmit = (e: React.FormEvent) => {
+ e.preventDefault();
+ void save(false);
  };
 
  return (
@@ -177,7 +230,7 @@ export const AddSoftwareModal: React.FC<AddSoftwareModalProps> = ({
  </div>
  <button
  type="button"
- onClick={onClose}
+ onClick={requestClose}
  className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition"
  >
  <X className="w-5 h-5" />
@@ -294,7 +347,7 @@ export const AddSoftwareModal: React.FC<AddSoftwareModalProps> = ({
  onChange={(e) => setLicenseType(e.target.value)}
  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl bg-white text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
  >
- {LICENSE_TYPES.map((t) => (
+ {typeOptions.map((t) => (
  <option key={t} value={t}>
  {t}
  </option>
@@ -302,20 +355,29 @@ export const AddSoftwareModal: React.FC<AddSoftwareModalProps> = ({
  </select>
  </div>
 
- {/* Total Seats */}
+ {/* Total Seats: Per User and Trial only; Organisation and Free have no limit */}
+ {seatsCounted ? (
  <div>
  <label className="block text-xs font-medium text-slate-700 mb-1">
- Total Licensed Seats
+ Total Seats <span className="text-red-500">*</span>
  </label>
  <input
  type="number"
  min="1"
+ max="10000"
+ step="1"
  value={totalSeats}
  onChange={(e) => setTotalSeats(e.target.value ? parseInt(e.target.value, 10) : '')}
- placeholder="Leave blank for unlimited"
+ placeholder="1 to 10,000"
  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl bg-white text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
  />
  </div>
+ ) : (
+ <div>
+ <label className="block text-xs font-medium text-slate-700 mb-1">Total Seats</label>
+ <div className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl bg-slate-50 text-slate-500">No limit</div>
+ </div>
+ )}
 
  {/* Software Owner */}
  <div>
@@ -404,10 +466,12 @@ export const AddSoftwareModal: React.FC<AddSoftwareModalProps> = ({
  {/* Purchase Date */}
  <div>
  <label className="block text-xs font-medium text-slate-700 mb-1">
- Purchase Date
+ Purchase Date <span className="text-red-500">*</span>
  </label>
  <input
  type="date"
+ required
+ max={todayStr}
  value={purchaseDate}
  onChange={(e) => setPurchaseDate(e.target.value)}
  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl bg-white text-slate-900 "
@@ -428,20 +492,25 @@ export const AddSoftwareModal: React.FC<AddSoftwareModalProps> = ({
  />
  </div>
 
- {/* Expiry Date */}
+ {/* Expiry Date: Subscription and Trial only */}
+ {needsExpiry && (
  <div>
  <label className="block text-xs font-medium text-slate-700 mb-1">
- Expiry Date {(licenseType.startsWith('Subscription') || licenseType === 'Trial') && <span className="text-red-500">*</span>}
+ Expiry Date <span className="text-red-500">*</span>
  </label>
  <input
  type="date"
+ required
+ min={startDate || undefined}
  value={expiryDate}
  onChange={(e) => setExpiryDate(e.target.value)}
  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl bg-white text-slate-900 "
  />
  </div>
+ )}
 
- {/* Billing Cycle */}
+ {/* Billing Cycle: Subscription and Perpetual only */}
+ {needsCycle && (
  <div>
  <label className="block text-xs font-medium text-slate-700 mb-1">
  Billing Cycle
@@ -458,17 +527,20 @@ export const AddSoftwareModal: React.FC<AddSoftwareModalProps> = ({
  ))}
  </select>
  </div>
+ )}
 
- {/* Cost */}
+ {/* Cost for the cycle: must be 0 for Free and Trial */}
  <div>
  <label className="block text-xs font-medium text-slate-700 mb-1">
- Term Cost (₹)
+ Cost for the cycle (₹) {!isFree && <span className="text-red-500">*</span>}
  </label>
  <input
  type="number"
  step="0.01"
  min="0"
- value={cost}
+ max="10000000"
+ disabled={isFree}
+ value={isFree ? 0 : cost}
  onChange={(e) => setCost(e.target.value ? parseFloat(e.target.value) : '')}
  placeholder="0.00"
  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl bg-white text-slate-900 "
@@ -528,18 +600,36 @@ export const AddSoftwareModal: React.FC<AddSoftwareModalProps> = ({
  <span>Choose File</span>
  <input
  type="file"
+ multiple
+ accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
  className="hidden"
- onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+ onChange={(e) => {
+ pickFiles(e.target.files);
+ e.target.value = '';
+ }}
  />
  </label>
- {selectedFile ? (
- <span className="text-xs text-emerald-600 font-medium truncate">
- {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
- </span>
- ) : (
- <span className="text-xs text-slate-400">PDF, image, or doc up to 10MB</span>
- )}
+ <span className="text-xs text-slate-400">PDF, JPG or PNG, up to 10 MB each, up to 5 files</span>
  </div>
+ {selectedFiles.length > 0 && (
+ <ul className="mt-2 space-y-1">
+ {selectedFiles.map((f, k) => (
+ <li key={`${f.name}-${k}`} className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-1.5 text-xs">
+ <span className="truncate text-slate-700">{f.name} · {(f.size / 1024).toFixed(0)} KB</span>
+ <button
+ type="button"
+ className="text-red-600 hover:underline"
+ onClick={() => {
+ setSelectedFiles(selectedFiles.filter((_, x) => x !== k));
+ setUploadedIds(null);
+ }}
+ >
+ Remove
+ </button>
+ </li>
+ ))}
+ </ul>
+ )}
  </div>
  </div>
  </div>
@@ -548,7 +638,7 @@ export const AddSoftwareModal: React.FC<AddSoftwareModalProps> = ({
  <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 ">
  <button
  type="button"
- onClick={onClose}
+ onClick={requestClose}
  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition"
  >
  Cancel
@@ -558,11 +648,66 @@ export const AddSoftwareModal: React.FC<AddSoftwareModalProps> = ({
  disabled={createSoftwareMutation.isPending}
  className="inline-flex items-center gap-2 px-5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-xs transition disabled:opacity-50"
  >
- {createSoftwareMutation.isPending ? 'Registering...' : 'Register Software'}
+ {createSoftwareMutation.isPending || uploadAttachmentMutation.isPending ? 'Saving...' : 'Save Software'}
  </button>
  </div>
  </form>
  </div>
+
+ {/* "Save anyway?" (BFD 4 Part 4: Confirm checks) */}
+ {confirmMsgs && (
+ <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 p-4">
+ <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl">
+ <h3 className="text-sm font-bold text-slate-900">Please confirm</h3>
+ <ul className="mt-3 space-y-2">
+ {confirmMsgs.map((m) => (
+ <li key={m} className="flex gap-2 rounded-xl border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-800">
+ <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+ <span>{m}</span>
+ </li>
+ ))}
+ </ul>
+ <div className="mt-4 flex justify-end gap-2">
+ <button type="button" onClick={() => setConfirmMsgs(null)} className="rounded-xl px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100">
+ Go back
+ </button>
+ <button
+ type="button"
+ disabled={createSoftwareMutation.isPending}
+ onClick={() => void save(true)}
+ className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+ >
+ Save anyway
+ </button>
+ </div>
+ </div>
+ </div>
+ )}
+
+ {/* "Discard this software?" (BFD 4 Part 1, marker 12) */}
+ {confirmDiscard && (
+ <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 p-4">
+ <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl">
+ <h3 className="text-sm font-bold text-slate-900">Discard this software?</h3>
+ <p className="mt-1 text-xs text-slate-500">Nothing you typed will be saved.</p>
+ <div className="mt-4 flex justify-end gap-2">
+ <button type="button" onClick={() => setConfirmDiscard(false)} className="rounded-xl px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100">
+ Keep editing
+ </button>
+ <button
+ type="button"
+ onClick={() => {
+ setConfirmDiscard(false);
+ onClose();
+ }}
+ className="rounded-xl bg-red-600 px-4 py-2 text-xs font-semibold text-white hover:bg-red-700"
+ >
+ Discard
+ </button>
+ </div>
+ </div>
+ </div>
+ )}
  </div>
  );
 };

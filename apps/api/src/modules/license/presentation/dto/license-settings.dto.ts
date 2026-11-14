@@ -142,6 +142,12 @@ export class UpdateLicenseSettingsDto {
   @IsInt()
   max_trial_days?: number;
 
+  @ApiPropertyOptional({ description: 'License Types switched off (BFD 11)', type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  disabled_license_types?: string[];
+
   @ApiPropertyOptional({ description: 'Default currency symbol (e.g. ₹ or $)' })
   @IsOptional()
   @IsString()

@@ -86,5 +86,6 @@ export class CompleteFollowUpBodyDto {
   @ApiPropertyOptional({ type: String, format: 'date-time', description: 'Starts as now; not before the follow-up was created' }) @IsOptional() @Type(() => Date) done_on?: Date;
   @ApiPropertyOptional({ enum: OUTCOMES }) @IsOptional() @IsString() outcome?: string;
   @ApiPropertyOptional({ description: 'Saved as a conversation on the lead' }) @IsOptional() @IsString() what_happened?: string;
+  @ApiPropertyOptional({ type: Number, description: 'A call follow-up: how long the call lasted, in seconds (3 min 28 sec = 208)' }) @IsOptional() @Type(() => Number) @IsInt() call_duration_seconds?: number;
   @ApiPropertyOptional({ type: NextStepDto }) @IsOptional() @ValidateNested() @Type(() => NextStepDto) next_step?: NextStepDto;
 }

@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useSocket } from '@/shared/socket/SocketContext';
+import { dueLabel, isPastDate, minutesOverEstimate } from '@/shared/utils/schedule.utils';
 import {
   fetchProjectDetail,
   updateProject,
@@ -362,9 +363,14 @@ export const ProjectDetailPage: React.FC = () => {
           : new Date(project.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
         : '—';
 
+    const finished = project ? ['delivered', 'cancelled'].includes(project.project_status) : true;
     return {
       estHours,
       actHours,
+      overHours: finished ? 0 : Math.round((minutesOverEstimate(totalEstMinutes, actualWorkMinutes) / 60) * 10) / 10,
+      deadlineLabel: finished ? null : dueLabel(project?.deadline),
+      deadlinePassed: !finished && isPastDate(project?.deadline),
+      overdueTasks: finished ? 0 : project?.overdue_tasks_count ?? 0,
       startDate: startDateFormatted,
       estimatedEndDate: deadlineFormatted,
       actualEndDate: actualEndFormatted,
@@ -895,7 +901,9 @@ export const ProjectDetailPage: React.FC = () => {
                 </div>
                 <div>
                   <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Actual Hours</span>
-                  <span className="text-base font-extrabold text-slate-900">{kpiData.actHours} hrs</span>
+                  <span className={`text-base font-extrabold ${kpiData.overHours > 0 ? 'text-red-600' : 'text-slate-900'}`}>{kpiData.actHours} hrs</span>
+                  {kpiData.overHours > 0 && <span className="block text-[11px] font-semibold text-red-600">Over estimate by {kpiData.overHours} hrs</span>}
+                  {kpiData.overdueTasks > 0 && <span className="block text-[11px] font-semibold text-red-600">{kpiData.overdueTasks} overdue task{kpiData.overdueTasks === 1 ? '' : 's'}</span>}
                 </div>
               </div>
 
@@ -915,7 +923,8 @@ export const ProjectDetailPage: React.FC = () => {
                 </div>
                 <div>
                   <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Deadline</span>
-                  <span className="text-xs font-bold text-slate-800">{kpiData.estimatedEndDate}</span>
+                  <span className={`text-xs font-bold ${kpiData.deadlinePassed ? 'text-red-600' : 'text-slate-800'}`}>{kpiData.estimatedEndDate}</span>
+                  {kpiData.deadlineLabel && <span className={`block text-[11px] font-semibold ${kpiData.deadlinePassed ? 'text-red-600' : 'text-slate-500'}`}>{kpiData.deadlineLabel}</span>}
                 </div>
               </div>
 
@@ -1934,7 +1943,7 @@ export const ProjectDetailPage: React.FC = () => {
                               <span
                                 className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${sprint.status === 'completed'
                                     ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                    : sprint.status === 'in_progress'
+                                    : sprint.status === 'active'
                                       ? 'bg-amber-50 text-amber-700 border border-amber-200'
                                       : 'bg-slate-100 text-slate-700 border border-slate-200'
                                   }`}

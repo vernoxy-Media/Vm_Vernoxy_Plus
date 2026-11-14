@@ -109,7 +109,10 @@ describe('AttendanceUseCases with TestClock', () => {
       getDashboardMonthData: jest.fn(),
       findDayDetail: jest.fn(),
       getTeamAttendance: jest.fn(),
+      getAnalyticsSource: jest.fn(),
       getAttendanceCsvReport: jest.fn(),
+      getAttendanceRegister: jest.fn(),
+      getAttendanceReports: jest.fn(),
     };
   });
 

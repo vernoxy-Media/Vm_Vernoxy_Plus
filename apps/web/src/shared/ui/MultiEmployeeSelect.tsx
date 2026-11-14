@@ -76,29 +76,29 @@ export const MultiEmployeeSelect: React.FC<MultiEmployeeSelectProps> = ({
     <div className="space-y-1.5" ref={containerRef}>
       {label && (
         <div className="flex items-center justify-between">
-          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
+          <label className="block text-[12px] font-semibold text-[#5E6C84]">
             {label} {selectedIds.length > 0 ? `(${selectedIds.length})` : ''}
           </label>
-          <span className="text-xs text-slate-400">At least 1 required</span>
+          <span className="text-[12px] text-[#7A869A]">At least 1 required</span>
         </div>
       )}
 
       {/* Selected tags container & trigger */}
       <div
         onClick={() => !disabled && setIsOpen(!isOpen)}
-        className={`min-h-[42px] w-full rounded-xl border bg-white p-1.5 flex flex-wrap items-center gap-1.5 cursor-pointer transition-all ${
-          isOpen ? 'ring-2 ring-blue-100 border-blue-500' : 'border-slate-200 hover:border-slate-300'
-        } ${error ? 'border-rose-400' : ''}`}
+        className={`min-h-[36px] w-full rounded-[3px] border-2 p-1 flex flex-wrap items-center gap-1.5 cursor-pointer transition-colors ${
+          isOpen ? 'border-[color:var(--ac-400,#4C9AFF)] bg-white' : 'border-[#DFE1E6] bg-[#FAFBFC] hover:bg-[#EBECF0]'
+        } ${error ? 'border-[#FF8F73]' : ''}`}
       >
         {selectedEmployees.length === 0 ? (
-          <span className="text-sm text-slate-400 px-2 flex items-center gap-2">
+          <span className="flex items-center gap-2 px-1.5 text-[14px] text-[#7A869A]">
             <Users className="w-4 h-4" /> Select assignees...
           </span>
         ) : (
           selectedEmployees.map((e) => (
             <span
               key={e.emp_id}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-blue-50 text-blue-700 pl-1 pr-2 py-0.5 text-xs font-medium border border-blue-100"
+              className="inline-flex items-center gap-1.5 rounded-[3px] bg-[#DFE1E6] pl-1 pr-1.5 py-0.5 text-[13px] font-medium text-[#172B4D]"
             >
               <Avatar name={e.name} src={e.avatar_url} size={18} />
               <span className="truncate max-w-[120px]">{e.name}</span>
@@ -118,7 +118,7 @@ export const MultiEmployeeSelect: React.FC<MultiEmployeeSelectProps> = ({
 
       {/* Dropdown popover */}
       {isOpen && (
-        <div className="absolute z-50 mt-1 max-h-60 w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl animate-in fade-in slide-in-from-top-1">
+        <div className="absolute z-50 mt-1 max-h-60 w-full overflow-hidden rounded-[3px] bg-white shadow-[0_4px_8px_-2px_rgba(9,30,66,0.25),0_0_1px_rgba(9,30,66,0.31)]">
           <div className="p-2 border-b border-slate-100">
             <div className="relative">
               <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
@@ -128,7 +128,7 @@ export const MultiEmployeeSelect: React.FC<MultiEmployeeSelectProps> = ({
                 placeholder="Search employees..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:border-blue-500"
+                className="w-full rounded-[3px] border-2 border-[#DFE1E6] py-1 pl-8 pr-3 text-[13px] focus:border-[color:var(--ac-400,#4C9AFF)] focus:outline-none"
               />
             </div>
           </div>
@@ -143,7 +143,7 @@ export const MultiEmployeeSelect: React.FC<MultiEmployeeSelectProps> = ({
                   <div
                     key={emp.emp_id}
                     onClick={() => toggleSelect(emp.emp_id)}
-                    className={`flex items-center justify-between p-2.5 text-xs cursor-pointer hover:bg-slate-50 transition-colors ${
+                    className={`flex items-center justify-between p-2.5 text-xs cursor-pointer hover:bg-[#F4F5F7] transition-colors ${
                       isSelected ? 'bg-blue-50/50' : ''
                     }`}
                   >
@@ -165,7 +165,7 @@ export const MultiEmployeeSelect: React.FC<MultiEmployeeSelectProps> = ({
         </div>
       )}
 
-      {error && <p className="text-xs text-rose-600 mt-1">{error}</p>}
+      {error && <p role="alert" className="mt-1 text-[12px] text-[#BF2600]">{error}</p>}
     </div>
   );
 };

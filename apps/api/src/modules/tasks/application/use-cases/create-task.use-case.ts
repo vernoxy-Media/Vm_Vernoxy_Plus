@@ -3,7 +3,7 @@ import { AssigneeValidationError } from '../../domain/errors/task.errors';
 import { TaskClockPort } from '../../domain/ports/clock.port';
 import { EmployeeDirectoryPort } from '../../domain/ports/employee-directory.port';
 import { CreateSubTaskRepoInput, TaskRepositoryPort } from '../../domain/ports/task.repository.port';
-import { validateAssigneeIds, validateSubTasks } from '../../domain/services/task-rules';
+import { parseDueDate, validateAssigneeIds, validateDateRange, validateSubTasks } from '../../domain/services/task-rules';
 import { CreateNotificationUseCase } from '../../../notifications/public-api';
 
 export interface CreateTaskCommand {
@@ -11,6 +11,7 @@ export interface CreateTaskCommand {
   description?: string | null;
   priority?: TaskPriority;
   task_type_id?: number | null;
+  start_date?: string | null;
   due_date?: string | null;
   allocated_minutes?: number | null;
   assignee_ids: number[];
@@ -54,6 +55,13 @@ export class CreateTaskUseCase {
     const priority = (command.priority || 'medium') as TaskPriority;
     if (!PRIORITIES.includes(priority)) fail('Please select the Priority: High, Medium or Low.');
 
+    const dueDate = parseDueDate(command.due_date);
+    if (dueDate === undefined) fail('Please enter a valid Due Date.');
+    const startDate = parseDueDate(command.start_date);
+    if (startDate === undefined) fail('Please enter a valid Start Date.');
+    const rangeError = validateDateRange(startDate, dueDate);
+    if (rangeError) fail(rangeError);
+
     const typeInfo = await this.checkTaskType(command.task_type_id, command.other_task_type, 'Task Type');
 
     const isQuick = command.source === 'quick';
@@ -93,7 +101,15 @@ export class CreateTaskUseCase {
         if (st.task_type_id) {
           stOther = (await this.checkTaskType(st.task_type_id, st.other_task_type, `Task Type of sub task ${i + 1}`)).other;
         }
+        const stDue = parseDueDate(st.due_date);
+        if (stDue === undefined) fail(`Please enter a valid Due Date for sub task ${i + 1}.`);
+        const stStart = parseDueDate(st.start_date);
+        if (stStart === undefined) fail(`Please enter a valid Start Date for sub task ${i + 1}.`);
+        const stRange = validateDateRange(stStart, stDue);
+        if (stRange) fail(`Sub task ${i + 1}: ${stRange}`);
         subTasks.push({
+          start_date: stStart,
+          due_date: stDue,
           title: st.title!.trim(),
           description: st.description?.trim() || null,
           priority: stPriority,
@@ -117,7 +133,8 @@ export class CreateTaskUseCase {
       description: command.description?.trim() || null,
       priority,
       task_type_id: command.task_type_id!,
-      due_date: command.due_date || null,
+      start_date: startDate ?? null,
+      due_date: dueDate ?? null,
       allocated_minutes: allocated,
       assignee_ids: assignees,
       created_by: command.creator_emp_id,

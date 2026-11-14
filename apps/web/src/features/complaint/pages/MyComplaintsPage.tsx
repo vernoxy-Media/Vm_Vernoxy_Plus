@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { useAuth } from '@/features/auth/context/AuthContext';
 import {
   AlertCircle,
   Plus,
@@ -34,7 +36,7 @@ import { useUploadAttachment } from '@/shared/hooks/use-attachments';
 import { SearchableSelect } from '@/shared/ui/SearchableSelect';
 import { Pagination } from '@/shared/ui/Pagination';
 import { RowActionsMenu, type RowAction } from '@/shared/ui/RowActionsMenu';
-import { Badge, Field, STATUS_TONE, StatCard } from '../components/complaint-ui';
+import { Badge, Field, HistoryPdfButton, STATUS_TONE, StatCard } from '../components/complaint-ui';
 
 export const MyComplaintsPage: React.FC = (): React.ReactElement => {
   const currentYear = new Date().getFullYear();
@@ -104,6 +106,39 @@ export const MyComplaintsPage: React.FC = (): React.ReactElement => {
     }
   };
 
+  // "Report a problem" from My Software (Licenses) opens Add Complaint with the
+  // type IT & Equipment and the software name filled in: /complaints?new=1&type=...&subject=...
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { user: me } = useAuth();
+  // Links in emails: /complaints?open=ID. Own complaints open here; others open on the Complaints tab.
+  useEffect(() => {
+    const open = Number(searchParams.get('open'));
+    if (open) setViewingComplaintId(open);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+  useEffect(() => {
+    const open = Number(searchParams.get('open'));
+    if (!open || !complaintDetail || complaintDetail.complaint_id !== open) return;
+    if (me?.emp_id && complaintDetail.complainant_id !== me.emp_id) {
+      setViewingComplaintId(null);
+      setSearchParams({ tab: 'manage', open: String(open) }, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [complaintDetail]);
+  useEffect(() => {
+    if (searchParams.get('new') !== '1' || !types.length) return;
+    const wanted = (searchParams.get('type') || '').toLowerCase();
+    const match = types.find((t) => t.name.toLowerCase() === wanted || (t as any).code?.toLowerCase() === 'it_equipment');
+    if (match) handleTypeChange(match.type_id);
+    const subj = searchParams.get('subject');
+    if (subj) setSubject(subj.slice(0, 150));
+    setIsAddModalOpen(true);
+    const next = new URLSearchParams(searchParams);
+    ['new', 'type', 'subject'].forEach((k) => next.delete(k));
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, types]);
+
   const handleDateChange = (dateVal: string) => {
     setComplaintDate(dateVal);
     setDateWarning('');
@@ -150,8 +185,17 @@ export const MyComplaintsPage: React.FC = (): React.ReactElement => {
     setIsUploading(false);
   };
 
-  const handleSubmitComplaint = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // "Warning" checks from the server (old date, possible duplicate): submit after reading (BFD 4 Part 4)
+  const [submitWarnings, setSubmitWarnings] = useState<string[] | null>(null);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const addDirty = Boolean(subject.trim() || typeId || description.trim() || initialRemarks.trim() || uploadedFiles.length || relatedProjectId);
+  const requestCloseAdd = () => {
+    if (addDirty && !createMut.isPending) setConfirmDiscard(true);
+    else setIsAddModalOpen(false);
+  };
+
+  const handleSubmitComplaint = async (e: React.FormEvent | null, confirm = false) => {
+    e?.preventDefault();
     setAddError('');
 
     if (!typeId || !relatedDeptId) {
@@ -170,8 +214,10 @@ export const MyComplaintsPage: React.FC = (): React.ReactElement => {
         remarks: initialRemarks.trim() || undefined,
         is_confidential: isConfidential,
         attachment_ids: uploadedFiles.map((f) => f.id),
-      });
+        ...(confirm ? { confirm: true } : {}),
+      } as any);
 
+      setSubmitWarnings(null);
       setIsAddModalOpen(false);
       // Reset form
       setSubject('');
@@ -180,6 +226,11 @@ export const MyComplaintsPage: React.FC = (): React.ReactElement => {
       setInitialRemarks('');
       setUploadedFiles([]);
     } catch (err: any) {
+      if (err?.code === 'CONFIRM_REQUIRED') {
+        setSubmitWarnings((err.errors || []).map((x: any) => x.message).filter(Boolean));
+        return;
+      }
+      setSubmitWarnings(null);
       setAddError(err.detail || err.message || 'Failed to submit complaint.');
     }
   };
@@ -511,7 +562,7 @@ export const MyComplaintsPage: React.FC = (): React.ReactElement => {
                 Add Complaint
               </h3>
               <button
-                onClick={() => setIsAddModalOpen(false)}
+                onClick={requestCloseAdd}
                 className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
               >
                 <X className="w-5 h-5" />
@@ -559,6 +610,12 @@ export const MyComplaintsPage: React.FC = (): React.ReactElement => {
                   />
                   {selectedTypeObj && (
                     <p className="text-[10px] text-indigo-600 mt-1">{selectedTypeObj.description}</p>
+                  )}
+                  {/* BFD 4 Part 2: sexual harassment complaints go to the Internal Committee */}
+                  {selectedTypeObj?.is_always_confidential && (
+                    <p className="mt-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-[10.5px] text-amber-800">
+                      A complaint of sexual harassment at the workplace is not handled here. Please contact the Internal Committee directly (see the HR policy for its members).
+                    </p>
                   )}
                 </div>
 
@@ -690,7 +747,7 @@ export const MyComplaintsPage: React.FC = (): React.ReactElement => {
               <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2">
                 <button
                   type="button"
-                  onClick={() => setIsAddModalOpen(false)}
+                  onClick={requestCloseAdd}
                   className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg text-xs font-semibold hover:bg-slate-50"
                 >
                   Cancel
@@ -706,6 +763,66 @@ export const MyComplaintsPage: React.FC = (): React.ReactElement => {
               </div>
             </form>
           </div>
+
+          {/* Warnings: submit anyway? */}
+          {submitWarnings && (
+            <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 p-4">
+              <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl">
+                <h3 className="text-sm font-bold text-slate-900">Before you submit</h3>
+                <ul className="mt-3 space-y-2">
+                  {submitWarnings.map((m) => (
+                    <li key={m} className="flex gap-2 rounded-xl border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-800">
+                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                      <span>{m}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-4 flex justify-end gap-2">
+                  <button type="button" onClick={() => setSubmitWarnings(null)} className="rounded-lg px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100">
+                    Go back
+                  </button>
+                  <button
+                    type="button"
+                    disabled={createMut.isPending}
+                    onClick={() => void handleSubmitComplaint(null, true)}
+                    className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
+                  >
+                    Submit anyway
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Cancel with typed text: "Discard this complaint?" (BFD 4 Part 1, marker 10) */}
+          {confirmDiscard && (
+            <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 p-4">
+              <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl">
+                <h3 className="text-sm font-bold text-slate-900">Discard this complaint?</h3>
+                <p className="mt-1 text-xs text-slate-500">Nothing you typed will be saved.</p>
+                <div className="mt-4 flex justify-end gap-2">
+                  <button type="button" onClick={() => setConfirmDiscard(false)} className="rounded-lg px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100">
+                    Keep editing
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setConfirmDiscard(false);
+                      setIsAddModalOpen(false);
+                      setSubject('');
+                      setTypeId('');
+                      setDescription('');
+                      setInitialRemarks('');
+                      setUploadedFiles([]);
+                    }}
+                    className="rounded-lg bg-rose-600 px-4 py-2 text-xs font-semibold text-white hover:bg-rose-700"
+                  >
+                    Discard
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -903,7 +1020,15 @@ export const MyComplaintsPage: React.FC = (): React.ReactElement => {
 
                   {/* Right Column: History Timeline (BFD Pg 22 Marker 6) */}
                   <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
-                    <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Complaint History</h4>
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Complaint History</h4>
+                      <HistoryPdfButton
+                        complaintNo={complaintDetail.complaint_no}
+                        subject={complaintDetail.subject}
+                        confidential={complaintDetail.is_confidential}
+                        history={complaintDetail.history || []}
+                      />
+                    </div>
                     <div className="space-y-3 text-xs max-h-96 overflow-y-auto">
                       {complaintDetail.history.map((h) => (
                         <div key={h.history_id} className="border-l-2 border-indigo-400 pl-2.5 space-y-0.5">

@@ -48,6 +48,8 @@ export interface LicenseSettings {
   recovery_reminder_days: number;
   max_trial_days: number;
   currency: string;
+  /** License Types switched off (BFD 11). */
+  disabled_license_types?: string[];
 }
 
 // -----------------------------------------------------------------------------

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { X, Bug, Paperclip } from 'lucide-react';
+import { Bug, Loader2, Paperclip } from 'lucide-react';
+import { J_BTN_DANGER, J_BTN_SUBTLE, J_INPUT, JBanner, JField, JiraModal } from '@/shared/ui/JiraModal';
 import type { CreateProjectBugPayload, ProjectMember, ProjectTaskItem } from '../types';
 import { useLookupsQuery } from '@/features/organization/hooks/use-master-data';
 import { BUG_ATTACHMENT_MAX_BYTES } from '../api/projects.api';
@@ -12,12 +13,6 @@ interface CreateBugModalProps {
   onClose: () => void;
   onSubmit: (payload: CreateProjectBugPayload) => Promise<void>;
 }
-
-const LABEL = 'block text-xs font-semibold text-slate-700 mb-1';
-const INPUT =
-  'w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500';
-const Req = () => <span className="text-rose-500">*</span>;
-const Err: React.FC<{ text?: string }> = ({ text }) => (text ? <p className="text-[11px] text-rose-600 mt-1">{text}</p> : null);
 
 /** Create Bug (Project BFD 3.5). Fields in BFD order; Status is set by the system (New). */
 export const CreateBugModal: React.FC<CreateBugModalProps> = ({ projectMembers, tasks, isOpen, onClose, onSubmit }) => {
@@ -38,6 +33,8 @@ export const CreateBugModal: React.FC<CreateBugModalProps> = ({ projectMembers, 
   const [bugType, setBugType] = useState('');
   const [otherBugType, setOtherBugType] = useState('');
   const [taskId, setTaskId] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [dueDate, setDueDate] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -56,6 +53,8 @@ export const CreateBugModal: React.FC<CreateBugModalProps> = ({ projectMembers, 
     setBugType('');
     setOtherBugType('');
     setTaskId('');
+    setStartDate('');
+    setDueDate('');
     setFile(null);
     setErrors({});
     setFormError(null);
@@ -74,6 +73,7 @@ export const CreateBugModal: React.FC<CreateBugModalProps> = ({ projectMembers, 
     if (!bugType) e.bugType = 'Please select the Bug Type.';
     if (bugType === 'other' && !otherBugType.trim()) e.otherBugType = 'Please enter the Other Bug Type.';
     if (file && file.size > BUG_ATTACHMENT_MAX_BYTES) e.file = 'The attachment cannot be larger than 5 MB.';
+    if (startDate && dueDate && startDate > dueDate) e.dates = 'Start date cannot be after the Due Date.';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -95,6 +95,8 @@ export const CreateBugModal: React.FC<CreateBugModalProps> = ({ projectMembers, 
         bug_type: bugType as any,
         other_bug_type: bugType === 'other' ? otherBugType.trim() : undefined,
         task_id: taskId ? Number(taskId) : undefined,
+        start_date: startDate || undefined,
+        due_date: dueDate || undefined,
         attachment_file: file,
       });
       onClose();
@@ -106,153 +108,125 @@ export const CreateBugModal: React.FC<CreateBugModalProps> = ({ projectMembers, 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden my-8">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-rose-50/50">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center">
-              <Bug className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-slate-900">Create Bug</h3>
-              <p className="text-xs text-slate-500">The Bug ID is generated and the status starts as New.</p>
-            </div>
-          </div>
-          <button type="button" onClick={onClose} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100" aria-label="Close">
-            <X className="w-5 h-5" />
+    <JiraModal
+      title="Report bug"
+      size="lg"
+      onClose={onClose}
+      onSubmit={handleSubmit}
+      zIndex={60}
+      footer={
+        <>
+          <button type="button" onClick={onClose} disabled={isSubmitting} className={J_BTN_SUBTLE}>Cancel</button>
+          <button type="submit" disabled={isSubmitting} className={J_BTN_DANGER}>
+            {isSubmitting && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Create bug
           </button>
-        </div>
+        </>
+      }
+    >
+      <div className="flex items-center gap-2 text-[12px] text-[#5E6C84]">
+        <span className="flex h-4 w-4 items-center justify-center rounded-[3px] bg-[#E5493A] text-white"><Bug className="h-2.5 w-2.5" strokeWidth={3} /></span>
+        Issue type: <b className="font-semibold text-[#172B4D]">Bug</b>
+        <span className="mx-1">·</span>
+        The key is generated and the status starts as New.
+      </div>
+      <p className="-mt-2 text-[12px] text-[#5E6C84]">Required fields are marked with an asterisk <span className="text-[#DE350B]">*</span></p>
+      {formError && <JBanner>{formError}</JBanner>}
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4" noValidate>
-          <div>
-            <label className={LABEL}>
-              Title <Req />
-            </label>
-            <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} className={INPUT} placeholder="Short name of the bug" />
-            <Err text={errors.title} />
-          </div>
-          <div>
-            <label className={LABEL}>
-              Description <Req />
-            </label>
-            <textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} className={INPUT} />
-            <Err text={errors.description} />
-          </div>
-          <div>
-            <label className={LABEL}>
-              Steps to Reproduce <Req />
-            </label>
-            <textarea rows={2} value={steps} onChange={(e) => setSteps(e.target.value)} className={INPUT} placeholder="Navigation to reach the bug" />
-            <Err text={errors.steps} />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className={LABEL}>
-                Expected Result <Req />
-              </label>
-              <textarea rows={2} value={expected} onChange={(e) => setExpected(e.target.value)} className={INPUT} />
-              <Err text={errors.expected} />
-            </div>
-            <div>
-              <label className={LABEL}>
-                Actual Result <Req />
-              </label>
-              <textarea rows={2} value={actual} onChange={(e) => setActual(e.target.value)} className={INPUT} />
-              <Err text={errors.actual} />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className={LABEL}>
-                Assigned To <Req />
-              </label>
-              <select value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)} className={INPUT}>
-                <option value="">Select employee</option>
-                {members.map((m) => (
-                  <option key={m.employee_id} value={m.employee_id}>
-                    {m.name}
-                  </option>
-                ))}
-              </select>
-              <Err text={errors.assignedTo} />
-            </div>
-            <div>
-              <label className={LABEL}>Priority</label>
-              <select value={priority} onChange={(e) => setPriority(e.target.value)} className={INPUT}>
-                {bugPriorities.map((p) => (
-                  <option key={p.code} value={p.code}>
-                    {p.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className={LABEL}>
-                Bug Type <Req />
-              </label>
-              <select value={bugType} onChange={(e) => setBugType(e.target.value)} className={INPUT}>
-                <option value="">Select</option>
-                {bugTypes.map((t) => (
-                  <option key={t.code} value={t.code}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
-              <Err text={errors.bugType} />
-            </div>
-            {bugType === 'other' && (
-              <div>
-                <label className={LABEL}>
-                  Other Bug Type <Req />
-                </label>
-                <input value={otherBugType} onChange={(e) => setOtherBugType(e.target.value)} maxLength={100} className={INPUT} />
-                <Err text={errors.otherBugType} />
-              </div>
-            )}
-          </div>
-          <div>
-            <label className={LABEL}>Related Task</label>
-            <select value={taskId} onChange={(e) => setTaskId(e.target.value)} className={INPUT}>
+      <JField label="Summary" required htmlFor="bug-title" error={errors.title}>
+        <input id="bug-title" autoFocus value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} className={J_INPUT} placeholder="Short name of the bug" />
+      </JField>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <JField label="Assignee" required htmlFor="bug-assignee" error={errors.assignedTo}>
+          <select id="bug-assignee" value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)} className={J_INPUT}>
+            <option value="">Select employee</option>
+            {members.map((m) => (
+              <option key={m.employee_id} value={m.employee_id}>{m.name}</option>
+            ))}
+          </select>
+        </JField>
+        <JField label="Priority" htmlFor="bug-priority">
+          <select id="bug-priority" value={priority} onChange={(e) => setPriority(e.target.value)} className={J_INPUT}>
+            {bugPriorities.map((p) => (
+              <option key={p.code} value={p.code}>{p.label}</option>
+            ))}
+          </select>
+        </JField>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <JField label="Bug type" required htmlFor="bug-type" error={errors.bugType}>
+          <select id="bug-type" value={bugType} onChange={(e) => setBugType(e.target.value)} className={J_INPUT}>
+            <option value="">Select</option>
+            {bugTypes.map((t) => (
+              <option key={t.code} value={t.code}>{t.label}</option>
+            ))}
+          </select>
+        </JField>
+        {bugType === 'other' ? (
+          <JField label="Other bug type" required htmlFor="bug-other" error={errors.otherBugType}>
+            <input id="bug-other" value={otherBugType} onChange={(e) => setOtherBugType(e.target.value)} maxLength={100} className={J_INPUT} />
+          </JField>
+        ) : (
+          <JField label="Linked issue" optional htmlFor="bug-task">
+            <select id="bug-task" value={taskId} onChange={(e) => setTaskId(e.target.value)} className={J_INPUT}>
               <option value="">None</option>
               {tasks.map((t) => (
-                <option key={t.task_id} value={t.task_id}>
-                  {t.task_code ? `[${t.task_code}] ` : ''}
-                  {t.title}
-                </option>
+                <option key={t.task_id} value={t.task_id}>{t.task_code ? `${t.task_code} ` : ''}{t.title}</option>
               ))}
             </select>
-          </div>
-          <div>
-            <label className={LABEL}>Attachment</label>
-            <div className="flex items-center gap-2">
-              <button type="button" onClick={() => fileRef.current?.click()} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50">
-                <Paperclip className="w-3.5 h-3.5" /> {file ? 'Change file' : 'Choose file'}
-              </button>
-              <span className="text-[11px] text-slate-500 truncate">{file ? `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)` : 'Screenshot or document, max 5 MB'}</span>
-              {file && (
-                <button type="button" onClick={() => setFile(null)} className="text-[11px] text-rose-600 hover:underline">
-                  Remove
-                </button>
-              )}
-            </div>
-            <input ref={fileRef} type="file" className="hidden" onChange={(e) => setFile(e.target.files?.[0] || null)} />
-            <Err text={errors.file} />
-          </div>
-
-          {formError && <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl">{formError}</div>}
-
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
-            <button type="button" onClick={onClose} disabled={isSubmitting} className="px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 rounded-xl transition">
-              Cancel
-            </button>
-            <button type="submit" disabled={isSubmitting} className="px-5 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition disabled:opacity-50">
-              {isSubmitting ? 'Saving…' : 'Save'}
-            </button>
-          </div>
-        </form>
+          </JField>
+        )}
       </div>
-    </div>
+      {bugType === 'other' && (
+        <JField label="Linked issue" optional htmlFor="bug-task-2">
+          <select id="bug-task-2" value={taskId} onChange={(e) => setTaskId(e.target.value)} className={J_INPUT}>
+            <option value="">None</option>
+            {tasks.map((t) => (
+              <option key={t.task_id} value={t.task_id}>{t.task_code ? `${t.task_code} ` : ''}{t.title}</option>
+            ))}
+          </select>
+        </JField>
+      )}
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <JField label="Start date" optional htmlFor="bug-start">
+          <input id="bug-start" type="date" value={startDate} max={dueDate || undefined} onChange={(e) => setStartDate(e.target.value)} className={J_INPUT} />
+        </JField>
+        <JField label="Due date" optional htmlFor="bug-due" error={errors.dates}>
+          <input id="bug-due" type="date" value={dueDate} min={startDate || undefined} onChange={(e) => setDueDate(e.target.value)} className={J_INPUT} />
+        </JField>
+      </div>
+
+      <JField label="Description" required htmlFor="bug-desc" error={errors.description}>
+        <textarea id="bug-desc" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} className={`${J_INPUT} resize-y`} />
+      </JField>
+      <JField label="Steps to reproduce" required htmlFor="bug-steps" error={errors.steps}>
+        <textarea id="bug-steps" rows={3} value={steps} onChange={(e) => setSteps(e.target.value)} className={`${J_INPUT} resize-y`} placeholder="1. Open … 2. Click …" />
+      </JField>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <JField label="Expected result" required htmlFor="bug-expected" error={errors.expected}>
+          <textarea id="bug-expected" rows={3} value={expected} onChange={(e) => setExpected(e.target.value)} className={`${J_INPUT} resize-y`} />
+        </JField>
+        <JField label="Actual result" required htmlFor="bug-actual" error={errors.actual}>
+          <textarea id="bug-actual" rows={3} value={actual} onChange={(e) => setActual(e.target.value)} className={`${J_INPUT} resize-y`} />
+        </JField>
+      </div>
+
+      <JField label="Attachment" optional error={errors.file}>
+        <div className="flex flex-wrap items-center gap-2 rounded-[3px] border-2 border-dashed border-[#DFE1E6] bg-[#FAFBFC] p-3">
+          <button type="button" onClick={() => fileRef.current?.click()} className={J_BTN_SUBTLE + ' bg-[rgba(9,30,66,0.04)]'}>
+            <Paperclip className="h-4 w-4" /> {file ? 'Change file' : 'Choose file'}
+          </button>
+          <span className="min-w-0 flex-1 truncate text-[12px] text-[#5E6C84]">
+            {file ? `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)` : 'Screenshot or document, max 5 MB'}
+          </span>
+          {file && (
+            <button type="button" onClick={() => setFile(null)} className="cursor-pointer text-[12px] font-medium text-[color:var(--ac-main,#0052CC)] hover:underline">Remove</button>
+          )}
+        </div>
+        <input ref={fileRef} type="file" className="hidden" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+      </JField>
+    </JiraModal>
   );
 };

@@ -122,9 +122,11 @@ export class MyTasksController {
   @Get(':id/subtasks')
   @ApiOperation({ summary: 'Get sub tasks for a parent task' })
   @ApiResponse({ status: 200, type: [TaskDetailDto] })
-  async getSubTasks(@Param('id', ParseIntPipe) id: number): Promise<any> {
+  async getSubTasks(@Req() req: Request, @Param('id', ParseIntPipe) id: number): Promise<any> {
     try {
-      return await this.getSubTasksUseCase.execute(id);
+      // Only someone who may open the parent task sees its sub-tasks, and an employee sees just their own.
+      const res = await this.getTaskDetailUseCase.execute(id, req.user!.emp_id, false);
+      return res.task.sub_tasks ?? [];
     } catch (err) {
       throw mapTaskErrorToHttp(err);
     }

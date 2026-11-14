@@ -14,5 +14,7 @@ export interface CompleteFollowUpBodyDto {
   outcome?: CompleteFollowUpBodyDtoOutcome;
   /** Saved as a conversation on the lead */
   what_happened?: string;
+  /** A call follow-up: how long the call lasted, in seconds (3 min 28 sec = 208) */
+  call_duration_seconds?: number;
   next_step?: NextStepDto;
 }

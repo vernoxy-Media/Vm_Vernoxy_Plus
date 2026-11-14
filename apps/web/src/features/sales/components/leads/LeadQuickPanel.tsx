@@ -34,6 +34,7 @@ import {
   FolderKanban,
   MessagesSquare,
 } from 'lucide-react';
+import { CallDurationInput, EMPTY_DURATION, durationError, durationSeconds, type DurationValue } from '../common/CallDurationInput';
 import {
   useSalesActivityControllerQuickLog,
   customFetch,
@@ -582,6 +583,8 @@ const Composer: React.FC<{ leadId: number; locked: boolean; onContactMissing: ()
   const [saved, setSaved] = useState(false);
   const [callStatus, setCallStatus] = useState<'' | 'Received' | 'Not received'>('');
   const [reason, setReason] = useState('');
+  const [duration, setDuration] = useState<DurationValue>(EMPTY_DURATION);
+  const [durationShown, setDurationShown] = useState(false);
   const { data: reasons = [] } = useQuery({
     queryKey: ['lookups', 'call_not_received_reason'],
     queryFn: () => customFetch<Array<{ id: number; label: string }>>('/api/v1/lookups/options?type=call_not_received_reason'),
@@ -597,7 +600,7 @@ const Composer: React.FC<{ leadId: number; locked: boolean; onContactMissing: ()
   const isCall = channel === 'Call';
   const notReceived = isCall && callStatus === 'Not received';
   // A call is Received (say what was discussed) or Not received (pick a reason). Everything else needs the text.
-  const ready = isCall ? (callStatus === 'Received' ? Boolean(text.trim()) : notReceived && Boolean(reason)) : Boolean(text.trim());
+  const ready = isCall ? (callStatus === 'Received' ? Boolean(text.trim()) && !durationError(duration) : notReceived && Boolean(reason)) : Boolean(text.trim());
 
   const save = async () => {
     const body = text.trim();
@@ -608,7 +611,7 @@ const Composer: React.FC<{ leadId: number; locked: boolean; onContactMissing: ()
       await quickLog.mutateAsync({
         id: leadId,
         data: (isCall
-          ? { type: channel, text: body || undefined, call_status: callStatus, not_received_reason: notReceived ? reason : undefined }
+          ? { type: channel, text: body || undefined, call_status: callStatus, not_received_reason: notReceived ? reason : undefined, call_duration_seconds: callStatus === 'Received' ? durationSeconds(duration) ?? undefined : undefined }
           : { type: channel, text: body }) as never,
       });
       const step = NEXT_STEPS.find((n) => n.id === next);
@@ -620,6 +623,8 @@ const Composer: React.FC<{ leadId: number; locked: boolean; onContactMissing: ()
       setNext('none');
       setCallStatus('');
       setReason('');
+      setDuration(EMPTY_DURATION);
+      setDurationShown(false);
       setSaved(true);
       window.setTimeout(() => setSaved(false), 2500);
       queryClient.invalidateQueries({ predicate: (q) => String(q.queryKey[0]).startsWith('/api/v1/sales/') });
@@ -690,6 +695,12 @@ const Composer: React.FC<{ leadId: number; locked: boolean; onContactMissing: ()
               ))}
             </select>
           )}
+        </div>
+      )}
+
+      {isCall && callStatus === 'Received' && (
+        <div className="mt-3" onBlur={() => setDurationShown(true)}>
+          <CallDurationInput compact value={duration} onChange={setDuration} error={durationShown ? durationError(duration) : null} />
         </div>
       )}
 

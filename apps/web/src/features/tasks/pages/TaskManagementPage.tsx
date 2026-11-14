@@ -1,14 +1,5 @@
 import React, { useState } from 'react';
-import {
-  Plus,
-  CheckSquare,
-  Clock,
-  AlertTriangle,
-  Send,
-  CheckCircle2,
-  LayoutGrid,
-  List,
-} from 'lucide-react';
+import { Plus } from 'lucide-react';
 import {
   useTasksControllerGetBoard,
   useTasksControllerGetSummary,
@@ -18,6 +9,7 @@ import {
   useTasksControllerMoveStage,
   useTasksControllerTrackWorkSession,
   useTasksControllerGetTaskDetail,
+  customFetch,
   type CreateTaskDto,
 } from '@vernoxy-pulse/api-client';
 import type {
@@ -28,12 +20,13 @@ import type {
   TaskDetailDto,
 } from '../types';
 import type { AssignableEmployee } from '@/shared/ui/MultiEmployeeSelect';
+import { EmployeeFilter } from '@/features/projects/components/EmployeeFilter';
 import { useLookupsQuery } from '@/features/organization/hooks/use-master-data';
-import { SummaryCards } from '@/shared/ui/SummaryCards';
 import { TaskFiltersBar } from '../components/TaskFiltersBar';
 import { TaskBoard } from '../components/TaskBoard';
 import { TaskListView } from '../components/TaskListView';
-import { TaskDrawer } from '../components/TaskDrawer';
+import { TaskIssuePanel } from '../components/TaskIssuePanel';
+import { PRIMARY_BUTTON, TaskPageHeader, TaskStatStrip, ViewSwitch } from '../components/TaskPageChrome';
 import { TaskFormModal } from '../components/TaskFormModal';
 import { useSocket } from '@/shared/socket/SocketContext';
 
@@ -137,6 +130,16 @@ export const TaskManagementPage: React.FC = () => {
     }
   };
 
+  /** Change or clear the start or due date from the task's Details panel. */
+  const handleChangeDate = async (taskId: number, field: 'start_date' | 'due_date', date: string | null) => {
+    await customFetch(`/api/v1/admin/tasks/${taskId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ [field]: date }),
+    });
+    handleRefresh();
+  };
+
   const handleFormSubmit = async (formData: CreateTaskDto) => {
     if (editingTask) {
       await updateMutation.mutateAsync({ id: editingTask.task_id, data: formData });
@@ -153,109 +156,46 @@ export const TaskManagementPage: React.FC = () => {
   const submittedCount = summary?.submitted ?? (summary?.requested ?? 0);
   const approvedCount = summary?.approved ?? 0;
 
-  const summaryItems = [
-    {
-      id: 'total',
-      label: 'Total Tasks',
-      count: summary?.total ?? 0,
-      icon: CheckSquare,
-      colorClass: 'bg-slate-100 text-slate-700',
-      borderClass: 'border-slate-200 hover:border-slate-300 bg-gradient-to-br from-slate-50/60 via-white to-white',
-    },
-    {
-      id: 'in_progress',
-      label: 'To Do / In Progress',
-      count: todoOrInProgress,
-      icon: Clock,
-      colorClass: 'bg-blue-50 text-blue-700',
-      borderClass: 'border-blue-200 hover:border-blue-300 bg-gradient-to-br from-blue-50/40 via-white to-white',
-    },
-    {
-      id: 'hold',
-      label: 'On Hold',
-      count: onHoldCount,
-      icon: AlertTriangle,
-      colorClass: 'bg-amber-50 text-amber-700',
-      borderClass: 'border-amber-200 hover:border-amber-300 bg-gradient-to-br from-amber-50/40 via-white to-white',
-    },
-    {
-      id: 'submitted',
-      label: 'Submitted',
-      count: submittedCount,
-      icon: Send,
-      colorClass: 'bg-purple-50 text-purple-700',
-      badge: submittedCount > 0 ? `${submittedCount} pending` : undefined,
-      borderClass: 'border-purple-200 hover:border-purple-300 bg-gradient-to-br from-purple-50/40 via-white to-white',
-    },
-    {
-      id: 'approved',
-      label: 'Approved',
-      count: approvedCount,
-      icon: CheckCircle2,
-      colorClass: 'bg-emerald-50 text-emerald-700',
-      borderClass: 'border-emerald-200 hover:border-emerald-300 bg-gradient-to-br from-emerald-50/40 via-white to-white',
-    },
+  const statItems = [
+    { label: 'Total', value: summary?.total ?? 0, dot: 'bg-[#42526E]' },
+    { label: 'To Do / In Progress', value: todoOrInProgress, dot: 'bg-[color:var(--ac-main,#0052CC)]' },
+    { label: 'On Hold', value: onHoldCount, dot: 'bg-[#FF991F]' },
+    { label: 'In Review', value: submittedCount, dot: 'bg-[#6554C0]' },
+    { label: 'Done', value: approvedCount, dot: 'bg-[#36B37E]' },
   ];
 
   return (
     <div className="space-y-6">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Task Management</h1>
-        </div>
+      <TaskPageHeader crumbs={['Tasks', 'Task management']} title="Task management">
+        <ViewSwitch value={viewMode} onChange={setViewMode} />
+        <button
+          type="button"
+          onClick={() => {
+            setEditingTask(null);
+            setIsFormOpen(true);
+          }}
+          className={PRIMARY_BUTTON}
+        >
+          <Plus className="h-4 w-4" strokeWidth={2.5} /> Create
+        </button>
+      </TaskPageHeader>
 
-        <div className="flex items-center gap-3">
-          {/* Dual View Toggle (Kanban / List) */}
-          <div className="inline-flex rounded-xl bg-slate-100 p-1 border border-slate-200">
-            <button
-              type="button"
-              onClick={() => setViewMode('kanban')}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                viewMode === 'kanban'
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              <LayoutGrid className="w-3.5 h-3.5" />
-              Kanban
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('list')}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                viewMode === 'list'
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              <List className="w-3.5 h-3.5" />
-              List
-            </button>
-          </div>
+      <TaskStatStrip items={statItems} />
 
-          <button
-            type="button"
-            onClick={() => {
-              setEditingTask(null);
-              setIsFormOpen(true);
-            }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 text-sm font-semibold text-white shadow-xs hover:bg-blue-700 transition-colors cursor-pointer"
-          >
-            <Plus className="w-4 h-4" /> New Task
-          </button>
-        </div>
-      </div>
-
-      {/* 5 Summary KPI Cards */}
-      <SummaryCards items={summaryItems} />
+      {/* One employee's tasks, sub-tasks and work, or everyone's */}
+      {employees.length > 0 && (
+        <EmployeeFilter
+          people={employees.map((e) => ({ id: e.emp_id, name: e.name, avatar: e.avatar_url }))}
+          value={filters.assignee_id ? String(filters.assignee_id) : 'all'}
+          onChange={(v) => setFilters({ ...filters, assignee_id: v === 'all' ? undefined : Number(v) })}
+        />
+      )}
 
       {/* Filter Bar */}
       <TaskFiltersBar
         filters={filters}
         onChange={setFilters}
         taskTypeOptions={taskTypeLookups.map((l) => ({ id: l.id, label: l.label }))}
-        assigneeOptions={employees}
       />
 
       {/* Main View: Kanban or List */}
@@ -279,14 +219,16 @@ export const TaskManagementPage: React.FC = () => {
         />
       )}
 
-      {/* Task Detail Drawer */}
-      <TaskDrawer
+      {/* The task, as a Jira issue */}
+      <TaskIssuePanel
         task={detailData || null}
         isOpen={selectedTaskId !== null}
         isAdmin={true}
+        heading="Task management"
         onClose={() => setSelectedTaskId(null)}
         onMoveStage={handleMoveStage}
         onTrackWorkSession={handleTrackWorkSession}
+        onChangeDate={handleChangeDate}
         onEdit={(task) => {
           setEditingTask(task);
           setIsFormOpen(true);

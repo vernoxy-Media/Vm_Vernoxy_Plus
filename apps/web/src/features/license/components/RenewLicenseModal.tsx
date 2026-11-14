@@ -1,346 +1,351 @@
-import React, { useState } from 'react';
-import {
- X,
- RefreshCw,
- Upload,
- AlertCircle,
- TrendingUp,
- TrendingDown,
- Equal,
-} from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { AlertCircle, RefreshCw, Upload, X } from 'lucide-react';
 import { useRenewLicenseMutation } from '../hooks/use-licenses';
 import { useUploadAttachmentMutation } from '@/shared/hooks/use-attachments';
 
 interface RenewLicenseModalProps {
- isOpen: boolean;
- softwareId: number;
- softwareName: string;
- previousTerm?: {
- term_number: number;
- billing_cycle?: string | null;
- cost: number;
- expiry_date?: string | null;
- total_seats?: number | null;
- } | null;
- onClose: () => void;
- onSuccess?: () => void;
+  isOpen: boolean;
+  softwareId: number;
+  softwareName: string;
+  softwareCode?: string;
+  licenseType?: string;
+  /** Seats assigned today: Total Seats cannot go below this (marker 3, 6). */
+  assignedSeats?: number;
+  /** A Discontinued software is reopened by recording a new term (Admin). */
+  reopening?: boolean;
+  previousTerm?: {
+    term_number: number;
+    billing_cycle?: string | null;
+    cost: number;
+    start_date?: string | null;
+    expiry_date?: string | null;
+    total_seats?: number | null;
+  } | null;
+  onClose: () => void;
+  onSuccess?: () => void;
 }
 
-const BILLING_CYCLES = [
- 'Monthly',
- 'Quarterly',
- 'Yearly',
- 'Multi-year',
- 'One-time',
-];
+const BILLING_CYCLES = ['Monthly', 'Quarterly', 'Yearly', 'Multi-year', 'One-time'];
+const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const todayIso = () => iso(new Date());
+const fmt = (v?: string | null) =>
+  v ? new Date(v).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+const inr = (n: number) => `₹${n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const normCycle = (c?: string | null) => {
+  if (!c) return 'Yearly';
+  if (c === 'Annual') return 'Yearly';
+  if (c === 'Biennial') return 'Multi-year';
+  return BILLING_CYCLES.includes(c) ? c : 'Yearly';
+};
 
+/** Expiry suggested from the Billing Cycle: the day before the same date one cycle later. */
+const suggestExpiry = (start: string, cycle: string) => {
+  if (!start || cycle === 'One-time') return '';
+  const [y, m, d] = start.split('-').map(Number);
+  const months = cycle === 'Monthly' ? 1 : cycle === 'Quarterly' ? 3 : cycle === 'Multi-year' ? 24 : 12;
+  const end = new Date(y, m - 1 + months, d);
+  end.setDate(end.getDate() - 1);
+  return iso(end);
+};
+
+/** BFD 7 Part 2 - Reference Screen 5: Renew License. */
 export const RenewLicenseModal: React.FC<RenewLicenseModalProps> = ({
- isOpen,
- softwareId,
- softwareName,
- previousTerm,
- onClose,
- onSuccess,
+  isOpen,
+  softwareId,
+  softwareName,
+  softwareCode,
+  licenseType,
+  assignedSeats = 0,
+  reopening = false,
+  previousTerm,
+  onClose,
+  onSuccess,
 }) => {
- const renewMutation = useRenewLicenseMutation();
- const uploadAttachmentMutation = useUploadAttachmentMutation();
+  const renewMutation = useRenewLicenseMutation();
+  const uploadAttachmentMutation = useUploadAttachmentMutation();
 
- // Compute default start date (day after previous expiry or today)
- let defaultStart = new Date().toISOString().split('T')[0];
- if (previousTerm?.expiry_date) {
- const exp = new Date(previousTerm.expiry_date);
- exp.setDate(exp.getDate() + 1);
- defaultStart = exp.toISOString().split('T')[0];
- }
+  // New Start Date: the day after the current Expiry Date (marker 2)
+  const defaultStart = useMemo(() => {
+    if (!reopening && previousTerm?.expiry_date) {
+      const exp = new Date(previousTerm.expiry_date);
+      exp.setDate(exp.getDate() + 1);
+      return iso(exp);
+    }
+    return todayIso();
+  }, [previousTerm?.expiry_date, reopening]);
 
- // Compute default expiry date (1 year later)
- const computeNextYear = (startDateStr: string) => {
- const s = new Date(startDateStr);
- s.setFullYear(s.getFullYear() + 1);
- return s.toISOString().split('T')[0];
- };
+  const initialCycle = normCycle(previousTerm?.billing_cycle);
+  const counted = !licenseType || licenseType.endsWith('Per User') || licenseType === 'Trial';
+  const [startDate, setStartDate] = useState(defaultStart);
+  const [billingCycle, setBillingCycle] = useState(initialCycle);
+  const [expiryDate, setExpiryDate] = useState(suggestExpiry(defaultStart, initialCycle));
+  const [cost, setCost] = useState<number | ''>(previousTerm?.cost ?? '');
+  const [totalSeats, setTotalSeats] = useState<number | ''>(previousTerm?.total_seats ?? '');
+  const [renewalDate, setRenewalDate] = useState(todayIso());
+  const [invoiceOrderNo, setInvoiceOrderNo] = useState('');
+  const [expenseClaimNo, setExpenseClaimNo] = useState('');
+  const [remarks, setRemarks] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [errorMsg, setErrorMsg] = useState('');
 
- const [startDate, setStartDate] = useState(defaultStart);
- const [expiryDate, setExpiryDate] = useState(computeNextYear(defaultStart));
- const [billingCycle, setBillingCycle] = useState(previousTerm?.billing_cycle || 'Annual');
- const [cost, setCost] = useState<number | ''>(previousTerm?.cost ?? '');
- const [totalSeats, setTotalSeats] = useState<number | ''>(previousTerm?.total_seats ?? '');
- const [invoiceOrderNo, setInvoiceOrderNo] = useState('');
- const [expenseClaimNo, setExpenseClaimNo] = useState('');
- const [remarks, setRemarks] = useState('');
- const [selectedFile, setSelectedFile] = useState<File | null>(null);
- const [errorMsg, setErrorMsg] = useState('');
+  if (!isOpen) return null;
 
- if (!isOpen) return null;
+  const nextTerm = (previousTerm?.term_number || 0) + 1;
+  const prevCost = Number(previousTerm?.cost || 0);
+  const costNum = cost === '' ? null : Number(cost);
+  const seatsNum = totalSeats === '' ? null : Number(totalSeats);
+  const perSeat = costNum !== null && seatsNum ? costNum / seatsNum : null;
+  const changePct = costNum !== null && prevCost > 0 ? ((costNum - prevCost) / prevCost) * 100 : null;
+  // Seat warning (marker 6): Save is disabled until seats are revoked or the number is raised
+  const seatsTooLow = counted && seatsNum !== null && seatsNum < assignedSeats;
+  const currentStart = previousTerm?.start_date?.slice(0, 10);
 
- const prevCost = Number(previousTerm?.cost || 0);
- const currentCostNum = Number(cost || 0);
- const costDiff = currentCostNum - prevCost;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg('');
+    if (!startDate) return setErrorMsg('Please fill the New Start Date.');
+    if (currentStart && startDate <= currentStart) {
+      return setErrorMsg(`Terms cannot overlap: the new term must start after ${fmt(currentStart)}.`);
+    }
+    if (billingCycle !== 'One-time' && !expiryDate) return setErrorMsg('Please fill the New Expiry Date.');
+    if (expiryDate && expiryDate <= startDate) return setErrorMsg('The expiry date must be after the start date.');
+    if (counted && (seatsNum === null || seatsNum < 1)) return setErrorMsg('Please enter the Total Seats.');
+    if (seatsTooLow) return setErrorMsg(`${assignedSeats} seats are assigned. Total Seats cannot be lower than ${assignedSeats}.`);
+    if (costNum === null || costNum < 0) return setErrorMsg('Please enter the amount paid for one cycle.');
+    if (!renewalDate) return setErrorMsg('Please fill the Renewal Date (paid on).');
+    if (renewalDate > todayIso()) return setErrorMsg('The renewal date cannot be in the future.');
+    if (selectedFile && (!['application/pdf', 'image/jpeg', 'image/png'].includes(selectedFile.type) || selectedFile.size > 10 * 1024 * 1024)) {
+      return setErrorMsg('Only PDF, JPG or PNG up to 10 MB.');
+    }
 
- const handleSubmit = async (e: React.FormEvent) => {
- e.preventDefault();
- setErrorMsg('');
+    try {
+      const attachmentIds: number[] = [];
+      if (selectedFile) {
+        const uploaded = await uploadAttachmentMutation.mutateAsync({ entityType: 'TEMP_LICENSE_TERM', file: selectedFile, displayOrder: 1 });
+        if (uploaded?.attachment_id) attachmentIds.push(uploaded.attachment_id);
+      }
+      await renewMutation.mutateAsync({
+        id: softwareId,
+        dto: {
+          start_date: startDate,
+          expiry_date: expiryDate || undefined,
+          billing_cycle: billingCycle,
+          cost: costNum,
+          total_seats: counted && seatsNum !== null ? seatsNum : undefined,
+          renewal_date: renewalDate,
+          invoice_order_no: invoiceOrderNo.trim() || undefined,
+          expense_claim_no: expenseClaimNo.trim() || undefined,
+          remarks: remarks.trim() || undefined,
+          attachment_ids: attachmentIds.length ? attachmentIds : undefined,
+        },
+      });
+      onSuccess?.();
+      onClose();
+    } catch (err: any) {
+      setErrorMsg(err?.detail || err?.message || 'Failed to renew license');
+    }
+  };
 
- if (!startDate) {
- setErrorMsg('Start date is required');
- return;
- }
- if (expiryDate && new Date(expiryDate) <= new Date(startDate)) {
- setErrorMsg('Expiry date must be after start date');
- return;
- }
+  const input = 'w-full h-10 px-3 text-sm border border-slate-300 rounded-xl bg-white text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500';
+  const label = 'block text-xs font-semibold text-slate-700 mb-1';
 
- try {
- const attachmentIds: number[] = [];
- if (selectedFile) {
- const uploaded = await uploadAttachmentMutation.mutateAsync({
- entityType: 'TEMP_LICENSE_TERM',
- file: selectedFile,
- displayOrder: 1,
- });
- if (uploaded?.attachment_id) {
- attachmentIds.push(uploaded.attachment_id);
- }
- }
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
+      <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-200 my-8 overflow-hidden">
+        {/* Header */}
+        <div className="flex items-start justify-between px-6 pt-5 pb-3">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <RefreshCw className="w-5 h-5 text-blue-600" />
+              {reopening ? 'Reopen License' : 'Renew License'}
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {softwareName}
+              {softwareCode ? ` · ${softwareCode}` : ''} · Term {nextTerm}
+            </p>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Close" className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
- await renewMutation.mutateAsync({
- id: softwareId,
- dto: {
- start_date: startDate,
- expiry_date: expiryDate || undefined,
- billing_cycle: billingCycle,
- cost: cost !== '' ? Number(cost) : undefined,
- total_seats: totalSeats !== '' ? Number(totalSeats) : undefined,
- invoice_order_no: invoiceOrderNo.trim() || undefined,
- expense_claim_no: expenseClaimNo.trim() || undefined,
- remarks: remarks.trim() || undefined,
- attachment_ids: attachmentIds.length > 0 ? attachmentIds : undefined,
- },
- });
+        <form onSubmit={handleSubmit} className="px-6 pb-6 space-y-4">
+          {/* Current term (marker 1), read-only */}
+          {previousTerm ? (
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-[12.5px] text-slate-700">
+              <span className="font-semibold text-slate-900">Current term:</span>{' '}
+              {fmt(previousTerm.start_date)} – {previousTerm.expiry_date ? fmt(previousTerm.expiry_date) : 'No expiry'}
+              {' · '}
+              {normCycle(previousTerm.billing_cycle)}
+              {previousTerm.total_seats !== null && previousTerm.total_seats !== undefined ? ` · ${previousTerm.total_seats} seats` : ''}
+              {' · '}
+              {inr(prevCost)}
+              {' · '}
+              {assignedSeats} seat{assignedSeats === 1 ? '' : 's'} used
+            </div>
+          ) : (
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-[12.5px] text-slate-500">No term recorded yet.</div>
+          )}
 
- onSuccess?.();
- onClose();
- } catch (err: any) {
- setErrorMsg(err?.message || 'Failed to renew license');
- }
- };
+          {errorMsg && (
+            <div className="flex items-center gap-2 p-3 text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{errorMsg}</span>
+            </div>
+          )}
 
- return (
- <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
- <div className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-slate-200 my-8 overflow-hidden">
- {/* Header */}
- <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50/50 ">
- <div>
- <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
- <RefreshCw className="w-5 h-5 text-emerald-600" />
- Renew License: {softwareName}
- </h2>
- <p className="text-xs text-slate-500">
- Create Term {(previousTerm?.term_number || 0) + 1} with updated duration, seat capacity & billing.
- </p>
- </div>
- <button
- type="button"
- onClick={onClose}
- className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition"
- >
- <X className="w-5 h-5" />
- </button>
- </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* marker 2 */}
+            <div>
+              <label className={label}>
+                New Start Date <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="date"
+                required
+                className={input}
+                value={startDate}
+                min={currentStart || undefined}
+                onChange={(e) => {
+                  setStartDate(e.target.value);
+                  setExpiryDate(suggestExpiry(e.target.value, billingCycle));
+                }}
+              />
+            </div>
+            <div>
+              <label className={label}>
+                New Expiry Date {billingCycle !== 'One-time' && <span className="text-red-500">*</span>}
+              </label>
+              <input type="date" className={input} value={expiryDate} min={startDate || undefined} onChange={(e) => setExpiryDate(e.target.value)} />
+            </div>
+            <div>
+              <label className={label}>
+                Billing Cycle <span className="text-red-500">*</span>
+              </label>
+              <select
+                className={input}
+                value={billingCycle}
+                onChange={(e) => {
+                  setBillingCycle(e.target.value);
+                  setExpiryDate(suggestExpiry(startDate, e.target.value));
+                }}
+              >
+                {BILLING_CYCLES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </div>
 
- {/* Form Body */}
- <form onSubmit={handleSubmit} className="p-6 space-y-4">
- {errorMsg && (
- <div className="flex items-center gap-2 p-3 text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl">
- <AlertCircle className="w-4 h-4 shrink-0" />
- <span>{errorMsg}</span>
- </div>
- )}
+            {/* marker 3 */}
+            <div>
+              <label className={label}>Total Seats {counted && <span className="text-red-500">*</span>}</label>
+              {counted ? (
+                <input
+                  type="number"
+                  min={Math.max(1, assignedSeats)}
+                  max={10000}
+                  className={input}
+                  value={totalSeats}
+                  onChange={(e) => setTotalSeats(e.target.value ? parseInt(e.target.value, 10) : '')}
+                />
+              ) : (
+                <div className={`${input} flex items-center bg-slate-50 text-slate-500`}>No limit</div>
+              )}
+            </div>
 
- <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
- {/* Start Date */}
- <div>
- <label className="block text-xs font-medium text-slate-700 mb-1">
- New Term Start Date <span className="text-red-500">*</span>
- </label>
- <input
- type="date"
- required
- value={startDate}
- onChange={(e) => {
- setStartDate(e.target.value);
- setExpiryDate(computeNextYear(e.target.value));
- }}
- className="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl bg-white text-slate-900 "
- />
- </div>
+            {/* marker 4 */}
+            <div>
+              <label className={label}>
+                Cost for the cycle (₹) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                className={input}
+                value={cost}
+                onChange={(e) => setCost(e.target.value ? parseFloat(e.target.value) : '')}
+              />
+              {(perSeat !== null || changePct !== null) && (
+                <p className="mt-1 text-[11px] text-slate-500">
+                  {perSeat !== null && <>{inr(perSeat)} per seat</>}
+                  {perSeat !== null && changePct !== null && ' · '}
+                  {changePct !== null && (
+                    <span className={changePct > 0 ? 'text-red-600' : changePct < 0 ? 'text-emerald-600' : ''}>
+                      {changePct === 0
+                        ? `Same as Term ${previousTerm?.term_number}`
+                        : `${Math.abs(changePct).toFixed(1)}% ${changePct > 0 ? 'higher' : 'lower'} than Term ${previousTerm?.term_number}`}
+                      {costNum !== null && changePct !== 0 && ` (${costNum - prevCost > 0 ? '+' : '−'}${inr(Math.abs(costNum - prevCost))})`}
+                    </span>
+                  )}
+                </p>
+              )}
+            </div>
+            <div>
+              <label className={label}>
+                Renewal Date (paid on) <span className="text-red-500">*</span>
+              </label>
+              <input type="date" className={input} value={renewalDate} max={todayIso()} onChange={(e) => setRenewalDate(e.target.value)} />
+            </div>
+          </div>
 
- {/* Expiry Date */}
- <div>
- <label className="block text-xs font-medium text-slate-700 mb-1">
- New Expiry Date
- </label>
- <input
- type="date"
- value={expiryDate}
- onChange={(e) => setExpiryDate(e.target.value)}
- className="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl bg-white text-slate-900 "
- />
- </div>
+          {/* marker 5 */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className={label}>Invoice / Order No.</label>
+              <input type="text" className={input} maxLength={100} value={invoiceOrderNo} onChange={(e) => setInvoiceOrderNo(e.target.value)} />
+            </div>
+            <div>
+              <label className={label}>Invoice</label>
+              <label className="flex h-10 items-center gap-2 px-3 text-xs font-semibold text-slate-700 bg-slate-50 border border-dashed border-slate-300 rounded-xl hover:bg-slate-100 cursor-pointer transition">
+                <Upload className="w-4 h-4 text-slate-500 shrink-0" />
+                <span className="truncate">
+                  {selectedFile ? `${selectedFile.name} · ${(selectedFile.size / 1024).toFixed(0)} KB` : 'PDF, JPG or PNG, up to 10 MB'}
+                </span>
+                <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => setSelectedFile(e.target.files?.[0] || null)} />
+              </label>
+            </div>
+            <div>
+              <label className={label}>Expense Claim No.</label>
+              <input
+                type="text"
+                className={input}
+                maxLength={50}
+                value={expenseClaimNo}
+                onChange={(e) => setExpenseClaimNo(e.target.value)}
+                placeholder="If an employee paid and claimed it"
+              />
+            </div>
+            <div>
+              <label className={label}>Remarks</label>
+              <input type="text" className={input} value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="e.g. Reduced from 25 to 23 seats" />
+            </div>
+          </div>
 
- {/* Billing Cycle */}
- <div>
- <label className="block text-xs font-medium text-slate-700 mb-1">
- Billing Cycle
- </label>
- <select
- value={billingCycle}
- onChange={(e) => setBillingCycle(e.target.value)}
- className="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl bg-white text-slate-900 "
- >
- {BILLING_CYCLES.map((c) => (
- <option key={c} value={c}>
- {c}
- </option>
- ))}
- </select>
- </div>
+          {/* marker 6 */}
+          {seatsTooLow && (
+            <div className="rounded-xl border border-amber-300 bg-amber-50 px-3.5 py-2.5 text-[12.5px] text-amber-800">
+              {assignedSeats} seats are assigned. Total Seats cannot be lower than {assignedSeats}.
+            </div>
+          )}
 
- {/* Cost with Comparison Badge */}
- <div>
- <label className="block text-xs font-medium text-slate-700 mb-1">
- Renewal Cost (₹)
- </label>
- <input
- type="number"
- step="0.01"
- min="0"
- value={cost}
- onChange={(e) => setCost(e.target.value ? parseFloat(e.target.value) : '')}
- placeholder="0.00"
- className="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl bg-white text-slate-900 "
- />
- {previousTerm && prevCost > 0 && cost !== '' && (
- <div className="flex items-center gap-1.5 mt-1 text-[11px]">
- {costDiff > 0 ? (
- <span className="flex items-center gap-1 text-red-600 font-medium">
- <TrendingUp className="w-3.5 h-3.5" /> +₹{costDiff.toFixed(2)} (increased)
- </span>
- ) : costDiff < 0 ? (
- <span className="flex items-center gap-1 text-emerald-600 font-medium">
- <TrendingDown className="w-3.5 h-3.5" /> -₹{Math.abs(costDiff).toFixed(2)} (savings)
- </span>
- ) : (
- <span className="flex items-center gap-1 text-slate-500">
- <Equal className="w-3.5 h-3.5" /> Same as previous term
- </span>
- )}
- </div>
- )}
- </div>
-
- {/* Seat Capacity */}
- <div>
- <label className="block text-xs font-medium text-slate-700 mb-1">
- Total Seats Capacity
- </label>
- <input
- type="number"
- min="1"
- value={totalSeats}
- onChange={(e) => setTotalSeats(e.target.value ? parseInt(e.target.value, 10) : '')}
- placeholder="Seats (e.g. 25)"
- className="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl bg-white text-slate-900 "
- />
- </div>
-
- {/* Invoice / PO No */}
- <div>
- <label className="block text-xs font-medium text-slate-700 mb-1">
- Invoice / PO No.
- </label>
- <input
- type="text"
- value={invoiceOrderNo}
- onChange={(e) => setInvoiceOrderNo(e.target.value)}
- placeholder="INV-..."
- className="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl bg-white text-slate-900 "
- />
- </div>
-
- {/* Expense Claim No */}
- <div className="sm:col-span-2">
- <label className="block text-xs font-medium text-slate-700 mb-1">
- Expense Claim No.
- </label>
- <input
- type="text"
- value={expenseClaimNo}
- onChange={(e) => setExpenseClaimNo(e.target.value)}
- placeholder="EXP-..."
- className="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl bg-white text-slate-900 "
- />
- </div>
-
- {/* Remarks */}
- <div className="sm:col-span-2">
- <label className="block text-xs font-medium text-slate-700 mb-1">
- Remarks
- </label>
- <input
- type="text"
- value={remarks}
- onChange={(e) => setRemarks(e.target.value)}
- placeholder="Renewal notes or discounts"
- className="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl bg-white text-slate-900 "
- />
- </div>
-
- {/* Document Upload */}
- <div className="sm:col-span-2">
- <label className="block text-xs font-medium text-slate-700 mb-1">
- Attach Renewal Invoice / Contract
- </label>
- <div className="flex items-center gap-3">
- <label className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-100 border border-slate-300 rounded-xl hover:bg-slate-200 cursor-pointer transition">
- <Upload className="w-4 h-4 text-slate-500" />
- <span>Choose File</span>
- <input
- type="file"
- className="hidden"
- onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
- />
- </label>
- {selectedFile ? (
- <span className="text-xs text-emerald-600 font-medium truncate">
- {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
- </span>
- ) : (
- <span className="text-xs text-slate-400">PDF, PNG, JPG up to 10MB</span>
- )}
- </div>
- </div>
- </div>
-
- {/* Action Buttons */}
- <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 ">
- <button
- type="button"
- onClick={onClose}
- className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 rounded-xl transition"
- >
- Cancel
- </button>
- <button
- type="submit"
- disabled={renewMutation.isPending}
- className="inline-flex items-center gap-2 px-5 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition disabled:opacity-50"
- >
- {renewMutation.isPending ? 'Renewing...' : 'Renew License Term'}
- </button>
- </div>
- </form>
- </div>
- </div>
- );
+          {/* marker 7 */}
+          <div className="flex items-center justify-end gap-3 pt-2">
+            <button type="button" onClick={onClose} className="h-10 px-4 text-xs font-semibold text-slate-700 border border-slate-200 rounded-xl hover:bg-slate-50 transition">
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={renewMutation.isPending || uploadAttachmentMutation.isPending || seatsTooLow}
+              className="h-10 px-5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-xs transition disabled:opacity-50"
+            >
+              {renewMutation.isPending ? 'Saving...' : reopening ? 'Save and Reopen' : 'Save Renewal'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
 };

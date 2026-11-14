@@ -5,6 +5,8 @@ import {
 } from '../ports/candidate.repository.port';
 import { CreateCandidateDto } from '../../presentation/dto/candidate.dto';
 import { CandidateProps } from '../../domain/candidate.entity';
+import { assertNoDuplicate } from '../duplicate-rules';
+import { stripResumeUrl } from '../resume-url';
 
 @Injectable()
 export class CreateCandidateUseCase {
@@ -43,13 +45,17 @@ export class CreateCandidateUseCase {
       throw new BadRequestException('Please specify the source details.');
     }
 
+    // The form shows the duplicate warning while typing; the API enforces it, so a second record
+    // cannot be created by skipping the form.
+    assertNoDuplicate(await this.candidateRepo.checkDuplicates(dto.phone, dto.email));
+
     const created = await this.candidateRepo.create({
       name: dto.name.trim(),
       phone: dto.phone.trim(),
       email: dto.email.trim().toLowerCase(),
       genderId: dto.gender_id,
       currentLocation: dto.current_location?.trim() || null,
-      resumeUrl: dto.resume_url || null,
+      resumeUrl: stripResumeUrl(dto.resume_url),
       resumeFilename: dto.resume_filename || null,
       resumeSize: dto.resume_size || null,
       resumeMime: dto.resume_mime || null,

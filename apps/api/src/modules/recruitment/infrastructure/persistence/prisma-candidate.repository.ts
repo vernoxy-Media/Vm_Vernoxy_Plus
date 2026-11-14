@@ -5,6 +5,7 @@ import {
   CandidateFilterParams,
   CandidateStats,
   CandidateDuplicateMatch,
+  DuplicateCheckOptions,
   MarkDecisionParams,
 } from '../../application/ports/candidate.repository.port';
 import { CandidateProps } from '../../domain/candidate.entity';
@@ -118,7 +119,26 @@ export class PrismaCandidateRepository implements ICandidateRepository {
         { candidate_code: { contains: q, mode: 'insensitive' } },
         { email: { contains: q, mode: 'insensitive' } },
         { phone: { contains: q, mode: 'insensitive' } },
+        { roles: { role_name: { contains: q, mode: 'insensitive' } } },
+        { departments: { name: { contains: q, mode: 'insensitive' } } },
+        { source: { contains: q, mode: 'insensitive' } },
       ];
+    }
+
+    if (params.experienceType && params.experienceType.toLowerCase() !== 'all') {
+      where.experience_type = { equals: params.experienceType.toLowerCase(), mode: 'insensitive' };
+    }
+
+    if (params.startDate || params.endDate) {
+      where.created_at = {};
+      if (params.startDate) {
+        where.created_at.gte = new Date(params.startDate);
+      }
+      if (params.endDate) {
+        const end = new Date(params.endDate);
+        end.setHours(23, 59, 59, 999);
+        where.created_at.lte = end;
+      }
     }
 
     if (params.roleId) {
@@ -141,13 +161,51 @@ export class PrismaCandidateRepository implements ICandidateRepository {
       }
     }
 
+    // Sorting runs on the whole list, before paging (BFD Section 3 "Sorting"). Newest first by default.
+    const dir: 'asc' | 'desc' = params.sortDir === 'asc' ? 'asc' : 'desc';
+    const skip = params.offset || 0;
+    const take = params.limit || 10;
+
+    // Name sort ignores capital and small letters (BFD Section 3: "Capital or small letters do not
+    // matter"). The database compares by character code, so "ABC" would come before "Aarchie" and
+    // "dipak" after "Yash". Prisma cannot order by lower(name), so sort the matching ids by name
+    // here, then load only the rows of the requested page.
+    if (params.sortBy === 'candidate') {
+      const all = await this.prisma.candidates.findMany({
+        where,
+        select: { candidate_id: true, name: true },
+      });
+      const collator = new Intl.Collator('en', { sensitivity: 'base', numeric: true });
+      all.sort((a, b) => {
+        const byName = collator.compare((a.name || '').trim(), (b.name || '').trim());
+        return (dir === 'asc' ? byName : -byName) || b.candidate_id - a.candidate_id;
+      });
+      const pageIds = all.slice(skip, skip + take).map((r) => r.candidate_id);
+      const rows = pageIds.length
+        ? await this.prisma.candidates.findMany({
+            where: { candidate_id: { in: pageIds } },
+            include: this.candidateInclude,
+          })
+        : [];
+      const byId = new Map(rows.map((r) => [r.candidate_id, r]));
+      return {
+        items: pageIds.map((id) => byId.get(id)).filter(Boolean).map((r) => this.mapToDomain(r)),
+        total: all.length,
+      };
+    }
+
+    const orderBy: any[] =
+      params.sortBy === 'experience'
+        ? [{ exp_years: dir }, { exp_months: dir }, { candidate_id: 'desc' }]
+        : [{ candidate_id: dir }];
+
     const [rows, total] = await Promise.all([
       this.prisma.candidates.findMany({
         where,
         include: this.candidateInclude,
-        orderBy: { candidate_id: 'desc' },
-        skip: params.offset || 0,
-        take: params.limit || 10,
+        orderBy,
+        skip,
+        take,
       }),
       this.prisma.candidates.count({ where }),
     ]);
@@ -174,20 +232,30 @@ export class PrismaCandidateRepository implements ICandidateRepository {
     };
   }
 
-  async checkDuplicates(phone: string, email: string): Promise<CandidateDuplicateMatch[]> {
-    const cleanPhone = phone.replace(/\D/g, '').slice(-10);
-    const cleanEmail = email.trim().toLowerCase();
+  async checkDuplicates(
+    phone: string,
+    email: string,
+    options: DuplicateCheckOptions = {},
+  ): Promise<CandidateDuplicateMatch[]> {
+    const cleanPhone = (phone || '').replace(/\D/g, '').slice(-10);
+    const cleanEmail = (email || '').trim().toLowerCase();
+    // Only compare what was given: an empty phone must not match every row through "contains ''".
+    const hasPhone = cleanPhone.length === 10;
+    const hasEmail = cleanEmail.length > 0;
 
     const matches: CandidateDuplicateMatch[] = [];
+    if (!hasPhone && !hasEmail) return matches;
 
-    // Check existing candidates
+    // Check existing candidates (any stage)
+    const candOr: any[] = [];
+    if (hasEmail) candOr.push({ email: { equals: cleanEmail, mode: 'insensitive' } });
+    if (hasPhone) candOr.push({ phone: { contains: cleanPhone } });
     const candMatch = await this.prisma.candidates.findFirst({
       where: {
-        OR: [
-          { email: cleanEmail },
-          { phone: { contains: cleanPhone } },
-        ],
+        OR: candOr,
+        ...(options.excludeCandidateId ? { candidate_id: { not: options.excludeCandidateId } } : {}),
       },
+      orderBy: { candidate_id: 'desc' },
     });
 
     if (candMatch) {
@@ -202,16 +270,23 @@ export class PrismaCandidateRepository implements ICandidateRepository {
       });
     }
 
-    // Check existing employees
+    // Check current employees. A former (Inactive) employee may apply again, so only Active and
+    // Onboarding people count, as in BFD "Already an employee".
+    const empOr: any[] = [];
+    if (hasEmail) {
+      empOr.push(
+        { email: { equals: cleanEmail, mode: 'insensitive' } },
+        { office_email: { equals: cleanEmail, mode: 'insensitive' } },
+        { personal_email: { equals: cleanEmail, mode: 'insensitive' } },
+      );
+    }
+    if (hasPhone) empOr.push({ mob: { contains: cleanPhone } });
     const empMatch = await this.prisma.employees.findFirst({
       where: {
         deleted_at: null,
-        OR: [
-          { email: cleanEmail },
-          { office_email: cleanEmail },
-          { personal_email: cleanEmail },
-          { mob: { contains: cleanPhone } },
-        ],
+        status: { in: ['Active', 'Onboarding'] },
+        OR: empOr,
+        ...(options.excludeEmpId ? { emp_id: { not: options.excludeEmpId } } : {}),
       },
     });
 

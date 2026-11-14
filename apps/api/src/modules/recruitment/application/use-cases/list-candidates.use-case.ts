@@ -5,6 +5,7 @@ import {
   CandidateFilterParams,
 } from '../ports/candidate.repository.port';
 import { CandidateListResponseDto } from '../../presentation/dto/candidate.dto';
+import { signResumeUrl } from '../resume-url';
 
 @Injectable()
 export class ListCandidatesUseCase {
@@ -28,7 +29,7 @@ export class ListCandidatesUseCase {
         email: c.email,
         gender_id: c.genderId || null,
         current_location: c.currentLocation || null,
-        resume_url: c.resumeUrl || null,
+        resume_url: signResumeUrl(c.resumeUrl),
         resume_filename: c.resumeFilename || null,
         role_id: c.roleId,
         role_name: c.roleName,

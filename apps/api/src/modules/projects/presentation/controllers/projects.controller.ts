@@ -41,8 +41,11 @@ import {
   CreateDiscussionDto,
   CreateProjectDto,
   CreateProjectTaskDto,
+  CompleteSprintDto,
   CreateSprintDto,
+  MoveTaskSprintDto,
   ProjectsFilterDto,
+  UpdateBugDatesDto,
   UpdateBugStatusDto,
   UpdateProjectDto,
   UpdateProjectStatusDto,
@@ -51,9 +54,12 @@ import {
 
 import { EventsService } from '../../../websockets/public-api';
 import { CreateNotificationUseCase } from '../../../notifications/public-api';
-import { CreateTaskUseCase } from '../../../tasks/public-api';
+import { AddSubTaskUseCase, CreateTaskUseCase, parseDueDate, validateDateRange } from '../../../tasks/public-api';
+import { CreateSubTaskDto } from '../../../tasks/presentation/dto/task.dto';
 import { mapTaskErrorToHttp } from '../../../tasks/presentation/tasks-error.mapper';
-import { ProjectAccessService } from '../../application/services/project-access.service';
+import { ProjectAccessService, type ProjectRole } from '../../application/services/project-access.service';
+import { deliveryBlockMessage, evaluateDelivery } from '../../domain/services/delivery';
+import { canMoveBug, canSeeActivity, canSeeBug, canSeeDiscussionMessage, seesEverything, type Viewer } from '../../domain/services/visibility';
 
 /** Project BFD 3.6: allowed bug status moves ("If QA fails, the bug goes back to Ready for Dev"). */
 const BUG_FLOW: Record<string, string[]> = {
@@ -102,6 +108,7 @@ export class ProjectsController {
     private readonly createNotificationUseCase: CreateNotificationUseCase,
     private readonly access: ProjectAccessService,
     private readonly createTaskUseCase: CreateTaskUseCase,
+    private readonly addSubTaskUseCase: AddSubTaskUseCase,
   ) {}
 
   private readonly logger = new Logger(ProjectsController.name);
@@ -144,6 +151,27 @@ export class ProjectsController {
       employee_id: user.emp_id,
       is_admin: isAdmin,
     });
+  }
+
+  @Get('my-bugs')
+  @ApiOperation({ summary: 'Bugs, in every project, assigned to or reported by the signed-in employee' })
+  async getMyBugs(@Req() req: Request, @Query('employee_id') employeeId?: string) {
+    const empId = req.user!.emp_id;
+    // Only an Admin may look at somebody else's bugs, or at everyone's
+    if (employeeId && (await this.access.isAdmin(empId))) {
+      return this.projectRepo.getBugsForEmployee(employeeId === 'all' ? null : Number(employeeId) || empId);
+    }
+    return this.projectRepo.getBugsForEmployee(empId);
+  }
+
+  @Get('client-options')
+  @ApiOperation({ summary: 'Clients to choose from when creating or editing a project (Admin and Project Managers)' })
+  async getClientOptions(@Req() req: Request) {
+    const empId = req.user!.emp_id;
+    if (!(await this.access.isAdmin(empId)) && !(await this.access.isProjectManagerAnywhere(empId))) {
+      throw new ForbiddenException('Only an Admin or a Project Manager can choose a client.');
+    }
+    return this.projectRepo.getClientOptions();
   }
 
   @Get('assignable-employees')
@@ -217,13 +245,28 @@ export class ProjectsController {
   ) {
     const user = req.user!;
     // Status (and Kanban moves) are changed by the Admin or the Project Manager only.
-    await this.access.assertManager(id, user.emp_id);
+    const role = await this.access.assertManager(id, user.emp_id);
+    if (dto.status === 'delivered') {
+      // Delivery closes the project: every sprint finished, every issue Done, no bug open.
+      const check = evaluateDelivery(await this.projectRepo.getDeliveryCounts(id));
+      if (!check.ready) {
+        if (!(dto.force && role.isAdmin)) throw new BadRequestException(deliveryBlockMessage(check.blockers));
+        if (!dto.reason?.trim()) throw new BadRequestException('Please give a reason for delivering the project with open work.');
+      }
+    }
     return this.updateProjectStatusUseCase.execute(
       id,
       dto.status,
       dto.reason,
       user.emp_id,
     );
+  }
+
+  @Get(':id/delivery-readiness')
+  @ApiOperation({ summary: 'Is the project ready to be delivered? What is still open (Admin and PM)' })
+  async getDeliveryReadiness(@Req() req: Request, @Param('id', ParseIntPipe) id: number) {
+    await this.access.assertManager(id, req.user!.emp_id);
+    return evaluateDelivery(await this.projectRepo.getDeliveryCounts(id));
   }
 
   @Get(':id/sprints')
@@ -279,6 +322,77 @@ export class ProjectsController {
     });
     this.eventsService.emitToProject(id, 'sprint:updated', sprint);
     return sprint;
+  }
+
+  @Post(':id/sprints/:sprintId/complete')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Complete a sprint; unfinished tasks move to another sprint or the backlog' })
+  async completeSprint(
+    @Req() req: Request,
+    @Param('id', ParseIntPipe) id: number,
+    @Param('sprintId', ParseIntPipe) sprintId: number,
+    @Body() dto: CompleteSprintDto,
+  ) {
+    await this.access.assertManager(id, req.user!.emp_id);
+    const res = await this.projectRepo.completeSprint(id, sprintId, dto.move_to_sprint_id ?? null, req.user!.emp_id);
+    this.eventsService.emitToProject(id, 'sprint:updated', res.sprint);
+    this.eventsService.emitToProject(id, 'task:updated', { project_id: id });
+    return res;
+  }
+
+  @Patch(':id/tasks/:taskId/sprint')
+  @ApiOperation({ summary: 'Move a task into a sprint, or back to the backlog' })
+  async moveTaskToSprint(
+    @Req() req: Request,
+    @Param('id', ParseIntPipe) id: number,
+    @Param('taskId', ParseIntPipe) taskId: number,
+    @Body() dto: MoveTaskSprintDto,
+  ) {
+    await this.access.assertManager(id, req.user!.emp_id);
+    await this.projectRepo.moveTaskToSprint(id, taskId, dto.sprint_id ?? null, req.user!.emp_id);
+    this.eventsService.emitToProject(id, 'task:updated', { project_id: id, task_id: taskId });
+    return { task_id: taskId, sprint_id: dto.sprint_id ?? null };
+  }
+
+  @Post(':id/tasks/:taskId/sub-tasks')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Add a sub-task to an existing task of this project' })
+  async addSubTask(
+    @Req() req: Request,
+    @Param('id', ParseIntPipe) id: number,
+    @Param('taskId', ParseIntPipe) taskId: number,
+    @Body() dto: CreateSubTaskDto,
+  ) {
+    const user = req.user!;
+    await this.access.assertManager(id, user.emp_id);
+    const members = await this.access.memberIds(id);
+    if ((dto.assignee_ids || []).some((empId) => !members.includes(Number(empId)))) {
+      throw new BadRequestException('Tasks can be assigned only to employees of this project.');
+    }
+    const inProject = await this.getSprintTasksUseCase.execute(id);
+    if (!inProject.some((t: any) => t.task_id === taskId)) {
+      throw new NotFoundException('Task not found in this project.');
+    }
+    let result;
+    try {
+      result = await this.addSubTaskUseCase.execute({
+        parentTaskId: taskId,
+        title: dto.title,
+        description: dto.description,
+        priority: dto.priority,
+        task_type_id: dto.task_type_id,
+        other_task_type: dto.other_task_type,
+        allocated_minutes: dto.allocated_minutes,
+        assignee_ids: dto.assignee_ids || [],
+        due_date: dto.due_date,
+        actor_emp_id: user.emp_id,
+      });
+    } catch (err) {
+      throw mapTaskErrorToHttp(err);
+    }
+    this.eventsService.emitToProject(id, 'task:updated', result.parent);
+    (result.sub_task.assignees || []).forEach((a: any) => this.eventsService.emitToUser(a.employee_id, 'task:assigned', result.sub_task));
+    return { parent: result.parent, sub_task: result.sub_task };
   }
 
   @Get(':id/tasks')
@@ -348,8 +462,12 @@ export class ProjectsController {
     @Req() req: Request,
     @Param('id', ParseIntPipe) id: number,
   ) {
-    await this.access.assertMember(id, req.user!.emp_id);
-    return this.projectRepo.getDiscussions(id);
+    const empId = req.user!.emp_id;
+    const viewer = this.viewerOf(await this.access.assertMember(id, empId), empId);
+    const messages = await this.projectRepo.getDiscussions(id);
+    if (seesEverything(viewer)) return messages;
+    const mine = new Set(await this.projectRepo.getTaskCodesFor(id, empId));
+    return messages.filter((m: any) => canSeeDiscussionMessage(viewer, m, mine));
   }
 
   @Post(':id/discussions')
@@ -405,8 +523,13 @@ export class ProjectsController {
     @Req() req: Request,
     @Param('id', ParseIntPipe) id: number,
   ) {
-    await this.access.assertMember(id, req.user!.emp_id);
-    return this.projectRepo.getActivityLogs(id);
+    const empId = req.user!.emp_id;
+    const viewer = this.viewerOf(await this.access.assertMember(id, empId), empId);
+    const logs = await this.projectRepo.getActivityLogs(id);
+    if (seesEverything(viewer)) return logs;
+    const taskCodes = await this.projectRepo.getTaskCodesFor(id, empId);
+    const bugCodes = (await this.projectRepo.getBugs(id)).filter((b: any) => canSeeBug(viewer, b)).map((b: any) => b.bug_code as string);
+    return logs.filter((l: any) => canSeeActivity(viewer, l, [...taskCodes, ...bugCodes]));
   }
 
   @Get(':id/bugs')
@@ -415,8 +538,10 @@ export class ProjectsController {
     @Req() req: Request,
     @Param('id', ParseIntPipe) id: number,
   ) {
-    await this.access.assertMember(id, req.user!.emp_id);
-    return this.projectRepo.getBugs(id);
+    const empId = req.user!.emp_id;
+    const viewer = this.viewerOf(await this.access.assertMember(id, empId), empId);
+    const bugs = await this.projectRepo.getBugs(id);
+    return bugs.filter((b: any) => canSeeBug(viewer, b));
   }
 
   @Post(':id/bugs')
@@ -435,10 +560,18 @@ export class ProjectsController {
     if (dto.bug_type === 'other' && !dto.other_bug_type?.trim()) {
       throw new BadRequestException('Please enter the Other Bug Type.');
     }
+    const bugStart = parseDueDate(dto.start_date);
+    const bugDue = parseDueDate(dto.due_date);
+    if (bugStart === undefined) throw new BadRequestException('Please enter a valid Start Date.');
+    if (bugDue === undefined) throw new BadRequestException('Please enter a valid Due Date.');
+    const bugRange = validateDateRange(bugStart, bugDue);
+    if (bugRange) throw new BadRequestException(bugRange);
     const bug = await this.projectRepo.createBug(
       id,
       user.emp_id,
       {
+        start_date: bugStart,
+        due_date: bugDue,
         task_id: dto.task_id,
         title: dto.title.trim(),
         description: dto.description.trim(),
@@ -460,6 +593,25 @@ export class ProjectsController {
     return bug;
   }
 
+  @Patch(':id/bugs/:bugId/dates')
+  @ApiOperation({ summary: 'Change the start and due date of a bug (Admin and PM)' })
+  async updateBugDates(
+    @Req() req: Request,
+    @Param('id', ParseIntPipe) id: number,
+    @Param('bugId', ParseIntPipe) bugId: number,
+    @Body() dto: UpdateBugDatesDto,
+  ) {
+    const user = req.user!;
+    await this.access.assertManager(id, user.emp_id);
+    const start = dto.start_date === undefined ? undefined : parseDueDate(dto.start_date);
+    const due = dto.due_date === undefined ? undefined : parseDueDate(dto.due_date);
+    if (start === undefined && dto.start_date !== undefined) throw new BadRequestException('Please enter a valid Start Date.');
+    if (due === undefined && dto.due_date !== undefined) throw new BadRequestException('Please enter a valid Due Date.');
+    const bug = await this.projectRepo.updateBugDates(id, bugId, { start_date: start, due_date: due }, user.emp_id);
+    this.eventsService.emitToProject(id, 'bug:updated', bug);
+    return bug;
+  }
+
   @Get(':id/bugs/:bugId')
   @ApiOperation({ summary: 'Get bug details including time tracking, comments, and history' })
   async getProjectBugDetail(
@@ -467,9 +619,12 @@ export class ProjectsController {
     @Param('id', ParseIntPipe) id: number,
     @Param('bugId', ParseIntPipe) bugId: number,
   ) {
-    await this.access.assertMember(id, req.user!.emp_id);
+    const empId = req.user!.emp_id;
+    const viewer = this.viewerOf(await this.access.assertMember(id, empId), empId);
     await this.assertBugInProject(id, bugId);
-    return this.projectRepo.getBugDetail(bugId);
+    const bug = await this.projectRepo.getBugDetail(bugId);
+    if (!canSeeBug(viewer, bug)) throw new ForbiddenException('You can open only the bugs assigned to you or reported by you.');
+    return bug;
   }
 
 
@@ -482,8 +637,19 @@ export class ProjectsController {
     @Body() dto: UpdateBugStatusDto,
   ) {
     const user = req.user!;
-    await this.access.assertMember(id, user.emp_id);
-    const current = await this.assertBugInProject(id, bugId);
+    const viewer = this.viewerOf(await this.access.assertMember(id, user.emp_id), user.emp_id);
+    const bugRef = await this.access.bugInProject(id, bugId);
+    if (!bugRef) throw new NotFoundException('Bug not found in this project.');
+    const current = bugRef.status;
+    if (!canMoveBug(viewer, bugRef, current)) {
+      throw new ForbiddenException(
+        current === 'new' || current === 'open'
+          ? 'Only the project manager or an admin can triage a bug.'
+          : current === 'ready_for_dev' || current === 'dev_in_progress'
+            ? 'Only the person this bug is assigned to can work on its fix.'
+            : 'Only the person who reported this bug can verify it.',
+      );
+    }
     const allowed = BUG_FLOW[current] || [];
     if (!allowed.includes(dto.status)) {
       throw new BadRequestException(
@@ -507,8 +673,10 @@ export class ProjectsController {
     @Body() dto: AddBugCommentDto,
   ) {
     const user = req.user!;
-    await this.access.assertMember(id, user.emp_id);
-    await this.assertBugInProject(id, bugId);
+    const viewer = this.viewerOf(await this.access.assertMember(id, user.emp_id), user.emp_id);
+    const bugRef = await this.access.bugInProject(id, bugId);
+    if (!bugRef) throw new NotFoundException('Bug not found in this project.');
+    if (!canSeeBug(viewer, bugRef)) throw new ForbiddenException('You can comment only on bugs assigned to you or reported by you.');
     const comment = await this.projectRepo.addBugComment(bugId, user.emp_id, dto.comment);
     this.eventsService.emitToProject(id, 'bug:comment_added', { bugId, comment });
     return comment;
@@ -523,6 +691,11 @@ export class ProjectsController {
     if (start < ps || end > pe) {
       throw new BadRequestException(`Sprint dates must be within the project dates (${ps} to ${pe}).`);
     }
+  }
+
+  /** The viewer of a project: what the access service found out about them, in the shape the visibility rules use. */
+  private viewerOf(role: ProjectRole, empId: number): Viewer {
+    return { empId, isAdmin: role.isAdmin, isPM: role.isPM };
   }
 
   private async assertBugInProject(projectId: number, bugId: number): Promise<string> {

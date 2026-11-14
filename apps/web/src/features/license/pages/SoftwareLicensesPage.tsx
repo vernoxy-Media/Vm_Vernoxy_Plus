@@ -4,6 +4,7 @@ import { BarChart3, KeyRound, Laptop, UserCheck } from 'lucide-react';
 import { SoftwareRegisterView } from '../components/SoftwareRegisterView';
 import { MySoftwareView } from '../components/MySoftwareView';
 import { LicenseReportsView } from '../components/LicenseReportsView';
+import { useLicenseAccessQuery } from '../hooks/use-licenses';
 
 type Tab = 'register' | 'my' | 'reports';
 
@@ -15,8 +16,14 @@ const TABS: Array<{ key: Tab; id: string; label: string; icon: React.ElementType
 
 export const SoftwareLicensesPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { data: access, isLoading } = useLicenseAccessQuery();
+  // BFD 13: employees see only My Software; the register and reports follow the user's rights.
+  const tabs = TABS.filter(
+    (t) => t.key === 'my' || (t.key === 'register' ? access?.can_view_register : access?.can_view_reports),
+  );
   const currentTab = searchParams.get('tab');
-  const activeTab: Tab = currentTab === 'my' ? 'my' : currentTab === 'reports' ? 'reports' : 'register';
+  const wanted: Tab = currentTab === 'my' ? 'my' : currentTab === 'reports' ? 'reports' : 'register';
+  const activeTab: Tab = tabs.some((t) => t.key === wanted) ? wanted : 'my';
 
   const handleTabChange = (tab: Tab) => {
     if (tab === 'register') setSearchParams({});
@@ -41,7 +48,7 @@ export const SoftwareLicensesPage: React.FC = () => {
 
         {/* Tabs */}
         <div className="flex max-w-full gap-1.5 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:inline-flex">
-          {TABS.map((t) => {
+          {tabs.map((t) => {
             const Icon = t.icon;
             const on = activeTab === t.key;
             return (
@@ -65,7 +72,7 @@ export const SoftwareLicensesPage: React.FC = () => {
       </div>
 
       {/* Tab content */}
-      {activeTab === 'register' ? <SoftwareRegisterView /> : activeTab === 'my' ? <MySoftwareView /> : <LicenseReportsView />}
+      {isLoading ? null : activeTab === 'register' ? <SoftwareRegisterView /> : activeTab === 'my' ? <MySoftwareView /> : <LicenseReportsView />}
     </div>
   );
 };

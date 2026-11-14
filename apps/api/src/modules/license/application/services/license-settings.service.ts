@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../../../core/prisma/prisma.service';
+import { LicenseNotifierService } from './license-notifier.service';
 import {
   CreateCategoryDto,
   UpdateCategoryDto,
@@ -12,7 +13,10 @@ import {
 
 @Injectable()
 export class LicenseSettingsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifier: LicenseNotifierService,
+  ) {}
 
   // ---------------------------------------------------------------------------
   // 1. Categories
@@ -334,17 +338,64 @@ export class LicenseSettingsService {
         },
       });
     }
-    return settings;
+    return { ...settings, disabled_license_types: await this.getDisabledLicenseTypes() };
   }
 
-  async updateSettings(dto: UpdateLicenseSettingsDto, changedBy: number) {
+  /**
+   * License Types switched off by the Admin (BFD 11: "A type can be switched off, not added").
+   * Kept in app_settings so no table change is needed. Existing software keeps its type.
+   */
+  async getDisabledLicenseTypes(): Promise<string[]> {
+    const row = await this.prisma.app_settings.findFirst({
+      where: { setting_key: DISABLED_TYPES_KEY, deleted_at: null },
+      select: { setting_value: true },
+    });
+    try {
+      const v = JSON.parse(row?.setting_value || '[]');
+      return Array.isArray(v) ? v.map(String) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private async setDisabledLicenseTypes(types: string[], by: number) {
+    const value = JSON.stringify(Array.from(new Set(types)));
+    const existing = await this.prisma.app_settings.findFirst({ where: { setting_key: DISABLED_TYPES_KEY, deleted_at: null } });
+    if (existing) {
+      await this.prisma.app_settings.update({ where: { setting_id: existing.setting_id }, data: { setting_value: value, updated_by: by, updated_at: new Date() } });
+    } else {
+      await this.prisma.app_settings.create({ data: { setting_key: DISABLED_TYPES_KEY, setting_value: value, description: 'Software License types switched off', created_by: by } });
+    }
+  }
+
+  async updateSettings(rawDto: UpdateLicenseSettingsDto, changedBy: number) {
+    const { disabled_license_types: disabledTypes, ...dto } = rawDto;
     const current = await this.getSettings();
+    if (disabledTypes !== undefined) {
+      const before = current.disabled_license_types;
+      const after = disabledTypes.filter((t) => LICENSE_TYPE_NAMES.includes(t));
+      if (after.length === LICENSE_TYPE_NAMES.length) throw new BadRequestException('At least one License Type must stay on.');
+      if (JSON.stringify([...before].sort()) !== JSON.stringify([...after].sort())) {
+        await this.setDisabledLicenseTypes(after, changedBy);
+        await this.prisma.settings_change_log.create({
+          data: { module: 'LICENSE', field_name: 'disabled_license_types', old_value: before.join(', ') || 'None', new_value: after.join(', ') || 'None', changed_by: changedBy },
+        });
+        const admins = await this.notifier.adminIds();
+        this.notifier.notify({
+          recipients: admins.filter((id) => id !== changedBy),
+          kind: 'license_settings_changed',
+          title: 'License Settings changed',
+          body: `License Types switched off: ${after.join(', ') || 'none'}.`,
+          actorId: changedBy,
+        });
+      }
+    }
 
     // Log changes
     const changeLogs: { setting_field: string; old_value: string | null; new_value: string; changed_by: number }[] = [];
 
     for (const [key, val] of Object.entries(dto)) {
-      if (val !== undefined && (current as any)[key] !== val) {
+      if (val !== undefined && JSON.stringify((current as any)[key]) !== JSON.stringify(val)) {
         changeLogs.push({
           setting_field: key,
           old_value: String((current as any)[key]),
@@ -367,7 +418,19 @@ export class LicenseSettingsService {
       });
     }
 
-    return this.prisma.software_license_settings.update({
+    // BFD 14: License Settings changed -> all Admins, in-app.
+    if (changeLogs.length > 0) {
+      const admins = await this.notifier.adminIds();
+      this.notifier.notify({
+        recipients: admins.filter((id) => id !== changedBy),
+        kind: 'license_settings_changed',
+        title: 'License Settings changed',
+        body: `Changed: ${changeLogs.map((l) => l.setting_field.replace(/_/g, ' ')).join(', ')}.`,
+        actorId: changedBy,
+      });
+    }
+
+    const saved = await this.prisma.software_license_settings.update({
       where: { setting_id: current.setting_id },
       data: {
         ...dto,
@@ -375,5 +438,16 @@ export class LicenseSettingsService {
         updated_at: new Date(),
       },
     });
+    return { ...saved, disabled_license_types: await this.getDisabledLicenseTypes() };
   }
 }
+
+const DISABLED_TYPES_KEY = 'license_disabled_types';
+const LICENSE_TYPE_NAMES = [
+  'Subscription · Per User',
+  'Subscription · Organisation',
+  'Perpetual · Per User',
+  'Perpetual · Organisation',
+  'Free / Open Source',
+  'Trial',
+];

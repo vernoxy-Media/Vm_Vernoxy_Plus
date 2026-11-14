@@ -6,6 +6,7 @@ import { Modal } from './Modal';
 import { istInputToIso, toInputDateTimeIST } from '../../utils/date';
 import { parseApiError } from '../../utils/error';
 import type { SalesContactItem } from '../../types/sales.types';
+import { CallDurationInput, EMPTY_DURATION, durationError, durationSeconds, type DurationValue } from './CallDurationInput';
 
 const OUTCOMES = ['Interested', 'Not interested', 'Call back later', 'Needs more information', 'No response'] as const;
 const CHANNELS = ['Call', 'Email', 'WhatsApp', 'Meeting', 'Site Visit'] as const;
@@ -28,6 +29,8 @@ export interface LogCommunicationPayload {
   outcome?: string;
   call_status?: 'Received' | 'Not received';
   not_received_reason?: string;
+  /** A received call: how long it lasted, in seconds. */
+  call_duration_seconds?: number;
   next_follow_up?: { follow_up_on?: string; type: string; purpose?: string };
 }
 
@@ -56,6 +59,7 @@ export const LogCommunicationModal: React.FC<Props> = ({ isOpen, onClose, title 
   const [reason, setReason] = useState('');
   const [contactId, setContactId] = useState<number | ''>('');
   const [when, setWhen] = useState('');
+  const [duration, setDuration] = useState<DurationValue>(EMPTY_DURATION);
   const [outcome, setOutcome] = useState('');
   const [notes, setNotes] = useState('');
   const [scheduleNext, setScheduleNext] = useState(false);
@@ -81,6 +85,7 @@ export const LogCommunicationModal: React.FC<Props> = ({ isOpen, onClose, title 
     setReason('');
     setContactId(firstContact());
     setWhen(toInputDateTimeIST(new Date().toISOString()));
+    setDuration(EMPTY_DURATION);
     setOutcome('');
     setNotes('');
     setScheduleNext(false);
@@ -102,7 +107,12 @@ export const LogCommunicationModal: React.FC<Props> = ({ isOpen, onClose, title 
   const validate = (): Record<string, string> => {
     const e: Record<string, string> = {};
     if (!contactId) e.contact_id = 'Please choose who this was with.';
-    if (!when) e.communication_date = isCall ? 'Please enter the call time.' : 'Please enter the date and time.';
+    // A call that was not received has no call time to write down: it is saved as now
+    if (!when && !notReceived) e.communication_date = isCall ? 'Please enter when the call was made.' : 'Please enter the date and time.';
+    if (isCall && callStatus === 'Received') {
+      const de = durationError(duration);
+      if (de) e.call_duration_seconds = de;
+    }
     if (isCall && !callStatus) e.call_status = 'Was the call received or not?';
     if (notReceived && !reason) e.not_received_reason = 'Please pick why the call was not received.';
     if (received && !notes.trim()) e.what_discussed = isCall ? 'Please write what was discussed on the call.' : 'Please write what was discussed.';
@@ -120,7 +130,8 @@ export const LogCommunicationModal: React.FC<Props> = ({ isOpen, onClose, title 
     const payload: LogCommunicationPayload = {
       type,
       contact_id: Number(contactId),
-      communication_date: istInputToIso(when),
+      communication_date: notReceived ? new Date().toISOString() : istInputToIso(when),
+      ...(isCall && callStatus === 'Received' ? { call_duration_seconds: durationSeconds(duration) as number } : {}),
       ...(isCall ? { call_status: callStatus as 'Received' | 'Not received' } : {}),
       ...(notReceived
         ? { not_received_reason: reason, ...(notes.trim() ? { what_discussed: notes.trim() } : {}) }
@@ -223,16 +234,19 @@ export const LogCommunicationModal: React.FC<Props> = ({ isOpen, onClose, title 
           {err('contact_id')}
         </div>
 
-        {/* When: the call time for a call */}
-        {(!isCall || callStatus) && (
+        {/* When: not asked for a call that was not received */}
+        {(!isCall || callStatus === 'Received') && (
           <div>
             <label className="mb-1 block text-xs font-semibold text-gray-700">
-              {isCall ? (notReceived ? 'Time of the attempt' : 'Call time') : 'Date & time'} (IST) <span className="text-red-500">*</span>
+              {isCall ? 'Call date & time' : 'Date & time'} (IST) <span className="text-red-500">*</span>
             </label>
             <input type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} className={field} />
             {err('communication_date')}
           </div>
         )}
+
+        {/* Received call: how long it lasted */}
+        {isCall && callStatus === 'Received' && <CallDurationInput value={duration} onChange={setDuration} error={fieldErrors.call_duration_seconds} />}
 
         {/* Not received: the reason */}
         {notReceived && (

@@ -16,7 +16,7 @@ import type {
   TodayAttendanceData,
   CorrectionRequestPayload,
 } from '../types/attendance.types';
-import { startBreak } from '../api/attendance.api';
+import { startBreak, savePunchLocation } from '../api/attendance.api';
 import { fetchAttendanceRegister, fetchAttendanceReports } from '../api/attendance.api';
 import type {
   AttendanceRegisterQuery,
@@ -163,6 +163,11 @@ function mapApiDashboardToUiModel(apiData: any): AttendanceDashboardResponse {
       status_label: (d.state || 'not_started').replace('_', ' ').toUpperCase(),
       holiday_name: d.holiday_name || null,
       leave_type: d.leave?.type_name || null,
+      // Leave Management reports FULL_DAY / FIRST_HALF / SECOND_HALF; only a half is drawn as a half
+      leave_half: d.leave?.half === 'FIRST_HALF' || d.leave?.half === 'SECOND_HALF' ? d.leave.half : null,
+      breaks: d.breaks || [],
+      latitude: (d.punch_location?.in ?? d.punch_location?.out)?.latitude ?? null,
+      longitude: (d.punch_location?.in ?? d.punch_location?.out)?.longitude ?? null,
       leave_part: (d.leave?.part as 'full' | 'half' | undefined) || null,
       can_request_correction: d.date <= today.date,
       is_today: d.date === today.date,
@@ -191,11 +196,14 @@ function currentMonthKey(): string {
   return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`;
 }
 
-export function useAttendanceDashboard(month: string) {
+export function useAttendanceDashboard(month: string, empId?: number | null) {
   return useQuery<AttendanceDashboardResponse>({
-    queryKey: [ATTENDANCE_QUERY_KEY, month],
+    queryKey: empId ? [ATTENDANCE_QUERY_KEY, month, empId] : [ATTENDANCE_QUERY_KEY, month],
     queryFn: async () => {
-      const res = await attendanceControllerGetDashboard({ month });
+      // viewing another employee (administrators only) goes through the same endpoint with emp_id
+      const res = empId
+        ? await customFetch<any>(`/api/v1/attendance/me/dashboard?month=${month}&emp_id=${empId}`)
+        : await attendanceControllerGetDashboard({ month });
       return mapApiDashboardToUiModel(res);
     },
     // The API refuses months that have not started yet, so do not ask for them.
@@ -226,11 +234,13 @@ export function useEmployeeAttendanceDashboard(empId?: number, month?: string) {
   });
 }
 
-export function useDayDetail(date: string | null) {
+export function useDayDetail(date: string | null, empId?: number | null) {
   return useQuery<DayDetailResponse>({
-    queryKey: [ATTENDANCE_DAY_QUERY_KEY, date],
+    queryKey: empId ? [ATTENDANCE_DAY_QUERY_KEY, date, empId] : [ATTENDANCE_DAY_QUERY_KEY, date],
     queryFn: async () => {
-      const res = await attendanceControllerGetDayDetail(date!);
+      const res = empId
+        ? await customFetch<any>(`/api/v1/attendance/me/days/${date}?emp_id=${empId}`)
+        : await attendanceControllerGetDayDetail(date!);
       const detail = (res as any)?.data ?? res;
       return {
         date: detail.work_date,
@@ -312,6 +322,8 @@ export function usePunchActions({ month, onConflict, onAnnounce }: PunchMutation
   const punchInMutation = useMutation({
     mutationFn: async () => {
       const res = await attendanceControllerPunchIn();
+      // fire and forget: the map pin is a bonus, the punch is already done
+      void savePunchLocation('in').then(() => queryClient.invalidateQueries({ queryKey: [ATTENDANCE_QUERY_KEY] }));
       return (res as any)?.data ?? res;
     },
     onSuccess: (data) => {
@@ -332,6 +344,7 @@ export function usePunchActions({ month, onConflict, onAnnounce }: PunchMutation
   const punchOutMutation = useMutation({
     mutationFn: async () => {
       const res = await attendanceControllerPunchOut();
+      void savePunchLocation('out').then(() => queryClient.invalidateQueries({ queryKey: [ATTENDANCE_QUERY_KEY] }));
       return (res as any)?.data ?? res;
     },
     onSuccess: (data) => {

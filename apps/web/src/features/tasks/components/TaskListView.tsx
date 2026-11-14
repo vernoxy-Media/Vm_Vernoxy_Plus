@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import {
   ChevronDown,
   ChevronRight,
+  ChevronUp,
+  ChevronsUp,
+  Equal,
   Clock,
   Eye,
   GitBranch,
@@ -23,6 +26,7 @@ import { formatMinutesToHuman } from './DurationField';
 import { StageDecisionDialog } from './StageDecisionDialog';
 import { HoldReasonModal } from './HoldReasonModal';
 import { useLookupsQuery } from '@/features/organization/hooks/use-master-data';
+import { STAGE_LOZENGE, STAGE_NAME } from '../utils/stage-labels';
 
 /** Moves the employee can make from the Stage dropdown (Task BFD 3.3). */
 const EMPLOYEE_MOVES: Partial<Record<TaskStage, TaskStage[]>> = {
@@ -39,18 +43,18 @@ export interface TaskListViewProps {
 }
 
 const STAGE_LABELS: Record<TaskStage, { label: string; badge: string }> = {
-  assigned: { label: 'To Do', badge: 'bg-slate-100 text-slate-700 border-slate-200' },
-  in_progress: { label: 'In Progress', badge: 'bg-blue-50 text-blue-700 border-blue-200' },
-  hold: { label: 'Hold', badge: 'bg-amber-50 text-amber-800 border-amber-200' },
-  requested: { label: 'Submitted', badge: 'bg-purple-50 text-purple-700 border-purple-200' },
-  completed: { label: 'Approved', badge: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  assigned: { label: STAGE_NAME.assigned, badge: STAGE_LOZENGE.assigned },
+  in_progress: { label: STAGE_NAME.in_progress, badge: STAGE_LOZENGE.in_progress },
+  hold: { label: STAGE_NAME.hold, badge: STAGE_LOZENGE.hold },
+  requested: { label: STAGE_NAME.requested, badge: STAGE_LOZENGE.requested },
+  completed: { label: STAGE_NAME.completed, badge: STAGE_LOZENGE.completed },
 };
 
-const PRIORITY_STYLES: Record<TaskPriority, string> = {
-  low: 'bg-slate-100 text-slate-700 border-slate-200',
-  medium: 'bg-blue-50 text-blue-700 border-blue-200',
-  high: 'bg-amber-50 text-amber-700 border-amber-200',
-  critical: 'bg-rose-50 text-rose-700 border-rose-200',
+const PRIORITY_VIEW: Record<TaskPriority, { label: string; icon: React.ElementType; color: string }> = {
+  critical: { label: 'Highest', icon: ChevronsUp, color: 'text-[#CD1317]' },
+  high: { label: 'High', icon: ChevronUp, color: 'text-[#E9494A]' },
+  medium: { label: 'Medium', icon: Equal, color: 'text-[#E97F33]' },
+  low: { label: 'Low', icon: ChevronDown, color: 'text-[#2D8738]' },
 };
 
 export const TaskListView: React.FC<TaskListViewProps> = ({
@@ -62,7 +66,8 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
   const { data: sourceLookups = [] } = useLookupsQuery('task_source');
   const { data: stageLookups = [] } = useLookupsQuery('task_stage');
   const sourceLabel = (code?: string | null) => sourceLookups.find((l) => l.code === code)?.label || code || '-';
-  const stageLabel = (code: string) => stageLookups.find((l) => l.code === code)?.label || STAGE_LABELS[code as TaskStage]?.label || code;
+  // The five stages always carry the same names as the board; a stage the workflow does not know falls back to master data
+  const stageLabel = (code: string) => STAGE_LABELS[code as TaskStage]?.label || stageLookups.find((l) => l.code === code)?.label || code;
   const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
   const [subtasksMap, setSubtasksMap] = useState<Record<number, TaskDetailDto[]>>({});
   const [loadingSubtasks, setLoadingSubtasks] = useState<Record<number, boolean>>({});
@@ -140,11 +145,11 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
   const activeHoldTitle = holdModalTarget?.title || '';
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white shadow-xs overflow-hidden">
+    <div className="overflow-hidden rounded-[3px] border border-[#DFE1E6] bg-white">
       <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse text-xs">
+        <table className="w-full border-collapse text-left text-[13px]">
           <thead>
-            <tr className="border-b border-slate-200 bg-slate-50/80 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+            <tr className="border-b-2 border-[#DFE1E6] bg-white text-[12px] font-semibold text-[#5E6C84]">
               <th className="py-3 px-3 w-10 text-center"></th>
               <th className="py-3 px-3">Task ID</th>
               <th className="py-3 px-3 min-w-[200px]">Task Name</th>
@@ -157,7 +162,7 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
               <th className="py-3 px-3 text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 text-slate-700">
+          <tbody className="divide-y divide-[#DFE1E6] text-[#172B4D]">
             {allTasks.length === 0 ? (
               <tr>
                 <td colSpan={9} className="py-12 text-center text-slate-400">
@@ -172,7 +177,7 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
 
                 return (
                   <React.Fragment key={task.task_id}>
-                    <tr className="hover:bg-slate-50/60 transition-colors group">
+                    <tr className="group transition-colors hover:bg-[#F4F5F7]">
                       {/* Expand / Collapse Chevron */}
                       <td className="py-3 px-2 text-center">
                         {task.has_sub_tasks ? (
@@ -262,13 +267,16 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
 
                       {/* Priority */}
                       <td className="py-3 px-3 whitespace-nowrap">
-                        <span
-                          className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-md border ${
-                            PRIORITY_STYLES[task.priority]
-                          }`}
-                        >
-                          {task.priority}
-                        </span>
+                        {(() => {
+                          const p = PRIORITY_VIEW[task.priority as TaskPriority] ?? PRIORITY_VIEW.medium;
+                          const PIcon = p.icon;
+                          return (
+                            <span className="inline-flex items-center gap-1.5 text-[#172B4D]">
+                              <PIcon className={`h-4 w-4 ${p.color}`} strokeWidth={3} />
+                              {p.label}
+                            </span>
+                          );
+                        })()}
                       </td>
 
                       {/* Allocated Time */}
@@ -297,7 +305,7 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
                               if (target === 'hold') handleHoldPrompt(task.task_id);
                               else onMoveStage(task.task_id, target);
                             }}
-                            className={`rounded-md border px-1.5 py-0.5 text-[11px] font-semibold ${stageConfig.badge}`}
+                            className={`cursor-pointer rounded-[3px] border-0 px-1.5 py-0.5 text-[11px] font-bold uppercase ${stageConfig.badge}`}
                             aria-label="Change stage"
                           >
                             <option value={task.stage}>{stageLabel(task.stage)}</option>
@@ -308,7 +316,7 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
                             ))}
                           </select>
                         ) : (
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold border ${stageConfig.badge}`}>
+                          <span className={`inline-flex items-center gap-1 rounded-[3px] px-1.5 py-px text-[11px] font-bold uppercase ${stageConfig.badge}`}>
                             {isCompleted && <Lock className="w-2.5 h-2.5" />}
                             {stageLabel(task.stage)}
                           </span>
@@ -423,11 +431,11 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
                                     <th className="py-1 px-2 text-right">Actions</th>
                                   </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-100">
+                                <tbody className="divide-y divide-[#DFE1E6]">
                                   {subtasksMap[task.task_id].map((st) => {
                                     const stStage = STAGE_LABELS[st.stage as TaskStage] || STAGE_LABELS.assigned;
                                     return (
-                                      <tr key={st.task_id} className="hover:bg-slate-50/50">
+                                      <tr key={st.task_id} className="hover:bg-[#F4F5F7]">
                                         <td className="py-2 px-2 font-mono font-bold text-slate-600">
                                           <button
                                             type="button"

@@ -981,6 +981,8 @@ export class EmployeeDocumentService implements OnModuleInit, OnModuleDestroy {
         data: {
           password_hash: passwordHash,
           must_change_password: true,
+          // Start of the 7-day life of this temporary password (checked at login).
+          password_changed_at: new Date(),
           failed_attempts: 0,
           locked_until: null,
           updated_at: new Date(),
@@ -1074,17 +1076,37 @@ export class EmployeeDocumentService implements OnModuleInit, OnModuleDestroy {
     const passwordHash = await argon2.hash(tempPassword, argon2Options);
     const officeEmail = (emp.office_email || emp.email || '').trim().toLowerCase();
 
-    // Upsert credentials with must_change_password = true and fresh timestamp
-    await this.prisma.$executeRaw`
-      INSERT INTO employee_credentials (emp_id, password_hash, must_change_password, created_by, updated_at)
-      VALUES (${empId}, ${passwordHash}, TRUE, ${adminId}, NOW())
-      ON CONFLICT (emp_id) DO UPDATE SET
-        password_hash = EXCLUDED.password_hash,
-        must_change_password = TRUE,
-        failed_attempts = 0,
-        locked_until = NULL,
-        updated_at = NOW()
-    `;
+    // New temporary password with a fresh 7-day life. The unique index on emp_id is partial
+    // (WHERE deleted_at IS NULL), so a plain ON CONFLICT (emp_id) cannot use it: update the live
+    // row, or create one if the employee has none yet.
+    const liveCred = await this.prisma.employee_credentials.findFirst({
+      where: { emp_id: empId, deleted_at: null },
+      select: { credential_id: true },
+    });
+    if (liveCred) {
+      await this.prisma.employee_credentials.update({
+        where: { credential_id: liveCred.credential_id },
+        data: {
+          password_hash: passwordHash,
+          must_change_password: true,
+          password_changed_at: new Date(),
+          failed_attempts: 0,
+          locked_until: null,
+          updated_at: new Date(),
+          updated_by: adminId,
+        },
+      });
+    } else {
+      await this.prisma.employee_credentials.create({
+        data: {
+          emp_id: empId,
+          password_hash: passwordHash,
+          must_change_password: true,
+          created_by: adminId,
+          updated_at: new Date(),
+        },
+      });
+    }
 
     // Log into activity_logs
     await this.prisma.$executeRaw`
@@ -1105,7 +1127,7 @@ export class EmployeeDocumentService implements OnModuleInit, OnModuleDestroy {
     // Log auth event
     await this.prisma.$executeRaw`
       INSERT INTO auth_events (emp_id, actor_emp_id, event_type, details)
-      VALUES (${empId}, ${adminId}, 'credentials_resent', '{"source":"resend_login","must_change_password":true}'::jsonb)
+      VALUES (${empId}, ${adminId}, 'credentials_reset_by_admin'::auth_event_type, '{"source":"resend_login","must_change_password":true}'::jsonb)
     `;
 
     if (this.mailPort) {

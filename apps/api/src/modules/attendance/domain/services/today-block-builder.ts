@@ -98,7 +98,7 @@ export function buildTodayBlock(params: TodayBlockParams): TodayAttendanceBlock 
   const targetMinutes = calculateDailyTargetMinutes({
     isWeeklyOff,
     isHoliday,
-    leaveType: params.leave?.part || (isLeaveDayStatus ? 'full' : null),
+    leaveType: params.leave?.part || null,
     fullDayMinutes: params.fullDayMinutes ?? DEFAULT_FULL_DAY_MINUTES,
     halfDayMinutes: params.halfDayMinutes ?? DEFAULT_HALF_DAY_MINUTES,
   });

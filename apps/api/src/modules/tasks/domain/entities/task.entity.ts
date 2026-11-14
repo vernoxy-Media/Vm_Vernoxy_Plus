@@ -42,6 +42,7 @@ export interface TaskEntity {
   priority: TaskPriority;
   task_type_id: number | null;
   task_type_label: string | null;
+  start_date: string | null;
   due_date: string | null;
   allocated_minutes: number | null;
   stage: TaskStage;
@@ -51,6 +52,10 @@ export interface TaskEntity {
   parent_task_id: number | null;
   parent_task_code?: string | null;
   parent_task_title?: string | null;
+  /** The project the task belongs to (a subtask takes its parent's); null for a personal or quick task. */
+  project_id?: number | null;
+  project_no?: string | null;
+  project_name?: string | null;
   lead_employee_id: number | null;
   lead_employee_name?: string | null;
   has_sub_tasks: boolean;

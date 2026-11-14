@@ -2,6 +2,7 @@ import React from 'react';
 import { Search, X } from 'lucide-react';
 import type { TaskBoardQueryDto } from '../types';
 import { useLookupsQuery } from '@/features/organization/hooks/use-master-data';
+import { stageName } from '../utils/stage-labels';
 
 export interface TaskFiltersBarProps {
   filters: TaskBoardQueryDto;
@@ -14,7 +15,7 @@ export interface TaskFiltersBarProps {
 }
 
 const SELECT =
-  'rounded-xl border border-slate-200 bg-white py-1.5 px-2.5 text-xs text-slate-700 focus:outline-none focus:border-blue-500';
+  'h-8 rounded-[3px] border-2 border-[#DFE1E6] bg-[#FAFBFC] px-2 text-[14px] text-[#172B4D] transition-colors hover:bg-[#EBECF0] focus:border-[color:var(--ac-400,#4C9AFF)] focus:bg-white focus:outline-none';
 
 /** Search and filters. Stage, Priority, Task Type and Source options come from master data. */
 export const TaskFiltersBar: React.FC<TaskFiltersBarProps> = ({
@@ -33,15 +34,16 @@ export const TaskFiltersBar: React.FC<TaskFiltersBarProps> = ({
   );
 
   return (
-    <div className="flex flex-wrap items-center gap-2.5 rounded-2xl bg-white p-3 border border-slate-200/80 shadow-xs mb-4">
-      <div className="relative min-w-[180px] flex-1">
-        <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="relative min-w-[200px] flex-1 sm:max-w-xs">
+        <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#5E6C84]" />
         <input
           type="text"
-          placeholder="Search by Task ID or Task Name"
+          placeholder="Search by key or summary"
+          aria-label="Search tasks"
           value={filters.search || ''}
           onChange={(e) => onChange({ ...filters, search: e.target.value || undefined })}
-          className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500"
+          className="h-8 w-full rounded-[3px] border-2 border-[#DFE1E6] bg-[#FAFBFC] pl-7 pr-2 text-[14px] text-[#172B4D] placeholder:text-[#7A869A] hover:bg-[#EBECF0] focus:border-[color:var(--ac-400,#4C9AFF)] focus:bg-white focus:outline-none"
         />
       </div>
 
@@ -111,7 +113,7 @@ export const TaskFiltersBar: React.FC<TaskFiltersBarProps> = ({
         <option value="">All Stages</option>
         {stages.map((s) => (
           <option key={s.code} value={s.code}>
-            {s.label}
+            {stageName(s.code) !== s.code ? stageName(s.code) : s.label}
           </option>
         ))}
       </select>
@@ -120,9 +122,9 @@ export const TaskFiltersBar: React.FC<TaskFiltersBarProps> = ({
         <button
           type="button"
           onClick={() => onChange({})}
-          className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 px-2 py-1 transition-colors cursor-pointer"
+          className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-[3px] px-2 text-[14px] font-medium text-[#42526E] hover:bg-[rgba(9,30,66,0.08)]"
         >
-          <X className="w-3.5 h-3.5" /> Reset
+          <X className="h-3.5 w-3.5" /> Clear filters
         </button>
       )}
     </div>

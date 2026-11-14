@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { X, Loader2, Plus, Trash2, GitBranch, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Loader2, Plus, Trash2, GitBranch, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { J_BTN_PRIMARY, J_BTN_SUBTLE, J_INPUT, J_LABEL, JBanner, JiraModal } from '@/shared/ui/JiraModal';
 import { CreateTaskDto, TaskDetailDto } from '@vernoxy-pulse/api-client';
 import type { TaskPriority } from '../types';
 import { DurationField, formatMinutesToHuman } from './DurationField';
@@ -23,6 +24,8 @@ export interface TaskFormModalProps {
   mode?: 'admin' | 'quick' | 'project';
   sprintOptions?: Array<{ id: number; label: string }>;
   defaultSprintId?: number | null;
+  /** Deadline of the project, shown beside the due date so nobody plans past it. */
+  projectDeadline?: string | null;
 }
 
 interface SubTaskDraft {
@@ -30,16 +33,30 @@ interface SubTaskDraft {
   title: string;
   description: string;
   allocatedMinutes: number | null;
+  startDate: string;
+  dueDate: string;
   assigneeIds: number[];
   priority: TaskPriority;
   taskTypeId?: number;
   otherTaskType: string;
 }
 
-const LABEL = 'block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1';
-const INPUT = 'w-full rounded-xl border border-slate-200 p-2 text-sm bg-white focus:outline-none focus:border-blue-500 disabled:bg-slate-50';
-const Req = () => <span className="text-rose-500">*</span>;
-const Err: React.FC<{ text?: string }> = ({ text }) => (text ? <p className="text-[11px] text-rose-600 mt-1">{text}</p> : null);
+const LABEL = J_LABEL;
+const INPUT = J_INPUT;
+const Req = () => <span className="ml-0.5 text-[#DE350B]" aria-hidden>*</span>;
+/** "Project ends 30 Nov 2026", or a warning when the chosen due date falls after it. */
+const DueHint: React.FC<{ due: string; projectDeadline?: string | null }> = ({ due, projectDeadline }) => {
+  const end = projectDeadline ? projectDeadline.slice(0, 10) : '';
+  if (!end) return null;
+  const shown = new Date(`${end}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  return due && due > end ? (
+    <p className="mt-1 text-[12px] font-medium text-[#974F0C]">After the project deadline ({shown})</p>
+  ) : (
+    <p className="mt-1 text-[12px] text-[#5E6C84]">Project ends {shown}</p>
+  );
+};
+
+const Err: React.FC<{ text?: string }> = ({ text }) => (text ? <p role="alert" className="mt-1 text-[12px] text-[#BF2600]">{text}</p> : null);
 
 export const TaskFormModal: React.FC<TaskFormModalProps> = ({
   isOpen,
@@ -52,6 +69,7 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
   mode = 'admin',
   sprintOptions = [],
   defaultSprintId,
+  projectDeadline,
 }) => {
   const { data: priorityLookups = [] } = useLookupsQuery('task_priority');
   const { data: typeLookups = [] } = useLookupsQuery('task_type');
@@ -70,6 +88,8 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
   const [taskTitle, setTaskTitle] = useState('');
   const [description, setDescription] = useState('');
   const [allocatedMinutes, setAllocatedMinutes] = useState<number | null>(null);
+  const [startDate, setStartDate] = useState('');
+  const [dueDate, setDueDate] = useState('');
   const [sprintId, setSprintId] = useState<number | undefined>(undefined);
   const [assigneeIds, setAssigneeIds] = useState<number[]>([]);
   const [hasSubTasks, setHasSubTasks] = useState(false);
@@ -81,14 +101,16 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [createAnother, setCreateAnother] = useState(false);
+  const [created, setCreated] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const d: any = initialData;
+  const resetFields = (d: any, keepSprint?: number) => {
     setTaskTitle(d?.title || '');
     setDescription(d?.description || '');
     setAllocatedMinutes(d?.allocated_minutes || null);
-    setSprintId(d?.sprint_id || defaultSprintId || undefined);
+    setStartDate(d?.start_date ? String(d.start_date).slice(0, 10) : '');
+    setDueDate(d?.due_date ? String(d.due_date).slice(0, 10) : '');
+    setSprintId(d?.sprint_id || keepSprint || defaultSprintId || undefined);
     setAssigneeIds(d?.assignees?.map((a: any) => a.employee_id) || []);
     setHasSubTasks(Boolean(d?.has_sub_tasks));
     setLeadId(d?.lead_employee_id || undefined);
@@ -98,6 +120,14 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
     setSubTasks([]);
     setErrors({});
     setFormError(null);
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    resetFields(initialData);
+    setCreated(null);
+    setCreateAnother(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, initialData, defaultSprintId]);
 
   const mainEmployees = useMemo(() => employees.filter((e) => assigneeIds.includes(e.emp_id)), [employees, assigneeIds]);
@@ -115,6 +145,8 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
         title: '',
         description: '',
         allocatedMinutes: null,
+        startDate,
+        dueDate,
         assigneeIds: [],
         priority,
         taskTypeId,
@@ -127,6 +159,7 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
     if (!taskTitle.trim()) e.title = 'Please enter the Task Name.';
     else if (taskTitle.trim().length > 150) e.title = 'Task Name cannot be longer than 150 characters.';
     if (!allocatedMinutes || allocatedMinutes <= 0) e.allocated = 'Allocated Time is mandatory and must be greater than zero.';
+    if (startDate && dueDate && startDate > dueDate) e.dates = 'Start date cannot be after the Due Date.';
     if (!isQuick) {
       if (assigneeIds.length === 0) e.assignees = 'Please select the employee in Assigned To.';
       else if (!hasSubTasks && assigneeIds.length !== 1) e.assignees = 'Only one employee can be selected. Tick "Has Sub Tasks" to share the task.';
@@ -148,6 +181,9 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
         else if (allocatedMinutes && st.allocatedMinutes > allocatedMinutes) e.subTasks = `Sub task ${i + 1} cannot be longer than the main task.`;
         else if (isOther(st.taskTypeId) && !st.otherTaskType.trim()) e.subTasks = `Please enter the Other Task Type of sub task ${i + 1}.`;
       });
+      subTasks.forEach((st, i) => {
+        if (!e.subTasks && st.startDate && st.dueDate && st.startDate > st.dueDate) e.subTasks = `Sub task ${i + 1}: start date cannot be after its due date.`;
+      });
       if (!e.subTasks && !timesMatch) {
         e.subTasks = `The total time of all sub tasks (${formatMinutesToHuman(subTotal)}) must be equal to the Allocated Time (${formatMinutesToHuman(allocatedMinutes)}).`;
       }
@@ -159,6 +195,7 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
   const handleSubmit = async (ev: React.FormEvent) => {
     ev.preventDefault();
     setFormError(null);
+    setCreated(null);
     if (!validate()) return;
     setIsSubmitting(true);
     try {
@@ -166,6 +203,9 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
         title: taskTitle.trim(),
         description: description.trim() || undefined,
         allocated_minutes: allocatedMinutes || undefined,
+        // Editing may clear the date, so an empty field is sent as null there
+        start_date: startDate || (isEdit ? null : undefined),
+        due_date: dueDate || (isEdit ? null : undefined),
         priority,
         task_type_id: taskTypeId,
         other_task_type: isOther(taskTypeId) ? otherTaskType.trim() : undefined,
@@ -180,6 +220,8 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
             title: st.title.trim(),
             description: st.description.trim() || undefined,
             allocated_minutes: st.allocatedMinutes || undefined,
+            start_date: st.startDate || undefined,
+            due_date: st.dueDate || undefined,
             assignee_ids: isQuick ? [] : st.assigneeIds,
             priority: st.priority,
             task_type_id: st.taskTypeId,
@@ -188,7 +230,14 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
         }
       }
       await onSubmit(payload as CreateTaskDto);
-      onClose();
+      if (createAnother && !isEdit) {
+        // Jira's "Create another": keep the dialog, clear the form, stay in the same sprint
+        const name = taskTitle.trim();
+        resetFields(null, sprintId);
+        setCreated(name);
+      } else {
+        onClose();
+      }
     } catch (err: any) {
       setFormError(err?.detail || err?.message || 'Could not save the task. Please try again.');
     } finally {
@@ -217,213 +266,238 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
-      <div className="relative w-full max-w-2xl max-h-[92vh] overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl border border-slate-200">
-        <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-          <h2 className="text-lg font-bold text-slate-900">{title}</h2>
-          <button type="button" onClick={onClose} className="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer" aria-label="Close">
-            <X className="w-5 h-5" />
+    <JiraModal
+      title={title}
+      size="lg"
+      onClose={onClose}
+      onSubmit={handleSubmit}
+      zIndex={60}
+      footerStart={
+        !isEdit ? (
+          <label className="inline-flex cursor-pointer items-center gap-2 text-[14px]">
+            <input type="checkbox" checked={createAnother} onChange={(e) => setCreateAnother(e.target.checked)} className="h-4 w-4 accent-[color:var(--ac-main,#0052CC)]" />
+            Create another
+          </label>
+        ) : undefined
+      }
+      footer={
+        <>
+          <button type="button" onClick={onClose} className={J_BTN_SUBTLE}>Cancel</button>
+          <button type="submit" disabled={isSubmitting} className={J_BTN_PRIMARY}>
+            {isSubmitting && <Loader2 className="h-3.5 w-3.5 animate-spin" />} {isEdit ? 'Save' : 'Create'}
           </button>
+        </>
+      }
+    >
+      <p className="text-[12px] text-[#5E6C84]">Required fields are marked with an asterisk <span className="text-[#DE350B]">*</span></p>
+      {created && <JBanner tone="success"><b className="font-semibold">{created}</b> was created. Add another below.</JBanner>}
+      {formError && <JBanner>{formError}</JBanner>}
+
+      {isEdit && (
+        <div>
+          <label className={LABEL}>Task ID</label>
+          <input value={(initialData as any)?.task_code || ''} disabled className={INPUT} />
         </div>
+      )}
 
-        <form onSubmit={handleSubmit} className="space-y-4 pt-4" noValidate>
-          {isEdit && (
-            <div>
-              <label className={LABEL}>Task ID</label>
-              <input value={(initialData as any)?.task_code || ''} disabled className={INPUT} />
-            </div>
-          )}
+      <div>
+        <label className={LABEL}>
+          Task Name <Req />
+        </label>
+        <input value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} maxLength={150} className={INPUT} placeholder="e.g. Website Update" />
+        <Err text={errors.title} />
+      </div>
 
-          <div>
-            <label className={LABEL}>
-              Task Name <Req />
-            </label>
-            <input value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} maxLength={150} className={INPUT} placeholder="e.g. Website Update" />
-            <Err text={errors.title} />
-          </div>
+      <div>
+        <label className={LABEL}>Task Description</label>
+        <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className={INPUT} placeholder="Details of the work to be done" />
+      </div>
 
-          <div>
-            <label className={LABEL}>Task Description</label>
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className={INPUT} placeholder="Details of the work to be done" />
-          </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <DurationField label="Allocated Time *" value={allocatedMinutes} onChange={setAllocatedMinutes} error={errors.allocated} />
+        <div>
+          <label className={LABEL} htmlFor="task-start">Start date</label>
+          <input id="task-start" type="date" value={startDate} max={dueDate || undefined} onChange={(e) => setStartDate(e.target.value)} className={INPUT} />
+        </div>
+        <div>
+          <label className={LABEL} htmlFor="task-due">Due date</label>
+          <input id="task-due" type="date" value={dueDate} min={startDate || undefined} onChange={(e) => setDueDate(e.target.value)} className={INPUT} />
+          <DueHint due={dueDate} projectDeadline={projectDeadline} />
+        </div>
+      </div>
+      <Err text={errors.dates} />
 
-          <div>
-            <DurationField label="Allocated Time *" value={allocatedMinutes} onChange={setAllocatedMinutes} error={errors.allocated} />
-          </div>
+      {mode === 'project' && (
+        <div>
+          <label className={LABEL}>Sprint</label>
+          <select value={sprintId ? String(sprintId) : ''} onChange={(e) => setSprintId(e.target.value ? Number(e.target.value) : undefined)} className={INPUT}>
+            <option value="">No sprint</option>
+            {sprintOptions.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
-          {mode === 'project' && (
-            <div>
-              <label className={LABEL}>Sprint</label>
-              <select value={sprintId ? String(sprintId) : ''} onChange={(e) => setSprintId(e.target.value ? Number(e.target.value) : undefined)} className={INPUT}>
-                <option value="">No sprint</option>
-                {sprintOptions.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.label}
+      {!isQuick && (
+        <div>
+          {hasSubTasks ? (
+            <MultiEmployeeSelect
+              employees={employees}
+              selectedIds={assigneeIds}
+              label="Assigned To *"
+              error={errors.assignees}
+              onChange={(ids) => {
+                setAssigneeIds(ids);
+                if (leadId && !ids.includes(leadId)) setLeadId(undefined);
+                setSubTasks((l) => l.map((st) => ({ ...st, assigneeIds: st.assigneeIds.filter((id) => ids.includes(id)) })));
+              }}
+            />
+          ) : (
+            <>
+              <label className={LABEL}>
+                Assigned To <Req />
+              </label>
+              <select
+                value={assigneeIds[0] ? String(assigneeIds[0]) : ''}
+                onChange={(e) => setAssigneeIds(e.target.value ? [Number(e.target.value)] : [])}
+                className={INPUT}
+              >
+                <option value="">Select employee</option>
+                {employees.map((emp) => (
+                  <option key={emp.emp_id} value={emp.emp_id}>
+                    {emp.name}
                   </option>
                 ))}
               </select>
-            </div>
+              <Err text={errors.assignees} />
+            </>
           )}
+        </div>
+      )}
 
-          {!isQuick && (
-            <div>
-              {hasSubTasks ? (
-                <MultiEmployeeSelect
-                  employees={employees}
-                  selectedIds={assigneeIds}
-                  label="Assigned To *"
-                  error={errors.assignees}
-                  onChange={(ids) => {
-                    setAssigneeIds(ids);
-                    if (leadId && !ids.includes(leadId)) setLeadId(undefined);
-                    setSubTasks((l) => l.map((st) => ({ ...st, assigneeIds: st.assigneeIds.filter((id) => ids.includes(id)) })));
-                  }}
-                />
-              ) : (
-                <>
-                  <label className={LABEL}>
-                    Assigned To <Req />
-                  </label>
-                  <select
-                    value={assigneeIds[0] ? String(assigneeIds[0]) : ''}
-                    onChange={(e) => setAssigneeIds(e.target.value ? [Number(e.target.value)] : [])}
-                    className={INPUT}
-                  >
-                    <option value="">Select employee</option>
-                    {employees.map((emp) => (
-                      <option key={emp.emp_id} value={emp.emp_id}>
-                        {emp.name}
-                      </option>
-                    ))}
-                  </select>
-                  <Err text={errors.assignees} />
-                </>
-              )}
-            </div>
-          )}
+      {!isEdit && (
+        <div className="space-y-3 rounded-[3px] bg-[#F4F5F7] p-3">
+          <label className="flex items-center gap-2.5 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={hasSubTasks}
+              onChange={(e) => {
+                setHasSubTasks(e.target.checked);
+                if (!e.target.checked) {
+                  setSubTasks([]);
+                  setLeadId(undefined);
+                  setAssigneeIds((ids) => ids.slice(0, 1));
+                }
+              }}
+            />
+            <span className="flex items-center gap-1.5 text-[14px] font-medium text-[#172B4D]">
+              <GitBranch className="h-4 w-4 text-[color:var(--ac-main,#0052CC)]" /> Has Sub Tasks
+            </span>
+          </label>
 
-          {!isEdit && (
-            <div className="rounded-xl border border-slate-200 p-3 space-y-3">
-              <label className="flex items-center gap-2.5 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={hasSubTasks}
-                  onChange={(e) => {
-                    setHasSubTasks(e.target.checked);
-                    if (!e.target.checked) {
-                      setSubTasks([]);
-                      setLeadId(undefined);
-                      setAssigneeIds((ids) => ids.slice(0, 1));
-                    }
-                  }}
-                />
-                <span className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
-                  <GitBranch className="w-4 h-4 text-blue-600" /> Has Sub Tasks
-                </span>
-              </label>
-
-              {hasSubTasks && !isQuick && (
-                <div>
-                  <label className={LABEL}>
-                    Lead <Req />
-                  </label>
-                  <select value={leadId ? String(leadId) : ''} onChange={(e) => setLeadId(e.target.value ? Number(e.target.value) : undefined)} className={INPUT}>
-                    <option value="">{mainEmployees.length ? 'Select the Lead' : 'Select employees in Assigned To first'}</option>
-                    {mainEmployees.map((emp) => (
-                      <option key={emp.emp_id} value={emp.emp_id}>
-                        {emp.name}
-                      </option>
-                    ))}
-                  </select>
-                  <Err text={errors.lead} />
-                </div>
-              )}
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {hasSubTasks && !isQuick && (
             <div>
               <label className={LABEL}>
-                Priority <Req />
+                Lead <Req />
               </label>
-              {prioritySelect(priority, setPriority)}
-              <Err text={errors.priority} />
-            </div>
-            <div>
-              <label className={LABEL}>
-                Task Type <Req />
-              </label>
-              {typeSelect(taskTypeId, setTaskTypeId)}
-              <Err text={errors.taskType} />
-            </div>
-          </div>
-
-          {isOther(taskTypeId) && (
-            <div>
-              <label className={LABEL}>
-                Other Task Type <Req />
-              </label>
-              <input value={otherTaskType} onChange={(e) => setOtherTaskType(e.target.value)} maxLength={100} className={INPUT} />
-              <Err text={errors.other} />
+              <select value={leadId ? String(leadId) : ''} onChange={(e) => setLeadId(e.target.value ? Number(e.target.value) : undefined)} className={INPUT}>
+                <option value="">{mainEmployees.length ? 'Select the Lead' : 'Select employees in Assigned To first'}</option>
+                {mainEmployees.map((emp) => (
+                  <option key={emp.emp_id} value={emp.emp_id}>
+                    {emp.name}
+                  </option>
+                ))}
+              </select>
+              <Err text={errors.lead} />
             </div>
           )}
+        </div>
+      )}
 
-          {hasSubTasks && !isEdit && (
-            <div className="rounded-xl border border-blue-100 bg-blue-50/30 p-3 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-800">Sub Tasks</span>
-                <span className={`text-[11px] font-semibold flex items-center gap-1 ${timesMatch ? 'text-emerald-700' : 'text-amber-700'}`}>
-                  {timesMatch ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertCircle className="w-3.5 h-3.5" />}
-                  {formatMinutesToHuman(subTotal) || '0m'} of {formatMinutesToHuman(allocatedMinutes) || '0m'}
-                </span>
-              </div>
-              {subTasks.map((st, i) => (
-                <div key={st.key} className="rounded-xl border border-slate-200 bg-white p-3 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-700">Sub task {i + 1}</span>
-                    <button type="button" onClick={() => setSubTasks((l) => l.filter((x) => x.key !== st.key))} className="text-rose-500 hover:text-rose-700" aria-label="Remove sub task">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <input value={st.title} onChange={(e) => patchSub(st.key, { title: e.target.value })} maxLength={150} placeholder="Task Name *" className={INPUT} />
-                  <textarea value={st.description} onChange={(e) => patchSub(st.key, { description: e.target.value })} rows={2} placeholder="Task Description" className={INPUT} />
-                  <DurationField label="Allocated Time *" value={st.allocatedMinutes} onChange={(m) => patchSub(st.key, { allocatedMinutes: m })} />
-                  {!isQuick && (
-                    <MultiEmployeeSelect
-                      employees={mainEmployees}
-                      selectedIds={st.assigneeIds}
-                      label="Assigned To *"
-                      onChange={(ids) => patchSub(st.key, { assigneeIds: ids })}
-                    />
-                  )}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {prioritySelect(st.priority, (p) => patchSub(st.key, { priority: p }))}
-                    {typeSelect(st.taskTypeId, (id) => patchSub(st.key, { taskTypeId: id }))}
-                  </div>
-                  {isOther(st.taskTypeId) && (
-                    <input value={st.otherTaskType} onChange={(e) => patchSub(st.key, { otherTaskType: e.target.value })} maxLength={100} placeholder="Other Task Type *" className={INPUT} />
-                  )}
-                </div>
-              ))}
-              <button type="button" onClick={addSub} className="text-xs font-semibold text-blue-600 hover:underline inline-flex items-center gap-1">
-                <Plus className="w-3.5 h-3.5" /> Add sub task
-              </button>
-              <Err text={errors.subTasks} />
-            </div>
-          )}
-
-          {formError && <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700">{formError}</div>}
-
-          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-            <button type="button" onClick={onClose} className="px-4 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-              Cancel
-            </button>
-            <button type="submit" disabled={isSubmitting} className="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 inline-flex items-center gap-1.5">
-              {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />} Save
-            </button>
-          </div>
-        </form>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label className={LABEL}>
+            Priority <Req />
+          </label>
+          {prioritySelect(priority, setPriority)}
+          <Err text={errors.priority} />
+        </div>
+        <div>
+          <label className={LABEL}>
+            Task Type <Req />
+          </label>
+          {typeSelect(taskTypeId, setTaskTypeId)}
+          <Err text={errors.taskType} />
+        </div>
       </div>
-    </div>
+
+      {isOther(taskTypeId) && (
+        <div>
+          <label className={LABEL}>
+            Other Task Type <Req />
+          </label>
+          <input value={otherTaskType} onChange={(e) => setOtherTaskType(e.target.value)} maxLength={100} className={INPUT} />
+          <Err text={errors.other} />
+        </div>
+      )}
+
+      {hasSubTasks && !isEdit && (
+        <div className="space-y-3 rounded-[3px] bg-[#F4F5F7] p-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[14px] font-semibold text-[#172B4D]">Sub-tasks</span>
+            <span className={`text-[11px] font-semibold flex items-center gap-1 ${timesMatch ? 'text-emerald-700' : 'text-amber-700'}`}>
+              {timesMatch ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertCircle className="w-3.5 h-3.5" />}
+              {formatMinutesToHuman(subTotal) || '0m'} of {formatMinutesToHuman(allocatedMinutes) || '0m'}
+            </span>
+          </div>
+          {subTasks.map((st, i) => (
+            <div key={st.key} className="space-y-2 rounded-[3px] bg-white p-3 shadow-[0_1px_1px_rgba(9,30,66,0.25),0_0_1px_rgba(9,30,66,0.31)]">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-700">Sub task {i + 1}</span>
+                <button type="button" onClick={() => setSubTasks((l) => l.filter((x) => x.key !== st.key))} className="text-rose-500 hover:text-rose-700" aria-label="Remove sub task">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+              <input value={st.title} onChange={(e) => patchSub(st.key, { title: e.target.value })} maxLength={150} placeholder="Task Name *" className={INPUT} />
+              <textarea value={st.description} onChange={(e) => patchSub(st.key, { description: e.target.value })} rows={2} placeholder="Task Description" className={INPUT} />
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <DurationField label="Allocated Time *" value={st.allocatedMinutes} onChange={(m) => patchSub(st.key, { allocatedMinutes: m })} />
+                <div>
+                  <label className={LABEL}>Start date</label>
+                  <input type="date" value={st.startDate} max={st.dueDate || undefined} onChange={(e) => patchSub(st.key, { startDate: e.target.value })} className={INPUT} />
+                </div>
+                <div>
+                  <label className={LABEL}>Due date</label>
+                  <input type="date" value={st.dueDate} onChange={(e) => patchSub(st.key, { dueDate: e.target.value })} className={INPUT} />
+                  <DueHint due={st.dueDate} projectDeadline={projectDeadline} />
+                </div>
+              </div>
+              {!isQuick && (
+                <MultiEmployeeSelect
+                  employees={mainEmployees}
+                  selectedIds={st.assigneeIds}
+                  label="Assigned To *"
+                  onChange={(ids) => patchSub(st.key, { assigneeIds: ids })}
+                />
+              )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {prioritySelect(st.priority, (p) => patchSub(st.key, { priority: p }))}
+                {typeSelect(st.taskTypeId, (id) => patchSub(st.key, { taskTypeId: id }))}
+              </div>
+              {isOther(st.taskTypeId) && (
+                <input value={st.otherTaskType} onChange={(e) => patchSub(st.key, { otherTaskType: e.target.value })} maxLength={100} placeholder="Other Task Type *" className={INPUT} />
+              )}
+            </div>
+          ))}
+          <button type="button" onClick={addSub} className="inline-flex cursor-pointer items-center gap-1 text-[14px] font-medium text-[color:var(--ac-main,#0052CC)] hover:underline">
+            <Plus className="w-3.5 h-3.5" /> Add sub task
+          </button>
+          <Err text={errors.subTasks} />
+        </div>
+      )}
+    </JiraModal>
   );
 };

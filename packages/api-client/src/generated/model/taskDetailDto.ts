@@ -46,6 +46,12 @@ export interface TaskDetailDto {
   parent_task_code?: string | null;
   /** @nullable */
   parent_task_title?: string | null;
+  /** @nullable */
+  project_id?: number | null;
+  /** @nullable */
+  project_no?: string | null;
+  /** @nullable */
+  project_name?: string | null;
   sub_tasks_count: number;
   /** @nullable */
   sub_tasks?: TaskDetailDto[] | null;

@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Users,
+  BarChart3,
   UserCheck,
   Search,
   ChevronLeft,
@@ -31,6 +32,7 @@ import { useLookupsQuery } from '@/features/organization/hooks/use-master-data';
 import { CandidateDecisionModal } from '../components/CandidateDecisionModal';
 import { ConvertCandidateToEmployeeModal } from '../components/ConvertCandidateToEmployeeModal';
 import { AddCandidateModal } from '../components/AddCandidateModal';
+import { RecruitmentDashboardTab } from '../components/dashboard/RecruitmentDashboardTab';
 
 const AVATAR_COLORS = [
   'bg-amber-600',
@@ -98,6 +100,18 @@ function formatDate(dateString?: string | null): string {
 }
 
 export const CandidatesPage: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentTab = searchParams.get('tab') === 'dashboard' ? 'dashboard' : 'candidates';
+
+  const setTab = (tab: 'candidates' | 'dashboard') => {
+    const next = new URLSearchParams(searchParams);
+    if (tab === 'dashboard') {
+      next.set('tab', 'dashboard');
+    } else {
+      next.delete('tab');
+    }
+    setSearchParams(next, { replace: true });
+  };
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<number | undefined>(undefined);
@@ -115,6 +129,8 @@ export const CandidatesPage: React.FC = () => {
       setSortField(field);
       setSortDirection(field === 'applied_date' ? 'desc' : 'asc');
     }
+    // The server sorts the whole list, so a new order starts again from page 1.
+    setCurrentPage(1);
   };
 
   // Stage Dropdown & Decision Modal state
@@ -173,6 +189,8 @@ export const CandidatesPage: React.FC = () => {
     stage: stageFilter || undefined,
     limit: pageSize,
     offset: (currentPage - 1) * pageSize,
+    sort: sortField,
+    dir: sortDirection,
   });
 
   const candidates = candidateData?.items || [];
@@ -215,28 +233,8 @@ export const CandidatesPage: React.FC = () => {
   const startIndex = totalCount > 0 ? (validCurrentPage - 1) * pageSize + 1 : 0;
   const endIndex = Math.min(validCurrentPage * pageSize, totalCount);
 
-  const sortedCandidates = useMemo(() => {
-    const list = [...candidates];
-    if (sortField === 'candidate') {
-      list.sort((a, b) => {
-        const res = (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' });
-        return sortDirection === 'asc' ? res : -res;
-      });
-    } else if (sortField === 'experience') {
-      list.sort((a, b) => {
-        const expA = (a.exp_years || 0) * 12 + (a.exp_months || 0);
-        const expB = (b.exp_years || 0) * 12 + (b.exp_months || 0);
-        return sortDirection === 'asc' ? expA - expB : expB - expA;
-      });
-    } else if (sortField === 'applied_date') {
-      list.sort((a, b) => {
-        const da = new Date(a.created_at || 0).getTime();
-        const db = new Date(b.created_at || 0).getTime();
-        return sortDirection === 'asc' ? da - db : db - da;
-      });
-    }
-    return list;
-  }, [candidates, sortField, sortDirection]);
+  // Sorted by the server across all pages (BFD Section 3 "Sorting"), not only the 10 rows shown.
+  const sortedCandidates = candidates;
 
   const hasActiveFilters = Boolean(
     searchTerm.trim() || roleFilter !== undefined || sourceFilter || stageFilter !== 'Open',
@@ -253,18 +251,36 @@ export const CandidatesPage: React.FC = () => {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        {/* Header Section */}
+        {/* Simple Tab Switcher (Matching Departments & Designations style) */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Candidates</h1>
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                {totalCount} Total
-              </span>
-            </div>
-            <p className="text-sm text-slate-500 mt-1">
-              Manage your talent pipeline, candidate records, and onboarding workflow
-            </p>
+          <div className="inline-flex items-center p-1 bg-white rounded-xl border border-slate-300 shadow-xs">
+            <button
+              type="button"
+              id="tab-candidates-btn"
+              onClick={() => setTab('candidates')}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-extrabold transition cursor-pointer ${
+                currentTab === 'candidates'
+                  ? 'bg-gradient-to-r from-[#5B4CF8] to-[#6C63FF] text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              }`}
+            >
+              <Users className="w-4 h-4 stroke-[2]" />
+              <span>Candidates</span>
+            </button>
+
+            <button
+              type="button"
+              id="tab-dashboard-btn"
+              onClick={() => setTab('dashboard')}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-extrabold transition cursor-pointer ${
+                currentTab === 'dashboard'
+                  ? 'bg-gradient-to-r from-[#5B4CF8] to-[#6C63FF] text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              }`}
+            >
+              <BarChart3 className="w-4 h-4 stroke-[2]" />
+              <span>Dashboard</span>
+            </button>
           </div>
 
           <div className="flex items-center gap-3">
@@ -279,6 +295,11 @@ export const CandidatesPage: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {currentTab === 'dashboard' ? (
+          <RecruitmentDashboardTab />
+        ) : (
+          <>
 
         {/* 4 KPI Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -914,6 +935,8 @@ export const CandidatesPage: React.FC = () => {
             </div>
           )}
         </div>
+          </>
+        )}
       </div>
 
       {/* Decision Modal */}

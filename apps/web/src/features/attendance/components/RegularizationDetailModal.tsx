@@ -201,7 +201,7 @@ export const RegularizationDetailModal: React.FC<RegularizationDetailModalProps>
             </div>
             <div>
               <span className="block text-[11px] font-semibold text-slate-400 mb-0.5">Requested In / Out</span>
-              <span className="font-bold text-[#5B4CF8]">{requestedInOut}</span>
+              <span className="font-bold text-[color:var(--ac-main,#5B4CF8)]">{requestedInOut}</span>
             </div>
             <div>
               <span className="block text-[11px] font-semibold text-slate-400 mb-0.5">Pending With</span>

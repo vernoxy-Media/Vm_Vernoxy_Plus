@@ -25,7 +25,7 @@ export const DepartmentsPage: React.FC = () => {
             onClick={() => setTab('departments')}
             className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-extrabold transition cursor-pointer ${
               currentTab === 'departments'
-                ? 'bg-gradient-to-r from-[#5B4CF8] to-[#6C63FF] text-white shadow-xs'
+                ? 'bg-gradient-to-r from-[color:var(--ac-main,#5B4CF8)] to-[color:var(--ac-hover,#6C63FF)] text-white shadow-xs'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
             }`}
           >
@@ -39,7 +39,7 @@ export const DepartmentsPage: React.FC = () => {
             onClick={() => setTab('designations')}
             className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-extrabold transition cursor-pointer ${
               currentTab === 'designations'
-                ? 'bg-gradient-to-r from-[#5B4CF8] to-[#6C63FF] text-white shadow-xs'
+                ? 'bg-gradient-to-r from-[color:var(--ac-main,#5B4CF8)] to-[color:var(--ac-hover,#6C63FF)] text-white shadow-xs'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
             }`}
           >

@@ -45,6 +45,15 @@ import { useEmployeeOptionsQuery } from '@/features/organization/hooks/use-organ
 
 type ActiveTab = 'categories' | 'vendors' | 'revoke_reasons' | 'discontinue_reasons' | 'managers' | 'rules';
 
+const LICENSE_TYPE_OPTIONS = [
+  'Subscription · Per User',
+  'Subscription · Organisation',
+  'Perpetual · Per User',
+  'Perpetual · Organisation',
+  'Free / Open Source',
+  'Trial',
+];
+
 export const SettingsLicenseSection: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('categories');
 
@@ -383,6 +392,7 @@ export const SettingsLicenseSection: React.FC = () => {
     recovery_reminder_days: 3,
     max_trial_days: 90,
     currency: '₹',
+    disabled_license_types: [] as string[],
   });
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [settingsSuccess, setSettingsSuccess] = useState(false);
@@ -398,6 +408,7 @@ export const SettingsLicenseSection: React.FC = () => {
         recovery_reminder_days: settings.recovery_reminder_days,
         max_trial_days: settings.max_trial_days,
         currency: settings.currency || '₹',
+        disabled_license_types: settings.disabled_license_types || [],
       });
       setSettingsLoaded(true);
     }
@@ -412,7 +423,7 @@ export const SettingsLicenseSection: React.FC = () => {
       setSettingsSuccess(true);
       setTimeout(() => setSettingsSuccess(false), 3000);
     } catch (err: any) {
-      setSettingsError(err?.message || 'Failed to save settings');
+      setSettingsError(err?.detail || err?.message || 'Failed to save settings');
     }
   };
 
@@ -1114,6 +1125,35 @@ export const SettingsLicenseSection: React.FC = () => {
                 <span className="text-[11px] text-slate-400 mt-1 block">
                   Upper limit when setting up trial software licenses.
                 </span>
+              </div>
+            </div>
+
+            {/* License Types (BFD 11): the six types can be switched off, not added. Existing software keeps its type. */}
+            <div className="border-t border-slate-100 pt-5">
+              <h4 className="text-xs font-semibold text-slate-700 mb-1">License Types in use</h4>
+              <p className="text-[11px] text-slate-400 mb-2.5">A type switched off cannot be picked for new software. Existing software keeps its type.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {LICENSE_TYPE_OPTIONS.map((t) => {
+                  const on = !settingsForm.disabled_license_types.includes(t);
+                  return (
+                    <label key={t} className="flex items-center gap-2.5 rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-700 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={on}
+                        onChange={() =>
+                          setSettingsForm({
+                            ...settingsForm,
+                            disabled_license_types: on
+                              ? [...settingsForm.disabled_license_types, t]
+                              : settingsForm.disabled_license_types.filter((x) => x !== t),
+                          })
+                        }
+                        className="w-4 h-4 rounded border-slate-300"
+                      />
+                      {t}
+                    </label>
+                  );
+                })}
               </div>
             </div>
 

@@ -1,6 +1,25 @@
+import type { AnalyticsDayRow, AnalyticsEmployee, AnalyticsLeaveDay, AnalyticsShift } from '../services/attendance-analytics';
 import { AttendanceDayEntity } from '../entities/attendance-day.entity';
 import { AttendanceBreakEntity } from '../entities/attendance-break.entity';
 import { AttendanceCorrectionEntity } from '../entities/attendance-correction.entity';
+
+export interface AnalyticsSource {
+  employees: AnalyticsEmployee[];
+  days: AnalyticsDayRow[];
+  leaves: AnalyticsLeaveDay[];
+  defaultShift: AnalyticsShift | null;
+  regularizations: Array<{
+    correctionId: number;
+    requestId: string;
+    empId: number;
+    workDate: string;
+    status: string;
+    requestType: string;
+    reason: string;
+    createdAt: string;
+    decidedAt: string | null;
+  }>;
+}
 
 export interface AttendanceRepository {
   findDayByEmpAndDate(empId: number, workDate: string): Promise<AttendanceDayEntity | null>;
@@ -144,6 +163,8 @@ export interface AttendanceRepository {
     can_request_correction: boolean;
   } | null>;
   getTeamAttendance(query: { date?: string; month?: string; depId?: number }): Promise<any[]>;
+  /** Everything the Attendance Analytics dashboard needs for a date range, read from the database. */
+  getAnalyticsSource(from: string, to: string): Promise<AnalyticsSource>;
   /** Approved / pending leave on a date, read from Leave Management. */
   findLeaveForDate?(empId: number, date: string): Promise<{
     approved: {

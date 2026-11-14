@@ -40,6 +40,7 @@ import {
   ActivateEmployeeResult,
 } from '../hooks/use-employee-documents';
 import { AccountActivatedModal } from '../components/AccountActivatedModal';
+import { ResetEmployeePasswordButton } from '../components/ResetEmployeePasswordButton';
 import { ActivateEmployeeAccountModal } from '../components/ActivateEmployeeAccountModal';
 import { EditProfileModal } from '../components/EditProfileModal';
 import { useAttendanceSettingsQuery } from '@/features/attendance/hooks/use-attendance-settings';
@@ -156,7 +157,10 @@ export const EmployeeDetailPage: React.FC = () => {
 
   const deactivateMutation = useDeactivateEmployeeMutation();
   const { data: attendanceSettings } = useAttendanceSettingsQuery();
-  const { data: candidatesData } = useCandidatesQuery({});
+  const { data: candidatesData } = useCandidatesQuery(
+    {},
+    { enabled: Boolean(currentUser?.access?.can_manage_organization) },
+  );
 
   const assignedShiftId = employee ? attendanceSettings?.employee_shifts?.[String(employee.emp_id)] : undefined;
   const assignedShift = attendanceSettings?.shifts?.find((s) => String(s.shift_id) === String(assignedShiftId));
@@ -295,6 +299,7 @@ export const EmployeeDetailPage: React.FC = () => {
             <ArrowLeft className="w-4 h-4" />
             Back to Employees
           </button>
+          {currentUser?.access?.can_manage_organization && employee.emp_id !== currentUser.emp_id && <ResetEmployeePasswordButton empId={employee.emp_id} />}
         </div>
 
         {/* Top Profile Card Header (Matching Reference Screen 1) */}

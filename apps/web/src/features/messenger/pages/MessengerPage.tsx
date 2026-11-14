@@ -108,12 +108,12 @@ export const MessengerPage: React.FC = () => {
               <>
                 <p className="text-sm font-semibold text-slate-700">Could not load your chats.</p>
                 <p className="text-xs text-slate-500">Check your connection and try again.</p>
-                <button type="button" onClick={reload} className="rounded-full bg-[#4F46E5] px-4 py-2 text-sm font-semibold text-white hover:bg-[#4338CA]">Retry</button>
+                <button type="button" onClick={reload} className="rounded-full bg-[color:var(--ac-main,#4F46E5)] px-4 py-2 text-sm font-semibold text-white hover:bg-[color:var(--ac-dark,#4338CA)]">Retry</button>
               </>
             ) : missing ? (
               <>
                 <p className="text-sm font-semibold text-slate-700">This conversation is not available.</p>
-                <button type="button" onClick={() => navigate('/messenger')} className="rounded-full bg-[#4F46E5] px-4 py-2 text-sm font-semibold text-white">Back to chats</button>
+                <button type="button" onClick={() => navigate('/messenger')} className="rounded-full bg-[color:var(--ac-main,#4F46E5)] px-4 py-2 text-sm font-semibold text-white">Back to chats</button>
               </>
             ) : (
               <Loader2 className="h-6 w-6 animate-spin text-slate-400" />

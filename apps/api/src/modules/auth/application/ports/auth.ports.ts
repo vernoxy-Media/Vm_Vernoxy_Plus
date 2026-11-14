@@ -66,6 +66,8 @@ export interface EmployeeWithAuth {
   dep_id: number;
   department_name: string;
   is_admin?: boolean;
+  /** The colour theme this employee chose for the app; empty means the default. */
+  ui_theme?: string | null;
   deleted_at: Date | null;
   credentials: {
     credential_id: number;
@@ -74,6 +76,8 @@ export interface EmployeeWithAuth {
     failed_attempts: number;
     locked_until: Date | null;
     last_login_at: Date | null;
+    /** When this password was set. For a temporary password, when it was issued. */
+    password_changed_at?: Date | null;
   } | null;
 }
 

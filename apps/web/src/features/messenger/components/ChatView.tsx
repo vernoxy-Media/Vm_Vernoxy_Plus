@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, ChevronDown, Copy, Forward, Loader2, MoreVertical, Pin, Search, UploadCloud, X } from 'lucide-react';
 import { useAuth } from '@/features/auth/context/AuthContext';
+import { themeVars, useChatTheme } from '../chat-theme';
+import { ThemePicker } from './ThemePicker';
 import { useSocket } from '@/shared/socket/SocketContext';
 import { errorMessage, messengerApi } from '../api';
 import { MessagesCache, msgKeys, useMessenger } from '../MessengerContext';
@@ -37,6 +39,7 @@ export const ChatView: React.FC<Props> = ({ conversation: conv, jumpTo, onBack, 
   const id = conv.conversation_id;
   const { user } = useAuth();
   const me = user!.emp_id;
+  const { theme } = useChatTheme(me, id);
   const qc = useQueryClient();
   const { socket } = useSocket();
   const { presence, ensurePresence, typingNames, setActiveConversation, markRead } = useMessenger();
@@ -473,7 +476,8 @@ export const ChatView: React.FC<Props> = ({ conversation: conv, jumpTo, onBack, 
 
   return (
     <div
-      className="relative flex h-full min-w-0 flex-1 flex-col bg-[#eef1f8]"
+      className="relative flex h-full min-w-0 flex-1 flex-col bg-[var(--chat-bg)] transition-colors duration-300"
+      style={{ ...themeVars(theme), backgroundImage: 'radial-gradient(var(--chat-dot) 1.2px, transparent 1.2px)', backgroundSize: '22px 22px' } as React.CSSProperties}
       onDragOver={(e) => {
         if (blockedReason || !e.dataTransfer.types.includes('Files')) return;
         e.preventDefault();
@@ -502,9 +506,10 @@ export const ChatView: React.FC<Props> = ({ conversation: conv, jumpTo, onBack, 
             <PersonAvatar name={title} src={conv.peer?.photo_url} size={40} presence={peerPresence} group={conv.kind === 'group'} />
             <span className="min-w-0">
               <span className="block truncate text-[15px] font-semibold text-slate-900">{title}</span>
-              <span className={`block truncate text-xs ${typing.length ? 'font-medium text-indigo-600' : 'text-slate-500'}`}>{subtitle}</span>
+              <span className={`block truncate text-xs ${typing.length ? 'font-medium' : 'text-slate-500'}`} style={typing.length ? { color: theme.accent } : undefined}>{subtitle}</span>
             </span>
           </button>
+          <ThemePicker empId={me} conversationId={id} />
           <button type="button" aria-label="Search in conversation" onClick={() => setSearching((s) => !s)} className={`rounded-full p-2 text-slate-600 hover:bg-slate-200 ${searching ? 'bg-slate-200' : ''}`}><Search className="h-5 w-5" /></button>
           <button type="button" aria-label="Chat info" aria-pressed={infoOpen} onClick={onToggleInfo} className={`rounded-full p-2 text-slate-600 hover:bg-slate-200 ${infoOpen ? 'bg-slate-200' : ''}`}><MoreVertical className="h-5 w-5" /></button>
         </header>

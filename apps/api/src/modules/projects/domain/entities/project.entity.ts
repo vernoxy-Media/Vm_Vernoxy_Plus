@@ -81,6 +81,8 @@ export interface ProjectEntity {
   progress_percentage: number;
   total_estimated_minutes?: number;
   actual_work_minutes?: number;
+  /** Open top-level tasks whose due date has passed. */
+  overdue_tasks_count?: number;
   created_at: string;
   created_by?: number | null;
 }
@@ -114,14 +116,21 @@ export interface ProjectTaskEntity {
   project_id: number;
   sprint_id?: number | null;
   sprint_name?: string | null;
+  /** Set when this task is a sub-task of another task. */
+  parent_task_id?: number | null;
   title: string;
   description?: string | null;
   priority: string;
   stage: string;
   status?: string;
   progress_percentage: number;
+  start_date?: string | null;
   due_date?: string | null;
   allocated_minutes?: number | null;
+  /** Exact seconds worked on this task, from its work log. */
+  logged_seconds: number;
+  /** Seconds each employee worked on this task. */
+  time_by_employee: Array<{ employee_id: number; employee_name: string; seconds: number }>;
   assignees: Array<{
     emp_id: number;
     name: string;

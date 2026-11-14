@@ -2,6 +2,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { customFetch } from '@vernoxy-pulse/api-client';
 
 export interface SoftwareListItem {
+  days_left?: number | null;
+  yearly_cost?: number;
+  discontinue_date?: string | null;
   software_id: number;
   software_code: string;
   software_name: string;
@@ -38,6 +41,10 @@ export interface SoftwareListSummary {
   licensesToRecover: number;
   approxMonthlySpend: number;
   approxAnnualSpend: number;
+  softwareInUse?: number;
+  seatsUsed?: number;
+  seatsTotal?: number;
+  yearlyCost?: number;
 }
 
 export interface SoftwareListResponse {
@@ -130,6 +137,8 @@ export interface SoftwareDetailsDocument {
 }
 
 export interface SoftwareDetailsResponse {
+  has_license_key?: boolean;
+  viewer?: LicenseAccess;
   software_id: number;
   software_code: string;
   software_name: string;
@@ -165,6 +174,10 @@ export interface SoftwareDetailsResponse {
     active_assignments_count: number;
     total_terms_count: number;
     documents_count: number;
+    unused_seats_long?: number | null;
+    unused_seat_flag_days?: number;
+    seats_to_recover?: number;
+    first_term_start?: string | null;
   };
   current_term: SoftwareDetailsTerm | null;
   software_license_terms: SoftwareDetailsTerm[];
@@ -182,7 +195,8 @@ export interface MySoftwareItem {
   vendor?: string;
   license_type: string;
   login_account_id?: string | null;
-  license_key?: string | null;
+  assignment_status?: 'In use' | 'Ended';
+  revoked_on?: string | null;
   assigned_from: string;
   remarks?: string | null;
   status: string;
@@ -223,23 +237,46 @@ export function useSoftwareListQuery(params: {
   vendor_id?: number;
   status?: string;
   license_type?: string;
+  expiry_within?: number;
+  expiry_from?: string;
+  expiry_to?: string;
   page?: number;
   limit?: number;
 }) {
+  const queryParams = buildSoftwareListParams(params);
+  return useQuery({
+    queryKey: ['software-list', params],
+    queryFn: () => customFetch<SoftwareListResponse>(`/api/v1/licenses?${queryParams.toString()}`),
+  });
+}
+
+/** Query string of the register; "All" is sent so the server does not apply its default (all except Discontinued). */
+export function buildSoftwareListParams(params: {
+  search?: string;
+  category_id?: number;
+  vendor_id?: number;
+  status?: string;
+  license_type?: string;
+  expiry_within?: number;
+  expiry_from?: string;
+  expiry_to?: string;
+  page?: number;
+  limit?: number;
+  all?: boolean;
+}) {
   const queryParams = new URLSearchParams();
+  if (params.expiry_within) queryParams.set('expiry_within', String(params.expiry_within));
+  if (params.expiry_from) queryParams.set('expiry_from', params.expiry_from);
+  if (params.expiry_to) queryParams.set('expiry_to', params.expiry_to);
+  if (params.all) queryParams.set('all', 'true');
   if (params.search) queryParams.set('search', params.search);
   if (params.category_id) queryParams.set('category_id', String(params.category_id));
   if (params.vendor_id) queryParams.set('vendor_id', String(params.vendor_id));
-  if (params.status && params.status !== 'All') queryParams.set('status', params.status);
+  if (params.status) queryParams.set('status', params.status);
   if (params.license_type && params.license_type !== 'All') queryParams.set('license_type', params.license_type);
   if (params.page) queryParams.set('page', String(params.page));
   if (params.limit) queryParams.set('limit', String(params.limit));
-
-  return useQuery({
-    queryKey: ['software-list', params],
-    queryFn: () =>
-      customFetch<SoftwareListResponse>(`/api/v1/licenses?${queryParams.toString()}`),
-  });
+  return queryParams;
 }
 
 export function useSoftwareDetailsQuery(id: number) {
@@ -374,3 +411,128 @@ export function useSyncLicensesMutation() {
   });
 }
 
+
+/** What the current user may see and do in Licenses (BFD Section 13). */
+export interface LicenseAccess {
+  is_admin: boolean;
+  is_license_manager: boolean;
+  is_accounts: boolean;
+  is_software_owner: boolean;
+  can_manage: boolean;
+  can_view_register: boolean;
+  can_view_all: boolean;
+  can_view_keys: boolean;
+  can_view_reports: boolean;
+  can_view_settings: boolean;
+  can_edit_settings: boolean;
+  can_reopen: boolean;
+  report_scope?: 'all' | 'owner' | 'team' | null;
+  can_view_team?: boolean;
+}
+
+export function useLicenseAccessQuery() {
+  return useQuery({
+    queryKey: ['license-access'],
+    queryFn: () => customFetch<LicenseAccess>('/api/v1/licenses/access'),
+    staleTime: 60_000,
+  });
+}
+
+/** "Show" / "Copy" of the License Key. Admin and License Managers only; every call is written in the History. */
+export function useRevealLicenseKeyMutation(softwareId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (action: 'VIEWED' | 'COPIED') =>
+      customFetch<{ license_key: string | null }>(`/api/v1/licenses/${softwareId}/license-key`, {
+        method: 'POST',
+        body: JSON.stringify({ action }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['software-details', softwareId] });
+    },
+  });
+}
+
+/** Revoke several seats of one software at once (BFD 6 Part 2). */
+export function useRevokeManyMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ softwareId, dto }: { softwareId: number; dto: { assignment_ids: number[]; revoked_on: string; revoke_reason_id: number; revoke_remarks?: string } }) =>
+      customFetch(`/api/v1/licenses/${softwareId}/assignments/revoke`, {
+        method: 'POST',
+        body: JSON.stringify(dto),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['software-list'] });
+      queryClient.invalidateQueries({ queryKey: ['software-details'] });
+      queryClient.invalidateQueries({ queryKey: ['my-software'] });
+      queryClient.invalidateQueries({ queryKey: ['licenses-to-recover'] });
+    },
+  });
+}
+
+function invalidateSoftware(queryClient: ReturnType<typeof useQueryClient>, id: number) {
+  queryClient.invalidateQueries({ queryKey: ['software-list'] });
+  queryClient.invalidateQueries({ queryKey: ['software-details', id] });
+}
+
+/** Add Seats in the middle of a term (BFD 5 Part 2). */
+export function useAddSeatsMutation(softwareId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (dto: { seats: number; cost: number; added_on: string; invoice_order_no?: string; remarks?: string; attachment_ids?: number[] }) =>
+      customFetch(`/api/v1/licenses/${softwareId}/add-seats`, { method: 'POST', body: JSON.stringify(dto) }),
+    onSuccess: () => invalidateSoftware(queryClient, softwareId),
+  });
+}
+
+/** Correct the current term with a reason (BFD 5 Part 2). */
+export function useCorrectTermMutation(softwareId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (dto: {
+      purchase_date?: string;
+      start_date?: string;
+      expiry_date?: string;
+      billing_cycle?: string;
+      cost?: number;
+      invoice_order_no?: string;
+      reason: string;
+    }) => customFetch(`/api/v1/licenses/${softwareId}/current-term`, { method: 'PATCH', body: JSON.stringify(dto) }),
+    onSuccess: () => invalidateSoftware(queryClient, softwareId),
+  });
+}
+
+/** Every row of the register with the filters applied, for the export (BFD 3). */
+export async function fetchAllSoftware(params: Parameters<typeof buildSoftwareListParams>[0]) {
+  const q = buildSoftwareListParams({ ...params, page: undefined, limit: undefined, all: true });
+  const res = await customFetch<SoftwareListResponse>(`/api/v1/licenses?${q.toString()}`);
+  return res.items;
+}
+
+export interface MyTeamSoftware {
+  is_manager: boolean;
+  members: Array<{
+    emp_id: number;
+    name: string;
+    email: string;
+    software: Array<{
+      software_id: number;
+      software_code: string;
+      software_name: string;
+      vendor?: string;
+      status: string;
+      login_account_id?: string | null;
+      assigned_from: string;
+    }>;
+  }>;
+}
+
+/** My Team for Reporting Managers (BFD 9), without costs or keys. */
+export function useMyTeamSoftwareQuery() {
+  return useQuery({
+    queryKey: ['my-team-software'],
+    queryFn: () => customFetch<MyTeamSoftware>('/api/v1/licenses/my-team'),
+    staleTime: 60_000,
+  });
+}

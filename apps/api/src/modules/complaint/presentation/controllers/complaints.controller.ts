@@ -9,7 +9,11 @@ import {
   ParseIntPipe,
   UseGuards,
   Inject,
+  Res,
+  StreamableFile,
+  ForbiddenException,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../auth/presentation/guards/jwt-auth.guard';
 import { OrganizationAdminGuard } from '../../../organization/presentation/guards/organization-admin.guard';
@@ -18,6 +22,7 @@ import {
   AccessPolicyPort,
 } from '../../../organization/application/ports/access-policy.port';
 import { ComplaintsService } from '../../application/services/complaints.service';
+import { ComplaintExportService, ComplaintSheet } from '../../application/services/complaint-export.service';
 import {
   CreateComplaintDto,
   AcceptAndAssignDto,
@@ -44,6 +49,7 @@ import {
 export class ComplaintsController {
   constructor(
     private readonly complaintsService: ComplaintsService,
+    private readonly exporter: ComplaintExportService,
     @Inject(ACCESS_POLICY_PORT_TOKEN)
     private readonly accessPolicy: AccessPolicyPort,
   ) {}
@@ -105,6 +111,30 @@ export class ComplaintsController {
       to_date,
       search,
     });
+  }
+
+  @Get('dashboard')
+  @ApiOperation({ summary: 'Dashboard card: Admin (New, Overdue, Resolved waiting) or handler (Active, Overdue)' })
+  async getDashboard(@Req() req: any) {
+    const empId = req.user?.emp_id;
+    const isAdmin = await this.accessPolicy.canManageOrganization(empId);
+    return this.complaintsService.getDashboard(empId, isAdmin);
+  }
+
+  @Post('export')
+  @ApiOperation({ summary: 'Excel of the rows on screen (Admin only; confidential subjects left out)' })
+  async export(@Req() req: any, @Body() body: ComplaintSheet, @Res({ passthrough: true }) res: Response) {
+    const empId = req.user?.emp_id;
+    const isAdmin = await this.accessPolicy.canManageOrganization(empId);
+    // The History PDF/Excel of one complaint is allowed to anyone who can see it; lists and reports are Admin only.
+    if (!isAdmin && !String(body?.sheet || '').startsWith('History ')) throw new ForbiddenException('Only the Admin can export.');
+    const buffer = await this.exporter.workbook(body);
+    const name = String(body.sheet || 'complaints').toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40) || 'complaints';
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="${name}-${new Date().toISOString().slice(0, 10)}.xlsx"`,
+    });
+    return new StreamableFile(buffer);
   }
 
   @Get('reports')

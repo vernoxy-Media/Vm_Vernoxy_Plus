@@ -1,3 +1,4 @@
+import { buildAnalyticsRecords, DEFAULT_SHIFT, empCodeOf, todayInIst } from '../domain/services/attendance-analytics';
 import { TASK_TOKENS } from '../../tasks/public-api';
 import type { TaskRepositoryPort } from '../../tasks/public-api';
 import {
@@ -17,6 +18,8 @@ import {
   Header,
   HttpCode,
   HttpStatus,
+  BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -47,8 +50,11 @@ import { GetTeamAttendanceUseCase } from '../application/use-cases/get-team-atte
 import { GetAttendanceReportUseCase } from '../application/use-cases/get-attendance-report.use-case';
 import { AppSettingsRepository } from '../domain/ports/app-settings.repository.port';
 import { AttendanceRepository } from '../domain/ports/attendance.repository.port';
+import type { PunchLocationRepository } from '../domain/ports/punch-location.repository.port';
+import type { BirthdayRepository } from '../domain/ports/birthday.repository.port';
 import { AttendanceNotFoundError } from '../domain/errors/attendance.errors';
 import { ATTENDANCE_TOKENS } from '../domain/ports/tokens';
+import { ACCESS_POLICY_TOKEN, AccessPolicy } from '../../auth/public-api';
 import { Inject, Logger, Optional } from '@nestjs/common';
 import { mapAttendanceErrorToHttp } from './attendance-error.mapper';
 import {
@@ -66,6 +72,7 @@ import {
   RejectRegularizationDto,
   BulkApproveRegularizationDto,
   RegularizationQueryDto,
+  PunchLocationDto,
   AttendanceReportsQueryDto,
 } from './dto/attendance.dto';
 
@@ -92,6 +99,12 @@ export class AttendanceController {
     private readonly attendanceRepo: AttendanceRepository,
     @Inject(ATTENDANCE_TOKENS.APP_SETTINGS_REPOSITORY)
     private readonly appSettingsRepo: AppSettingsRepository,
+    @Inject(ATTENDANCE_TOKENS.PUNCH_LOCATION_REPOSITORY)
+    private readonly punchLocations: PunchLocationRepository,
+    @Inject(ACCESS_POLICY_TOKEN)
+    private readonly accessPolicy: AccessPolicy,
+    @Inject(ATTENDANCE_TOKENS.BIRTHDAY_REPOSITORY)
+    private readonly birthdays: BirthdayRepository,
     @Optional() @Inject(TASK_TOKENS.TaskRepository)
     private readonly taskRepo?: TaskRepositoryPort,
     @Optional() private readonly monthLocks?: AttendanceMonthLockService,
@@ -106,6 +119,24 @@ export class AttendanceController {
     } catch (err: any) {
       this.logger.warn(`Could not pause the running task for emp #${empId}: ${err?.message}`);
     }
+  }
+
+  /** Whose attendance is being read: always your own, unless an administrator asks for somebody else's. */
+  private async resolveTarget(req: Request, empIdParam?: string): Promise<number> {
+    const me = req.user!.emp_id;
+    if (!empIdParam) return me;
+    const target = Number(empIdParam);
+    if (!Number.isInteger(target) || target <= 0) throw new BadRequestException('Invalid emp_id');
+    if (target === me) return me;
+    if (!(await this.isAdmin(me))) {
+      throw new ForbiddenException('Only administrators can view another employee\'s attendance');
+    }
+    return target;
+  }
+
+  /** Only organization administrators may see or change other people's attendance. */
+  private isAdmin(empId: number): Promise<boolean> {
+    return this.accessPolicy.canManageOrganization(empId);
   }
 
   @Post(['check-in', 'me/punch-in'])
@@ -134,6 +165,28 @@ export class AttendanceController {
     } catch (err) {
       throw mapAttendanceErrorToHttp(err);
     }
+  }
+
+  /** Everyone in the company can see whose birthday is today and who is next. Names only, never the birth year. */
+  @Get('birthdays')
+  @ApiOperation({ summary: 'Birthdays today and in the next days' })
+  @ApiQuery({ name: 'days', required: false, example: 30 })
+  async getBirthdays(@Query('days') daysParam?: string) {
+    const n = Number(daysParam);
+    const days = Number.isInteger(n) && n >= 0 ? Math.min(n, 90) : 30;
+    return this.birthdays.findUpcoming(days);
+  }
+
+  @Post('me/punch-location')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
+  @ApiOperation({ summary: 'Remember where today\'s clock-in / clock-out happened' })
+  async savePunchLocation(@Req() req: Request, @Body() body: PunchLocationDto): Promise<void> {
+    await this.punchLocations.save(req.user!.emp_id, body.kind, {
+      latitude: body.latitude,
+      longitude: body.longitude,
+      accuracyM: body.accuracy != null ? Math.round(body.accuracy) : null,
+    });
   }
 
   @Post(['break/start', 'me/break'])
@@ -184,14 +237,27 @@ export class AttendanceController {
   @Get('me/dashboard')
   @ApiOperation({ summary: 'Get full attendance dashboard for current employee and month' })
   @ApiQuery({ name: 'month', required: false, example: '2026-10' })
+  @ApiQuery({ name: 'emp_id', required: false, description: 'Administrators only: view this employee instead of yourself' })
   @ApiResponse({ status: 200, type: DashboardResponseDto })
   async getDashboard(
     @Req() req: Request,
     @Query('month') month?: string,
+    @Query('emp_id') empIdParam?: string,
   ): Promise<DashboardResponseDto> {
     try {
-      const empId = req.user!.emp_id;
-      return await this.getDashboardUseCase.execute(empId, month);
+      const empId = await this.resolveTarget(req, empIdParam);
+      const dashboard = await this.getDashboardUseCase.execute(empId, month);
+      const days = dashboard.month.days;
+      if (days.length > 0) {
+        const places = await this.punchLocations
+          .findRange(empId, days[0].date, days[days.length - 1].date)
+          .catch(() => null);
+        for (const d of days) {
+          const p = places?.get(d.date);
+          if (p) d.punch_location = { in: p.in ?? null, out: p.out ?? null };
+        }
+      }
+      return dashboard;
     } catch (err) {
       throw mapAttendanceErrorToHttp(err);
     }
@@ -237,9 +303,10 @@ export class AttendanceController {
   async getDayDetail(
     @Req() req: Request,
     @Param('date') date: string,
+    @Query('emp_id') empIdParam?: string,
   ): Promise<DayDetailDto> {
     try {
-      const empId = req.user!.emp_id;
+      const empId = await this.resolveTarget(req, empIdParam);
       return await this.getDayDetailUseCase.execute(empId, date);
     } catch (err) {
       throw mapAttendanceErrorToHttp(err);
@@ -332,13 +399,16 @@ export class AttendanceController {
   async listRegularizations(@Req() req: Request, @Query() query: RegularizationQueryDto) {
     try {
       const viewerEmpId = req.user!.emp_id;
-      const role = (req.user?.role_name || '').toUpperCase();
-      const isManagerOrAdmin = ['ADMIN', 'SUPER_ADMIN', 'HR_ADMIN', 'HR', 'MANAGER'].some((r) =>
-        role.includes(r)
-      );
+      const isManagerOrAdmin = await this.isAdmin(viewerEmpId);
 
       // If scope is 'me' or user is general employee, filter to their own
-      const empId = query.scope === 'me' || !isManagerOrAdmin ? viewerEmpId : undefined;
+      const wanted = Number(query.emp_id);
+      const empId =
+        isManagerOrAdmin && Number.isInteger(wanted) && wanted > 0
+          ? wanted
+          : query.scope === 'me' || !isManagerOrAdmin
+            ? viewerEmpId
+            : undefined;
 
       return await this.attendanceRepo.listRegularizations({
         empId,
@@ -362,8 +432,9 @@ export class AttendanceController {
   async createRegularization(@Req() req: Request, @Body() dto: CreateRegularizationDto) {
     try {
       const viewerEmpId = req.user!.emp_id;
-      const targetEmpId = dto.emp_id || viewerEmpId;
+      const targetEmpId = dto.emp_id && (await this.isAdmin(viewerEmpId)) ? dto.emp_id : viewerEmpId;
       await this.monthLocks?.assertOpen(dto.work_date);
+      
 
       const parseDate = (val?: string | null): Date | null => {
         if (!val || val === '--') return null;
@@ -397,10 +468,11 @@ export class AttendanceController {
 
   @Get('regularizations/:id')
   @ApiOperation({ summary: 'Get regularization request detail' })
-  async getRegularizationDetail(@Param('id', ParseIntPipe) id: number) {
+  async getRegularizationDetail(@Req() req: Request, @Param('id', ParseIntPipe) id: number) {
     try {
       const item = await this.attendanceRepo.findCorrectionById(id);
-      if (!item) {
+      // someone else's request is reported as missing rather than forbidden
+      if (!item || (item.empId !== req.user!.emp_id && !(await this.isAdmin(req.user!.emp_id)))) {
         throw new AttendanceNotFoundError(`Regularization #${id} not found`);
       }
       return item;
@@ -422,6 +494,7 @@ export class AttendanceController {
   }
 
   @Post('regularizations/:id/approve')
+  @UseGuards(AttendanceAdminGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Approve regularization request' })
   async approveRegularization(
@@ -439,6 +512,7 @@ export class AttendanceController {
   }
 
   @Post('regularizations/:id/reject')
+  @UseGuards(AttendanceAdminGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Reject regularization request' })
   async rejectRegularization(
@@ -455,6 +529,7 @@ export class AttendanceController {
   }
 
   @Post('regularizations/bulk-approve')
+  @UseGuards(AttendanceAdminGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Bulk approve regularization requests' })
   async bulkApproveRegularizations(
@@ -519,6 +594,53 @@ export class AttendanceController {
         status,
         search,
       });
+    } catch (err) {
+      throw mapAttendanceErrorToHttp(err);
+    }
+  }
+
+  @Get('analytics')
+  @UseGuards(AttendanceAdminGuard)
+  @ApiOperation({ summary: 'Attendance Analytics dashboard data for a date range (administrators)' })
+  @ApiQuery({ name: 'from', required: true, type: String, example: '2026-11-01' })
+  @ApiQuery({ name: 'to', required: true, type: String, example: '2026-11-30' })
+  @ApiResponse({ status: 200 })
+  async getAnalytics(@Query('from') from?: string, @Query('to') to?: string) {
+    const iso = /^\d{4}-\d{2}-\d{2}$/;
+    if (!from || !to || !iso.test(from) || !iso.test(to) || Number.isNaN(Date.parse(from)) || Number.isNaN(Date.parse(to))) {
+      throw new BadRequestException('Give a from and a to date as YYYY-MM-DD.');
+    }
+    if (from > to) throw new BadRequestException('The from date cannot be after the to date.');
+    if ((Date.parse(to) - Date.parse(from)) / 86_400_000 > 366) throw new BadRequestException('Choose a range of at most one year.');
+    try {
+      const [source, settings] = await Promise.all([
+        this.attendanceRepo.getAnalyticsSource(from, to),
+        this.appSettingsRepo.getAttendanceSettings(),
+      ]);
+      const records = buildAnalyticsRecords({
+        employees: source.employees,
+        days: source.days,
+        leaves: source.leaves,
+        workingDays: settings.working_days,
+        holidays: settings.holidays.map((h) => h.date),
+        from,
+        to,
+        today: todayInIst(),
+        defaultShift: source.defaultShift ?? DEFAULT_SHIFT,
+      });
+      const byId = new Map(source.employees.map((e) => [e.emp_id, e]));
+      return {
+        from,
+        to,
+        records,
+        employees: source.employees.map((e) => ({ id: e.emp_id, name: e.name, empCode: empCodeOf(e.emp_id), department: e.department, designation: e.designation })),
+        regularizations: source.regularizations.map((r) => ({
+          ...r,
+          employeeName: byId.get(r.empId)?.name ?? `Employee ${r.empId}`,
+          department: byId.get(r.empId)?.department ?? 'Unassigned',
+          designation: byId.get(r.empId)?.designation ?? 'Staff',
+        })),
+      };
     } catch (err) {
       throw mapAttendanceErrorToHttp(err);
     }

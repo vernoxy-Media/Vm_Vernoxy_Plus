@@ -19,6 +19,7 @@ import { useAuth } from '@/features/auth/context/AuthContext';
 import type { TaskStage } from '../types';
 import { TaskColumn } from './TaskColumn';
 import { TaskCard } from './TaskCard';
+import { STAGE_NAME } from '../utils/stage-labels';
 import { StageDecisionDialog } from './StageDecisionDialog';
 import { HoldReasonModal } from './HoldReasonModal';
 
@@ -29,13 +30,10 @@ export interface TaskBoardProps {
   onMoveStage: (taskId: number, targetStage: TaskStage, note?: string, holdReason?: string) => void;
 }
 
-const STAGE_CONFIGS: { stage: TaskStage; title: string; color: string }[] = [
-  { stage: 'assigned', title: 'To Do', color: 'bg-slate-400' },
-  { stage: 'in_progress', title: 'In Progress', color: 'bg-blue-500' },
-  { stage: 'hold', title: 'Hold', color: 'bg-amber-500' },
-  { stage: 'requested', title: 'Submitted', color: 'bg-purple-500' },
-  { stage: 'completed', title: 'Approved', color: 'bg-emerald-500' },
-];
+const STAGE_CONFIGS: { stage: TaskStage; title: string }[] = (['assigned', 'in_progress', 'hold', 'requested', 'completed'] as TaskStage[]).map((stage) => ({
+  stage,
+  title: STAGE_NAME[stage],
+}));
 
 const dropAnimationConfig: DropAnimation = {
   sideEffects: defaultDropAnimationSideEffects({
@@ -241,7 +239,7 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3.5">
+        <div className="-mx-1 flex snap-x snap-mandatory gap-2 overflow-x-auto px-1 pb-3 xl:grid xl:grid-cols-5 xl:overflow-visible">
           {STAGE_CONFIGS.map((col) => (
             <TaskColumn
               key={col.stage}
@@ -249,7 +247,6 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
               title={col.title}
               count={localBoard.counts[col.stage] ?? 0}
               tasks={localBoard.columns[col.stage] ?? []}
-              colorClass={col.color}
               isAdmin={isAdmin}
               onCardClick={onCardClick}
               onApprove={handleApprove}

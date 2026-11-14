@@ -118,11 +118,18 @@ export function useCandidatesQuery(params: {
   depId?: number;
   source?: string;
   stage?: string;
+  experienceType?: string;
+  startDate?: string;
+  endDate?: string;
   limit?: number;
   offset?: number;
-}) {
+  sort?: 'candidate' | 'experience' | 'applied_date';
+  dir?: 'asc' | 'desc';
+}, options: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: ['candidates', params],
+    // The candidates API is Admin-only; callers outside Recruitment pass enabled: isAdmin.
+    enabled: options.enabled ?? true,
     queryFn: () => {
       const searchParams = new URLSearchParams();
       if (params.q) searchParams.set('q', params.q);
@@ -130,12 +137,25 @@ export function useCandidatesQuery(params: {
       if (params.depId) searchParams.set('depId', String(params.depId));
       if (params.source) searchParams.set('source', params.source);
       if (params.stage) searchParams.set('stage', params.stage);
+      if (params.experienceType) searchParams.set('experienceType', params.experienceType);
+      if (params.startDate) searchParams.set('startDate', params.startDate);
+      if (params.endDate) searchParams.set('endDate', params.endDate);
       if (params.limit !== undefined) searchParams.set('limit', String(params.limit));
       if (params.offset !== undefined) searchParams.set('offset', String(params.offset));
+      if (params.sort) searchParams.set('sort', params.sort);
+      if (params.dir) searchParams.set('dir', params.dir);
 
       const qs = searchParams.toString();
       return customFetch<CandidateListResponse>(`/api/v1/candidates${qs ? `?${qs}` : ''}`);
     },
+  });
+}
+
+export function useAllCandidatesQuery() {
+  return useQuery({
+    queryKey: ['candidates', 'all-for-dashboard'],
+    queryFn: () => customFetch<CandidateListResponse>('/api/v1/candidates?limit=10000'),
+    staleTime: 30000,
   });
 }
 

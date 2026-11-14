@@ -382,6 +382,8 @@ export interface ConversationItem {
   /** Calls only. */
   call_status?: 'Received' | 'Not received' | null;
   not_received_reason?: string | null;
+  /** A received call: how long it lasted, in seconds. */
+  call_duration_seconds?: number | null;
   logged_by: { emp_id: number; name: string } | null;
   created_by: number | null;
   created_at: string;

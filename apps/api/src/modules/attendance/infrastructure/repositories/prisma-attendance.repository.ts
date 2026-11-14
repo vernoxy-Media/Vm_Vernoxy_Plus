@@ -1,3 +1,5 @@
+import type { AnalyticsEmployee, AnalyticsShift } from '../../domain/services/attendance-analytics';
+import type { AnalyticsSource } from '../../domain/ports/attendance.repository.port';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../../core/prisma/prisma.service';
 import { AttendanceRepository } from '../../domain/ports/attendance.repository.port';
@@ -354,6 +356,9 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
     viewerEmpId?: number;
   }): Promise<AttendanceCorrectionEntity[]> {
     const conditions: string[] = ['c.deleted_at IS NULL'];
+    // These values are put into the SQL text below, so every string is quoted and a date must be a real YYYY-MM-DD.
+    const quote = (v: string) => `'${String(v).replace(/'/g, "''")}'`;
+    const isoDate = (v?: string) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : undefined);
 
     if (params.empId) {
       conditions.push(`c.emp_id = ${Number(params.empId)}`);
@@ -368,7 +373,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
         conditions.push(`c.status = 'rejected'`);
       }
     } else if (params.status && params.status !== 'all') {
-      conditions.push(`c.status = '${params.status}'`);
+      conditions.push(`c.status = ${quote(params.status)}`);
     }
 
     if (params.departmentId) {
@@ -376,15 +381,17 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
     }
 
     if (params.requestType && params.requestType !== 'all') {
-      conditions.push(`c.request_type = '${params.requestType}'`);
+      conditions.push(`c.request_type = ${quote(params.requestType)}`);
     }
 
-    if (params.fromDate) {
-      conditions.push(`c.work_date >= '${params.fromDate}'::date`);
+    const fromDate = isoDate(params.fromDate);
+    if (fromDate) {
+      conditions.push(`c.work_date >= '${fromDate}'::date`);
     }
 
-    if (params.toDate) {
-      conditions.push(`c.work_date <= '${params.toDate}'::date`);
+    const toDate = isoDate(params.toDate);
+    if (toDate) {
+      conditions.push(`c.work_date <= '${toDate}'::date`);
     }
 
     if (params.search && params.search.trim()) {
@@ -989,6 +996,9 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
       const leaveDay = !isWeeklyOff && !isHoliday ? leaveByDate.get(dateStr) : undefined;
       const isFullLeave = leaveDay?.day_part === 'FULL_DAY';
       const isLegacyLeaveRow = r.day_status === 'leave';
+      // A half-day leave leaves one working half: that half is measured against the half-day target
+      const halfLeaveWorked = !!leaveDay && !isFullLeave;
+      const dayTargetMins = halfLeaveWorked ? halfDayMins : fullDayMins;
 
       if (isFullLeave || (isLegacyLeaveRow && !leaveDay)) {
         state = isFullLeave ? 'leave' : (isPast ? 'absent' : 'upcoming');
@@ -998,7 +1008,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
       } else if (r.check_in_at && (!isLegacyLeaveRow || leaveDay)) {
         // A row the old leave code marked 'leave' under a half-day leave is a real check-in.
         if (r.check_out_at) {
-          state = determineDayStatus(new Date(r.check_out_at), prodMinutes, fullDayMins, halfDayMins, graceMins);
+          state = determineDayStatus(new Date(r.check_out_at), prodMinutes, dayTargetMins, halfLeaveWorked ? Math.floor(halfDayMins / 2) : halfDayMins, graceMins);
           dayStatus = state;
         } else {
           // Open day (e.g. today)
@@ -1014,16 +1024,16 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
             brkMinutes = openCalc.breakMinutesSoFar;
           } else if (isPast) {
             const totalBreakMinutes = breaksList.reduce((acc, b) => {
-              const end = b.ended_at || new Date(new Date(r.check_in_at).getTime() + fullDayMins * 60000);
+              const end = b.ended_at || new Date(new Date(r.check_in_at).getTime() + dayTargetMins * 60000);
               return acc + Math.max(0, Math.floor((end.getTime() - b.started_at.getTime()) / 60000));
             }, 0);
             brkMinutes = totalBreakMinutes;
-            prodMinutes = Math.max(0, fullDayMins - totalBreakMinutes);
+            prodMinutes = Math.max(0, dayTargetMins - totalBreakMinutes);
             state = determineDayStatus(
-              new Date(new Date(r.check_in_at).getTime() + (fullDayMins + totalBreakMinutes) * 60000),
+              new Date(new Date(r.check_in_at).getTime() + (dayTargetMins + totalBreakMinutes) * 60000),
               prodMinutes,
-              fullDayMins,
-              halfDayMins,
+              dayTargetMins,
+              halfLeaveWorked ? Math.floor(halfDayMins / 2) : halfDayMins,
               graceMins,
             );
             dayStatus = state;
@@ -1368,6 +1378,100 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
       source: r.source,
       worked_on_non_working_day: r.worked_on_non_working_day,
     }));
+  }
+
+  async getAnalyticsSource(from: string, to: string): Promise<AnalyticsSource> {
+    const empSelect = {
+      emp_id: true,
+      name: true,
+      email: true,
+      joining_date: true,
+      departments_employees_dep_idTodepartments: { select: { name: true } },
+      roles_employees_role_idToroles: { select: { role_name: true } },
+    } as const;
+    const toEmployee = (e: any, active: boolean): AnalyticsEmployee => ({
+      emp_id: e.emp_id,
+      name: e.name,
+      email: e.email,
+      department: e.departments_employees_dep_idTodepartments?.name ?? 'Unassigned',
+      designation: e.roles_employees_role_idToroles?.role_name ?? 'Staff',
+      joining_date: e.joining_date ? e.joining_date.toISOString().slice(0, 10) : null,
+      active,
+    });
+    const toShift = (s: any): AnalyticsShift => ({
+      start_min: s.start_time.getUTCHours() * 60 + s.start_time.getUTCMinutes(),
+      end_min: s.end_time.getUTCHours() * 60 + s.end_time.getUTCMinutes(),
+      late_grace: s.late_arrival_grace_minutes,
+      early_grace: s.early_exit_grace_minutes,
+      full_day_hours: Number(s.full_day_hours),
+      break_minutes: s.break_duration_minutes,
+    });
+
+    const [activeEmployees, dayRows, leaveRows, correctionRows, defaultShift] = await Promise.all([
+      this.prisma.employees.findMany({ where: { deleted_at: null, status: 'Active' }, select: empSelect }),
+      this.prisma.attendance_days.findMany({
+        where: { deleted_at: null, work_date: { gte: new Date(from), lte: new Date(to) } },
+        include: {
+          employees_attendance_days_emp_idToemployees: { select: empSelect },
+          attendance_shifts: true,
+          attendance_breaks: { where: { deleted_at: null }, orderBy: { started_at: 'asc' } },
+        },
+      }),
+      this.prisma.$queryRaw<any[]>`
+        SELECT d.emp_id, TO_CHAR(d.leave_date, 'YYYY-MM-DD') AS leave_date, d.day_part
+        FROM leave_request_days d
+        JOIN leave_requests r ON r.request_id = d.request_id
+        WHERE d.leave_date BETWEEN ${from}::date AND ${to}::date
+          AND r.status IN ('APPROVED', 'CANCELLATION_REQUESTED')
+      `,
+      this.prisma.$queryRaw<any[]>`
+        SELECT c.correction_id, c.request_id, c.emp_id, TO_CHAR(c.work_date, 'YYYY-MM-DD') AS work_date,
+               c.status::text AS status, c.request_type, c.reason, c.created_at, c.decided_at
+        FROM attendance_corrections c
+        WHERE c.deleted_at IS NULL AND c.work_date BETWEEN ${from}::date AND ${to}::date
+        ORDER BY c.created_at DESC
+      `,
+      this.prisma.attendance_shifts.findFirst({ where: { is_default: true, deleted_at: null } }),
+    ]);
+
+    // Someone who has left still has past punches: keep them as employees, but they can no longer be absent.
+    const employees = new Map<number, AnalyticsEmployee>(activeEmployees.map((e) => [e.emp_id, toEmployee(e, true)]));
+    for (const d of dayRows) {
+      const e = d.employees_attendance_days_emp_idToemployees;
+      if (e && !employees.has(e.emp_id)) employees.set(e.emp_id, toEmployee(e, false));
+    }
+
+    return {
+      employees: [...employees.values()],
+      days: dayRows.map((d) => ({
+        attendance_id: d.attendance_id,
+        emp_id: d.emp_id,
+        work_date: d.work_date.toISOString().slice(0, 10),
+        check_in_at: d.check_in_at,
+        check_out_at: d.check_out_at,
+        break_minutes: d.break_minutes,
+        production_minutes: d.production_minutes,
+        day_status: d.day_status,
+        worked_on_non_working_day: d.worked_on_non_working_day,
+        is_regularized: d.is_regularized,
+        regularization_id: d.regularization_id,
+        shift: d.attendance_shifts ? toShift(d.attendance_shifts) : null,
+        breaks: d.attendance_breaks.map((b) => ({ started_at: b.started_at, ended_at: b.ended_at, break_type: b.break_type, reason: b.reason })),
+      })),
+      leaves: leaveRows.map((l) => ({ emp_id: l.emp_id, date: l.leave_date, day_part: l.day_part })),
+      defaultShift: defaultShift ? toShift(defaultShift) : null,
+      regularizations: correctionRows.map((c) => ({
+        correctionId: c.correction_id,
+        requestId: c.request_id,
+        empId: c.emp_id,
+        workDate: c.work_date,
+        status: c.status,
+        requestType: c.request_type,
+        reason: c.reason ?? '',
+        createdAt: new Date(c.created_at).toISOString(),
+        decidedAt: c.decided_at ? new Date(c.decided_at).toISOString() : null,
+      })),
+    };
   }
 
   async getAttendanceCsvReport(yearMonth: string): Promise<string> {

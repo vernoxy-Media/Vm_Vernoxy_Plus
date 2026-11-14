@@ -1,6 +1,7 @@
 export { TasksModule } from './tasks.module';
 export { TASK_TOKENS } from './domain/ports/tokens';
 export { CreateTaskUseCase } from './application/use-cases/create-task.use-case';
+export { AddSubTaskUseCase } from './application/use-cases/add-sub-task.use-case';
 export type { CreateTaskCommand } from './application/use-cases/create-task.use-case';
 export type {
   TaskEntity,
@@ -30,4 +31,8 @@ export {
   isOverdue,
   formatAllocatedMinutes,
   parseDurationToMinutes,
+  parseDueDate,
+  validateDateRange,
 } from './domain/services/task-rules';
+export { loggedSeconds, timeByEmployee } from './domain/services/work-time';
+export type { EmployeeTime } from './domain/services/work-time';

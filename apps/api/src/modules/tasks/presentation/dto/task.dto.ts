@@ -116,6 +116,15 @@ export class TaskBoardCardDto {
   @ApiPropertyOptional({ type: String, nullable: true })
   parent_task_title?: string | null;
 
+  @ApiPropertyOptional({ type: Number, nullable: true })
+  project_id?: number | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  project_no?: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  project_name?: string | null;
+
   @ApiProperty({ type: Boolean, example: false })
   is_overdue!: boolean;
 
@@ -278,6 +287,9 @@ export class TaskDetailDto {
   @ApiPropertyOptional({ type: String, nullable: true })
   due_date!: string | null;
 
+  @ApiPropertyOptional({ type: String, nullable: true })
+  start_date!: string | null;
+
   @ApiPropertyOptional({ type: Number, nullable: true })
   allocated_minutes!: number | null;
 
@@ -313,6 +325,15 @@ export class TaskDetailDto {
 
   @ApiPropertyOptional({ type: String, nullable: true })
   parent_task_title?: string | null;
+
+  @ApiPropertyOptional({ type: Number, nullable: true })
+  project_id?: number | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  project_no?: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  project_name?: string | null;
 
   @ApiProperty({ type: Number, example: 0 })
   sub_tasks_count!: number;
@@ -411,6 +432,16 @@ export class CreateSubTaskDto {
   @IsString()
   @MaxLength(100)
   other_task_type?: string;
+
+  @ApiPropertyOptional({ type: String, example: '2026-11-20', description: 'Due date of the sub task (YYYY-MM-DD)' })
+  @IsOptional()
+  @IsString()
+  due_date?: string;
+
+  @ApiPropertyOptional({ type: String, example: '2026-11-10', description: 'Start date (YYYY-MM-DD)' })
+  @IsOptional()
+  @IsString()
+  start_date?: string;
 }
 
 export class CreateTaskDto {
@@ -441,6 +472,11 @@ export class CreateTaskDto {
   @IsOptional()
   @IsString()
   due_date?: string;
+
+  @ApiPropertyOptional({ type: String, example: '2026-11-10', description: 'Start date (YYYY-MM-DD)' })
+  @IsOptional()
+  @IsString()
+  start_date?: string;
 
   @ApiPropertyOptional({ type: Number, example: 120, description: 'Allocated minutes (max 14400)' })
   @IsOptional()
@@ -515,6 +551,11 @@ export class UpdateTaskDto {
   @IsOptional()
   @IsString()
   due_date?: string;
+
+  @ApiPropertyOptional({ type: String, example: '2026-11-10', description: 'Start date (YYYY-MM-DD)' })
+  @IsOptional()
+  @IsString()
+  start_date?: string;
 
   @ApiPropertyOptional({ type: Number })
   @IsOptional()

@@ -44,10 +44,26 @@ export class OrganizationPolicyService {
     if (roleDepId !== employeeDepId) {
       throw new UnprocessableDomainError(
         'ROLE_NOT_IN_DEPARTMENT',
-        `Role does not belong to the selected department (role dep_id: ${roleDepId}, requested dep_id: ${employeeDepId})`,
+        'The selected designation does not belong to the selected department. Choose a designation from that department.',
         'role_id',
       );
     }
+  }
+
+  /**
+   * An employee can sit in several departments, and the designation belongs to one of them. That department
+   * becomes the main one (the database ties a role to the employee's main department), so the designation only has
+   * to belong to any of the selected departments. Returns the department the designation belongs to.
+   */
+  static validateRoleBelongsToAnyDepartment(roleDepId: number, selectedDepIds: number[], roleName?: string): number {
+    if (!selectedDepIds.includes(roleDepId)) {
+      throw new UnprocessableDomainError(
+        'ROLE_NOT_IN_DEPARTMENT',
+        `${roleName ? `The designation "${roleName}"` : 'The selected designation'} does not belong to any of the selected departments. Choose a designation from one of them.`,
+        'role_id',
+      );
+    }
+    return roleDepId;
   }
 
   /**

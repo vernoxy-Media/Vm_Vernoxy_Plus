@@ -31,6 +31,7 @@ export interface CreateCommunicationData {
   /** Calls only. */
   call_status?: string | null;
   not_received_reason?: string | null;
+  call_duration_seconds?: number | null;
   /** False for a call nobody picked up: it does not make a New lead Contacted. Default true. */
   counts_as_conversation?: boolean;
   actor_emp_id: number;
@@ -49,6 +50,7 @@ export interface CommunicationRecord {
   outcome: string | null;
   call_status: string | null;
   not_received_reason: string | null;
+  call_duration_seconds: number | null;
   logged_by: { emp_id: number; name: string } | null;
   created_by: number | null;
   created_at: Date;
@@ -63,6 +65,7 @@ export interface UpdateCommunicationData {
   outcome?: string | null;
   call_status?: string | null;
   not_received_reason?: string | null;
+  call_duration_seconds?: number | null;
 }
 
 export interface NoteRecord {

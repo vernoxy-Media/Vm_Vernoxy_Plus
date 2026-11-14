@@ -60,6 +60,7 @@ export class PrismaEmployeeAuthRepository implements EmployeeAuthRepository {
       dep_id: raw.dep_id,
       department_name: raw.departments_employees_dep_idTodepartments?.name ?? 'Unknown',
       is_admin: raw.roles_employees_role_idToroles?.is_admin ?? false,
+      ui_theme: raw.ui_theme ?? null,
       deleted_at: raw.deleted_at,
       credentials: creds
         ? {
@@ -69,6 +70,7 @@ export class PrismaEmployeeAuthRepository implements EmployeeAuthRepository {
             failed_attempts: creds.failed_attempts,
             locked_until: creds.locked_until,
             last_login_at: creds.last_login_at,
+            password_changed_at: creds.password_changed_at ?? null,
           }
         : null,
     };
@@ -109,6 +111,7 @@ export class PrismaEmployeeAuthRepository implements EmployeeAuthRepository {
       dep_id: raw.dep_id,
       department_name: raw.departments_employees_dep_idTodepartments?.name ?? 'Unknown',
       is_admin: raw.roles_employees_role_idToroles?.is_admin ?? false,
+      ui_theme: raw.ui_theme ?? null,
       deleted_at: raw.deleted_at,
       credentials: creds
         ? {
@@ -118,6 +121,7 @@ export class PrismaEmployeeAuthRepository implements EmployeeAuthRepository {
             failed_attempts: creds.failed_attempts,
             locked_until: creds.locked_until,
             last_login_at: creds.last_login_at,
+            password_changed_at: creds.password_changed_at ?? null,
           }
         : null,
     };

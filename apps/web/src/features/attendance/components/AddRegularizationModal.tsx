@@ -10,6 +10,8 @@ interface AddRegularizationModalProps {
   onClose: () => void;
   onSuccess: () => void;
   initialDate?: string;
+  /** The employee the request is for (administrators filing on somebody's behalf) */
+  empId?: number | null;
   initialCheckIn?: string | null;
   initialCheckOut?: string | null;
 }
@@ -37,6 +39,7 @@ export const AddRegularizationModal: React.FC<AddRegularizationModalProps> = ({
   onClose,
   onSuccess,
   initialDate,
+  empId,
   initialCheckIn,
   initialCheckOut,
 }) => {
@@ -203,7 +206,7 @@ export const AddRegularizationModal: React.FC<AddRegularizationModalProps> = ({
         : finalReason;
 
       const payload: CreateRegularizationPayload = {
-        emp_id: user?.emp_id,
+        emp_id: empId ?? user?.emp_id,
         work_date: attendanceDate,
         request_type: requestType,
         current_check_in_at: currentCheckInRaw || (currentCheckIn !== '--' ? currentCheckIn : null),

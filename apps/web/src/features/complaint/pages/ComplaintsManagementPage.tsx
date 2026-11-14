@@ -1,3 +1,7 @@
+import { useSearchParams } from 'react-router-dom';
+import { ExportMenu } from '@/shared/ui/ExportMenu';
+import { dmy } from '@/shared/utils/table-export';
+import { HistoryPdfButton } from '../components/complaint-ui';
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -54,6 +58,7 @@ export const ComplaintsManagementPage: React.FC = (): React.ReactElement => {
   const { user } = useAuth();
   const isAdmin = !!user?.access?.can_manage_organization;
   const [activeTab, setActiveTab] = useState<'Active' | 'New' | 'Resolved' | 'Closed' | 'All'>('Active');
+  const [overdueOnly, setOverdueOnly] = useState(false);
   const [selectedTypeId, setSelectedTypeId] = useState<number | undefined>(undefined);
   const [selectedDeptId, setSelectedDeptId] = useState<number | undefined>(undefined);
   const [selectedPriority, setSelectedPriority] = useState<string>('');
@@ -93,6 +98,21 @@ export const ComplaintsManagementPage: React.FC = (): React.ReactElement => {
 
   // Details Modal
   const [viewingComplaintId, setViewingComplaintId] = useState<number | null>(null);
+  const [openParams] = useSearchParams();
+  useEffect(() => {
+    const open = Number(openParams.get('open'));
+    if (open) setViewingComplaintId(open);
+  }, [openParams]);
+  // Dashboard links: ?view=New | Resolved | Active | Overdue
+  useEffect(() => {
+    const view = openParams.get('view');
+    if (view === 'New' || view === 'Resolved' || view === 'Active' || view === 'Closed' || view === 'All') setActiveTab(view);
+    if (view === 'Overdue') {
+      setActiveTab('Active');
+      setOverdueOnly(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openParams]);
   const { data: detail, isLoading: isLoadingDetail, isError: isErrorDetail, error: detailError } = useComplaintDetailsQuery(viewingComplaintId);
 
   // Accept & Assign Modal
@@ -192,7 +212,7 @@ export const ComplaintsManagementPage: React.FC = (): React.ReactElement => {
       });
       setAcceptingComplaintId(null);
     } catch (err: any) {
-      setAssignError(err.message || 'Failed to accept and assign complaint.');
+      setAssignError(err?.detail || err?.message || 'Failed to accept and assign complaint.');
     }
   };
 
@@ -215,7 +235,7 @@ export const ComplaintsManagementPage: React.FC = (): React.ReactElement => {
       });
       setClosingWithoutActionId(null);
     } catch (err: any) {
-      setCloseWithoutActionError(err.message || 'Failed to close complaint without action.');
+      setCloseWithoutActionError(err?.detail || err?.message || 'Failed to close complaint without action.');
     }
   };
 
@@ -233,7 +253,7 @@ export const ComplaintsManagementPage: React.FC = (): React.ReactElement => {
       });
       setActionText('');
     } catch (err: any) {
-      alert(err.message || 'Failed to add action.');
+      alert(err?.detail || err?.message || 'Failed to add action.');
     }
   };
 
@@ -251,7 +271,7 @@ export const ComplaintsManagementPage: React.FC = (): React.ReactElement => {
       });
       setRemarkText('');
     } catch (err: any) {
-      alert(err.message || 'Failed to add remark.');
+      alert(err?.detail || err?.message || 'Failed to add remark.');
     }
   };
 
@@ -276,7 +296,7 @@ export const ComplaintsManagementPage: React.FC = (): React.ReactElement => {
       setResDetails('');
       setResRootCause('');
     } catch (err: any) {
-      setResError(err.message || 'Failed to record resolution.');
+      setResError(err?.detail || err?.message || 'Failed to record resolution.');
     }
   };
 
@@ -285,7 +305,7 @@ export const ComplaintsManagementPage: React.FC = (): React.ReactElement => {
     try {
       await closeMut.mutateAsync({ id: viewingComplaintId });
     } catch (err: any) {
-      alert(err.message || 'Failed to close complaint.');
+      alert(err?.detail || err?.message || 'Failed to close complaint.');
     }
   };
 
@@ -300,7 +320,7 @@ export const ComplaintsManagementPage: React.FC = (): React.ReactElement => {
       setIsSendBackModalOpen(false);
       setSendBackRemarks('');
     } catch (err: any) {
-      alert(err.message || 'Failed to send back complaint.');
+      alert(err?.detail || err?.message || 'Failed to send back complaint.');
     }
   };
 
@@ -317,7 +337,7 @@ export const ComplaintsManagementPage: React.FC = (): React.ReactElement => {
       setNewHandlerId('');
       setReassignReason('');
     } catch (err: any) {
-      alert(err.message || 'Failed to reassign handler.');
+      alert(err?.detail || err?.message || 'Failed to reassign handler.');
     }
   };
 
@@ -334,7 +354,7 @@ export const ComplaintsManagementPage: React.FC = (): React.ReactElement => {
       setNewTargetDate('');
       setTargetReason('');
     } catch (err: any) {
-      alert(err.message || 'Failed to update target date.');
+      alert(err?.detail || err?.message || 'Failed to update target date.');
     }
   };
 
@@ -345,7 +365,7 @@ export const ComplaintsManagementPage: React.FC = (): React.ReactElement => {
     avg_days_to_resolve_this_month: 0,
   };
 
-  const allRows: ComplaintSummaryItem[] = data?.complaints || [];
+  const allRows: ComplaintSummaryItem[] = (data?.complaints || []).filter((c) => !overdueOnly || c.is_overdue);
   const hasFilters = Boolean(selectedTypeId || selectedDeptId || selectedPriority || selectedHandlerId || fromDate || toDate || searchQuery);
   const clearFilters = () => {
     setSelectedTypeId(undefined);
@@ -400,6 +420,47 @@ export const ComplaintsManagementPage: React.FC = (): React.ReactElement => {
 
         {isAdmin && (
           <div className="flex flex-wrap items-center gap-2.5">
+            {overdueOnly && (
+              <button type="button" onClick={() => setOverdueOnly(false)} className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 text-[12.5px] font-semibold text-rose-700">
+                Overdue only ✕
+              </button>
+            )}
+            {/* Export: Excel or PDF of the current tab with the filters applied. Admin only. Confidential subjects left out (BFD 5 Part 2). */}
+            <ExportMenu
+              formats={['excel', 'pdf']}
+              disabled={!allRows.length}
+              build={() => ({
+                title: `Complaints · ${activeTab}`,
+                sheet: `Complaints ${activeTab}`,
+                endpoint: '/api/v1/complaints/export',
+                columns: [
+                  { header: 'Complaint No.', key: 'no' },
+                  { header: 'Date', key: 'date' },
+                  { header: 'Raised by', key: 'by' },
+                  { header: 'Department', key: 'dept' },
+                  { header: 'Subject', key: 'subject' },
+                  { header: 'Type', key: 'type' },
+                  { header: 'Priority', key: 'priority' },
+                  { header: 'Handler', key: 'handler' },
+                  { header: 'Status', key: 'status' },
+                  { header: 'Target', key: 'target' },
+                  { header: 'Overdue', key: 'overdue' },
+                ],
+                rows: allRows.map((c) => ({
+                  no: c.complaint_no,
+                  date: dmy(c.complaint_date),
+                  by: c.complainant_name || '',
+                  dept: c.department_name || '',
+                  subject: c.is_confidential ? 'Confidential' : c.subject,
+                  type: c.type_name,
+                  priority: c.priority || '',
+                  handler: c.handler_name || '',
+                  status: c.status,
+                  target: dmy(c.target_date),
+                  overdue: c.is_overdue ? 'Yes' : '',
+                })),
+              })}
+            />
             <Link
               to="/complaints?tab=reports"
               className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-[13px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
@@ -1235,7 +1296,12 @@ export const ComplaintsManagementPage: React.FC = (): React.ReactElement => {
 
                   {/* Right Column: History Timeline */}
                   <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
-                    <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Complaint History</h4>
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Complaint History</h4>
+                      {detail && (
+                        <HistoryPdfButton complaintNo={detail.complaint_no} subject={detail.subject} confidential={detail.is_confidential} history={detail.history || []} />
+                      )}
+                    </div>
                     <div className="space-y-3 text-xs max-h-96 overflow-y-auto">
                       {detail?.history?.map((h) => (
                         <div key={h.history_id} className="border-l-2 border-indigo-400 pl-2.5 space-y-0.5">
