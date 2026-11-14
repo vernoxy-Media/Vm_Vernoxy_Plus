@@ -14,7 +14,7 @@ export const AttendanceNavTabs: React.FC<AttendanceNavTabsProps> = ({ activeTab 
   return (
     <div className="flex items-center justify-between pb-1 mb-6">
       <div
-        className="inline-flex items-center gap-1.5 p-1 bg-slate-100/80 border border-slate-200/80 rounded-2xl shadow-2xs"
+        className="inline-flex items-center gap-1 p-1.5 bg-white border border-slate-200 rounded-2xl shadow-sm max-w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         role="tablist"
         aria-label="Attendance Modules"
       >
@@ -23,10 +23,10 @@ export const AttendanceNavTabs: React.FC<AttendanceNavTabsProps> = ({ activeTab 
           id="attendance-tab-timesheet"
           role="tab"
           aria-selected={activeTab === 'timesheet'}
-          className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+          className={`inline-flex items-center gap-2 whitespace-nowrap px-4 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${
             activeTab === 'timesheet'
-              ? 'bg-white text-blue-600 shadow-xs'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/25'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
           <Clock className="w-3.5 h-3.5" />
@@ -38,10 +38,10 @@ export const AttendanceNavTabs: React.FC<AttendanceNavTabsProps> = ({ activeTab 
           id="attendance-tab-calendar"
           role="tab"
           aria-selected={activeTab === 'calendar'}
-          className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+          className={`inline-flex items-center gap-2 whitespace-nowrap px-4 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${
             activeTab === 'calendar'
-              ? 'bg-white text-blue-600 shadow-xs'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/25'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
           <CalendarClock className="w-3.5 h-3.5" />
@@ -54,10 +54,10 @@ export const AttendanceNavTabs: React.FC<AttendanceNavTabsProps> = ({ activeTab 
             id="attendance-tab-settings"
             role="tab"
             aria-selected={activeTab === 'settings'}
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+            className={`inline-flex items-center gap-2 whitespace-nowrap px-4 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${
               activeTab === 'settings'
-                ? 'bg-white text-blue-600 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/25'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
           >
             <CalendarClock className="w-3.5 h-3.5" />
@@ -65,8 +65,8 @@ export const AttendanceNavTabs: React.FC<AttendanceNavTabsProps> = ({ activeTab 
             <span
               className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md font-semibold ${
                 activeTab === 'settings'
-                  ? 'bg-blue-50 text-blue-700 border border-blue-200/60'
-                  : 'bg-slate-200 text-slate-700'
+                  ? 'bg-white/20 text-white'
+                  : 'bg-slate-100 text-slate-600'
               }`}
             >
               <Shield className="w-2.5 h-2.5" />
