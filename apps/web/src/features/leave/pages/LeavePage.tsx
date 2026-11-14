@@ -32,23 +32,29 @@ export const LeavePage: React.FC = () => {
   const current = tabs.find((t) => t.id === active)?.label || 'My Leave';
 
   return (
-    <div className="w-full space-y-3">
-      <div className="w-full flex flex-wrap items-center justify-between gap-2 pt-1 pb-1">
+    <div className="w-full space-y-4">
+      <div className="flex w-full flex-col gap-3 pt-1 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-1.5 text-xs text-slate-400">
           <span>Leave</span>
           <span className="text-slate-300">&gt;</span>
           <span className="font-semibold text-slate-700">{current}</span>
         </div>
         {tabs.length > 1 && (
-          <div className="inline-flex flex-wrap items-center gap-1 bg-slate-100 p-1 rounded-full text-xs font-semibold">
+          <div
+            role="tablist"
+            aria-label="Leave sections"
+            className="-mx-1 flex max-w-full gap-1 overflow-x-auto rounded-2xl border border-slate-200/80 bg-white p-1 text-[13px] font-semibold shadow-2xs sm:mx-0"
+          >
             {tabs.map((t) => (
               <button
                 key={t.id}
                 type="button"
+                role="tab"
+                aria-selected={active === t.id}
                 id={`tab-leave-${t.id}`}
                 onClick={() => go(t.id)}
-                className={`px-3.5 py-1 rounded-full transition-all cursor-pointer ${
-                  active === t.id ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                className={`shrink-0 cursor-pointer whitespace-nowrap rounded-xl px-3.5 py-1.5 transition-colors ${
+                  active === t.id ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                 }`}
               >
                 {t.label}

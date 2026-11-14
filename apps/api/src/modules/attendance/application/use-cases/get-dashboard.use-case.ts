@@ -35,6 +35,7 @@ export interface DashboardResponseDto {
   month: {
     summary: {
       scheduled_working_days: number;
+      working_days_so_far: number;
       days_present: number;
       days_full: number;
       days_half: number;
@@ -60,11 +61,11 @@ export interface DashboardResponseDto {
       leave: { type_name: string; part: string; half?: string | null } | null;
       holiday_name: string | null;
       flags: Record<string, any>;
-      breaks?: Array<{ started_at: string; ended_at: string | null }>;
+      breaks?: Array<{ started_at: string; ended_at: string | null; break_type?: string | null }>;
       /** Filled in by the controller when the punch captured a location */
       punch_location?: {
-        in: { latitude: number; longitude: number } | null;
-        out: { latitude: number; longitude: number } | null;
+        in: { latitude: number; longitude: number; accuracyM?: number | null } | null;
+        out: { latitude: number; longitude: number; accuracyM?: number | null } | null;
       };
     }>;
     month_label: string;
@@ -127,6 +128,7 @@ export class GetDashboardUseCase {
     );
 
     // Filter/trim days based on employee joining/exit date
+    // profile dates are Indian calendar dates (see getEmployeeProfile)
     const joiningDate = profile.joiningDate;
     const exitDate = profile.exitDate;
 
@@ -349,6 +351,7 @@ export class GetDashboardUseCase {
           breaks: d.breaks.map((b) => ({
             started_at: b.started_at.toISOString(),
             ended_at: b.ended_at ? b.ended_at.toISOString() : null,
+            break_type: b.break_type ?? null,
           })),
         })),
         month_label: monthLabel,

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { describeLocationAccuracy, googleMapEmbedUrl, reverseGeocode } from '../api/attendance.api';
 import { createPortal } from 'react-dom';
 import {
   X,
@@ -150,6 +151,23 @@ export const AttendanceInsightDrawer: React.FC<AttendanceInsightDrawerProps> = (
       return () => window.removeEventListener('keydown', handleKeyDown);
     }
   }, [isOpen, onClose]);
+
+  // Where the clock-in happened, in words: made from the coordinates
+  const [geoPlace, setGeoPlace] = useState<string | null | undefined>(undefined);
+  const lat = record?.latitude ?? null;
+  const lng = record?.longitude ?? null;
+  useEffect(() => {
+    if (!isOpen || lat == null || lng == null) {
+      setGeoPlace(undefined);
+      return;
+    }
+    let live = true;
+    setGeoPlace(undefined);
+    reverseGeocode(lat, lng).then((a) => live && setGeoPlace(a));
+    return () => {
+      live = false;
+    };
+  }, [isOpen, lat, lng]);
 
   if (!isOpen || !date) return null;
 
@@ -339,7 +357,8 @@ export const AttendanceInsightDrawer: React.FC<AttendanceInsightDrawerProps> = (
   const gapsMin = (record?.breaks || [])
     .map((b) => ({ s: clockMinutes(b.started_at), e: clockMinutes(b.ended_at) }))
     .filter((g): g is { s: number; e: number } => g.s !== null && g.e !== null && g.e > g.s);
-  const punchPlace = record?.check_in_location || null;
+  const hasPoint = record?.latitude != null && record.longitude != null;
+  const punchPlace = record?.check_in_location || (hasPoint ? (geoPlace === undefined ? 'Finding address…' : geoPlace) : null);
 
   return createPortal(
     <div
@@ -470,16 +489,26 @@ export const AttendanceInsightDrawer: React.FC<AttendanceInsightDrawerProps> = (
                       title="Punch location"
                       loading="lazy"
                       className="h-40 w-full"
-                      src={`https://www.openstreetmap.org/export/embed.html?bbox=${record.longitude - 0.004}%2C${record.latitude - 0.003}%2C${record.longitude + 0.004}%2C${record.latitude + 0.003}&layer=mapnik&marker=${record.latitude}%2C${record.longitude}`}
+                      src={googleMapEmbedUrl(record.latitude, record.longitude)}
                     />
                   </div>
                 )}
-                {punchPlace && (
-                  <div className="-mt-3 flex items-center gap-1.5 text-xs text-slate-500">
-                    <MapPin className="h-3.5 w-3.5 text-slate-400" />
-                    <span>{punchPlace}</span>
-                  </div>
-                )}
+                {punchPlace && (() => {
+                  const acc = describeLocationAccuracy(record?.location_accuracy_m);
+                  return (
+                    <div className="-mt-3 space-y-1 text-xs text-slate-500">
+                      <div className="flex items-start gap-1.5">
+                        <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" />
+                        <span>{acc?.coarse && geoPlace ? `Near ${punchPlace}` : punchPlace}</span>
+                      </div>
+                      {acc && (
+                        <p className={`pl-5 ${acc.coarse ? 'font-medium text-amber-700' : ''}`}>
+                          {acc.coarse ? `Approximate location ${acc.text}: a laptop gives a WiFi/IP guess, not GPS. Punch from a phone for an exact place.` : `Accurate to ${acc.text}`}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* Activity log (vertical timeline) */}
                 <div>

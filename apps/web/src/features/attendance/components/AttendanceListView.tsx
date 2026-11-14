@@ -3,6 +3,7 @@ import { Eye } from 'lucide-react';
 import type { DayRecord } from '../types/attendance.types';
 import { AttendanceInsightDrawer } from './AttendanceInsightDrawer';
 
+import { localToday } from '@/shared/utils/schedule.utils';
 export interface AttendanceListViewProps {
   records: DayRecord[];
   onSelectDate: (date: string) => void;
@@ -15,7 +16,7 @@ export const AttendanceListView: React.FC<AttendanceListViewProps> = ({
   shiftName = 'General Shift (09:30 - 18:30)',
 }) => {
   const [selectedDetailRecord, setSelectedDetailRecord] = useState<DayRecord | null>(null);
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = localToday();
 
   // Filter only past dates and today (exclude blank future dates as per spec)
   const pastAndTodayRecords = records

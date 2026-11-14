@@ -21,15 +21,15 @@ export class PrismaPunchLocationRepository implements PunchLocationRepository {
 
   async findRange(empId: number, from: string, to: string) {
     const rows = await this.prisma.$queryRaw<
-      Array<{ work_date: string; kind: PunchKind; latitude: number; longitude: number }>
+      Array<{ work_date: string; kind: PunchKind; latitude: number; longitude: number; accuracy_m: number | null }>
     >`
-      SELECT to_char(work_date, 'YYYY-MM-DD') AS work_date, kind, latitude, longitude
+      SELECT to_char(work_date, 'YYYY-MM-DD') AS work_date, kind, latitude, longitude, accuracy_m
       FROM attendance_punch_locations
       WHERE emp_id = ${empId} AND work_date BETWEEN ${from}::date AND ${to}::date`;
-    const out = new Map<string, Partial<Record<PunchKind, { latitude: number; longitude: number }>>>();
+    const out = new Map<string, Partial<Record<PunchKind, { latitude: number; longitude: number; accuracyM: number | null }>>>();
     for (const r of rows) {
       const day = out.get(r.work_date) ?? {};
-      day[r.kind] = { latitude: r.latitude, longitude: r.longitude };
+      day[r.kind] = { latitude: r.latitude, longitude: r.longitude, accuracyM: r.accuracy_m == null ? null : Number(r.accuracy_m) };
       out.set(r.work_date, day);
     }
     return out;

@@ -15,10 +15,13 @@ import {
   Plane,
   CalendarDays,
   Hourglass,
+  CalendarOff,
+  PartyPopper,
 } from 'lucide-react';
 import type { MonthSummary, DayRecord, AttendanceStatistics } from '../types/attendance.types';
 import { describeMinutes, summarize, type ShiftConfig } from '../utils/attendance-metrics';
 
+import { localToday } from '@/shared/utils/schedule.utils';
 export interface AttendanceMetricsOverviewProps {
   todayWorkedSeconds: number;
   todayBreakSeconds: number;
@@ -118,7 +121,7 @@ export const AttendanceStatsSummaryCard: React.FC<{
       out.push({
         date: key,
         label: d.toLocaleDateString('en-US', { weekday: 'narrow' }),
-        sec: rec ? (key === new Date().toISOString().slice(0, 10) ? Math.max(rec.production_seconds || 0, todayWorkedSeconds) : rec.production_seconds || 0) : 0,
+        sec: rec ? (key === localToday() ? Math.max(rec.production_seconds || 0, todayWorkedSeconds) : rec.production_seconds || 0) : 0,
         today: i === 0,
       });
     }
@@ -245,6 +248,14 @@ export const AttendanceBreakdownRow: React.FC<{
 
   const productiveSec = monthSummary.total_working_seconds || records.reduce((a, r) => a + (r.production_seconds || 0), 0);
   const breakSec = monthSummary.total_break_seconds || records.reduce((a, r) => a + (r.break_seconds || 0), 0);
+  // Time clocked out before "Resume work": not worked and not a break, but it must not vanish from the summary
+  const awaySec = records.reduce((sum, r) => {
+    for (const b of r.breaks ?? []) {
+      if (b.break_type !== 'Clocked out' || !b.ended_at) continue;
+      sum += Math.max(0, Math.floor((new Date(b.ended_at).getTime() - new Date(b.started_at).getTime()) / 1000));
+    }
+    return sum;
+  }, 0);
   const grossSec = productiveSec + breakSec;
   const productivePct = grossSec ? Math.round((productiveSec / grossSec) * 100) : 0;
 
@@ -252,14 +263,18 @@ export const AttendanceBreakdownRow: React.FC<{
   const present = monthSummary.present_days ?? 0;
   const absent = monthSummary.absent_days ?? 0;
   const leave = monthSummary.leave_days ?? 0;
-  const presentPct = total > 0 ? Math.min(100, Math.round((present / total) * 100)) : 0;
+  const weeklyOffs = monthSummary.weekly_offs ?? 0;
+  const holidays = monthSummary.holidays ?? 0;
+  // % present is measured against the working days that have passed (from the joining date), not the whole month
+  const elapsed = monthSummary.days_so_far ?? total;
+  const presentPct = elapsed > 0 ? Math.min(100, Math.round((present / elapsed) * 100)) : 0;
 
   return (
     <div className="grid grid-cols-1 items-stretch gap-4 sm:gap-5 md:grid-cols-2 xl:grid-cols-3">
       <CardShell>
         <CardTitle
           title="Monthly attendance"
-          hint={`${presentPct}% present so far`}
+          hint={`${presentPct}% present · ${elapsed} of ${total} working days done`}
           tone="bg-indigo-50 text-indigo-600"
           icon={<Calendar className="h-4 w-4" />}
           right={
@@ -269,10 +284,12 @@ export const AttendanceBreakdownRow: React.FC<{
           }
         />
         <div className="grid flex-1 grid-cols-2 gap-2.5">
-          <Stat icon={<CalendarDays className="h-3.5 w-3.5" />} label="Working" value={total} sub={total === 1 ? 'day' : 'days'} tone="bg-slate-50 text-slate-800" />
+          <Stat icon={<CalendarDays className="h-3.5 w-3.5" />} label="Working days" value={elapsed} sub={`of ${total} this month`} tone="bg-slate-50 text-slate-800" />
           <Stat icon={<CheckCircle2 className="h-3.5 w-3.5" />} label="Present" value={present} sub={present === 1 ? 'day' : 'days'} tone="bg-emerald-50 text-emerald-700" />
           <Stat icon={<XCircle className="h-3.5 w-3.5" />} label="Absent" value={absent} sub={absent === 1 ? 'day' : 'days'} tone={absent ? 'bg-rose-50 text-rose-700' : 'bg-slate-50 text-slate-500'} />
           <Stat icon={<Plane className="h-3.5 w-3.5" />} label="On leave" value={leave} sub={leave === 1 ? 'day' : 'days'} tone={leave ? 'bg-violet-50 text-violet-700' : 'bg-slate-50 text-slate-500'} />
+          <Stat icon={<CalendarOff className="h-3.5 w-3.5" />} label="Weekly off" value={weeklyOffs} sub={weeklyOffs === 1 ? 'day' : 'days'} tone="bg-slate-50 text-slate-600" />
+          <Stat icon={<PartyPopper className="h-3.5 w-3.5" />} label="Holidays" value={holidays} sub={holidays === 1 ? 'day' : 'days'} tone={holidays ? 'bg-amber-50 text-amber-700' : 'bg-slate-50 text-slate-500'} />
         </div>
       </CardShell>
 
@@ -333,6 +350,13 @@ export const AttendanceBreakdownRow: React.FC<{
             <div className="text-[10px] font-semibold uppercase tracking-wide opacity-70">Overtime</div>
           </div>
         </div>
+
+        {awaySec >= 60 && (
+          <p className="mt-3 flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">
+            <span>Clocked out and resumed (not counted as work or break)</span>
+            <span className="font-semibold tabular-nums text-slate-800">{hm(awaySec)}</span>
+          </p>
+        )}
 
         <div className="mt-auto pt-4">
           <div className="mb-2 flex items-center justify-between text-xs text-slate-500">

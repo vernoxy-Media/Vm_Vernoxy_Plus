@@ -1,4 +1,4 @@
-import { AnalyticsDayRow, AnalyticsEmployee, buildAnalyticsRecords, DEFAULT_SHIFT, eachDate, hhmm, istMinutes, todayInIst } from './attendance-analytics';
+import { AnalyticsDayRow, AnalyticsEmployee, buildAnalyticsRecords, DEFAULT_SHIFT, eachDate, formatTimeIst, hhmm, hourInIst, istMinutes, todayInIst } from './attendance-analytics';
 
 const emp = (id: number, joining: string | null = '2026-01-01'): AnalyticsEmployee => ({
   emp_id: id,
@@ -127,6 +127,18 @@ describe('attendance analytics records', () => {
     expect(records.map((r) => r.workDate)).toEqual(['2026-11-08']);
     expect(records[0]!.isWeeklyOffOrHoliday).toBe(true);
     expect(records[0]!.isLate).toBe(false);
+  });
+
+  it('formats clock times in Indian time whatever the server clock says (a UTC server showed 04:44 AM for 10:14 AM)', () => {
+    expect(formatTimeIst(new Date('2026-11-13T04:44:00Z'))).toBe('10:14 AM');
+    expect(formatTimeIst(new Date('2026-11-13T07:03:00Z'))).toBe('12:33 PM');
+    expect(formatTimeIst(new Date('2026-11-13T18:29:00Z'))).toBe('11:59 PM');
+    expect(formatTimeIst(new Date('2026-11-13T18:30:00Z'))).toBe('12:00 AM');
+  });
+
+  it('gives the hour in India, for rules such as "after 8 pm"', () => {
+    expect(hourInIst(new Date('2026-11-13T14:29:00Z'))).toBe(19);
+    expect(hourInIst(new Date('2026-11-13T14:30:00Z'))).toBe(20);
   });
 
   it('gives today in Indian time', () => {

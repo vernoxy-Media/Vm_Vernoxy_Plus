@@ -1,10 +1,25 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, History, FileText, ChevronLeft, ChevronRight, AlertCircle, CheckCircle2 } from 'lucide-react';
+import {
+  Plus,
+  History,
+  FileText,
+  ChevronLeft,
+  ChevronRight,
+  AlertCircle,
+  CheckCircle2,
+  CalendarDays,
+  CalendarCheck,
+  Hourglass,
+  Wallet,
+  Infinity as InfinityIcon,
+  UserCheck,
+} from 'lucide-react';
+import { KpiStat } from '@/shared/ui/dashboard/DashboardShell';
+import { BalanceRing, whenLabel } from '../components/leave-visuals';
 import {
   BalanceCard,
   LeaveRequestItem,
-  useLeaveLookupsQuery,
   useMyLeaveQuery,
   useRequestLeaveCancellationMutation,
   useWithdrawLeaveMutation,
@@ -24,6 +39,8 @@ import {
   errMessage,
   fmtDate,
   fmtDays,
+  fmtDayMonth,
+  todayYmd,
 } from '../components/leave-ui';
 
 const PAGE_SIZE = 20;
@@ -34,33 +51,59 @@ export interface MyLeavePageProps {
 
 export const BalanceCardView: React.FC<{ b: BalanceCard }> = ({ b }) => {
   const c = colorStyle(b.calendar_color);
-  const parts: string[] = [];
-  if (b.balance_tracked) {
-    parts.push(`${fmtDays(b.credited)} credited`);
-    parts.push(`${fmtDays(b.taken)} taken`);
-    if (b.approved_ahead) parts.push(`${fmtDays(b.approved_ahead)} approved ahead`);
-    if (b.pending) parts.push(`${fmtDays(b.pending)} pending`);
-  } else {
-    parts.push(b.is_paid ? 'Paid' : 'Unpaid');
-    parts.push(`${fmtDays(b.taken + b.approved_ahead)} taken`);
-    if (b.pending) parts.push(`${fmtDays(b.pending)} pending`);
-  }
+  const tracked = b.balance_tracked;
+  const credited = b.credited ?? 0;
+  const available = b.available ?? 0;
+  // Less than a sixth left of what was given
+  const low = tracked && credited > 0 && available > 0 && available / credited <= 0.17;
+  const empty = tracked && credited > 0 && available <= 0;
+  const used = b.taken + b.approved_ahead;
   return (
-    <div className={`bg-white rounded-2xl border border-slate-200/80 p-4 shadow-2xs relative overflow-hidden`}>
-      <span className={`absolute left-0 top-0 h-full w-1 ${c.bar}`} />
-      <div className="text-2xl font-extrabold text-slate-900 tracking-tight">
-        {b.balance_tracked ? fmtDays(b.available) : 'No limit'}
-      </div>
-      <div className="mt-0.5 flex items-center gap-1.5">
-        <span className="text-xs font-bold text-slate-800">{b.leave_type_name}</span>
-        <PaidTag paid={b.is_paid} />
-      </div>
-      <div className="mt-1 text-[11px] text-slate-500 leading-snug">{parts.join(' · ')}</div>
-      {b.is_comp_off && (
-        <div className="mt-1 text-[11px] text-purple-700">
-          {b.nearest_expiry ? `Expires ${fmtDate(b.nearest_expiry)}` : 'No Comp-off to expire'}
-        </div>
+    <div className="group relative flex items-center gap-4 overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs transition hover:-translate-y-0.5 hover:shadow-md">
+      <span aria-hidden className={`absolute inset-x-0 top-0 h-0.5 ${c.bar}`} />
+      {tracked ? (
+        <BalanceRing value={available} total={credited} tone={b.calendar_color} label={`${fmtDays(available)} of ${fmtDays(credited)} days left`}>
+          <span className="text-[15px] font-extrabold leading-none tabular-nums text-slate-900">{fmtDays(available)}</span>
+        </BalanceRing>
+      ) : (
+        <span className={`flex h-[68px] w-[68px] shrink-0 items-center justify-center rounded-full ${c.soft} ${c.text}`}>
+          <InfinityIcon className="h-7 w-7" />
+        </span>
       )}
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="truncate text-sm font-bold text-slate-900">{b.leave_type_name}</span>
+          <PaidTag paid={b.is_paid} />
+          {low && <span className="rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">Running low</span>}
+          {empty && <span className="rounded-md border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold text-rose-700">None left</span>}
+        </div>
+        {tracked ? (
+          <>
+            <p className="mt-0.5 text-[11px] text-slate-500">{fmtDays(available)} days left of {fmtDays(credited)}</p>
+            <dl className="mt-2 grid grid-cols-3 gap-2 text-[11px]">
+              <div>
+                <dt className="text-slate-400">Used</dt>
+                <dd className="font-semibold tabular-nums text-slate-800">{fmtDays(used)}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-400">Pending</dt>
+                <dd className={`font-semibold tabular-nums ${b.pending ? 'text-amber-700' : 'text-slate-800'}`}>{fmtDays(b.pending)}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-400">Ahead</dt>
+                <dd className="font-semibold tabular-nums text-slate-800">{fmtDays(b.approved_ahead)}</dd>
+              </div>
+            </dl>
+          </>
+        ) : (
+          <p className="mt-0.5 text-[11px] text-slate-500">
+            No limit · {fmtDays(used)} taken{b.pending ? ` · ${fmtDays(b.pending)} pending` : ''}
+          </p>
+        )}
+        {b.is_comp_off && (
+          <p className="mt-1 text-[11px] text-purple-700">{b.nearest_expiry ? `Expires ${fmtDate(b.nearest_expiry)}` : 'No Comp-off to expire'}</p>
+        )}
+      </div>
     </div>
   );
 };
@@ -71,7 +114,6 @@ export const MyLeavePage: React.FC<MyLeavePageProps> = ({ hideBreadcrumb = false
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [page, setPage] = useState(1);
   const { data, isLoading, error } = useMyLeaveQuery(year);
-  const { data: lookups } = useLeaveLookupsQuery();
 
   const [applyOpen, setApplyOpen] = useState(false);
   const [ledgerOpen, setLedgerOpen] = useState(false);
@@ -115,8 +157,75 @@ export const MyLeavePage: React.FC<MyLeavePageProps> = ({ hideBreadcrumb = false
   );
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const current = Math.min(page, totalPages);
-  const pageRows = filtered.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE);
   const hasFilters = typeFilter !== 'ALL' || statusFilter !== 'ALL';
+
+  const today = todayYmd();
+  const isActive = data?.employee?.status === 'Active';
+  // Why Apply Leave is off, in words
+  const cannotApplyReason = !data
+    ? ''
+    : !data.has_policy
+      ? 'No leave policy is assigned to you yet. Ask the Admin to assign one, then you can apply.'
+      : !isActive
+        ? 'Your account is not active, so you cannot apply for leave.'
+        : !data.can_apply
+          ? 'Apply Leave is not available right now.'
+          : '';
+
+  const summary = useMemo(() => {
+    const balances = data?.balances || [];
+    const paidTracked = balances.filter((b) => b.balance_tracked && b.is_paid);
+    const available = paidTracked.reduce((n, b) => n + (b.available ?? 0), 0);
+    const taken = balances.reduce((n, b) => n + b.taken, 0);
+    const pending = requests.filter((r) => r.status === 'PENDING').length;
+    const upcoming = requests
+      .filter((r) => r.status === 'APPROVED' && r.to_date.slice(0, 10) >= today)
+      .sort((x, y) => x.from_date.localeCompare(y.from_date))[0];
+    return { available, taken, pending, upcoming };
+  }, [data, requests, today]);
+
+  // Request status chips, each with how many requests it holds (after the leave type filter)
+  const statusChips = useMemo(() => {
+    const inScope = requests.filter((r) => typeFilter === 'ALL' || r.leave_type_id === typeFilter);
+    const counts = new Map<string, { label: string; n: number }>();
+    for (const r of inScope) {
+      const hit = counts.get(r.status) ?? { label: r.status_label, n: 0 };
+      hit.n += 1;
+      counts.set(r.status, hit);
+    }
+    return { total: inScope.length, list: Array.from(counts.entries()).map(([value, v]) => ({ value, ...v })) };
+  }, [requests, typeFilter]);
+
+  const sortedRows = useMemo(
+    () => [...filtered].sort((x, y) => y.from_date.localeCompare(x.from_date) || y.request_id - x.request_id),
+    [filtered],
+  );
+  const shownRows = sortedRows.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE);
+
+  const rowAction = (label: string, onClick: () => void) => (
+    <button type="button" onClick={onClick} className="cursor-pointer text-[13px] font-semibold text-blue-600 transition hover:text-blue-800 hover:underline">
+      {label}
+    </button>
+  );
+  const rowActions = (r: LeaveRequestItem) => (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+      {rowAction('View', () => setViewId(r.request_id))}
+      {r.can_withdraw &&
+        rowAction('Withdraw', () => {
+          setWithdrawItem(r);
+          setReasonText('');
+          setReasonErr('');
+        })}
+      {r.can_request_cancellation &&
+        rowAction('Request cancellation', () => {
+          setCancelItem(r);
+          setReasonText('');
+          setReasonErr('');
+        })}
+    </div>
+  );
+  const whenNote = (r: LeaveRequestItem) =>
+    r.status === 'APPROVED' ? <span className="text-[11px] font-medium text-emerald-700">{whenLabel(r.from_date.slice(0, 10), r.to_date.slice(0, 10), today)}</span> : null;
 
   const flash = (msg: string) => {
     setToast(msg);
@@ -125,64 +234,108 @@ export const MyLeavePage: React.FC<MyLeavePageProps> = ({ hideBreadcrumb = false
 
   return (
     <div className="w-full space-y-5">
-      {!hideBreadcrumb && (
-        <div className="flex items-center gap-1.5 text-xs text-slate-400">
-          <span>Leave</span>
-          <span className="text-slate-300">&gt;</span>
-          <span className="font-semibold text-slate-700">My Leave</span>
+      {/* Title, policy and the two main actions */}
+      <section className="relative overflow-hidden rounded-3xl border border-slate-200/80 bg-gradient-to-br from-blue-50 via-white to-white p-5 shadow-2xs sm:p-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0">
+            {!hideBreadcrumb && (
+              <div className="mb-1 flex items-center gap-1.5 text-xs text-slate-400">
+                <span>Leave</span>
+                <span className="text-slate-300">&gt;</span>
+                <span className="font-semibold text-slate-700">My Leave</span>
+              </div>
+            )}
+            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-[28px]">My Leave</h1>
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+              {data?.has_policy ? (
+                <>
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 font-semibold text-blue-700">
+                    <FileText className="h-3.5 w-3.5" /> {data.policy_name}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1 font-medium text-slate-600">
+                    <CalendarDays className="h-3.5 w-3.5 text-slate-400" /> Leave year {data.leave_year_label}
+                  </span>
+                  {data.employee.reporting_manager_name && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1 font-medium text-slate-600">
+                      <UserCheck className="h-3.5 w-3.5 text-slate-400" /> Approver: {data.employee.reporting_manager_name}
+                    </span>
+                  )}
+                </>
+              ) : (
+                <span className="text-slate-500">{data ? 'No leave policy assigned' : 'Loading…'}</span>
+              )}
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Btn onClick={() => setLedgerOpen(true)} disabled={!data}>
+              <History className="h-4 w-4" /> Leave ledger
+            </Btn>
+            <Btn variant="primary" onClick={() => setApplyOpen(true)} disabled={!data?.can_apply} title={cannotApplyReason || undefined} className="h-10 px-5">
+              <Plus className="h-4 w-4" /> Apply Leave
+            </Btn>
+          </div>
         </div>
-      )}
-
-      {/* 1 Page title · 2 + Apply Leave */}
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">My Leave</h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            {data?.has_policy ? `${data.policy_name} · Leave year ${data.leave_year_label}` : 'No leave policy assigned'}
-          </p>
-        </div>
-        <Btn variant="primary" onClick={() => setApplyOpen(true)} disabled={!data?.can_apply} title={data?.can_apply ? '' : 'Apply Leave is not available'}>
-          <Plus className="w-4 h-4" /> Apply Leave
-        </Btn>
-      </div>
+      </section>
 
       {toast && (
-        <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs">
-          <CheckCircle2 className="w-4 h-4" /> {toast}
+        <div role="status" className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-medium text-emerald-800">
+          <CheckCircle2 className="h-4 w-4 shrink-0" /> {toast}
         </div>
       )}
-      {error && <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">{errMessage(error)}</div>}
+      {error && <div role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700">{errMessage(error)}</div>}
 
-      {data && !data.has_policy && (
-        <div className="flex items-start gap-2 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs">
-          <AlertCircle className="w-4 h-4 shrink-0" />
-          No leave policy is assigned to you. Please contact the Admin.
-        </div>
-      )}
-
-      {/* 3 Available balance */}
-      {data?.has_policy && (
-        <div>
-          <h2 className="text-xs font-bold text-slate-700 mb-2">Available balance</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
-            {data.balances.map((b) => (
-              <BalanceCardView key={b.leave_type_id} b={b} />
-            ))}
+      {cannotApplyReason && (
+        <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+          <div>
+            <p className="font-semibold">You cannot apply for leave yet</p>
+            <p className="mt-0.5 text-amber-800">{cannotApplyReason}</p>
           </div>
         </div>
       )}
 
+      {/* The numbers that matter */}
+      {data?.has_policy && (
+        <div className="grid grid-cols-2 gap-3 sm:gap-3.5 lg:grid-cols-4">
+          <KpiStat label="Paid days left" value={fmtDays(summary.available)} hint="Across leave with a balance" icon={Wallet} tone="emerald" />
+          <KpiStat label="Taken this year" value={fmtDays(summary.taken)} hint={`Leave year ${data.leave_year_label}`} icon={CalendarDays} tone="blue" />
+          <KpiStat label="Waiting for approval" value={summary.pending} hint={summary.pending ? 'Pending requests' : 'Nothing pending'} icon={Hourglass} tone={summary.pending ? 'amber' : 'slate'} />
+          <KpiStat
+            label="Next leave"
+            value={summary.upcoming ? fmtDayMonth(summary.upcoming.from_date) : 'None'}
+            hint={summary.upcoming ? `${whenLabel(summary.upcoming.from_date.slice(0, 10), summary.upcoming.to_date.slice(0, 10), today)} · ${fmtDays(summary.upcoming.leave_days)} days` : 'No approved leave ahead'}
+            icon={CalendarCheck}
+            tone="purple"
+          />
+        </div>
+      )}
+
+      {/* Balance of each leave type */}
+      {data?.has_policy && data.balances.length > 0 && (
+        <section aria-labelledby="leave-balances">
+          <h2 id="leave-balances" className="mb-2.5 text-sm font-bold text-slate-800">Your balance</h2>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            {data.balances.map((b) => (
+              <BalanceCardView key={b.leave_type_id} b={b} />
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Requests */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-2xs space-y-3">
-        {/* 4 Filters · 5 Leave Ledger */}
+      <section className="space-y-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs sm:p-5" aria-labelledby="leave-requests">
         <div className="flex flex-wrap items-center gap-2">
+          <h2 id="leave-requests" className="mr-auto text-sm font-bold text-slate-800">
+            Leave requests <span className="ml-1 text-xs font-medium text-slate-400">{filtered.length}</span>
+          </h2>
           <select
             value={year ?? data?.leave_year ?? ''}
             onChange={(e) => {
               setYear(Number(e.target.value));
               setPage(1);
             }}
-            className="px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700"
+            aria-label="Leave year"
+            className="h-9 cursor-pointer rounded-xl border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 transition hover:border-slate-300"
           >
             {(data?.year_options || []).map((y) => (
               <option key={y.value} value={y.value}>
@@ -196,166 +349,174 @@ export const MyLeavePage: React.FC<MyLeavePageProps> = ({ hideBreadcrumb = false
               setTypeFilter(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value));
               setPage(1);
             }}
-            className="px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700"
+            aria-label="Leave type"
+            className="h-9 cursor-pointer rounded-xl border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 transition hover:border-slate-300"
           >
-            <option value="ALL">Leave Type: All</option>
+            <option value="ALL">Leave type: All</option>
             {typeOptions.map((t) => (
               <option key={t.value} value={t.value}>
                 {t.label}
               </option>
             ))}
           </select>
-          <select
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setPage(1);
-            }}
-            className="px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700"
-          >
-            <option value="ALL">Status: All</option>
-            {(lookups?.leave_request_status || []).map((s) => (
-              <option key={s.value} value={s.value}>
-                {s.label}
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            onClick={() => setLedgerOpen(true)}
-            className="ml-auto inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700 cursor-pointer"
-          >
-            <History className="w-4 h-4" /> Leave Ledger
-          </button>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="border-b border-slate-100">
-              <tr className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                <th className="py-2.5 px-3">Request No.</th>
-                <th className="py-2.5 px-3">Leave Type</th>
-                <th className="py-2.5 px-3">Dates</th>
-                <th className="py-2.5 px-3">Days</th>
-                <th className="py-2.5 px-3">Status</th>
-                <th className="py-2.5 px-3">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={6} className="py-10 text-center text-slate-400">Loading…</td>
-                </tr>
-              ) : pageRows.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="py-10 text-center">
-                    <FileText className="w-7 h-7 text-slate-300 mx-auto mb-2" />
-                    {hasFilters ? (
-                      <p className="text-slate-600">
-                        No leave requests match your filters.{' '}
-                        <button
-                          type="button"
-                          className="text-blue-600 font-semibold hover:underline cursor-pointer"
-                          onClick={() => {
-                            setTypeFilter('ALL');
-                            setStatusFilter('ALL');
-                          }}
-                        >
-                          Clear filters
-                        </button>
-                      </p>
-                    ) : (
-                      <div className="space-y-2">
-                        <p className="text-slate-600">You have not applied for leave yet.</p>
-                        {data?.can_apply && (
-                          <Btn variant="primary" onClick={() => setApplyOpen(true)}>
-                            <Plus className="w-4 h-4" /> Apply Leave
-                          </Btn>
-                        )}
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              ) : (
-                pageRows.map((r) => (
-                  <tr key={r.request_id} className="hover:bg-slate-50/70">
-                    <td className="py-3 px-3 font-semibold text-slate-800 whitespace-nowrap">{r.request_no}</td>
-                    <td className="py-3 px-3">
-                      <span className="inline-flex items-center gap-1.5 text-slate-800">
-                        {r.leave_type_name} <PaidTag paid={r.is_paid} />
-                      </span>
-                    </td>
-                    <td className="py-3 px-3 text-slate-600 whitespace-nowrap">
-                      {dateRangeLabel(r.from_date, r.to_date, r.duration)}
-                      {r.from_date !== r.to_date && r.duration !== 'FULL_DAY' && ` (${durationLabel(r.duration)})`}
-                    </td>
-                    <td className="py-3 px-3 font-semibold text-slate-900">{fmtDays(r.leave_days)}</td>
-                    <td className="py-3 px-3">
-                      <StatusBadge status={r.status} label={r.status_label} />
-                    </td>
-                    <td className="py-3 px-3 whitespace-nowrap">
-                      <button type="button" onClick={() => setViewId(r.request_id)} className="font-semibold text-blue-600 hover:underline cursor-pointer">
-                        View
-                      </button>
-                      {r.can_withdraw && (
-                        <>
-                          <span className="text-slate-300"> · </span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setWithdrawItem(r);
-                              setReasonText('');
-                              setReasonErr('');
-                            }}
-                            className="font-semibold text-blue-600 hover:underline cursor-pointer"
-                          >
-                            Withdraw
-                          </button>
-                        </>
-                      )}
-                      {r.can_request_cancellation && (
-                        <>
-                          <span className="text-slate-300"> · </span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setCancelItem(r);
-                              setReasonText('');
-                              setReasonErr('');
-                            }}
-                            className="font-semibold text-blue-600 hover:underline cursor-pointer"
-                          >
-                            Request cancellation
-                          </button>
-                        </>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        {/* Status chips with their counts */}
+        <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Request status">
+          {[{ value: 'ALL', label: 'All', n: statusChips.total }, ...statusChips.list].map((chip) => {
+            const on = statusFilter === chip.value;
+            return (
+              <button
+                key={chip.value}
+                type="button"
+                role="tab"
+                aria-selected={on}
+                onClick={() => {
+                  setStatusFilter(chip.value);
+                  setPage(1);
+                }}
+                className={`inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition ${
+                  on ? 'border-blue-600 bg-blue-600 text-white shadow-sm' : 'border-slate-200 bg-white text-slate-600 hover:border-blue-300 hover:text-blue-700'
+                }`}
+              >
+                {chip.label}
+                <span className={`rounded-full px-1.5 text-[10px] tabular-nums ${on ? 'bg-white/25 text-white' : 'bg-slate-100 text-slate-500'}`}>{chip.n}</span>
+              </button>
+            );
+          })}
         </div>
+
+        {isLoading ? (
+          <div className="space-y-2 py-2" aria-busy="true" aria-label="Loading requests">
+            {[0, 1, 2].map((n) => (
+              <div key={n} className="h-14 animate-pulse rounded-xl bg-slate-100" />
+            ))}
+          </div>
+        ) : shownRows.length === 0 ? (
+          <div className="py-12 text-center">
+            <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
+              <FileText className="h-6 w-6" />
+            </span>
+            {hasFilters ? (
+              <p className="text-sm text-slate-600">
+                No leave requests match your filters.{' '}
+                <button
+                  type="button"
+                  className="cursor-pointer font-semibold text-blue-600 hover:underline"
+                  onClick={() => {
+                    setTypeFilter('ALL');
+                    setStatusFilter('ALL');
+                  }}
+                >
+                  Clear filters
+                </button>
+              </p>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm text-slate-600">You have not applied for leave yet.</p>
+                {data?.can_apply && (
+                  <Btn variant="primary" onClick={() => setApplyOpen(true)}>
+                    <Plus className="h-4 w-4" /> Apply Leave
+                  </Btn>
+                )}
+              </div>
+            )}
+          </div>
+        ) : (
+          <>
+            {/* Phones: one card per request */}
+            <ul className="space-y-2.5 md:hidden">
+              {shownRows.map((r) => {
+                const c = colorStyle(r.calendar_color);
+                return (
+                  <li key={r.request_id} className="relative overflow-hidden rounded-xl border border-slate-200 bg-white p-3.5">
+                    <span aria-hidden className={`absolute inset-y-0 left-0 w-1 ${c.bar}`} />
+                    <div className="flex items-start justify-between gap-2 pl-1.5">
+                      <div className="min-w-0">
+                        <p className="flex flex-wrap items-center gap-1.5 text-sm font-bold text-slate-900">
+                          {r.leave_type_name} <PaidTag paid={r.is_paid} />
+                        </p>
+                        <p className="mt-0.5 text-xs text-slate-500">{r.request_no}</p>
+                      </div>
+                      <StatusBadge status={r.status} label={r.status_label} />
+                    </div>
+                    <div className="mt-2 flex items-center justify-between gap-2 pl-1.5 text-xs">
+                      <span className="text-slate-700">
+                        {dateRangeLabel(r.from_date, r.to_date, r.duration)}
+                        {r.from_date !== r.to_date && r.duration !== 'FULL_DAY' && ` (${durationLabel(r.duration)})`}
+                      </span>
+                      <b className="shrink-0 tabular-nums text-slate-900">{fmtDays(r.leave_days)} d</b>
+                    </div>
+                    {whenNote(r) && <div className="mt-1 pl-1.5">{whenNote(r)}</div>}
+                    <div className="mt-2.5 border-t border-slate-100 pt-2 pl-1.5">{rowActions(r)}</div>
+                  </li>
+                );
+              })}
+            </ul>
+
+            {/* Tablets and computers: a table */}
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full text-left text-[13px]">
+                <thead>
+                  <tr className="border-b border-slate-100 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    <th className="px-3 py-2.5">Request</th>
+                    <th className="px-3 py-2.5">Leave type</th>
+                    <th className="px-3 py-2.5">Dates</th>
+                    <th className="px-3 py-2.5">Days</th>
+                    <th className="px-3 py-2.5">Status</th>
+                    <th className="px-3 py-2.5">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {shownRows.map((r) => {
+                    const c = colorStyle(r.calendar_color);
+                    return (
+                      <tr key={r.request_id} className="transition-colors hover:bg-slate-50/70">
+                        <td className="whitespace-nowrap px-3 py-3 font-semibold text-slate-800">{r.request_no}</td>
+                        <td className="px-3 py-3">
+                          <span className="inline-flex items-center gap-2 text-slate-800">
+                            <span aria-hidden className={`h-2.5 w-2.5 rounded-full ${c.dot}`} />
+                            {r.leave_type_name} <PaidTag paid={r.is_paid} />
+                          </span>
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-3 text-slate-700">
+                          {dateRangeLabel(r.from_date, r.to_date, r.duration)}
+                          {r.from_date !== r.to_date && r.duration !== 'FULL_DAY' && ` (${durationLabel(r.duration)})`}
+                          {whenNote(r) && <div className="mt-0.5">{whenNote(r)}</div>}
+                        </td>
+                        <td className="px-3 py-3 font-semibold tabular-nums text-slate-900">{fmtDays(r.leave_days)}</td>
+                        <td className="px-3 py-3">
+                          <StatusBadge status={r.status} label={r.status_label} />
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-3">{rowActions(r)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
 
         {filtered.length > PAGE_SIZE && (
-          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+          <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-500">
             <span>
               {(current - 1) * PAGE_SIZE + 1}–{Math.min(current * PAGE_SIZE, filtered.length)} of {filtered.length}
             </span>
             <div className="flex items-center gap-1">
-              <button type="button" disabled={current <= 1} onClick={() => setPage(current - 1)} className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center disabled:opacity-40 cursor-pointer">
-                <ChevronLeft className="w-3.5 h-3.5" />
+              <button type="button" disabled={current <= 1} onClick={() => setPage(current - 1)} aria-label="Previous page" className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-slate-200 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">
+                <ChevronLeft className="h-3.5 w-3.5" />
               </button>
-              <span className="px-2">
+              <span className="px-2 tabular-nums">
                 {current} / {totalPages}
               </span>
-              <button type="button" disabled={current >= totalPages} onClick={() => setPage(current + 1)} className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center disabled:opacity-40 cursor-pointer">
-                <ChevronRight className="w-3.5 h-3.5" />
+              <button type="button" disabled={current >= totalPages} onClick={() => setPage(current + 1)} aria-label="Next page" className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-slate-200 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">
+                <ChevronRight className="h-3.5 w-3.5" />
               </button>
             </div>
           </div>
         )}
-      </div>
+      </section>
 
       {data && (
         <ApplyLeaveModal

@@ -230,3 +230,12 @@ body {
 @media (min-width: 1024px) and (max-width: 1700px) {
   #attendance-page { zoom: 0.8; }
 }
+
+/* Your own birthday: a full-screen confetti shower that plays once a day */
+@keyframes bday-fall {
+  0% { transform: translate3d(0, -6vh, 0) rotate(0deg); opacity: 0; }
+  8% { opacity: 1; }
+  100% { transform: translate3d(var(--bd-drift, 0px), 108vh, 0) rotate(720deg); opacity: 1; }
+}
+.bday-fall { animation: bday-fall var(--bd-dur, 4s) cubic-bezier(0.3, 0.1, 0.6, 1) forwards; animation-delay: var(--bd-delay, 0s); }
+@media (prefers-reduced-motion: reduce) { .bday-fall { display: none; } }

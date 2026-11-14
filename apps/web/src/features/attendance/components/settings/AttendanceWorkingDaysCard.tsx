@@ -41,11 +41,18 @@ export const AttendanceWorkingDaysCard: React.FC<AttendanceWorkingDaysCardProps>
 }) => {
   const [selectedDays, setSelectedDays] = useState<number[]>(initialWorkingDays);
   const [successMsg, setSuccessMsg] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const mutation = useUpdateWorkingDaysMutation();
 
   useEffect(() => {
     if (initialWorkingDays) setSelectedDays(initialWorkingDays);
   }, [initialWorkingDays]);
+
+  const PRESETS: Array<{ label: string; hint: string; days: number[] }> = [
+    { label: 'Sunday off', hint: '6 working days (Mon–Sat)', days: [1, 2, 3, 4, 5, 6] },
+    { label: 'Saturday & Sunday off', hint: '5 working days (Mon–Fri)', days: [1, 2, 3, 4, 5] },
+  ];
+  const sameDays = (a: number[], b: number[]) => a.length === b.length && [...a].sort().join() === [...b].sort().join();
 
   const toggleDay = (dow: number) => {
     setSelectedDays((prev) =>
@@ -55,9 +62,18 @@ export const AttendanceWorkingDaysCard: React.FC<AttendanceWorkingDaysCardProps>
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    await mutation.mutateAsync(selectedDays);
-    setSuccessMsg(true);
-    setTimeout(() => setSuccessMsg(false), 3000);
+    setErrorMsg(null);
+    if (selectedDays.length === 0) {
+      setErrorMsg('Select at least one working day.');
+      return;
+    }
+    try {
+      await mutation.mutateAsync(selectedDays);
+      setSuccessMsg(true);
+      setTimeout(() => setSuccessMsg(false), 3000);
+    } catch (err: any) {
+      setErrorMsg(err?.detail || err?.message || 'Could not save the working days. Please try again.');
+    }
   };
 
   // Find holidays that occur during this current week
@@ -107,6 +123,32 @@ export const AttendanceWorkingDaysCard: React.FC<AttendanceWorkingDaysCardProps>
           <span>Working days schedule updated successfully.</span>
         </div>
       )}
+
+      {errorMsg && (
+        <div role="alert" className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs font-semibold text-red-700">
+          {errorMsg}
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-semibold text-slate-500">Quick setup:</span>
+        {PRESETS.map((p) => (
+          <button
+            type="button"
+            key={p.label}
+            onClick={() => setSelectedDays(p.days)}
+            title={p.hint}
+            className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition cursor-pointer ${
+              sameDays(selectedDays, p.days)
+                ? 'border-blue-600 bg-blue-50 text-blue-700'
+                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            {p.label}
+          </button>
+        ))}
+        <span className="text-[11px] text-slate-400">or pick any days below</span>
+      </div>
 
       <form onSubmit={handleSave} className="space-y-4">
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
@@ -183,6 +225,10 @@ export const AttendanceWorkingDaysCard: React.FC<AttendanceWorkingDaysCardProps>
             );
           })}
         </div>
+
+        <p className="text-[11px] text-slate-500">
+          This applies to the whole company, for all months (attendance, leave and payroll). Past months are recalculated with the new weekly offs.
+        </p>
 
         <div className="flex items-center justify-end pt-2">
           <button

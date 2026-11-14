@@ -3,9 +3,11 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { Sidebar } from './Sidebar';
 import { UserMenu } from './UserMenu';
-import { Menu, X, ShieldAlert, Calendar } from 'lucide-react';
+import { Menu, X, ShieldAlert, Calendar, Cake } from 'lucide-react';
 import { NotificationBell } from '@/features/notifications/components/NotificationBell';
 import { ThemeMenu } from '@/shared/theme/ThemeMenu';
+import { useIsMyBirthday } from '@/features/attendance/hooks/use-birthdays';
+import { BirthdayConfettiBurst, MyBirthdayBanner } from '@/features/attendance/components/MyBirthdayExperience';
 
 export interface AppLayoutProps {
   children: React.ReactNode;
@@ -28,6 +30,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   const { user } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const myBirthday = useIsMyBirthday();
 
   if (!user) return null;
 
@@ -62,6 +65,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
     <div className="min-h-screen dashboard-canvas-bg text-[#1E293B] font-sans relative overflow-x-hidden flex">
       {/* 2% Monochrome noise texture (Linear / Vercel style) */}
       <div className="noise-overlay" aria-hidden="true" />
+      <BirthdayConfettiBurst />
 
       {/* Desktop Floating Left Sidebar (Background #FCFCFD, Border #D4DCE6, Radius 28px, Shadow 0 16px 45px rgba(15,23,42,.10)) */}
       <aside
@@ -152,9 +156,18 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
         {/* Frosted Glass Header: Background rgba(255,255,255,.75), Backdrop Blur 20px, crisp bottom border #D4DCE6 */}
         <header className="sticky top-3 z-20 mx-3 mt-3 hidden h-[64px] items-center justify-between gap-4 rounded-2xl border border-slate-200/70 bg-white/85 px-5 shadow-sm backdrop-blur-[20px] transition-all lg:flex">
           <div className="min-w-0">
-            <p className="truncate text-[15px] font-bold leading-tight tracking-tight text-slate-900">
-              {greeting}, {user.name.split(' ')[0]}
-            </p>
+            {myBirthday ? (
+              <p className="flex items-center gap-1.5 truncate text-[15px] font-extrabold leading-tight tracking-tight">
+                <Cake className="h-4 w-4 shrink-0 text-fuchsia-500" />
+                <span className="bg-gradient-to-r from-violet-600 via-fuchsia-500 to-orange-500 bg-clip-text text-transparent">
+                  Happy Birthday, {user.name.split(' ')[0]}!
+                </span>
+              </p>
+            ) : (
+              <p className="truncate text-[15px] font-bold leading-tight tracking-tight text-slate-900">
+                {greeting}, {user.name.split(' ')[0]}
+              </p>
+            )}
             <p className="truncate text-xs text-slate-500">{todayLabel}</p>
           </div>
 
@@ -180,6 +193,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
             fluid ? 'max-w-full' : 'max-w-7xl'
           }`}
         >
+          <MyBirthdayBanner />
           {children}
         </main>
       </div>

@@ -32,6 +32,11 @@ export interface AttendanceRepository {
     productionMinutes: number,
     dayStatus: 'present' | 'half_day' | 'short' | 'incomplete' | 'absent',
   ): Promise<AttendanceDayEntity>;
+  /**
+   * Opens a day that was clocked out and records the time since the clock-out as a finished "Clocked out" break, so the
+   * hours worked stay honest. The day is reopened first: the database refuses a break on a closed day.
+   */
+  reopenAttendanceDay(attendanceId: number, previousCheckOutAt: Date, resumedAt: Date): Promise<AttendanceDayEntity>;
   findOpenBreak(attendanceId: number): Promise<AttendanceBreakEntity | null>;
   findBreaksByAttendanceId(attendanceId: number): Promise<AttendanceBreakEntity[]>;
   findBreaksByAttendanceIds(attendanceIds: number[]): Promise<AttendanceBreakEntity[]>;

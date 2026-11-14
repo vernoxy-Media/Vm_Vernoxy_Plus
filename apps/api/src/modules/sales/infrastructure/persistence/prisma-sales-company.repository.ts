@@ -15,7 +15,7 @@ import {
   UpdateSalesCompanyData,
 } from '../../application/ports/sales-company.repository.port';
 import { CompanyFields, OPEN_LEAD_STAGES } from '../../domain/entities/sales-company';
-import { DuplicateMatch, FieldValidationError } from '../../domain/errors/sales.errors';
+import { ConflictSalesError, DuplicateMatch, FieldValidationError } from '../../domain/errors/sales.errors';
 import { initialsOf } from '../../domain/services/sales-normalization.service';
 
 type Tx = Prisma.TransactionClient;
@@ -662,7 +662,13 @@ export class PrismaSalesCompanyRepository implements SalesCompanyRepositoryPort 
         select: { industry_id: true },
       })) ??
       (await tx.industries.findFirst({ where: { deleted_at: null, is_active: true, parent_id: null }, orderBy: { industry_id: 'asc' }, select: { industry_id: true } }));
-    if (!def) throw new Error('No industry exists in the master list; add one in Settings first.');
+    if (!def) {
+      throw new ConflictSalesError(
+        'There are no industries in Master Data yet, so the company cannot be saved. Ask the administrator to add them under Settings, Industries (or run the database seed).',
+        'MASTER_DATA_MISSING',
+        'industry',
+      );
+    }
     return { industryId: def.industry_id, subIndustryId: null };
   }
 
@@ -673,7 +679,12 @@ export class PrismaSalesCompanyRepository implements SalesCompanyRepositoryPort 
         select: { customer_type_id: true },
       })) ??
       (await tx.customer_types.findFirst({ where: { deleted_at: null, is_active: true }, orderBy: { customer_type_id: 'asc' }, select: { customer_type_id: true } }));
-    if (!def) throw new Error('No customer type exists in the master list; add one in Settings first.');
+    if (!def) {
+      throw new ConflictSalesError(
+        'There are no customer types in Master Data yet, so the company cannot be saved. Ask the administrator to add them under Settings, Customer Types (or run the database seed).',
+        'MASTER_DATA_MISSING',
+      );
+    }
     return def.customer_type_id;
   }
 

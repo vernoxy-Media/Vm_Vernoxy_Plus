@@ -52,6 +52,12 @@ export async function punchIn(): Promise<{ success: boolean; today: TodayAttenda
   }
 }
 
+/** Carry on working after a clock-out today. The time since the clock-out is kept as a break. */
+export async function resumeWork(): Promise<TodayAttendanceData> {
+  const res = await customFetch<any>(`${BASE_URL}/me/resume`, { method: 'POST' });
+  return (res as any)?.today ?? (res as any)?.data ?? res;
+}
+
 export async function punchOut(): Promise<{ success: boolean; today: TodayAttendanceData; message?: string }> {
   try {
     const res = await customFetch<{ success: boolean; today: TodayAttendanceData; message?: string }>(
@@ -463,20 +469,45 @@ export function getBrowserLocation(timeoutMs = 10000): Promise<{ latitude: numbe
 
 const addressCache = new Map<string, Promise<string | null>>();
 
-/** Human-readable address for a coordinate (OpenStreetMap Nominatim), cached per ~11 m cell. */
+/**
+ * A readable address for a coordinate. The API makes it (Google when a key is set there, OpenStreetMap otherwise) so
+ * the key never reaches the browser; the answer is also kept here per ~11 m cell.
+ */
 export function reverseGeocode(latitude: number, longitude: number): Promise<string | null> {
   const key = `${latitude.toFixed(4)},${longitude.toFixed(4)}`;
   let hit = addressCache.get(key);
   if (!hit) {
-    hit = fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&lat=${latitude}&lon=${longitude}`, {
-      headers: { Accept: 'application/json' },
-    })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j) => (j?.display_name as string | undefined) ?? null)
+    hit = customFetch<{ address: string | null }>(`/api/v1/attendance/geocode?lat=${latitude}&lng=${longitude}`)
+      .then((r) => r?.address ?? null)
       .catch(() => null);
+    // A failed lookup is not remembered, so the next hover tries again
+    hit.then((a) => {
+      if (!a) addressCache.delete(key);
+    });
     addressCache.set(key, hit);
   }
   return hit;
+}
+
+/**
+ * How sure the location is. A phone's GPS is good to about 10 to 50 m; a laptop has no GPS and the browser guesses from
+ * WiFi or the internet connection, which can be 1 to 3 km off. No address service can be more exact than the point it is given.
+ */
+export function describeLocationAccuracy(metres?: number | null): { text: string; coarse: boolean } | null {
+  if (metres == null || !Number.isFinite(metres) || metres <= 0) return null;
+  const km = metres / 1000;
+  const text = metres >= 1000 ? `±${km >= 10 ? Math.round(km) : km.toFixed(1).replace(/\.0$/, '')} km` : `±${Math.round(metres)} m`;
+  return { text, coarse: metres > 300 };
+}
+
+/** The Google map of a point, for an <iframe>. It needs no key. */
+export function googleMapEmbedUrl(latitude: number, longitude: number, zoom = 17): string {
+  return `https://maps.google.com/maps?q=${latitude},${longitude}&z=${zoom}&hl=en&output=embed`;
+}
+
+/** The same point in Google Maps itself, to open in a new tab. */
+export function googleMapsLink(latitude: number, longitude: number): string {
+  return `https://www.google.com/maps?q=${latitude},${longitude}`;
 }
 
 /** Remembers where a punch happened. Best effort: a failure here never affects the punch itself. */

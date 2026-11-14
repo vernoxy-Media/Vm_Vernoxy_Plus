@@ -1,3 +1,4 @@
+import { ReverseGeocoder } from '../infrastructure/geocoding/reverse-geocoder';
 import { buildAnalyticsRecords, DEFAULT_SHIFT, empCodeOf, todayInIst } from '../domain/services/attendance-analytics';
 import { TASK_TOKENS } from '../../tasks/public-api';
 import type { TaskRepositoryPort } from '../../tasks/public-api';
@@ -36,6 +37,7 @@ import { JwtAuthGuard } from '../../auth/public-api';
 import { AttendanceMonthLockService } from '../application/services/attendance-month-lock.service';
 import { AttendanceAdminGuard } from './guards/attendance-admin.guard';
 import { PunchInUseCase } from '../application/use-cases/punch-in.use-case';
+import { ResumeWorkUseCase } from '../application/use-cases/resume-work.use-case';
 import { PunchOutUseCase } from '../application/use-cases/punch-out.use-case';
 import { StartBreakUseCase } from '../application/use-cases/start-break.use-case';
 import { EndBreakUseCase } from '../application/use-cases/end-break.use-case';
@@ -83,6 +85,7 @@ import {
 export class AttendanceController {
   constructor(
     private readonly punchInUseCase: PunchInUseCase,
+    private readonly resumeWorkUseCase: ResumeWorkUseCase,
     private readonly punchOutUseCase: PunchOutUseCase,
     private readonly startBreakUseCase: StartBreakUseCase,
     private readonly endBreakUseCase: EndBreakUseCase,
@@ -105,6 +108,7 @@ export class AttendanceController {
     private readonly accessPolicy: AccessPolicy,
     @Inject(ATTENDANCE_TOKENS.BIRTHDAY_REPOSITORY)
     private readonly birthdays: BirthdayRepository,
+    private readonly geocoder: ReverseGeocoder,
     @Optional() @Inject(TASK_TOKENS.TaskRepository)
     private readonly taskRepo?: TaskRepositoryPort,
     @Optional() private readonly monthLocks?: AttendanceMonthLockService,
@@ -152,6 +156,18 @@ export class AttendanceController {
     }
   }
 
+  @Post('me/resume')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Carry on working after a clock-out today (the time since the clock-out is kept as a break)' })
+  @ApiResponse({ status: 200, type: TodayAttendanceBlockDto })
+  async resumeWork(@Req() req: Request): Promise<TodayAttendanceBlockDto> {
+    try {
+      return await this.resumeWorkUseCase.execute(req.user!.emp_id);
+    } catch (err) {
+      throw mapAttendanceErrorToHttp(err);
+    }
+  }
+
   @Post(['check-out', 'me/punch-out'])
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Punch out for today' })
@@ -175,6 +191,20 @@ export class AttendanceController {
     const n = Number(daysParam);
     const days = Number.isInteger(n) && n >= 0 ? Math.min(n, 90) : 30;
     return this.birthdays.findUpcoming(days);
+  }
+
+  @Get('geocode')
+  @Throttle({ default: { limit: 60, ttl: 60000 } })
+  @ApiOperation({ summary: 'A readable address for a coordinate (Google when a key is set, OpenStreetMap otherwise)' })
+  @ApiQuery({ name: 'lat', required: true, type: Number })
+  @ApiQuery({ name: 'lng', required: true, type: Number })
+  async geocode(@Query('lat') lat?: string, @Query('lng') lng?: string) {
+    const latitude = Number(lat);
+    const longitude = Number(lng);
+    if (!lat || !lng || !Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
+      throw new BadRequestException('Give lat and lng as numbers: lat between -90 and 90, lng between -180 and 180.');
+    }
+    return this.geocoder.lookup(latitude, longitude);
   }
 
   @Post('me/punch-location')
@@ -693,8 +723,8 @@ export class AttendanceController {
     try {
       return await this.attendanceRepo.getAttendanceReports({
         reportType: query.reportType || 'daily',
-        fromDate: query.fromDate || new Date().toISOString().slice(0, 10),
-        toDate: query.toDate || query.fromDate || new Date().toISOString().slice(0, 10),
+        fromDate: query.fromDate || todayInIst(),
+        toDate: query.toDate || query.fromDate || todayInIst(),
         departmentId: query.departmentId,
         employeeId: query.employeeId ? Number(query.employeeId) : undefined,
         shiftId: query.shiftId ? Number(query.shiftId) : undefined,
@@ -720,7 +750,12 @@ export class AttendanceController {
   @UseGuards(AttendanceAdminGuard)
   @ApiOperation({ summary: 'Update working and work off days' })
   async updateWorkingDays(@Req() req: Request, @Body() body: { working_days: number[] }) {
-    await this.appSettingsRepo.saveWorkingDays(body.working_days, req.user!.emp_id);
+    const days = body?.working_days;
+    // 0 = Sunday ... 6 = Saturday. At least one working day, no repeats, nothing outside the week.
+    if (!Array.isArray(days) || days.length === 0 || days.length > 7 || days.some((d) => !Number.isInteger(d) || d < 0 || d > 6) || new Set(days).size !== days.length) {
+      throw new BadRequestException('Select at least one working day. Days must be numbers from 0 (Sunday) to 6 (Saturday), each only once.');
+    }
+    await this.appSettingsRepo.saveWorkingDays([...days].sort((a, b) => a - b), req.user!.emp_id);
     return await this.appSettingsRepo.getAttendanceSettings();
   }
 

@@ -46,7 +46,7 @@ const RULE_FIELDS = [
 
 const GENERAL_FIELDS = [
   'leave_year_start', 'count_sandwich_leave', 'pending_reminder_hours', 'approve_after_leave_started',
-  'year_end_processing', 'comp_off_hours_per_day',
+  'year_end_processing', 'comp_off_hours_per_day', 'default_policy_id',
 ];
 
 @Injectable()
@@ -483,7 +483,16 @@ export class LeaveSettingsService {
     const [opened] = await this.prisma.$queryRaw<any[]>`
       SELECT (EXISTS (SELECT 1 FROM leave_ledger) OR EXISTS (SELECT 1 FROM leave_requests)) AS opened;
     `;
-    return { ...s, leave_year_locked: Boolean(opened?.opened) };
+    const [without] = await this.prisma.$queryRaw<any[]>`
+      SELECT count(*)::int AS n FROM employees
+      WHERE deleted_at IS NULL AND status = 'Active' AND leave_policy_id IS NULL;
+    `;
+    return {
+      ...s,
+      default_policy_id: (s as any).default_policy_id ?? null,
+      employees_without_policy: Number(without?.n ?? 0),
+      leave_year_locked: Boolean(opened?.opened),
+    };
   }
 
   async updateGeneralSettings(dto: UpdateGeneralSettingsDto, adminId: number) {
@@ -500,6 +509,14 @@ export class LeaveSettingsService {
     if (dto.year_end_processing) {
       await this.assertLookup('leave_year_end_processing', dto.year_end_processing, 'year_end_processing');
     }
+    if (dto.default_policy_id !== undefined && dto.default_policy_id !== null) {
+      const [p] = await this.prisma.$queryRaw<any[]>`
+        SELECT status FROM leave_policies WHERE policy_id = ${dto.default_policy_id};
+      `;
+      if (!p || p.status !== 'ACTIVE') {
+        throw new BadRequestException({ message: 'Choose an active Leave Policy.', field: 'default_policy_id' });
+      }
+    }
     const next = {
       leave_year_start: dto.leave_year_start ?? existing.leave_year_start,
       count_sandwich_leave: dto.count_sandwich_leave ?? existing.count_sandwich_leave,
@@ -507,6 +524,7 @@ export class LeaveSettingsService {
       approve_after_leave_started: dto.approve_after_leave_started ?? existing.approve_after_leave_started,
       year_end_processing: dto.year_end_processing ?? existing.year_end_processing,
       comp_off_hours_per_day: dto.comp_off_hours_per_day ?? existing.comp_off_hours_per_day,
+      default_policy_id: dto.default_policy_id !== undefined ? dto.default_policy_id : (existing as any).default_policy_id ?? null,
     };
     await this.prisma.$executeRaw`
       UPDATE leave_general_settings
@@ -516,6 +534,7 @@ export class LeaveSettingsService {
           approve_after_leave_started = ${next.approve_after_leave_started},
           year_end_processing = ${next.year_end_processing},
           comp_off_hours_per_day = ${next.comp_off_hours_per_day},
+          default_policy_id = ${next.default_policy_id},
           updated_at = clock_timestamp(),
           updated_by = ${adminId}
       WHERE setting_id = ${existing.setting_id};
@@ -524,7 +543,16 @@ export class LeaveSettingsService {
       'GENERAL_SETTINGS', existing.setting_id, existing, next, GENERAL_FIELDS, adminId,
     );
     if (changed > 0) await this.notifySettingsChanged(adminId, 'Leave General settings');
-    return this.getGeneralSettings();
+
+    // Employees who have no policy cannot apply for leave: give them the default one when the Admin asks for it
+    let assignedNow = 0;
+    if (dto.assign_to_employees_without_policy && next.default_policy_id) {
+      assignedNow = await this.prisma.$executeRaw`
+        UPDATE employees SET leave_policy_id = ${next.default_policy_id}
+        WHERE deleted_at IS NULL AND status = 'Active' AND leave_policy_id IS NULL;
+      `;
+    }
+    return { ...(await this.getGeneralSettings()), assigned_now: Number(assignedNow) };
   }
 
   async getSettingsChangeLog(limit = 200) {

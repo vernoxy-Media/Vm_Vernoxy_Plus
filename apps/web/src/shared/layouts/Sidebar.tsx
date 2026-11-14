@@ -4,10 +4,12 @@ import { useAuth } from '@/features/auth/context/AuthContext';
 import { useMessenger } from '@/features/messenger/MessengerContext';
 import { Logo } from '@/shared/ui/Logo';
 import { Avatar } from '@/shared/ui/Avatar';
+import { useIsMyBirthday } from '@/features/attendance/hooks/use-birthdays';
 import {
   Users,
   ChevronsLeft,
   ChevronsRight,
+  Cake,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -85,6 +87,7 @@ const exact = (...paths: string[]) => (pathname: string) => paths.includes(pathn
 
 export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggleCollapse, isMobile = false, onCloseMobile }) => {
   const { user } = useAuth();
+  const myBirthday = useIsMyBirthday();
   const { totalUnread: messengerUnread } = useMessenger();
   const location = useLocation();
   const { canAccessSales, isAdmin, canImport, canExport } = useSalesRights();
@@ -520,7 +523,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggleC
       <div className={`shrink-0 border-t border-slate-100 ${compact ? 'p-2' : 'p-3'}`}>
         {compact ? (
           <div className="flex flex-col items-center gap-2">
-            <Avatar name={user.name} src={user.profile_picture_url} size={36} />
+            <div className={myBirthday ? 'relative rounded-full bg-gradient-to-br from-violet-500 via-fuchsia-500 to-orange-400 p-[2px]' : 'relative'}>
+              <Avatar name={user.name} src={user.profile_picture_url} size={36} />
+              {myBirthday && (
+                <span className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-white text-fuchsia-600 shadow ring-1 ring-fuchsia-200">
+                  <Cake className="h-2.5 w-2.5" />
+                </span>
+              )}
+            </div>
             {onToggleCollapse && (
               <button
                 type="button"
@@ -534,11 +544,25 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggleC
             )}
           </div>
         ) : (
-          <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-2.5 ring-1 ring-slate-100">
-            <Avatar name={user.name} src={user.profile_picture_url} size={36} />
+          <div
+            className={
+              myBirthday
+                ? 'hol-shine relative flex items-center gap-3 overflow-hidden rounded-xl bg-gradient-to-r from-violet-600 via-fuchsia-500 to-orange-400 p-2.5 text-white shadow-md shadow-fuchsia-500/25'
+                : 'flex items-center gap-3 rounded-xl bg-slate-50 p-2.5 ring-1 ring-slate-100'
+            }
+          >
+            <div className={myBirthday ? 'relative shrink-0 rounded-full bg-white/90 p-[2px]' : 'shrink-0'}>
+              <Avatar name={user.name} src={user.profile_picture_url} size={36} />
+            </div>
             <div className="min-w-0">
-              <p className="truncate text-[13px] font-semibold leading-tight text-slate-900">{user.name}</p>
-              <p className="mt-0.5 truncate text-[11px] text-slate-500">{user.role?.role_name || 'Employee'}</p>
+              <p className={`truncate text-[13px] font-semibold leading-tight ${myBirthday ? 'text-white' : 'text-slate-900'}`}>{user.name}</p>
+              {myBirthday ? (
+                <p className="mt-0.5 flex items-center gap-1 truncate text-[11px] font-semibold text-white/95">
+                  <Cake className="h-3 w-3 shrink-0" /> Happy Birthday!
+                </p>
+              ) : (
+                <p className="mt-0.5 truncate text-[11px] text-slate-500">{user.role?.role_name || 'Employee'}</p>
+              )}
             </div>
           </div>
         )}

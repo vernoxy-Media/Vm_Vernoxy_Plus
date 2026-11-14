@@ -8,6 +8,7 @@ import { MESSENGER_FILE_STORE } from './domain/ports/messenger-file-store.port';
 import { CONVERSATION_ID_CODEC, ConversationIdCodecPort } from './domain/ports/conversation-id-codec.port';
 import { HmacConversationIdCodec } from './infrastructure/hmac-conversation-id-codec';
 import { MESSENGER_REPOSITORY, MessengerRepositoryPort } from './domain/ports/messenger.repository.port';
+import { CloudinaryMessengerFileStore } from './infrastructure/cloudinary-messenger-file-store';
 import { LocalMessengerFileStore } from './infrastructure/local-messenger-file-store';
 import { PrismaMessengerRepository } from './infrastructure/prisma-messenger.repository';
 import { SocketMessengerEventsAdapter } from './infrastructure/socket-messenger-events.adapter';
@@ -19,7 +20,8 @@ import { MessengerController } from './presentation/messenger.controller';
   providers: [
     { provide: MESSENGER_REPOSITORY, useClass: PrismaMessengerRepository },
     { provide: MESSENGER_EVENTS, useClass: SocketMessengerEventsAdapter },
-    { provide: MESSENGER_FILE_STORE, useClass: LocalMessengerFileStore },
+    LocalMessengerFileStore,
+    { provide: MESSENGER_FILE_STORE, useClass: CloudinaryMessengerFileStore },
     { provide: CONVERSATION_ID_CODEC, useClass: HmacConversationIdCodec },
     {
       provide: MessengerService,

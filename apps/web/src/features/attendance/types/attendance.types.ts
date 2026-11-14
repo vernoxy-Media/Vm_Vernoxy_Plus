@@ -78,10 +78,14 @@ export interface AttendanceStatistics {
 
 export interface MonthSummary {
   scheduled_days: number;
+  /** Working days from the joining date up to today; the base for the % present */
+  days_so_far?: number;
   present_days: number;
   total_working_seconds: number;
   total_break_seconds: number;
   leave_days: number;
+  weekly_offs?: number;
+  holidays?: number;
   absent_days: number;
   remaining_days: number;
 }
@@ -98,12 +102,14 @@ export interface DayRecord {
   holiday_name?: string | null;
   leave_type?: string | null;
   /** Breaks taken that day (ISO times), drawn as gaps in the attendance visual */
-  breaks?: Array<{ started_at: string; ended_at: string | null }>;
+  breaks?: Array<{ started_at: string; ended_at: string | null; break_type?: string | null }>;
   /** Which half is on leave, when it is a half-day leave */
   leave_half?: 'FIRST_HALF' | 'SECOND_HALF' | null;
   /** Where the punch happened, when the clock-in captured a location */
   latitude?: number | null;
   longitude?: number | null;
+  /** How far off the location can be, in metres: a laptop's WiFi/IP location is often 1 to 3 km, a phone's GPS about 10 to 50 m */
+  location_accuracy_m?: number | null;
   /** 'half' when only the first or second half is approved leave. */
   leave_part?: 'full' | 'half' | null;
   can_request_correction: boolean;

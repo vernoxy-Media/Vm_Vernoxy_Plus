@@ -13,6 +13,7 @@ import { ForgotPasswordPage } from '@/features/auth/pages/ForgotPasswordPage';
 import { ResetPasswordPage } from '@/features/auth/pages/ResetPasswordPage';
 import { ChangePasswordPage } from '@/features/auth/pages/ChangePasswordPage';
 import { HomePage } from '@/features/home/pages/HomePage';
+import { SupportPage } from '@/features/support/pages/SupportPage';
 import { ClientPortalApp } from '@/features/client-portal/ClientPortalApp';
 import { AppThemeSync } from '@/shared/theme/AppThemeSync';
 import { NotFoundPage } from './NotFoundPage';
@@ -352,7 +353,13 @@ export const App: React.FC = () => {
               />
               <Route
                 path="/support"
-                element={<Navigate to="/recruitment" replace />}
+                element={
+                  <ProtectedRoute>
+                    <AppLayout fluid>
+                      <SupportPage />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
               />
               <Route
                 path="/tasks"

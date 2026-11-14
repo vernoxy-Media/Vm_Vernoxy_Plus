@@ -12,6 +12,7 @@ import {
 import { useAttendanceReports } from '../hooks/use-attendance';
 import { Pagination } from '@/shared/ui/Pagination';
 
+import { localToday } from '@/shared/utils/schedule.utils';
 const REPORT_TYPES = [
   { id: 'daily', label: 'Daily Attendance', icon: Calendar, desc: 'Attendance of all employees for one or several days' },
   { id: 'monthly_summary', label: 'Monthly Summary', icon: FileSpreadsheet, desc: 'One row per employee, one column per day' },
@@ -38,7 +39,7 @@ const STATUS_BADGE_COLORS: Record<string, string> = {
 };
 
 export const AttendanceReportsSection: React.FC = () => {
-  const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const todayStr = useMemo(() => localToday(), []);
   const firstOfMonthStr = useMemo(() => {
     const [y, m] = todayStr.split('-');
     return `${y}-${m}-01`;
