@@ -248,9 +248,11 @@ export type BugStatus =
   | 'done'
   | 'not_a_bug';
 
-export type BugPriority = 'low' | 'medium' | 'high';
+/** The code of a Bug Priority row in Master Data (Settings > Projects > Bug Priorities) */
+export type BugPriority = string;
 
-export type BugType = 'frontend' | 'backend' | 'ui' | 'database' | 'other';
+/** The code of a Bug Type row in Master Data (Settings > Projects > Bug Types) */
+export type BugType = string;
 
 export interface BugCommentItem {
   comment_id: number;

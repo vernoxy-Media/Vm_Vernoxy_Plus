@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Bug, CalendarDays, CheckCircle2, ChevronDown, ChevronUp, ChevronsUp, Equal, Loader2, Play, RotateCcw, X } from 'lucide-react';
+import { useBugMeta } from '../bug-meta';
+import { Bug, CalendarDays, CheckCircle2, Loader2, Play, RotateCcw, X } from 'lucide-react';
 import type { BugStatus, ProjectBugItem } from '../types';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { JiraAvatar } from '@/shared/ui/JiraAvatar';
@@ -37,13 +38,6 @@ const STATUS_LOZENGE: Record<string, string> = {
 };
 const statusName = (s: string) => LIFECYCLE_STEPS.find((x) => x.status === s)?.label ?? (s === 'not_a_bug' ? 'Not a bug' : s.replace(/_/g, ' '));
 
-const PRIORITY: Record<string, { label: string; icon: React.ElementType; color: string }> = {
-  critical: { label: 'Highest', icon: ChevronsUp, color: 'text-[#CD1317]' },
-  high: { label: 'High', icon: ChevronUp, color: 'text-[#E9494A]' },
-  medium: { label: 'Medium', icon: Equal, color: 'text-[#E97F33]' },
-  low: { label: 'Low', icon: ChevronDown, color: 'text-[#2D8738]' },
-};
-
 const BTN = 'inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-[3px] px-3 text-[14px] font-medium transition disabled:cursor-not-allowed disabled:opacity-50';
 const PRIMARY = `${BTN} bg-[color:var(--ac-main,#0052CC)] text-white hover:bg-[color:var(--ac-hover,#0065FF)]`;
 const SUBTLE = `${BTN} bg-[rgba(9,30,66,0.04)] text-[#42526E] hover:bg-[rgba(9,30,66,0.08)]`;
@@ -77,6 +71,7 @@ const Block: React.FC<{ title: string; children: React.ReactNode; mono?: boolean
 
 /** A bug, opened like a Jira issue: summary and workflow on the left, Details on the right. */
 export const BugDetailsModal: React.FC<BugDetailsModalProps> = ({ projectId, bugId, isOpen, onClose, onBugUpdated, canEditDates }) => {
+  const { priority: priorityMeta, typeLabel } = useBugMeta();
   const [bug, setBug] = useState<ProjectBugItem | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -187,7 +182,7 @@ export const BugDetailsModal: React.FC<BugDetailsModalProps> = ({ projectId, bug
 
   const stepIdx = bug ? LIFECYCLE_STEPS.findIndex((s) => s.status === bug.status) : -1;
   const closed = bug?.status === 'done' || bug?.status === 'not_a_bug';
-  const pr = PRIORITY[bug?.priority ?? 'medium'] ?? PRIORITY.medium;
+  const pr = priorityMeta(bug?.priority ?? 'medium');
   const PIcon = pr.icon;
   const overdue = Boolean(bug && !closed && bug.due_date && bug.due_date.slice(0, 10) < new Date().toISOString().slice(0, 10));
 
@@ -403,7 +398,7 @@ export const BugDetailsModal: React.FC<BugDetailsModalProps> = ({ projectId, bug
                       </span>
                     </Row>
                     <Row label="Type">
-                      <span className="capitalize">{bug.bug_type === 'other' && bug.other_bug_type ? bug.other_bug_type : bug.bug_type}</span>
+                      <span>{bug.bug_type === 'other' && bug.other_bug_type ? bug.other_bug_type : typeLabel(bug.bug_type)}</span>
                     </Row>
                     <Row label="Start date">
                       {canEditDates ? <input type="date" value={start} max={due || undefined} onChange={(e) => setStart(e.target.value)} aria-label="Start date" className={DATE_FIELD} /> : <span>{day(bug.start_date)}</span>}

@@ -43,6 +43,8 @@ import {
   Server,
   Cloud,
   Database,
+  Flag,
+  Bug,
 } from 'lucide-react';
 import type { MeResponseDto } from '@vernoxy-pulse/api-client';
 
@@ -174,6 +176,13 @@ const SettingsCountriesSection = React.lazy(() =>
 
 const SettingsCallNotReceivedReasonsSection = React.lazy(() =>
   import('./sections/SettingsCallNotReceivedReasonsSection').then((m) => ({ default: m.SettingsCallNotReceivedReasonsSection }))
+);
+
+const SettingsBugPrioritiesSection = React.lazy(() =>
+  import('./sections/SettingsBugMastersSections').then((m) => ({ default: m.SettingsBugPrioritiesSection }))
+);
+const SettingsBugTypesSection = React.lazy(() =>
+  import('./sections/SettingsBugMastersSections').then((m) => ({ default: m.SettingsBugTypesSection }))
 );
 
 const SettingsTechFrontendSection = React.lazy(() =>
@@ -402,6 +411,24 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     path: '/admin/settings/project-types',
     icon: Shapes,
     component: SettingsProjectTypesSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Projects',
+  },
+  {
+    id: 'bug-priorities',
+    label: 'Bug Priorities',
+    path: '/admin/settings/bug-priorities',
+    icon: Flag,
+    component: SettingsBugPrioritiesSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Projects',
+  },
+  {
+    id: 'bug-types',
+    label: 'Bug Types',
+    path: '/admin/settings/bug-types',
+    icon: Bug,
+    component: SettingsBugTypesSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
     group: 'Projects',
   },

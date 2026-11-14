@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useBugMeta } from '@/features/projects/bug-meta';
 import { useNavigate } from 'react-router-dom';
-import { Bug, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, ChevronsUp, Equal, Inbox, Loader2, Search, X } from 'lucide-react';
+import { Bug, CalendarDays, ChevronLeft, ChevronRight, Inbox, Loader2, Search, X } from 'lucide-react';
 import { fetchMyBugs, type MyBugItem } from '@/features/projects/api/projects.api';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { EmployeeFilter, type FilterPerson } from '@/features/projects/components/EmployeeFilter';
@@ -16,13 +17,6 @@ const STATUS: Record<string, { label: string; cls: string }> = {
   qa_in_progress: { label: 'In QA', cls: 'bg-[#EAE6FF] text-[#403294]' },
   done: { label: 'Done', cls: 'bg-[#E3FCEF] text-[#006644]' },
   not_a_bug: { label: 'Not a bug', cls: 'bg-[#DFE1E6] text-[#42526E]' },
-};
-
-const PRIORITY: Record<string, { label: string; icon: React.ElementType; color: string }> = {
-  critical: { label: 'Highest', icon: ChevronsUp, color: 'text-[#CD1317]' },
-  high: { label: 'High', icon: ChevronUp, color: 'text-[#E9494A]' },
-  medium: { label: 'Medium', icon: Equal, color: 'text-[#E97F33]' },
-  low: { label: 'Low', icon: ChevronDown, color: 'text-[#2D8738]' },
 };
 
 const GROUPS = [
@@ -44,6 +38,7 @@ const niceDate = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString('en
 export const MyBugsView: React.FC<{ isAdmin?: boolean; people?: FilterPerson[] }> = ({ isAdmin = false, people = [] }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { priority: priorityMeta } = useBugMeta();
   const [bugs, setBugs] = useState<MyBugItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [group, setGroup] = useState<(typeof GROUPS)[number]['id']>('all');
@@ -188,7 +183,7 @@ export const MyBugsView: React.FC<{ isAdmin?: boolean; people?: FilterPerson[] }
                 ) : (
                   visible.map((b) => {
                     const st = STATUS[b.status] ?? STATUS.new;
-                    const p = PRIORITY[b.priority] ?? PRIORITY.medium;
+                    const p = priorityMeta(b.priority);
                     const PIcon = p.icon;
                     const closed = b.status === 'done' || b.status === 'not_a_bug';
                     const overdue = !closed && b.due_date !== null && b.due_date < today();

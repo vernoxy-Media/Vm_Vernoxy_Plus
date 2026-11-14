@@ -1180,9 +1180,9 @@ model project_bugs {
   actual_result                                 String
   assigned_to                                   Int
   reported_by                                   Int
-  priority                                      bug_priority   @default(low)
+  priority                                      String       @db.VarChar(50) @default("low")
   status                                        bug_status     @default(new)
-  bug_type                                      bug_type
+  bug_type                                      String   @db.VarChar(50)
   other_bug_type                                String?        @db.VarChar(100)
   attachment_url                                String?        @db.VarChar(500)
   dev_started_at                                DateTime?      @db.Timestamptz(6)
@@ -3222,12 +3222,6 @@ enum calendar_rsvp_status {
   tentative
 }
 
-enum bug_priority {
-  high
-  medium
-  low
-}
-
 enum bug_status {
   new
   open
@@ -3237,14 +3231,6 @@ enum bug_status {
   qa_in_progress
   done
   not_a_bug
-}
-
-enum bug_type {
-  frontend
-  backend
-  ui
-  database
-  other
 }
 
 enum project_category {

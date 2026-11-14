@@ -73,6 +73,7 @@ import { TaskDrawer } from '../../tasks/components/TaskDrawer';
 import { CreateSprintModal } from '../components/CreateSprintModal';
 import { CreateProjectTaskModal } from '../components/CreateProjectTaskModal';
 import { CreateBugModal } from '../components/CreateBugModal';
+import { useBugMeta } from '../bug-meta';
 import { BugDetailsModal } from '../components/BugDetailsModal';
 import { TechMultiSelect, parseTech, joinTech } from '../components/TechMultiSelect';
 import type { TaskDetailDto } from '@vernoxy-pulse/api-client';
@@ -142,6 +143,7 @@ export const ProjectDetailPage: React.FC = () => {
   const [bugSearch, setBugSearch] = useState('');
   const [bugStatusFilter, setBugStatusFilter] = useState('all');
   const [bugPriorityFilter, setBugPriorityFilter] = useState('all');
+  const { priorities: bugPriorityOptions, priority: bugPriorityMeta, typeLabel: bugTypeLabel } = useBugMeta();
 
   // Modals
   const [isSprintModalOpen, setIsSprintModalOpen] = useState(false);
@@ -2294,9 +2296,9 @@ export const ProjectDetailPage: React.FC = () => {
                       className="px-3 py-1.5 text-xs border border-slate-200 rounded-xl bg-slate-50/50 text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-rose-500"
                     >
                       <option value="all">All Priorities</option>
-                      <option value="high">High</option>
-                      <option value="medium">Medium</option>
-                      <option value="low">Low</option>
+                      {bugPriorityOptions.map((p) => (
+                        <option key={p.code} value={p.code}>{p.label}</option>
+                      ))}
                     </select>
 
                     {(bugSearch || bugStatusFilter !== 'all' || bugPriorityFilter !== 'all') && (
@@ -2359,8 +2361,8 @@ export const ProjectDetailPage: React.FC = () => {
                               <td className="py-3 px-4 font-bold text-slate-900 max-w-xs truncate">
                                 {bug.title}
                               </td>
-                              <td className="py-3 px-3 capitalize font-medium text-slate-600">
-                                {bug.bug_type}
+                              <td className="py-3 px-3 font-medium text-slate-600">
+                                {bugTypeLabel(bug.bug_type)}
                               </td>
                               <td className="py-3 px-3">
                                 <span
@@ -2371,7 +2373,7 @@ export const ProjectDetailPage: React.FC = () => {
                                         : 'bg-slate-100 text-slate-700 border border-slate-200'
                                     }`}
                                 >
-                                  {bug.priority}
+                                  {bugPriorityMeta(bug.priority).label}
                                 </span>
                               </td>
                               <td className="py-3 px-4 font-medium text-slate-700">

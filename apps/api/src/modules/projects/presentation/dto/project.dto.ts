@@ -657,14 +657,17 @@ export class CreateBugDto {
   @IsInt({ message: 'Please select the employee in Assigned To.' })
   assigned_to!: number;
 
-  @ApiPropertyOptional({ enum: ['low', 'medium', 'high'], default: 'low' })
+  @ApiPropertyOptional({ type: String, default: 'low', description: 'Code of an active Bug Priority in Master Data' })
   @IsOptional()
-  @IsEnum(['low', 'medium', 'high'], { message: 'Please select the Priority.' })
-  priority?: 'low' | 'medium' | 'high';
+  @IsString({ message: 'Please select the Priority.' })
+  @MaxLength(50)
+  priority?: string;
 
-  @ApiProperty({ enum: ['frontend', 'backend', 'ui', 'database', 'other'] })
-  @IsEnum(['frontend', 'backend', 'ui', 'database', 'other'], { message: 'Please select the Bug Type.' })
-  bug_type!: 'frontend' | 'backend' | 'ui' | 'database' | 'other';
+  @ApiProperty({ type: String, description: 'Code of an active Bug Type in Master Data' })
+  @IsString({ message: 'Please select the Bug Type.' })
+  @IsNotEmpty({ message: 'Please select the Bug Type.' })
+  @MaxLength(50)
+  bug_type!: string;
 
   @ApiPropertyOptional()
   @IsOptional()

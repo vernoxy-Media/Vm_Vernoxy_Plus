@@ -1340,6 +1340,14 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
     };
   }
 
+  async activeLookupCodes(lookupType: string): Promise<string[]> {
+    const rows = await this.prisma.master_lookup.findMany({
+      where: { lookup_type: lookupType, is_active: true, deleted_at: null },
+      select: { code: true },
+    });
+    return rows.map((r) => r.code);
+  }
+
   async createBug(
     projectId: number,
     reporterEmpId: number,
@@ -1369,9 +1377,9 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
         actual_result: input.actual_result.trim(),
         assigned_to: input.assigned_to,
         reported_by: reporterEmpId,
-        priority: (input.priority || 'low') as any,
+        priority: String(input.priority || 'low'),
         status: 'new' as any,
-        bug_type: input.bug_type as any,
+        bug_type: String(input.bug_type),
         other_bug_type: input.other_bug_type?.trim() || null,
         attachment_url: input.attachment_url?.trim() || null,
         start_date: input.start_date ? new Date(input.start_date) : null,
