@@ -207,6 +207,7 @@ export class EmployeeController {
         dep_id: dto.dep_id,
         department_ids: dto.department_ids,
         role_id: dto.role_id,
+        role_ids: dto.role_ids,
         reporting_manager: dto.reporting_manager,
         joining_date: dto.joining_date,
         gender_id: dto.gender_id,
@@ -267,6 +268,7 @@ export class EmployeeController {
         delete effectiveDto.dep_id;
         delete effectiveDto.department_ids;
         delete effectiveDto.role_id;
+        delete effectiveDto.role_ids;
         delete effectiveDto.reporting_manager;
         delete effectiveDto.joining_date;
         delete effectiveDto.exit_date;
@@ -301,6 +303,7 @@ export class EmployeeController {
         dep_id: effectiveDto.dep_id,
         department_ids: effectiveDto.department_ids,
         role_id: effectiveDto.role_id,
+        role_ids: effectiveDto.role_ids,
         reporting_manager: effectiveDto.reporting_manager,
         joining_date: effectiveDto.joining_date,
         exit_date: effectiveDto.exit_date,

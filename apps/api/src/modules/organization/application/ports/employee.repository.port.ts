@@ -38,6 +38,7 @@ export interface EmployeeRepositoryPort {
       dep_id: number;
       department_ids?: number[];
       role_id?: number | null;
+      role_ids?: number[];
       reporting_manager?: number | null;
       joining_date: Date;
       gender_id?: number | null;
@@ -82,6 +83,7 @@ export interface EmployeeRepositoryPort {
       dep_id?: number;
       department_ids?: number[];
       role_id?: number | null;
+      role_ids?: number[];
       reporting_manager?: number | null;
       joining_date?: Date;
       exit_date?: Date | null;

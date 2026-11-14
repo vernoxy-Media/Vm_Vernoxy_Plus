@@ -11,6 +11,8 @@ import {
   ValidationDomainError,
 } from '../../domain/errors/organization.errors';
 
+import { resolveRoleSelection } from '../services/employee-role-selection';
+
 export interface UpdateEmployeeCommand {
   id: number;
   name?: string;
@@ -19,6 +21,8 @@ export interface UpdateEmployeeCommand {
   dep_id?: number;
   department_ids?: number[];
   role_id?: number | null;
+  /** All designations (each must belong to one of the employee's departments). role_id is the primary one. */
+  role_ids?: number[];
   reporting_manager?: number | null;
   joining_date?: Date | string;
   exit_date?: Date | string | null;
@@ -118,6 +122,12 @@ export class UpdateEmployeeUseCase {
       throw new ValidationDomainError('PF cannot be negative', 'pf');
     }
 
+    // Several designations: the primary one drives role_id / dep_id as before
+    const roleSelection = command.role_ids !== undefined ? resolveRoleSelection(command.role_id, command.role_ids) : undefined;
+    if (roleSelection) {
+      command = { ...command, role_id: roleSelection.primary };
+    }
+
     const targetDepId = command.dep_id !== undefined ? command.dep_id : employee.dep_id;
     // The designation decides the main department when several are selected (see CreateEmployeeUseCase)
     let effectiveDepId: number | undefined = command.dep_id;
@@ -165,6 +175,30 @@ export class UpdateEmployeeUseCase {
             throw new UnprocessableDomainError('DEPARTMENT_INACTIVE', 'The department of this designation is not active', 'department_ids');
           }
           effectiveDepId = roleDepId;
+        }
+      }
+    }
+
+    if (roleSelection) {
+      const departmentsForRoles = new Set<number>([
+        targetDepId,
+        effectiveDepId ?? targetDepId,
+        ...(command.department_ids ?? employee.departments?.map((d) => d.dep_id) ?? [employee.dep_id]),
+      ]);
+      for (const extraRoleId of roleSelection.all.filter((id) => id !== roleSelection.primary)) {
+        const extra = await this.roleRepo.findById(extraRoleId);
+        if (!extra) {
+          throw new NotFoundDomainError('Role', extraRoleId);
+        }
+        if (!extra.is_active) {
+          throw new UnprocessableDomainError('ROLE_INACTIVE', `Designation "${extra.role_name}" is inactive`, 'role_ids');
+        }
+        if (!departmentsForRoles.has(extra.dep_id)) {
+          throw new UnprocessableDomainError(
+            'ROLE_DEPARTMENT_MISMATCH',
+            `Designation "${extra.role_name}" does not belong to any of the selected departments`,
+            'role_ids',
+          );
         }
       }
     }
@@ -329,6 +363,7 @@ export class UpdateEmployeeUseCase {
       dep_id: effectiveDepId,
       department_ids: command.department_ids,
       role_id: command.role_id,
+      role_ids: roleSelection?.all,
       reporting_manager: command.reporting_manager,
       joining_date: parsedJoiningDate,
       exit_date: parsedExitDate,

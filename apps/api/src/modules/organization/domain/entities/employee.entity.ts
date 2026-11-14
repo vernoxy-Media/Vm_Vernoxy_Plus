@@ -30,6 +30,14 @@ export interface Employee {
     role_id: number;
     role_name: string;
   } | null;
+  /** Every designation the employee holds (the primary one is also in `role`). */
+  role_ids?: number[];
+  roles?: Array<{
+    role_id: number;
+    role_name: string;
+    dep_id: number;
+    is_primary: boolean;
+  }>;
   manager?: {
     emp_id: number;
     name: string;

@@ -34,7 +34,7 @@ import { useLeaveGeneralSettingsQuery, useLeavePoliciesQuery } from '@/features/
 import { checkJoiningDateConflict } from '@/features/attendance/utils/joining-date-check';
 import { employeeCreateSchema, type EmployeeFormValues } from '../schemas/employee-form.schema';
 import { SetPasswordLinkField } from './SetPasswordLinkField';
-import { CountryPhoneInput, DepartmentMultiSelect, SearchableSelect, ReportingManagerSelect } from '@/shared/ui';
+import { CountryPhoneInput, DepartmentMultiSelect, DesignationMultiSelect, ReportingManagerSelect } from '@/shared/ui';
 
 function generateSecurePassword(length = 16): string {
   const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -145,6 +145,7 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
       address: '',
       dep_id: '' as unknown as number,
       department_ids: [],
+      role_ids: [],
       role_id: '' as unknown as number,
       reporting_manager: null,
       employment_type_id: '' as unknown as number,
@@ -187,6 +188,9 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
   const primaryDepId = watch('dep_id');
   const effectiveDepIds = watchedDepIds.length > 0 ? watchedDepIds : (primaryDepId ? [Number(primaryDepId)] : undefined);
   const { data: roleOptions = [] } = useRoleOptionsQuery(effectiveDepIds);
+  const watchedRoleIds: number[] = watch('role_ids') || [];
+  // Only designations of the departments that are currently selected can be picked
+  const designationChoices = watchedDepIds.length > 0 ? (roleOptions as any[]) : [];
   const watchedPfApplicable = watch('pf_applicable');
   const watchedOtEligible = watch('ot_eligible');
   const watchedOtRateType = watch('ot_rate_type') || 'MULTIPLIER';
@@ -278,7 +282,8 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
         password: values.password!,
         dep_id: pDepId,
         department_ids: depIds,
-        role_id: values.role_id ? Number(values.role_id) : undefined,
+        role_id: values.role_ids?.[0] ?? (values.role_id ? Number(values.role_id) : undefined),
+        role_ids: values.role_ids,
         reporting_manager: values.reporting_manager ? Number(values.reporting_manager) : null,
         gender_id: values.gender_id ? Number(values.gender_id) : undefined,
         emergency_contact_name: values.emergency_contact_name?.trim() || undefined,
@@ -718,6 +723,15 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
                     onChange={(ids) => {
                       setValue('department_ids', ids, { shouldValidate: true, shouldDirty: true });
                       setValue('dep_id', ids.length > 0 ? (ids[0] as any) : ('' as any), { shouldValidate: true });
+                      // Drop designations of departments that were just removed
+                      const keep = watchedRoleIds.filter((rid) => {
+                        const r = (roleOptions as any[]).find((o) => o.role_id === rid);
+                        return r && ids.includes(r.dep_id);
+                      });
+                      if (keep.length !== watchedRoleIds.length) {
+                        setValue('role_ids', keep, { shouldValidate: true, shouldDirty: true });
+                        setValue('role_id', (keep[0] ?? '') as any, { shouldDirty: true });
+                      }
                     }}
                     placeholder="Select Department(s)..."
                     error={errors.department_ids?.message}
@@ -730,21 +744,15 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
                     <label className="text-xs font-semibold text-slate-700">
                       Designation <span className="text-red-500">*</span>
                     </label>
-                    <SearchableSelect
-                      options={roleOptions.map((r: any) => ({
-                        value: r.role_id,
-                        label: r.role_name || r.name,
-                      }))}
-                      value={watch('role_id')}
-                      onChange={(val) =>
-                        setValue('role_id', val ? Number(val) : ('' as any), {
-                          shouldValidate: true,
-                          shouldDirty: true,
-                        })
-                      }
-                      placeholder="Select Designation"
-                      searchPlaceholder="Search designation..."
-                      error={errors.role_id?.message}
+                    <DesignationMultiSelect
+                      roles={designationChoices}
+                      selectedIds={watchedRoleIds}
+                      onChange={(ids) => {
+                        setValue('role_ids', ids, { shouldValidate: true, shouldDirty: true });
+                        setValue('role_id', (ids[0] ?? '') as any, { shouldDirty: true });
+                      }}
+                      placeholder="Select Designation(s)..."
+                      error={errors.role_ids?.message}
                     />
                   </div>
 

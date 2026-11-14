@@ -25,6 +25,9 @@ export interface EmployeeResponseDto {
   departments?: EmployeeRelationDepartmentDto[];
   /** @nullable */
   role_id?: number | null;
+  /** Every designation the employee holds */
+  role_ids?: number[];
+  roles?: Array<{ role_id: number; role_name: string; dep_id: number; is_primary: boolean }>;
   /** @nullable */
   reporting_manager?: number | null;
   /** @nullable */

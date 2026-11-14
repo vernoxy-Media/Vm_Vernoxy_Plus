@@ -57,6 +57,7 @@ export const employeeCreateSchema = z
       z.number().default(1),
     ),
     department_ids: z.array(z.number()).min(1, 'Please select at least one department'),
+    role_ids: z.array(z.number()).min(1, 'Please select at least one designation'),
     role_id: z.preprocess(
       (val) => (val === '' || val === null || val === undefined ? undefined : Number(val)),
       z.number().optional().nullable(),
@@ -152,6 +153,7 @@ export const employeeEditSchema = z.object({
     z.number().default(1),
   ),
   department_ids: z.array(z.number()).min(1, 'Please select at least one department'),
+  role_ids: z.array(z.number()),
   role_id: z.preprocess(
     (val) => (val === '' || val === null || val === undefined ? undefined : Number(val)),
     z.number().optional().nullable(),

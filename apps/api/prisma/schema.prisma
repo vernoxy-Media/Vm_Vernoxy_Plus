@@ -161,6 +161,7 @@ model departments {
   employees_departments_deleted_byToemployees     employees?                     @relation("departments_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_departments_deleted_by")
   employees_departments_updated_byToemployees     employees?                     @relation("departments_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_departments_updated_by")
   employee_departments                            employee_departments[]
+  employee_roles                                  employee_roles[]
   employees_employees_dep_idTodepartments         employees[]                    @relation("employees_dep_idTodepartments")
   expense_authorised_approvers                    expense_authorised_approvers[]
   roles                                           roles[]
@@ -308,6 +309,8 @@ model employees {
   employee_credentials_employee_credentials_updated_byToemployees                            employee_credentials[]            @relation("employee_credentials_updated_byToemployees")
   employee_departments_employee_departments_created_byToemployees                            employee_departments[]            @relation("employee_departments_created_byToemployees")
   employee_departments_employee_departments_emp_idToemployees                                employee_departments[]            @relation("employee_departments_emp_idToemployees")
+  employee_roles_employee_roles_created_byToemployees                                        employee_roles[]                  @relation("employee_roles_created_byToemployees")
+  employee_roles_employee_roles_emp_idToemployees                                            employee_roles[]                  @relation("employee_roles_emp_idToemployees")
   employee_documents_employee_documents_created_byToemployees                                employee_documents[]              @relation("employee_documents_created_byToemployees")
   employee_documents                                                                         employee_documents[]
   employee_documents_employee_documents_issued_byToemployees                                 employee_documents[]              @relation("employee_documents_issued_byToemployees")
@@ -694,6 +697,7 @@ model roles {
   candidates_candidates_final_role_idToroles candidates[] @relation("candidates_final_role_idToroles")
   candidates                                 candidates[]
   employees_employees_role_idToroles         employees[]  @relation("employees_role_idToroles")
+  employee_roles                             employee_roles[]
   employees_employees_role_id_dep_idToroles  employees[]  @relation("employees_role_id_dep_idToroles")
   employees_roles_created_byToemployees      employees?   @relation("roles_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_roles_created_by")
   employees_roles_deleted_byToemployees      employees?   @relation("roles_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_roles_deleted_by")
@@ -1381,6 +1385,23 @@ model employee_departments {
   @@id([emp_id, dep_id])
   @@index([dep_id], map: "ix_employee_departments_dep_id")
   @@index([emp_id], map: "ix_employee_departments_emp_id")
+}
+
+model employee_roles {
+  emp_id                                         Int
+  role_id                                        Int
+  dep_id                                         Int
+  is_primary                                     Boolean     @default(false)
+  created_at                                     DateTime    @default(now()) @db.Timestamptz(6)
+  created_by                                     Int?
+  employees_employee_roles_created_byToemployees employees?  @relation("employee_roles_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+  employees_employee_roles_emp_idToemployees     employees   @relation("employee_roles_emp_idToemployees", fields: [emp_id], references: [emp_id], onDelete: Cascade, onUpdate: NoAction)
+  roles                                          roles       @relation(fields: [role_id], references: [role_id], onDelete: NoAction, onUpdate: NoAction)
+  departments                                    departments @relation(fields: [dep_id], references: [dep_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([emp_id, role_id], map: "pk_employee_roles")
+  @@index([emp_id], map: "ix_employee_roles_emp_id")
+  @@index([role_id], map: "ix_employee_roles_role_id")
 }
 
 model employee_pay_policies {

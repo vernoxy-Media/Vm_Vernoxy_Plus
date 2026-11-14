@@ -82,13 +82,15 @@ function formatDate(dateString?: string | Date | null): string {
   });
 }
 
+type StatusFilter = 'Active' | 'Inactive' | 'Onboarding' | 'All';
+
 export const EmployeesPage: React.FC = () => {
   const { user: currentUser } = useAuth();
   const navigate = useNavigate();
 
-  // Filter states - Default status starts as "Active" per specification
+  // Filter states - default shows everyone (Active, Inactive and Onboarding) so a newly converted employee is visible right away
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialStatus = (searchParams.get('status') as 'Active' | 'Inactive' | 'All') || 'Active';
+  const initialStatus = (searchParams.get('status') as StatusFilter) || 'All';
   const initialDepId = searchParams.get('dep_id') ? Number(searchParams.get('dep_id')) : undefined;
   const initialRoleId = searchParams.get('role_id') ? Number(searchParams.get('role_id')) : undefined;
   const initialQ = searchParams.get('q') || '';
@@ -108,7 +110,7 @@ export const EmployeesPage: React.FC = () => {
   const [search, setSearch] = useState(initialQ);
   const [selectedDepId, setSelectedDepId] = useState<number | undefined>(initialDepId);
   const [selectedRoleId, setSelectedRoleId] = useState<number | undefined>(initialRoleId);
-  const [statusFilter, setStatusFilter] = useState<'Active' | 'Inactive' | 'All'>(initialStatus);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(initialStatus);
 
   React.useEffect(() => {
     const qParam = searchParams.get('q');
@@ -119,7 +121,7 @@ export const EmployeesPage: React.FC = () => {
     if (qParam !== null) setSearch(qParam);
     if (depParam !== null) setSelectedDepId(depParam ? Number(depParam) : undefined);
     if (roleParam !== null) setSelectedRoleId(roleParam ? Number(roleParam) : undefined);
-    if (statusParam === 'Active' || statusParam === 'Inactive' || statusParam === 'All') {
+    if (statusParam === 'Active' || statusParam === 'Inactive' || statusParam === 'Onboarding' || statusParam === 'All') {
       setStatusFilter(statusParam);
     }
   }, [searchParams]);
@@ -184,7 +186,7 @@ export const EmployeesPage: React.FC = () => {
     q: search || undefined,
     dep_id: selectedDepId,
     role_id: selectedRoleId,
-    status: statusFilter === 'All' ? undefined : statusFilter,
+    status: statusFilter,
     limit: 100, // Fetch up to 100 to support smooth page numbering (10 per page)
   });
 
@@ -205,16 +207,16 @@ export const EmployeesPage: React.FC = () => {
     setSearch('');
     setSelectedDepId(undefined);
     setSelectedRoleId(undefined);
-    setStatusFilter('Active');
+    setStatusFilter('All');
     setCurrentPage(1);
   };
 
   const hasActiveFilters = Boolean(
-    search || selectedDepId || selectedRoleId || statusFilter !== 'Active',
+    search || selectedDepId || selectedRoleId || statusFilter !== 'All',
   );
 
   const allItems = useMemo(
-    () => (data?.items || []).filter((emp) => emp.status !== 'Onboarding'),
+    () => data?.items || [],
     [data?.items],
   );
 
@@ -233,8 +235,8 @@ export const EmployeesPage: React.FC = () => {
         return sortDirection === 'asc' ? da - db : db - da;
       });
     } else {
-      // Default: newest Emp ID last (asc by emp_id)
-      items.sort((a, b) => a.emp_id - b.emp_id);
+      // Default: newest employee first (desc by emp_id)
+      items.sort((a, b) => b.emp_id - a.emp_id);
     }
     return items;
   }, [allItems, sortField, sortDirection]);
@@ -274,11 +276,14 @@ export const EmployeesPage: React.FC = () => {
   // Metric stats
   const totalEmployeesCount =
     data?.stats?.total ??
-    (statusFilter === 'All' ? totalItems : (data?.stats?.active ?? 0) + (data?.stats?.inactive ?? 0));
+    (statusFilter === 'All' ? totalItems : (data?.stats?.active ?? 0) + (data?.stats?.inactive ?? 0) + (data?.stats?.onboarding ?? 0));
   const activeEmployeesCount =
     data?.stats?.active ?? (statusFilter === 'Active' ? totalItems : 0);
   const inactiveEmployeesCount =
     data?.stats?.inactive ?? (statusFilter === 'Inactive' ? totalItems : 0);
+
+  const onboardingEmployeesCount =
+    data?.stats?.onboarding ?? (statusFilter === 'Onboarding' ? totalItems : 0);
 
   const isInactiveView = statusFilter === 'Inactive';
 
@@ -349,7 +354,7 @@ export const EmployeesPage: React.FC = () => {
         )}
 
         {/* Top Metric Cards: Total employees, Active, Inactive */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Total Employees */}
           <div
             id="metric-total-employees"
@@ -424,6 +429,31 @@ export const EmployeesPage: React.FC = () => {
               <div className="text-xs font-medium text-slate-500 mt-0.5">Inactive</div>
             </div>
           </div>
+
+          {/* Onboarding */}
+          <div
+            id="metric-onboarding-employees"
+            onClick={() => {
+              setStatusFilter('Onboarding');
+              setCurrentPage(1);
+            }}
+            className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center gap-4 cursor-pointer transition-all hover:border-slate-400 ${
+              statusFilter === 'Onboarding'
+                ? 'border-purple-500 bg-purple-50/10'
+                : 'border-slate-300'
+            }`}
+            title="Click to show employees who are still onboarding"
+          >
+            <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+              <User className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-slate-900 leading-tight">
+                {onboardingEmployeesCount}
+              </div>
+              <div className="text-xs font-medium text-slate-500 mt-0.5">Onboarding</div>
+            </div>
+          </div>
         </div>
 
         {/* Marker 3 & 4: Filters Row */}
@@ -494,7 +524,7 @@ export const EmployeesPage: React.FC = () => {
                 id="employees-status-select"
                 value={statusFilter}
                 onChange={(e) => {
-                  setStatusFilter(e.target.value as 'Active' | 'Inactive' | 'All');
+                  setStatusFilter(e.target.value as StatusFilter);
                   setCurrentPage(1);
                 }}
                 className={`w-full appearance-none pl-3.5 pr-8 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer focus:outline-none ${
@@ -502,11 +532,14 @@ export const EmployeesPage: React.FC = () => {
                     ? 'border border-emerald-300 bg-emerald-50/40 text-emerald-700'
                     : statusFilter === 'Inactive'
                     ? 'border border-rose-300 bg-rose-50/40 text-rose-700'
+                    : statusFilter === 'Onboarding'
+                    ? 'border border-purple-300 bg-purple-50/40 text-purple-700'
                     : 'border border-slate-300 bg-white text-slate-700 font-medium'
                 }`}
               >
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
+                <option value="Onboarding">Onboarding</option>
                 <option value="All">All</option>
               </select>
               <ChevronDown
@@ -515,6 +548,8 @@ export const EmployeesPage: React.FC = () => {
                     ? 'text-emerald-600'
                     : statusFilter === 'Inactive'
                     ? 'text-rose-500'
+                    : statusFilter === 'Onboarding'
+                    ? 'text-purple-600'
                     : 'text-slate-400'
                 }`}
               />
@@ -731,7 +766,7 @@ export const EmployeesPage: React.FC = () => {
 
                           {/* DESIGNATION column */}
                           <td className="py-3.5 px-5 text-sm font-normal text-slate-700">
-                            {emp.role?.role_name || (emp.role_id ? `Role #${emp.role_id}` : '—')}
+                            {((emp as any).roles?.length ? (emp as any).roles.map((r: any) => r.role_name).join(', ') : emp.role?.role_name) || (emp.role_id ? `Role #${emp.role_id}` : '—')}
                           </td>
 
                           {/* Inactive Mode vs Active Mode columns */}
@@ -767,6 +802,11 @@ export const EmployeesPage: React.FC = () => {
                               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                                 Active
+                              </span>
+                            ) : emp.status === 'Onboarding' ? (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200/60">
+                                <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+                                Onboarding
                               </span>
                             ) : (
                               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200/60">
@@ -871,7 +911,7 @@ export const EmployeesPage: React.FC = () => {
                         ))}
                         <span className="text-xs text-slate-400">•</span>
                         <span className="text-xs text-slate-700 font-medium">
-                          {emp.role?.role_name || 'Unassigned'}
+                          {((emp as any).roles?.length ? (emp as any).roles.map((r: any) => r.role_name).join(', ') : emp.role?.role_name) || 'Unassigned'}
                         </span>
                       </div>
 
@@ -905,6 +945,8 @@ export const EmployeesPage: React.FC = () => {
                       ? `${activeEmployeesCount} active`
                       : statusFilter === 'Inactive'
                       ? `${inactiveEmployeesCount} inactive`
+                      : statusFilter === 'Onboarding'
+                      ? `${onboardingEmployeesCount} onboarding`
                       : totalItems}{' '}
                     employees
                   </span>

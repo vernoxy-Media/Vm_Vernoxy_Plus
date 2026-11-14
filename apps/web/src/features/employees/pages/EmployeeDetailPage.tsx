@@ -340,7 +340,7 @@ export const EmployeeDetailPage: React.FC = () => {
                   </span>
                   <span>&bull;</span>
                   <span className="text-slate-500 font-medium">
-                    {employee.role?.role_name || 'Designation Unassigned'}
+                    {((employee as any).roles?.length ? (employee as any).roles.map((r: any) => r.role_name).join(' · ') : employee.role?.role_name) || 'Designation Unassigned'}
                   </span>
                   <span>&bull;</span>
                   <span className="text-slate-500 font-medium">
@@ -714,7 +714,7 @@ export const EmployeeDetailPage: React.FC = () => {
                   <div>
                     <span className="text-xs text-slate-400 block font-normal">Designation</span>
                     <p className="mt-1 font-semibold text-slate-900">
-                      {(employee as any).designation?.title || employee.role?.role_name || '-'}
+                      {(employee as any).designation?.title || ((employee as any).roles?.length ? (employee as any).roles.map((r: any) => r.role_name).join(', ') : employee.role?.role_name) || '-'}
                     </p>
                   </div>
                   <div>

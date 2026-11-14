@@ -205,7 +205,7 @@ export function useEmployeesQuery(params?: {
   q?: string;
   dep_id?: number;
   role_id?: number;
-  status?: 'Active' | 'Inactive' | 'Onboarding';
+  status?: 'Active' | 'Inactive' | 'Onboarding' | 'All';
   limit?: number;
   cursor?: string;
 }) {
