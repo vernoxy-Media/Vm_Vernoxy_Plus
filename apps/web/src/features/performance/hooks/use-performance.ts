@@ -365,3 +365,120 @@ export function useSaveProjectRatingsMutation() {
     onSuccess: () => invalidateAll(qc),
   });
 }
+
+// ----------------------------------------------------------------------------- Dashboard
+
+export interface PerformanceDashboardFilters {
+  cycle_type?: CycleType;
+  cycle_id?: number;
+  department_ids?: string;
+  manager_id?: number;
+  emp_id?: number;
+  status?: string;
+}
+
+export interface PerformanceDashboardData {
+  cycle: PerfCycleItem | null;
+  is_individual: boolean;
+  selected_employee: {
+    emp_id: number;
+    emp_code: string;
+    name: string;
+    dep_id: number | null;
+    department_name: string;
+    reporting_manager: number | null;
+    manager_name: string;
+  } | null;
+  kpis: {
+    total_employees: number;
+    reviews_completed: number;
+    pending_reviews: number;
+    overall_avg_rating: number | null;
+  };
+  rating_distribution: Array<{
+    star: number;
+    count: number;
+    percentage: number;
+  }>;
+  final_rating_trend: Array<{
+    cycle_id: number;
+    cycle_name: string;
+    period_label: string;
+    avg_rating: number | null;
+    completed_count: number;
+  }>;
+  average_project_rating: Array<{
+    project_id: number;
+    project_name: string;
+    avg_rating: number;
+  }>;
+  monthly_attendance_summary: Array<{
+    month: string;
+    year: number;
+    rate: number;
+    present: number;
+    total: number;
+  }>;
+  pending_employees: string[];
+  employee_performance_ranking: Array<{
+    rank: number;
+    emp_id: number;
+    name: string;
+    emp_code: string;
+    department_name: string;
+    manager_name: string;
+    final_rating: number | null;
+    status: string;
+  }>;
+  reporting_manager_team_performance: Array<{
+    rank: number;
+    manager_id: number;
+    manager_name: string;
+    with_final_rating: number;
+    pending: number;
+    avg_final_rating: number | null;
+  }>;
+  criteria_scorecard: Array<{
+    emp_id: number;
+    name: string;
+    emp_code: string;
+    department_name: string;
+    manager_name: string;
+    final_rating: number | null;
+    is_complete: boolean;
+    self_ratings: Record<string, number>;
+    manager_ratings: Record<string, number>;
+    admin_ratings: Record<string, number>;
+    project_avg: number | null;
+    project_ratings: Array<{ project_id: number; project_name: string; rating: number }>;
+  }>;
+  filter_options: {
+    cycles: PerfCycleItem[];
+    departments: Array<{ dep_id: number; name: string }>;
+    managers: Array<{ emp_id: number; name: string }>;
+    employees: Array<{
+      emp_id: number;
+      emp_code: string;
+      name: string;
+      dep_id: number | null;
+      department_name: string;
+      reporting_manager: number | null;
+      manager_name: string;
+    }>;
+  };
+}
+
+export function usePerformanceDashboardQuery(filters: PerformanceDashboardFilters = {}) {
+  const params = new URLSearchParams();
+  if (filters.cycle_type) params.set('cycle_type', filters.cycle_type);
+  if (filters.cycle_id) params.set('cycle_id', String(filters.cycle_id));
+  if (filters.department_ids) params.set('department_ids', filters.department_ids);
+  if (filters.manager_id) params.set('manager_id', String(filters.manager_id));
+  if (filters.emp_id) params.set('emp_id', String(filters.emp_id));
+  if (filters.status && filters.status !== 'ALL') params.set('status', filters.status);
+
+  return useQuery<PerformanceDashboardData>({
+    queryKey: ['perf-dashboard', filters],
+    queryFn: () => customFetch<PerformanceDashboardData>(`${API}/dashboard?${params.toString()}`),
+  });
+}

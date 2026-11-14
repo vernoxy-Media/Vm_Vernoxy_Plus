@@ -289,3 +289,32 @@ export class SubmitBulkProjectRatingsDto {
   @IsBoolean()
   is_draft?: boolean;
 }
+
+export class PerformanceDashboardQueryDto {
+  @IsOptional()
+  @IsEnum(PerfCycleType)
+  cycle_type?: PerfCycleType;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  cycle_id?: number;
+
+  @IsOptional()
+  @IsString()
+  department_ids?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  manager_id?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  emp_id?: number;
+
+  @IsOptional()
+  @IsString()
+  status?: string;
+}

@@ -2,6 +2,7 @@ import { HttpStatus, Injectable, Logger, Optional } from '@nestjs/common';
 import { PrismaService } from '../../../../core/prisma/prisma.service';
 import { CreateNotificationUseCase } from '../../../notifications/public-api';
 import {
+  PerformanceDashboardQueryDto,
   ReopenReviewDto,
   ReviewPart,
   SubmitBulkProjectRatingsDto,
@@ -384,6 +385,381 @@ export class PerformanceReviewsService {
         .filter((i) => i.has_missing_manager)
         .map((i) => ({ emp_id: i.emp_id, name: i.name, department_name: i.department_name })),
       departments_without_form: noForm,
+    };
+  }
+
+  // ===========================================================================
+  // Performance Management Dashboard (KPIs, Charts, Trends, Rankings)
+  // ===========================================================================
+
+  async getPerformanceDashboard(user: any, query: PerformanceDashboardQueryDto) {
+    const callerEmpId = requireEmpId(user);
+    const isAdmin = await this.access.isAdmin(callerEmpId);
+    const { isManager } = await this.roleFlags(callerEmpId);
+    const today = todayStr();
+
+    let selectedEmpId = query.emp_id ? Number(query.emp_id) : undefined;
+    if (!isAdmin && !isManager) {
+      selectedEmpId = callerEmpId;
+    } else if (!isAdmin && isManager && selectedEmpId && selectedEmpId !== callerEmpId) {
+      const [emp] = await this.prisma.$queryRaw<any[]>`
+        SELECT emp_id FROM employees WHERE emp_id = ${selectedEmpId} AND reporting_manager = ${callerEmpId} AND deleted_at IS NULL;
+      `;
+      if (!emp) selectedEmpId = callerEmpId;
+    }
+
+    const isIndividual = Boolean(selectedEmpId);
+
+    const allCycles = await this.prisma.perf_cycles.findMany({
+      orderBy: { start_date: 'desc' },
+    });
+
+    let filteredCycles = allCycles;
+    if (query.cycle_type) {
+      filteredCycles = allCycles.filter((c) => c.cycle_type === query.cycle_type);
+    }
+    // Review Cycle Status filter (UPCOMING / REVIEW_OPEN / CLOSED) narrows which cycle is picked by default.
+    if (query.status && query.status !== 'ALL') {
+      const byStatus = filteredCycles.filter((c) => this.cyclePayload(c, today).status === query.status);
+      if (byStatus.length > 0) filteredCycles = byStatus;
+    }
+
+    let activeCycle = query.cycle_id
+      ? allCycles.find((c) => c.cycle_id === Number(query.cycle_id))
+      : undefined;
+
+    if (!activeCycle && filteredCycles.length > 0) {
+      activeCycle = filteredCycles.find((c) => c.status === 'REVIEW_OPEN') || filteredCycles[0];
+    }
+    if (!activeCycle && allCycles.length > 0) {
+      activeCycle = allCycles.find((c) => c.status === 'REVIEW_OPEN') || allCycles[0];
+    }
+
+    const departments = await this.prisma.departments.findMany({
+      where: { deleted_at: null },
+      select: { dep_id: true, name: true },
+      orderBy: { name: 'asc' },
+    });
+
+    const managersRaw = await this.prisma.$queryRaw<any[]>`
+      SELECT DISTINCT m.emp_id, m.name
+      FROM employees e
+      JOIN employees m ON m.emp_id = e.reporting_manager
+      WHERE e.status = 'Active' AND e.deleted_at IS NULL AND m.deleted_at IS NULL
+      ORDER BY m.name;
+    `;
+    const availableManagers = managersRaw.map((m) => ({ emp_id: Number(m.emp_id), name: m.name }));
+
+    const employeesRaw = await this.prisma.$queryRaw<any[]>`
+      SELECT e.emp_id, e.name, e.dep_id, d.name AS department_name, e.reporting_manager, m.name AS manager_name
+      FROM employees e
+      LEFT JOIN departments d ON d.dep_id = e.dep_id
+      LEFT JOIN employees m ON m.emp_id = e.reporting_manager
+      WHERE e.status = 'Active' AND e.deleted_at IS NULL
+      ORDER BY e.name;
+    `;
+    const allEmployeesList = employeesRaw.map((e) => ({
+      emp_id: Number(e.emp_id),
+      emp_code: this.empCode(Number(e.emp_id)),
+      name: e.name,
+      dep_id: e.dep_id ? Number(e.dep_id) : null,
+      department_name: e.department_name || '—',
+      reporting_manager: e.reporting_manager ? Number(e.reporting_manager) : null,
+      manager_name: e.manager_name || '—',
+    }));
+
+    if (!activeCycle) {
+      return {
+        cycle: null,
+        is_individual: isIndividual,
+        selected_employee: null,
+        kpis: { total_employees: 0, reviews_completed: 0, pending_reviews: 0, overall_avg_rating: null },
+        rating_distribution: [
+          { star: 1, count: 0, percentage: 0 },
+          { star: 2, count: 0, percentage: 0 },
+          { star: 3, count: 0, percentage: 0 },
+          { star: 4, count: 0, percentage: 0 },
+          { star: 5, count: 0, percentage: 0 },
+        ],
+        final_rating_trend: [],
+        average_project_rating: [],
+        monthly_attendance_summary: [],
+        employee_performance_ranking: [],
+        pending_employees: [],
+        reporting_manager_team_performance: [],
+        criteria_scorecard: [],
+        filter_options: {
+          cycles: allCycles.map((c) => this.cyclePayload(c, today)),
+          departments,
+          managers: availableManagers,
+          employees: allEmployeesList,
+        },
+      };
+    }
+
+    const depFilterList = query.department_ids
+      ? query.department_ids
+          .split(',')
+          .map((id) => Number(id.trim()))
+          .filter((id) => !isNaN(id))
+      : [];
+
+    let eligible = await this.eligibleEmployees(activeCycle, {
+      managerId: !isAdmin && isManager && !query.manager_id ? callerEmpId : query.manager_id ? Number(query.manager_id) : undefined,
+    });
+
+    if (depFilterList.length > 0) {
+      eligible = eligible.filter((e) => e.dep_id && depFilterList.includes(Number(e.dep_id)));
+    }
+
+    if (selectedEmpId) {
+      eligible = eligible.filter((e) => Number(e.emp_id) === selectedEmpId);
+    }
+
+    const eligibleEmpIds = eligible.map((e) => Number(e.emp_id));
+
+    const reviews = eligibleEmpIds.length
+      ? await this.prisma.perf_reviews.findMany({
+          where: { cycle_id: activeCycle.cycle_id, emp_id: { in: eligibleEmpIds } },
+        })
+      : [];
+
+    const reviewsByEmp = new Map(reviews.map((r) => [Number(r.emp_id), r]));
+    const projectsMap = await this.projectRatingsFor(activeCycle.cycle_id, eligibleEmpIds);
+
+    const reviewItems = eligible.map((p) => {
+      const r = reviewsByEmp.get(Number(p.emp_id));
+      const selfIn = r?.self_status === 'SUBMITTED';
+      const mgrIn = r?.manager_status === 'SUBMITTED';
+      const adminIn = r?.admin_status === 'SUBMITTED';
+      const isComplete = Boolean(r && selfIn && mgrIn && adminIn);
+      const prList = projectsMap.get(Number(p.emp_id)) || [];
+      const projectAvg = prList.length ? round1(prList.reduce((s, x) => s + x.rating, 0) / prList.length) : null;
+      return {
+        emp_id: Number(p.emp_id),
+        name: p.name,
+        emp_code: this.empCode(Number(p.emp_id)),
+        dep_id: p.dep_id ? Number(p.dep_id) : null,
+        department_name: p.department_name || '—',
+        reporting_manager: p.reporting_manager ? Number(p.reporting_manager) : null,
+        manager_name: p.manager_name || '—',
+        is_complete: isComplete,
+        self_avg: selfIn && r?.self_avg_rating ? Number(r.self_avg_rating) : null,
+        manager_avg: mgrIn && r?.manager_avg_rating ? Number(r.manager_avg_rating) : null,
+        admin_avg: adminIn && r?.admin_avg_rating ? Number(r.admin_avg_rating) : null,
+        final_rating: isComplete && r?.final_rating ? Number(r.final_rating) : null,
+        project_avg: projectAvg,
+        // Scorecard shows submitted criteria only.
+        self_ratings: selfIn ? ((r?.self_ratings as Record<string, number>) || {}) : {},
+        manager_ratings: mgrIn ? ((r?.manager_ratings as Record<string, number>) || {}) : {},
+        admin_ratings: adminIn ? ((r?.admin_ratings as Record<string, number>) || {}) : {},
+        project_ratings: prList,
+      };
+    });
+
+    const completedItems = reviewItems.filter((i) => i.is_complete && i.final_rating !== null);
+    const completedCount = completedItems.length;
+    const pendingCount = reviewItems.length - completedCount;
+    const overallAvgRating =
+      completedCount > 0
+        ? round1(completedItems.reduce((sum, item) => sum + (item.final_rating || 0), 0) / completedCount)
+        : null;
+
+    const selectedEmployeeInfo = selectedEmpId
+      ? allEmployeesList.find((e) => e.emp_id === selectedEmpId) || null
+      : null;
+
+    const distCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    for (const item of completedItems) {
+      const r = item.final_rating!;
+      if (r < 2.0) distCounts[1]++;
+      else if (r < 3.0) distCounts[2]++;
+      else if (r < 4.0) distCounts[3]++;
+      else if (r < 5.0) distCounts[4]++;
+      else distCounts[5]++;
+    }
+    const totalRated = completedItems.length || 1;
+    const ratingDistribution = [1, 2, 3, 4, 5].map((star) => ({
+      star,
+      count: distCounts[star as keyof typeof distCounts],
+      percentage: completedItems.length ? Math.round((distCounts[star as keyof typeof distCounts] / totalRated) * 100) : 0,
+    }));
+
+    const historicalCycles = await this.prisma.perf_cycles.findMany({
+      where: {
+        cycle_type: activeCycle.cycle_type,
+        start_date: { lte: activeCycle.start_date },
+      },
+      orderBy: { start_date: 'asc' },
+      take: 6,
+    });
+
+    const trendData: Array<{
+      cycle_id: number;
+      cycle_name: string;
+      period_label: string;
+      avg_rating: number | null;
+      completed_count: number;
+    }> = [];
+
+    // Completed review cycles only; scoped to the same employees as the rest of the dashboard
+    // (department / manager / employee filters all apply together).
+    for (const hc of historicalCycles) {
+      const [rev] = eligibleEmpIds.length
+        ? await this.prisma.$queryRaw<any[]>`
+            SELECT AVG(final_rating) AS avg_score, COUNT(*)::int AS cnt
+            FROM perf_reviews
+            WHERE cycle_id = ${hc.cycle_id} AND emp_id = ANY(${eligibleEmpIds}::int[])
+              AND final_rating IS NOT NULL
+              AND self_status = 'SUBMITTED' AND manager_status = 'SUBMITTED' AND admin_status = 'SUBMITTED';
+          `
+        : [null];
+      const cnt = Number(rev?.cnt || 0);
+      // Individual view: cycles without a completed review are not plotted at all.
+      if (selectedEmpId && cnt === 0) continue;
+      trendData.push({
+        cycle_id: hc.cycle_id,
+        cycle_name: hc.cycle_name,
+        period_label: periodLabel(hc),
+        avg_rating: cnt > 0 && rev?.avg_score ? round1(Number(rev.avg_score)) : null,
+        completed_count: cnt,
+      });
+    }
+
+    // Project ratings (submitted only), scoped to the filtered employees; separate from the Final Rating.
+    const projectAgg = new Map<number, { project_name: string; sum: number; n: number }>();
+    for (const list of projectsMap.values()) {
+      for (const pr of list) {
+        const g = projectAgg.get(pr.project_id) || { project_name: pr.project_name, sum: 0, n: 0 };
+        g.sum += pr.rating;
+        g.n += 1;
+        projectAgg.set(pr.project_id, g);
+      }
+    }
+    let projectRatingsList = Array.from(projectAgg.entries()).map(([project_id, g]) => ({
+      project_id,
+      project_name: g.project_name,
+      avg_rating: round1(g.sum / g.n),
+    }));
+    projectRatingsList = selectedEmpId
+      ? projectRatingsList.sort((x, y) => x.project_name.localeCompare(y.project_name))
+      : projectRatingsList.sort((x, y) => y.avg_rating - x.avg_rating).slice(0, 6);
+
+    // Monthly attendance: 6 months ending at the selected cycle's end (or today if the cycle is still running),
+    // for the same employees as every other widget.
+    let attendanceSummary: Array<{ month: string; year: number; rate: number; present: number; total: number }> = [];
+    try {
+      const endStr = toDateStr(activeCycle.end_date);
+      const winEnd = endStr < today ? endStr : today;
+      const attRows = eligibleEmpIds.length
+        ? await this.prisma.$queryRaw<any[]>`
+            SELECT
+              TO_CHAR(work_date, 'Mon') AS month_name,
+              EXTRACT(MONTH FROM work_date) AS month_num,
+              EXTRACT(YEAR FROM work_date) AS yr,
+              COUNT(*)::int AS total_records,
+              COUNT(CASE WHEN day_status IN ('present', 'late', 'half_day', 'incomplete', 'short') THEN 1 END)::int AS present_records
+            FROM attendance_days
+            WHERE work_date <= ${winEnd}::date
+              AND work_date >= (date_trunc('month', ${winEnd}::date) - INTERVAL '5 month')::date
+              AND emp_id = ANY(${eligibleEmpIds}::int[])
+            GROUP BY EXTRACT(YEAR FROM work_date), EXTRACT(MONTH FROM work_date), TO_CHAR(work_date, 'Mon')
+            ORDER BY yr ASC, month_num ASC;
+          `
+        : [];
+      attendanceSummary = attRows.map((r) => {
+        const tot = Number(r.total_records || 0);
+        const pres = Number(r.present_records || 0);
+        return {
+          month: r.month_name,
+          year: Number(r.yr),
+          rate: tot > 0 ? round1((pres / tot) * 100) : 0,
+          present: pres,
+          total: tot,
+        };
+      });
+    } catch {
+      attendanceSummary = [];
+    }
+
+    const rankingList = [...reviewItems]
+      .filter((i) => i.is_complete && i.final_rating !== null)
+      .sort((a, b) => (b.final_rating || 0) - (a.final_rating || 0))
+      .map((item, idx) => ({
+        rank: idx + 1,
+        emp_id: item.emp_id,
+        name: item.name,
+        emp_code: item.emp_code,
+        department_name: item.department_name,
+        manager_name: item.manager_name,
+        final_rating: item.final_rating,
+        status: 'COMPLETE',
+      }));
+
+    const managerGroups = new Map<number, { name: string; completed: number[]; pending: number }>();
+    for (const item of reviewItems) {
+      const mId = item.reporting_manager;
+      if (!mId) continue;
+      const g = managerGroups.get(mId) || { name: item.manager_name, completed: [] as number[], pending: 0 };
+      if (item.is_complete && item.final_rating !== null) {
+        g.completed.push(item.final_rating);
+      } else {
+        g.pending++;
+      }
+      managerGroups.set(mId, g);
+    }
+    const managerPerformance = Array.from(managerGroups.entries())
+      .map(([mId, g]) => ({
+        manager_id: mId,
+        manager_name: g.name,
+        with_final_rating: g.completed.length,
+        pending: g.pending,
+        avg_final_rating: g.completed.length ? round1(g.completed.reduce((a, b) => a + b, 0) / g.completed.length) : null,
+      }))
+      .sort((a, b) => (b.avg_final_rating || 0) - (a.avg_final_rating || 0))
+      .map((item, idx) => ({ rank: idx + 1, ...item }));
+
+    const criteriaScorecard = reviewItems.map((item) => ({
+      emp_id: item.emp_id,
+      name: item.name,
+      emp_code: item.emp_code,
+      department_name: item.department_name,
+      manager_name: item.manager_name,
+      final_rating: item.final_rating,
+      is_complete: item.is_complete,
+      self_ratings: item.self_ratings,
+      manager_ratings: item.manager_ratings,
+      admin_ratings: item.admin_ratings,
+      project_avg: item.project_avg,
+      project_ratings: item.project_ratings,
+    }));
+
+    const pendingEmployees = reviewItems.filter((i) => !i.is_complete).map((i) => i.name);
+
+    return {
+      cycle: this.cyclePayload(activeCycle, today),
+      is_individual: isIndividual,
+      selected_employee: selectedEmployeeInfo,
+      kpis: {
+        total_employees: reviewItems.length,
+        reviews_completed: completedCount,
+        pending_reviews: pendingCount,
+        overall_avg_rating: overallAvgRating,
+      },
+      rating_distribution: ratingDistribution,
+      final_rating_trend: trendData,
+      average_project_rating: projectRatingsList,
+      monthly_attendance_summary: attendanceSummary,
+      employee_performance_ranking: rankingList,
+      pending_employees: pendingEmployees,
+      reporting_manager_team_performance: managerPerformance,
+      criteria_scorecard: criteriaScorecard,
+      filter_options: {
+        cycles: allCycles.map((c) => this.cyclePayload(c, today)),
+        departments,
+        managers: availableManagers,
+        employees: allEmployeesList,
+      },
     };
   }
 

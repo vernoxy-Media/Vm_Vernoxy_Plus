@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Award, Briefcase, Calendar, ClipboardList, FileText, Star, Users } from 'lucide-react';
+import { Award, Briefcase, Calendar, ClipboardList, FileText, LayoutDashboard, Star, Users } from 'lucide-react';
 import { useDepartmentOptionsQuery } from '@/features/organization/hooks/use-organization';
 import { useMyPerfReviewQuery, usePerfCyclesQuery } from '../hooks/use-performance';
 import { CYCLE_STATUS_LABEL, CycleStatusBadge, windowLabel } from '../components/perf-ui';
@@ -8,10 +8,11 @@ import { SelfReviewTab } from '../components/SelfReviewTab';
 import { TeamReviewTab } from '../components/TeamReviewTab';
 import { RatingSummaryTab } from '../components/RatingSummaryTab';
 import { ProjectRatingTab } from '../components/ProjectRatingTab';
+import { PerformanceDashboardTab } from '../components/PerformanceDashboardTab';
 
-type Tab = 'SELF' | 'TEAM' | 'PROJECT' | 'SUMMARY';
+type Tab = 'DASHBOARD' | 'SELF' | 'TEAM' | 'PROJECT' | 'SUMMARY';
 
-/** Performance Review: Self Review, Team Review, Project Rating and Rating Summary (BFD Screens 5–8). */
+/** Performance Review: Dashboard, Self Review, Team Review, Project Rating and Rating Summary (BFD Screens 5–8 & VM-004 Dashboard). */
 export const PerformancePage: React.FC = () => {
   const [cycleId, setCycleId] = useState<number | undefined>();
   const { data: cycles = [] } = usePerfCyclesQuery();
@@ -23,15 +24,18 @@ export const PerformancePage: React.FC = () => {
   const { data: departments = [] } = useDepartmentOptionsQuery({ enabled: isAdmin });
 
   const tabs = useMemo(() => {
-    const list: Array<{ id: Tab; label: string; icon: React.ElementType }> = [{ id: 'SELF', label: 'Self Review', icon: Star }];
+    const list: Array<{ id: Tab; label: string; icon: React.ElementType }> = [
+      { id: 'DASHBOARD', label: 'Dashboard', icon: LayoutDashboard },
+      { id: 'SELF', label: 'Self Review', icon: Star },
+    ];
     if (isManager || isAdmin) list.push({ id: 'TEAM', label: 'Team Review', icon: Users });
     if (isPM) list.push({ id: 'PROJECT', label: 'Project Rating', icon: Briefcase });
     if (isAdmin) list.push({ id: 'SUMMARY', label: 'Rating Summary', icon: ClipboardList });
     return list;
   }, [isAdmin, isManager, isPM]);
-  const [tab, setTab] = useState<Tab>('SELF');
+  const [tab, setTab] = useState<Tab>('DASHBOARD');
   const [focusEmp, setFocusEmp] = useState<number | null>(null);
-  const current = tabs.some((t) => t.id === tab) ? tab : 'SELF';
+  const current = tabs.some((t) => t.id === tab) ? tab : (isAdmin || isManager ? 'DASHBOARD' : 'SELF');
   const cycle = my?.cycle;
 
   return (
@@ -115,6 +119,7 @@ export const PerformancePage: React.FC = () => {
         </div>
       )}
 
+      {current === 'DASHBOARD' && <PerformanceDashboardTab initialCycleId={activeCycleId} />}
       {current === 'SELF' && <SelfReviewTab data={my} loading={isLoading} />}
       {current === 'TEAM' && (
         <TeamReviewTab cycleId={activeCycleId} isAdmin={isAdmin} isManager={isManager} departments={departments} focusEmpId={focusEmp} />
