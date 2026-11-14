@@ -326,6 +326,10 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
       </JField>
 
       {/* Tech Stack: chosen from the lists the Admin keeps in Settings. All optional. */}
+      <div className="border-t border-[#DFE1E6] pt-4">
+        <h4 className="text-[12px] font-bold uppercase tracking-[0.04em] text-[#5E6C84]">Tech stack</h4>
+        <p className="mt-0.5 text-[12px] text-[#5E6C84]">Pick all that apply. You can change this later from the project's Tech &amp; Deployment page.</p>
+      </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <TechMultiSelect lookupType="tech_frontend" label="Front-End" values={techFrontend} onChange={setTechFrontend} />
         <TechMultiSelect lookupType="tech_backend" label="Back-End" values={techBackend} onChange={setTechBackend} />
