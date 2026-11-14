@@ -108,7 +108,7 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
       : 0;
 
     const dep = p.project_deployments;
-    const deployment = isManagerOrAdmin && dep
+    const deployment = dep
       ? {
           deployment_id: dep.deployment_id,
           project_id: dep.project_id,
@@ -124,7 +124,7 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
         }
       : null;
 
-    const credentials = isManagerOrAdmin && p.project_credentials
+    const credentials = p.project_credentials
       ? p.project_credentials.map((c: any) => ({
           credential_id: c.credential_id,
           project_id: c.project_id,
@@ -156,6 +156,7 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
       tech_frontend: p.tech_frontend,
       tech_backend: p.tech_backend,
       tech_cloud: p.tech_cloud,
+      tech_database: p.tech_database,
       description: p.description,
       members,
       deployment,
@@ -207,6 +208,7 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
           tech_frontend: input.tech_frontend?.trim() || null,
           tech_backend: input.tech_backend?.trim() || null,
           tech_cloud: input.tech_cloud?.trim() || null,
+          tech_database: input.tech_database?.trim() || null,
           description: input.description?.trim() || null,
           created_by: input.created_by,
         },
@@ -975,6 +977,7 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
       if (input.tech_frontend !== undefined) dataToUpdate.tech_frontend = input.tech_frontend?.trim() || null;
       if (input.tech_backend !== undefined) dataToUpdate.tech_backend = input.tech_backend?.trim() || null;
       if (input.tech_cloud !== undefined) dataToUpdate.tech_cloud = input.tech_cloud?.trim() || null;
+      if (input.tech_database !== undefined) dataToUpdate.tech_database = input.tech_database?.trim() || null;
       if (input.description !== undefined) dataToUpdate.description = input.description?.trim() || null;
 
       if (Object.keys(dataToUpdate).length > 0) {

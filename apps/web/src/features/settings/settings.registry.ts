@@ -39,6 +39,10 @@ import {
   Building,
   Palette,
   LucideIcon,
+  Code,
+  Server,
+  Cloud,
+  Database,
 } from 'lucide-react';
 import type { MeResponseDto } from '@vernoxy-pulse/api-client';
 
@@ -170,6 +174,19 @@ const SettingsCountriesSection = React.lazy(() =>
 
 const SettingsCallNotReceivedReasonsSection = React.lazy(() =>
   import('./sections/SettingsCallNotReceivedReasonsSection').then((m) => ({ default: m.SettingsCallNotReceivedReasonsSection }))
+);
+
+const SettingsTechFrontendSection = React.lazy(() =>
+  import('./sections/SettingsTechStackSections').then((m) => ({ default: m.SettingsTechFrontendSection }))
+);
+const SettingsTechBackendSection = React.lazy(() =>
+  import('./sections/SettingsTechStackSections').then((m) => ({ default: m.SettingsTechBackendSection }))
+);
+const SettingsTechCloudSection = React.lazy(() =>
+  import('./sections/SettingsTechStackSections').then((m) => ({ default: m.SettingsTechCloudSection }))
+);
+const SettingsTechDatabaseSection = React.lazy(() =>
+  import('./sections/SettingsTechStackSections').then((m) => ({ default: m.SettingsTechDatabaseSection }))
 );
 
 export interface SettingsSectionConfig {
@@ -385,6 +402,42 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     path: '/admin/settings/project-types',
     icon: Shapes,
     component: SettingsProjectTypesSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Projects',
+  },
+  {
+    id: 'tech-frontend',
+    label: 'Front-End Technologies',
+    path: '/admin/settings/tech-frontend',
+    icon: Code,
+    component: SettingsTechFrontendSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Projects',
+  },
+  {
+    id: 'tech-backend',
+    label: 'Back-End Technologies',
+    path: '/admin/settings/tech-backend',
+    icon: Server,
+    component: SettingsTechBackendSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Projects',
+  },
+  {
+    id: 'tech-cloud',
+    label: 'Cloud Platforms',
+    path: '/admin/settings/tech-cloud',
+    icon: Cloud,
+    component: SettingsTechCloudSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Projects',
+  },
+  {
+    id: 'tech-database',
+    label: 'Databases',
+    path: '/admin/settings/tech-database',
+    icon: Database,
+    component: SettingsTechDatabaseSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
     group: 'Projects',
   },

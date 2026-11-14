@@ -211,6 +211,11 @@ export class CreateProjectDto {
   @IsString()
   tech_cloud?: string;
 
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  tech_database?: string;
+
   @ApiPropertyOptional({ type: CreateDeploymentDto })
   @IsOptional()
   @ValidateNested()
@@ -365,6 +370,11 @@ export class UpdateProjectDto {
   @IsOptional()
   @IsString()
   tech_cloud?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  tech_database?: string;
 
   @ApiPropertyOptional({ type: CreateDeploymentDto })
   @IsOptional()

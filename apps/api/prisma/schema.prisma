@@ -1320,6 +1320,7 @@ model projects {
   tech_frontend                                    String?
   tech_backend                                     String?
   tech_cloud                                       String?
+  tech_database                                    String?
   row_version                                      Int                    @default(1)
   created_at                                       DateTime               @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
   created_by                                       Int?

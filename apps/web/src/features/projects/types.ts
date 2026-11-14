@@ -83,6 +83,7 @@ export interface ProjectItem {
   tech_frontend?: string | null;
   tech_backend?: string | null;
   tech_cloud?: string | null;
+  tech_database?: string | null;
   description?: string | null;
   members: ProjectMember[];
   deployment?: ProjectDeployment | null;
@@ -113,6 +114,7 @@ export interface CreateProjectPayload {
   tech_frontend?: string;
   tech_backend?: string;
   tech_cloud?: string;
+  tech_database?: string;
   description?: string;
   deployment?: {
     vercel_account?: string;

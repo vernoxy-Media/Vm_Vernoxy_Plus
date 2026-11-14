@@ -55,6 +55,11 @@ export const ALLOWED_LOOKUP_TYPES = [
   'state',
   'country',
   'call_not_received_reason',
+  // Project Tech Stack lists kept by the Admin
+  'tech_frontend',
+  'tech_backend',
+  'tech_cloud',
+  'tech_database',
 ];
 
 export class LookupOptionsQueryDto {

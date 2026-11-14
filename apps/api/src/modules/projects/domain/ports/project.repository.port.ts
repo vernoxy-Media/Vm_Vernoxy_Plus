@@ -28,6 +28,7 @@ export interface CreateProjectInput {
   tech_frontend?: string;
   tech_backend?: string;
   tech_cloud?: string;
+  tech_database?: string;
   description?: string;
   // Deployment details
   deployment?: {
@@ -65,6 +66,7 @@ export interface UpdateProjectInput {
   tech_frontend?: string;
   tech_backend?: string;
   tech_cloud?: string;
+  tech_database?: string;
   description?: string;
   deployment?: {
     vercel_account?: string;

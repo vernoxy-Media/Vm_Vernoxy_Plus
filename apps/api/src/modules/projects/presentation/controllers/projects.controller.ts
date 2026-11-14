@@ -81,6 +81,7 @@ const PM_EDITABLE = [
   'tech_frontend',
   'tech_backend',
   'tech_cloud',
+  'tech_database',
   'deployment',
   'credentials',
 ];

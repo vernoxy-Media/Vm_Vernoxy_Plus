@@ -31,6 +31,8 @@ import {
   AlertTriangle,
   RotateCcw,
   Search,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useSocket } from '@/shared/socket/SocketContext';
@@ -72,6 +74,7 @@ import { CreateSprintModal } from '../components/CreateSprintModal';
 import { CreateProjectTaskModal } from '../components/CreateProjectTaskModal';
 import { CreateBugModal } from '../components/CreateBugModal';
 import { BugDetailsModal } from '../components/BugDetailsModal';
+import { TechMultiSelect, parseTech, joinTech } from '../components/TechMultiSelect';
 import type { TaskDetailDto } from '@vernoxy-pulse/api-client';
 
 const STATUS_CONFIGS: Record<ProjectStatus, { label: string; bg: string; text: string; dot: string }> = {
@@ -92,6 +95,11 @@ const STAGE_CONFIG: Record<TaskStage, { label: string; badge: string }> = {
   requested: { label: 'Submitted', badge: 'bg-purple-100 text-purple-700 border-purple-200' },
   completed: { label: 'Approved', badge: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
 };
+
+function formatDetailDate(value: string): string {
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+}
 
 export const ProjectDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -170,9 +178,12 @@ export const ProjectDetailPage: React.FC = () => {
   const [editClientName, setEditClientName] = useState('');
   const [editLeadReceivedDate, setEditLeadReceivedDate] = useState('');
   const [editProjectApprovedDate, setEditProjectApprovedDate] = useState('');
-  const [editTechFrontend, setEditTechFrontend] = useState('');
-  const [editTechBackend, setEditTechBackend] = useState('');
-  const [editTechCloud, setEditTechCloud] = useState('');
+  const [editTechFrontend, setEditTechFrontend] = useState<string[]>([]);
+  const [editTechBackend, setEditTechBackend] = useState<string[]>([]);
+  const [editTechCloud, setEditTechCloud] = useState<string[]>([]);
+  const [editTechDatabase, setEditTechDatabase] = useState<string[]>([]);
+  // Saved logins whose password is shown right now (hidden by default)
+  const [shownCredentialIds, setShownCredentialIds] = useState<number[]>([]);
   const [editVercelAccount, setEditVercelAccount] = useState('');
   const [editVercelLink, setEditVercelLink] = useState('');
   const [editDomainLink, setEditDomainLink] = useState('');
@@ -233,9 +244,10 @@ export const ProjectDetailPage: React.FC = () => {
       setEditClientName(projData.client_name || '');
       setEditLeadReceivedDate(projData.lead_received_date ? projData.lead_received_date.split('T')[0] : '');
       setEditProjectApprovedDate(projData.project_approved_date ? projData.project_approved_date.split('T')[0] : '');
-      setEditTechFrontend(projData.tech_frontend || '');
-      setEditTechBackend(projData.tech_backend || '');
-      setEditTechCloud(projData.tech_cloud || '');
+      setEditTechFrontend(parseTech(projData.tech_frontend));
+      setEditTechBackend(parseTech(projData.tech_backend));
+      setEditTechCloud(parseTech(projData.tech_cloud));
+      setEditTechDatabase(parseTech(projData.tech_database));
       setEditVercelAccount(projData.deployment?.vercel_account || '');
       setEditVercelLink(projData.deployment?.vercel_link || '');
       setEditDomainLink(projData.deployment?.domain_link || '');
@@ -613,9 +625,10 @@ export const ProjectDetailPage: React.FC = () => {
         client_name: editClientName.trim() || undefined,
         lead_received_date: editLeadReceivedDate || undefined,
         project_approved_date: editProjectApprovedDate || undefined,
-        tech_frontend: editTechFrontend.trim() || undefined,
-        tech_backend: editTechBackend.trim() || undefined,
-        tech_cloud: editTechCloud.trim() || undefined,
+        tech_frontend: joinTech(editTechFrontend),
+        tech_backend: joinTech(editTechBackend),
+        tech_cloud: joinTech(editTechCloud),
+        tech_database: joinTech(editTechDatabase),
         deployment: {
           vercel_account: editVercelAccount.trim() || undefined,
           vercel_link: editVercelLink.trim() || undefined,
@@ -951,7 +964,7 @@ export const ProjectDetailPage: React.FC = () => {
               <div>
                 <h3 className="text-base font-bold text-slate-900">Project Information & Configurations</h3>
                 <p className="text-xs text-slate-500">
-                  Switch between project overview, tech stack, and deployment credentials
+                  Project overview, tech stack, and deployment details. Only the Admin and the Project Manager can edit.
                 </p>
               </div>
               {isManagerOrAdmin && (
@@ -1014,19 +1027,17 @@ export const ProjectDetailPage: React.FC = () => {
                 <Code className="w-3.5 h-3.5" />
                 <span>Tech Stack</span>
               </button>
-              {isManagerOrAdmin && (
-                <button
-                  type="button"
-                  onClick={() => setDetailsSubTab('deployment')}
-                  className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition ${detailsSubTab === 'deployment'
-                      ? 'bg-blue-600 text-white shadow-xs'
-                      : 'text-slate-600 hover:bg-slate-100'
-                    }`}
-                >
-                  <Server className="w-3.5 h-3.5" />
-                  <span>Deployment Details</span>
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => setDetailsSubTab('deployment')}
+                className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition ${detailsSubTab === 'deployment'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+              >
+                <Server className="w-3.5 h-3.5" />
+                <span>Deployment Details</span>
+              </button>
             </div>
 
             {/* Sub-Tab 1: Overview & Client Information */}
@@ -1175,77 +1186,43 @@ export const ProjectDetailPage: React.FC = () => {
                 </div>
 
                 {isEditingDetails ? (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        Front-End Technologies
-                      </label>
-                      <textarea
-                        rows={3}
-                        value={editTechFrontend}
-                        onChange={(e) => setEditTechFrontend(e.target.value)}
-                        placeholder="e.g. Next.js 14, Tailwind CSS, TypeScript"
-                        className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        Back-End Technologies
-                      </label>
-                      <textarea
-                        rows={3}
-                        value={editTechBackend}
-                        onChange={(e) => setEditTechBackend(e.target.value)}
-                        placeholder="e.g. NestJS, Prisma ORM, PostgreSQL"
-                        className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        Cloud Platform / Infra
-                      </label>
-                      <textarea
-                        rows={3}
-                        value={editTechCloud}
-                        onChange={(e) => setEditTechCloud(e.target.value)}
-                        placeholder="e.g. AWS S3, Vercel, Supabase"
-                        className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none"
-                      />
-                    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <TechMultiSelect lookupType="tech_frontend" label="Front-End Technologies" values={editTechFrontend} onChange={setEditTechFrontend} />
+                    <TechMultiSelect lookupType="tech_backend" label="Back-End Technologies" values={editTechBackend} onChange={setEditTechBackend} />
+                    <TechMultiSelect lookupType="tech_cloud" label="Cloud Platform" values={editTechCloud} onChange={setEditTechCloud} />
+                    <TechMultiSelect lookupType="tech_database" label="Database" values={editTechDatabase} onChange={setEditTechDatabase} />
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="p-4 bg-slate-50/70 rounded-2xl border border-slate-100">
-                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                        Front-End
-                      </span>
-                      <p className="text-xs font-semibold text-slate-800 whitespace-pre-wrap">
-                        {project.tech_frontend || 'Not specified'}
-                      </p>
-                    </div>
-                    <div className="p-4 bg-slate-50/70 rounded-2xl border border-slate-100">
-                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                        Back-End
-                      </span>
-                      <p className="text-xs font-semibold text-slate-800 whitespace-pre-wrap">
-                        {project.tech_backend || 'Not specified'}
-                      </p>
-                    </div>
-                    <div className="p-4 bg-slate-50/70 rounded-2xl border border-slate-100">
-                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                        Cloud Platform
-                      </span>
-                      <p className="text-xs font-semibold text-slate-800 whitespace-pre-wrap">
-                        {project.tech_cloud || 'Not specified'}
-                      </p>
-                    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {([
+                      ['Front-End', project.tech_frontend],
+                      ['Back-End', project.tech_backend],
+                      ['Cloud Platform', project.tech_cloud],
+                      ['Database', project.tech_database],
+                    ] as const).map(([label, value]) => {
+                      const items = parseTech(value);
+                      return (
+                        <div key={label} className="p-4 bg-slate-50/70 rounded-2xl border border-slate-100">
+                          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">{label}</span>
+                          {items.length === 0 ? (
+                            <p className="text-xs text-slate-400">Not specified</p>
+                          ) : (
+                            <div className="flex flex-wrap gap-1.5">
+                              {items.map((t) => (
+                                <span key={t} className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-xs font-semibold">{t}</span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
             )}
 
-            {/* Sub-Tab 3: Deployment & Production Credentials (Section 2.5 BFD - Hidden for Employees per Section 3.3) */}
-            {detailsSubTab === 'deployment' && isManagerOrAdmin && (
+            {/* Sub-Tab 3: Deployment & Production Credentials (Section 2.5 BFD - Visible to all project members, editable by Admin and Project Manager) */}
+            {detailsSubTab === 'deployment' && (
               <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-4">
                 <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
                   <div className="w-7 h-7 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center">
@@ -1256,7 +1233,7 @@ export const ProjectDetailPage: React.FC = () => {
                       Deployment Details & Credentials (Section 2.5)
                     </h4>
                     <p className="text-[11px] text-slate-400">
-                      Production environments, domain links, and secure administrative login pairs
+                      Visible to all project members. Only the Admin and the Project Manager can edit.
                     </p>
                   </div>
                 </div>
@@ -1411,17 +1388,32 @@ export const ProjectDetailPage: React.FC = () => {
                               }}
                               className="w-1/3 px-3 py-1.5 text-xs border border-slate-200 rounded-xl"
                             />
-                            <input
-                              type="text"
-                              placeholder="Password"
-                              value={c.admin_password}
-                              onChange={(e) => {
-                                const copy = [...editCredentials];
-                                copy[idx].admin_password = e.target.value;
-                                setEditCredentials(copy);
-                              }}
-                              className="flex-1 px-3 py-1.5 text-xs border border-slate-200 rounded-xl font-mono"
-                            />
+                            <div className="relative flex-1">
+                              <input
+                                type={c.showPassword ? 'text' : 'password'}
+                                placeholder="Password"
+                                autoComplete="new-password"
+                                value={c.admin_password}
+                                onChange={(e) => {
+                                  const copy = [...editCredentials];
+                                  copy[idx] = { ...copy[idx], admin_password: e.target.value };
+                                  setEditCredentials(copy);
+                                }}
+                                className="w-full px-3 py-1.5 pr-9 text-xs border border-slate-200 rounded-xl font-mono"
+                              />
+                              <button
+                                type="button"
+                                aria-label={c.showPassword ? 'Hide password' : 'Show password'}
+                                onClick={() => {
+                                  const copy = [...editCredentials];
+                                  copy[idx] = { ...copy[idx], showPassword: !copy[idx].showPassword };
+                                  setEditCredentials(copy);
+                                }}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
+                              >
+                                {c.showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              </button>
+                            </div>
                             <button
                               type="button"
                               onClick={() => {
@@ -1483,6 +1475,42 @@ export const ProjectDetailPage: React.FC = () => {
                       </div>
                     </div>
 
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                      <div>
+                        <span className="text-slate-400 block text-[11px]">Deployment Date</span>
+                        <span className="font-semibold text-slate-800">
+                          {project.deployment?.deployment_date ? formatDetailDate(project.deployment.deployment_date) : 'Not specified'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[11px]">Go Live Date</span>
+                        <span className="font-semibold text-slate-800">
+                          {project.deployment?.go_live_date ? formatDetailDate(project.deployment.go_live_date) : 'Not specified'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[11px]">Deployment Done By</span>
+                        <span className="font-semibold text-slate-800">
+                          {project.deployment?.deployment_done_by_name || 'Not specified'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[11px]">Admin Login Link</span>
+                        {project.deployment?.admin_login_link ? (
+                          <a
+                            href={project.deployment.admin_login_link}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-blue-600 font-semibold hover:underline inline-flex items-center gap-1"
+                          >
+                            Open Admin Login <ExternalLink className="w-3 h-3" />
+                          </a>
+                        ) : (
+                          <span className="text-slate-400">Not specified</span>
+                        )}
+                      </div>
+                    </div>
+
                     {/* Credentials Cards */}
                     <div>
                       <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
@@ -1505,18 +1533,36 @@ export const ProjectDetailPage: React.FC = () => {
                                 <div className="text-slate-700 font-mono font-medium truncate">
                                   ID: {cred.admin_id}
                                 </div>
-                                <div className="flex items-center justify-between text-slate-700 font-mono text-[11px]">
-                                  <span>PWD: ••••••••</span>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      navigator.clipboard.writeText(cred.admin_password_encrypted || '');
-                                      alert('Password copied to clipboard!');
-                                    }}
-                                    className="text-[10px] text-blue-600 hover:underline flex items-center gap-1"
-                                  >
-                                    <Copy className="w-3 h-3" /> Copy
-                                  </button>
+                                <div className="flex items-center justify-between gap-2 text-slate-700 font-mono text-[11px]">
+                                  <span className="truncate">
+                                    PWD: {shownCredentialIds.includes(cred.credential_id) ? cred.admin_password_encrypted : '••••••••'}
+                                  </span>
+                                  <span className="flex shrink-0 items-center gap-2">
+                                    <button
+                                      type="button"
+                                      aria-label={shownCredentialIds.includes(cred.credential_id) ? 'Hide password' : 'Show password'}
+                                      onClick={() =>
+                                        setShownCredentialIds((ids) =>
+                                          ids.includes(cred.credential_id)
+                                            ? ids.filter((i) => i !== cred.credential_id)
+                                            : [...ids, cred.credential_id],
+                                        )
+                                      }
+                                      className="text-slate-400 hover:text-slate-700"
+                                    >
+                                      {shownCredentialIds.includes(cred.credential_id) ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        navigator.clipboard.writeText(cred.admin_password_encrypted || '');
+                                        alert('Password copied to clipboard!');
+                                      }}
+                                      className="text-[10px] text-blue-600 hover:underline flex items-center gap-1"
+                                    >
+                                      <Copy className="w-3 h-3" /> Copy
+                                    </button>
+                                  </span>
                                 </div>
                               </div>
                             </div>
