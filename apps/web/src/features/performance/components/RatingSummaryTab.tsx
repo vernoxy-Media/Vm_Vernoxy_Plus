@@ -115,7 +115,7 @@ export const RatingSummaryTab: React.FC<{
                       <Star className="w-3 h-3" /> Rate
                     </button>
                   )}
-                  {r.review_id && (closed || r.self_status === 'SUBMITTED' || r.manager_status === 'SUBMITTED' || r.admin_status === 'SUBMITTED') && (
+                  {r.review_id && (closed || r.self_status === 'SUBMITTED' || r.manager_status === 'SUBMITTED' || r.admin_status === 'SUBMITTED' || r.project_avg !== null) && (
                     <button type="button" className="text-[11px] font-semibold text-violet-600 hover:underline inline-flex items-center gap-0.5 ml-2" onClick={() => setReopenFor(r)}>
                       <RotateCcw className="w-3 h-3" /> Open again
                     </button>
@@ -149,6 +149,7 @@ const ReopenModal: React.FC<{ item: PerfSummaryItem; closed: boolean; onClose: (
     { part: 'SELF', label: `Self review (${item.name})`, status: item.self_status },
     { part: 'MANAGER', label: `Reporting Manager review${item.manager_name ? ` (${item.manager_name})` : ''}`, status: item.manager_status },
     { part: 'ADMIN', label: 'Admin review', status: item.admin_status },
+    ...(item.project_avg !== null ? [{ part: 'PROJECT' as ReviewPart, label: `Project rating (${item.name})`, status: 'SUBMITTED' }] : []),
   ].filter((o) => o.status === 'SUBMITTED' || (closed && o.status === 'PENDING')) as any;
   const [part, setPart] = useState<ReviewPart | ''>(options[0]?.part || '');
   const [reason, setReason] = useState('');

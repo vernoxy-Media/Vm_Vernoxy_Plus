@@ -123,10 +123,13 @@ export class RuleError extends Error {
  * Builds the stored question list: the 5 fixed questions first (always the
  * system copy, so they cannot be edited or removed), then Admin's extra questions.
  */
-export function normalizeQuestions(input: any[] | undefined): PerfQuestion[] {
+export function normalizeQuestions(input: any[] | undefined, customTitles?: Record<string, string>): PerfQuestion[] {
   const extras = (Array.isArray(input) ? input : []).filter((q) => q && !q.is_fixed && !FIXED_IDS.has(String(q.id)));
   const seen = new Set<string>(FIXED_IDS);
-  const out: PerfQuestion[] = FIXED_RATING_QUESTIONS.map((q) => ({ ...q }));
+  const out: PerfQuestion[] = FIXED_RATING_QUESTIONS.map((q) => ({
+    ...q,
+    title: (customTitles && customTitles[q.id]?.trim()) || q.title,
+  }));
   extras.forEach((q, i) => {
     const title = String(q.title ?? '').trim();
     if (!title) throw new RuleError('Please write the question for every extra question.', 'questions');

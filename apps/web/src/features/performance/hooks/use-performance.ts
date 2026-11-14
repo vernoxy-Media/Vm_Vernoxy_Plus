@@ -7,7 +7,7 @@ export type CycleType = 'YEARLY' | 'QUARTERLY' | 'MONTHLY';
 export type CycleStatus = 'UPCOMING' | 'REVIEW_OPEN' | 'CLOSED';
 export type QuestionType = 'STAR_RATING' | 'SHORT_ANSWER' | 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE';
 export type ReviewPartStatus = 'PENDING' | 'SUBMITTED' | 'REOPENED';
-export type ReviewPart = 'SELF' | 'MANAGER' | 'ADMIN';
+export type ReviewPart = 'SELF' | 'MANAGER' | 'ADMIN' | 'PROJECT';
 
 export interface PerfCycleItem {
   cycle_id: number;

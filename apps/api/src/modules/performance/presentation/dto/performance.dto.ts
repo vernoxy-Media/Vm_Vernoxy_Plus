@@ -213,10 +213,10 @@ export class SubmitReviewRatingsDto {
   is_draft?: boolean;
 }
 
-export type ReviewPart = 'SELF' | 'MANAGER' | 'ADMIN';
+export type ReviewPart = 'SELF' | 'MANAGER' | 'ADMIN' | 'PROJECT';
 
 export class ReopenReviewDto {
-  @IsIn(['SELF', 'MANAGER', 'ADMIN'], { message: 'Please choose which review to open again.' })
+  @IsIn(['SELF', 'MANAGER', 'ADMIN', 'PROJECT'], { message: 'Please choose which review to open again.' })
   part!: ReviewPart;
 
   @IsString()

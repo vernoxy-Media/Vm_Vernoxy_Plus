@@ -399,6 +399,22 @@ export const App: React.FC = () => {
                 path="/admin/settings/performance"
                 element={<Navigate to="/admin/settings/performance-cycles" replace />}
               />
+              <Route
+                path="/admin/performance-cycles"
+                element={<Navigate to="/admin/settings/performance-cycles" replace />}
+              />
+              <Route
+                path="/admin/performance-forms"
+                element={<Navigate to="/admin/settings/performance-forms" replace />}
+              />
+              <Route
+                path="/admin/cycle-master"
+                element={<Navigate to="/admin/settings/performance-cycles" replace />}
+              />
+              <Route
+                path="/admin/question-master"
+                element={<Navigate to="/admin/settings/performance-forms" replace />}
+              />
 
               {/* Backward-compatibility redirects for old URLs */}
               <Route

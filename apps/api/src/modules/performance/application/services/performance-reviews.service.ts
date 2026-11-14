@@ -32,7 +32,7 @@ const PART_COLS = {
   ADMIN: { status: 'admin_status', ratings: 'admin_ratings', answers: 'admin_answers', comment: 'admin_comment', avg: 'admin_avg_rating', at: 'admin_submitted_at' },
 } as const;
 
-const PART_NAMES: Record<ReviewPart, string> = { SELF: 'Employee', MANAGER: 'Reporting Manager', ADMIN: 'Admin' };
+const PART_NAMES: Record<ReviewPart, string> = { SELF: 'Employee', MANAGER: 'Reporting Manager', ADMIN: 'Admin', PROJECT: 'Project Manager' };
 const ALREADY_SUBMITTED = 'This review is already submitted and cannot be changed.';
 const NO_MANAGER = 'This employee has no Reporting Manager. Please set one in Employee Details.';
 
@@ -401,7 +401,7 @@ export class PerformanceReviewsService {
     if (!isAdmin && !isEmployee && !isManager) {
       throw perfError('You do not have access to this review.', 'review_id', HttpStatus.FORBIDDEN, 'FORBIDDEN');
     }
-    const pick = (part: ReviewPart) => {
+    const pick = (part: 'SELF' | 'MANAGER' | 'ADMIN') => {
       const c = PART_COLS[part];
       return {
         status: (r as any)[c.status],
@@ -447,7 +447,7 @@ export class PerformanceReviewsService {
     return this.submitPart('ADMIN', reviewId, dto, user);
   }
 
-  private async submitPart(part: ReviewPart, reviewId: number, dto: SubmitReviewRatingsDto, user: any) {
+  private async submitPart(part: 'SELF' | 'MANAGER' | 'ADMIN', reviewId: number, dto: SubmitReviewRatingsDto, user: any) {
     const empId = requireEmpId(user);
     const review = await this.prisma.perf_reviews.findUnique({
       where: { review_id: reviewId },
@@ -544,9 +544,43 @@ export class PerformanceReviewsService {
     const adminId = await this.access.assertAdmin(user);
     const r = await this.prisma.perf_reviews.findUnique({ where: { review_id: reviewId }, include: { perf_cycles: true } });
     if (!r) throw perfError('Review not found.', 'review_id', HttpStatus.NOT_FOUND, 'NOT_FOUND');
+    const closed = cycleStatus(r.perf_cycles.review_start_date, r.perf_cycles.review_end_date) === 'CLOSED';
+
+    if (dto.part === 'PROJECT') {
+      const projRatings = await this.prisma.perf_project_ratings.findMany({
+        where: { cycle_id: r.cycle_id, emp_id: r.emp_id },
+      });
+      if (!projRatings.length) {
+        throw perfError('No project rating found for this employee in this cycle.', 'part');
+      }
+      if (projRatings.every((pr) => pr.status === 'DRAFT') && !closed) {
+        throw perfError('The project rating is not submitted yet and the review window is still open.', 'part');
+      }
+      await this.prisma.perf_project_ratings.updateMany({
+        where: { cycle_id: r.cycle_id, emp_id: r.emp_id },
+        data: {
+          status: 'DRAFT',
+          submitted_at: null,
+          updated_at: new Date(),
+        },
+      });
+      const pmIds = Array.from(new Set(projRatings.map((pr) => pr.project_manager_id).filter(Boolean)));
+      if (pmIds.length) {
+        await this.notify({
+          recipients: pmIds,
+          kind: 'perf_review_reopened',
+          title: 'Project rating opened again',
+          body: `Admin has opened the project rating for ${periodLabel(r.perf_cycles)} again. Reason: ${dto.reason.trim()}`,
+          entityType: 'perf_cycles',
+          entityId: r.cycle_id,
+          createdBy: adminId,
+        });
+      }
+      return { success: true };
+    }
+
     const c = PART_COLS[dto.part];
     const status = (r as any)[c.status];
-    const closed = cycleStatus(r.perf_cycles.review_start_date, r.perf_cycles.review_end_date) === 'CLOSED';
     if (status === 'REOPENED') throw perfError('This review is already open again.', 'part');
     if (status !== 'SUBMITTED' && !closed) {
       throw perfError('This review is not submitted yet and the review window is still open.', 'part');
@@ -606,19 +640,22 @@ export class PerformanceReviewsService {
     const byEmp = new Map(ratings.map((r) => [Number(r.emp_id), r]));
     const submitted = ratings.length > 0 && ratings.every((r) => r.status === 'SUBMITTED') && members.every((m) => byEmp.has(m.emp_id));
     const status = cycleStatus(cycle.review_start_date, cycle.review_end_date);
+    const hasReopenedDraft = ratings.some((r) => r.status === 'DRAFT');
     return {
       project: { project_id: project.project_id, project_name: project.project_name, project_manager_name: project.project_manager_name },
       cycle: this.cyclePayload(cycle, todayStr()),
       submitted,
-      can_edit: status === 'REVIEW_OPEN' && !submitted,
+      can_edit: (status === 'REVIEW_OPEN' || hasReopenedDraft) && !submitted,
       message:
-        status === 'UPCOMING'
-          ? `This review opens on ${fmtDate(cycle.review_start_date)}.`
-          : status === 'CLOSED' && !submitted
-            ? `The review window closed on ${fmtDate(cycle.review_end_date)}. Please contact Admin.`
-            : submitted
-              ? 'Ratings submitted.'
-              : null,
+        hasReopenedDraft
+          ? 'Admin has opened project ratings for updates. Please submit your ratings.'
+          : status === 'UPCOMING'
+            ? `This review opens on ${fmtDate(cycle.review_start_date)}.`
+            : status === 'CLOSED' && !submitted
+              ? `The review window closed on ${fmtDate(cycle.review_end_date)}. Please contact Admin.`
+              : submitted
+                ? 'Ratings submitted.'
+                : null,
       members: members.map((m) => {
         const r = byEmp.get(m.emp_id);
         return {
@@ -638,7 +675,12 @@ export class PerformanceReviewsService {
     const project = await this.loadOwnProject(dto.project_id, empId);
     const cycle = await this.prisma.perf_cycles.findUnique({ where: { cycle_id: dto.cycle_id } });
     if (!cycle) throw perfError('Please select the Cycle.', 'cycle_id');
-    this.assertWindowOpen(cycle);
+    const hasReopenedDraft = await this.prisma.perf_project_ratings.findFirst({
+      where: { project_id: dto.project_id, cycle_id: dto.cycle_id, status: 'DRAFT' },
+    });
+    if (!hasReopenedDraft) {
+      this.assertWindowOpen(cycle);
+    }
     const members = await this.projectMembers(dto.project_id, project.project_manager_id);
     const memberIds = new Set(members.map((m) => m.emp_id));
     const existing = await this.prisma.$queryRaw<any[]>`
@@ -766,7 +808,7 @@ export class PerformanceReviewsService {
     };
   }
 
-  private partState(r: any, part: ReviewPart, cycle: any, today: string): { canEdit: boolean; message: string | null } {
+  private partState(r: any, part: 'SELF' | 'MANAGER' | 'ADMIN', cycle: any, today: string): { canEdit: boolean; message: string | null } {
     const status = r[PART_COLS[part].status];
     if (status === 'SUBMITTED') return { canEdit: false, message: ALREADY_SUBMITTED };
     if (status === 'REOPENED') return { canEdit: true, message: 'Admin has opened this review again. Please submit it.' };

@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { Award, Briefcase, ClipboardList, Star, Users } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Award, Briefcase, Calendar, ClipboardList, FileText, Star, Users } from 'lucide-react';
 import { useDepartmentOptionsQuery } from '@/features/organization/hooks/use-organization';
 import { useMyPerfReviewQuery, usePerfCyclesQuery } from '../hooks/use-performance';
 import { CYCLE_STATUS_LABEL, CycleStatusBadge, windowLabel } from '../components/perf-ui';
@@ -42,22 +43,44 @@ export const PerformancePage: React.FC = () => {
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">Star ratings from the employee, the Reporting Manager and the Admin, and the Final Rating.</p>
         </div>
-        {cycles.length > 0 && (
-          <div>
-            <label className="text-[11px] font-semibold text-slate-600 block mb-1">Cycle</label>
-            <select
-              value={activeCycleId ?? ''}
-              onChange={(e) => setCycleId(e.target.value ? Number(e.target.value) : undefined)}
-              className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 min-w-[240px]"
-            >
-              {cycles.map((c) => (
-                <option key={c.cycle_id} value={c.cycle_id}>
-                  {c.cycle_name} ({CYCLE_STATUS_LABEL[c.status]})
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
+        <div className="flex flex-wrap items-end gap-3">
+          {isAdmin && (
+            <div className="flex items-center gap-2">
+              <Link
+                to="/admin/settings/performance-cycles"
+                className="px-3 py-2 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 flex items-center gap-1.5 transition shadow-2xs"
+                title="Manage Performance Cycles"
+              >
+                <Calendar className="w-3.5 h-3.5 text-blue-600" />
+                Cycle Master
+              </Link>
+              <Link
+                to="/admin/settings/performance-forms"
+                className="px-3 py-2 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 flex items-center gap-1.5 transition shadow-2xs"
+                title="Manage Review Forms"
+              >
+                <FileText className="w-3.5 h-3.5 text-teal-600" />
+                Question Master
+              </Link>
+            </div>
+          )}
+          {cycles.length > 0 && (
+            <div>
+              <label className="text-[11px] font-semibold text-slate-600 block mb-1">Cycle</label>
+              <select
+                value={activeCycleId ?? ''}
+                onChange={(e) => setCycleId(e.target.value ? Number(e.target.value) : undefined)}
+                className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 min-w-[240px]"
+              >
+                {cycles.map((c) => (
+                  <option key={c.cycle_id} value={c.cycle_id}>
+                    {c.cycle_name} ({CYCLE_STATUS_LABEL[c.status]})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
       </div>
 
       {cycle && (
