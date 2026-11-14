@@ -17,6 +17,7 @@ import {
   X,
 } from 'lucide-react';
 import { CursorPager } from '@/shared/ui/Pagination';
+import { OrgDialog, OrgField, OrgToggle, orgInputCls } from '@/features/organization/components/OrgDialog';
 
 export const SettingsDepartmentsSection: React.FC = () => {
   const [search, setSearch] = useState('');
@@ -106,184 +107,167 @@ export const SettingsDepartmentsSection: React.FC = () => {
     }
   };
 
+  const closeCreate = () => setIsCreateOpen(false);
+  const closeEdit = () => setEditingDept(null);
+  const closeDelete = () => setDeletingDept(null);
+  const resetPaging = () => {
+    setCursor(undefined);
+    setCursorHistory([]);
+  };
+
+  const filterOptions = [
+    ['filter-status-all', 'All', undefined, 'text-blue-700'],
+    ['filter-status-active', 'Active', true, 'text-emerald-700'],
+    ['filter-status-inactive', 'Inactive', false, 'text-slate-800'],
+  ] as const;
+
   return (
     <div className="space-y-6">
       {/* Section Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-200">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">Departments</h2>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3.5">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 ring-1 ring-blue-100">
+            <Building2 className="h-5 w-5" />
+          </span>
+          <div className="min-w-0">
+            <h2 className="truncate text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">Departments</h2>
+            <p className="mt-0.5 text-sm text-slate-500">The teams of your organization. Designations and employees belong to them.</p>
+          </div>
         </div>
         <button
           type="button"
           id="add-department-button"
           onClick={handleOpenCreate}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-xs font-bold text-white shadow-xs hover:bg-blue-700 transition-colors focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 shrink-0 cursor-pointer"
+          className="inline-flex h-10 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 text-[13px] font-semibold text-white shadow-md shadow-blue-600/25 transition hover:brightness-110 focus:outline-hidden focus:ring-4 focus:ring-blue-600/20 active:scale-[0.98]"
         >
-          <Plus className="w-4 h-4 stroke-[2.5]" />
+          <Plus className="h-4 w-4" strokeWidth={2.5} />
           Add Department
         </button>
       </div>
 
       {/* Global Action Error Banner */}
       {formError && !isCreateOpen && !editingDept && !deletingDept && (
-        <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-3 text-rose-800 animate-in fade-in">
-          <AlertCircle className="w-5 h-5 mt-0.5 text-rose-600 shrink-0" />
+        <div className="flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 p-4 text-rose-800 animate-in fade-in">
+          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" />
           <div className="flex-1 text-xs font-medium">{formError}</div>
-          <button onClick={() => setFormError(null)} className="text-rose-500 hover:text-rose-700">
-            <X className="w-4 h-4" />
+          <button onClick={() => setFormError(null)} className="text-rose-500 hover:text-rose-700" aria-label="Dismiss">
+            <X className="h-4 w-4" />
           </button>
         </div>
       )}
 
-      {/* Filters and Search Bar (stitched / sticky to top) */}
-      <div className="sticky top-16 lg:top-0 z-20 bg-[#f4f6fa]/95 backdrop-blur-xs py-1">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-xl border border-slate-300 shadow-xs">
+      {/* Search and filters */}
+      <div className="flex flex-col items-stretch gap-3 md:flex-row md:items-center">
         <div className="relative flex-1">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
             id="departments-search-input"
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
-              setCursor(undefined);
-              setCursorHistory([]);
+              resetPaging();
             }}
             placeholder="Search departments..."
-            className="w-full pl-10 pr-4 py-2 rounded-lg text-sm border border-slate-300 bg-white text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all shadow-2xs"
+            className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-10 pr-4 text-sm text-slate-800 placeholder:text-slate-400 transition focus:border-blue-500 focus:bg-white focus:outline-hidden focus:ring-4 focus:ring-blue-500/10"
           />
         </div>
 
-        <div className="flex items-center gap-1 p-1 bg-white rounded-lg border border-slate-300 text-xs font-bold shadow-2xs">
-          <button
-            type="button"
-            id="filter-status-all"
-            onClick={() => {
-              setStatusFilter(undefined);
-              setCursor(undefined);
-              setCursorHistory([]);
-            }}
-            className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-              statusFilter === undefined
-                ? 'bg-blue-600 text-white font-bold'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-            }`}
-          >
-            All
-          </button>
-          <button
-            type="button"
-            id="filter-status-active"
-            onClick={() => {
-              setStatusFilter(true);
-              setCursor(undefined);
-              setCursorHistory([]);
-            }}
-            className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-              statusFilter === true
-                ? 'bg-emerald-600 text-white font-bold'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-            }`}
-          >
-            Active
-          </button>
-          <button
-            type="button"
-            id="filter-status-inactive"
-            onClick={() => {
-              setStatusFilter(false);
-              setCursor(undefined);
-              setCursorHistory([]);
-            }}
-            className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-              statusFilter === false
-                ? 'bg-slate-700 text-white font-bold'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-            }`}
-          >
-            Inactive
-          </button>
+        <div role="group" aria-label="Status" className="inline-flex self-start rounded-xl bg-slate-100 p-1 text-[13px] font-semibold md:self-auto">
+          {filterOptions.map(([id, label, value, on]) => (
+            <button
+              key={id}
+              type="button"
+              id={id}
+              onClick={() => {
+                setStatusFilter(value);
+                resetPaging();
+              }}
+              className={`cursor-pointer rounded-lg px-3.5 py-1.5 transition ${
+                statusFilter === value ? `bg-white shadow-sm ${on}` : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
       </div>
-    </div>
 
       {/* Departments Table */}
-      <div className="rounded-xl border border-slate-300 overflow-hidden bg-white shadow-xs">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
         {isLoading ? (
-          <div className="py-16 flex flex-col items-center justify-center gap-3">
-            <Loader2 className="w-7 h-7 text-blue-600 animate-spin" />
-            <p className="text-xs text-slate-500 font-medium">Loading departments...</p>
+          <div className="flex flex-col items-center justify-center gap-3 py-16">
+            <Loader2 className="h-7 w-7 animate-spin text-blue-600" />
+            <p className="text-xs font-medium text-slate-500">Loading departments...</p>
           </div>
         ) : error ? (
-          <div className="py-12 text-center text-rose-600 px-4">
-            <AlertCircle className="w-7 h-7 mx-auto mb-2 text-rose-500" />
-            <p className="font-semibold text-xs">Failed to load departments</p>
-            <p className="text-xs text-slate-500 mt-1">{(error as any)?.message || 'Unknown error'}</p>
+          <div className="px-4 py-12 text-center text-rose-600">
+            <AlertCircle className="mx-auto mb-2 h-7 w-7 text-rose-500" />
+            <p className="text-xs font-semibold">Failed to load departments</p>
+            <p className="mt-1 text-xs text-slate-500">{(error as any)?.message || 'Unknown error'}</p>
           </div>
         ) : data?.items?.length === 0 ? (
-          <div className="py-16 text-center px-4">
-            <Building2 className="w-9 h-9 text-slate-300 mx-auto mb-2" />
+          <div className="px-4 py-16 text-center">
+            <span className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
+              <Building2 className="h-7 w-7" />
+            </span>
             <h3 className="text-sm font-semibold text-slate-800">No departments found</h3>
-            <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+            <p className="mx-auto mt-1 max-w-sm text-xs text-slate-500">
               {search
                 ? `No departments matching "${search}". Try adjusting your search or filters.`
-                : 'Get started by creating your organization\'s first department.'}
+                : "Get started by creating your organization's first department."}
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-360px)] min-h-[350px] custom-scrollbar">
-            <table className="w-full text-left text-xs relative" id="departments-table">
-              <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-300 text-xs sm:text-[13px] font-extrabold text-slate-900 uppercase tracking-wide shadow-2xs">
-                <tr>
-                  <th className="py-3 px-5">ID</th>
-                  <th className="py-3 px-5">Department Name</th>
-                  <th className="py-3 px-5">Status</th>
-                  <th className="py-3 px-5">Created At</th>
-                  <th className="py-3 px-5 text-right">Actions</th>
+          <div className="custom-scrollbar max-h-[calc(100vh-400px)] min-h-[320px] overflow-auto">
+            <table className="relative w-full min-w-[560px] text-left text-sm" id="departments-table">
+              <thead className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur-xs">
+                <tr className="border-b border-slate-200 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+                  <th className="whitespace-nowrap px-5 py-3">ID</th>
+                  <th className="whitespace-nowrap px-5 py-3">Department</th>
+                  <th className="whitespace-nowrap px-5 py-3">Status</th>
+                  <th className="whitespace-nowrap px-5 py-3">Created</th>
+                  <th className="whitespace-nowrap px-5 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {data?.items.map((dept) => (
-                  <tr
-                    key={dept.dep_id}
-                    id={`dept-row-${dept.dep_id}`}
-                    className="hover:bg-slate-50/60 transition-colors"
-                  >
-                    <td className="py-3.5 px-5 text-slate-400 font-mono text-xs">#{dept.dep_id}</td>
-                    <td className="py-3.5 px-5 font-semibold text-slate-900">{dept.name}</td>
-                    <td className="py-3.5 px-5">
+                  <tr key={dept.dep_id} id={`dept-row-${dept.dep_id}`} className="group transition-colors hover:bg-blue-50/30">
+                    <td className="px-5 py-3.5 font-mono text-xs text-slate-400">#{dept.dep_id}</td>
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 text-blue-600 ring-1 ring-blue-100">
+                          <Building2 className="h-4 w-4" />
+                        </span>
+                        <span className="font-semibold text-slate-900">{dept.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-3.5">
                       <span
-                        className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${
+                        className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${
                           dept.is_active
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60'
-                            : 'bg-slate-100 text-slate-600 border border-slate-200/60'
+                            ? 'bg-emerald-50 text-emerald-700 ring-emerald-200/70'
+                            : 'bg-slate-100 text-slate-600 ring-slate-200'
                         }`}
                       >
-                        <span
-                          className={`w-1.5 h-1.5 rounded-full ${
-                            dept.is_active ? 'bg-emerald-500' : 'bg-slate-400'
-                          }`}
-                        />
+                        <span className={`h-1.5 w-1.5 rounded-full ${dept.is_active ? 'bg-emerald-500' : 'bg-slate-400'}`} />
                         {dept.is_active ? 'Active' : 'Inactive'}
                       </span>
                     </td>
-                    <td className="py-3.5 px-5 text-slate-500">
-                      {new Date(dept.created_at).toLocaleDateString(undefined, {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                      })}
+                    <td className="whitespace-nowrap px-5 py-3.5 text-slate-500 tabular-nums">
+                      {new Date(dept.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
                     </td>
-                    <td className="py-3.5 px-5 text-right">
+                    <td className="px-5 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <button
                           type="button"
                           id={`edit-department-${dept.dep_id}`}
                           onClick={() => handleOpenEdit(dept)}
-                          className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          className="cursor-pointer rounded-lg p-2 text-slate-400 transition hover:bg-blue-50 hover:text-blue-600"
                           title="Edit Department"
+                          aria-label={`Edit ${dept.name}`}
                         >
-                          <Edit2 className="w-3.5 h-3.5" />
+                          <Edit2 className="h-4 w-4" />
                         </button>
                         <button
                           type="button"
@@ -292,10 +276,11 @@ export const SettingsDepartmentsSection: React.FC = () => {
                             setDeletingDept(dept);
                             setFormError(null);
                           }}
-                          className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                          className="cursor-pointer rounded-lg p-2 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
                           title="Delete Department"
+                          aria-label={`Delete ${dept.name}`}
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
                     </td>
@@ -315,8 +300,7 @@ export const SettingsDepartmentsSection: React.FC = () => {
             pageSize={limit}
             onPageSizeChange={(n) => {
               setLimit(n);
-              setCursor(undefined);
-              setCursorHistory([]);
+              resetPaging();
             }}
             prevId="departments-prev-page-button"
             nextId="departments-next-page-button"
@@ -337,201 +321,84 @@ export const SettingsDepartmentsSection: React.FC = () => {
         )}
       </div>
 
-      {/* Create Department Modal */}
+      {/* Create Department */}
       {isCreateOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in">
-          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
-                  <Building2 className="w-5 h-5" />
-                </div>
-                <h3 className="text-base font-bold text-slate-900">New Department</h3>
-              </div>
-              <button
-                onClick={() => setIsCreateOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-1"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreate} className="p-6 space-y-4">
-              {formError && (
-                <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs font-medium text-rose-700 flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                  <span>{formError}</span>
-                </div>
-              )}
-
-              <div>
-                <label
-                  htmlFor="department-name-input"
-                  className="block text-xs font-semibold text-slate-700 mb-1.5"
-                >
-                  Department Name *
-                </label>
-                <input
-                  type="text"
-                  id="department-name-input"
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                  placeholder="e.g. Finance, Product, Operations"
-                  className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all"
-                  autoFocus
-                />
-              </div>
-
-              <div className="pt-2 flex items-center justify-end gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setIsCreateOpen(false)}
-                  className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  id="department-submit-button"
-                  disabled={createMutation.isPending}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 disabled:opacity-50 transition-colors"
-                >
-                  {createMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  Create Department
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <OrgDialog
+          icon={Building2}
+          title="New Department"
+          subtitle="Add a team. You can then create designations and assign employees to it."
+          onClose={closeCreate}
+          onSubmit={handleCreate}
+          submitLabel="Create Department"
+          submitId="department-submit-button"
+          pending={createMutation.isPending}
+          error={formError}
+        >
+          <OrgField label="Department Name" htmlFor="department-name-input" required>
+            <input
+              type="text"
+              id="department-name-input"
+              value={formName}
+              onChange={(e) => setFormName(e.target.value)}
+              placeholder="e.g. Finance, Product, Operations"
+              className={orgInputCls}
+              autoFocus
+            />
+          </OrgField>
+        </OrgDialog>
       )}
 
-      {/* Edit Department Modal */}
+      {/* Edit Department */}
       {editingDept && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in">
-          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
-                  <Edit2 className="w-5 h-5" />
-                </div>
-                <h3 className="text-base font-bold text-slate-900">Edit Department</h3>
-              </div>
-              <button
-                onClick={() => setEditingDept(null)}
-                className="text-slate-400 hover:text-slate-600 p-1"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleUpdate} className="p-6 space-y-4">
-              {formError && (
-                <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs font-medium text-rose-700 flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                  <span>{formError}</span>
-                </div>
-              )}
-
-              <div>
-                <label
-                  htmlFor="edit-department-name-input"
-                  className="block text-xs font-semibold text-slate-700 mb-1.5"
-                >
-                  Department Name *
-                </label>
-                <input
-                  type="text"
-                  id="edit-department-name-input"
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all"
-                  autoFocus
-                />
-              </div>
-
-              <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-                <div>
-                  <span className="text-xs font-semibold text-slate-800 block">Department Active</span>
-                  <span className="text-xs text-slate-500">
-                    Inactive departments cannot have new roles or employees assigned.
-                  </span>
-                </div>
-                <input
-                  type="checkbox"
-                  id="edit-department-status-toggle"
-                  checked={formActive}
-                  onChange={(e) => setFormActive(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                />
-              </div>
-
-              <div className="pt-2 flex items-center justify-end gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setEditingDept(null)}
-                  className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  id="edit-department-submit-button"
-                  disabled={updateMutation.isPending}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 disabled:opacity-50 transition-colors"
-                >
-                  {updateMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  Save Changes
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <OrgDialog
+          icon={Edit2}
+          title="Edit Department"
+          subtitle={`Update the details of ${editingDept.name}.`}
+          onClose={closeEdit}
+          onSubmit={handleUpdate}
+          submitLabel="Save Changes"
+          submitId="edit-department-submit-button"
+          pending={updateMutation.isPending}
+          error={formError}
+        >
+          <OrgField label="Department Name" htmlFor="edit-department-name-input" required>
+            <input
+              type="text"
+              id="edit-department-name-input"
+              value={formName}
+              onChange={(e) => setFormName(e.target.value)}
+              className={orgInputCls}
+              autoFocus
+            />
+          </OrgField>
+          <OrgToggle
+            id="edit-department-status-toggle"
+            label="Department Active"
+            description="Inactive departments cannot have new designations or employees assigned."
+            checked={formActive}
+            onChange={setFormActive}
+          />
+        </OrgDialog>
       )}
 
-      {/* Delete Department Confirmation Modal */}
+      {/* Delete Department */}
       {deletingDept && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in">
-          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
-            <div className="p-6 text-center">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-50 text-rose-600 mb-4">
-                <Trash2 className="w-6 h-6" />
-              </div>
-              <h3 className="text-base font-bold text-slate-900 mb-1">Delete Department?</h3>
-              <p className="text-xs text-slate-500 mb-4">
-                Are you sure you want to soft delete{' '}
-                <span className="font-semibold text-slate-900">"{deletingDept.name}"</span>?
-                This action is blocked if the department still contains active roles or employees.
-              </p>
-
-              {formError && (
-                <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs font-medium text-rose-700 flex items-start gap-2 text-left mb-4">
-                  <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                  <span>{formError}</span>
-                </div>
-              )}
-
-              <div className="flex items-center justify-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setDeletingDept(null)}
-                  className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  id="confirm-delete-department-button"
-                  onClick={handleDelete}
-                  disabled={deleteMutation.isPending}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rose-600 text-xs font-semibold text-white shadow-xs hover:bg-rose-500 disabled:opacity-50 transition-all"
-                >
-                  {deleteMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  Delete Department
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <OrgDialog
+          icon={Trash2}
+          danger
+          title="Delete Department?"
+          subtitle="This is a soft delete. It is blocked while the department still has active designations or employees."
+          onClose={closeDelete}
+          onConfirm={handleDelete}
+          submitLabel="Delete Department"
+          submitId="confirm-delete-department-button"
+          pending={deleteMutation.isPending}
+          error={formError}
+        >
+          <p className="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 text-sm text-slate-600">
+            You are about to delete <span className="font-semibold text-slate-900">"{deletingDept.name}"</span>.
+          </p>
+        </OrgDialog>
       )}
     </div>
   );
