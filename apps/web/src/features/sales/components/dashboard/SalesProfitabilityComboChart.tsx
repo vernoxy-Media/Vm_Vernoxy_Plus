@@ -1,138 +1,117 @@
-import React, { useState } from 'react';
-import { Info, TrendingUp, AlertCircle } from 'lucide-react';
+import React from 'react';
+import { TrendingUp, AlertCircle } from 'lucide-react';
 import { US11SalesProfitability } from '../../types/sales-dashboard.types';
+import { Badge, BarGuides, ChartCard, ChartTooltip, LegendDot, TipRow, TipTitle, useChartTooltip } from './ChartShell';
 
 interface SalesProfitabilityComboChartProps {
   data?: US11SalesProfitability;
 }
 
+type Month = US11SalesProfitability['months'][number];
+
+const inr = (n: number) => `₹${n.toLocaleString('en-IN')}`;
+
 export const SalesProfitabilityComboChart: React.FC<SalesProfitabilityComboChartProps> = ({ data }) => {
-  const [showTooltip, setShowTooltip] = useState(false);
-  const [hoveredMonth, setHoveredMonth] = useState<any | null>(null);
-
+  const { ref, tip, move, hide } = useChartTooltip<Month>();
   const months = data?.months || [];
-  const totalProfitInr = data?.total_profit_inr || 0;
-  const overallMargin = data?.overall_profit_margin_pct;
-  const excludedCount = data?.excluded_leads_count || 0;
-
-  const maxAmountLakh = Math.max(
-    ...months.map((m) => Math.max(m.revenue_lakh, m.cost_lakh)),
-    10
-  );
+  const totalProfit = data?.total_profit_inr || 0;
+  const margin = data?.overall_profit_margin_pct;
+  const excluded = data?.excluded_leads_count || 0;
+  const maxLakh = Math.max(...months.map((m) => Math.max(m.revenue_lakh, m.cost_lakh)), 10);
 
   return (
-    <div className="relative flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs h-full">
-      {/* Header */}
-      <div className="flex items-start justify-between border-b border-slate-100 pb-3">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
-            <TrendingUp className="h-4 w-4" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-bold text-slate-900 tracking-tight">Sales Profitability</h3>
-              <span
-                className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${
-                  totalProfitInr >= 0
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                    : 'bg-rose-50 text-rose-700 border-rose-200'
-                }`}
-              >
-                Profit: ₹{(totalProfitInr / 100000).toFixed(2)} L ({overallMargin !== null ? `${overallMargin}%` : 'N/A'})
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-500">Revenue, cost and profit margin % across months</p>
-          </div>
-        </div>
-
-        <div className="relative">
-          <button
-            type="button"
-            onMouseEnter={() => setShowTooltip(true)}
-            onMouseLeave={() => setShowTooltip(false)}
-            aria-label="KPI Information"
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 transition cursor-pointer"
-          >
-            <Info className="h-4 w-4" />
-          </button>
-          {showTooltip && (
-            <div className="absolute right-0 top-7 z-30 w-72 rounded-xl bg-slate-900 p-2.5 text-[11px] text-white shadow-xl">
-              Combo chart comparing Revenue (indigo columns) and Cost (amber columns) against Profit Margin % (green line). Converted leads with missing cost are excluded.
-            </div>
+    <ChartCard
+      cardRef={ref}
+      icon={TrendingUp}
+      tone="indigo"
+      title="Sales Profitability"
+      badge={
+        <Badge tone={totalProfit >= 0 ? 'green' : 'red'}>
+          Profit ₹{(totalProfit / 100000).toFixed(2)} L ({margin !== null && margin !== undefined ? `${margin}%` : 'N/A'})
+        </Badge>
+      }
+      subtitle="Revenue, cost and profit margin % across months"
+      info="Combo chart comparing Revenue (indigo columns) and Cost (amber columns) against Profit Margin %. Converted leads with missing cost are excluded."
+      footer="Negative margins indicate operating losses (shown in red)"
+      onLeave={hide}
+      tooltip={
+        <ChartTooltip tip={tip}>
+          {tip && (
+            <>
+              <TipTitle>{tip.data.month}</TipTitle>
+              <TipRow color="#4f46e5" label="Revenue" value={inr(tip.data.revenue_inr)} />
+              <TipRow color="#f59e0b" label="Cost" value={inr(tip.data.cost_inr)} />
+              <TipRow
+                label="Profit"
+                value={<span className={tip.data.profit_inr >= 0 ? 'text-emerald-400' : 'text-rose-400'}>{inr(tip.data.profit_inr)}</span>}
+              />
+              <TipRow
+                label="Margin"
+                value={tip.data.profit_margin_pct !== null ? `${tip.data.profit_margin_pct}%` : 'N/A'}
+              />
+            </>
           )}
-        </div>
+        </ChartTooltip>
+      }
+    >
+      <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+        <LegendDot color="#4f46e5" label="Revenue (₹ L)" shape="square" />
+        <LegendDot color="#f59e0b" label="Cost (₹ L)" shape="square" />
+        <LegendDot color="#10b981" label="Profit margin %" shape="line" />
       </div>
 
-      {/* Legend */}
-      <div className="flex items-center justify-center gap-4 text-[10px] font-semibold text-slate-600 my-2">
-        <span className="flex items-center gap-1">
-          <span className="h-2.5 w-2.5 rounded-xs bg-indigo-600" /> Revenue (₹ L)
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="h-2.5 w-2.5 rounded-xs bg-amber-500" /> Cost (₹ L)
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="h-1.5 w-4 rounded-full bg-emerald-500" /> Profit Margin %
-        </span>
-      </div>
-
-      {/* Combo Chart Visualization */}
-      <div className="my-2">
-        {hoveredMonth && (
-          <div className="text-center text-[10px] font-bold text-slate-700 mb-1">
-            {hoveredMonth.month}: Rev ₹{hoveredMonth.revenue_inr.toLocaleString()}, Cost ₹{hoveredMonth.cost_inr.toLocaleString()}, Profit ₹{hoveredMonth.profit_inr.toLocaleString()}{' '}
-            • Margin: <span className={hoveredMonth.profit_inr >= 0 ? 'text-emerald-600' : 'text-rose-600'}>
-              {hoveredMonth.profit_margin_pct !== null ? `${hoveredMonth.profit_margin_pct}%` : 'N/A'}
-            </span>
-          </div>
-        )}
-
-        <div className="flex items-end justify-between gap-2 h-36 px-2 border-b border-slate-200">
-          {months.map((m, idx) => {
-            const revHeight = Math.round((m.revenue_lakh / maxAmountLakh) * 100);
-            const costHeight = Math.round((m.cost_lakh / maxAmountLakh) * 100);
-
-            return (
-              <div
-                key={idx}
-                className="flex-1 flex flex-col items-center h-full justify-end cursor-pointer group"
-                onMouseEnter={() => setHoveredMonth(m)}
-                onMouseLeave={() => setHoveredMonth(null)}
-              >
-                {m.profit_margin_pct !== null && (
-                  <span className={`text-[9px] font-extrabold mb-1 ${m.profit_margin_pct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                    {m.profit_margin_pct}%
-                  </span>
-                )}
-                <div className="flex items-end gap-1 w-full justify-center">
-                  {/* Revenue Column */}
+      <div className="relative h-48 pt-6">
+        <div className="relative h-full">
+          <BarGuides />
+          <div className="relative flex h-full items-end justify-between gap-2 sm:gap-4">
+            {months.map((m) => {
+              const rev = Math.max((m.revenue_lakh / maxLakh) * 100, 2);
+              const cost = Math.max((m.cost_lakh / maxLakh) * 100, 2);
+              const active = tip?.data.month === m.month;
+              return (
+                <div
+                  key={m.month}
+                  className="relative flex h-full flex-1 cursor-pointer items-end justify-center gap-1"
+                  onMouseMove={(e) => move(e, m)}
+                  onMouseLeave={hide}
+                >
+                  {m.profit_margin_pct !== null && (
+                    <span
+                      className={`absolute -top-5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-1.5 text-[10px] font-bold ${
+                        m.profit_margin_pct >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+                      }`}
+                    >
+                      {m.profit_margin_pct}%
+                    </span>
+                  )}
                   <div
-                    className="w-1/2 max-w-[14px] rounded-t bg-indigo-600 transition-all duration-300 group-hover:bg-indigo-700"
-                    style={{ height: `${Math.max(revHeight, 2)}%` }}
+                    className={`w-1/2 max-w-[22px] rounded-t-md transition-all duration-200 ${active ? 'bg-indigo-700' : 'bg-gradient-to-t from-indigo-600 to-indigo-400'}`}
+                    style={{ height: `${rev}%` }}
                   />
-                  {/* Cost Column */}
                   <div
-                    className="w-1/2 max-w-[14px] rounded-t bg-amber-500 transition-all duration-300 group-hover:bg-amber-600"
-                    style={{ height: `${Math.max(costHeight, 2)}%` }}
+                    className={`w-1/2 max-w-[22px] rounded-t-md transition-all duration-200 ${active ? 'bg-amber-600' : 'bg-gradient-to-t from-amber-500 to-amber-300'}`}
+                    style={{ height: `${cost}%` }}
                   />
                 </div>
-                <span className="text-[9px] font-semibold text-slate-500 truncate max-w-[40px] mt-1">{m.month.split(' ')[0]}</span>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
+        </div>
+        <div className="mt-2 flex justify-between gap-2 sm:gap-4">
+          {months.map((m) => (
+            <span key={m.month} className="flex-1 truncate text-center text-[11px] font-medium text-slate-500">
+              {m.month.split(' ')[0]}
+            </span>
+          ))}
         </div>
       </div>
 
-      {excludedCount > 0 && (
-        <div className="flex items-center gap-1.5 text-[10px] text-amber-700 bg-amber-50 rounded px-2 py-0.5 my-1">
-          <AlertCircle className="h-3 w-3 shrink-0" />
-          <span>{excludedCount} converted leads excluded because product/production cost is missing.</span>
+      {excluded > 0 && (
+        <div className="flex items-center gap-1.5 rounded-lg bg-amber-50 px-3 py-1.5 text-[11px] text-amber-700">
+          <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+          <span>{excluded} converted leads excluded because product/production cost is missing.</span>
         </div>
       )}
-
-      <div className="border-t border-slate-100 pt-2 text-[11px] text-slate-400 text-center">
-        Negative margins indicate operating losses (shown in red)
-      </div>
-    </div>
+    </ChartCard>
   );
 };

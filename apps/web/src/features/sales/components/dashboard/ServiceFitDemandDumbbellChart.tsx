@@ -1,115 +1,98 @@
-import React, { useState } from 'react';
-import { Info, GitCommit } from 'lucide-react';
+import React from 'react';
+import { GitCommit } from 'lucide-react';
 import { US06ServiceFitDemand } from '../../types/sales-dashboard.types';
+import { ChartCard, ChartTooltip, EmptyState, LegendDot, TipRow, TipTitle, useChartTooltip } from './ChartShell';
 
 interface ServiceFitDemandDumbbellChartProps {
   data?: US06ServiceFitDemand;
 }
 
-export const ServiceFitDemandDumbbellChart: React.FC<ServiceFitDemandDumbbellChartProps> = ({ data }) => {
-  const [showTooltip, setShowTooltip] = useState(false);
-  const [hoveredService, setHoveredService] = useState<any | null>(null);
+type Service = US06ServiceFitDemand['services'][number];
 
+export const ServiceFitDemandDumbbellChart: React.FC<ServiceFitDemandDumbbellChartProps> = ({ data }) => {
+  const { ref, tip, move, hide } = useChartTooltip<Service>();
   const services = data?.services || [];
   const maxLeads = Math.max(...services.map((s) => s.leads), 1);
 
   return (
-    <div className="relative flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs h-full">
-      {/* Header */}
-      <div className="flex items-start justify-between border-b border-slate-100 pb-3">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
-            <GitCommit className="h-4 w-4" />
-          </div>
-          <div>
-            <h3 className="text-sm font-bold text-slate-900 tracking-tight">Service Fit Demand</h3>
-            <p className="text-[11px] text-slate-500">Interest vs conversion gap across services</p>
-          </div>
-        </div>
-
-        <div className="relative">
-          <button
-            type="button"
-            onMouseEnter={() => setShowTooltip(true)}
-            onMouseLeave={() => setShowTooltip(false)}
-            aria-label="KPI Information"
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 transition cursor-pointer"
-          >
-            <Info className="h-4 w-4" />
-          </button>
-          {showTooltip && (
-            <div className="absolute right-0 top-7 z-30 w-64 rounded-xl bg-slate-900 p-2.5 text-[11px] text-white shadow-xl">
-              Dumbbell chart showing the gap between interest (indigo dot) and conversions (green dot). If a lead has multiple services, it is counted under each.
-            </div>
+    <ChartCard
+      cardRef={ref}
+      icon={GitCommit}
+      tone="violet"
+      title="Service Fit Demand"
+      subtitle="Interest vs conversion gap across services"
+      info="Dumbbell chart showing the gap between interest (indigo dot) and conversions (green dot). If a lead has multiple services, it is counted under each."
+      footer="The longer the line between dots, the larger the conversion gap"
+      onLeave={hide}
+      tooltip={
+        <ChartTooltip tip={tip}>
+          {tip && (
+            <>
+              <TipTitle>{tip.data.service}</TipTitle>
+              <TipRow color="#4f46e5" label="Leads (demand)" value={tip.data.leads} />
+              <TipRow color="#10b981" label="Converted" value={tip.data.converted} />
+              <TipRow
+                label="Conversion"
+                value={tip.data.conversion_rate !== null ? `${tip.data.conversion_rate}%` : 'N/A'}
+              />
+            </>
           )}
-        </div>
-      </div>
-
-      {/* Legend */}
-      <div className="flex items-center justify-center gap-4 text-[10px] font-semibold text-slate-600 my-2">
-        <span className="flex items-center gap-1">
-          <span className="h-2.5 w-2.5 rounded-full bg-indigo-600" /> Leads (Demand)
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> Converted
-        </span>
-        {hoveredService && (
-          <div className="text-center text-[10px] font-bold text-slate-700">
-            {hoveredService.service}: {hoveredService.leads} leads ({hoveredService.converted} converted)
+        </ChartTooltip>
+      }
+    >
+      {services.length === 0 ? (
+        <EmptyState text="No service demand data." />
+      ) : (
+        <>
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+            <LegendDot color="#4f46e5" label="Leads (Demand)" />
+            <LegendDot color="#10b981" label="Converted" />
           </div>
-        )}
-      </div>
 
-      {/* Dumbbell Rows */}
-      <div className="space-y-4 my-3 px-2">
-        {services.map((s, idx) => {
-          const leadPos = Math.round((s.leads / maxLeads) * 80) + 10;
-          const convPos = Math.round((s.converted / maxLeads) * 80) + 10;
-          const minPos = Math.min(leadPos, convPos);
-          const widthGap = Math.max(Math.abs(leadPos - convPos), 2);
-
-          return (
-            <div
-              key={idx}
-              className="flex flex-col gap-1 cursor-pointer group"
-              onMouseEnter={() => setHoveredService(s)}
-              onMouseLeave={() => setHoveredService(null)}
-            >
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="font-semibold text-slate-800 truncate max-w-[150px]">{s.service}</span>
-                <span className="text-[10px] font-bold text-slate-900">
-                  {s.leads} leads / {s.converted} won{' '}
-                  <span className="text-emerald-600">({s.conversion_rate !== null ? `${s.conversion_rate}%` : 'N/A'})</span>
-                </span>
-              </div>
-
-              {/* Dumbbell bar */}
-              <div className="relative h-6 w-full flex items-center">
-                <div className="absolute inset-x-0 h-1 bg-slate-100 rounded-full" />
-                {/* Connecting Line between the two dots */}
+          <div className="space-y-1">
+            {services.map((s) => {
+              const leadPos = (s.leads / maxLeads) * 92 + 4;
+              const convPos = (s.converted / maxLeads) * 92 + 4;
+              return (
                 <div
-                  className="absolute h-1 bg-slate-400/80 rounded-full transition-all duration-300"
-                  style={{ left: `${minPos}%`, width: `${widthGap}%` }}
-                />
-                {/* Converted Dot (Green) */}
-                <div
-                  className="absolute h-3.5 w-3.5 -ml-1.5 rounded-full bg-emerald-500 border-2 border-white shadow-xs transition-all duration-300 group-hover:scale-110"
-                  style={{ left: `${convPos}%` }}
-                />
-                {/* Leads Dot (Indigo) */}
-                <div
-                  className="absolute h-3.5 w-3.5 -ml-1.5 rounded-full bg-indigo-600 border-2 border-white shadow-xs transition-all duration-300 group-hover:scale-110"
-                  style={{ left: `${leadPos}%` }}
-                />
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="border-t border-slate-100 pt-2 text-[11px] text-slate-400 text-center">
-        The longer the line between dots, the larger the conversion gap
-      </div>
-    </div>
+                  key={s.service}
+                  onMouseMove={(e) => move(e, s)}
+                  onMouseLeave={hide}
+                  className="group cursor-pointer rounded-lg px-2 py-2 transition hover:bg-slate-50"
+                >
+                  <div className="mb-1.5 flex items-center justify-between gap-3 text-xs">
+                    <span className="truncate font-medium text-slate-800" title={s.service}>
+                      {s.service}
+                    </span>
+                    <span className="shrink-0 tabular-nums text-slate-500">
+                      <span className="font-semibold text-slate-900">{s.leads}</span> leads ·{' '}
+                      <span className="font-semibold text-slate-900">{s.converted}</span> won{' '}
+                      <span className="font-semibold text-emerald-600">
+                        ({s.conversion_rate !== null ? `${s.conversion_rate}%` : 'N/A'})
+                      </span>
+                    </span>
+                  </div>
+                  <div className="relative flex h-5 items-center">
+                    <div className="absolute inset-x-0 h-1.5 rounded-full bg-slate-100" />
+                    <div
+                      className="absolute h-1.5 rounded-full bg-slate-300 transition-all duration-300"
+                      style={{ left: `${Math.min(leadPos, convPos)}%`, width: `${Math.max(Math.abs(leadPos - convPos), 1)}%` }}
+                    />
+                    <span
+                      className="absolute -ml-2 h-4 w-4 rounded-full border-2 border-white bg-emerald-500 shadow transition-transform group-hover:scale-125"
+                      style={{ left: `${convPos}%` }}
+                    />
+                    <span
+                      className="absolute -ml-2 h-4 w-4 rounded-full border-2 border-white bg-indigo-600 shadow transition-transform group-hover:scale-125"
+                      style={{ left: `${leadPos}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </ChartCard>
   );
 };
