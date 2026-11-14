@@ -9,7 +9,7 @@ import {
   FileText,
   AlertTriangle,
 } from 'lucide-react';
-import { CalendarRange, KanbanSquare, ListTodo, Timer } from 'lucide-react';
+import { CalendarRange, KanbanSquare, ListTodo, Timer, Server } from 'lucide-react';
 import { ProjectDateRange, ProjectTimelineView } from './ProjectTimelineView';
 import { ProjectWorkspaceNav, type WorkspaceNavGroup } from './ProjectWorkspaceNav';
 import { useAuth } from '@/features/auth/context/AuthContext';
@@ -60,6 +60,7 @@ import { DeliverProjectDialog } from './DeliverProjectDialog';
 import { ProjectTimeReport } from './ProjectTimeReport';
 import { ProjectBugsView } from './ProjectBugsView';
 import { ProjectSummaryView } from './ProjectSummaryView';
+import { ProjectTechDeploymentView } from './ProjectTechDeploymentView';
 import { ProjectStatusMenu } from './ProjectStatusMenu';
 import { TaskFormModal } from '@/features/tasks/components/TaskFormModal';
 import { CreateProjectTaskModal } from './CreateProjectTaskModal';
@@ -120,7 +121,7 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   // Final 4 Tabs: Tasks, Discussion, Overview, Activity Logs
-  const [activeTab, setActiveTab] = useState<'tasks' | 'timeline' | 'timelog' | 'discussion' | 'overview' | 'activity'>('tasks');
+  const [activeTab, setActiveTab] = useState<'tasks' | 'timeline' | 'timelog' | 'discussion' | 'overview' | 'details' | 'activity'>('tasks');
   const [tasksSubTab, setTasksSubTab] = useState<'board' | 'bugs'>('board');
 
   // Filters
@@ -556,6 +557,7 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
       title: 'Project',
       items: [
         { id: 'overview', label: 'Summary', icon: FileText },
+        { id: 'details', label: 'Tech & Deployment', icon: Server },
         ...(isManagerOrAdmin ? [{ id: 'timelog', label: 'Time log', icon: Timer }] : []),
         { id: 'activity', label: 'Activity', icon: History, badge: activityLogs.length },
       ],
@@ -810,6 +812,16 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
                     onEdit={() => setIsEditProjectModalOpen(true)}
                     delivery={isManagerOrAdmin ? delivery : null}
                     onDeliver={isManagerOrAdmin ? () => setDeliverOpen(true) : undefined}
+                  />
+                )}
+
+                {/* TAB: TECH STACK & DEPLOYMENT (everyone on the project views; Admin and Project Manager edit) */}
+                {activeTab === 'details' && (
+                  <ProjectTechDeploymentView
+                    project={project}
+                    employees={employees}
+                    canEdit={isManagerOrAdmin}
+                    onSaved={setProject}
                   />
                 )}
 

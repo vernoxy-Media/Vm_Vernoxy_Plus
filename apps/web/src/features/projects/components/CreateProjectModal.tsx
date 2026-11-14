@@ -12,6 +12,7 @@ import { useLookupsQuery } from '@/features/organization/hooks/use-master-data';
 import { J_BTN_PRIMARY, J_BTN_SUBTLE, J_INPUT, JBanner, JField, JiraModal } from '@/shared/ui/JiraModal';
 import { JiraAvatar } from '@/shared/ui/JiraAvatar';
 import { ClientPicker } from './ClientPicker';
+import { TechMultiSelect, joinTech, parseTech } from './TechMultiSelect';
 
 const DEFAULT_PROJECT_TYPES = [
   { code: 'client', label: 'Client Project (VM-CL)' },
@@ -74,6 +75,10 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
   const [deadline, setDeadline] = useState('');
   const [projectManagerId, setProjectManagerId] = useState<number | ''>('');
   const [clientName, setClientName] = useState('');
+  const [techFrontend, setTechFrontend] = useState<string[]>([]);
+  const [techBackend, setTechBackend] = useState<string[]>([]);
+  const [techCloud, setTechCloud] = useState<string[]>([]);
+  const [techDatabase, setTechDatabase] = useState<string[]>([]);
   const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
 
   // Team Member Dropdown & Search
@@ -95,6 +100,10 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
         setDeadline(initialData.deadline ? initialData.deadline.slice(0, 10) : '');
         setProjectManagerId(initialData.project_manager_id || '');
         setClientName(initialData.client_name || '');
+        setTechFrontend(parseTech(initialData.tech_frontend));
+        setTechBackend(parseTech(initialData.tech_backend));
+        setTechCloud(parseTech(initialData.tech_cloud));
+        setTechDatabase(parseTech(initialData.tech_database));
         setSelectedMemberIds(initialData.members?.map((m) => m.employee_id) || []);
       } else {
         setProjectName('');
@@ -107,6 +116,10 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
         setDeadline('');
         setProjectManagerId('');
         setClientName('');
+        setTechFrontend([]);
+        setTechBackend([]);
+        setTechCloud([]);
+        setTechDatabase([]);
         setSelectedMemberIds([]);
       }
       setMemberSearch('');
@@ -197,6 +210,10 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
         project_manager_id: Number(projectManagerId),
         member_ids: selectedMemberIds,
         client_name: clientName.trim() || undefined,
+        tech_frontend: joinTech(techFrontend),
+        tech_backend: joinTech(techBackend),
+        tech_cloud: joinTech(techCloud),
+        tech_database: joinTech(techDatabase),
         description: description.trim() || undefined,
       };
 
@@ -307,6 +324,14 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
       <JField label="Description" optional htmlFor="project-desc">
         <textarea id="project-desc" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What is this project about, and what should it deliver?" className={`${J_INPUT} resize-y`} />
       </JField>
+
+      {/* Tech Stack: chosen from the lists the Admin keeps in Settings. All optional. */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <TechMultiSelect lookupType="tech_frontend" label="Front-End" values={techFrontend} onChange={setTechFrontend} />
+        <TechMultiSelect lookupType="tech_backend" label="Back-End" values={techBackend} onChange={setTechBackend} />
+        <TechMultiSelect lookupType="tech_cloud" label="Cloud Platform" values={techCloud} onChange={setTechCloud} />
+        <TechMultiSelect lookupType="tech_database" label="Database" values={techDatabase} onChange={setTechDatabase} />
+      </div>
 
       {/* Team: chips for who is on the project, and a search to add more */}
       <div ref={memberDropdownRef}>
