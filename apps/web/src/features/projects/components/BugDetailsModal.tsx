@@ -70,9 +70,28 @@ const Block: React.FC<{ title: string; children: React.ReactNode; mono?: boolean
 );
 
 /** A bug, opened like a Jira issue: summary and workflow on the left, Details on the right. */
+/** 3725 -> "1h 2m 5s", 125 -> "2m 5s", 40 -> "40s" */
+function formatSpan(totalSeconds: number): string {
+  const s = Math.max(0, Math.floor(totalSeconds));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  if (h > 0) return `${h}h ${m}m ${sec}s`;
+  if (m > 0) return `${m}m ${sec}s`;
+  return `${sec}s`;
+}
+
 export const BugDetailsModal: React.FC<BugDetailsModalProps> = ({ projectId, bugId, isOpen, onClose, onBugUpdated, canEditDates }) => {
   const { priority: priorityMeta, typeLabel } = useBugMeta();
   const [bug, setBug] = useState<ProjectBugItem | null>(null);
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  const timeRunning = Boolean(bug?.dev_running_since || bug?.qa_running_since);
+  useEffect(() => {
+    if (!timeRunning) return;
+    setNowMs(Date.now());
+    const t = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [timeRunning]);
   const [isLoading, setIsLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [tab, setTab] = useState<'comments' | 'history'>('comments');
@@ -182,6 +201,12 @@ export const BugDetailsModal: React.FC<BugDetailsModalProps> = ({ projectId, bug
 
   const stepIdx = bug ? LIFECYCLE_STEPS.findIndex((s) => s.status === bug.status) : -1;
   const closed = bug?.status === 'done' || bug?.status === 'not_a_bug';
+  // Time spent: finished stretches from the server plus the stretch that is still open, ticking every second
+  const devRunning = Boolean(bug?.dev_running_since);
+  const qaRunning = Boolean(bug?.qa_running_since);
+  const sinceSeconds = (iso?: string | null) => (iso ? Math.max(0, Math.floor((nowMs - new Date(iso).getTime()) / 1000)) : 0);
+  const devSeconds = (bug?.dev_closed_seconds ?? 0) + sinceSeconds(bug?.dev_running_since);
+  const qaSeconds = (bug?.qa_closed_seconds ?? 0) + sinceSeconds(bug?.qa_running_since);
   const pr = priorityMeta(bug?.priority ?? 'medium');
   const PIcon = pr.icon;
   const overdue = Boolean(bug && !closed && bug.due_date && bug.due_date.slice(0, 10) < new Date().toISOString().slice(0, 10));
@@ -439,9 +464,13 @@ export const BugDetailsModal: React.FC<BugDetailsModalProps> = ({ projectId, bug
                     <Row label="Development">
                       {bug.dev_started_at ? (
                         <span className="text-[13px]">
-                          {when(bug.dev_started_at)}
+                          <b className="text-[14px] tabular-nums text-[#172B4D]">{formatSpan(devSeconds)}</b>
                           <br />
-                          {bug.dev_ended_at ? <span className="text-[#5E6C84]">to {when(bug.dev_ended_at)}</span> : <span className="font-semibold text-[color:var(--ac-main,#0052CC)]">● In progress</span>}
+                          {devRunning ? (
+                            <span className="font-semibold text-[color:var(--ac-main,#0052CC)]">● In progress</span>
+                          ) : (
+                            <span className="text-[#5E6C84]">Started {when(bug.dev_started_at)}</span>
+                          )}
                         </span>
                       ) : (
                         <span className="text-[#7A869A]">Not started</span>
@@ -450,16 +479,27 @@ export const BugDetailsModal: React.FC<BugDetailsModalProps> = ({ projectId, bug
                     <Row label="QA testing">
                       {bug.qa_started_at ? (
                         <span className="text-[13px]">
-                          {when(bug.qa_started_at)}
+                          <b className="text-[14px] tabular-nums text-[#172B4D]">{formatSpan(qaSeconds)}</b>
                           <br />
-                          {bug.qa_ended_at ? <span className="text-[#5E6C84]">to {when(bug.qa_ended_at)}</span> : <span className="font-semibold text-[#6554C0]">● In progress</span>}
+                          {qaRunning ? (
+                            <span className="font-semibold text-[#6554C0]">● In progress</span>
+                          ) : (
+                            <span className="text-[#5E6C84]">Started {when(bug.qa_started_at)}</span>
+                          )}
                         </span>
                       ) : (
                         <span className="text-[#7A869A]">Not started</span>
                       )}
                     </Row>
                     <Row label="Total">
-                      {bug.total_time_minutes > 0 ? <b>{Math.floor(bug.total_time_minutes / 60)}h {bug.total_time_minutes % 60}m</b> : <span className="text-[#7A869A]">Not yet</span>}
+                      {devSeconds + qaSeconds > 0 ? (
+                        <b className="tabular-nums">
+                          {formatSpan(devSeconds + qaSeconds)}
+                          {(devRunning || qaRunning) && <span className="ml-1.5 text-[11px] font-medium text-[#5E6C84]">and counting</span>}
+                        </b>
+                      ) : (
+                        <span className="text-[#7A869A]">Not yet</span>
+                      )}
                     </Row>
                   </dl>
                 </section>

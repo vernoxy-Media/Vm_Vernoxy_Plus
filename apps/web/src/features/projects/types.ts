@@ -303,6 +303,12 @@ export interface ProjectBugItem {
   qa_started_at?: string | null;
   qa_ended_at?: string | null;
   total_time_minutes: number;
+  /** Time already spent in development / QA, in seconds (all rounds), without the stretch that is still open */
+  dev_closed_seconds?: number;
+  qa_closed_seconds?: number;
+  /** When the open development / QA stretch began; null when that stage is not running */
+  dev_running_since?: string | null;
+  qa_running_since?: string | null;
   created_at: string;
   comments?: BugCommentItem[];
   history?: BugHistoryItem[];

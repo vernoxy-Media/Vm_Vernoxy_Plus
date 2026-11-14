@@ -1,5 +1,6 @@
 import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../../core/prisma/prisma.service';
+import { computeBugTimes, totalBugSeconds, type BugStatusMove } from '../../domain/services/bug-time';
 import { loggedSeconds, timeByEmployee } from '../../../tasks/public-api';
 import {
   AssignableEmployee,
@@ -1279,6 +1280,8 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
       throw new NotFoundException('Bug not found.');
     }
 
+    const bugTimes = computeBugTimes(await this.bugStatusMoves(bugId));
+
     return {
       bug_id: bug.bug_id,
       bug_code: bug.bug_code,
@@ -1306,7 +1309,11 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
       qa_ended_at: bug.qa_ended_at?.toISOString() ?? null,
       start_date: bug.start_date ? bug.start_date.toISOString().slice(0, 10) : null,
       due_date: bug.due_date ? bug.due_date.toISOString().slice(0, 10) : null,
-      total_time_minutes: bug.total_time_minutes,
+      total_time_minutes: Math.round(totalBugSeconds(bugTimes, new Date()) / 60),
+      dev_closed_seconds: bugTimes.dev_closed_seconds,
+      qa_closed_seconds: bugTimes.qa_closed_seconds,
+      dev_running_since: bugTimes.dev_running_since?.toISOString() ?? null,
+      qa_running_since: bugTimes.qa_running_since?.toISOString() ?? null,
       created_at: bug.created_at.toISOString(),
       comments: bug.bug_comments.map((c) => ({
         comment_id: c.comment_id,
@@ -1338,6 +1345,19 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
         });
       })(),
     };
+  }
+
+  /** Every status the bug has been in, with the time it moved there (oldest first). */
+  private async bugStatusMoves(bugId: number): Promise<BugStatusMove[]> {
+    const rows = await this.prisma.activity_logs.findMany({
+      where: { entity_type: 'BUG', entity_id: bugId },
+      select: { event: true, details: true, performed_at: true },
+      orderBy: { performed_at: 'asc' },
+    });
+    const KNOWN = new Set(['new', 'open', 'ready_for_dev', 'dev_in_progress', 'ready_for_qa', 'qa_in_progress', 'done', 'not_a_bug']);
+    return rows
+      .map((r: any) => ({ at: r.performed_at as Date, to: String((r.details as any)?.to_status ?? r.event) }))
+      .filter((m) => KNOWN.has(m.to));
   }
 
   async activeLookupCodes(lookupType: string): Promise<string[]> {
@@ -1499,6 +1519,8 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
         devStart = now;
         updateData.dev_started_at = devStart;
       }
+      // Back in development after a failed QA: the stretch is open again
+      updateData.dev_ended_at = null;
     } else if (bug.status === 'dev_in_progress' && newStatus !== 'dev_in_progress') {
       devEnd = now;
       updateData.dev_ended_at = devEnd;
@@ -1509,21 +1531,17 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
         qaStart = now;
         updateData.qa_started_at = qaStart;
       }
+      updateData.qa_ended_at = null;
     } else if (bug.status === 'qa_in_progress' && newStatus !== 'qa_in_progress') {
       qaEnd = now;
       updateData.qa_ended_at = qaEnd;
     }
 
-    // Calculate total time in minutes
-    let devMs = 0;
-    if (devStart) {
-      devMs = (devEnd ? devEnd.getTime() : now.getTime()) - devStart.getTime();
-    }
-    let qaMs = 0;
-    if (qaStart) {
-      qaMs = (qaEnd ? qaEnd.getTime() : now.getTime()) - qaStart.getTime();
-    }
-    updateData.total_time_minutes = Math.max(0, Math.round((devMs + qaMs) / 60000));
+    // Total time = every development / QA stretch from the status history, including this move
+    const priorMoves = await this.bugStatusMoves(bugId);
+    updateData.total_time_minutes = Math.round(
+      totalBugSeconds(computeBugTimes([...priorMoves, { at: now, to: newStatus }]), now) / 60,
+    );
 
     const updated = await this.prisma.project_bugs.update({
       where: { bug_id: bugId },
