@@ -64,6 +64,7 @@ import { ImportPage as SalesImportPage } from '@/features/sales/pages/ImportPage
 import { HistoryPage as SalesHistoryPage } from '@/features/sales/pages/HistoryPage';
 import { RightsPage as SalesRightsPage } from '@/features/sales/pages/RightsPage';
 import { ClientDetailPage } from '@/features/sales/pages/ClientDetailPage';
+import { SalesDashboardPage } from '@/features/sales/pages/SalesDashboardPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -629,7 +630,17 @@ export const App: React.FC = () => {
               {/* Sales CRM Module Routes */}
               <Route
                 path="/sales"
-                element={<Navigate to="/sales/companies" replace />}
+                element={<Navigate to="/sales/dashboard" replace />}
+              />
+              <Route
+                path="/sales/dashboard"
+                element={
+                  <SalesRoute>
+                    <AppLayout fluid>
+                      <SalesDashboardPage />
+                    </AppLayout>
+                  </SalesRoute>
+                }
               />
               <Route
                 path="/sales/companies"
