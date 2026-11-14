@@ -40,7 +40,7 @@ const COUNTER_META: Record<string, { icon: React.ElementType; tone: KpiTone; hin
 };
 
 const FIELD =
-  'h-9 rounded-xl border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 transition hover:border-slate-300 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20';
+  'h-10 rounded-xl border border-slate-200 bg-slate-50/70 px-3 text-[13px] font-medium text-slate-700 transition hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10';
 
 const initialsOf = (name?: string) =>
   (name || '?').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join('') || '?';
@@ -163,8 +163,8 @@ export const LeaveRequestsPage: React.FC<Props> = ({ teamMode = false, onNavigat
       <button
         type="button"
         onClick={() => setViewId(r.request_id)}
-        className={`cursor-pointer rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-          review ? 'bg-blue-600 text-white shadow-sm hover:bg-blue-700' : 'border border-slate-200 bg-white text-blue-600 hover:border-blue-300 hover:bg-blue-50'
+        className={`cursor-pointer whitespace-nowrap rounded-xl px-4 py-2 text-xs font-semibold transition active:scale-[0.97] ${
+          review ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/25 hover:brightness-110' : 'border border-slate-200 bg-white text-slate-700 shadow-2xs hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700'
         }`}
       >
         {review ? 'Review' : 'View'}
@@ -233,7 +233,7 @@ export const LeaveRequestsPage: React.FC<Props> = ({ teamMode = false, onNavigat
         </div>
       )}
 
-      <section className="space-y-3.5 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs sm:p-5">
+      <section className="space-y-4 rounded-3xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.10)] sm:p-5">
         {/* Status chips */}
         <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Request status">
           {TABS.map((t) => {
@@ -249,8 +249,8 @@ export const LeaveRequestsPage: React.FC<Props> = ({ teamMode = false, onNavigat
                   setCounter(undefined);
                   resetPage();
                 }}
-                className={`inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-3.5 py-1 text-xs font-semibold transition ${
-                  on ? 'border-blue-600 bg-blue-600 text-white shadow-sm' : 'border-slate-200 bg-white text-slate-600 hover:border-blue-300 hover:text-blue-700'
+                className={`inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-4 text-[13px] font-semibold transition ${
+                  on ? 'border-transparent bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/25' : 'border-slate-200 bg-white text-slate-600 hover:border-blue-300 hover:bg-blue-50/50 hover:text-blue-700'
                 }`}
               >
                 {t}
@@ -265,7 +265,7 @@ export const LeaveRequestsPage: React.FC<Props> = ({ teamMode = false, onNavigat
         {/* Filters */}
         <div className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-[minmax(0,1.3fr)_repeat(3,minmax(0,1fr))_minmax(0,1.6fr)_auto]">
           <div className="relative col-span-2 md:col-span-1">
-            <Search className="pointer-events-none absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
+            <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" />
             <input
               value={search}
               onChange={(e) => {
@@ -274,7 +274,7 @@ export const LeaveRequestsPage: React.FC<Props> = ({ teamMode = false, onNavigat
               }}
               placeholder="Request No. or employee"
               aria-label="Search"
-              className={`${FIELD} w-full pl-8 font-medium`}
+              className={`${FIELD} w-full pl-9`}
             />
           </div>
           <select
@@ -284,7 +284,7 @@ export const LeaveRequestsPage: React.FC<Props> = ({ teamMode = false, onNavigat
               resetPage();
             }}
             aria-label="Leave type"
-            className={`${FIELD} cursor-pointer`}
+            className={`${FIELD} select-chevron cursor-pointer`}
           >
             <option value="">Leave type: All</option>
             {types.map((t) => (
@@ -300,7 +300,7 @@ export const LeaveRequestsPage: React.FC<Props> = ({ teamMode = false, onNavigat
               resetPage();
             }}
             aria-label="Department"
-            className={`${FIELD} cursor-pointer`}
+            className={`${FIELD} select-chevron cursor-pointer`}
           >
             <option value="">Department: All</option>
             {(departments as any[]).map((d) => (
@@ -390,9 +390,9 @@ export const LeaveRequestsPage: React.FC<Props> = ({ teamMode = false, onNavigat
             {/* Phones: one card per request */}
             <ul className="space-y-2.5 md:hidden">
               {rows.map((r) => (
-                <li key={r.request_id} className="rounded-xl border border-slate-200 bg-white p-3.5">
+                <li key={r.request_id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs">
                   <div className="flex items-start gap-3">
-                    <span aria-hidden className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700">
+                    <span aria-hidden className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 text-xs font-bold text-white ring-2 ring-white shadow-sm">
                       {initialsOf(r.employee_name)}
                     </span>
                     <div className="min-w-0 flex-1">
@@ -425,23 +425,23 @@ export const LeaveRequestsPage: React.FC<Props> = ({ teamMode = false, onNavigat
             <div className="hidden overflow-x-auto md:block">
               <table className="w-full text-left text-[13px]">
                 <thead>
-                  <tr className="border-b border-slate-100 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                    <th className="px-3 py-2.5">Employee</th>
-                    <th className="px-3 py-2.5">Leave</th>
-                    <th className="px-3 py-2.5">Dates</th>
-                    <th className="px-3 py-2.5">Days</th>
-                    <th className="px-3 py-2.5">Bal. after</th>
-                    <th className="px-3 py-2.5">Applied</th>
-                    <th className="px-3 py-2.5">Status</th>
-                    <th className="px-3 py-2.5 text-right">Action</th>
+                  <tr className="border-b border-slate-200 bg-slate-50/80 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                    <th className="whitespace-nowrap px-4 py-3">Employee</th>
+                    <th className="whitespace-nowrap px-4 py-3">Leave</th>
+                    <th className="whitespace-nowrap px-4 py-3">Dates</th>
+                    <th className="whitespace-nowrap px-4 py-3">Days</th>
+                    <th className="whitespace-nowrap px-4 py-3">Bal. after</th>
+                    <th className="whitespace-nowrap px-4 py-3">Applied</th>
+                    <th className="whitespace-nowrap px-4 py-3">Status</th>
+                    <th className="whitespace-nowrap px-4 py-3 text-right">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-100/80">
                   {rows.map((r) => (
-                    <tr key={r.request_id} className="align-top transition-colors hover:bg-slate-50/70">
-                      <td className="px-3 py-3">
+                    <tr key={r.request_id} className="align-middle transition-colors hover:bg-blue-50/30">
+                      <td className="px-4 py-3.5">
                         <div className="flex items-center gap-2.5">
-                          <span aria-hidden className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-[11px] font-bold text-blue-700">
+                          <span aria-hidden className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 text-[11px] font-bold text-white ring-2 ring-white shadow-sm">
                             {initialsOf(r.employee_name)}
                           </span>
                           <div className="min-w-0">
@@ -450,21 +450,21 @@ export const LeaveRequestsPage: React.FC<Props> = ({ teamMode = false, onNavigat
                           </div>
                         </div>
                       </td>
-                      <td className="px-3 py-3">
+                      <td className="px-4 py-3.5">
                         <div className="flex flex-wrap items-center gap-1.5 text-slate-800">
                           {r.leave_type_name} <PaidTag paid={r.is_paid} />
                         </div>
                         {r.is_short_notice && <div className="mt-1"><ShortNoticeTag /></div>}
                       </td>
-                      <td className="whitespace-nowrap px-3 py-3 text-slate-700">{dateRangeLabel(r.from_date, r.to_date, r.duration)}</td>
-                      <td className="px-3 py-3 font-semibold tabular-nums text-slate-900">{fmtDays(r.leave_days)}</td>
-                      <td className="px-3 py-3 tabular-nums text-slate-700">{r.balance_after === null || r.balance_after === undefined ? '—' : fmtDays(r.balance_after)}</td>
-                      <td className="whitespace-nowrap px-3 py-3 text-slate-500">{appliedLabel(r.applied_at)}</td>
-                      <td className="px-3 py-3">
+                      <td className="whitespace-nowrap px-4 py-3.5 text-slate-700">{dateRangeLabel(r.from_date, r.to_date, r.duration)}</td>
+                      <td className="px-4 py-3.5 font-semibold tabular-nums text-slate-900">{fmtDays(r.leave_days)}</td>
+                      <td className="px-4 py-3.5 tabular-nums text-slate-700">{r.balance_after === null || r.balance_after === undefined ? '—' : fmtDays(r.balance_after)}</td>
+                      <td className="whitespace-nowrap px-4 py-3.5 text-slate-500">{appliedLabel(r.applied_at)}</td>
+                      <td className="px-4 py-3.5">
                         <StatusBadge status={r.status} label={r.status_label} />
                         {r.is_self_approved && <div className="mt-0.5 text-[10px] text-slate-400">● Self-approved</div>}
                       </td>
-                      <td className="px-3 py-3 text-right">{rowAction(r)}</td>
+                      <td className="px-4 py-3.5 text-right">{rowAction(r)}</td>
                     </tr>
                   ))}
                 </tbody>
