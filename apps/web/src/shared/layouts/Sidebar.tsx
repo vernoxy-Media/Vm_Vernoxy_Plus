@@ -190,16 +190,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggleC
     if (canAccessSales) admin.push(parent('Sales', Handshake, 'sales', [...salesChildren, ...salesExtras]));
     if (isOrgAdmin) {
       admin.push(
-        parent('Knowledge Base Admin', BookMarked, 'knowledge-base-management', [
-          child('Add Category', '/admin/settings/knowledge-base', starts('/admin/settings/knowledge-base'), 'kb-add-category'),
-          child('Create Article', '/knowledge-base/new', exact('/knowledge-base/new'), 'kb-create-article'),
-        ]),
         parent('Finance', Banknote, 'finance', [
           child('Expense Management', '/admin/expense', (p, q) => p.startsWith('/admin/expense') || expenseAdmin(p, q), 'expense-management'),
           child('Salary & Payroll', '/admin/payroll', starts('/admin/payroll'), 'payroll'),
         ]),
         entry('Complaint Management', '/admin/complaints', AlertCircle, (p, q) => p.startsWith('/admin/complaint') || complaintAdmin(p, q), 'complaint-management'),
-        entry('Settings', '/admin/settings/employment-types', Settings, (p) => p.startsWith('/admin/settings') && !p.startsWith('/admin/settings/knowledge-base'), 'settings'),
+        entry('Settings', '/admin/settings/employment-types', Settings, (p) => p.startsWith('/admin/settings'), 'settings'),
       );
     }
     groups.push({ label: 'Admin', entries: admin });
