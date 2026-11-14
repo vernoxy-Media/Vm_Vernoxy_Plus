@@ -29,6 +29,8 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  CheckCircle2,
+  FileWarning,
 } from 'lucide-react';
 
 const AVATAR_COLORS = [
@@ -69,6 +71,19 @@ function getDepartmentBadgeStyle(name: string): string {
   if (n.includes('market')) return 'bg-amber-100 text-amber-800 font-medium';
   if (n.includes('qa') || n.includes('test')) return 'bg-teal-100 text-teal-800 font-medium';
   return 'bg-purple-50 text-purple-700 font-medium';
+}
+
+/** "Starts in 3 days" for a joining date that is still ahead; empty for past dates. */
+function joiningHint(dateString?: string | Date | null): string {
+  if (!dateString) return '';
+  const d = new Date(dateString);
+  if (isNaN(d.getTime())) return '';
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  d.setHours(0, 0, 0, 0);
+  const days = Math.round((d.getTime() - today.getTime()) / 86400000);
+  if (days <= 0) return '';
+  return days === 1 ? 'Starts tomorrow' : `Starts in ${days} days`;
 }
 
 function formatDate(dateString?: string | Date | null): string {
@@ -611,14 +626,14 @@ export const EmployeesPage: React.FC = () => {
               {/* Desktop & Tablet Table (sm and up) with smooth scrollbar */}
               <div
                 ref={tableContainerRef}
-                className="hidden sm:block max-h-[530px] overflow-y-auto overflow-x-auto custom-scrollbar"
+                className="hidden sm:block max-h-[600px] overflow-y-auto overflow-x-auto custom-scrollbar"
               >
                 <table className="w-full text-left border-collapse" id="employees-table">
-                  <thead className="sticky top-0 z-10 bg-white border-b border-slate-200 shadow-2xs">
+                  <thead className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur border-b border-slate-200">
                     <tr>
                       <th
                         onClick={() => handleToggleSort('name')}
-                        className="py-3 px-5 text-xs font-bold text-slate-700 tracking-wider uppercase w-[24%] min-w-[200px] cursor-pointer hover:text-slate-900 transition-colors select-none group"
+                        className="py-3.5 px-5 text-[11px] font-semibold text-slate-500 tracking-wider uppercase whitespace-nowrap w-[24%] min-w-[200px] cursor-pointer hover:text-slate-800 transition-colors select-none group"
                         title="Sort by Name"
                       >
                         <div className="flex items-center gap-1.5">
@@ -634,29 +649,29 @@ export const EmployeesPage: React.FC = () => {
                           )}
                         </div>
                       </th>
-                      <th className="py-3 px-5 text-xs font-bold text-slate-700 tracking-wider uppercase w-[16%] min-w-[130px]">
+                      <th className="py-3.5 px-5 text-[11px] font-semibold text-slate-500 tracking-wider uppercase whitespace-nowrap w-[16%] min-w-[130px]">
                         Departments
                       </th>
-                      <th className="py-3 px-5 text-xs font-bold text-slate-700 tracking-wider uppercase w-[16%] min-w-[130px]">
+                      <th className="py-3.5 px-5 text-[11px] font-semibold text-slate-500 tracking-wider uppercase whitespace-nowrap w-[16%] min-w-[130px]">
                         Designation
                       </th>
                       {isInactiveView ? (
                         <>
-                          <th className="py-3 px-5 text-xs font-bold text-slate-700 tracking-wider uppercase w-[16%] min-w-[140px]">
+                          <th className="py-3.5 px-5 text-[11px] font-semibold text-slate-500 tracking-wider uppercase whitespace-nowrap w-[16%] min-w-[140px]">
                             Terminated
                           </th>
-                          <th className="py-3 px-5 text-xs font-bold text-slate-700 tracking-wider uppercase w-[12%] min-w-[110px]">
+                          <th className="py-3.5 px-5 text-[11px] font-semibold text-slate-500 tracking-wider uppercase whitespace-nowrap w-[12%] min-w-[110px]">
                             Reason
                           </th>
                         </>
                       ) : (
                         <>
-                          <th className="py-3 px-5 text-xs font-bold text-slate-700 tracking-wider uppercase w-[16%] min-w-[140px]">
+                          <th className="py-3.5 px-5 text-[11px] font-semibold text-slate-500 tracking-wider uppercase whitespace-nowrap w-[16%] min-w-[140px]">
                             Reporting Manager
                           </th>
                           <th
                             onClick={() => handleToggleSort('joining_date')}
-                            className="py-3 px-5 text-xs font-bold text-slate-700 tracking-wider uppercase w-[12%] min-w-[110px] cursor-pointer hover:text-slate-900 transition-colors select-none group"
+                            className="py-3.5 px-5 text-[11px] font-semibold text-slate-500 tracking-wider uppercase whitespace-nowrap w-[12%] min-w-[110px] cursor-pointer hover:text-slate-800 transition-colors select-none group"
                             title="Sort by Joining Date"
                           >
                             <div className="flex items-center gap-1.5">
@@ -674,17 +689,17 @@ export const EmployeesPage: React.FC = () => {
                           </th>
                         </>
                       )}
-                      <th className="py-3 px-5 text-xs font-bold text-slate-700 tracking-wider uppercase w-[10%] min-w-[85px]">
+                      <th className="py-3.5 px-5 text-[11px] font-semibold text-slate-500 tracking-wider uppercase whitespace-nowrap w-[10%] min-w-[85px]">
                         Status
                       </th>
                       {!isInactiveView && (
-                        <th className="py-3 px-5 text-xs font-bold text-slate-700 tracking-wider uppercase w-[10%] min-w-[95px]">
+                        <th className="py-3.5 px-5 text-[11px] font-semibold text-slate-500 tracking-wider uppercase whitespace-nowrap w-[10%] min-w-[95px]">
                           Documents
                         </th>
                       )}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-slate-100/80">
                     {currentItems.map((emp) => {
                       const isSelf = currentUser?.emp_id === emp.emp_id;
                       const empCode =
@@ -707,7 +722,7 @@ export const EmployeesPage: React.FC = () => {
                           key={emp.emp_id}
                           id={`employee-row-${emp.emp_id}`}
                           onClick={() => navigate(`/admin/employees/${emp.emp_id}`)}
-                          className="hover:bg-slate-50/70 transition-colors cursor-pointer group"
+                          className="hover:bg-blue-50/30 transition-colors cursor-pointer group"
                         >
                           {/* Marker 5: EMPLOYEE column: Initials Circle, Name & Emp ID */}
                           <td className="py-3.5 px-5">
@@ -716,12 +731,12 @@ export const EmployeesPage: React.FC = () => {
                                 <img
                                   src={emp.profile_picture_url}
                                   alt={emp.name}
-                                  className="w-10 h-10 rounded-full object-cover shrink-0 ring-1 ring-slate-200"
+                                  className="w-10 h-10 rounded-full object-cover shrink-0 ring-2 ring-white shadow-sm"
                                   onError={() => setImageErrors((prev) => ({ ...prev, [emp.emp_id]: true }))}
                                 />
                               ) : (
                                 <div
-                                  className={`w-10 h-10 rounded-full ${avatarBg} text-white font-bold text-xs flex items-center justify-center shrink-0 tracking-wide shadow-2xs`}
+                                  className={`w-10 h-10 rounded-full ${avatarBg} text-white font-bold text-xs flex items-center justify-center shrink-0 tracking-wide ring-2 ring-white shadow-sm`}
                                 >
                                   {initials}
                                 </div>
@@ -737,7 +752,7 @@ export const EmployeesPage: React.FC = () => {
                                     </span>
                                   )}
                                 </div>
-                                <span className="text-xs text-slate-400 font-mono mt-0.5">
+                                <span className="mt-0.5 text-[11px] text-slate-400 font-mono tracking-tight">
                                   {empCode}
                                 </span>
                               </div>
@@ -746,12 +761,12 @@ export const EmployeesPage: React.FC = () => {
 
                           {/* Marker 6: DEPARTMENTS column: Badges per department */}
                           <td className="py-3.5 px-5">
-                            <div className="flex flex-col items-start gap-1">
+                            <div className="flex flex-wrap items-center gap-1.5 max-w-[240px]">
                               {departmentList.length > 0 ? (
                                 departmentList.map((d) => (
                                   <span
                                     key={d.dep_id}
-                                    className={`inline-block px-2.5 py-0.5 rounded-md text-xs font-medium ${getDepartmentBadgeStyle(
+                                    className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-medium whitespace-nowrap ${getDepartmentBadgeStyle(
                                       d.name,
                                     )}`}
                                   >
@@ -765,8 +780,41 @@ export const EmployeesPage: React.FC = () => {
                           </td>
 
                           {/* DESIGNATION column */}
-                          <td className="py-3.5 px-5 text-sm font-normal text-slate-700">
-                            {((emp as any).roles?.length ? (emp as any).roles.map((r: any) => r.role_name).join(', ') : emp.role?.role_name) || (emp.role_id ? `Role #${emp.role_id}` : '—')}
+                          <td className="py-3.5 px-5">
+                            {(() => {
+                              const roleNames: string[] = (emp as any).roles?.length
+                                ? (emp as any).roles.map((r: any) => r.role_name)
+                                : emp.role?.role_name
+                                ? [emp.role.role_name]
+                                : [];
+                              if (roleNames.length === 0) {
+                                return (
+                                  <span className="text-sm text-slate-400">
+                                    {emp.role_id ? `Role #${emp.role_id}` : '—'}
+                                  </span>
+                                );
+                              }
+                              if (roleNames.length === 1) {
+                                return <span className="text-sm font-medium text-slate-800">{roleNames[0]}</span>;
+                              }
+                              return (
+                                <div className="flex flex-wrap items-center gap-1.5 max-w-[220px]">
+                                  {roleNames.map((n, i) => (
+                                    <span
+                                      key={n}
+                                      title={i === 0 ? 'Primary designation' : undefined}
+                                      className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-medium whitespace-nowrap ${
+                                        i === 0
+                                          ? 'bg-violet-50 text-violet-700 ring-1 ring-inset ring-violet-200'
+                                          : 'bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-200'
+                                      }`}
+                                    >
+                                      {n}
+                                    </span>
+                                  ))}
+                                </div>
+                              );
+                            })()}
                           </td>
 
                           {/* Inactive Mode vs Active Mode columns */}
@@ -786,12 +834,24 @@ export const EmployeesPage: React.FC = () => {
                             <>
                               {/* REPORTING MANAGER */}
                               <td className="py-3.5 px-5 text-sm text-slate-600">
-                                {emp.manager?.name ? emp.manager.name : '—'}
+                                {emp.manager?.name ? (
+                                  <span className="inline-flex items-center gap-2">
+                                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-600">
+                                      {getInitials(emp.manager.name)}
+                                    </span>
+                                    <span className="truncate">{emp.manager.name}</span>
+                                  </span>
+                                ) : (
+                                  <span className="text-slate-300">—</span>
+                                )}
                               </td>
 
                               {/* JOINING DATE */}
-                              <td className="py-3.5 px-5 text-sm text-slate-600">
-                                {formatDate(emp.joining_date)}
+                              <td className="py-3.5 px-5 whitespace-nowrap">
+                                <div className="text-sm text-slate-700 tabular-nums">{formatDate(emp.joining_date)}</div>
+                                {joiningHint(emp.joining_date) && (
+                                  <div className="mt-0.5 text-[11px] font-medium text-purple-600">{joiningHint(emp.joining_date)}</div>
+                                )}
                               </td>
                             </>
                           )}
@@ -799,17 +859,17 @@ export const EmployeesPage: React.FC = () => {
                           {/* STATUS column */}
                           <td className="py-3.5 px-5">
                             {emp.status === 'Active' ? (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+                              <span className="inline-flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200/70">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                                 Active
                               </span>
                             ) : emp.status === 'Onboarding' ? (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200/60">
+                              <span className="inline-flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 ring-1 ring-inset ring-purple-200/70">
                                 <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
                                 Onboarding
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200/60">
+                              <span className="inline-flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-200/70">
                                 <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
                                 Inactive
                               </span>
@@ -820,11 +880,13 @@ export const EmployeesPage: React.FC = () => {
                           {!isInactiveView && (
                             <td className="py-3.5 px-5">
                               {isDocsComplete ? (
-                                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+                                <span className="inline-flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200/70">
+                                  <CheckCircle2 className="h-3.5 w-3.5" />
                                   Complete
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200/60">
+                                <span className="inline-flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-200/70">
+                                  <FileWarning className="h-3.5 w-3.5" />
                                   {pendingDocsCount} pending
                                 </span>
                               )}
