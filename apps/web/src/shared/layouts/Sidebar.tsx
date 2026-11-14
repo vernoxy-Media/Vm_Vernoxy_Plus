@@ -176,8 +176,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggleC
           child('All Employees', '/admin/employees', starts('/admin/employees'), 'employees'),
           child('Department', '/departments', starts('/departments', '/admin/departments'), 'departments'),
           child('Recruitment', '/recruitment', starts('/recruitment', '/admin/recruitment'), 'recruitment'),
-          child('Cycle Master', '/admin/settings/performance-cycles', starts('/admin/settings/performance-cycles'), 'performance-cycles'),
-          child('Question Master', '/admin/settings/performance-forms', starts('/admin/settings/performance-forms'), 'performance-forms'),
         ]),
         parent('Time & Leave', CalendarClock, 'time-leave', [
           child('Attendance Management', '/admin/attendance-settings', starts('/admin/attendance-settings'), 'attendance-management'),
