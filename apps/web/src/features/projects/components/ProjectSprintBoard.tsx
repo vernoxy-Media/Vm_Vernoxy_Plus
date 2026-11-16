@@ -44,14 +44,14 @@ const JIRA = {
   subtle: 'text-[#5E6C84]',
   blue: 'text-[color:var(--ac-main,#0052CC)]',
   border: 'border-[#DFE1E6]',
-  column: 'bg-[#F4F5F7]',
-  card: 'shadow-[0_1px_1px_rgba(9,30,66,0.25),0_0_1px_rgba(9,30,66,0.31)]',
+  column: 'bg-slate-50',
+  card: 'border border-slate-200 shadow-[0_1px_2px_rgba(15,23,42,0.06)]',
 };
 
-const BTN_PRIMARY = 'inline-flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-[3px] bg-[color:var(--ac-main,#0052CC)] px-3 text-[14px] font-medium text-white transition hover:bg-[color:var(--ac-hover,#0065FF)] active:bg-[color:var(--ac-dark,#0747A6)] disabled:cursor-not-allowed disabled:opacity-50';
-const BTN_SUBTLE = 'inline-flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-[3px] bg-[rgba(9,30,66,0.04)] px-3 text-[14px] font-medium text-[#42526E] transition hover:bg-[rgba(9,30,66,0.08)] disabled:cursor-not-allowed disabled:opacity-50';
+const BTN_PRIMARY = 'inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-[color:var(--ac-main,#0052CC)] px-3.5 text-[14px] font-semibold text-white shadow-sm transition hover:bg-[color:var(--ac-hover,#0065FF)] active:bg-[color:var(--ac-dark,#0747A6)] disabled:cursor-not-allowed disabled:opacity-50';
+const BTN_SUBTLE = 'inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 text-[14px] font-medium text-[#42526E] transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50';
 
-/** The five task stages, named the way a Jira board names them. */
+/** The task stages, named the way a Jira board names them. */
 const COLUMNS = [
   { stage: 'assigned', label: 'To Do' },
   { stage: 'in_progress', label: 'In Progress' },
@@ -125,7 +125,7 @@ const DueChip: React.FC<{ task: ProjectTaskItem }> = ({ task }) => {
   const overdue = task.stage !== 'completed' && task.due_date < todayIso();
   const label = new Date(`${task.due_date}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
   return (
-    <span title={overdue ? 'Overdue' : 'Due date'} className={`inline-flex items-center gap-1 rounded-[3px] px-1 py-px text-[12px] font-medium ${overdue ? 'bg-[#FFEBE6] text-[#BF2600]' : 'bg-[rgba(9,30,66,0.08)] text-[#42526E]'}`}>
+    <span title={overdue ? 'Overdue' : 'Due date'} className={`inline-flex items-center gap-1 rounded-md px-1.5 py-px text-[12px] font-medium ${overdue ? 'bg-[#FFEBE6] text-[#BF2600]' : 'bg-[rgba(9,30,66,0.08)] text-[#42526E]'}`}>
       <Clock className="h-3 w-3" />
       {label}
     </span>
@@ -197,14 +197,19 @@ const BoardCard: React.FC<{
       tabIndex={0}
       onClick={() => !overlay && onOpen(task.task_id)}
       onKeyDown={(e) => { if (e.key === 'Enter') onOpen(task.task_id); }}
-      className={`rounded-[3px] bg-white p-2.5 outline-none transition focus-visible:ring-2 focus-visible:ring-[color:var(--ac-400,#4C9AFF)] ${JIRA.card} ${draggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'} ${
-        overlay ? 'rotate-2 shadow-[0_8px_16px_-4px_rgba(9,30,66,0.25),0_0_1px_rgba(9,30,66,0.31)]' : isDragging ? 'opacity-40' : 'hover:bg-[#F4F5F7]'
+      className={`rounded-xl bg-white p-3 outline-none transition focus-visible:ring-2 focus-visible:ring-[color:var(--ac-400,#4C9AFF)] ${JIRA.card} ${draggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'} ${
+        overlay ? 'rotate-2 shadow-xl' : isDragging ? 'opacity-40' : 'hover:-translate-y-px hover:border-slate-300 hover:shadow-md'
       }`}
     >
-      <p className={`text-[14px] leading-5 ${JIRA.text}`}>{task.title}</p>
-      {task.due_date && (
-        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+      <p className={`text-[14px] font-medium leading-5 ${JIRA.text}`}>{task.title}</p>
+      {(task.due_date || task.qa_assignee_name) && (
+        <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1">
           <DueChip task={task} />
+          {task.qa_assignee_name && (
+            <span title={`QA: ${task.qa_assignee_name}`} className={`inline-flex max-w-[140px] items-center gap-1 truncate rounded-md px-1.5 py-px text-[12px] font-medium ${task.stage === 'in_qa' ? 'bg-[#FFE2BD] text-[#974F0C]' : 'bg-slate-100 text-slate-600'}`}>
+              QA · {task.qa_assignee_name.split(' ')[0]}
+            </span>
+          )}
         </div>
       )}
 
@@ -245,7 +250,7 @@ const BoardCard: React.FC<{
         </div>
       )}
 
-      <div className="mt-2.5 flex items-center justify-between gap-2">
+      <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-100 pt-2.5">
         <div className="flex min-w-0 items-center gap-1.5">
           <IssueType />
           <span className={`truncate text-[12px] font-medium ${done ? 'text-[#5E6C84] line-through' : 'text-[#5E6C84]'}`}>{task.task_code}</span>
@@ -271,16 +276,22 @@ const BoardColumn: React.FC<{ col: (typeof COLUMNS)[number]; count: number; chil
     <section
       ref={setNodeRef}
       aria-label={col.label}
-      className={`flex min-h-[260px] w-[78vw] shrink-0 snap-start flex-col rounded-[3px] p-1.5 transition-colors sm:w-[272px] xl:w-auto ${isOver ? 'bg-[color:var(--ac-50,#DEEBFF)]' : JIRA.column}`}
+      className={`flex min-h-[320px] w-[272px] shrink-0 snap-start flex-col rounded-xl border p-2 transition-colors xl:min-w-[210px] xl:flex-1 xl:basis-0 ${isOver ? 'border-[color:var(--ac-400,#4C9AFF)] bg-[color:var(--ac-50,#DEEBFF)]' : `border-slate-200 ${JIRA.column}`}`}
     >
-      <header className="flex items-center gap-1.5 px-1.5 pb-2 pt-1.5">
-        <h4 className="text-[12px] font-semibold uppercase tracking-[0.02em] text-[#5E6C84]">
-          {col.label}
-          <span className="ml-1.5 font-medium">{count}</span>
-        </h4>
+      <header className="flex items-center gap-2 px-1.5 pb-2.5 pt-1">
+        <span aria-hidden className={`h-2.5 w-2.5 shrink-0 rounded-full ${STAGE_DOT[col.stage] ?? STAGE_DOT.assigned}`} />
+        <h4 className="min-w-0 flex-1 truncate text-[12px] font-bold uppercase tracking-wide text-slate-600">{col.label}</h4>
+        <span className="inline-flex min-w-[22px] items-center justify-center rounded-full bg-white px-1.5 text-[12px] font-semibold text-slate-600 shadow-[inset_0_0_0_1px_rgb(226,232,240)]">{count}</span>
         {col.stage === 'completed' && <Check className="h-3.5 w-3.5 text-[#36B37E]" strokeWidth={3} />}
       </header>
-      <div className="flex-1 space-y-1.5">{children}</div>
+      <div className="flex-1 space-y-2">
+        {children}
+        {count === 0 && (
+          <div className="flex h-24 items-center justify-center rounded-lg border border-dashed border-slate-300/80 px-3 text-center text-[12px] text-slate-400">
+            {isOver ? 'Drop here' : 'No issues'}
+          </div>
+        )}
+      </div>
     </section>
   );
 };
@@ -676,7 +687,7 @@ export const ProjectSprintBoard: React.FC<ProjectSprintBoardProps> = ({
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-            <h3 className={`text-[20px] font-medium leading-7 ${JIRA.text}`}>{sprint ? sprint.sprint_name : 'All work'}</h3>
+            <h3 className={`text-[22px] font-semibold leading-8 tracking-tight ${JIRA.text}`}>{sprint ? sprint.sprint_name : 'All work'}</h3>
             {sprint && <span className={`rounded-[3px] px-1 py-px text-[11px] font-bold uppercase ${sprint.status === 'active' ? 'bg-[color:var(--ac-50,#DEEBFF)] text-[color:var(--ac-dark,#0747A6)]' : sprint.status === 'completed' ? 'bg-[#E3FCEF] text-[#006644]' : 'bg-[#DFE1E6] text-[#42526E]'}`}>{SPRINT_STATUS[sprint.status]}</span>}
             {sprint && sprintInfo && sprint.status !== 'completed' && (
               <span className={`inline-flex items-center gap-1 rounded-[3px] bg-[rgba(9,30,66,0.08)] px-1.5 py-0.5 text-[12px] font-medium ${sprintInfo.daysLeft < 0 ? 'text-[#BF2600]' : 'text-[#42526E]'}`}>
@@ -719,7 +730,7 @@ export const ProjectSprintBoard: React.FC<ProjectSprintBoardProps> = ({
               key={chip.id}
               type="button"
               onClick={() => onSprintFilter(chip.id)}
-              className={`h-7 shrink-0 cursor-pointer rounded-[3px] px-2.5 text-[13px] font-medium transition ${on ? 'bg-[color:var(--ac-50,#DEEBFF)] text-[color:var(--ac-main,#0052CC)]' : 'bg-[rgba(9,30,66,0.04)] text-[#42526E] hover:bg-[rgba(9,30,66,0.08)]'}`}
+              className={`h-8 shrink-0 cursor-pointer rounded-full px-3.5 text-[13px] font-medium transition ${on ? 'bg-[color:var(--ac-main,#0052CC)] text-white shadow-sm' : 'border border-slate-200 bg-white text-[#42526E] hover:bg-slate-50'}`}
             >
               {chip.name}
             </button>
@@ -733,7 +744,7 @@ export const ProjectSprintBoard: React.FC<ProjectSprintBoardProps> = ({
       </div>
 
       {/* Board / Backlog tabs and filters */}
-      <div className="flex flex-col gap-3 border-b-2 border-[#DFE1E6] md:flex-row md:items-end md:justify-between">
+      <div className="flex flex-col gap-3 border-b border-slate-200 md:flex-row md:items-end md:justify-between">
         <div role="tablist" aria-label="Task view" className={`-mb-0.5 flex ${controlledView ? 'hidden' : ''}`}>
           {([['board', 'Board'], ['list', 'Backlog']] as const).map(([id, label]) => (
             <button
@@ -751,12 +762,12 @@ export const ProjectSprintBoard: React.FC<ProjectSprintBoardProps> = ({
 
         <div className="flex flex-wrap items-center gap-2 pb-2">
           <div className="relative">
-            <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#5E6C84]" />
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#5E6C84]" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search this board"
-              className="h-8 w-40 rounded-[3px] border-2 border-[#DFE1E6] bg-[#FAFBFC] pl-7 pr-2 text-[14px] text-[#172B4D] placeholder:text-[#7A869A] hover:bg-[#EBECF0] focus:w-52 focus:border-[color:var(--ac-400,#4C9AFF)] focus:bg-white focus:outline-none sm:transition-all"
+              className="h-9 w-44 rounded-lg border border-slate-200 bg-white pl-8 pr-2 text-[14px] text-[#172B4D] placeholder:text-[#7A869A] hover:border-slate-300 focus:w-56 focus:border-[color:var(--ac-400,#4C9AFF)] focus:outline-none focus:ring-4 focus:ring-[color:var(--ac-50,#DEEBFF)] sm:transition-all"
             />
           </div>
 
@@ -782,7 +793,7 @@ export const ProjectSprintBoard: React.FC<ProjectSprintBoardProps> = ({
               type="button"
               aria-pressed={assigneeFilter === String(currentEmpId)}
               onClick={() => onAssigneeFilter(assigneeFilter === String(currentEmpId) ? 'all' : String(currentEmpId))}
-              className={`h-8 cursor-pointer rounded-[3px] px-2.5 text-[14px] font-medium transition ${assigneeFilter === String(currentEmpId) ? 'bg-[color:var(--ac-main,#0052CC)] text-white' : 'bg-[rgba(9,30,66,0.04)] text-[#42526E] hover:bg-[rgba(9,30,66,0.08)]'}`}
+              className={`h-9 cursor-pointer rounded-lg px-3 text-[14px] font-medium transition ${assigneeFilter === String(currentEmpId) ? 'bg-[color:var(--ac-main,#0052CC)] text-white shadow-sm' : 'border border-slate-200 bg-white text-[#42526E] hover:bg-slate-50'}`}
             >
               Only my issues
             </button>
@@ -812,7 +823,7 @@ export const ProjectSprintBoard: React.FC<ProjectSprintBoardProps> = ({
         </div>
       ) : view === 'board' ? (
         <DndContext sensors={sensors} collisionDetection={collision} onDragStart={(e: DragStartEvent) => setDragId(Number(e.active.id))} onDragCancel={() => setDragId(null)} onDragEnd={handleDragEnd}>
-          <div className="-mx-1 flex snap-x snap-mandatory gap-2 overflow-x-auto px-1 pb-3 xl:grid xl:grid-cols-5 xl:overflow-visible">
+          <div className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-4 [scrollbar-width:thin]">
             {COLUMNS.map((col) => {
               const cards = topLevel.filter((t) => (t.stage ?? 'assigned') === col.stage);
               return (

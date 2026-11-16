@@ -440,10 +440,12 @@ export const CompaniesListPage: React.FC<CompaniesListPageProps> = ({
       <CompanyFilterDrawer
         isOpen={isFilterOpen}
         onClose={() => setIsFilterOpen(false)}
-        filters={filters}
+        filters={{ ...filters, lead: leadStatusFilter }}
         onApply={(newFilters) => {
-          setFilters(newFilters);
-          setLeadStatusFilter((newFilters.lead as SalesCompanyLeadFilter | undefined) ?? 'all');
+          // The lead status is the page's own tab; the rest are drawer filters
+          const { lead, ...rest } = newFilters;
+          setFilters(rest);
+          setLeadStatusFilter((lead as SalesCompanyLeadFilter | undefined) ?? 'all');
           setPage(1);
         }}
         onReset={() => {

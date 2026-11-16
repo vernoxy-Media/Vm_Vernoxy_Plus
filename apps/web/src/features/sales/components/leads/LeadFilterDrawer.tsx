@@ -150,9 +150,12 @@ export const LeadFilterDrawer: React.FC<LeadFilterDrawerProps> = ({ isOpen, onCl
             value={local.industry}
             onChange={(v) => set('industry', v)}
             placeholder="Any industry"
-            options={(company?.industries ?? []).map((i) => ({ value: String(i.id), label: i.name }))}
+            options={(company?.industries ?? []).map((i) => {
+              const parent = i.parent_id ? company?.industries.find((x) => x.id === i.parent_id) : null;
+              return { value: String(i.id), label: parent ? `${parent.name} › ${i.name}` : i.name };
+            })}
           />
-          <TextField aria-label="City" value={local.city} onChange={(e) => set('city', e.target.value)} placeholder="City, e.g. Surat" />
+          <SelectField ariaLabel="City" value={local.city} onChange={(v) => set('city', v)} placeholder="Any city" options={(company?.cities ?? []).map((c) => ({ value: c, label: c }))} />
         </div>
       </FilterSection>
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronDown } from 'lucide-react';
+import { SearchableMultiSelect, SearchableSelect } from './SearchableSelect';
 
 /** A titled block of a filter panel. */
 export const FilterSection: React.FC<{ title: string; hint?: string; children: React.ReactNode }> = ({ title, hint, children }) => (
@@ -43,33 +43,17 @@ export const ChipGroup: React.FC<{ options: ChipOption[]; value: string; onChang
   </div>
 );
 
-/** A select with the same look as the rest of the panel. */
+/** A select with the same look as the rest of the panel: searchable, so a long list (cities, industries) is easy to use. */
 export const SelectField: React.FC<{
   value: string;
   onChange: (value: string) => void;
   placeholder: string;
-  options: Array<{ value: string; label: string }>;
+  options: Array<{ value: string; label: string; hint?: string }>;
   ariaLabel: string;
-}> = ({ value, onChange, placeholder, options, ariaLabel }) => (
-  <div className="relative">
-    <select
-      aria-label={ariaLabel}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className={`h-11 w-full cursor-pointer appearance-none rounded-xl border border-slate-200 bg-white pl-3.5 pr-10 text-sm transition hover:border-slate-300 focus:border-primary/50 focus:outline-hidden focus:ring-4 focus:ring-primary/10 ${
-        value ? 'font-medium text-slate-900' : 'text-slate-500'
-      }`}
-    >
-      <option value="">{placeholder}</option>
-      {options.map((o) => (
-        <option key={o.value} value={o.value}>
-          {o.label}
-        </option>
-      ))}
-    </select>
-    <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-  </div>
-);
+}> = (props) => <SearchableSelect {...props} />;
+
+/** Pick several options from a searchable list. */
+export const MultiSelectField = SearchableMultiSelect;
 
 export const TextField: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = ({ className = '', ...rest }) => (
   <input

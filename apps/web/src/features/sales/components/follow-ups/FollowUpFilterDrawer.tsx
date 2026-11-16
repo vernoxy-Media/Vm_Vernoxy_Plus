@@ -1,5 +1,6 @@
 import React from 'react';
 import { Drawer } from '../common/Drawer';
+import { SelectField } from '../common/FilterFields';
 import { useSalesLeadControllerMasters, useSalesCompanyControllerMasters } from '@vernoxy-pulse/api-client';
 import { EMPTY_LEAD_MASTERS } from '../../types/sales.types';
 import type { SalesLeadMastersResponse, SalesMastersResponse } from '../../types/sales.types';
@@ -113,19 +114,13 @@ export const FollowUpFilterDrawer: React.FC<FollowUpFilterDrawerProps> = ({
         {/* Assignee */}
         <div>
           <label className="block font-semibold text-gray-700 mb-1.5">Assigned Sales User</label>
-          <select
+          <SelectField
+            ariaLabel="Assigned sales user"
             value={localFilters.assigned_to}
-            onChange={(e) => handleChange('assigned_to', e.target.value)}
-            className="w-full px-3 py-2 text-xs rounded-lg border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-primary/20 focus:border-primary"
-          >
-            <option value="">All Assignees</option>
-            <option value="me">Assigned to Me</option>
-            {leadMasters.lead_by_users?.map((user) => (
-              <option key={user.emp_id} value={String(user.emp_id)}>
-                {user.name}
-              </option>
-            ))}
-          </select>
+            onChange={(v) => handleChange('assigned_to', v)}
+            placeholder="All assignees"
+            options={[{ value: 'me', label: 'Assigned to me' }, ...(leadMasters.lead_by_users ?? []).map((u) => ({ value: String(u.emp_id), label: u.name }))]}
+          />
         </div>
 
         {/* Follow-up Type */}
@@ -152,29 +147,27 @@ export const FollowUpFilterDrawer: React.FC<FollowUpFilterDrawerProps> = ({
         {/* Industry */}
         <div>
           <label className="block font-semibold text-gray-700 mb-1.5">Industry Sector</label>
-          <select
+          <SelectField
+            ariaLabel="Industry"
             value={localFilters.industry}
-            onChange={(e) => handleChange('industry', e.target.value)}
-            className="w-full px-3 py-2 text-xs rounded-lg border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-primary/20 focus:border-primary"
-          >
-            <option value="">All Industries</option>
-            {compMasters.industries?.map((ind) => (
-              <option key={ind.id} value={String(ind.id)}>
-                {ind.name}
-              </option>
-            ))}
-          </select>
+            onChange={(v) => handleChange('industry', v)}
+            placeholder="All industries"
+            options={(compMasters.industries ?? []).map((ind) => {
+              const parent = ind.parent_id ? compMasters.industries.find((x) => x.id === ind.parent_id) : null;
+              return { value: String(ind.id), label: parent ? `${parent.name} › ${ind.name}` : ind.name };
+            })}
+          />
         </div>
 
         {/* City */}
         <div>
           <label className="block font-semibold text-gray-700 mb-1.5">City</label>
-          <input
-            type="text"
+          <SelectField
+            ariaLabel="City"
             value={localFilters.city}
-            onChange={(e) => handleChange('city', e.target.value)}
-            placeholder="e.g. Ahmedabad, Surat"
-            className="w-full px-3 py-2 text-xs rounded-lg border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-primary/20 focus:border-primary"
+            onChange={(v) => handleChange('city', v)}
+            placeholder="All cities"
+            options={(compMasters.cities ?? []).map((c) => ({ value: c, label: c }))}
           />
         </div>
 

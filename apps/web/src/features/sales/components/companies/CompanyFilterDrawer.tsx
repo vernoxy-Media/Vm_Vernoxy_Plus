@@ -1,72 +1,100 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useSalesCompanyControllerMasters } from '@vernoxy-pulse/api-client';
 import { Drawer } from '../common/Drawer';
+import { ChipGroup, FilterSection, MultiSelectField, PanelFooter, TextField } from '../common/FilterFields';
 import type { SalesCompanyControllerListParams, SalesMastersResponse } from '../../types/sales.types';
-import { RotateCcw } from 'lucide-react';
 
 export interface CompanyFilterDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   filters: SalesCompanyControllerListParams;
+  /** Optional: when the page already has the masters. Otherwise the drawer loads them itself. */
   masters?: SalesMastersResponse;
   onApply: (filters: Partial<SalesCompanyControllerListParams>) => void;
   onReset: () => void;
 }
 
-export const CompanyFilterDrawer: React.FC<CompanyFilterDrawerProps> = ({
-  isOpen,
-  onClose,
-  filters,
-  masters,
-  onApply,
-  onReset,
-}) => {
-  const [localFilters, setLocalFilters] = useState<SalesCompanyControllerListParams>({ ...filters });
+type Local = SalesCompanyControllerListParams;
 
-  const handleChange = (key: keyof SalesCompanyControllerListParams, value: unknown) => {
-    setLocalFilters((prev) => ({
-      ...prev,
-      [key]: value === '' ? undefined : value,
-    }));
-  };
+const LEAD_STATUS = [
+  { id: 'all', label: 'All companies' },
+  { id: 'open', label: 'Open leads', dot: 'bg-blue-500' },
+  { id: 'not_a_lead', label: 'Not a lead', dot: 'bg-slate-400' },
+  { id: 'client', label: 'Client', dot: 'bg-emerald-500' },
+  { id: 'lost', label: 'Lost', dot: 'bg-rose-500' },
+];
 
-  const handleApply = () => {
-    onApply(localFilters);
+/** A filter value that may hold one or many entries (the API takes a comma separated list). */
+const list = (v: unknown): string[] => (Array.isArray(v) ? v.map(String) : v ? String(v).split(',').map((s) => s.trim()).filter(Boolean) : []);
+
+export const CompanyFilterDrawer: React.FC<CompanyFilterDrawerProps> = ({ isOpen, onClose, filters, masters: given, onApply, onReset }) => {
+  const [local, setLocal] = React.useState<Local>({ ...filters });
+
+  // Start from the filters in force each time the panel opens (a reset elsewhere must show here too)
+  React.useEffect(() => {
+    if (isOpen) setLocal({ ...filters });
+  }, [isOpen, filters]);
+
+  const { data: raw } = useSalesCompanyControllerMasters({ query: { enabled: !given } });
+  const masters = given ?? ((raw as unknown as { data?: SalesMastersResponse })?.data ?? (raw as unknown as SalesMastersResponse | undefined));
+
+  const set = (key: keyof Local, value: unknown) =>
+    setLocal((p) => {
+      const next = { ...p } as Record<string, unknown>;
+      if (value === '' || value === undefined || (Array.isArray(value) && value.length === 0)) delete next[key];
+      else next[key] = value;
+      return next as Local;
+    });
+
+  const industries = masters?.industries ?? [];
+  const industryOptions = industries.map((i) => {
+    const parent = i.parent_id ? industries.find((p) => p.id === i.parent_id) : null;
+    return { value: String(i.id), label: parent ? `${parent.name} › ${i.name}` : i.name };
+  });
+  const options = (items?: string[]) => (items ?? []).map((s) => ({ value: s, label: s }));
+
+  const gidcNames = list(local.gidc_name);
+  const areaMap = masters?.gidc_area_map ?? {};
+  const areaItems = gidcNames.length
+    ? Array.from(new Set([...gidcNames.flatMap((n) => areaMap[n] ?? []), ...(masters?.gidc_common_areas ?? [])]))
+    : masters?.gidc_areas ?? [];
+
+  const qualities = masters?.website_quality?.length ? masters.website_quality : ['Good', 'Average', 'Poor', 'No Website'];
+  const chosenQualities = list(local.website_quality);
+
+  const minEmp = local.employees_min;
+  const maxEmp = local.employees_max;
+  const rangeError = minEmp !== undefined && maxEmp !== undefined && Number(minEmp) > Number(maxEmp) ? 'Min Employees cannot be more than Max Employees.' : null;
+
+  const count = Object.entries(local).filter(([k, v]) => k !== 'lead' || v !== 'all').filter(([, v]) => v !== undefined && v !== '' && !(Array.isArray(v) && !v.length)).length;
+
+  const apply = () => {
+    if (rangeError) return;
+    onApply(local);
     onClose();
   };
-
-  const handleReset = () => {
-    setLocalFilters({});
+  const reset = () => {
+    setLocal({});
     onReset();
     onClose();
   };
 
-  const footer = (
-    <div className="flex items-center justify-between w-full">
-      <button
-        type="button"
-        onClick={handleReset}
-        className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
-      >
-        <RotateCcw className="w-3.5 h-3.5" />
-        Reset all
-      </button>
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={onClose}
-          className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 transition-colors cursor-pointer"
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          onClick={handleApply}
-          className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-xs cursor-pointer"
-        >
-          Apply Filters
-        </button>
-      </div>
-    </div>
+  const toggleQuality = (q: string) => {
+    const on = chosenQualities.includes(q);
+    set('website_quality', (on ? chosenQualities.filter((x) => x !== q) : [...chosenQualities, q]).join(','));
+  };
+
+  const Toggle: React.FC<{ on: boolean; label: string; onClick: () => void }> = ({ on, label, onClick }) => (
+    <button
+      type="button"
+      aria-pressed={on}
+      onClick={onClick}
+      className={`inline-flex h-9 items-center rounded-full border px-3.5 text-[13px] font-medium transition-all ${
+        on ? 'border-primary bg-primary/10 text-primary ring-2 ring-primary/15' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+      }`}
+    >
+      {label}
+    </button>
   );
 
   return (
@@ -75,239 +103,114 @@ export const CompanyFilterDrawer: React.FC<CompanyFilterDrawerProps> = ({
       onClose={onClose}
       title="Filter Companies"
       subtitle="Narrow down the companies list"
-      footer={footer}
+      footer={<PanelFooter onReset={reset} onApply={apply} applyLabel="Apply filters" activeCount={count} />}
       size="lg"
     >
-      <div className="space-y-5">
-        {/* Lead Status */}
-        <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-            Lead Status
-          </label>
-          <select
-            value={localFilters.lead ?? 'all'}
-            onChange={(e) => handleChange('lead', e.target.value)}
-            className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-          >
-            <option value="all">All Companies</option>
-            <option value="not_a_lead">Not a Lead</option>
-            <option value="open">Open Leads</option>
-            <option value="client">Converted to Client</option>
-            <option value="lost">Lost</option>
-          </select>
-        </div>
+      <FilterSection title="Lead status">
+        <ChipGroup ariaLabel="Lead status" options={LEAD_STATUS} value={local.lead ?? 'all'} onChange={(id) => set('lead', id || 'all')} />
+      </FilterSection>
 
-        {/* City & State */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">City</label>
-            <input
-              type="text"
-              placeholder="e.g. Ahmedabad, Surat"
-              value={Array.isArray(localFilters.city) ? localFilters.city.join(', ') : localFilters.city ?? ''}
-              onChange={(e) =>
-                handleChange('city', e.target.value ? e.target.value.split(',').map((s) => s.trim()) : undefined)
+      <FilterSection title="Location">
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+          <MultiSelectField ariaLabel="State" value={list(local.state)} onChange={(v) => set('state', v)} placeholder="All states" options={options(masters?.states)} />
+          <MultiSelectField ariaLabel="City" value={list(local.city)} onChange={(v) => set('city', v)} placeholder="All cities" options={options(masters?.cities)} />
+        </div>
+      </FilterSection>
+
+      <FilterSection title="Business">
+        <div className="space-y-2.5">
+          <MultiSelectField
+            ariaLabel="Industry"
+            value={Array.isArray(local.industry_ids) ? local.industry_ids.map(String) : []}
+            onChange={(v) => set('industry_ids', v.map(Number))}
+            placeholder="All industries"
+            options={industryOptions}
+          />
+          <MultiSelectField
+            ariaLabel="Nature of business"
+            value={list(local.nature_of_business)}
+            onChange={(v) => set('nature_of_business', v)}
+            placeholder="All types of business"
+            options={options(masters?.nature_of_business)}
+          />
+        </div>
+      </FilterSection>
+
+      <FilterSection title="Located in GIDC?">
+        <ChipGroup
+          ariaLabel="Located in GIDC"
+          value={local.is_gidc === true ? 'yes' : local.is_gidc === false ? 'no' : ''}
+          options={[
+            { id: '', label: 'Any' },
+            { id: 'yes', label: 'Yes' },
+            { id: 'no', label: 'No' },
+          ]}
+          onChange={(id) =>
+            setLocal((p) => {
+              const next = { ...p } as Record<string, unknown>;
+              delete next.gidc_name;
+              delete next.gidc_area_phase;
+              if (id === 'yes') next.is_gidc = true;
+              else if (id === 'no') next.is_gidc = false;
+              else delete next.is_gidc;
+              return next as Local;
+            })
+          }
+        />
+        {local.is_gidc === true && (
+          <div className="mt-2.5 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+            <MultiSelectField
+              ariaLabel="GIDC name"
+              value={gidcNames}
+              onChange={(v) =>
+                setLocal((p) => {
+                  const next = { ...p } as Record<string, unknown>;
+                  // keep only the areas that still belong to a chosen GIDC
+                  const allowed = new Set(v.length ? [...v.flatMap((n) => areaMap[n] ?? []), ...(masters?.gidc_common_areas ?? [])] : (masters?.gidc_areas ?? []));
+                  const keep = list(next.gidc_area_phase).filter((x) => allowed.has(x));
+                  if (keep.length) next.gidc_area_phase = keep;
+                  else delete next.gidc_area_phase;
+                  if (v.length) next.gidc_name = v;
+                  else delete next.gidc_name;
+                  return next as Local;
+                })
               }
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              placeholder="Any GIDC"
+              options={options(masters?.gidc_names)}
+            />
+            <MultiSelectField
+              ariaLabel="Area or phase"
+              value={list(local.gidc_area_phase)}
+              onChange={(v) => set('gidc_area_phase', v)}
+              placeholder="Any area / phase"
+              options={options(areaItems)}
             />
           </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">State</label>
-            <input
-              type="text"
-              placeholder="e.g. Gujarat, Maharashtra"
-              value={Array.isArray(localFilters.state) ? localFilters.state.join(', ') : localFilters.state ?? ''}
-              onChange={(e) =>
-                handleChange('state', e.target.value ? e.target.value.split(',').map((s) => s.trim()) : undefined)
-              }
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-            />
-          </div>
-        </div>
+        )}
+      </FilterSection>
 
-        {/* Industry */}
-        <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1.5">Industry</label>
-          <select
-            value={Array.isArray(localFilters.industry_ids) ? localFilters.industry_ids[0] ?? '' : ''}
-            onChange={(e) =>
-              handleChange('industry_ids', e.target.value ? [Number(e.target.value)] : undefined)
-            }
-            className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-          >
-            <option value="">All Industries</option>
-            {masters?.industries?.map((ind) => (
-              <option key={ind.id} value={ind.id}>
-                {ind.name}
-              </option>
-            ))}
-          </select>
+      <FilterSection title="Website quality" hint="pick one or more">
+        <div className="flex flex-wrap gap-2">
+          {qualities.map((q) => (
+            <Toggle key={q} on={chosenQualities.includes(q)} label={q} onClick={() => toggleQuality(q)} />
+          ))}
         </div>
+      </FilterSection>
 
-        {/* Nature of Business */}
-        <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-            Nature of Business
-          </label>
-          <select
-            value={Array.isArray(localFilters.nature_of_business) ? localFilters.nature_of_business[0] ?? '' : ''}
-            onChange={(e) =>
-              handleChange('nature_of_business', e.target.value ? [e.target.value] : undefined)
-            }
-            className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-          >
-            <option value="">All Types</option>
-            {masters?.nature_of_business?.map((nob) => (
-              <option key={nob} value={nob}>
-                {nob}
-              </option>
-            ))}
-          </select>
+      <FilterSection title="Employees">
+        <div className="grid grid-cols-2 gap-2.5">
+          <TextField type="number" min={0} inputMode="numeric" aria-label="Min employees" placeholder="Min" value={minEmp ?? ''} onChange={(e) => set('employees_min', e.target.value === '' ? undefined : Math.max(0, Number(e.target.value)))} />
+          <TextField type="number" min={0} inputMode="numeric" aria-label="Max employees" placeholder="Max" value={maxEmp ?? ''} onChange={(e) => set('employees_max', e.target.value === '' ? undefined : Math.max(0, Number(e.target.value)))} />
         </div>
+        {rangeError && <p role="alert" className="mt-2 text-[13px] text-rose-600">{rangeError}</p>}
+      </FilterSection>
 
-        {/* GIDC Details */}
-        <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-700">Located in GIDC?</span>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => handleChange('is_gidc', localFilters.is_gidc === true ? undefined : true)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-medium cursor-pointer transition-colors ${
-                  localFilters.is_gidc === true
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
-                }`}
-              >
-                Yes
-              </button>
-              <button
-                type="button"
-                onClick={() => handleChange('is_gidc', localFilters.is_gidc === false ? undefined : false)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-medium cursor-pointer transition-colors ${
-                  localFilters.is_gidc === false
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
-                }`}
-              >
-                No
-              </button>
-            </div>
-          </div>
-
-          {localFilters.is_gidc && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2">
-              <div>
-                <label className="block text-2xs font-medium text-slate-600 mb-1">GIDC Name</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Vatva, Naroda"
-                  value={Array.isArray(localFilters.gidc_name) ? localFilters.gidc_name.join(', ') : localFilters.gidc_name ?? ''}
-                  onChange={(e) =>
-                    handleChange('gidc_name', e.target.value ? e.target.value.split(',').map((s) => s.trim()) : undefined)
-                  }
-                  className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs text-slate-800"
-                />
-              </div>
-              <div>
-                <label className="block text-2xs font-medium text-slate-600 mb-1">Area / Phase</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Phase 4"
-                  value={Array.isArray(localFilters.gidc_area_phase) ? localFilters.gidc_area_phase.join(', ') : localFilters.gidc_area_phase ?? ''}
-                  onChange={(e) =>
-                    handleChange('gidc_area_phase', e.target.value ? e.target.value.split(',').map((s) => s.trim()) : undefined)
-                  }
-                  className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs text-slate-800"
-                />
-              </div>
-            </div>
-          )}
+      <FilterSection title="Has">
+        <div className="flex flex-wrap gap-2">
+          <Toggle on={local.has_website === true} label="Website" onClick={() => set('has_website', local.has_website === true ? undefined : true)} />
+          <Toggle on={local.has_brochure === true} label="Brochure" onClick={() => set('has_brochure', local.has_brochure === true ? undefined : true)} />
         </div>
-
-        {/* Website Quality */}
-        <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-            Website Quality
-          </label>
-          <div className="grid grid-cols-2 gap-2">
-            {['Good', 'Average', 'Poor', 'No Website'].map((quality) => {
-              const current = (localFilters.website_quality ?? '').split(',').filter(Boolean);
-              const isChecked = current.includes(quality);
-              return (
-                <label
-                  key={quality}
-                  className={`flex items-center gap-2 p-2 rounded-xl border text-xs cursor-pointer transition-colors ${
-                    isChecked
-                      ? 'border-blue-500 bg-blue-50/50 text-blue-900 font-medium'
-                      : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={isChecked}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        handleChange('website_quality', [...current, quality].join(','));
-                      } else {
-                        handleChange('website_quality', current.filter((q) => q !== quality).join(','));
-                      }
-                    }}
-                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span>{quality}</span>
-                </label>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Employees & Turnover Ranges */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Min Employees</label>
-            <input
-              type="number"
-              placeholder="0"
-              value={localFilters.employees_min ?? ''}
-              onChange={(e) => handleChange('employees_min', e.target.value ? Number(e.target.value) : undefined)}
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs text-slate-800"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Max Employees</label>
-            <input
-              type="number"
-              placeholder="5000"
-              value={localFilters.employees_max ?? ''}
-              onChange={(e) => handleChange('employees_max', e.target.value ? Number(e.target.value) : undefined)}
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs text-slate-800"
-            />
-          </div>
-        </div>
-
-        {/* Boolean Flags */}
-        <div className="grid grid-cols-2 gap-3">
-          <label className="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-white text-xs text-slate-700 cursor-pointer hover:bg-slate-50">
-            <input
-              type="checkbox"
-              checked={localFilters.has_website === true}
-              onChange={(e) => handleChange('has_website', e.target.checked ? true : undefined)}
-              className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-            />
-            <span>Has Website</span>
-          </label>
-          <label className="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-white text-xs text-slate-700 cursor-pointer hover:bg-slate-50">
-            <input
-              type="checkbox"
-              checked={localFilters.has_brochure === true}
-              onChange={(e) => handleChange('has_brochure', e.target.checked ? true : undefined)}
-              className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-            />
-            <span>Has Brochure</span>
-          </label>
-        </div>
-      </div>
+      </FilterSection>
     </Drawer>
   );
 };

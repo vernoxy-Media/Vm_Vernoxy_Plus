@@ -134,7 +134,9 @@ export const SalesDashboardPage: React.FC = () => {
         onChange={handleFilterChange}
         onClear={handleClearFilters}
         users={employees}
-        cities={['Surat', 'Ahmedabad', 'Vadodara', 'Rajkot', 'Mumbai', 'Pune', 'Delhi', 'Bengaluru']}
+        cities={(rawMasters?.cities || []) as string[]}
+        leadSources={(rawMasters?.lead_source || []) as string[]}
+        serviceFits={(rawMasters?.service_fit || []) as string[]}
         industries={industries.map((ind: any) => ({ industry_id: ind.id, name: ind.name }))}
       />
 

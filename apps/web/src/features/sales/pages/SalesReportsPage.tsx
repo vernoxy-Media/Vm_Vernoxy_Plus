@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { StatCard, Field, inputCls } from '@/features/complaint/components/complaint-ui';
 import { useEmployeeOptionsQuery } from '@/features/organization/hooks/use-organization';
+import { SearchableSelect } from '../components/common/SearchableSelect';
 import { useSalesRights } from '../hooks/useSalesRights';
 import { useSalesReport, type SalesReportFilters } from '../hooks/useSalesReport';
 import type { SalesReportCountRow, SalesReportResponse } from '../types/sales.types';
@@ -254,15 +255,13 @@ export const SalesReportsPage: React.FC = () => {
           </Field>
           {isAdmin && (
             <Field label="Lead by">
-              <select value={leadBy} onChange={(e) => setLeadBy(e.target.value)} className={`${inputCls} cursor-pointer`}>
-                <option value="all">Everyone</option>
-                <option value="me">Only me</option>
-                {employees.map((emp: { emp_id: number; name: string }) => (
-                  <option key={emp.emp_id} value={emp.emp_id}>
-                    {emp.name}
-                  </option>
-                ))}
-              </select>
+              <SearchableSelect
+                ariaLabel="Lead by"
+                value={leadBy === 'all' ? '' : leadBy}
+                onChange={(v) => setLeadBy(v || 'all')}
+                placeholder="Everyone"
+                options={[{ value: 'me', label: 'Only me' }, ...employees.map((emp: { emp_id: number; name: string }) => ({ value: String(emp.emp_id), label: emp.name }))]}
+              />
             </Field>
           )}
         </div>
