@@ -23,7 +23,7 @@ import {
 
 import { LeadQuickPanel } from '../components/leads/LeadQuickPanel';
 import type { LeadCardAction } from '../components/leads/LeadKanbanCard';
-import { LeadFilterDrawer, LeadFilterState } from '../components/leads/LeadFilterDrawer';
+import { EMPTY_LEAD_FILTERS, LeadFilterDrawer, LeadFilterState, LeadStatusFilter, countLeadFilters } from '../components/leads/LeadFilterDrawer';
 import { LeadRow } from '../components/leads/LeadRow';
 import { LeadKanbanBoard } from '../components/leads/LeadKanbanBoard';
 import { LeadSummaryStrip } from '../components/leads/LeadSummaryStrip';
@@ -100,7 +100,7 @@ export const LeadsListPage: React.FC = () => {
   const debouncedSearch = useDebounce(searchInput, 300);
 
   // Status Tab Filter
-  const [activeTab, setActiveTab] = useState<LeadStatusType | 'All'>('All');
+  const [activeTab, setActiveTab] = useState<LeadStatusFilter>('All');
   // On a phone the board shows one status at a time, so "All Leads" is a plain list of every lead.
   const showBoard = viewMode === 'kanban' && !(isMobile && activeTab === 'All');
 
@@ -112,17 +112,7 @@ export const LeadsListPage: React.FC = () => {
 
   // Filter Drawer State
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [filters, setFilters] = usePersistentState<LeadFilterState>('leads:filters', {
-    lead_by: '',
-    source: '',
-    service_fit: '',
-    city: '',
-    industry: '',
-    follow_up_filter: '',
-    date_after: '',
-    date_before: '',
-    inactive_days: '',
-  });
+  const [filters, setFilters] = usePersistentState<LeadFilterState>('leads:filters:v2', EMPTY_LEAD_FILTERS);
 
   // Row selection for Export
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -155,18 +145,27 @@ export const LeadsListPage: React.FC = () => {
       page: showBoard ? 1 : page,
       limit: showBoard ? 100 : pageSize, // the board loads more cards
       q: debouncedSearch.trim() || undefined,
-      status: activeTab === 'All' ? 'all' : (activeTab as SalesLeadControllerListParams['status']),
+      status: (activeTab === 'All' ? 'all' : activeTab === 'Open' ? 'open' : activeTab) as SalesLeadControllerListParams['status'],
       sort: sortBy,
       order: sortOrder,
       lead_by: filters.lead_by || undefined,
-      lead_source: filters.source || undefined,
-      service_fit: filters.service_fit || undefined,
-      city: filters.city || undefined,
-      industry_ids: filters.industry || undefined,
+      // Many-valued filters go as a comma separated list; the same params feed the List and the Kanban board
+      lead_source: filters.source.join(',') || undefined,
+      service_fit: filters.service_fit.join(',') || undefined,
+      city: filters.city.join(',') || undefined,
+      industry_ids: filters.industry.join(',') || undefined,
       follow_up: (filters.follow_up_filter || undefined) as SalesLeadControllerListParams['follow_up'],
-      added_from: filters.date_after || undefined,
-      added_to: filters.date_before || undefined,
+      date_added: (['today', 'this_week', 'this_month'].includes(filters.date_added) ? filters.date_added : undefined) as SalesLeadControllerListParams['date_added'],
+      // A date range covers the whole of the From day up to the end of the To day, in the viewer's own time
+      added_from: filters.date_added === 'range' && filters.date_after ? new Date(`${filters.date_after}T00:00:00`).toISOString() : undefined,
+      added_to: filters.date_added === 'range' && filters.date_before ? new Date(`${filters.date_before}T23:59:59.999`).toISOString() : undefined,
+      nature_of_business: filters.nature.join(',') || undefined,
+      is_gidc: filters.is_gidc ? filters.is_gidc === 'yes' : undefined,
+      gidc_name: filters.is_gidc === 'yes' ? filters.gidc_name.join(',') || undefined : undefined,
+      website_quality: filters.website_quality.join(',') || undefined,
+      state: filters.state.join(',') || undefined,
       no_conversation_days: (filters.inactive_days ? Number(filters.inactive_days) : undefined) as SalesLeadControllerListParams['no_conversation_days'],
+      lost_reason: activeTab === 'Lost' ? filters.lost_reason || undefined : undefined,
     };
     return params;
   }, [page, pageSize, showBoard, debouncedSearch, activeTab, sortBy, sortOrder, filters]);
@@ -237,27 +236,16 @@ export const LeadsListPage: React.FC = () => {
   const reload = () => (showBoard ? refetchBoard() : refetch());
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const phoneBoard = showBoard && isMobile;
-  const effectiveTab: LeadStatusType | 'All' = activeTab;
-  const anyFilter = Object.values(filters).some(Boolean) || Boolean(searchInput);
+  const effectiveTab: LeadStatusFilter = activeTab;
+  const anyFilter = countLeadFilters(filters) > 0 || Boolean(searchInput);
   const clearAllFilters = () => {
-    setFilters({ lead_by: '', source: '', service_fit: '', city: '', industry: '', follow_up_filter: '', date_after: '', date_before: '', inactive_days: '' });
+    setFilters(EMPTY_LEAD_FILTERS);
     setSearchInput('');
     setPage(1);
   };
 
   // Count active drawer filters
-  const activeDrawerFiltersCount = useMemo(() => {
-    let count = 0;
-    if (filters.lead_by) count++;
-    if (filters.source) count++;
-    if (filters.service_fit) count++;
-    if (filters.city) count++;
-    if (filters.industry) count++;
-    if (filters.follow_up_filter) count++;
-    if (filters.date_after || filters.date_before) count++;
-    if (filters.inactive_days) count++;
-    return count;
-  }, [filters]);
+  const activeDrawerFiltersCount = useMemo(() => countLeadFilters(filters), [filters]);
 
   // Toggle single row selection
   const handleToggleSelect = (id: number) => {
@@ -492,17 +480,7 @@ export const LeadsListPage: React.FC = () => {
               ? () => {
                   setSearchInput('');
                   setActiveTab('All');
-                  setFilters({
-                    lead_by: '',
-                    source: '',
-                    service_fit: '',
-                    city: '',
-                    industry: '',
-                    follow_up_filter: '',
-                    date_after: '',
-                    date_before: '',
-                    inactive_days: '',
-                  });
+                  setFilters(EMPTY_LEAD_FILTERS);
                   setPage(1);
                 }
               : () => navigate('/sales/companies')
@@ -514,7 +492,7 @@ export const LeadsListPage: React.FC = () => {
           <div className="min-h-0 min-w-0 flex-1">
             <LeadKanbanBoard
               columns={boardData?.columns ?? []}
-              onlyStatus={effectiveTab === 'All' ? null : effectiveTab}
+              onlyStatus={effectiveTab === 'All' || effectiveTab === 'Open' ? null : effectiveTab}
               onMoveLead={handleMoveLead}
               selectedLeadId={selectedLeadId}
               onView={(l) => setSelectedLeadId(l.lead_id)}
@@ -607,22 +585,15 @@ export const LeadsListPage: React.FC = () => {
         isOpen={isFilterOpen}
         onClose={() => setIsFilterOpen(false)}
         filters={filters}
-        onApply={(newFilters) => {
+        status={activeTab}
+        onApply={(newFilters, newStatus) => {
           setFilters(newFilters);
+          setActiveTab(newStatus);
           setPage(1);
         }}
         onReset={() => {
-          setFilters({
-            lead_by: '',
-            source: '',
-            service_fit: '',
-            city: '',
-            industry: '',
-            follow_up_filter: '',
-            date_after: '',
-            date_before: '',
-            inactive_days: '',
-          });
+          setFilters(EMPTY_LEAD_FILTERS);
+          setActiveTab('All');
           setPage(1);
         }}
       />

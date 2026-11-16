@@ -59,6 +59,49 @@ describe('Companies list filters', () => {
   });
 });
 
+describe('Companies list: the "More filters"', () => {
+  it('reads state, country and the contact designation as lists', () => {
+    const { dto, errors } = parse(ListSalesCompaniesQueryDto, { state: 'Gujarat,Goa', country: 'India', designation: 'IT Head,Purchase Manager' });
+    expect(errors).toHaveLength(0);
+    expect(dto.state).toEqual(['Gujarat', 'Goa']);
+    expect(dto.country).toEqual(['India']);
+    expect(dto.designation).toEqual(['IT Head', 'Purchase Manager']);
+  });
+
+  it('reads the turnover (rupees) and the year-established ranges', () => {
+    const { dto, errors } = parse(ListSalesCompaniesQueryDto, { turnover_min: '5000000', turnover_max: '250000000', year_min: '1995', year_max: '2020' });
+    expect(errors).toHaveLength(0);
+    expect([dto.turnover_min, dto.turnover_max, dto.year_min, dto.year_max]).toEqual([5000000, 250000000, 1995, 2020]);
+  });
+
+  it('refuses a negative turnover', () => {
+    expect(parse(ListSalesCompaniesQueryDto, { turnover_min: '-5' }).errors).not.toHaveLength(0);
+  });
+
+  it('reads Has website / Has brochure as Yes, No or not set', () => {
+    const none = parse(ListSalesCompaniesQueryDto, {}).dto;
+    expect([none.has_website, none.has_brochure]).toEqual([undefined, undefined]);
+    const no = parse(ListSalesCompaniesQueryDto, { has_website: 'false', has_brochure: 'true' }).dto;
+    expect([no.has_website, no.has_brochure]).toEqual([false, true]);
+  });
+
+  it('reads who added the company and the date range', () => {
+    const { dto, errors } = parse(ListSalesCompaniesQueryDto, { added_by: '7', added_from: '2026-11-01T00:00:00.000Z', added_to: '2026-11-16T23:59:59.999Z' });
+    expect(errors).toHaveLength(0);
+    expect(dto.added_by).toBe(7);
+    expect(dto.added_from).toBeInstanceOf(Date);
+    expect(dto.added_to?.toISOString()).toBe('2026-11-16T23:59:59.999Z');
+  });
+
+  it('keeps every filter at once: they all have to match', () => {
+    const { dto, errors } = parse(ListSalesCompaniesQueryDto, {
+      city: 'Ankleshwar', industry_ids: '4', nature_of_business: 'Manufacturer', is_gidc: 'true', gidc_name: 'Ankleshwar GIDC', website_quality: 'Poor,No Website', lead: 'not_a_lead',
+    });
+    expect(errors).toHaveLength(0);
+    expect(dto).toMatchObject({ city: ['Ankleshwar'], industry_ids: [4], is_gidc: true, gidc_name: ['Ankleshwar GIDC'], website_quality: ['Poor', 'No Website'], lead: 'not_a_lead' });
+  });
+});
+
 describe('Leads list filters', () => {
   it('reads city, source, service fit and industry', () => {
     const { dto, errors } = parse(ListLeadsQueryDto, { city: 'Surat,Rajkot', lead_source: 'Reference', service_fit: 'Mobile App,CRM', industry_ids: '4' });
@@ -83,6 +126,40 @@ describe('Leads list filters', () => {
     const { dto, errors } = parse(ListLeadsQueryDto, { added_from: '2026-11-01', added_to: '2026-11-30' });
     expect(errors).toHaveLength(0);
     expect(dto.added_from).toBeInstanceOf(Date);
+  });
+});
+
+describe('Leads list: status and the "More filters"', () => {
+  it('accepts Open, All and every single status', () => {
+    for (const status of ['open', 'all', 'New', 'Contacted', 'Qualified', 'On Hold', 'Converted', 'Lost']) {
+      expect(parse(ListLeadsQueryDto, { status }).errors).toHaveLength(0);
+    }
+    expect(parse(ListLeadsQueryDto, { status: 'Won' }).errors).not.toHaveLength(0);
+  });
+
+  it('accepts the date-added presets and a date range, and nothing else for the preset', () => {
+    for (const date_added of ['today', 'this_week', 'this_month']) expect(parse(ListLeadsQueryDto, { date_added }).errors).toHaveLength(0);
+    expect(parse(ListLeadsQueryDto, { date_added: 'yesterday' }).errors).not.toHaveLength(0);
+    const range = parse(ListLeadsQueryDto, { added_from: '2026-11-01T00:00:00.000Z', added_to: '2026-11-16T23:59:59.999Z' });
+    expect(range.errors).toHaveLength(0);
+    expect(range.dto.added_to?.toISOString()).toBe('2026-11-16T23:59:59.999Z');
+  });
+
+  it('reads the company filters: nature of business, GIDC, website quality and state', () => {
+    const { dto, errors } = parse(ListLeadsQueryDto, { nature_of_business: 'Manufacturer,Trader', is_gidc: 'true', gidc_name: 'Vatva', website_quality: 'Poor,No Website', state: 'Gujarat,Goa' });
+    expect(errors).toHaveLength(0);
+    expect(dto).toMatchObject({ nature_of_business: ['Manufacturer', 'Trader'], is_gidc: true, gidc_name: ['Vatva'], website_quality: ['Poor', 'No Website'], state: ['Gujarat', 'Goa'] });
+  });
+
+  it('accepts "no conversation in 7, 15 or 30 days" and nothing else', () => {
+    for (const n of ['7', '15', '30']) expect(parse(ListLeadsQueryDto, { no_conversation_days: n }).errors).toHaveLength(0);
+    expect(parse(ListLeadsQueryDto, { no_conversation_days: '10' }).errors).not.toHaveLength(0);
+  });
+
+  it('reads the lost reason, and the whole set of filters at once', () => {
+    const { dto, errors } = parse(ListLeadsQueryDto, { status: 'Lost', lost_reason: 'Price too high', city: 'Surat', service_fit: 'CRM / ERP Software', follow_up: 'overdue', lead_by: '12' });
+    expect(errors).toHaveLength(0);
+    expect(dto).toMatchObject({ status: 'Lost', lost_reason: 'Price too high', city: ['Surat'], service_fit: ['CRM / ERP Software'], follow_up: 'overdue', lead_by: '12' });
   });
 });
 

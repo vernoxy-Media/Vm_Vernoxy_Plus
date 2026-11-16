@@ -99,6 +99,9 @@ export const CompaniesListPage: React.FC<CompaniesListPageProps> = ({
       page,
       limit: pageSize,
     };
+    // "Added on" is picked as dates: the whole of the From day up to the end of the To day, in the viewer's own time
+    if (typeof params.added_from === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(params.added_from)) params.added_from = new Date(`${params.added_from}T00:00:00`).toISOString();
+    if (typeof params.added_to === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(params.added_to)) params.added_to = new Date(`${params.added_to}T23:59:59.999`).toISOString();
     Object.keys(params).forEach((k) => {
       if (params[k] === undefined || params[k] === '' || params[k] === null) delete params[k];
     });
