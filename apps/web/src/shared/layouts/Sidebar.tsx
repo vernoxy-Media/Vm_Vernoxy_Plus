@@ -38,7 +38,6 @@ import {
   BarChart3,
   Briefcase,
   BadgeCheck,
-  UserPlus,
   FilePlus,
   Award,
   FileText,
@@ -138,6 +137,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggleC
 
   // The sales screens, in the order the Sales team uses them
   const salesChildren: NavChild[] = [
+    child('Dashboard', '/sales/dashboard', starts('/sales/dashboard'), 'sales-dashboard'),
     child('Company Database', '/sales/companies', starts('/sales/companies'), 'sales-companies'),
     child('Lead Pipeline', '/sales/leads', starts('/sales/leads'), 'sales-leads'),
     child('Follow-ups', '/sales/follow-ups', starts('/sales/follow-ups'), 'sales-follow-ups', followUpBadge),
@@ -184,8 +184,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggleC
     if (isOrgAdmin) {
       admin.push(
         parent('People', Users, 'people', [
-          child('All Employees', '/admin/employees', (p) => p.startsWith('/admin/employees') && p !== '/admin/employees/new', 'employees'),
-          child('Add Employee', '/admin/employees/new', exact('/admin/employees/new'), 'add-employee'),
+          child('All Employees', '/admin/employees', starts('/admin/employees'), 'employees'),
           child('Department', '/departments', starts('/departments', '/admin/departments'), 'departments'),
           child('Recruitment', '/recruitment', starts('/recruitment', '/admin/recruitment'), 'recruitment'),
         ]),
@@ -202,19 +201,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggleC
     if (canAccessSales) admin.push(parent('Sales', Handshake, 'sales', [...salesChildren, ...salesExtras]));
     if (isOrgAdmin) {
       admin.push(
-        parent('Knowledge Base Admin', BookMarked, 'knowledge-base-management', [
-          child('Add Category', '/admin/settings/knowledge-base', starts('/admin/settings/knowledge-base'), 'kb-add-category'),
-          child('Create Article', '/knowledge-base/new', exact('/knowledge-base/new'), 'kb-create-article'),
-        ]),
         parent('Finance', Banknote, 'finance', [
           child('Expense Management', '/admin/expense', (p, q) => p.startsWith('/admin/expense') || expenseAdmin(p, q), 'expense-management'),
           child('Salary & Payroll', '/admin/payroll', starts('/admin/payroll'), 'payroll'),
         ]),
         entry('Complaint Management', '/admin/complaints', AlertCircle, (p, q) => p.startsWith('/admin/complaint') || complaintAdmin(p, q), 'complaint-management'),
-        entry('Settings', '/admin/settings/employment-types', Settings, (p) => p.startsWith('/admin/settings') && !p.startsWith('/admin/settings/knowledge-base'), 'settings'),
+        entry('Settings', '/admin/settings/employment-types', Settings, (p) => p.startsWith('/admin/settings'), 'settings'),
       );
     }
-    if (user.access?.can_manage_companies) admin.push(entry('Companies (legacy)', '/companies', Building2, starts('/companies'), 'companies'));
     groups.push({ label: 'Admin', entries: admin });
   }
 
@@ -575,7 +569,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggleC
 function childIcon(idKey: string, fallback: LucideIcon): LucideIcon {
   const map: Record<string, LucideIcon> = {
     employees: Users,
-    'add-employee': UserPlus,
     departments: Building2,
     recruitment: Briefcase,
     'attendance-management': Clock,
@@ -593,6 +586,8 @@ function childIcon(idKey: string, fallback: LucideIcon): LucideIcon {
 /** Icons for the sales entries when they are shown as a plain list. */
 function salesIcon(idKey: string): LucideIcon {
   switch (idKey) {
+    case 'sales-dashboard':
+      return LayoutDashboard;
     case 'sales-companies':
       return Building2;
     case 'sales-leads':

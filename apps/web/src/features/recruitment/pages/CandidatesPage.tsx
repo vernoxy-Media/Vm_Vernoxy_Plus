@@ -135,6 +135,24 @@ export const CandidatesPage: React.FC = () => {
 
   // Stage Dropdown & Decision Modal state
   const [activeStageMenuCandidateId, setActiveStageMenuCandidateId] = useState<number | null>(null);
+
+  // Close the stage menu on any click outside it (or Esc). The click is swallowed so a row underneath does not open.
+  useEffect(() => {
+    if (activeStageMenuCandidateId === null) return;
+    const onClickOutside = (e: MouseEvent) => {
+      if ((e.target as HTMLElement | null)?.closest('[data-stage-cell]')) return;
+      e.stopPropagation();
+      e.preventDefault();
+      setActiveStageMenuCandidateId(null);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setActiveStageMenuCandidateId(null);
+    document.addEventListener('click', onClickOutside, true);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('click', onClickOutside, true);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [activeStageMenuCandidateId]);
   const [decisionCandidate, setDecisionCandidate] = useState<CandidateItem | null>(null);
   const [decisionInitialStage, setDecisionInitialStage] = useState<'selected' | 'on_hold' | 'rejected'>('selected');
   const [isDecisionModalOpen, setIsDecisionModalOpen] = useState(false);
@@ -422,19 +440,19 @@ export const CandidatesPage: React.FC = () => {
                   setCurrentPage(1);
                 }}
                 placeholder="Search candidate name, ID, phone, email..."
-                className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 bg-white text-slate-900 font-medium transition shadow-2xs"
+                className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-9 pr-3 text-sm text-slate-800 placeholder:text-slate-400 transition focus:border-blue-500 focus:bg-white focus:outline-hidden focus:ring-4 focus:ring-blue-500/10"
               />
             </div>
 
             {/* Position Dropdown */}
-            <div className="lg:col-span-3">
+            <div className="relative lg:col-span-3">
               <select
                 value={roleFilter !== undefined ? String(roleFilter) : ''}
                 onChange={(e) => {
                   setRoleFilter(e.target.value ? parseInt(e.target.value, 10) : undefined);
                   setCurrentPage(1);
                 }}
-                className="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 bg-white text-slate-900 font-bold shadow-2xs cursor-pointer"
+                className="h-10 w-full cursor-pointer appearance-none rounded-xl border border-slate-200 bg-slate-50/70 pl-3.5 pr-9 text-sm font-medium text-slate-800 transition hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:outline-hidden focus:ring-4 focus:ring-blue-500/10"
               >
                 <option value="">All Positions</option>
                 {roles.map((r: any) => (
@@ -443,17 +461,18 @@ export const CandidatesPage: React.FC = () => {
                   </option>
                 ))}
               </select>
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             </div>
 
             {/* Source Dropdown */}
-            <div className="lg:col-span-2">
+            <div className="relative lg:col-span-2">
               <select
                 value={sourceFilter}
                 onChange={(e) => {
                   setSourceFilter(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 bg-white text-slate-900 font-bold shadow-2xs cursor-pointer"
+                className="h-10 w-full cursor-pointer appearance-none rounded-xl border border-slate-200 bg-slate-50/70 pl-3.5 pr-9 text-sm font-medium text-slate-800 transition hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:outline-hidden focus:ring-4 focus:ring-blue-500/10"
               >
                 <option value="">All Sources</option>
                 {sources.map((s: any) => (
@@ -462,17 +481,18 @@ export const CandidatesPage: React.FC = () => {
                   </option>
                 ))}
               </select>
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             </div>
 
             {/* Stage Dropdown */}
-            <div className="lg:col-span-2">
+            <div className="relative lg:col-span-2">
               <select
                 value={stageFilter}
                 onChange={(e) => {
                   setStageFilter(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 bg-white text-slate-900 font-bold shadow-2xs cursor-pointer"
+                className="h-10 w-full cursor-pointer appearance-none rounded-xl border border-slate-200 bg-slate-50/70 pl-3.5 pr-9 text-sm font-medium text-slate-800 transition hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:outline-hidden focus:ring-4 focus:ring-blue-500/10"
               >
                 <option value="Open">Open</option>
                 <option value="new">New</option>
@@ -486,6 +506,7 @@ export const CandidatesPage: React.FC = () => {
                 <option value="rejected">Rejected</option>
                 <option value="All">All</option>
               </select>
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             </div>
 
             {/* Clear Filters */}
@@ -555,17 +576,17 @@ export const CandidatesPage: React.FC = () => {
               )}
             </div>
           ) : (
-            <div className="overflow-x-auto overflow-y-auto max-h-[500px] custom-scrollbar">
+            <div className="overflow-x-auto overflow-y-auto max-h-[600px] custom-scrollbar">
               <table className="w-full min-w-[860px] text-left border-collapse text-sm">
-                <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-300 text-xs sm:text-[13px] font-extrabold text-slate-900 uppercase tracking-wide shadow-2xs">
+                <thead className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
                   <tr>
                     <th
                       onClick={() => handleToggleSort('candidate')}
-                      className="py-3 px-4 cursor-pointer hover:text-blue-600 select-none group"
+                      className="py-3.5 px-4 cursor-pointer hover:text-slate-800 select-none group whitespace-nowrap"
                       title="Sort by Candidate Name"
                     >
                       <div className="flex items-center gap-1.5">
-                        <span className="font-extrabold text-slate-900 group-hover:text-blue-600">Candidate</span>
+                        <span className="font-semibold text-slate-500 group-hover:text-slate-800">Candidate</span>
                         {sortField === 'candidate' ? (
                           sortDirection === 'asc' ? (
                             <ArrowUp className="w-3.5 h-3.5 text-blue-600 stroke-[2.5]" />
@@ -577,14 +598,14 @@ export const CandidatesPage: React.FC = () => {
                         )}
                       </div>
                     </th>
-                    <th className="py-3 px-4">Position & Dept</th>
+                    <th className="py-3.5 px-4 whitespace-nowrap">Position & Dept</th>
                     <th
                       onClick={() => handleToggleSort('experience')}
-                      className="py-3 px-4 cursor-pointer hover:text-blue-600 select-none group"
+                      className="py-3.5 px-4 cursor-pointer hover:text-slate-800 select-none group whitespace-nowrap"
                       title="Sort by Experience"
                     >
                       <div className="flex items-center gap-1.5">
-                        <span className="font-extrabold text-slate-900 group-hover:text-blue-600">Experience</span>
+                        <span className="font-semibold text-slate-500 group-hover:text-slate-800">Experience</span>
                         {sortField === 'experience' ? (
                           sortDirection === 'asc' ? (
                             <ArrowUp className="w-3.5 h-3.5 text-blue-600 stroke-[2.5]" />
@@ -596,16 +617,16 @@ export const CandidatesPage: React.FC = () => {
                         )}
                       </div>
                     </th>
-                    <th className="py-3 px-4">Contact</th>
-                    <th className="py-3 px-4">Source</th>
-                    <th className="py-3 px-4">Stage</th>
+                    <th className="py-3.5 px-4 whitespace-nowrap">Contact</th>
+                    <th className="py-3.5 px-4 whitespace-nowrap">Source</th>
+                    <th className="py-3.5 px-4 whitespace-nowrap">Stage</th>
                     <th
                       onClick={() => handleToggleSort('applied_date')}
-                      className="py-3 px-4 cursor-pointer hover:text-blue-600 select-none group"
+                      className="py-3.5 px-4 cursor-pointer hover:text-slate-800 select-none group whitespace-nowrap"
                       title="Sort by Applied Date"
                     >
                       <div className="flex items-center gap-1.5">
-                        <span className="font-extrabold text-slate-900 group-hover:text-blue-600">Applied Date</span>
+                        <span className="font-semibold text-slate-500 group-hover:text-slate-800">Applied Date</span>
                         {sortField === 'applied_date' ? (
                           sortDirection === 'asc' ? (
                             <ArrowUp className="w-3.5 h-3.5 text-blue-600 stroke-[2.5]" />
@@ -617,10 +638,10 @@ export const CandidatesPage: React.FC = () => {
                         )}
                       </div>
                     </th>
-                    <th className="py-3 px-4 text-right">Resume</th>
+                    <th className="py-3.5 px-4 text-right whitespace-nowrap">Resume</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-100/80">
                   {sortedCandidates.map((cand) => {
                     const badge = getStageBadge(cand.stage);
                     const isFresher = cand.experience_type === 'fresher';
@@ -629,13 +650,13 @@ export const CandidatesPage: React.FC = () => {
                       <tr
                         key={cand.candidate_id}
                         onClick={() => navigate(`/admin/recruitment/${cand.candidate_id}`)}
-                        className="hover:bg-slate-50/70 transition-colors group cursor-pointer"
+                        className="hover:bg-blue-50/30 transition-colors group cursor-pointer"
                       >
                         {/* Candidate Identity */}
                         <td className="py-3.5 px-4">
                           <div className="flex items-center gap-3">
                             <div
-                              className={`w-9 h-9 rounded-xl flex items-center justify-center text-white font-semibold text-xs shadow-xs ${getAvatarBgColor(
+                              className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-white font-bold text-xs ring-2 ring-white shadow-sm ${getAvatarBgColor(
                                 cand.name,
                               )}`}
                             >
@@ -648,7 +669,7 @@ export const CandidatesPage: React.FC = () => {
                                 </span>
                               </div>
                               <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5">
-                                <span className="font-mono text-xs font-medium text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">
+                                <span className="font-mono text-[11px] font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-md">
                                   {cand.candidate_code}
                                 </span>
                                 {cand.converted_to_emp_id && (
@@ -671,11 +692,11 @@ export const CandidatesPage: React.FC = () => {
 
                         {/* Position & Department */}
                         <td className="py-3.5 px-4">
-                          <div className="font-medium text-slate-800">
+                          <div className="font-medium text-slate-900">
                             {cand.role_name || `Role #${cand.role_id}`}
                           </div>
                           <div className="text-xs text-slate-500 mt-0.5">
-                            <span className="inline-block px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[11px] font-medium">
+                            <span className="inline-block px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[11px] font-medium whitespace-nowrap ring-1 ring-inset ring-slate-200">
                               {cand.department_name || `Dept #${cand.dep_id}`}
                             </span>
                           </div>
@@ -684,14 +705,18 @@ export const CandidatesPage: React.FC = () => {
                         {/* Experience */}
                         <td className="py-3.5 px-4">
                           {isFresher ? (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <span className="inline-flex items-center whitespace-nowrap px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200/70">
                               Fresher
                             </span>
                           ) : (
                             <div>
-                              <span className="font-medium text-slate-800">
-                                {cand.exp_years}y {cand.exp_months}m
-                              </span>
+                              {Number(cand.exp_years || 0) === 0 && Number(cand.exp_months || 0) === 0 ? (
+                                <span className="text-sm text-slate-400">Not specified</span>
+                              ) : (
+                                <span className="font-medium text-slate-800 tabular-nums">
+                                  {cand.exp_years}y {cand.exp_months}m
+                                </span>
+                              )}
                               {cand.current_company && (
                                 <p className="text-xs text-slate-500 truncate max-w-[160px]">
                                   {cand.current_company}
@@ -703,7 +728,7 @@ export const CandidatesPage: React.FC = () => {
 
                         {/* Contact */}
                         <td className="py-3.5 px-4">
-                          <div className="text-slate-800 text-xs font-mono">{cand.phone}</div>
+                          <div className="text-slate-800 text-xs font-mono tabular-nums">{cand.phone}</div>
                           <div className="text-xs text-slate-500 truncate max-w-[180px]">
                             {cand.email}
                           </div>
@@ -711,7 +736,7 @@ export const CandidatesPage: React.FC = () => {
 
                         {/* Source */}
                         <td className="py-3.5 px-4">
-                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium capitalize">
+                          <div className="inline-flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-medium capitalize ring-1 ring-inset ring-slate-200">
                             <span>{cand.source.replace(/_/g, ' ')}</span>
                           </div>
                           {cand.referred_by_name && (
@@ -728,13 +753,13 @@ export const CandidatesPage: React.FC = () => {
 
                         {/* Stage with Interactive Dropdown */}
                         <td
-                          className="py-3.5 px-4 relative"
+                          data-stage-cell className="py-3.5 px-4 relative"
                           onClick={(e) => e.stopPropagation()}
                         >
                           {cand.converted_to_emp_id ? (
                             <Link
                               to={`/admin/recruitment/candidates/${cand.candidate_id}?tab=documents`}
-                              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200/80 hover:bg-purple-100 transition"
+                              className="inline-flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 ring-1 ring-inset ring-purple-200/80 hover:bg-purple-100 transition"
                               title="View Onboarding Documents"
                             >
                               <span>Onboarding</span>
@@ -750,7 +775,7 @@ export const CandidatesPage: React.FC = () => {
                                     : cand.candidate_id,
                                 )
                               }
-                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border transition cursor-pointer hover:shadow-xs ${badge.bg}`}
+                              className={`inline-flex items-center gap-1 whitespace-nowrap px-2.5 py-1 rounded-full text-xs font-semibold border transition cursor-pointer hover:shadow-sm ${badge.bg}`}
                               title="Click to change candidate stage"
                             >
                               <span>{badge.label}</span>
@@ -836,7 +861,7 @@ export const CandidatesPage: React.FC = () => {
                         </td>
 
                         {/* Applied Date */}
-                        <td className="py-3.5 px-4 text-xs text-slate-500 whitespace-nowrap">
+                        <td className="py-3.5 px-4 text-xs text-slate-600 whitespace-nowrap tabular-nums">
                           {formatDate(cand.created_at)}
                         </td>
 
@@ -848,14 +873,14 @@ export const CandidatesPage: React.FC = () => {
                               target="_blank"
                               rel="noreferrer"
                               onClick={(e) => e.stopPropagation()}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 text-xs font-medium text-slate-700 hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50 transition"
+                              className="inline-flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 shadow-2xs hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50 transition"
                               title={cand.resume_filename || 'View Resume'}
                             >
                               <FileText className="w-3.5 h-3.5" />
                               <span>Resume</span>
                             </a>
                           ) : (
-                            <span className="text-xs text-slate-400">—</span>
+                            <span className="text-xs text-slate-300">—</span>
                           )}
                         </td>
                       </tr>

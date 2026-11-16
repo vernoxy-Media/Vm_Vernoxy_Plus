@@ -29,6 +29,7 @@ export interface UpdateProjectDto {
   tech_frontend?: string;
   tech_backend?: string;
   tech_cloud?: string;
+  tech_database?: string;
   deployment?: CreateDeploymentDto;
   credentials?: CreateCredentialDto[];
 }

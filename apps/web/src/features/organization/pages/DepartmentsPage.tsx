@@ -18,12 +18,12 @@ export const DepartmentsPage: React.FC = () => {
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-4">
       {/* Simple Tab Switcher */}
       <div className="flex items-center">
-        <div className="inline-flex items-center p-1 bg-white rounded-xl border border-slate-300 shadow-xs">
+        <div className="inline-flex items-center p-1 bg-white rounded-2xl border border-slate-200 shadow-sm">
           <button
             type="button"
             id="tab-departments-btn"
             onClick={() => setTab('departments')}
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-extrabold transition cursor-pointer ${
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition cursor-pointer ${
               currentTab === 'departments'
                 ? 'bg-gradient-to-r from-[color:var(--ac-main,#5B4CF8)] to-[color:var(--ac-hover,#6C63FF)] text-white shadow-xs'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
@@ -37,7 +37,7 @@ export const DepartmentsPage: React.FC = () => {
             type="button"
             id="tab-designations-btn"
             onClick={() => setTab('designations')}
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-extrabold transition cursor-pointer ${
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition cursor-pointer ${
               currentTab === 'designations'
                 ? 'bg-gradient-to-r from-[color:var(--ac-main,#5B4CF8)] to-[color:var(--ac-hover,#6C63FF)] text-white shadow-xs'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
@@ -49,7 +49,7 @@ export const DepartmentsPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-[22px] border border-slate-300 shadow-xs p-6">
+      <div className="bg-white rounded-3xl border border-slate-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.10)] p-4 sm:p-6">
         {currentTab === 'departments' ? (
           <SettingsDepartmentsSection />
         ) : (

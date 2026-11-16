@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { Loader2, ArrowLeft, Calendar, CalendarDays, Clock, Users } from 'lucide-react';
 import { AdminLayout } from '@/shared/layouts/AdminLayout';
 import { PageHeader } from '@/shared/ui/PageHeader';
-import { AttendanceNavTabs } from '../components/AttendanceNavTabs';
 import { useAttendanceSettingsQuery } from '../hooks/use-attendance-settings';
 import { AttendanceWorkingDaysCard } from '../components/settings/AttendanceWorkingDaysCard';
 import { AttendanceHolidaysCard } from '../components/settings/AttendanceHolidaysCard';
@@ -67,34 +66,40 @@ export const AttendanceSettingsPage: React.FC = () => {
           }
         />
 
-        <AttendanceNavTabs activeTab="settings" />
-
         {/* Section Sub-Tabs */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none border-b border-slate-200">
-          {subtabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeSection === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                id={`attendance-settings-subtab-${tab.id.replace('_', '-')}`}
-                onClick={() => setActiveSection(tab.id as TabSection)}
-                className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                  isActive
-                    ? 'bg-blue-50 text-blue-700 font-bold border border-blue-200 shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                }`}
-              >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-blue-600' : 'text-slate-400'}`} />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
+        <div className="-mx-1 overflow-x-auto px-1 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div
+            role="tablist"
+            aria-label="Attendance settings sections"
+            className="inline-flex min-w-full gap-1 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm sm:min-w-0"
+          >
+            {subtabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeSection === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  id={`attendance-settings-subtab-${tab.id.replace('_', '-')}`}
+                  onClick={() => setActiveSection(tab.id as TabSection)}
+                  className={`inline-flex h-10 cursor-pointer items-center gap-2 whitespace-nowrap rounded-xl px-4 text-[13px] font-semibold transition-all ${
+                    isActive
+                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/25'
+                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  }`}
+                >
+                  <Icon className={`h-4 w-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {isLoading ? (
-          <div className="py-24 flex flex-col items-center justify-center gap-3 bg-white rounded-2xl border border-slate-200/90 shadow-xs">
+          <div className="py-24 flex flex-col items-center justify-center gap-3 bg-white rounded-3xl border border-slate-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.10)]">
             <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
             <span className="text-xs text-slate-500 font-medium">Loading attendance configuration...</span>
           </div>
@@ -113,7 +118,7 @@ export const AttendanceSettingsPage: React.FC = () => {
             )}
 
             {activeSection === 'shift_types' && (
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 md:p-6">
+              <div className="bg-white rounded-3xl border border-slate-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.10)] p-4 sm:p-6">
                 <React.Suspense fallback={null}>
                   <SettingsShiftTypesSection />
                 </React.Suspense>
@@ -125,7 +130,7 @@ export const AttendanceSettingsPage: React.FC = () => {
             )}
 
             {activeSection === 'request_types' && (
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 md:p-6">
+              <div className="bg-white rounded-3xl border border-slate-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.10)] p-4 sm:p-6">
                 <React.Suspense fallback={null}>
                   <SettingsRequestTypesSection />
                 </React.Suspense>
@@ -133,7 +138,7 @@ export const AttendanceSettingsPage: React.FC = () => {
             )}
 
             {activeSection === 'reasons' && (
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 md:p-6">
+              <div className="bg-white rounded-3xl border border-slate-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.10)] p-4 sm:p-6">
                 <React.Suspense fallback={null}>
                   <SettingsAttendanceReasonsSection />
                 </React.Suspense>

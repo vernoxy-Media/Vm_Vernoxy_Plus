@@ -28,6 +28,7 @@ export interface CreateProjectInput {
   tech_frontend?: string;
   tech_backend?: string;
   tech_cloud?: string;
+  tech_database?: string;
   description?: string;
   // Deployment details
   deployment?: {
@@ -65,6 +66,7 @@ export interface UpdateProjectInput {
   tech_frontend?: string;
   tech_backend?: string;
   tech_cloud?: string;
+  tech_database?: string;
   description?: string;
   deployment?: {
     vercel_account?: string;
@@ -170,6 +172,8 @@ export interface ProjectRepositoryPort {
   getBugsForEmployee(empId: number | null): Promise<any[]>;
   getBugDetail(bugId: number): Promise<any>;
   createBug(projectId: number, reporterEmpId: number, input: any): Promise<any>;
+  /** Codes of the active rows of a Master Data list (e.g. 'bug_priority', 'bug_type'). */
+  activeLookupCodes(lookupType: string): Promise<string[]>;
   /** Changes the start / due date of a bug; a date left undefined stays, null clears it. */
   updateBugDates(projectId: number, bugId: number, dates: { start_date?: string | null; due_date?: string | null }, actorId: number): Promise<any>;
   updateBugStatus(bugId: number, actorEmpId: number, newStatus: string, note?: string): Promise<any>;

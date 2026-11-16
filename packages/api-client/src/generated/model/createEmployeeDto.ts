@@ -30,6 +30,8 @@ export interface CreateEmployeeDto {
    * @nullable
    */
   role_id?: number | null;
+  /** All designations (multi-select). Each must belong to one of the selected departments; role_id is the primary one. */
+  role_ids?: number[];
   /**
    * Reporting manager employee ID
    * @nullable

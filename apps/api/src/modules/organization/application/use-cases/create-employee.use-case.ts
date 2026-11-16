@@ -15,6 +15,8 @@ import {
   ValidationDomainError,
 } from '../../domain/errors/organization.errors';
 
+import { resolveRoleSelection } from '../services/employee-role-selection';
+
 export interface CreateEmployeeCommand {
   name: string;
   email: string;
@@ -23,6 +25,8 @@ export interface CreateEmployeeCommand {
   dep_id: number;
   department_ids?: number[];
   role_id?: number | null;
+  /** All designations (each must belong to one of the selected departments). role_id is the primary one. */
+  role_ids?: number[];
   reporting_manager?: number | null;
   joining_date: Date | string;
   gender_id?: number | null;
@@ -131,10 +135,11 @@ export class CreateEmployeeUseCase {
 
     let assignedRoleId: number | null = null;
     let primaryDepId = command.dep_id;
-    if (command.role_id) {
-      const role = await this.roleRepo.findById(command.role_id);
+    const roleSelection = resolveRoleSelection(command.role_id, command.role_ids);
+    if (roleSelection.primary) {
+      const role = await this.roleRepo.findById(roleSelection.primary);
       if (!role) {
-        throw new NotFoundDomainError('Role', command.role_id);
+        throw new NotFoundDomainError('Role', roleSelection.primary);
       }
       if (!role.is_active) {
         throw new UnprocessableDomainError(
@@ -154,6 +159,25 @@ export class CreateEmployeeUseCase {
         }
       }
       assignedRoleId = role.role_id;
+    }
+
+    // Every other designation must be active and belong to one of the selected departments
+    const selectedForRoles = new Set([command.dep_id, primaryDepId, ...(command.department_ids || [])]);
+    for (const extraRoleId of roleSelection.all.filter((id) => id !== assignedRoleId)) {
+      const extra = await this.roleRepo.findById(extraRoleId);
+      if (!extra) {
+        throw new NotFoundDomainError('Role', extraRoleId);
+      }
+      if (!extra.is_active) {
+        throw new UnprocessableDomainError('ROLE_INACTIVE', `Designation "${extra.role_name}" is inactive`, 'role_ids');
+      }
+      if (!selectedForRoles.has(extra.dep_id)) {
+        throw new UnprocessableDomainError(
+          'ROLE_DEPARTMENT_MISMATCH',
+          `Designation "${extra.role_name}" does not belong to any of the selected departments`,
+          'role_ids',
+        );
+      }
     }
 
     if (command.reporting_manager) {
@@ -198,6 +222,7 @@ export class CreateEmployeeUseCase {
           dep_id: primaryDepId,
           department_ids: allDepIds,
           role_id: assignedRoleId,
+          role_ids: roleSelection.all,
           reporting_manager: command.reporting_manager || null,
           joining_date: parsedJoiningDate,
           gender_id: command.gender_id ?? null,

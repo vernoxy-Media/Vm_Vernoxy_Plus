@@ -113,7 +113,7 @@ export const ConvertCandidateToEmployeeModal: React.FC<ConvertCandidateToEmploye
         navigate(`/admin/recruitment/candidates/${candidate.candidate_id}?tab=documents`);
       }
     } catch (err: any) {
-      setError(err?.message || 'Failed to convert candidate to employee. Please try again.');
+      setError(err?.detail || err?.message || 'Failed to convert candidate to employee. Please try again.');
     }
   };
 

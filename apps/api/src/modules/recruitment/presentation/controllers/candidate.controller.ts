@@ -317,7 +317,8 @@ export class CandidateController {
     @Req() req: any,
   ): Promise<any> {
     const adminId = req.user?.emp_id || 1;
-    return this.createCandidateUseCase.execute(dto, adminId);
+    const created = await this.createCandidateUseCase.execute(dto, adminId);
+    return toCandidateItemDto(created);
   }
 
   @Get(':id')

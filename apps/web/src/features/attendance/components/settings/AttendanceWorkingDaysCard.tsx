@@ -93,12 +93,12 @@ export const AttendanceWorkingDaysCard: React.FC<AttendanceWorkingDaysCardProps>
   const holidaysInCurrentWeek = weekDaysInfo.filter((d) => Boolean(d.holiday));
 
   return (
-    <div className="p-6 bg-white rounded-2xl border border-slate-200/90 shadow-xs space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-3 border-b border-slate-100">
-        <div className="flex items-center gap-2">
-          <Calendar className="w-5 h-5 text-blue-600" />
+    <div className="p-5 sm:p-6 bg-white rounded-3xl border border-slate-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.10)] space-y-5">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-4 border-b border-slate-100">
+        <div className="flex items-center gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 text-blue-600 ring-1 ring-inset ring-blue-100"><Calendar className="h-5 w-5" /></span>
           <div>
-            <h3 className="text-base font-bold text-slate-900">Working & Work Off Days</h3>
+            <h3 className="text-[17px] font-bold tracking-tight text-slate-900">Working & Work Off Days</h3>
             <p className="text-xs text-slate-500">
               Select standard company operational days. Days not selected are treated as Weekly Offs.
             </p>
@@ -235,7 +235,7 @@ export const AttendanceWorkingDaysCard: React.FC<AttendanceWorkingDaysCardProps>
             type="submit"
             id="save-working-days-button"
             disabled={mutation.isPending}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs disabled:opacity-50 transition-colors"
+            className="inline-flex items-center gap-2 h-10 px-5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:brightness-110 text-white text-[13px] font-semibold shadow-md shadow-blue-600/25 active:scale-[0.98] cursor-pointer disabled:opacity-50 transition-colors"
           >
             {mutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             Save Working Days

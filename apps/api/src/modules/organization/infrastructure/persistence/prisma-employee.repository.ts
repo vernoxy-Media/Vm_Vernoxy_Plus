@@ -47,6 +47,11 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
           },
         },
       },
+      employee_roles_employee_roles_emp_idToemployees: {
+        include: {
+          roles: { select: { role_id: true, role_name: true } },
+        },
+      },
       master_lookup_employees_gender_idTomaster_lookup: {
         select: { lookup_id: true, code: true, label: true },
       },
@@ -57,6 +62,38 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
     };
   }
 
+  /** Replace the employee's designations with `roleIds`; `primaryRoleId` is flagged as primary. */
+  private async syncEmployeeRoles(
+    client: PrismaClient,
+    empId: number,
+    roleIds: number[],
+    primaryRoleId: number | null,
+    actorId?: number | null,
+  ): Promise<void> {
+    const ids = Array.from(new Set(roleIds));
+    if (ids.length === 0) {
+      await client.employee_roles.deleteMany({ where: { emp_id: empId } });
+      return;
+    }
+    const roleRows = await client.roles.findMany({
+      where: { role_id: { in: ids } },
+      select: { role_id: true, dep_id: true },
+    });
+    const depByRole = new Map(roleRows.map((r) => [r.role_id, r.dep_id]));
+
+    await client.employee_roles.deleteMany({ where: { emp_id: empId, role_id: { notIn: ids } } });
+    for (const roleId of ids) {
+      const depId = depByRole.get(roleId);
+      if (depId === undefined) continue;
+      const isPrimary = roleId === (primaryRoleId ?? ids[0]);
+      await client.employee_roles.upsert({
+        where: { emp_id_role_id: { emp_id: empId, role_id: roleId } },
+        create: { emp_id: empId, role_id: roleId, dep_id: depId, is_primary: isPrimary, created_by: actorId ?? null },
+        update: { dep_id: depId, is_primary: isPrimary },
+      });
+    }
+  }
+
   private mapToEntity(record: any): Employee {
     const rawDepartments = record.employee_departments_employee_departments_emp_idToemployees || [];
     const departments = rawDepartments.map((ed: any) => ({
@@ -64,6 +101,26 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       name: ed.departments?.name || '',
       is_primary: Boolean(ed.is_primary),
     }));
+
+    const rawRoles = record.employee_roles_employee_roles_emp_idToemployees || [];
+    const roles = rawRoles.map((er: any) => ({
+      role_id: er.role_id,
+      role_name: er.roles?.role_name || '',
+      dep_id: er.dep_id,
+      is_primary: Boolean(er.is_primary),
+    }));
+    // Employees saved before multi-designation only have employees.role_id
+    const rolesWithFallback =
+      roles.length > 0
+        ? roles
+        : record.roles_employees_role_idToroles
+          ? [{
+              role_id: record.roles_employees_role_idToroles.role_id,
+              role_name: record.roles_employees_role_idToroles.role_name,
+              dep_id: record.dep_id,
+              is_primary: true,
+            }]
+          : [];
 
     return {
       emp_id: record.emp_id,
@@ -98,6 +155,8 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
         name: record.departments_employees_dep_idTodepartments.name,
         is_primary: true,
       }] : []),
+      role_ids: rolesWithFallback.map((r: any) => r.role_id),
+      roles: rolesWithFallback,
       role: record.roles_employees_role_idToroles
         ? {
             role_id: record.roles_employees_role_idToroles.role_id,
@@ -208,10 +267,13 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       where.role_id = filter.role_id;
     }
 
-    if (filter.status && filter.status !== 'All' && (filter.status as string) !== 'Onboarding') {
+    if (filter.status === 'All') {
+      // Explicit "All": everyone, including employees still in Onboarding.
+    } else if (filter.status) {
+      // Active | Inactive | Onboarding
       where.status = filter.status as employee_status;
     } else {
-      // Exclude onboarding candidates from employee list - onboarding belongs to recruitment
+      // No status given (pickers, other callers): keep Onboarding people out of the generic list.
       where.status = { not: 'Onboarding' };
     }
 
@@ -256,7 +318,7 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
         orderBy: { emp_id: 'asc' },
         include: this.getEmployeeIncludes(),
       }),
-      client.employees.count({ where: { deleted_at: null, status: { not: 'Onboarding' } } }),
+      client.employees.count({ where: { deleted_at: null } }),
       client.employees.count({ where: { deleted_at: null, status: 'Active' } }),
       client.employees.count({ where: { deleted_at: null, status: 'Inactive' } }),
       client.employees.count({ where: { deleted_at: null, status: 'Onboarding' } }),
@@ -412,6 +474,7 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       dep_id: number;
       department_ids?: number[];
       role_id?: number | null;
+      role_ids?: number[];
       reporting_manager?: number | null;
       joining_date: Date;
       gender_id?: number | null;
@@ -495,6 +558,14 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       });
     }
 
+    await this.syncEmployeeRoles(
+      client,
+      created.emp_id,
+      data.role_ids ?? (data.role_id ? [data.role_id] : []),
+      data.role_id ?? null,
+      data.created_by,
+    );
+
     // Provision or sync employee_pay_policies
     await client.employee_pay_policies.upsert({
       where: { emp_id: created.emp_id },
@@ -577,6 +648,7 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       dep_id?: number;
       department_ids?: number[];
       role_id?: number | null;
+      role_ids?: number[];
       reporting_manager?: number | null;
       joining_date?: Date;
       exit_date?: Date | null;
@@ -688,6 +760,19 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
             },
           });
         }
+      }
+
+      // Synchronize employee_roles (designations) when they changed
+      if (data.role_ids !== undefined || data.role_id !== undefined) {
+        const wanted =
+          data.role_ids ?? (data.role_id ? [data.role_id] : []);
+        await this.syncEmployeeRoles(client, id, wanted, data.role_id ?? updated.role_id ?? null, data.updated_by);
+      } else if (data.department_ids !== undefined || data.dep_id !== undefined) {
+        // Departments changed but designations did not: drop designations of departments the employee left
+        const keepDeps = (await client.employee_departments.findMany({ where: { emp_id: id }, select: { dep_id: true } })).map((d) => d.dep_id);
+        await client.employee_roles.deleteMany({
+          where: { emp_id: id, dep_id: { notIn: keepDeps }, role_id: { not: updated.role_id ?? -1 } },
+        });
       }
 
       // Synchronize employee_pay_policies if any policy fields updated

@@ -37,7 +37,7 @@ import {
   employeeEditSchema,
   type EmployeeEditFormValues,
 } from '../schemas/employee-form.schema';
-import { CountryPhoneInput, DepartmentMultiSelect, SearchableSelect, ReportingManagerSelect } from '@/shared/ui';
+import { CountryPhoneInput, DepartmentMultiSelect, DesignationMultiSelect, ReportingManagerSelect } from '@/shared/ui';
 import { useAuth } from '@/features/auth/context/AuthContext';
 
 interface EditProfileModalProps {
@@ -108,6 +108,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
       address: '',
       dep_id: 1,
       department_ids: [],
+      role_ids: [],
       role_id: '' as unknown as number,
       reporting_manager: null,
       employment_type_id: '' as unknown as number,
@@ -156,8 +157,17 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   }, [watchedJoiningDate, attendanceSettings, selectedShiftId]);
 
   // Filter roles based on selected departments
-  const primaryDepId = watchedDepIds.length > 0 ? watchedDepIds[0] : undefined;
-  const { data: roleOptions = [] } = useRoleOptionsQuery(primaryDepId);
+  const { data: fetchedRoleOptions = [] } = useRoleOptionsQuery(watchedDepIds);
+  const watchedRoleIds: number[] = watch('role_ids') || [];
+  // Designations of the selected departments, plus the ones the employee already holds (so their chips show before the list loads)
+  const roleOptions = React.useMemo(() => {
+    const map = new Map<number, any>();
+    ((employee as any)?.roles || []).forEach((r: any) => {
+      map.set(r.role_id, { ...r, dep_name: deptOptions.find((d: any) => d.dep_id === r.dep_id)?.name });
+    });
+    (fetchedRoleOptions as any[]).forEach((r) => map.set(r.role_id, r));
+    return Array.from(map.values()).filter((r) => !r.dep_id || watchedDepIds.includes(r.dep_id));
+  }, [employee, fetchedRoleOptions, deptOptions, watchedDepIds]);
 
   // Automatically scroll form to top when active tab changes
   useEffect(() => {
@@ -191,6 +201,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
         address: employee.address || '',
         dep_id: employee.dep_id || depIds[0] || 1,
         department_ids: depIds,
+        role_ids: ((employee as any).role_ids as number[] | undefined) ?? (employee.role_id ? [employee.role_id] : []),
         role_id: employee.role_id || ('' as any),
         reporting_manager: employee.reporting_manager || null,
         employment_type_id: employee.employment_type_id || ('' as any),
@@ -302,7 +313,8 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     if (isOrgAdmin) {
       updatePayload.dep_id = primaryDep;
       updatePayload.department_ids = departmentIds;
-      updatePayload.role_id = values.role_id ? Number(values.role_id) : null;
+      updatePayload.role_ids = values.role_ids || [];
+      updatePayload.role_id = values.role_ids?.[0] ?? (values.role_id ? Number(values.role_id) : null);
       updatePayload.reporting_manager = values.reporting_manager ? Number(values.reporting_manager) : null;
       updatePayload.leave_policy_id = values.leave_policy_id ? Number(values.leave_policy_id) : undefined;
       updatePayload.employment_type_id = values.employment_type_id ? Number(values.employment_type_id) : null;
@@ -721,6 +733,15 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                       if (!isOrgAdmin) return;
                       setValue('department_ids', ids, { shouldValidate: true, shouldDirty: true });
                       setValue('dep_id', ids[0] || 1, { shouldValidate: true, shouldDirty: true });
+                      // Drop designations of departments that were just removed
+                      const keep = watchedRoleIds.filter((rid) => {
+                        const r = (roleOptions as any[]).find((o) => o.role_id === rid);
+                        return r && ids.includes(r.dep_id);
+                      });
+                      if (keep.length !== watchedRoleIds.length) {
+                        setValue('role_ids', keep, { shouldValidate: true, shouldDirty: true });
+                        setValue('role_id', (keep[0] ?? '') as any, { shouldDirty: true });
+                      }
                     }}
                     placeholder="Select Department(s)..."
                     error={errors.department_ids?.message}
@@ -730,24 +751,18 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   {/* Designation */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700">Designation</label>
-                    <SearchableSelect
-                      options={roleOptions.map((r: any) => ({
-                        value: r.role_id,
-                        label: r.role_name || r.name,
-                      }))}
-                      value={watch('role_id')}
+                    <label className="text-xs font-semibold text-slate-700">Designation(s)</label>
+                    <DesignationMultiSelect
+                      roles={roleOptions as any[]}
+                      selectedIds={watchedRoleIds}
                       disabled={!isOrgAdmin}
-                      onChange={(val) => {
+                      onChange={(ids) => {
                         if (!isOrgAdmin) return;
-                        setValue('role_id', val ? Number(val) : ('' as any), {
-                          shouldValidate: true,
-                          shouldDirty: true,
-                        });
+                        setValue('role_ids', ids, { shouldValidate: true, shouldDirty: true });
+                        setValue('role_id', (ids[0] ?? '') as any, { shouldDirty: true });
                       }}
-                      placeholder="Select Designation"
-                      searchPlaceholder="Search designation..."
-                      error={errors.role_id?.message}
+                      placeholder="Select Designation(s)..."
+                      error={errors.role_ids?.message}
                     />
                   </div>
 

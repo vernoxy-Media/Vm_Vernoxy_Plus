@@ -81,6 +81,7 @@ const PM_EDITABLE = [
   'tech_frontend',
   'tech_backend',
   'tech_cloud',
+  'tech_database',
   'deployment',
   'credentials',
 ];
@@ -556,6 +557,17 @@ export class ProjectsController {
     await this.access.assertMember(id, user.emp_id);
     if (!(await this.access.memberIds(id)).includes(Number(dto.assigned_to))) {
       throw new BadRequestException('A bug can be assigned only to an employee of this project.');
+    }
+    // Priority and Type are Master Data lists: the code must be one of the active rows
+    const [priorityCodes, typeCodes] = await Promise.all([
+      this.projectRepo.activeLookupCodes('bug_priority'),
+      this.projectRepo.activeLookupCodes('bug_type'),
+    ]);
+    if (dto.priority && !priorityCodes.includes(dto.priority)) {
+      throw new BadRequestException('Please select a valid Priority.');
+    }
+    if (!typeCodes.includes(dto.bug_type)) {
+      throw new BadRequestException('Please select a valid Bug Type.');
     }
     if (dto.bug_type === 'other' && !dto.other_bug_type?.trim()) {
       throw new BadRequestException('Please enter the Other Bug Type.');

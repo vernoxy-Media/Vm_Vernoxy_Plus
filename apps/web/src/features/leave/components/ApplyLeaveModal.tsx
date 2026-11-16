@@ -237,8 +237,8 @@ export const ApplyLeaveModal: React.FC<Props> = ({
 
   const saving = applyMut.isPending || addMut.isPending;
   const inputCls = (bad?: string) =>
-    `w-full min-h-10 px-3 py-2 rounded-xl border bg-white text-[13px] text-slate-800 transition focus:outline-none focus:ring-2 ${
-      bad ? 'border-rose-300 focus:ring-rose-200' : 'border-slate-200 hover:border-slate-300 focus:border-blue-400 focus:ring-blue-500/20'
+    `w-full min-h-11 px-3.5 py-2 rounded-xl border bg-slate-50/70 text-[13px] text-slate-800 transition focus:bg-white focus:outline-none focus:ring-4 ${
+      bad ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-200/60' : 'border-slate-200 hover:border-slate-300 focus:border-blue-500 focus:ring-blue-500/10'
     }`;
   const label = (text: string, marker: number, required = true, hint?: string) => (
     <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-slate-700">
@@ -308,7 +308,7 @@ export const ApplyLeaveModal: React.FC<Props> = ({
               <select
                 value={typeId ?? ''}
                 onChange={(e) => setTypeId(e.target.value ? Number(e.target.value) : null)}
-                className={inputCls(errorFor('leave_type_id'))}
+                className={`${inputCls(errorFor('leave_type_id'))} select-chevron cursor-pointer`}
                 disabled={adminMode && !empId}
               >
                 <option value="">{adminMode && !empId ? 'Choose the employee first' : 'Select leave type'}</option>

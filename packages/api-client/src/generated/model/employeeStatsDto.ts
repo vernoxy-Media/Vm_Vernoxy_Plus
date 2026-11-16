@@ -10,4 +10,6 @@ export interface EmployeeStatsDto {
   total: number;
   active: number;
   inactive: number;
+  /** Employees still in Onboarding */
+  onboarding?: number;
 }

@@ -115,14 +115,14 @@ export const AttendanceDefaultHoursCard: React.FC<AttendanceDefaultHoursCardProp
   return (
     <div className="space-y-6">
       {/* SHIFT MANAGEMENT CARD */}
-      <div className="p-6 bg-white rounded-2xl border border-slate-200/90 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-100">
+      <div className="p-5 sm:p-6 bg-white rounded-3xl border border-slate-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.10)] space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-slate-100">
           <div className="flex items-center gap-2.5">
-            <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 text-blue-600 ring-1 ring-inset ring-blue-100">
               <Clock className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900">Company Shifts & Working Hours</h3>
+              <h3 className="text-[17px] font-bold tracking-tight text-slate-900">Company Shifts & Working Hours</h3>
               <p className="text-xs text-slate-500">
                 Define operational shift hours, break policies, and default schedules for the workforce.
               </p>
@@ -133,7 +133,7 @@ export const AttendanceDefaultHoursCard: React.FC<AttendanceDefaultHoursCardProp
             type="button"
             id="add-attendance-shift-button"
             onClick={openCreateShiftModal}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-colors shrink-0"
+            className="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:brightness-110 text-white text-[13px] font-semibold shadow-md shadow-blue-600/25 active:scale-[0.98] cursor-pointer transition-colors shrink-0"
           >
             <Plus className="w-4 h-4" />
             <span>Add Shift</span>
@@ -154,10 +154,10 @@ export const AttendanceDefaultHoursCard: React.FC<AttendanceDefaultHoursCardProp
             return (
               <div
                 key={s.shift_id}
-                className={`p-4 rounded-xl border transition-all relative ${
+                className={`p-5 rounded-2xl border transition-all relative ${
                   isDef
-                    ? 'border-blue-300 bg-blue-50/30 shadow-2xs'
-                    : 'border-slate-200 bg-white hover:border-slate-300'
+                    ? 'border-blue-300 bg-gradient-to-br from-blue-50/80 to-white shadow-sm ring-1 ring-blue-100'
+                    : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md hover:-translate-y-0.5'
                 }`}
               >
                 <div className="flex items-start justify-between gap-2 pb-2.5 border-b border-slate-100">
@@ -269,25 +269,25 @@ export const AttendanceDefaultHoursCard: React.FC<AttendanceDefaultHoursCardProp
       </div>
 
       {/* QUICK FULL DAY / HALF DAY WORKING HOURS CARD */}
-      <div className="p-6 bg-white rounded-2xl border border-slate-200/90 shadow-xs space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+      <div className="p-5 sm:p-6 bg-white rounded-3xl border border-slate-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.10)] space-y-5">
+        <div className="flex items-center justify-between pb-4 border-b border-slate-100">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-indigo-600" />
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-50 to-indigo-50 text-indigo-600 ring-1 ring-inset ring-indigo-100"><Sparkles className="h-5 w-5" /></span>
             <div>
-              <h3 className="text-base font-bold text-slate-900">Standard Working Hours Target</h3>
+              <h3 className="text-[17px] font-bold tracking-tight text-slate-900">Standard Working Hours Target</h3>
               <p className="text-xs text-slate-500">
                 Adjust the company default hours threshold used across timesheets and attendance registers.
               </p>
             </div>
           </div>
-          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700">
+          <span className="text-xs font-semibold px-3 py-1.5 rounded-full bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-100">
             Full: {fullDay}h · Half: {halfDay}h · Grace: {graceMinutes}m
           </span>
         </div>
 
         <form onSubmit={handleSaveDefaultHours} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-1.5">
+            <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/60 space-y-2">
               <label htmlFor="default-full-day-input" className="block text-xs font-bold text-slate-700">
                 Standard Full Day Hours *
               </label>
@@ -300,14 +300,14 @@ export const AttendanceDefaultHoursCard: React.FC<AttendanceDefaultHoursCardProp
                   step="0.5"
                   value={fullDay}
                   onChange={(e) => handleFullDayChange(parseFloat(e.target.value) || 0)}
-                  className="w-full px-3 py-2 rounded-lg text-sm border border-slate-200 bg-white font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-base font-bold tabular-nums text-slate-900 transition focus:border-indigo-500 focus:outline-hidden focus:ring-4 focus:ring-indigo-500/10"
                 />
                 <span className="text-xs font-semibold text-slate-500">Hours</span>
               </div>
               <p className="text-[11px] text-slate-400">Production needed to be marked Present (default 8 hours).</p>
             </div>
 
-            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-1.5">
+            <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/60 space-y-2">
               <label htmlFor="default-half-day-input" className="block text-xs font-bold text-slate-700">
                 Standard Half Day Hours *
               </label>
@@ -320,14 +320,14 @@ export const AttendanceDefaultHoursCard: React.FC<AttendanceDefaultHoursCardProp
                   step="0.5"
                   value={halfDay}
                   onChange={(e) => setHalfDay(parseFloat(e.target.value) || 0)}
-                  className="w-full px-3 py-2 rounded-lg text-sm border border-slate-200 bg-white font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-base font-bold tabular-nums text-slate-900 transition focus:border-indigo-500 focus:outline-hidden focus:ring-4 focus:ring-indigo-500/10"
                 />
                 <span className="text-xs font-semibold text-slate-500">Hours</span>
               </div>
               <p className="text-[11px] text-slate-400">Production needed to be marked Half Day (default 4 hours).</p>
             </div>
 
-            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-1.5">
+            <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/60 space-y-2">
               <label htmlFor="default-grace-minutes-input" className="block text-xs font-bold text-slate-700">
                 Working Hours Grace *
               </label>
@@ -340,7 +340,7 @@ export const AttendanceDefaultHoursCard: React.FC<AttendanceDefaultHoursCardProp
                   step="1"
                   value={graceMinutes}
                   onChange={(e) => setGraceMinutes(Math.max(0, parseInt(e.target.value, 10) || 0))}
-                  className="w-full px-3 py-2 rounded-lg text-sm border border-slate-200 bg-white font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-base font-bold tabular-nums text-slate-900 transition focus:border-indigo-500 focus:outline-hidden focus:ring-4 focus:ring-indigo-500/10"
                 />
                 <span className="text-xs font-semibold text-slate-500">Min</span>
               </div>
@@ -356,28 +356,28 @@ export const AttendanceDefaultHoursCard: React.FC<AttendanceDefaultHoursCardProp
             <button
               type="button"
               onClick={() => applyPreset(8, 4, 0)}
-              className="px-2.5 py-1 rounded-md bg-white border border-slate-200 font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer"
+              className="px-3 py-1.5 rounded-full bg-white border border-slate-200 font-semibold text-slate-600 transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 cursor-pointer"
             >
               8h / 4h (Strict, 0m grace)
             </button>
             <button
               type="button"
               onClick={() => applyPreset(8, 4, 10)}
-              className="px-2.5 py-1 rounded-md bg-white border border-slate-200 font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer"
+              className="px-3 py-1.5 rounded-full bg-white border border-slate-200 font-semibold text-slate-600 transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 cursor-pointer"
             >
               8h / 4h (10m grace)
             </button>
             <button
               type="button"
               onClick={() => applyPreset(8, 4, 15)}
-              className="px-2.5 py-1 rounded-md bg-white border border-slate-200 font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer"
+              className="px-3 py-1.5 rounded-full bg-white border border-slate-200 font-semibold text-slate-600 transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 cursor-pointer"
             >
               8h / 4h (15m grace)
             </button>
             <button
               type="button"
               onClick={() => applyPreset(7, 3.5, 0)}
-              className="px-2.5 py-1 rounded-md bg-white border border-slate-200 font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer"
+              className="px-3 py-1.5 rounded-full bg-white border border-slate-200 font-semibold text-slate-600 transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 cursor-pointer"
             >
               7h / 3.5h (0m grace)
             </button>
@@ -388,7 +388,7 @@ export const AttendanceDefaultHoursCard: React.FC<AttendanceDefaultHoursCardProp
               type="submit"
               id="save-default-hours-button"
               disabled={mutation.isPending}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-xs disabled:opacity-50 transition-colors"
+              className="inline-flex items-center gap-2 h-10 px-5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:brightness-110 text-white text-[13px] font-semibold shadow-md shadow-blue-600/25 active:scale-[0.98] cursor-pointer disabled:opacity-50 transition-colors"
             >
               {mutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               Save Working Hours

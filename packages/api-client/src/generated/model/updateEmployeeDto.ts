@@ -25,6 +25,8 @@ export interface UpdateEmployeeDto {
    * @nullable
    */
   role_id?: number | null;
+  /** All designations (multi-select). role_id is the primary one. */
+  role_ids?: number[];
   /**
    * Reporting manager employee ID
    * @nullable

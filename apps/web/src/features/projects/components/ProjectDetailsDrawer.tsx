@@ -8,11 +8,9 @@ import {
   Bug,
   FileText,
   AlertTriangle,
-  Code2,
   RotateCcw,
 } from 'lucide-react';
-import { CalendarRange, KanbanSquare, ListTodo, Timer } from 'lucide-react';
-import { ProjectClientTechTab } from './ProjectClientTechTab';
+import { CalendarRange, KanbanSquare, ListTodo, Timer, Server } from 'lucide-react';
 import { ProjectDateRange, ProjectTimelineView } from './ProjectTimelineView';
 import { ProjectWorkspaceNav, type WorkspaceNavGroup } from './ProjectWorkspaceNav';
 import { useAuth } from '@/features/auth/context/AuthContext';
@@ -63,6 +61,7 @@ import { DeliverProjectDialog } from './DeliverProjectDialog';
 import { ProjectTimeReport } from './ProjectTimeReport';
 import { ProjectBugsView } from './ProjectBugsView';
 import { ProjectSummaryView } from './ProjectSummaryView';
+import { ProjectTechDeploymentView } from './ProjectTechDeploymentView';
 import { ProjectStatusMenu } from './ProjectStatusMenu';
 import { TaskFormModal } from '@/features/tasks/components/TaskFormModal';
 import { CreateProjectTaskModal } from './CreateProjectTaskModal';
@@ -577,7 +576,7 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
       title: 'Project',
       items: [
         { id: 'overview', label: 'Summary', icon: FileText },
-        { id: 'details', label: 'Client & Tech', icon: Code2 },
+        { id: 'details', label: 'Tech & Deployment', icon: Server },
         ...(isManagerOrAdmin ? [{ id: 'timelog', label: 'Time log', icon: Timer }] : []),
         { id: 'activity', label: 'Activity', icon: History, badge: activityLogs.length },
       ],
@@ -871,15 +870,13 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
                   />
                 )}
 
-                {/* TAB: CLIENT & TECH (BFD 2.3 Additional Details, 2.4 Tech Stack, 2.5 Deployment) */}
+                {/* TAB: TECH STACK & DEPLOYMENT (everyone on the project views; Admin and Project Manager edit) */}
                 {activeTab === 'details' && (
-                  <ProjectClientTechTab
+                  <ProjectTechDeploymentView
                     project={project}
-                    canManage={isManagerOrAdmin}
-                    onSaved={(updated) => {
-                      setProject((prev) => (prev ? { ...prev, ...updated } : updated));
-                      onProjectUpdated?.();
-                    }}
+                    employees={employees}
+                    canEdit={isManagerOrAdmin}
+                    onSaved={setProject}
                   />
                 )}
 
