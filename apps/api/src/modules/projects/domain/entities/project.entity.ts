@@ -128,6 +128,9 @@ export interface ProjectTaskEntity {
   start_date?: string | null;
   due_date?: string | null;
   allocated_minutes?: number | null;
+  /** Tester a finished task goes to before approval; null when the task has no QA step. */
+  qa_assignee_id?: number | null;
+  qa_assignee_name?: string | null;
   /** Exact seconds worked on this task, from its work log. */
   logged_seconds: number;
   /** Seconds each employee worked on this task. */

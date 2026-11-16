@@ -855,6 +855,13 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
       orderBy: { created_at: 'desc' },
     });
 
+    const qaIds = Array.from(new Set(rows.map((t) => t.qa_assignee_id).filter((x): x is number => x != null)));
+    const qaNames = new Map<number, string>(
+      qaIds.length
+        ? (await this.prisma.employees.findMany({ where: { emp_id: { in: qaIds } }, select: { emp_id: true, name: true } })).map((x) => [x.emp_id, x.name] as [number, string])
+        : [],
+    );
+
     return rows.map((t) => ({
       task_id: t.task_id,
       task_code: t.task_code,
@@ -867,10 +874,12 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
       priority: t.priority,
       stage: t.stage,
       status: t.stage,
-      progress_percentage: t.stage === 'completed' ? 100 : t.stage === 'in_progress' ? 50 : 0,
+      progress_percentage: t.stage === 'completed' ? 100 : t.stage === 'in_progress' || t.stage === 'in_qa' ? 50 : 0,
       start_date: t.start_date ? t.start_date.toISOString().slice(0, 10) : null,
       due_date: t.due_date ? t.due_date.toISOString().slice(0, 10) : null,
       allocated_minutes: t.allocated_minutes,
+      qa_assignee_id: t.qa_assignee_id ?? null,
+      qa_assignee_name: t.qa_assignee_id != null ? qaNames.get(t.qa_assignee_id) ?? null : null,
       logged_seconds: loggedSeconds(t.work_logs) || (t.actual_minutes || 0) * 60,
       time_by_employee: timeByEmployee(t.work_logs),
       assignees: t.task_assignees.map((a) => {

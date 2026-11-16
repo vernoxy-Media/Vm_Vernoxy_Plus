@@ -64,6 +64,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
           other_task_type: input.other_task_type ?? null,
           project_id: input.project_id ?? null,
           sprint_id: input.sprint_id ?? null,
+          qa_assignee_id: input.qa_assignee_id ?? null,
         },
       });
 
@@ -123,6 +124,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
               parent_task_id: created.task_id,
               project_id: input.project_id ?? null,
               sprint_id: input.sprint_id ?? null,
+              qa_assignee_id: input.qa_assignee_id ?? null,
               stage: 'assigned',
             },
           });
@@ -200,6 +202,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
           parent_task_id: parentTaskId,
           project_id: parent.project_id,
           sprint_id: parent.sprint_id,
+          qa_assignee_id: parent.qa_assignee_id ?? null,
           stage: 'assigned',
         },
       });
@@ -357,6 +360,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
       if (input.allocated_minutes !== undefined) data.allocated_minutes = input.allocated_minutes;
       if (input.lead_employee_id !== undefined) data.lead_employee_id = input.lead_employee_id;
       if (input.other_task_type !== undefined) data.other_task_type = input.other_task_type;
+      if (input.qa_assignee_id !== undefined) data.qa_assignee_id = input.qa_assignee_id;
 
       await tx.tasks.update({
         where: { task_id: taskId },
@@ -583,7 +587,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
       if (existing.parent_task_id) {
         const parent = await tx.tasks.findUnique({
           where: { task_id: existing.parent_task_id },
-          select: { task_id: true, stage: true, task_code: true },
+          select: { task_id: true, stage: true, task_code: true, qa_assignee_id: true },
         });
 
         if (parent && parent.stage !== 'completed') {
@@ -723,30 +727,29 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
           else if (toStage === 'requested' && parent.stage === 'in_progress') {
             const siblings: any[] = await tx.tasks.findMany({
               where: { parent_task_id: existing.parent_task_id, deleted_at: null },
-              select: { task_id: true, stage: true },
+              select: { task_id: true, stage: true, qa_assignee_id: true },
             });
             const allSubmittedOrDone = siblings.every(
               (s) => s.task_id === taskId || s.stage === 'requested' || s.stage === 'completed',
             );
             if (allSubmittedOrDone) {
+              // Sub-tasks that already went through QA do not need the parent tested a second time.
+              const toQa = Boolean(parent.qa_assignee_id) && !siblings.every((x) => x.qa_assignee_id);
               await tx.tasks.update({
                 where: { task_id: existing.parent_task_id },
-                data: {
-                  stage: 'requested',
-                  requested_at: new Date(),
-                  updated_by: input.actor_emp_id,
-                  updated_at: new Date(),
-                },
+                data: toQa
+                  ? { stage: 'in_qa', updated_by: input.actor_emp_id, updated_at: new Date() }
+                  : { stage: 'requested', requested_at: new Date(), updated_by: input.actor_emp_id, updated_at: new Date() },
               });
               await tx.activity_logs.create({
                 data: {
                   entity_type: 'TASK',
                   entity_id: existing.parent_task_id,
-                  event: 'requested',
-                  summary: 'All sub-tasks submitted for approval.',
+                  event: toQa ? 'stage_changed' : 'requested',
+                  summary: toQa ? 'All sub-tasks finished. Sent to QA.' : 'All sub-tasks submitted for approval.',
                   details: {
                     from_stage: 'in_progress',
-                    to_stage: 'requested',
+                    to_stage: toQa ? 'in_qa' : 'requested',
                   },
                   performed_by: input.actor_emp_id,
                 },
@@ -776,6 +779,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
           is_timer_running: true,
           timer_started_at: true,
           work_logs: true,
+          qa_assignee_id: true,
         },
       });
       if (!existing) throw new Error(`Task #${taskId} not found`);
@@ -802,6 +806,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
             is_timer_running: true,
             timer_started_at: true,
             work_logs: true,
+            qa_assignee_id: true,
           },
         });
 
@@ -1000,8 +1005,10 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
         updateData.actual_minutes = minutesAfter(existingLogs, existing.actual_minutes, elapsedSeconds);
         updateData.is_timer_running = false;
         updateData.timer_started_at = null;
-        updateData.stage = 'requested';
-        updateData.requested_at = now;
+        // A task with a QA assignee goes to QA first; without one it is submitted for approval as before.
+        const toQa = Boolean(existing.qa_assignee_id) && existing.stage !== 'in_qa';
+        updateData.stage = toQa ? 'in_qa' : 'requested';
+        if (!toQa) updateData.requested_at = now;
 
         existingLogs.push({
           log_id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
@@ -1023,44 +1030,43 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
           data: {
             entity_type: 'TASK',
             entity_id: taskId,
-            event: 'requested',
-            summary: input.note || 'Work finished and submitted for approval',
+            event: toQa ? 'stage_changed' : 'requested',
+            summary: input.note || (toQa ? 'Work finished and sent to QA' : 'Work finished and submitted for approval'),
             details: {
               from_stage: existing.stage,
-              to_stage: 'requested',
+              to_stage: toQa ? 'in_qa' : 'requested',
               note: input.note || null,
             },
             performed_by: input.actor_emp_id,
           },
         });
 
-        if (existing.parent_task_id) {
+        if (existing.parent_task_id && !toQa) {
           const siblings: any[] = await tx.tasks.findMany({
             where: { parent_task_id: existing.parent_task_id, deleted_at: null },
-            select: { task_id: true, stage: true },
+            select: { task_id: true, stage: true, qa_assignee_id: true },
           });
           const allSubmittedOrDone = siblings.every(
             (s) => s.task_id === taskId || s.stage === 'requested' || s.stage === 'completed',
           );
           if (allSubmittedOrDone) {
+            const parentRow = await tx.tasks.findUnique({ where: { task_id: existing.parent_task_id }, select: { qa_assignee_id: true } });
+            const parentToQa = Boolean(parentRow?.qa_assignee_id) && !siblings.every((x) => x.qa_assignee_id);
             await tx.tasks.update({
               where: { task_id: existing.parent_task_id },
-              data: {
-                stage: 'requested',
-                requested_at: now,
-                updated_by: input.actor_emp_id,
-                updated_at: now,
-              },
+              data: parentToQa
+                ? { stage: 'in_qa', updated_by: input.actor_emp_id, updated_at: now }
+                : { stage: 'requested', requested_at: now, updated_by: input.actor_emp_id, updated_at: now },
             });
             await tx.activity_logs.create({
               data: {
                 entity_type: 'TASK',
                 entity_id: existing.parent_task_id,
-                event: 'requested',
-                summary: 'All sub-tasks finished and submitted for approval.',
+                event: parentToQa ? 'stage_changed' : 'requested',
+                summary: parentToQa ? 'All sub-tasks finished. Sent to QA.' : 'All sub-tasks finished and submitted for approval.',
                 details: {
                   from_stage: 'in_progress',
-                  to_stage: 'requested',
+                  to_stage: parentToQa ? 'in_qa' : 'requested',
                 },
                 performed_by: input.actor_emp_id,
               },
@@ -1352,8 +1358,10 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
     };
 
     for (const card of cards) {
-      if (columns[card.stage]) {
-        columns[card.stage].push(card);
+      // A task waiting for QA is still being worked on, so it stays in the In Progress column.
+      const key = card.stage === 'in_qa' ? 'in_progress' : card.stage;
+      if (columns[key]) {
+        columns[key].push(card);
       }
     }
 
@@ -1404,12 +1412,12 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
     const sql = `
       SELECT
         COUNT(*)::int AS total,
-        COUNT(*) FILTER (WHERE t.stage IN ('assigned', 'in_progress'))::int AS todo_or_in_progress,
+        COUNT(*) FILTER (WHERE t.stage IN ('assigned', 'in_progress', 'in_qa'))::int AS todo_or_in_progress,
         COUNT(*) FILTER (WHERE t.stage = 'hold')::int AS on_hold,
         COUNT(*) FILTER (WHERE t.stage = 'requested')::int AS submitted,
         COUNT(*) FILTER (WHERE t.stage = 'completed')::int AS approved,
         COUNT(*) FILTER (WHERE t.stage = 'assigned')::int AS assigned,
-        COUNT(*) FILTER (WHERE t.stage = 'in_progress')::int AS in_progress,
+        COUNT(*) FILTER (WHERE t.stage IN ('in_progress', 'in_qa'))::int AS in_progress,
         COUNT(*) FILTER (WHERE t.stage = 'requested')::int AS requested,
         COUNT(*) FILTER (WHERE t.stage <> 'completed' AND t.due_date IS NOT NULL AND t.due_date < CURRENT_DATE)::int AS overdue,
         COUNT(*) FILTER (WHERE t.stage = 'completed' AND DATE(t.completed_at) = CURRENT_DATE)::int AS completed_today,
@@ -1546,6 +1554,9 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
           select: { project_id: true, project_no: true, project_name: true },
         })
       : null;
+    const qaAssignee = row.qa_assignee_id
+      ? await tx.employees.findUnique({ where: { emp_id: row.qa_assignee_id }, select: { name: true } })
+      : null;
 
     return {
       task_id: row.task_id,
@@ -1570,6 +1581,8 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
       project_name: project?.project_name ?? null,
       lead_employee_id: row.lead_employee_id,
       lead_employee_name: row.employees_tasks_lead_employee_idToemployees?.name ?? null,
+      qa_assignee_id: row.qa_assignee_id ?? null,
+      qa_assignee_name: qaAssignee?.name ?? null,
       has_sub_tasks: Boolean(row.has_sub_tasks),
       other_task_type: row.other_task_type,
       sub_tasks_count: subTasksCount,

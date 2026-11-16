@@ -31,6 +31,7 @@ import type { ProjectDiscussionItem, ProjectMember } from '../types';
 const STAGES: Record<string, { label: string; cls: string }> = {
   assigned: { label: 'To Do', cls: 'bg-[#DFE1E6] text-[#42526E]' },
   in_progress: { label: 'In Progress', cls: 'bg-[color:var(--ac-50,#DEEBFF)] text-[color:var(--ac-dark,#0747A6)]' },
+  in_qa: { label: 'In QA', cls: 'bg-[#FFE2BD] text-[#974F0C]' },
   hold: { label: 'On Hold', cls: 'bg-[#FFF0B3] text-[#172B4D]' },
   requested: { label: 'In Review', cls: 'bg-[#EAE6FF] text-[#403294]' },
   completed: { label: 'Done', cls: 'bg-[#E3FCEF] text-[#006644]' },
@@ -165,12 +166,16 @@ export const ProjectIssueView: React.FC<ProjectIssueViewProps> = ({
   const [busy, setBusy] = useState<string | null>(null);
   const [holdOpen, setHoldOpen] = useState(false);
   const [sendBackFor, setSendBackFor] = useState<number | null>(null);
+  const [qaFailFor, setQaFailFor] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [childFilter, setChildFilter] = useState<'all' | 'todo' | 'doing' | 'review' | 'done'>('all');
   const [childLimit, setChildLimit] = useState(8);
 
   const subs = task.sub_tasks ?? [];
   const stage = task.stage as string;
+  const qa = task as TaskDetailDto & { qa_assignee_id?: number | null; qa_assignee_name?: string | null };
+  /** The tester decides a task that is In QA; the admin or project manager may step in. */
+  const canDecideQa = stage === 'in_qa' && (qa.qa_assignee_id === currentEmpId || canApprove);
   const isAssignee = task.assignees?.some((a) => a.employee_id === currentEmpId) || task.lead_employee_id === currentEmpId;
   const mySub = task.has_sub_tasks || subs.length ? subs.find((s) => s.assignees.some((a) => a.employee_id === currentEmpId)) : null;
   /** The issue this user does the work on: their own sub-task, or the task itself when it has none. */
@@ -178,7 +183,7 @@ export const ProjectIssueView: React.FC<ProjectIssueViewProps> = ({
 
   // When a child issue may be added (mirrors the server's rules)
   // With many child issues: filter by status and show them a page at a time
-  const childGroup = (st: string) => (st === 'completed' ? 'done' : st === 'requested' ? 'review' : st === 'in_progress' ? 'doing' : 'todo');
+  const childGroup = (st: string) => (st === 'completed' ? 'done' : st === 'requested' || st === 'in_qa' ? 'review' : st === 'in_progress' ? 'doing' : 'todo');
   const childCounts = { all: subs.length, todo: 0, doing: 0, review: 0, done: 0 };
   subs.forEach((x) => { childCounts[childGroup(x.stage as string) as 'todo' | 'doing' | 'review' | 'done'] += 1; });
   const filteredSubs = childFilter === 'all' ? subs : subs.filter((x) => childGroup(x.stage as string) === childFilter);
@@ -279,7 +284,7 @@ export const ProjectIssueView: React.FC<ProjectIssueViewProps> = ({
                 <Play className="h-3.5 w-3.5" /> Resume
               </button>
             )}
-            <button type="button" disabled={wait} onClick={() => session(t, 'finish')} className={`${b} bg-[#EAE6FF] text-[#403294] hover:bg-[color:var(--ac-200,#C0B6F2)]`} title="Finish work and send it for review">
+            <button type="button" disabled={wait} onClick={() => session(t, 'finish')} className={`${b} bg-[#EAE6FF] text-[#403294] hover:bg-[color:var(--ac-200,#C0B6F2)]`} title={qa.qa_assignee_id ? `Finish work and send it to QA (${qa.qa_assignee_name ?? 'tester'})` : 'Finish work and send it for review'}>
               <CheckCircle2 className="h-3.5 w-3.5" /> Finish
             </button>
           </>
@@ -329,6 +334,16 @@ export const ProjectIssueView: React.FC<ProjectIssueViewProps> = ({
               {mine && (mine.stage === 'assigned' || mine.stage === 'in_progress') && (
                 <button type="button" onClick={() => setHoldOpen(true)} className={BTN_SUBTLE}>On hold</button>
               )}
+              {canDecideQa && (
+                <>
+                  <button type="button" disabled={busy !== null} onClick={() => run('qapass', () => onMoveStage(task.task_id, 'requested'))} className={BTN_SUCCESS}>
+                    <Check className="h-4 w-4" /> QA Pass
+                  </button>
+                  <button type="button" disabled={busy !== null} onClick={() => setQaFailFor(task.task_id)} className={`${BTN} bg-[#FFEBE6] text-[#BF2600] hover:bg-[#FFBDAD]`}>
+                    QA Fail
+                  </button>
+                </>
+              )}
               {canApprove && stage === 'requested' && (
                 <>
                   <button type="button" disabled={busy !== null} onClick={() => run('approve', () => onMoveStage(task.task_id, 'completed'))} className={BTN_SUCCESS}>
@@ -351,6 +366,11 @@ export const ProjectIssueView: React.FC<ProjectIssueViewProps> = ({
             </div>
 
             {error && <p role="alert" className="mt-3 rounded-[3px] bg-[#FFEBE6] px-3 py-2 text-[13px] text-[#BF2600] shadow-[inset_3px_0_0_#DE350B]">{error}</p>}
+            {stage === 'in_qa' && (
+              <p className="mt-3 rounded-[3px] bg-[#FFFAE6] px-3 py-2 text-[13px] text-[#172B4D] shadow-[inset_3px_0_0_#FF991F]">
+                Development is finished. {qa.qa_assignee_name ? <b>{qa.qa_assignee_name}</b> : 'The tester'} is testing this issue. After QA passes it, it goes to the approver.
+              </p>
+            )}
             {stage === 'completed' && (
               <p className="mt-3 flex items-center gap-2 rounded-[3px] bg-[#E3FCEF] px-3 py-2 text-[13px] text-[#006644] shadow-[inset_3px_0_0_#36B37E]">
                 <CheckCircle2 className="h-4 w-4" /> Done{task.completed_by_name ? ` · approved by ${task.completed_by_name}` : ''} on {fmtDateTime(task.completed_at)}
@@ -604,6 +624,11 @@ export const ProjectIssueView: React.FC<ProjectIssueViewProps> = ({
                 ) : <span className="text-[#7A869A]">Unassigned</span>}
               </Row>
               {task.lead_employee_name && <Row label="Lead"><span>{task.lead_employee_name}</span></Row>}
+              {qa.qa_assignee_name && (
+                <Row label="QA">
+                  <span className="flex items-center gap-2"><JiraAvatar name={qa.qa_assignee_name} id={qa.qa_assignee_id ?? 0} size={24} /><span className="truncate">{qa.qa_assignee_name}</span></span>
+                </Row>
+              )}
               <Row label="Reporter">
                 {task.created_by_name ? (
                   <span className="flex items-center gap-2"><JiraAvatar name={task.created_by_name} id={task.created_by ?? 0} size={24} /><span className="truncate">{task.created_by_name}</span></span>
@@ -682,6 +707,19 @@ export const ProjectIssueView: React.FC<ProjectIssueViewProps> = ({
         onConfirm={(reason) => {
           setHoldOpen(false);
           run('hold', () => onMoveStage((mine ?? task).task_id, 'hold', undefined, reason));
+        }}
+      />
+      <StageDecisionDialog
+        isOpen={qaFailFor !== null}
+        title="Fail QA"
+        description="The issue goes back to In Progress. Tell the developer what failed."
+        confirmLabel="Send back to developer"
+        requiresNote
+        onClose={() => setQaFailFor(null)}
+        onConfirm={(note) => {
+          const id = qaFailFor;
+          setQaFailFor(null);
+          if (id !== null) run('qafail', () => onMoveStage(id, 'in_progress', note));
         }}
       />
       <StageDecisionDialog

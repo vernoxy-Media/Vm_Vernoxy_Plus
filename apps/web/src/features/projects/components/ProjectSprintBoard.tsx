@@ -55,6 +55,7 @@ const BTN_SUBTLE = 'inline-flex h-8 cursor-pointer items-center justify-center g
 const COLUMNS = [
   { stage: 'assigned', label: 'To Do' },
   { stage: 'in_progress', label: 'In Progress' },
+  { stage: 'in_qa', label: 'In QA' },
   { stage: 'hold', label: 'On Hold' },
   { stage: 'requested', label: 'In Review' },
   { stage: 'completed', label: 'Done' },
@@ -64,6 +65,7 @@ const COLUMNS = [
 const LOZENGE: Record<string, string> = {
   assigned: 'bg-[#DFE1E6] text-[#42526E]',
   in_progress: 'bg-[color:var(--ac-50,#DEEBFF)] text-[color:var(--ac-dark,#0747A6)]',
+  in_qa: 'bg-[#FFE2BD] text-[#974F0C]',
   hold: 'bg-[#FFF0B3] text-[#172B4D]',
   requested: 'bg-[#EAE6FF] text-[#403294]',
   completed: 'bg-[#E3FCEF] text-[#006644]',
@@ -144,6 +146,7 @@ const SubtaskCount: React.FC<{ subs: ProjectTaskItem[] }> = ({ subs }) => {
 const STAGE_DOT: Record<string, string> = {
   assigned: 'bg-[#97A0AF]',
   in_progress: 'bg-[color:var(--ac-main,#0052CC)]',
+  in_qa: 'bg-[#FF8B00]',
   hold: 'bg-[#FF991F]',
   requested: 'bg-[#6554C0]',
   completed: 'bg-[#36B37E]',
@@ -501,7 +504,8 @@ export const ProjectSprintBoard: React.FC<ProjectSprintBoardProps> = ({
   /** Who may drag a card at all: its assignee, or an admin approving something In Review. */
   const canDrag = (t: ProjectTaskItem) => {
     if (t.stage === 'completed') return false;
-    if (isAdmin && t.stage === 'requested') return true;
+    if (isAdmin && (t.stage === 'requested' || t.stage === 'in_qa')) return true;
+    if (t.stage === 'in_qa') return Boolean(currentEmpId && t.qa_assignee_id === currentEmpId);
     return Boolean(currentEmpId && t.assignees?.some((a) => a.emp_id === currentEmpId));
   };
 
@@ -509,6 +513,7 @@ export const ProjectSprintBoard: React.FC<ProjectSprintBoardProps> = ({
   const lockReason = (t: ProjectTaskItem): string | undefined => {
     if (t.stage === 'completed') return 'Done issues cannot be moved';
     if (canDrag(t)) return undefined;
+    if (t.stage === 'in_qa') return t.qa_assignee_name ? `Only ${t.qa_assignee_name} (QA) can move this issue` : 'Only the QA assignee can move this issue';
     const names = (t.assignees ?? []).map((a) => a.name).join(', ');
     return names ? `Only ${names} can move this issue` : 'Only the assignee can move this issue';
   };
@@ -540,9 +545,11 @@ export const ProjectSprintBoard: React.FC<ProjectSprintBoardProps> = ({
 
     if (task.stage === 'completed') return flash('Done issues cannot be moved.');
     if (target === 'hold') return setHoldTaskId(task.task_id);
+    if (target === 'in_qa' && !task.qa_assignee_id) return flash('This issue has no QA assignee, so it cannot be sent to QA.');
+    if (task.stage === 'in_qa' && target === 'in_progress' && canDrag(task)) return setSendBackTaskId(task.task_id);
     if (task.stage === 'requested' && target === 'in_progress' && isAdmin) return setSendBackTaskId(task.task_id);
     if (target === 'completed' && !isAdmin) return flash('Only an admin can approve an issue as Done.');
-    const approverMove = isAdmin && task.stage === 'requested' && (target === 'completed' || target === 'in_progress');
+    const approverMove = (isAdmin && task.stage === 'requested' && (target === 'completed' || target === 'in_progress')) || (task.stage === 'in_qa' && canDrag(task) && target === 'requested');
     if (!approverMove && !canDrag(task)) return flash('Only the assignee can move this issue.');
     onMoveStage(task.task_id, target as TaskStage);
   };
@@ -649,7 +656,7 @@ export const ProjectSprintBoard: React.FC<ProjectSprintBoardProps> = ({
   /** Jira's "To Do / In Progress / Done" counters in a group header. */
   const Counters: React.FC<{ list: ProjectTaskItem[] }> = ({ list }) => {
     const todo = list.filter((t) => t.stage === 'assigned' || t.stage === 'hold').length;
-    const doing = list.filter((t) => t.stage === 'in_progress' || t.stage === 'requested').length;
+    const doing = list.filter((t) => t.stage === 'in_progress' || t.stage === 'in_qa' || t.stage === 'requested').length;
     const done = list.filter((t) => t.stage === 'completed').length;
     const pill = 'inline-flex min-w-[20px] items-center justify-center rounded-full px-1.5 text-[12px] font-semibold';
     return (

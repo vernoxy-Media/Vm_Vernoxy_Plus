@@ -56,8 +56,14 @@ export function canTransitionStage(
   }
 
   if (fromStage === 'in_progress') {
-    if (toStage === 'hold' || toStage === 'requested') return { allowed: true };
-    return { allowed: false, reason: 'In Progress tasks can only move to "Hold" or "Submitted"' };
+    if (toStage === 'hold' || toStage === 'requested' || toStage === 'in_qa') return { allowed: true };
+    return { allowed: false, reason: 'In Progress tasks can only move to "Hold", "In QA" or "Submitted"' };
+  }
+
+  // QA step: the tester passes the task on to the approver, or sends it back to the developer.
+  if (fromStage === 'in_qa') {
+    if (toStage === 'requested' || toStage === 'in_progress') return { allowed: true };
+    return { allowed: false, reason: 'Tasks in QA can only be passed to "Submitted" or sent back to "In Progress"' };
   }
 
   if (fromStage === 'hold') {

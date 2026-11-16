@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { ArrowDownUp, Loader2, MessageSquare } from 'lucide-react';
+import { ArrowDownUp, CheckSquare, ChevronDown, Loader2, MessageSquare, Search } from 'lucide-react';
 import { JiraAvatar } from '@/shared/ui/JiraAvatar';
 import type { ProjectDiscussionItem, ProjectMember } from '../types';
 
@@ -22,7 +22,42 @@ const ago = (iso: string) => {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
+const PAGE = 15;
+/** A comment written on an issue is saved as "[TSK-2026-0021] text"; the key tells which issue it belongs to. */
+const KEY_RE = /^\[([A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+)\]\s*/;
+const splitKey = (m: string) => {
+  const x = KEY_RE.exec(m);
+  return x ? { key: x[1], text: m.slice(x[0].length) } : { key: null as string | null, text: m };
+};
+const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
+const dayLabel = (iso: string) => {
+  const d = new Date(iso);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+  if (sameDay(d, today)) return 'Today';
+  if (sameDay(d, yesterday)) return 'Yesterday';
+  return d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+};
+
+/** A long comment is folded after a few lines, with "Show more", so one long update does not push the rest away. */
+const Folded: React.FC<{ children: React.ReactNode; long: boolean }> = ({ children, long }) => {
+  const [more, setMore] = useState(false);
+  return (
+    <div>
+      <div className={long && !more ? 'max-h-[9.5rem] overflow-hidden [mask-image:linear-gradient(to_bottom,#000_70%,transparent)]' : ''}>{children}</div>
+      {long && (
+        <button type="button" onClick={() => setMore((v) => !v)} className="mt-1 cursor-pointer text-[13px] font-medium text-[color:var(--ac-main,#0052CC)] hover:underline">
+          {more ? 'Show less' : 'Show more'}
+        </button>
+      )}
+    </div>
+  );
+};
+
 interface ProjectCommentsProps {
+  /** Open the issue a comment is about (project discussion only). */
+  onOpenIssue?: (key: string) => void;
   /** Section heading; pass null to hide it (for example inside an issue). */
   heading?: string | null;
   comments: ProjectDiscussionItem[];
@@ -34,13 +69,16 @@ interface ProjectCommentsProps {
 }
 
 /** Project discussion in the shape of Jira's comment section: a composer on top, comments below. */
-export const ProjectComments: React.FC<ProjectCommentsProps> = ({ heading = 'Discussion', comments, members, currentUserId, currentUserName = 'You', currentUserAvatar, onSend }) => {
+export const ProjectComments: React.FC<ProjectCommentsProps> = ({ heading = 'Discussion', comments, members, currentUserId, currentUserName = 'You', currentUserAvatar, onSend, onOpenIssue }) => {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [newestFirst, setNewestFirst] = useState(true);
   const [pick, setPick] = useState(0);
+  const [query, setQuery] = useState('');
+  const [scope, setScope] = useState<'all' | 'general' | 'issues'>('all');
+  const [limit, setLimit] = useState(PAGE);
   const boxRef = useRef<HTMLTextAreaElement>(null);
 
   const people = useMemo(() => Array.from(new Map(members.map((m) => [m.employee_id, m])).values()), [members]);
@@ -112,6 +150,17 @@ export const ProjectComments: React.FC<ProjectCommentsProps> = ({ heading = 'Dis
     [comments, newestFirst],
   );
 
+  const rows = useMemo(() => sorted.map((c) => ({ c, ...splitKey(c.message) })), [sorted]);
+  const hasIssueComments = rows.some((r) => r.key);
+  const q = query.trim().toLowerCase();
+  const filtered = rows.filter((r) => {
+    if (scope === 'general' && r.key) return false;
+    if (scope === 'issues' && !r.key) return false;
+    return !q || r.text.toLowerCase().includes(q) || r.c.sender_name.toLowerCase().includes(q) || (r.key ?? '').toLowerCase().includes(q);
+  });
+  const visible = filtered.slice(0, limit);
+  const showTools = comments.length > 5 || (heading !== null && hasIssueComments);
+
   return (
     <section aria-label={heading ?? 'Comments'} className="mx-auto max-w-3xl">
       {(heading !== null || comments.length > 1) && (
@@ -178,33 +227,102 @@ export const ProjectComments: React.FC<ProjectCommentsProps> = ({ heading = 'Dis
         </div>
       </div>
 
+      {/* Search and filter: for a long conversation */}
+      {showTools && (
+        <div className="mt-5 flex flex-wrap items-center gap-2">
+          <div className="relative min-w-[180px] flex-1">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7A869A]" />
+            <input
+              value={query}
+              onChange={(e) => { setQuery(e.target.value); setLimit(PAGE); }}
+              placeholder="Search comments"
+              aria-label="Search comments"
+              className="h-8 w-full rounded-[3px] border-2 border-[#DFE1E6] bg-[#FAFBFC] pl-8 pr-2 text-[14px] text-[#172B4D] placeholder:text-[#7A869A] focus:border-[color:var(--ac-400,#4C9AFF)] focus:bg-white focus:outline-none"
+            />
+          </div>
+          {heading !== null && hasIssueComments && (
+            <div className="inline-flex overflow-hidden rounded-[3px] border border-[#DFE1E6]" role="group" aria-label="Filter comments">
+              {([['all', 'All'], ['general', 'Project'], ['issues', 'Issues']] as const).map(([k, label]) => (
+                <button
+                  key={k}
+                  type="button"
+                  aria-pressed={scope === k}
+                  onClick={() => { setScope(k); setLimit(PAGE); }}
+                  className={`h-8 cursor-pointer px-3 text-[13px] font-medium transition ${scope === k ? 'bg-[color:var(--ac-50,#DEEBFF)] text-[color:var(--ac-dark,#0747A6)]' : 'bg-white text-[#42526E] hover:bg-[#F4F5F7]'}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Comments */}
-      {sorted.length === 0 ? (
+      {comments.length === 0 ? (
         <div className="mt-8 flex flex-col items-center rounded-[3px] bg-[#F4F5F7] px-4 py-10 text-center">
           <MessageSquare className="mb-2 h-9 w-9 text-[#97A0AF]" />
           <p className="text-[14px] font-medium text-[#172B4D]">No comments yet</p>
           <p className="mt-0.5 text-[13px] text-[#5E6C84]">Start the discussion, and mention a teammate with @ to notify them.</p>
         </div>
+      ) : filtered.length === 0 ? (
+        <p className="mt-6 rounded-[3px] bg-[#F4F5F7] px-4 py-8 text-center text-[13px] text-[#5E6C84]">No comment matches your search.</p>
       ) : (
-        <ul className="mt-6 space-y-5">
-          {sorted.map((c) => {
-            const mine = c.sender_emp_id === currentUserId;
-            const who = byId.get(c.sender_emp_id);
-            return (
-              <li key={c.message_id} className="flex gap-3">
-                <Avatar name={c.sender_name} id={c.sender_emp_id} src={c.sender_avatar ?? who?.profile_picture} />
-                <div className="min-w-0 flex-1">
-                  <p className="text-[14px] leading-5">
-                    <b className="font-semibold text-[#172B4D]">{c.sender_name}</b>
-                    {mine && <span className="ml-1.5 rounded-[3px] bg-[#DFE1E6] px-1 py-px text-[11px] font-bold uppercase text-[#42526E]">You</span>}
-                    <span className="ml-2 text-[12px] text-[#5E6C84]" title={new Date(c.created_at).toLocaleString('en-GB')}>{ago(c.created_at)}</span>
-                  </p>
-                  <p className="mt-1 whitespace-pre-wrap break-words text-[14px] leading-6 text-[#172B4D]">{withMentions(c.message)}</p>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+        <>
+          <ul className="mt-5">
+            {visible.map((r, i) => {
+              const { c } = r;
+              const mine = c.sender_emp_id === currentUserId;
+              const who = byId.get(c.sender_emp_id);
+              const label = dayLabel(c.created_at);
+              const newDay = i === 0 || label !== dayLabel(visible[i - 1].c.created_at);
+              const long = r.text.length > 420 || r.text.split('\n').length > 9;
+              return (
+                <React.Fragment key={c.message_id}>
+                  {newDay && (
+                    <li aria-hidden className="flex items-center gap-3 pb-3 pt-3 first:pt-0">
+                      <span className="text-[12px] font-semibold uppercase tracking-wide text-[#5E6C84]">{label}</span>
+                      <span className="h-px flex-1 bg-[#DFE1E6]" />
+                    </li>
+                  )}
+                  <li className="flex gap-3 pb-5">
+                    <Avatar name={c.sender_name} id={c.sender_emp_id} src={c.sender_avatar ?? who?.profile_picture} />
+                    <div className="min-w-0 flex-1">
+                      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[14px] leading-5">
+                        <b className="font-semibold text-[#172B4D]">{c.sender_name}</b>
+                        {mine && <span className="rounded-[3px] bg-[#DFE1E6] px-1 py-px text-[11px] font-bold uppercase text-[#42526E]">You</span>}
+                        <span className="text-[12px] text-[#5E6C84]" title={new Date(c.created_at).toLocaleString('en-GB')}>{ago(c.created_at)}</span>
+                        {r.key && (
+                          <button
+                            type="button"
+                            disabled={!onOpenIssue}
+                            onClick={() => onOpenIssue?.(r.key!)}
+                            title={onOpenIssue ? `Open ${r.key}` : r.key}
+                            className="inline-flex items-center gap-1 rounded-[3px] bg-[color:var(--ac-50,#DEEBFF)] px-1.5 py-px text-[12px] font-semibold text-[color:var(--ac-dark,#0747A6)] enabled:cursor-pointer enabled:hover:bg-[color:var(--ac-200,#B3D4FF)]"
+                          >
+                            <CheckSquare className="h-3 w-3" /> {r.key}
+                          </button>
+                        )}
+                      </p>
+                      <div className="mt-1 text-[14px] leading-6 text-[#172B4D]">
+                        <Folded long={long}>
+                          <p className="whitespace-pre-wrap break-words">{withMentions(r.text)}</p>
+                        </Folded>
+                      </div>
+                    </div>
+                  </li>
+                </React.Fragment>
+              );
+            })}
+          </ul>
+          {filtered.length > visible.length && (
+            <div className="flex justify-center pb-2">
+              <button type="button" onClick={() => setLimit((n) => n + PAGE)} className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-[3px] bg-[rgba(9,30,66,0.04)] px-4 text-[14px] font-medium text-[#42526E] hover:bg-[rgba(9,30,66,0.08)]">
+                <ChevronDown className="h-4 w-4" /> Load {Math.min(PAGE, filtered.length - visible.length)} more · {filtered.length - visible.length} older
+              </button>
+            </div>
+          )}
+        </>
       )}
     </section>
   );

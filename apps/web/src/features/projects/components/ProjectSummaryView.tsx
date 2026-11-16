@@ -34,6 +34,7 @@ interface ProjectSummaryViewProps {
 const STAGES = [
   { stage: 'assigned', label: 'To Do', bar: 'bg-[#97A0AF]' },
   { stage: 'in_progress', label: 'In Progress', bar: 'bg-[color:var(--ac-main,#0052CC)]' },
+  { stage: 'in_qa', label: 'In QA', bar: 'bg-[#FF8B00]' },
   { stage: 'hold', label: 'On Hold', bar: 'bg-[#FF991F]' },
   { stage: 'requested', label: 'In Review', bar: 'bg-[#6554C0]' },
   { stage: 'completed', label: 'Done', bar: 'bg-[#36B37E]' },

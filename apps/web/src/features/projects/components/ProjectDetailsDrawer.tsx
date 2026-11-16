@@ -28,6 +28,7 @@ import {
   moveTaskToSprint,
   createProjectTask,
   fetchProjectDiscussions,
+  fetchProjectMentionable,
   createProjectDiscussion,
   fetchProjectActivityLogs,
   fetchProjectBugs,
@@ -45,6 +46,7 @@ import type {
   ProjectBugItem,
   ProjectDiscussionItem,
   ProjectItem,
+  ProjectMember,
   ProjectStatus,
   ProjectTaskItem,
   SprintItem,
@@ -147,6 +149,7 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
   const [targetStatusChange, setTargetStatusChange] = useState<ProjectStatus | null>(null);
   const [deliverOpen, setDeliverOpen] = useState(false);
   const [delivery, setDelivery] = useState<DeliveryReadiness | null>(null);
+  const [mentionable, setMentionable] = useState<ProjectMember[]>([]);
   const [statusReason, setStatusReason] = useState('');
   const [isSubmittingStatus, setIsSubmittingStatus] = useState(false);
 
@@ -159,7 +162,7 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
     try {
       setIsLoading(true);
       setError(null);
-      const [pData, sData, tData, dData, aData, bData, empData] = await Promise.all([
+      const [pData, sData, tData, dData, aData, bData, empData, mentionData] = await Promise.all([
         fetchProjectDetail(projectId),
         fetchProjectSprints(projectId),
         fetchSprintTasks(projectId),
@@ -167,8 +170,12 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
         fetchProjectActivityLogs(projectId),
         fetchProjectBugs(projectId),
         fetchAssignableEmployees(),
+        fetchProjectMentionable(projectId),
       ]);
 
+      setMentionable(
+        mentionData.map((p) => ({ member_id: p.employee_id, project_id: projectId, employee_id: p.employee_id, name: p.name, email: p.email, profile_picture: p.profile_picture, role_in_project: '' })),
+      );
       setProject(pData);
       setSprints(sData);
       setTasks(tData);
@@ -698,7 +705,7 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
                         canApprove={isAdmin}
                         currentEmpId={user?.emp_id}
                         canManage={isManagerOrAdmin}
-                        members={project.members || []}
+                        members={mentionable.length ? mentionable : project.members || []}
                         comments={issueComments}
                         currentUserName={user?.name}
                         currentUserAvatar={(user as { profile_picture?: string | null } | null)?.profile_picture ?? null}
@@ -772,7 +779,14 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
                 {activeTab === 'discussion' && (
                   <ProjectComments
                     comments={discussions}
-                    members={project.members || []}
+                    members={mentionable.length ? mentionable : project.members || []}
+                    onOpenIssue={(key) => {
+                      const hit = tasks.find((x) => x.task_code === key);
+                      if (!hit) return;
+                      setActiveTab('tasks');
+                      setTasksSubTab('board');
+                      setSelectedDrawerTaskId(hit.task_id);
+                    }}
                     currentUserId={user?.emp_id}
                     currentUserName={user?.name}
                     currentUserAvatar={(user as { profile_picture?: string | null } | null)?.profile_picture ?? null}

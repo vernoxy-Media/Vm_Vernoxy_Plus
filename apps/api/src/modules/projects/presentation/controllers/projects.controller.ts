@@ -428,6 +428,9 @@ export class ProjectsController {
     if (chosen.some((empId) => !members.includes(Number(empId)))) {
       throw new BadRequestException('Tasks can be assigned only to employees of this project.');
     }
+    if (dto.qa_assignee_id && !members.includes(Number(dto.qa_assignee_id))) {
+      throw new BadRequestException('QA can be assigned only to an employee of this project.');
+    }
     if (dto.sprint_id) {
       const sprints = await this.getProjectSprintsUseCase.execute(id);
       if (!sprints.some((x: any) => x.sprint_id === dto.sprint_id)) {
@@ -455,6 +458,13 @@ export class ProjectsController {
       );
     }
     return task;
+  }
+
+  @Get(':id/mentionable')
+  @ApiOperation({ summary: 'People who can be @mentioned in a project (team, PM and admins)' })
+  async getMentionable(@Req() req: Request, @Param('id', ParseIntPipe) id: number) {
+    await this.access.assertMember(id, req.user!.emp_id);
+    return this.access.mentionable(id);
   }
 
   @Get(':id/discussions')

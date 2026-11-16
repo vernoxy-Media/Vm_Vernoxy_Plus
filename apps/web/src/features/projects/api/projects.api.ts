@@ -199,6 +199,15 @@ export async function fetchProjectDiscussions(projectId: number): Promise<Projec
   }
 }
 
+export async function fetchProjectMentionable(projectId: number): Promise<Array<{ employee_id: number; name: string; email: string; profile_picture: string | null }>> {
+  try {
+    return await customFetch(`${BASE_URL}/${projectId}/mentionable`);
+  } catch (err) {
+    console.warn(`Failed to fetch mentionable people for project ${projectId}:`, err);
+    return [];
+  }
+}
+
 export async function createProjectDiscussion(
   projectId: number,
   message: string,

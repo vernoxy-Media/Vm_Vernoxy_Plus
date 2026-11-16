@@ -43,10 +43,24 @@ export class TrackWorkSessionUseCase {
     });
 
     if (command.action === 'finish') {
-      this.notifyApprovers(updated, command).catch(() => {});
+      if (updated.stage === 'in_qa') this.notifyQa(updated, command).catch(() => {});
+      else this.notifyApprovers(updated, command).catch(() => {});
     }
 
     return updated;
+  }
+
+  private async notifyQa(task: TaskEntity, command: TrackWorkSessionCommand): Promise<void> {
+    if (!task.qa_assignee_id || task.qa_assignee_id === command.actorEmpId) return;
+    await this.createNotificationUseCase.execute({
+      recipient_id: task.qa_assignee_id,
+      kind: 'task_ready_for_qa',
+      title: `Ready for QA: ${task.task_code}`,
+      body: `${command.actorName} has finished "${task.title}". It is ready for your testing.`,
+      entity_type: 'task',
+      entity_id: task.task_id,
+      created_by: command.actorEmpId,
+    });
   }
 
   private async notifyApprovers(task: TaskEntity, command: TrackWorkSessionCommand): Promise<void> {

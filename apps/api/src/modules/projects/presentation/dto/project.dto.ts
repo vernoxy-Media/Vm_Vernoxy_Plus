@@ -580,6 +580,12 @@ export class CreateProjectTaskDto {
   @MaxLength(100, { message: 'Other Task Type cannot be longer than 100 characters.' })
   other_task_type?: string;
 
+  @ApiPropertyOptional({ example: 2, description: 'Optional QA assignee who tests the task after the developer finishes' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  qa_assignee_id?: number;
+
   @ApiPropertyOptional({ example: 1 })
   @IsOptional()
   @Type(() => Number)

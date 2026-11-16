@@ -1067,6 +1067,7 @@ model tasks {
   timer_started_at                            DateTime?         @db.Timestamptz(6)
   work_logs                                   Json              @default("[]")
   sprint_id                                   Int?
+  qa_assignee_id                              Int?
   calendar_events                             calendar_events[]
   project_bugs                                project_bugs[]
   task_assignees                              task_assignees[]
@@ -3196,6 +3197,7 @@ enum task_priority {
 enum task_stage {
   assigned
   in_progress
+  in_qa
   hold
   requested
   completed

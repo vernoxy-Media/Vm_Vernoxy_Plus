@@ -180,6 +180,9 @@ export interface ProjectTaskItem {
   sprint_id?: number | null;
   parent_task_id?: number | null;
   project_id: number;
+  /** Tester a finished task goes to before approval; null when the task has no QA step. */
+  qa_assignee_id?: number | null;
+  qa_assignee_name?: string | null;
   assignees: Array<{
     emp_id: number;
     name: string;
@@ -204,6 +207,8 @@ export interface CreateProjectTaskPayload {
   assignee_ids: number[];
   task_type_id?: number;
   other_task_type?: string;
+  /** Optional QA step: who tests the issue after the developer finishes it. */
+  qa_assignee_id?: number;
   has_sub_tasks?: boolean;
   lead_employee_id?: number;
   sub_tasks?: Array<{
