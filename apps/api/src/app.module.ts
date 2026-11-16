@@ -14,6 +14,7 @@ import { CrmModule } from './modules/crm/crm.module';
 import { AttendanceModule } from './modules/attendance/public-api';
 import { NotificationsModule } from './modules/notifications/public-api';
 import { MessengerModule } from './modules/messenger/public-api';
+import { PushModule } from './modules/push/public-api';
 import { TasksModule } from './modules/tasks/public-api';
 import { CalendarModule } from './modules/calendar/public-api';
 import { ProjectsModule } from './modules/projects/public-api';
@@ -51,6 +52,7 @@ import { PreferencesModule } from './modules/preferences/preferences.module';
     AttendanceModule,
     NotificationsModule,
     MessengerModule,
+    PushModule,
     TasksModule,
     CalendarModule,
     ProjectsModule,

@@ -6,6 +6,7 @@ import { UserMenu } from './UserMenu';
 import { Menu, X, ShieldAlert, Calendar, Cake } from 'lucide-react';
 import { NotificationBell } from '@/features/notifications/components/NotificationBell';
 import { NotificationToaster } from '@/features/notifications/components/NotificationToaster';
+import { DesktopNotificationsPrompt } from '@/features/notifications/components/DesktopNotifications';
 import { ThemeMenu } from '@/shared/theme/ThemeMenu';
 import { useIsMyBirthday } from '@/features/attendance/hooks/use-birthdays';
 import { BirthdayConfettiBurst, MyBirthdayBanner } from '@/features/attendance/components/MyBirthdayExperience';
@@ -68,6 +69,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
       <div className="noise-overlay" aria-hidden="true" />
       <BirthdayConfettiBurst />
       <NotificationToaster />
+      <DesktopNotificationsPrompt />
 
       {/* Desktop Floating Left Sidebar (Background #FCFCFD, Border #D4DCE6, Radius 28px, Shadow 0 16px 45px rgba(15,23,42,.10)) */}
       <aside

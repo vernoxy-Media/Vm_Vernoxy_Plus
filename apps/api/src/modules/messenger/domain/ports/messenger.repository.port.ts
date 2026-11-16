@@ -125,6 +125,8 @@ export interface MessengerRepositoryPort {
   markRead(conversationId: number, empId: number): Promise<number | null>;
   markDeliveredAll(empId: number): Promise<number[]>;
   markDeliveredFor(conversationId: number, empIds: number[]): Promise<void>;
+  /** Of these members, the ones who have not muted the conversation (muting stops desktop notifications too). */
+  unmutedMemberIds(conversationId: number, empIds: number[]): Promise<number[]>;
   receipts(conversationId: number): Promise<{ read_upto: number; delivered_upto: number }>;
   totalUnread(empId: number): Promise<number>;
 

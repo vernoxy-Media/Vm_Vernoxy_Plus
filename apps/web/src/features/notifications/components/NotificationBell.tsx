@@ -23,6 +23,7 @@ function timeAgo(dateInput: string | Date): string {
 }
 
 import { useSocket } from '@/shared/socket/SocketContext';
+import { DesktopNotificationsToggle } from './DesktopNotifications';
 
 export const NotificationBell: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -184,6 +185,7 @@ export const NotificationBell: React.FC = () => {
               ))
             )}
           </div>
+          <DesktopNotificationsToggle />
         </div>
       )}
     </div>

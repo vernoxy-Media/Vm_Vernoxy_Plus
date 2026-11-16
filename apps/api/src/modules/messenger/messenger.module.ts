@@ -13,9 +13,10 @@ import { LocalMessengerFileStore } from './infrastructure/local-messenger-file-s
 import { PrismaMessengerRepository } from './infrastructure/prisma-messenger.repository';
 import { SocketMessengerEventsAdapter } from './infrastructure/socket-messenger-events.adapter';
 import { MessengerController } from './presentation/messenger.controller';
+import { PushModule, PushService } from '../push/public-api';
 
 @Module({
-  imports: [PrismaModule, AuthModule, StorageModule],
+  imports: [PrismaModule, AuthModule, StorageModule, PushModule],
   controllers: [MessengerController],
   providers: [
     { provide: MESSENGER_REPOSITORY, useClass: PrismaMessengerRepository },
@@ -25,8 +26,8 @@ import { MessengerController } from './presentation/messenger.controller';
     { provide: CONVERSATION_ID_CODEC, useClass: HmacConversationIdCodec },
     {
       provide: MessengerService,
-      useFactory: (repo: MessengerRepositoryPort, events: MessengerEventsPort, ids: ConversationIdCodecPort) => new MessengerService(repo, events, ids),
-      inject: [MESSENGER_REPOSITORY, MESSENGER_EVENTS, CONVERSATION_ID_CODEC],
+      useFactory: (repo: MessengerRepositoryPort, events: MessengerEventsPort, ids: ConversationIdCodecPort, push: PushService) => new MessengerService(repo, events, ids, push),
+      inject: [MESSENGER_REPOSITORY, MESSENGER_EVENTS, CONVERSATION_ID_CODEC, PushService],
     },
   ],
 })

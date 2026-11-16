@@ -21,6 +21,7 @@
     "lint": "turbo run lint",
     "bootstrap:admin": "tsx apps/api/src/scripts/bootstrap-admin.ts",
     "auth:gen-secrets": "tsx apps/api/src/scripts/generate-auth-secrets.ts",
+    "push:gen-keys": "tsx apps/api/src/scripts/generate-vapid-keys.ts",
     "openapi:export": "pnpm --filter @vernoxy-pulse/api openapi:export",
     "api:generate": "pnpm --filter @vernoxy-pulse/api-client generate",
     "dev": "concurrently -n \"api,web\" -c \"blue,green\" \"pnpm --filter @vernoxy-pulse/api dev\" \"pnpm --filter @vernoxy-pulse/web dev\"",

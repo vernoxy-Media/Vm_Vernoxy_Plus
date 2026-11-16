@@ -602,6 +602,15 @@ export class PrismaMessengerRepository implements MessengerRepositoryPort {
     return rows[0] as { read_upto: number; delivered_upto: number };
   }
 
+  async unmutedMemberIds(conversationId: number, empIds: number[]): Promise<number[]> {
+    if (empIds.length === 0) return [];
+    const rows = await this.prisma.$queryRaw<Row[]>`
+      SELECT emp_id FROM msg_member
+      WHERE conversation_id = ${conversationId} AND emp_id = ANY(${empIds}::int[]) AND left_at IS NULL
+        AND (muted_until IS NULL OR muted_until < now())`;
+    return rows.map((r) => r.emp_id);
+  }
+
   async totalUnread(empId: number): Promise<number> {
     const rows = await this.prisma.$queryRaw<Row[]>`
       SELECT (
