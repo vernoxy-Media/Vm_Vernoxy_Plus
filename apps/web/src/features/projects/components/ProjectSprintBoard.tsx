@@ -18,6 +18,7 @@ import {
   Check,
   CheckCircle2,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   ChevronUp,
   ChevronsUp,
@@ -270,21 +271,53 @@ const BoardCard: React.FC<{
   );
 };
 
-const BoardColumn: React.FC<{ col: (typeof COLUMNS)[number]; count: number; children: React.ReactNode }> = ({ col, count, children }) => {
+/**
+ * One board column, the way Jira draws it. A column with nothing in it folds into a slim strip (click to open),
+ * so the columns that hold work get the room; while a card is being dragged every column opens as a drop target.
+ */
+const BoardColumn: React.FC<{
+  col: (typeof COLUMNS)[number];
+  count: number;
+  collapsed: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}> = ({ col, count, collapsed, onToggle, children }) => {
   const { setNodeRef, isOver } = useDroppable({ id: `col:${col.stage}` });
+  const dot = STAGE_DOT[col.stage] ?? STAGE_DOT.assigned;
+
+  if (collapsed) {
+    return (
+      <section
+        ref={setNodeRef}
+        aria-label={`${col.label} (collapsed)`}
+        className={`flex w-11 shrink-0 flex-col items-center rounded-xl border py-2 transition-colors ${isOver ? 'border-[color:var(--ac-400,#4C9AFF)] bg-[color:var(--ac-50,#DEEBFF)]' : 'border-slate-200 bg-slate-50'}`}
+      >
+        <button type="button" onClick={onToggle} title={`Expand ${col.label}`} aria-label={`Expand ${col.label}`} className="flex cursor-pointer flex-col items-center gap-2 rounded-lg px-1 py-1 text-slate-500 hover:bg-white hover:text-slate-800">
+          <ChevronRight className="h-4 w-4" />
+          <span aria-hidden className={`h-2.5 w-2.5 rounded-full ${dot}`} />
+          <span className="inline-flex min-w-[20px] items-center justify-center rounded-full bg-white px-1 text-[11px] font-semibold text-slate-600 shadow-[inset_0_0_0_1px_rgb(226,232,240)]">{count}</span>
+          <span className="text-[12px] font-bold uppercase tracking-wide [text-orientation:mixed] [writing-mode:vertical-rl]">{col.label}</span>
+        </button>
+      </section>
+    );
+  }
+
   return (
     <section
       ref={setNodeRef}
       aria-label={col.label}
-      className={`flex min-h-[320px] w-[272px] shrink-0 snap-start flex-col rounded-xl border p-2 transition-colors xl:min-w-[210px] xl:flex-1 xl:basis-0 ${isOver ? 'border-[color:var(--ac-400,#4C9AFF)] bg-[color:var(--ac-50,#DEEBFF)]' : `border-slate-200 ${JIRA.column}`}`}
+      className={`flex max-h-[calc(100vh-17rem)] min-h-[240px] min-w-[236px] flex-1 basis-0 flex-col rounded-xl border transition-colors ${isOver ? 'border-[color:var(--ac-400,#4C9AFF)] bg-[color:var(--ac-50,#DEEBFF)]' : `border-slate-200 ${JIRA.column}`}`}
     >
-      <header className="flex items-center gap-2 px-1.5 pb-2.5 pt-1">
-        <span aria-hidden className={`h-2.5 w-2.5 shrink-0 rounded-full ${STAGE_DOT[col.stage] ?? STAGE_DOT.assigned}`} />
+      <header className="flex shrink-0 items-center gap-2 border-b border-slate-200/70 px-3 py-2.5">
+        <span aria-hidden className={`h-2.5 w-2.5 shrink-0 rounded-full ${dot}`} />
         <h4 className="min-w-0 flex-1 truncate text-[12px] font-bold uppercase tracking-wide text-slate-600">{col.label}</h4>
         <span className="inline-flex min-w-[22px] items-center justify-center rounded-full bg-white px-1.5 text-[12px] font-semibold text-slate-600 shadow-[inset_0_0_0_1px_rgb(226,232,240)]">{count}</span>
         {col.stage === 'completed' && <Check className="h-3.5 w-3.5 text-[#36B37E]" strokeWidth={3} />}
+        <button type="button" onClick={onToggle} title={`Collapse ${col.label}`} aria-label={`Collapse ${col.label}`} className="flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-slate-400 hover:bg-white hover:text-slate-700">
+          <ChevronLeft className="h-4 w-4" />
+        </button>
       </header>
-      <div className="flex-1 space-y-2">
+      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-2 [scrollbar-width:thin]">
         {children}
         {count === 0 && (
           <div className="flex h-24 items-center justify-center rounded-lg border border-dashed border-slate-300/80 px-3 text-center text-[12px] text-slate-400">
@@ -446,6 +479,8 @@ export const ProjectSprintBoard: React.FC<ProjectSprintBoardProps> = ({
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [allSubs, setAllSubs] = useState<Set<number>>(new Set());
   const [dragId, setDragId] = useState<number | null>(null);
+  /** Columns the user opened or folded by hand; the rest follow "folded when empty". */
+  const [colOpen, setColOpen] = useState<Record<string, boolean>>({});
   const [holdTaskId, setHoldTaskId] = useState<number | null>(null);
   const [sendBackTaskId, setSendBackTaskId] = useState<number | null>(null);
   const [completing, setCompleting] = useState(false);
@@ -823,11 +858,17 @@ export const ProjectSprintBoard: React.FC<ProjectSprintBoardProps> = ({
         </div>
       ) : view === 'board' ? (
         <DndContext sensors={sensors} collisionDetection={collision} onDragStart={(e: DragStartEvent) => setDragId(Number(e.active.id))} onDragCancel={() => setDragId(null)} onDragEnd={handleDragEnd}>
-          <div className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-4 [scrollbar-width:thin]">
+          <div className="-mx-1 flex items-start gap-3 overflow-x-auto px-1 pb-4 [scrollbar-width:thin]">
             {COLUMNS.map((col) => {
               const cards = topLevel.filter((t) => (t.stage ?? 'assigned') === col.stage);
               return (
-                <BoardColumn key={col.stage} col={col} count={cards.length}>
+                <BoardColumn
+                  key={col.stage}
+                  col={col}
+                  count={cards.length}
+                  collapsed={dragId === null && !(colOpen[col.stage] ?? cards.length > 0)}
+                  onToggle={() => setColOpen((cur) => ({ ...cur, [col.stage]: !(cur[col.stage] ?? cards.length > 0) }))}
+                >
                   {cards.map((t) => <BoardCard key={t.task_id} task={t} subs={subsOf.get(t.task_id) ?? []} draggable={canDrag(t)} lockedReason={lockReason(t)} onBlocked={flash} onOpen={onOpenTask} />)}
                 </BoardColumn>
               );
