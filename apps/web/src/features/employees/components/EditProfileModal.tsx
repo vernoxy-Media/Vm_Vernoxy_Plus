@@ -13,7 +13,6 @@ import {
   Lock,
   Upload,
   Camera,
-  HeartHandshake,
   Calendar,
   CreditCard,
   Briefcase,
@@ -37,6 +36,7 @@ import {
   employeeEditSchema,
   type EmployeeEditFormValues,
 } from '../schemas/employee-form.schema';
+import { EmergencyContactsField } from './EmergencyContactsField';
 import { CountryPhoneInput, DepartmentMultiSelect, DesignationMultiSelect, ReportingManagerSelect } from '@/shared/ui';
 import { useAuth } from '@/features/auth/context/AuthContext';
 
@@ -100,6 +100,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
       office_email: '',
       mob: '',
       gender_id: '' as unknown as number,
+      emergency_contacts: [],
       emergency_contact_name: '',
       emergency_contact_number: '',
       emergency_contact_relation: '',
@@ -143,7 +144,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     watch,
     setValue,
     trigger,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
   } = form;
 
   const watchedDepIds = watch('department_ids') || [];
@@ -193,6 +194,14 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
         office_email: employee.office_email || '',
         mob: employee.mob || '',
         gender_id: employee.gender_id || ('' as any),
+        emergency_contacts: (() => {
+          const list = ((employee as any).emergency_contacts as Array<{ name: string; relation?: string | null; number: string }> | undefined) ?? [];
+          if (list.length > 0) return list.map((c) => ({ name: c.name || '', relation: c.relation || '', number: c.number || '' }));
+          // Employees saved before several contacts existed have the one contact on the profile itself
+          return employee.emergency_contact_name || employee.emergency_contact_number
+            ? [{ name: employee.emergency_contact_name || '', relation: employee.emergency_contact_relation || '', number: employee.emergency_contact_number || '' }]
+            : [];
+        })(),
         emergency_contact_name: employee.emergency_contact_name || '',
         emergency_contact_number: employee.emergency_contact_number || '',
         emergency_contact_relation: employee.emergency_contact_relation || '',
@@ -258,8 +267,14 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     }
   };
 
+  // What is saved besides the form fields: a new photo, or a different shift
+  const originalShiftId = attendanceSettings?.employee_shifts?.[String(employee?.emp_id)]
+    ? String(attendanceSettings?.employee_shifts?.[String(employee?.emp_id)])
+    : 'default';
+  const hasChanges = isDirty || Boolean(selectedPhotoFile) || selectedShiftId !== originalShiftId;
+
   const requestClose = () => {
-    if (form.formState.isDirty) {
+    if (hasChanges) {
       setShowConfirmLeave(true);
     } else {
       handleForceClose();
@@ -302,9 +317,10 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
       office_email: values.office_email?.trim() || undefined,
       mob: values.mob?.trim() || undefined,
       gender_id: values.gender_id ? Number(values.gender_id) : null,
-      emergency_contact_name: values.emergency_contact_name?.trim() || undefined,
-      emergency_contact_number: values.emergency_contact_number?.trim() || undefined,
-      emergency_contact_relation: values.emergency_contact_relation?.trim() || undefined,
+      // Every contact on the form is saved; a row left empty is dropped
+      emergency_contacts: (values.emergency_contacts || [])
+        .filter((c) => c.name?.trim() || c.number?.trim())
+        .map((c) => ({ name: c.name.trim(), relation: c.relation?.trim() || null, number: c.number.trim() })),
       birth_date: values.birth_date || null,
       blood_group: values.blood_group || undefined,
       address: values.address?.trim() || undefined,
@@ -453,6 +469,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
         {/* Scrollable Form Body */}
         <form
           ref={formContainerRef}
+          noValidate
           onSubmit={handleSubmit(onSubmit)}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT' && activeTab !== 'job') {
@@ -566,53 +583,14 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 </div>
               </div>
 
-              {/* Marker 5 & 6: Emergency Contact */}
-              <div className="bg-slate-50/70 rounded-2xl p-5 border border-slate-200/80 space-y-4">
-                <div className="flex items-center gap-2 pb-2.5 border-b border-slate-200/60">
-                  <HeartHandshake className="w-4 h-4 text-rose-600" />
-                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Emergency Contact</h3>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  {/* Marker 5: Emergency Contact Name */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700">Emergency Contact Name</label>
-                    <input
-                      type="text"
-                      {...register('emergency_contact_name')}
-                      placeholder="Who to call in an emergency"
-                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                    />
-                  </div>
-
-                  {/* Relationship */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700">Relationship</label>
-                    <input
-                      type="text"
-                      {...register('emergency_contact_relation')}
-                      placeholder="How they are related (e.g. Father, Spouse)"
-                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                    />
-                  </div>
-                </div>
-
-                {/* Marker 6: Emergency Contact Number */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-700">Emergency Contact Number</label>
-                  <CountryPhoneInput
-                    value={watch('emergency_contact_number') || ''}
-                    onChange={(val) =>
-                      setValue('emergency_contact_number', val, {
-                        shouldValidate: true,
-                        shouldDirty: true,
-                      })
-                    }
-                    placeholder="9876543210"
-                    error={errors.emergency_contact_number?.message}
-                  />
-                </div>
-              </div>
+              {/* Emergency contacts: any number up to five */}
+              <EmergencyContactsField
+                control={form.control as never}
+                register={register as never}
+                watch={watch}
+                setValue={setValue}
+                errors={errors as never}
+              />
 
               {/* Marker 7, 8, 9, 10, 11: Personal & Office Info */}
               <div className="bg-slate-50/70 rounded-2xl p-5 border border-slate-200/80 space-y-4">
@@ -1166,10 +1144,11 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                     >
                       <option value="Active">Active</option>
                       <option value="Inactive">Inactive</option>
-                      <option value="On Leave">On Leave</option>
-                      <option value="Terminated">Terminated</option>
-                      <option value="Resigned">Resigned</option>
+                      {employee?.status === 'Onboarding' && <option value="Onboarding">Onboarding</option>}
                     </select>
+                    {watch('status') === 'Inactive' && employee?.status !== 'Inactive' && (
+                      <p className="text-[11px] text-slate-500">No reason needed here: the employee is recorded as Resigned.</p>
+                    )}
                   </div>
 
                   <div className="space-y-1.5">
@@ -1235,8 +1214,9 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 <button
                   key="btn-save-employee"
                   type="submit"
-                  disabled={isSubmitting}
-                  className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  disabled={isSubmitting || !hasChanges}
+                  title={!hasChanges ? 'Change something to save' : undefined}
+                  className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
                   <span>Save Changes</span>

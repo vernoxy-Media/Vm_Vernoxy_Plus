@@ -56,6 +56,8 @@ export interface Employee {
   emergency_contact_name?: string | null;
   emergency_contact_number?: string | null;
   emergency_contact_relation?: string | null;
+  /** All emergency contacts, first one first (the single contact above is a copy of it) */
+  emergency_contacts?: Array<{ name: string; relation: string | null; number: string }>;
   /** Leave policy assigned to the employee (Leave BFD 3.2). */
   leave_policy_id?: number | null;
   employment_type_id?: number | null;

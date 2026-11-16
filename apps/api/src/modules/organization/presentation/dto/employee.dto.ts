@@ -13,8 +13,28 @@ import {
   MaxLength,
   Min,
   MinLength,
+  ArrayMaxSize,
+  ValidateNested,
 } from 'class-validator';
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
+
+export class EmergencyContactDto {
+  @ApiProperty({ type: String, example: 'John Johnson' })
+  @IsString()
+  @MaxLength(100)
+  name!: string;
+
+  @ApiPropertyOptional({ type: String, example: 'Spouse', nullable: true })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  relation?: string | null;
+
+  @ApiProperty({ type: String, example: '+919876543219' })
+  @IsString()
+  @MaxLength(25)
+  number!: string;
+}
 
 export class EmployeePayPolicyDto {
   @ApiPropertyOptional({ type: String, format: 'date', nullable: true })
@@ -159,6 +179,14 @@ export class CreateEmployeeDto {
   @IsOptional()
   @IsString()
   emergency_contact_relation?: string | null;
+
+  @ApiPropertyOptional({ type: [EmergencyContactDto], description: 'All emergency contacts (up to 5). When sent they replace the single contact fields.' })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(5)
+  @ValidateNested({ each: true })
+  @Type(() => EmergencyContactDto)
+  emergency_contacts?: EmergencyContactDto[];
 
   @ApiPropertyOptional({ type: Number, example: 1, description: 'Employment Type lookup ID', nullable: true })
   @IsOptional()
@@ -373,6 +401,14 @@ export class UpdateEmployeeDto {
   @IsOptional()
   @IsString()
   emergency_contact_relation?: string | null;
+
+  @ApiPropertyOptional({ type: [EmergencyContactDto], description: 'All emergency contacts (up to 5). When sent they replace the single contact fields.' })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(5)
+  @ValidateNested({ each: true })
+  @Type(() => EmergencyContactDto)
+  emergency_contacts?: EmergencyContactDto[];
 
   @ApiPropertyOptional({ type: Number, example: 1, nullable: true })
   @IsOptional()
@@ -715,6 +751,9 @@ export class EmployeeResponseDto {
 
   @ApiPropertyOptional({ type: String, nullable: true })
   emergency_contact_relation?: string | null;
+
+  @ApiPropertyOptional({ type: [EmergencyContactDto] })
+  emergency_contacts?: EmergencyContactDto[];
 
   @ApiPropertyOptional({ type: Number, nullable: true, description: 'Assigned Leave Policy' })
   leave_policy_id?: number | null;

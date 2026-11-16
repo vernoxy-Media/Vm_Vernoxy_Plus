@@ -142,9 +142,24 @@ export const EmployeeDetailPage: React.FC = () => {
       } else {
         setTerminationDate(todayStr);
       }
+      setDeactivationReason('Resigned');
+      setDeactivationNotes('');
       setDeactivationError(null);
     }
   }, [isDeactivateModalOpen, employee, todayStr]);
+
+  // The three-dots menu on the list sends people here with ?edit=1 or ?deactivate=1
+  useEffect(() => {
+    if (!employee) return;
+    const wantsEdit = searchParams.get('edit') === '1';
+    const wantsDeactivate = searchParams.get('deactivate') === '1';
+    if (!wantsEdit && !wantsDeactivate) return;
+    if (wantsEdit) setIsEditProfileModalOpen(true);
+    if (wantsDeactivate && employee.status !== 'Inactive' && currentUser?.emp_id !== employee.emp_id) {
+      setIsDeactivateModalOpen(true);
+    }
+    navigate(`/admin/employees/${employee.emp_id}`, { replace: true });
+  }, [employee, searchParams, navigate, currentUser?.emp_id]);
 
   useEffect(() => {
     if (employee?.status === 'Onboarding' && !searchParams.get('tab')) {

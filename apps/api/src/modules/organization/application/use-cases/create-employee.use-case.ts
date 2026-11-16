@@ -16,6 +16,8 @@ import {
 } from '../../domain/errors/organization.errors';
 
 import { resolveRoleSelection } from '../services/employee-role-selection';
+import { assertAmount, assertPersonName, normalizeEmergencyContacts } from '../../domain/services/employee-input-rules';
+
 
 export interface CreateEmployeeCommand {
   name: string;
@@ -38,6 +40,8 @@ export interface CreateEmployeeCommand {
   emergency_contact_name?: string | null;
   emergency_contact_number?: string | null;
   emergency_contact_relation?: string | null;
+  /** Several emergency contacts; when sent they replace the single contact fields */
+  emergency_contacts?: Array<{ name: string; relation?: string | null; number: string }>;
   employment_type_id?: number | null;
   salary?: number;
   probation_period?: string | null;
@@ -74,18 +78,32 @@ export class CreateEmployeeUseCase {
   ) {}
 
   async execute(command: CreateEmployeeCommand): Promise<Employee> {
-    const trimmedName = command.name?.trim();
-    if (!trimmedName) {
-      throw new ValidationDomainError('Employee name is required', 'name');
+    const trimmedName = assertPersonName(command.name, 'name', 'Employee name');
+
+    // The fields the BRD marks as required: nothing is filled in on the employee's behalf
+    if (!command.mob || !command.mob.trim()) throw new ValidationDomainError('Phone number is required', 'mob');
+    if (!command.gender_id) throw new ValidationDomainError('Gender is required', 'gender_id');
+    if (!command.personal_email || !command.personal_email.trim()) throw new ValidationDomainError('Personal email is required', 'personal_email');
+    if (!command.birth_date) throw new ValidationDomainError('Birth date is required', 'birth_date');
+    if (!command.employment_type_id) throw new ValidationDomainError('Employment type is required', 'employment_type_id');
+    if (!command.joining_date) throw new ValidationDomainError('Joining date is required', 'joining_date');
+    if (!command.role_id && !(command.role_ids && command.role_ids.length > 0)) {
+      throw new ValidationDomainError('Select at least one designation', 'role_ids');
+    }
+    if (!command.dep_id && !(command.department_ids && command.department_ids.length > 0)) {
+      throw new ValidationDomainError('Select at least one department', 'department_ids');
     }
 
+    const emergencyContacts = command.emergency_contacts !== undefined
+      ? normalizeEmergencyContacts(command.emergency_contacts)
+      : normalizeEmergencyContacts(
+          command.emergency_contact_name || command.emergency_contact_number
+            ? [{ name: command.emergency_contact_name, number: command.emergency_contact_number, relation: command.emergency_contact_relation }]
+            : [],
+        );
+
     const normalizedEmail = OrganizationNormalizationService.normalizeEmail(command.email);
-    let normalizedMob: string;
-    if (command.mob && command.mob.trim()) {
-      normalizedMob = OrganizationNormalizationService.normalizeMobile(command.mob);
-    } else {
-      normalizedMob = `+9100${Math.floor(10000000 + Math.random() * 90000000)}`;
-    }
+    const normalizedMob = OrganizationNormalizationService.normalizeMobile(command.mob);
 
     OrganizationNormalizationService.validatePassword(command.password, {
       name: trimmedName,
@@ -114,12 +132,8 @@ export class CreateEmployeeUseCase {
       }
     }
 
-    if (command.salary !== undefined && command.salary < 0) {
-      throw new ValidationDomainError('Salary cannot be negative', 'salary');
-    }
-    if (command.pf !== undefined && command.pf < 0) {
-      throw new ValidationDomainError('PF cannot be negative', 'pf');
-    }
+    if (command.salary !== undefined) assertAmount(command.salary, 'salary', 'Salary');
+    if (command.pf !== undefined) assertAmount(command.pf, 'pf', 'PF amount');
 
     const department = await this.departmentRepo.findById(command.dep_id);
     if (!department) {
@@ -200,15 +214,13 @@ export class CreateEmployeeUseCase {
       throw new ConflictDomainError('EMAIL_EXISTS', `This email already belongs to ${code}.`, 'email');
     }
 
-    if (command.mob && command.mob.trim()) {
-      const existingMob = await this.employeeRepo.findByMobile(normalizedMob);
-      if (existingMob) {
-        throw new ConflictDomainError(
-          'MOBILE_EXISTS',
-          'An employee with this mobile number already exists',
-          'mob',
-        );
-      }
+    const existingMob = await this.employeeRepo.findByMobile(normalizedMob);
+    if (existingMob) {
+      throw new ConflictDomainError(
+        'MOBILE_EXISTS',
+        'An employee with this mobile number already exists',
+        'mob',
+      );
     }
 
     const allDepIds = Array.from(new Set([primaryDepId, command.dep_id, ...(command.department_ids || [])]));
@@ -231,9 +243,10 @@ export class CreateEmployeeUseCase {
           birth_date: parsedBirthDate,
           blood_group: command.blood_group?.trim() || null,
           address: command.address?.trim() || null,
-          emergency_contact_name: command.emergency_contact_name?.trim() || null,
-          emergency_contact_number: command.emergency_contact_number?.trim() || null,
-          emergency_contact_relation: command.emergency_contact_relation?.trim() || null,
+          emergency_contact_name: emergencyContacts[0]?.name ?? null,
+          emergency_contact_number: emergencyContacts[0]?.number ?? null,
+          emergency_contact_relation: emergencyContacts[0]?.relation ?? null,
+          emergency_contacts: emergencyContacts,
           employment_type_id: command.employment_type_id ?? null,
           salary: command.salary !== undefined ? Number(command.salary) : 0,
           pf: command.pf !== undefined ? Number(command.pf) : 0,

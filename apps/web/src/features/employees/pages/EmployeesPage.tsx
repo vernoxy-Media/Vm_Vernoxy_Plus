@@ -11,7 +11,7 @@ import { useAuth } from '@/features/auth/context/AuthContext';
 import { AdminLayout } from '@/shared/layouts/AdminLayout';
 import { AddEmployeeModal } from '../components/AddEmployeeModal';
 import { EmployeeDashboardTab } from '../components/dashboard/EmployeeDashboardTab';
-import { SearchableSelect } from '@/shared/ui';
+import { SearchableSelect, RowActionsMenu } from '@/shared/ui';
 import {
   Users,
   BarChart3,
@@ -31,6 +31,9 @@ import {
   ArrowDown,
   CheckCircle2,
   FileWarning,
+  Eye,
+  Pencil,
+  UserMinus,
 } from 'lucide-react';
 
 const AVATAR_COLORS = [
@@ -631,13 +634,16 @@ export const EmployeesPage: React.FC = () => {
                 <table className="w-full text-left border-collapse" id="employees-table">
                   <thead className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur border-b border-slate-200">
                     <tr>
+                      <th className="py-3.5 px-5 text-[11px] font-semibold text-slate-500 tracking-wider uppercase whitespace-nowrap w-[9%] min-w-[95px]">
+                        Emp ID
+                      </th>
                       <th
                         onClick={() => handleToggleSort('name')}
-                        className="py-3.5 px-5 text-[11px] font-semibold text-slate-500 tracking-wider uppercase whitespace-nowrap w-[24%] min-w-[200px] cursor-pointer hover:text-slate-800 transition-colors select-none group"
+                        className="py-3.5 px-5 text-[11px] font-semibold text-slate-500 tracking-wider uppercase whitespace-nowrap w-[20%] min-w-[190px] cursor-pointer hover:text-slate-800 transition-colors select-none group"
                         title="Sort by Name"
                       >
                         <div className="flex items-center gap-1.5">
-                          <span>Employee</span>
+                          <span>Emp Name</span>
                           {sortField === 'name' ? (
                             sortDirection === 'asc' ? (
                               <ArrowUp className="w-3.5 h-3.5 text-blue-600" />
@@ -697,6 +703,9 @@ export const EmployeesPage: React.FC = () => {
                           Documents
                         </th>
                       )}
+                      <th className="py-3.5 px-3 w-[52px]">
+                        <span className="sr-only">Actions</span>
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100/80">
@@ -724,37 +733,37 @@ export const EmployeesPage: React.FC = () => {
                           onClick={() => navigate(`/admin/employees/${emp.emp_id}`)}
                           className="hover:bg-blue-50/30 transition-colors cursor-pointer group"
                         >
-                          {/* Marker 5: EMPLOYEE column: Initials Circle, Name & Emp ID */}
+                          {/* EMP ID */}
+                          <td className="py-3.5 px-5 whitespace-nowrap">
+                            <span className="text-xs font-mono font-semibold text-slate-600 tracking-tight">{empCode}</span>
+                          </td>
+
+                          {/* EMP NAME: avatar and name */}
                           <td className="py-3.5 px-5">
                             <div className="flex items-center gap-3">
                               {emp.profile_picture_url && !imageErrors[emp.emp_id] ? (
                                 <img
                                   src={emp.profile_picture_url}
                                   alt={emp.name}
-                                  className="w-10 h-10 rounded-full object-cover shrink-0 ring-2 ring-white shadow-sm"
+                                  className="w-9 h-9 rounded-full object-cover shrink-0 ring-2 ring-white shadow-sm"
                                   onError={() => setImageErrors((prev) => ({ ...prev, [emp.emp_id]: true }))}
                                 />
                               ) : (
                                 <div
-                                  className={`w-10 h-10 rounded-full ${avatarBg} text-white font-bold text-xs flex items-center justify-center shrink-0 tracking-wide ring-2 ring-white shadow-sm`}
+                                  className={`w-9 h-9 rounded-full ${avatarBg} text-white font-bold text-xs flex items-center justify-center shrink-0 tracking-wide ring-2 ring-white shadow-sm`}
                                 >
                                   {initials}
                                 </div>
                               )}
-                              <div className="flex flex-col min-w-0">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="font-bold text-slate-900 text-sm group-hover:text-blue-600 transition-colors truncate">
-                                    {emp.name}
-                                  </span>
-                                  {isSelf && (
-                                    <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-blue-50 text-blue-700 shrink-0">
-                                      You
-                                    </span>
-                                  )}
-                                </div>
-                                <span className="mt-0.5 text-[11px] text-slate-400 font-mono tracking-tight">
-                                  {empCode}
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span className="font-bold text-slate-900 text-sm group-hover:text-blue-600 transition-colors truncate">
+                                  {emp.name}
                                 </span>
+                                {isSelf && (
+                                  <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-blue-50 text-blue-700 shrink-0">
+                                    You
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </td>
@@ -892,6 +901,25 @@ export const EmployeesPage: React.FC = () => {
                               )}
                             </td>
                           )}
+
+                          {/* THREE DOTS: View, Edit, Deactivate */}
+                          <td className="py-3.5 px-3 text-right" onClick={(e) => e.stopPropagation()}>
+                            <RowActionsMenu
+                              label={`Actions for ${emp.name}`}
+                              actions={[
+                                { label: 'View', icon: Eye, onClick: () => navigate(`/admin/employees/${emp.emp_id}`) },
+                                { label: 'Edit', icon: Pencil, onClick: () => navigate(`/admin/employees/${emp.emp_id}?edit=1`) },
+                                {
+                                  label: 'Deactivate',
+                                  icon: UserMinus,
+                                  danger: true,
+                                  disabled: isSelf || emp.status === 'Inactive',
+                                  hint: isSelf ? 'You cannot deactivate your own account' : 'Already inactive',
+                                  onClick: () => navigate(`/admin/employees/${emp.emp_id}?deactivate=1`),
+                                },
+                              ]}
+                            />
+                          </td>
                         </tr>
                       );
                     })}

@@ -48,7 +48,7 @@ export const PREDEFINED_DOCS: PredefinedDoc[] = [
   { type: 'marksheet_12th', category: 'taken_from_employee', title: '12th Standard Marksheet (or Diploma)', isRequiredForActivation: true },
   { type: 'marksheet_ug', category: 'taken_from_employee', title: 'Graduation Degree / Marksheet' },
   { type: 'marksheet_pg', category: 'taken_from_employee', title: 'Post-Graduation Marksheet' },
-  { type: 'pan_card', category: 'taken_from_employee', title: 'PAN Card', isRequiredForActivation: true },
+  { type: 'pan_card', category: 'taken_from_employee', title: 'PAN Card' },
   { type: 'aadhaar_card', category: 'taken_from_employee', title: 'Aadhaar Card', isRequiredForActivation: true },
   { type: 'passport_photos', category: 'taken_from_employee', title: 'Passport Size Photo', isRequiredForActivation: true },
   { type: 'bank_details', category: 'taken_from_employee', title: 'Bank Details (Passbook or cancelled cheque)', isRequiredForActivation: true },

@@ -436,7 +436,37 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       include: this.getEmployeeIncludes(),
     });
 
-    return record ? this.mapToEntity(record) : null;
+    return record ? this.withContacts(client, this.mapToEntity(record)) : null;
+  }
+
+  /** The emergency contacts of an employee, first one first. */
+  private async contactsOf(client: PrismaClient, empId: number): Promise<Array<{ name: string; relation: string | null; number: string }>> {
+    const rows = await client.$queryRaw<Array<{ name: string; relation: string | null; phone: string }>>`
+      SELECT name, relation, phone FROM employee_emergency_contacts WHERE emp_id = ${empId} ORDER BY sort_order, contact_id`;
+    return rows.map((r) => ({ name: r.name, relation: r.relation, number: r.phone }));
+  }
+
+  private async withContacts(client: PrismaClient, emp: Employee): Promise<Employee> {
+    try {
+      const list = await this.contactsOf(client, emp.emp_id);
+      // An employee saved before the list existed has only the single contact on the row
+      if (list.length === 0 && emp.emergency_contact_name && emp.emergency_contact_number) {
+        list.push({ name: emp.emergency_contact_name, relation: emp.emergency_contact_relation ?? null, number: emp.emergency_contact_number });
+      }
+      return { ...emp, emergency_contacts: list };
+    } catch {
+      return emp;
+    }
+  }
+
+  private async replaceContacts(client: PrismaClient, empId: number, list: Array<{ name: string; relation: string | null; number: string }>): Promise<void> {
+    await client.$executeRaw`DELETE FROM employee_emergency_contacts WHERE emp_id = ${empId}`;
+    let order = 1;
+    for (const c of list) {
+      await client.$executeRaw`
+        INSERT INTO employee_emergency_contacts (emp_id, name, relation, phone, sort_order)
+        VALUES (${empId}, ${c.name}, ${c.relation}, ${c.number}, ${order++})`;
+    }
   }
 
   async findByEmail(email: string, tx?: unknown): Promise<Employee | null> {
@@ -488,6 +518,7 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       emergency_contact_name?: string | null;
       emergency_contact_number?: string | null;
       emergency_contact_relation?: string | null;
+      emergency_contacts?: Array<{ name: string; relation: string | null; number: string }>;
       employment_type_id?: number | null;
       salary?: number;
       probation_period?: string | null;
@@ -638,7 +669,8 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       include: this.getEmployeeIncludes(),
     });
 
-    return this.mapToEntity(refreshed ?? created);
+    if (data.emergency_contacts !== undefined) await this.replaceContacts(client, created.emp_id, data.emergency_contacts);
+    return this.withContacts(client, this.mapToEntity(refreshed ?? created));
   }
 
   async update(
@@ -665,6 +697,7 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       emergency_contact_name?: string | null;
       emergency_contact_number?: string | null;
       emergency_contact_relation?: string | null;
+      emergency_contacts?: Array<{ name: string; relation: string | null; number: string }>;
       employment_type_id?: number | null;
       salary?: number;
       probation_period?: string | null;
@@ -844,7 +877,8 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
         include: this.getEmployeeIncludes(),
       });
 
-      return this.mapToEntity(refreshed ?? updated);
+      if (data.emergency_contacts !== undefined) await this.replaceContacts(client, id, data.emergency_contacts);
+      return this.withContacts(client, this.mapToEntity(refreshed ?? updated));
     } catch (err: any) {
       if (err?.message?.includes('Hierarchy cycle detected')) {
         throw new ConflictDomainError(

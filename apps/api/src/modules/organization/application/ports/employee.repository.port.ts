@@ -50,6 +50,7 @@ export interface EmployeeRepositoryPort {
       emergency_contact_name?: string | null;
       emergency_contact_number?: string | null;
       emergency_contact_relation?: string | null;
+      emergency_contacts?: Array<{ name: string; relation: string | null; number: string }>;
       employment_type_id?: number | null;
       salary?: number;
       probation_period?: string | null;
@@ -98,6 +99,7 @@ export interface EmployeeRepositoryPort {
       emergency_contact_name?: string | null;
       emergency_contact_number?: string | null;
       emergency_contact_relation?: string | null;
+      emergency_contacts?: Array<{ name: string; relation: string | null; number: string }>;
       employment_type_id?: number | null;
       salary?: number;
       probation_period?: string | null;
