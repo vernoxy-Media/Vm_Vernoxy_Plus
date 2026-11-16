@@ -34,14 +34,26 @@ const clock = (iso?: string | null) => {
   return isNaN(d.getTime()) ? null : d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 };
 
-/** The punches the employee asked for, as "09:30 AM → 06:00 PM" ("—" for the one they did not ask to change) */
-export const RequestedTimes: React.FC<{ r: AttendanceRegularization }> = ({ r }) => (
-  <span className="inline-flex items-center gap-1.5 whitespace-nowrap tabular-nums">
-    <span className={clock(r.requestedCheckInAt) ? 'text-slate-800' : 'text-slate-300'}>{clock(r.requestedCheckInAt) ?? '—'}</span>
-    <span className="text-slate-300">→</span>
-    <span className={clock(r.requestedCheckOutAt) ? 'text-slate-800' : 'text-slate-300'}>{clock(r.requestedCheckOutAt) ?? '—'}</span>
-  </span>
-);
+/**
+ * The day as it will be once approved: "09:40 AM → 06:00 PM". A time the employee asked for is dark and bold;
+ * a punch already on record that they did not ask to change is grey (hover says so); "—" means nothing is recorded.
+ */
+export const RequestedTimes: React.FC<{ r: AttendanceRegularization }> = ({ r }) => {
+  const part = (requested?: string | null, recorded?: string | null, what = 'punch') => {
+    const asked = clock(requested);
+    if (asked) return <span className="font-semibold text-slate-900" title={`Requested ${what}`}>{asked}</span>;
+    const had = clock(recorded);
+    if (had) return <span className="text-slate-500" title={`Already recorded ${what}, not changed`}>{had}</span>;
+    return <span className="text-slate-300" title={`No ${what} recorded`}>—</span>;
+  };
+  return (
+    <span className="inline-flex items-center gap-1.5 whitespace-nowrap tabular-nums">
+      {part(r.requestedCheckInAt, r.currentCheckInAt, 'check-in')}
+      <span className="text-slate-300">→</span>
+      {part(r.requestedCheckOutAt, r.currentCheckOutAt, 'check-out')}
+    </span>
+  );
+};
 
 export const submittedOn = (r: AttendanceRegularization) =>
   r.createdAt ? new Date(r.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '—';

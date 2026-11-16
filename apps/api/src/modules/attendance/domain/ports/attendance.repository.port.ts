@@ -77,6 +77,8 @@ export interface AttendanceRepository {
     createdBy: number;
   }): Promise<AttendanceCorrectionEntity>;
   cancelRegularization(correctionId: number, empId: number): Promise<AttendanceCorrectionEntity>;
+  /** Active administrators: the people who approve regularizations. */
+  listAdminEmpIds(): Promise<number[]>;
   approveRegularization(
     correctionId: number,
     approverId: number,

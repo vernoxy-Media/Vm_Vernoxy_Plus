@@ -17,6 +17,31 @@ interface AddRegularizationModalProps {
   initialCheckOut?: string | null;
 }
 
+/** "09:40" from a real instant, in the viewer's own time zone (what the time input shows). */
+const hhmm = (d: Date) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+
+/** "09:40 AM" for people to read. */
+const label12 = (d: Date) => d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+/** "07:00 PM", "7:00 pm" or "19:00" -> "19:00" (the time input needs 24 hours). Null when it is not a time. */
+function to24(value?: string | null): string | null {
+  if (!value) return null;
+  const m = /^(\d{1,2}):(\d{2})(?::\d{2})?\s*([AaPp][Mm])?$/.exec(value.trim());
+  if (!m) return null;
+  let h = Number(m[1]);
+  if (m[3]) {
+    const pm = m[3].toLowerCase() === 'pm';
+    if (pm && h < 12) h += 12;
+    if (!pm && h === 12) h = 0;
+  }
+  return `${String(h).padStart(2, '0')}:${m[2]}`;
+}
+
+/** The punch as a real instant: the time the person typed is THEIR time, not UTC. */
+const localIso = (date: string, time: string) => new Date(`${date}T${time.length === 5 ? `${time}:00` : time}`).toISOString();
+
+const isIso = (v?: string | null) => Boolean(v && /\d{4}-\d{2}-\d{2}T/.test(v));
+
 const REQUEST_TYPES = [
   'Missing Clock Out',
   'Missing Clock In',
@@ -65,8 +90,10 @@ export const AddRegularizationModal: React.FC<AddRegularizationModalProps> = ({
   const [requestType, setRequestType] = useState('Missing Clock Out');
   const [currentCheckIn, setCurrentCheckIn] = useState(initialCheckIn || '--');
   const [currentCheckOut, setCurrentCheckOut] = useState(initialCheckOut || '--');
-  const [currentCheckInRaw, setCurrentCheckInRaw] = useState<string | null>(initialCheckIn || null);
-  const [currentCheckOutRaw, setCurrentCheckOutRaw] = useState<string | null>(initialCheckOut || null);
+  const [currentCheckInRaw, setCurrentCheckInRaw] = useState<string | null>(isIso(initialCheckIn) ? initialCheckIn! : null);
+  const [currentCheckOutRaw, setCurrentCheckOutRaw] = useState<string | null>(isIso(initialCheckOut) ? initialCheckOut! : null);
+  /** Once the person picks a type themselves we stop choosing it for them. */
+  const [typeTouched, setTypeTouched] = useState(false);
   const [requestedCheckIn, setRequestedCheckIn] = useState('09:30');
   const [requestedCheckOut, setRequestedCheckOut] = useState('18:30');
   const [reason, setReason] = useState('Forgot to Punch');
@@ -82,15 +109,18 @@ export const AddRegularizationModal: React.FC<AddRegularizationModalProps> = ({
     if (initialDate) setAttendanceDate(initialDate);
     if (initialCheckIn) {
       setCurrentCheckIn(initialCheckIn);
-      setCurrentCheckInRaw(initialCheckIn);
-      setRequestedCheckIn(initialCheckIn.slice(0, 5));
+      setCurrentCheckInRaw(isIso(initialCheckIn) ? initialCheckIn : null);
+      const t = to24(initialCheckIn);
+      if (t) setRequestedCheckIn(t);
     }
     if (initialCheckOut) {
       setCurrentCheckOut(initialCheckOut);
-      setCurrentCheckOutRaw(initialCheckOut);
-      setRequestedCheckOut(initialCheckOut.slice(0, 5));
+      setCurrentCheckOutRaw(isIso(initialCheckOut) ? initialCheckOut : null);
+      const t = to24(initialCheckOut);
+      if (t) setRequestedCheckOut(t);
     }
     if (!isOpen) {
+      setTypeTouched(false);
       setOtherReason('');
       setReasonDescription('');
       setError(null);
@@ -110,11 +140,9 @@ export const AddRegularizationModal: React.FC<AddRegularizationModalProps> = ({
         if (detail.punched_in_at) {
           setCurrentCheckInRaw(detail.punched_in_at);
           const inDate = new Date(detail.punched_in_at);
-          const timeStr = !isNaN(inDate.getTime())
-            ? inDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
-            : detail.punched_in_at;
-          setCurrentCheckIn(timeStr);
-          setRequestedCheckIn(timeStr);
+          const ok = !isNaN(inDate.getTime());
+          setCurrentCheckIn(ok ? label12(inDate) : detail.punched_in_at);
+          if (ok) setRequestedCheckIn(hhmm(inDate));
         } else {
           setCurrentCheckInRaw(null);
           setCurrentCheckIn('--');
@@ -123,14 +151,18 @@ export const AddRegularizationModal: React.FC<AddRegularizationModalProps> = ({
         if (detail.punched_out_at) {
           setCurrentCheckOutRaw(detail.punched_out_at);
           const outDate = new Date(detail.punched_out_at);
-          const timeStr = !isNaN(outDate.getTime())
-            ? outDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
-            : detail.punched_out_at;
-          setCurrentCheckOut(timeStr);
-          setRequestedCheckOut(timeStr);
+          const ok = !isNaN(outDate.getTime());
+          setCurrentCheckOut(ok ? label12(outDate) : detail.punched_out_at);
+          if (ok) setRequestedCheckOut(hhmm(outDate));
         } else {
           setCurrentCheckOutRaw(null);
           setCurrentCheckOut('--');
+        }
+
+        // Suggest the type that matches what is missing, unless the person already chose one
+        if (!typeTouched) {
+          const pick = !detail.punched_in_at ? 'Both Clock In & Out' : !detail.punched_out_at ? 'Missing Clock Out' : null;
+          if (pick && requestTypes.includes(pick)) setRequestType(pick);
         }
       } catch {
         if (!isCancelled) {
@@ -146,6 +178,7 @@ export const AddRegularizationModal: React.FC<AddRegularizationModalProps> = ({
     return () => {
       isCancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, attendanceDate]);
 
   if (!isOpen) return null;
@@ -166,9 +199,11 @@ export const AddRegularizationModal: React.FC<AddRegularizationModalProps> = ({
 
   const isAttachmentRequired = requestType === 'On Duty / Field Work';
 
-  const formatIsoTime = (dateStr: string, timeStr: string) => {
-    return `${dateStr}T${timeStr.length === 5 ? timeStr + ':00' : timeStr}.000Z`;
-  };
+  const formatIsoTime = (dateStr: string, timeStr: string) => localIso(dateStr, timeStr);
+
+  // What the day will hold once approved: the corrected time, else the one already recorded
+  const recordedInHm = currentCheckInRaw && !isNaN(new Date(currentCheckInRaw).getTime()) ? hhmm(new Date(currentCheckInRaw)) : null;
+  const recordedOutHm = currentCheckOutRaw && !isNaN(new Date(currentCheckOutRaw).getTime()) ? hhmm(new Date(currentCheckOutRaw)) : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -189,11 +224,15 @@ export const AddRegularizationModal: React.FC<AddRegularizationModalProps> = ({
       return;
     }
 
-    if (isCheckInRequired && isCheckOutRequired) {
-      if (requestedCheckOut <= requestedCheckIn) {
-        setError('Requested check-out must be later than requested check-in');
-        return;
-      }
+    const finalIn = isCheckInRequired ? requestedCheckIn : recordedInHm;
+    const finalOut = isCheckOutRequired ? requestedCheckOut : recordedOutHm;
+    if (!finalIn) {
+      setError('There is no check-in on this day. Choose "Both Clock In & Out" and give both times.');
+      return;
+    }
+    if (finalOut && finalOut <= finalIn) {
+      setError('The check-out must be later than the check-in.');
+      return;
     }
 
     setIsSubmitting(true);
@@ -313,6 +352,21 @@ export const AddRegularizationModal: React.FC<AddRegularizationModalProps> = ({
                 />
               </div>
 
+              {/* What the system has for this day */}
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3" aria-label="Recorded punches for this day">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Recorded for this day</div>
+                <div className="mt-1.5 grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <div className="text-slate-400">Check-in</div>
+                    <div className={`font-semibold ${currentCheckInRaw ? 'text-slate-800' : 'text-rose-600'}`}>{currentCheckInRaw && !isNaN(new Date(currentCheckInRaw).getTime()) ? label12(new Date(currentCheckInRaw)) : 'Not recorded'}</div>
+                  </div>
+                  <div>
+                    <div className="text-slate-400">Check-out</div>
+                    <div className={`font-semibold ${currentCheckOutRaw ? 'text-slate-800' : 'text-rose-600'}`}>{currentCheckOutRaw && !isNaN(new Date(currentCheckOutRaw).getTime()) ? label12(new Date(currentCheckOutRaw)) : 'Not recorded'}</div>
+                  </div>
+                </div>
+              </div>
+
               {/* MISSING PUNCH TYPE * */}
               <div>
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
@@ -320,7 +374,10 @@ export const AddRegularizationModal: React.FC<AddRegularizationModalProps> = ({
                 </label>
                 <select
                   value={requestType}
-                  onChange={(e) => setRequestType(e.target.value)}
+                  onChange={(e) => {
+                    setRequestType(e.target.value);
+                    setTypeTouched(true);
+                  }}
                   className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-500 transition shadow-2xs cursor-pointer"
                 >
                   {requestTypes.map((type) => (

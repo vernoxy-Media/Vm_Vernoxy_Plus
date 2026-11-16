@@ -313,7 +313,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
       SELECT 
         c.*,
         e.name as employee_name,
-        'EMP-' || LPAD(e.emp_id::text, 4, '0') as employee_code,
+        e.employee_code as employee_code,
         d.name as department_name
       FROM attendance_corrections c
       JOIN employees e ON e.emp_id = c.emp_id
@@ -425,7 +425,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
       conditions.push(`(
         e.name ILIKE '%${q}%' 
         OR c.request_id ILIKE '%${q}%' 
-        OR ('EMP-' || LPAD(e.emp_id::text, 4, '0')) ILIKE '%${q}%'
+        OR (e.employee_code) ILIKE '%${q}%'
       )`);
     }
 
@@ -434,7 +434,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
       SELECT 
         c.*,
         e.name as employee_name,
-        'EMP-' || LPAD(e.emp_id::text, 4, '0') as employee_code,
+        e.employee_code as employee_code,
         d.name as department_name
       FROM attendance_corrections c
       JOIN employees e ON e.emp_id = c.emp_id
@@ -462,6 +462,20 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
     createdBy: number;
   }): Promise<AttendanceCorrectionEntity> {
     const correctionId = await this.prisma.$transaction(async (tx) => {
+      // One open request per day: a second one would only confuse the approver
+      const open = await tx.$queryRaw<Array<{ request_id: string | null }>>`
+        SELECT request_id FROM attendance_corrections
+        WHERE emp_id = ${data.empId} AND work_date = ${new Date(data.workDate)} AND status = 'pending' AND deleted_at IS NULL
+        LIMIT 1
+      `;
+      if (open.length > 0) {
+        throw new AttendanceDomainError(
+          'DUPLICATE_REQUEST',
+          `A request for this day is already waiting for approval${open[0].request_id ? ` (${open[0].request_id})` : ''}. Cancel it first if you need to change it.`,
+          409,
+        );
+      }
+
       // 1. Insert correction
       const [inserted] = await tx.$queryRaw<any[]>`
         INSERT INTO attendance_corrections (
@@ -523,6 +537,14 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
     return (await this.findCorrectionById(correctionId))!;
   }
 
+  async listAdminEmpIds(): Promise<number[]> {
+    const admins = await this.prisma.employees.findMany({
+      where: { status: 'Active', deleted_at: null, roles_employees_role_idToroles: { is_admin: true } },
+      select: { emp_id: true },
+    });
+    return admins.map((a) => a.emp_id);
+  }
+
   async cancelRegularization(correctionId: number, empId: number): Promise<AttendanceCorrectionEntity> {
     const existing = await this.findCorrectionById(correctionId);
     if (!existing) {
@@ -568,11 +590,23 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
       throw new AttendanceDomainError('INVALID_STATE', `Only pending requests can be approved. Current status is ${existing.status}`, 400);
     }
 
-    const checkIn = existing.requestedCheckInAt || existing.currentCheckInAt || new Date(`${existing.workDate}T09:30:00.000Z`);
-    const checkOut = existing.requestedCheckOutAt || existing.currentCheckOutAt || new Date(`${existing.workDate}T18:30:00.000Z`);
+    // The day after approval: the corrected punch, else the one already recorded. A punch nobody gave stays empty.
+    const dayBefore = await this.prisma.attendance_days.findFirst({
+      where: { emp_id: existing.empId, work_date: new Date(existing.workDate), deleted_at: null },
+    });
+    const checkIn: Date | null = existing.requestedCheckInAt || existing.currentCheckInAt || dayBefore?.check_in_at || null;
+    const checkOut: Date | null = existing.requestedCheckOutAt || existing.currentCheckOutAt || dayBefore?.check_out_at || null;
+    if (!checkIn) {
+      throw new AttendanceDomainError(
+        'CHECK_IN_UNKNOWN',
+        'This day has no check-in, so a check-out alone cannot be approved. Reject it and ask the employee to raise "Both Clock In & Out".',
+        400,
+      );
+    }
 
-    const durationMinutes = Math.max(0, Math.floor((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 60000));
-    const dayStatus = durationMinutes >= 480 ? 'present' : (durationMinutes >= 240 ? 'half_day' : 'short');
+    const complete = checkOut !== null;
+    const durationMinutes = complete ? Math.max(0, Math.floor((new Date(checkOut!).getTime() - new Date(checkIn).getTime()) / 60000)) : 0;
+    const dayStatus = !complete ? 'incomplete' : durationMinutes >= 480 ? 'present' : durationMinutes >= 240 ? 'half_day' : 'short';
 
     await this.prisma.$transaction(async (tx) => {
       // 1. Update approval row
@@ -1580,6 +1614,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
         },
         select: {
           emp_id: true,
+          employee_code: true,
           name: true,
           dep_id: true,
           status: true,
@@ -1639,7 +1674,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
     };
 
     const records = employees.map((emp) => {
-      const empCode = `EMP-${String(emp.emp_id).padStart(4, '0')}`;
+      const empCode = (emp.employee_code ?? `EMP-${String(emp.emp_id).padStart(4, '0')}`);
       const departmentName = emp.departments_employees_dep_idTodepartments?.name || 'General';
       const assignedShiftId = empShifts[String(emp.emp_id)];
       const shift = (assignedShiftId ? shifts.find((s) => s.shift_id === assignedShiftId) : null) || defaultShift;
@@ -1912,6 +1947,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
         },
         select: {
           emp_id: true,
+          employee_code: true,
           name: true,
           dep_id: true,
           status: true,
@@ -2166,7 +2202,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
 
       return {
         emp_id: emp.emp_id,
-        employee_code: `EMP-${String(emp.emp_id).padStart(4, '0')}`,
+        employee_code: (emp.employee_code ?? `EMP-${String(emp.emp_id).padStart(4, '0')}`),
         name: emp.name,
         department: emp.departments_employees_dep_idTodepartments?.name || 'General',
         department_id: emp.dep_id,
@@ -2264,7 +2300,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
 
         return {
           emp_id: emp.emp_id,
-          employee_code: `EMP-${String(emp.emp_id).padStart(4, '0')}`,
+          employee_code: (emp.employee_code ?? `EMP-${String(emp.emp_id).padStart(4, '0')}`),
           name: emp.name,
           department: emp.departments_employees_dep_idTodepartments?.name || 'General',
           days: dayCodes,
@@ -2320,7 +2356,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
         employee: targetEmp
           ? {
               emp_id: targetEmp.emp_id,
-              employee_code: `EMP-${String(targetEmp.emp_id).padStart(4, '0')}`,
+              employee_code: (targetEmp.employee_code ?? `EMP-${String(targetEmp.emp_id).padStart(4, '0')}`),
               name: targetEmp.name,
               department: targetEmp.departments_employees_dep_idTodepartments?.name || 'General',
             }
@@ -2442,7 +2478,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
         return {
           request_id: `REG-${String(c.correction_id).padStart(4, '0')}`,
           emp_id: c.emp_id,
-          employee_code: emp ? `EMP-${String(emp.emp_id).padStart(4, '0')}` : `EMP-${c.emp_id}`,
+          employee_code: emp ? (emp.employee_code ?? `EMP-${String(emp.emp_id).padStart(4, '0')}`) : `EMP-${c.emp_id}`,
           employee: emp ? emp.name : `Employee #${c.emp_id}`,
           date: c.work_date.toISOString().slice(0, 10),
           type: c.reason?.slice(0, 30) || 'Time Regularization',
@@ -2478,7 +2514,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
       statuses: combinedStatuses,
       employees: allEmployees.map((e) => ({
         id: e.emp_id,
-        code: `EMP-${String(e.emp_id).padStart(4, '0')}`,
+        code: (e.employee_code ?? `EMP-${String(e.emp_id).padStart(4, '0')}`),
         name: e.name,
         department: e.departments_employees_dep_idTodepartments?.name || 'General',
       })),

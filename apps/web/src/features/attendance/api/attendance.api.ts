@@ -30,6 +30,11 @@ export async function fetchAttendanceDashboard(month: string): Promise<Attendanc
   }
 }
 
+/** A month of another employee's attendance (administrators only). */
+export async function fetchEmployeeAttendanceDashboard(empId: number, month: string): Promise<AttendanceDashboardResponse> {
+  return customFetch<AttendanceDashboardResponse>(`${BASE_URL}/employees/${empId}/dashboard?month=${month}`);
+}
+
 export async function punchIn(): Promise<{ success: boolean; today: TodayAttendanceData; message?: string }> {
   try {
     const res = await customFetch<{ success: boolean; today: TodayAttendanceData; message?: string }>(

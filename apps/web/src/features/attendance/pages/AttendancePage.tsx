@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Settings, ClipboardCheck, RefreshCw, Download, Clock, FileText, CheckCircle2, X, Calendar, BarChart3 } from 'lucide-react';
 import { getAccessToken } from '@vernoxy-pulse/api-client';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useAttendanceDashboard, usePunchActions } from '../hooks/use-attendance';
+import { fetchRegularizationDetail } from '../api/attendance.api';
 import { EmployeeSwitcher, type SwitcherEmployee } from '../components/EmployeeSwitcher';
 import { AttendanceSkeleton } from '../components/AttendanceSkeleton';
 import { AttendanceDashboardCards } from '../components/AttendanceDashboardCards';
@@ -76,6 +77,25 @@ export const AttendancePage: React.FC = () => {
   // administrators can look at any employee; everybody else only ever sees themselves
   const [viewEmp, setViewEmp] = useState<SwitcherEmployee | null>(null);
   const viewing = canManageAttendance ? viewEmp : null;
+
+  // A notification link (?request=12): open the employee who raised it, on the Regularizations tab
+  const requestParam = searchParams.get('request');
+  useEffect(() => {
+    if (!requestParam || !canManageAttendance) return;
+    let off = false;
+    fetchRegularizationDetail(Number(requestParam))
+      .then((r) => {
+        if (off) return;
+        if (r.empId !== user?.emp_id) setViewEmp({ emp_id: r.empId, name: r.employeeName ?? `Employee #${r.empId}` });
+        setAttendanceTab('regularization');
+        setSearchParams({ tab: 'regularization' });
+      })
+      .catch(() => setSearchParams({ tab: 'regularization' }));
+    return () => {
+      off = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestParam, canManageAttendance]);
 
   const { data, isLoading, error, refetch } = useAttendanceDashboard(selectedMonth, viewing?.emp_id);
 

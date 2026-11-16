@@ -113,6 +113,7 @@ describe('AttendanceUseCases with TestClock', () => {
       listRegularizations: jest.fn().mockResolvedValue([]),
       createRegularization: jest.fn(),
       cancelRegularization: jest.fn(),
+      listAdminEmpIds: jest.fn().mockResolvedValue([]),
       approveRegularization: jest.fn(),
       rejectRegularization: jest.fn(),
       bulkApproveRegularizations: jest.fn().mockResolvedValue({ successCount: 0, failedCount: 0 }),

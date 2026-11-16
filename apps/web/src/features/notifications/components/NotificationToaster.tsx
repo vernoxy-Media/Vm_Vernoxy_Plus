@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Bug, CalendarClock, CheckCircle2, ClipboardList, FolderKanban, X } from 'lucide-react';
+import { Bell, Bug, CalendarClock, CheckCircle2, ClipboardList, FileClock, FolderKanban, X, XCircle } from 'lucide-react';
 import { useSocket } from '@/shared/socket/SocketContext';
 
 interface IncomingNotification {
@@ -28,6 +28,8 @@ function destination(n: IncomingNotification): string | null {
   const kind = n.kind ?? '';
   if (kind.startsWith('project_') && n.entity_id) return `/projects/${n.entity_id}`;
   if (kind.startsWith('task_') || kind.startsWith('bug_')) return '/my-tasks';
+  if (kind === 'attendance_regularization_requested' && n.entity_id) return `/attendance?tab=regularization&request=${n.entity_id}`;
+  if (kind.startsWith('attendance_regularization')) return '/attendance?tab=regularization';
   if (kind.startsWith('calendar_')) return '/calendar';
   if (kind.startsWith('follow_up') || kind === 'lead_assigned') return '/sales/follow-ups';
   if (kind.startsWith('leave_')) return '/leave';
@@ -37,6 +39,9 @@ function destination(n: IncomingNotification): string | null {
 
 function visual(kind: string): { Icon: React.ElementType; tone: string } {
   if (kind.startsWith('bug_')) return { Icon: Bug, tone: 'bg-rose-50 text-rose-600' };
+  if (kind === 'attendance_regularization_approved') return { Icon: CheckCircle2, tone: 'bg-emerald-50 text-emerald-600' };
+  if (kind === 'attendance_regularization_rejected') return { Icon: XCircle, tone: 'bg-rose-50 text-rose-600' };
+  if (kind.startsWith('attendance_regularization')) return { Icon: FileClock, tone: 'bg-amber-50 text-amber-600' };
   if (kind.startsWith('calendar_')) return { Icon: CalendarClock, tone: 'bg-violet-50 text-violet-600' };
   if (kind.startsWith('project_')) return { Icon: FolderKanban, tone: 'bg-indigo-50 text-indigo-600' };
   if (kind === 'task_approved') return { Icon: CheckCircle2, tone: 'bg-emerald-50 text-emerald-600' };
