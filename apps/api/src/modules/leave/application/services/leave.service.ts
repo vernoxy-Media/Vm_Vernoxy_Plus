@@ -1211,6 +1211,7 @@ export class LeaveService {
       ...params,
     );
 
+    const codes = await this.core.codes(rows.map((r) => r.emp_id));
     return {
       total: count?.total || 0,
       page,
@@ -1219,7 +1220,7 @@ export class LeaveService {
         const avail = r.current_available === null ? null : num(r.current_available);
         return {
           ...this.mapRequestRow(r, today),
-          emp_code: this.core.empCode(r.emp_id),
+          emp_code: codes.get(r.emp_id) ?? this.core.empCode(r.emp_id),
           balance_after: !r.balance_tracked ? null : r.status === 'PENDING' ? avail : avail,
           current_available: avail,
         };
@@ -1418,7 +1419,7 @@ export class LeaveService {
     return {
       request: {
         ...this.mapRequestRow(req, today),
-        emp_code: this.core.empCode(req.emp_id),
+        emp_code: (await this.core.codes([req.emp_id])).get(req.emp_id) ?? this.core.empCode(req.emp_id),
         days,
         excluded_notes: excluded,
         attachment_url: req.attachment_url,
@@ -1486,13 +1487,14 @@ export class LeaveService {
       FROM leave_policy_rules r JOIN leave_types t ON t.leave_type_id = r.leave_type_id
       WHERE t.status = 'ACTIVE' ORDER BY t.leave_type_id;
     `;
+    const codes = await this.core.codes(emps.map((e) => e.emp_id));
     return {
       leave_year: year,
       leave_year_label: leaveYearLabel(year, settings.start_month),
       types,
       employees: emps.map((e) => ({
         emp_id: e.emp_id,
-        emp_code: this.core.empCode(e.emp_id),
+        emp_code: codes.get(e.emp_id) ?? this.core.empCode(e.emp_id),
         employee_name: e.name,
         department_name: e.department_name,
         policy_name: e.policy_name,

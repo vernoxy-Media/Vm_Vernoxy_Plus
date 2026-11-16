@@ -338,7 +338,7 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
         }
       }
 
-      const empCode = (createdEmp as any)?.emp_code || (createdEmp?.emp_id ? `EMP-${String(createdEmp.emp_id).padStart(4, '0')}` : '');
+      const empCode = (createdEmp as any)?.emp_code || (createdEmp as any)?.employee_code || (createdEmp?.emp_id ? `EMP-${String(createdEmp.emp_id).padStart(4, '0')}` : '');
       setSuccessToast({
         name: createdEmp?.name || values.name,
         code: empCode,

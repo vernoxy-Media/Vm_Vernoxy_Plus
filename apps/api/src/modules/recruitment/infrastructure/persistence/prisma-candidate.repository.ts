@@ -98,6 +98,7 @@ export class PrismaCandidateRepository implements ICandidateRepository {
     departments_candidates_final_dep_idTodepartments: { select: { name: true } },
     employees_candidates_reporting_manager_idToemployees: { select: { name: true } },
     employees_candidates_decision_byToemployees: { select: { name: true } },
+    employees_candidates_converted_to_emp_idToemployees: { select: { employee_code: true } },
   };
 
   async findById(candidateId: number): Promise<CandidateProps | null> {
@@ -238,7 +239,7 @@ export class PrismaCandidateRepository implements ICandidateRepository {
       matches.push({
         type: 'employee',
         id: empMatch.emp_id,
-        code: `EMP-${String(empMatch.emp_id).padStart(4, '0')}`,
+        code: empMatch.employee_code ?? `EMP-${String(empMatch.emp_id).padStart(4, '0')}`,
         name: empMatch.name,
         email: empMatch.email,
         phone: empMatch.mob || '',
@@ -376,7 +377,11 @@ export class PrismaCandidateRepository implements ICandidateRepository {
       _max: { emp_id: true },
     });
     const nextId = (result._max.emp_id || 0) + 1;
-    const nextCode = `EMP-${String(nextId).padStart(4, '0')}`;
+    // The Employee ID comes from its own counter, not from the internal id: it has no holes
+    const [counter] = await this.prisma.$queryRaw<Array<{ last_number: number }>>`
+      SELECT last_number FROM entity_counters WHERE entity_type = 'EMPLOYEE' AND counter_key = 'all'
+    `;
+    const nextCode = `EMP-${String((counter?.last_number ?? 0) + 1).padStart(4, '0')}`;
     return { nextEmpId: nextId, nextEmpCode: nextCode };
   }
 
@@ -396,7 +401,7 @@ export class PrismaCandidateRepository implements ICandidateRepository {
 
     if (candidate.converted_to_emp_id) {
       throw new BadRequestException(
-        `Candidate has already been converted to employee EMP-${String(candidate.converted_to_emp_id).padStart(4, '0')}.`,
+        `Candidate has already been converted to employee ${(candidate as any).employees_candidates_converted_to_emp_idToemployees?.employee_code ?? `EMP-${String(candidate.converted_to_emp_id).padStart(4, '0')}`}.`,
       );
     }
 
@@ -413,7 +418,7 @@ export class PrismaCandidateRepository implements ICandidateRepository {
 
     if (existingEmployee) {
       throw new BadRequestException(
-        `Office email "${officeEmail}" is already in use by employee ${existingEmployee.name} (EMP-${String(existingEmployee.emp_id).padStart(4, '0')}).`,
+        `Office email "${officeEmail}" is already in use by employee ${existingEmployee.name} (${existingEmployee.employee_code ?? `EMP-${String(existingEmployee.emp_id).padStart(4, '0')}`}).`,
       );
     }
 
@@ -476,7 +481,7 @@ export class PrismaCandidateRepository implements ICandidateRepository {
           emp_id: createdEmployee.emp_id,
           name: createdEmployee.name,
           email: createdEmployee.email,
-          employee_code: `EMP-${String(createdEmployee.emp_id).padStart(4, '0')}`,
+          employee_code: createdEmployee.employee_code ?? `EMP-${String(createdEmployee.emp_id).padStart(4, '0')}`,
         },
         candidate: this.mapToDomain(updatedCandidate),
       };
@@ -521,7 +526,9 @@ export class PrismaCandidateRepository implements ICandidateRepository {
       rejectionReason: row.rejection_reason,
       rejectionNotes: row.rejection_notes,
       convertedToEmpId: row.converted_to_emp_id,
-      convertedToEmpCode: row.converted_to_emp_id ? `EMP-${String(row.converted_to_emp_id).padStart(4, '0')}` : null,
+      convertedToEmpCode: row.converted_to_emp_id
+        ? row.employees_candidates_converted_to_emp_idToemployees?.employee_code ?? `EMP-${String(row.converted_to_emp_id).padStart(4, '0')}`
+        : null,
       roleName: row.roles?.role_name,
       departmentName: row.departments?.name,
       genderLabel: row.master_lookup?.label,

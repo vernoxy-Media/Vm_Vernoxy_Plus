@@ -1,3 +1,4 @@
+import { fallbackEmployeeCode, loadEmployeeCodes } from '../../../../core/employee-code';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../../core/prisma/prisma.service';
@@ -147,7 +148,7 @@ export class LeaveCoreService {
     return {
       emp_id: e.emp_id,
       name: e.name,
-      emp_code: this.empCode(e.emp_id),
+      emp_code: (await this.codes([e.emp_id])).get(e.emp_id) ?? this.empCode(e.emp_id),
       email: e.email,
       status: e.status,
       joining_date: toDateStr(e.joining_date),
@@ -164,8 +165,14 @@ export class LeaveCoreService {
     };
   }
 
+  /** The old way of writing the code, kept only for a row that cannot be found. */
   empCode(empId: number): string {
-    return `EMP-${String(empId).padStart(4, '0')}`;
+    return fallbackEmployeeCode(empId);
+  }
+
+  /** The stored Employee IDs of these employees. */
+  codes(empIds: number[]): Promise<Map<number, string>> {
+    return loadEmployeeCodes(this.prisma, empIds);
   }
 
   async getAdminIds(db: Db = this.prisma): Promise<number[]> {

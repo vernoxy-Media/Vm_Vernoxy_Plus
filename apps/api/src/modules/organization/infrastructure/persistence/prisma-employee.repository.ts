@@ -124,6 +124,7 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
 
     return {
       emp_id: record.emp_id,
+      employee_code: record.employee_code ?? undefined,
       name: record.name,
       email: record.email,
       mob: record.mob,
@@ -346,12 +347,12 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
           pendingMap.set(dc.emp_id, Number(dc.pending_count));
         }
         for (const item of items) {
-          item.employee_code = `EMP-${String(item.emp_id).padStart(4, '0')}`;
+          item.employee_code = item.employee_code || `EMP-${String(item.emp_id).padStart(4, '0')}`;
           item.pending_documents_count = pendingMap.get(item.emp_id) ?? 0;
         }
       } catch (err) {
         for (const item of items) {
-          item.employee_code = `EMP-${String(item.emp_id).padStart(4, '0')}`;
+          item.employee_code = item.employee_code || `EMP-${String(item.emp_id).padStart(4, '0')}`;
           item.pending_documents_count = 0;
         }
       }
@@ -402,6 +403,7 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       where,
       select: {
         emp_id: true,
+        employee_code: true,
         name: true,
         email: true,
         status: true,
@@ -418,7 +420,7 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       emp_id: r.emp_id,
       name: r.name,
       email: r.email,
-      employee_code: `EMP-${String(r.emp_id).padStart(4, '0')}`,
+      employee_code: r.employee_code ?? `EMP-${String(r.emp_id).padStart(4, '0')}`,
       role_name: r.roles_employees_role_idToroles?.role_name ?? null,
       status: r.status,
     }));

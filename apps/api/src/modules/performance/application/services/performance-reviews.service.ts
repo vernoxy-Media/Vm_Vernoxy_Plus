@@ -1,3 +1,4 @@
+import { fallbackEmployeeCode, loadEmployeeCodes } from '../../../../core/employee-code';
 import { HttpStatus, Injectable, Logger, Optional } from '@nestjs/common';
 import { PrismaService } from '../../../../core/prisma/prisma.service';
 import { CreateNotificationUseCase } from '../../../notifications/public-api';
@@ -158,7 +159,7 @@ export class PerformanceReviewsService {
     `;
     const details = {
       employee_name: emp?.name,
-      emp_code: this.empCode(empId),
+      emp_code: (await loadEmployeeCodes(this.prisma, [empId])).get(empId) ?? this.empCode(empId),
       department_name: emp?.department_name || '—',
       manager_name: emp?.manager_name || null,
       cycle_type: cycle.cycle_type,
@@ -260,6 +261,7 @@ export class PerformanceReviewsService {
     const byEmp = new Map(reviews.map((r) => [r.emp_id, r]));
     const part: ReviewPart = mode;
     const otherAdminExists = mode === 'ADMIN' && (await this.access.getAdminIds()).some((id) => id !== empId);
+    const codes = await loadEmployeeCodes(this.prisma, people.map((p) => p.emp_id));
     const items = people
       .map((p) => {
         const r = byEmp.get(p.emp_id);
@@ -286,7 +288,7 @@ export class PerformanceReviewsService {
           employee: {
             emp_id: p.emp_id,
             name: p.name,
-            emp_code: this.empCode(p.emp_id),
+            emp_code: codes.get(p.emp_id) ?? this.empCode(p.emp_id),
             department_name: p.department_name || '—',
             manager_name: p.manager_name || null,
           },
@@ -343,6 +345,7 @@ export class PerformanceReviewsService {
     const projects = await this.projectRatingsFor(cycle.cycle_id, people.map((p) => p.emp_id));
     const num = (v: any) => (v === null || v === undefined ? null : Number(v));
 
+    const codes = await loadEmployeeCodes(this.prisma, people.map((p) => p.emp_id));
     const items = people.map((p) => {
       const r = byEmp.get(p.emp_id);
       const selfIn = r?.self_status === 'SUBMITTED';
@@ -358,7 +361,7 @@ export class PerformanceReviewsService {
         review_id: r?.review_id ?? null,
         emp_id: p.emp_id,
         name: p.name,
-        emp_code: this.empCode(p.emp_id),
+        emp_code: codes.get(p.emp_id) ?? this.empCode(p.emp_id),
         department_name: p.department_name || '—',
         manager_name: p.manager_name || null,
         has_missing_manager: !p.reporting_manager,
@@ -786,8 +789,9 @@ export class PerformanceReviewsService {
     return r.self_status === 'SUBMITTED' && r.manager_status === 'SUBMITTED' && r.admin_status === 'SUBMITTED';
   }
 
+  /** The old way of writing the code, kept only for a row that cannot be found. */
   private empCode(empId: number) {
-    return `EMP-${String(empId).padStart(4, '0')}`;
+    return fallbackEmployeeCode(empId);
   }
 
   private titleCase(s: string) {

@@ -591,7 +591,7 @@ export class EmployeeDocumentService implements OnModuleInit, OnModuleDestroy {
     let draftHtml = tpl.content_html;
     draftHtml = draftHtml.replace(/\{\{current_date\}\}/g, todayStr);
     draftHtml = draftHtml.replace(/\{\{employee_name\}\}/g, empName);
-    draftHtml = draftHtml.replace(/\{\{employee_code\}\}/g, `EMP-${String(emp.emp_id).padStart(4, '0')}`);
+    draftHtml = draftHtml.replace(/\{\{employee_code\}\}/g, emp.employee_code || `EMP-${String(emp.emp_id).padStart(4, '0')}`);
     draftHtml = draftHtml.replace(/\{\{designation\}\}/g, designationStr);
     draftHtml = draftHtml.replace(/\{\{department\}\}/g, finalDepNames);
     draftHtml = draftHtml.replace(/\{\{joining_date\}\}/g, joiningDateStr);

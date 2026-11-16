@@ -1,3 +1,4 @@
+import { fallbackEmployeeCode, loadEmployeeCodes } from '../../../../core/employee-code';
 import { BadRequestException, ConflictException, ForbiddenException, HttpException, HttpStatus, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -268,13 +269,13 @@ export class ExpenseClaimsService {
   /** Form data: active categories with their rules, types and the employee header (BFD 4 Part 1). */
   async formOptions(empId: number) {
     const [emp] = await this.prisma.$queryRaw<any[]>`
-      SELECT e.emp_id, e.name, d.name AS department_name FROM employees e LEFT JOIN departments d ON d.dep_id = e.dep_id WHERE e.emp_id = ${empId};
+      SELECT e.emp_id, e.employee_code, e.name, d.name AS department_name FROM employees e LEFT JOIN departments d ON d.dep_id = e.dep_id WHERE e.emp_id = ${empId};
     `;
     const categories = await this.prisma.expense_categories.findMany({ where: { deleted_at: null, is_active: true }, orderBy: [{ display_order: 'asc' }, { name: 'asc' }] });
     const types = await this.prisma.expense_types.findMany({ where: { deleted_at: null, is_active: true }, orderBy: { display_order: 'asc' } });
     const s = await this.settings();
     return {
-      employee: { emp_id: empId, name: emp?.name, emp_code: `EMP-${String(empId).padStart(4, '0')}`, department_name: emp?.department_name || null },
+      employee: { emp_id: empId, name: emp?.name, emp_code: emp?.employee_code ?? fallbackEmployeeCode(empId), department_name: emp?.department_name || null },
       categories: categories.map((c) => ({
         category_id: c.category_id,
         name: c.name,
@@ -583,7 +584,7 @@ export class ExpenseClaimsService {
       claim_no: c.claim_no,
       status: c.status,
       emp_id: c.emp_id,
-      employee: { emp_id: c.emp_id, name: emp?.name, emp_code: `EMP-${String(c.emp_id).padStart(4, '0')}`, department_name: dept?.name || null },
+      employee: { emp_id: c.emp_id, name: emp?.name, emp_code: (await loadEmployeeCodes(this.prisma, [c.emp_id])).get(c.emp_id) ?? fallbackEmployeeCode(c.emp_id), department_name: dept?.name || null },
       expense_date: c.expense_date ? toDateStr(c.expense_date) : null,
       category_id: c.category_id,
       category: cat

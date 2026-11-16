@@ -514,7 +514,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                       <input
                         type="text"
                         disabled
-                        value={employee.emp_code || (employee.emp_id ? `EMP-${String(employee.emp_id).padStart(4, '0')}` : '')}
+                        value={employee.emp_code || (employee as { employee_code?: string }).employee_code || (employee.emp_id ? `EMP-${String(employee.emp_id).padStart(4, '0')}` : '')}
                         className="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-500 font-mono cursor-not-allowed select-all"
                       />
                       <Lock className="w-3.5 h-3.5 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />

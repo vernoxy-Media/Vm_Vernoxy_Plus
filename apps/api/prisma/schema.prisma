@@ -170,6 +170,7 @@ model departments {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model employees {
   emp_id                                                                                     Int                               @id(map: "pk_employees") @default(autoincrement())
+  employee_code                                                                              String?                           @unique(map: "ux_employees_employee_code") @db.VarChar(20)
   name                                                                                       String                            @db.VarChar(255)
   email                                                                                      String                            @db.VarChar(255)
   mob                                                                                        String                            @db.VarChar(20)
