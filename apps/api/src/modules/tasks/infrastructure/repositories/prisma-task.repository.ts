@@ -474,6 +474,8 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
         eventType = input.note ? 'rejected' : 'withdrawn';
       } else if (toStage === 'completed') {
         eventType = 'approved';
+      } else if (fromStage === 'in_qa' && toStage === 'in_progress') {
+        eventType = 'rejected'; // QA failed it: back to the developer, with the tester's note
       }
 
       const updateData: any = {
@@ -549,8 +551,11 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
         }
       }
 
-      if (input.note) {
+      if (input.note && toStage !== 'hold') {
         updateData.review_note = input.note;
+      } else if ((toStage === 'in_qa' || toStage === 'requested') && fromStage === 'in_progress') {
+        // A fresh submission: the old rework note no longer applies
+        updateData.review_note = null;
       }
 
       await tx.tasks.update({
@@ -1008,6 +1013,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
         // A task with a QA assignee goes to QA first; without one it is submitted for approval as before.
         const toQa = Boolean(existing.qa_assignee_id) && existing.stage !== 'in_qa';
         updateData.stage = toQa ? 'in_qa' : 'requested';
+        updateData.review_note = null; // finished again, so an earlier rework note is closed
         if (!toQa) updateData.requested_at = now;
 
         existingLogs.push({

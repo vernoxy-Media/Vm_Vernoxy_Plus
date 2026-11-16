@@ -183,6 +183,8 @@ export interface ProjectTaskItem {
   /** Tester a finished task goes to before approval; null when the task has no QA step. */
   qa_assignee_id?: number | null;
   qa_assignee_name?: string | null;
+  /** Set while the task is being reworked after QA or the approver sent it back. */
+  review_note?: string | null;
   assignees: Array<{
     emp_id: number;
     name: string;

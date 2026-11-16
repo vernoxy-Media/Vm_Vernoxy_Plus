@@ -37,6 +37,7 @@ import { JiraAvatar } from '@/shared/ui/JiraAvatar';
 import { HoldReasonModal } from '@/features/tasks/components/HoldReasonModal';
 import { StageDecisionDialog } from '@/features/tasks/components/StageDecisionDialog';
 import type { TaskStage } from '@/features/tasks/types';
+import { DUE_TONE_CLASS, dueStatus } from '@/shared/utils/schedule.utils';
 import type { ProjectTaskItem, SprintItem } from '../types';
 
 /* ──────────────── Jira (Atlassian) palette, kept in one place ──────────────── */
@@ -119,16 +120,15 @@ const Avatars: React.FC<{ people: Assignee[]; max?: number }> = ({ people, max =
   );
 };
 
-const todayIso = () => new Date().toISOString().slice(0, 10);
-
 const DueChip: React.FC<{ task: ProjectTaskItem }> = ({ task }) => {
   if (!task.due_date) return null;
-  const overdue = task.stage !== 'completed' && task.due_date < todayIso();
-  const label = new Date(`${task.due_date}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  const status = dueStatus(task.due_date, task.stage === 'completed');
+  const label = new Date(`${task.due_date.slice(0, 10)}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
   return (
-    <span title={overdue ? 'Overdue' : 'Due date'} className={`inline-flex items-center gap-1 rounded-md px-1.5 py-px text-[12px] font-medium ${overdue ? 'bg-[#FFEBE6] text-[#BF2600]' : 'bg-[rgba(9,30,66,0.08)] text-[#42526E]'}`}>
+    <span title={status ? status.long : 'Due date'} className={`inline-flex items-center gap-1 rounded-md px-1.5 py-px text-[12px] font-medium ${status ? DUE_TONE_CLASS[status.tone] : 'bg-[rgba(9,30,66,0.08)] text-[#42526E]'}`}>
       <Clock className="h-3 w-3" />
       {label}
+      {status && status.tone !== 'later' && <span className="font-semibold">· {status.short}</span>}
     </span>
   );
 };
@@ -203,9 +203,14 @@ const BoardCard: React.FC<{
       }`}
     >
       <p className={`text-[14px] font-medium leading-5 ${JIRA.text}`}>{task.title}</p>
-      {(task.due_date || task.qa_assignee_name) && (
+      {(task.due_date || task.qa_assignee_name || task.review_note) && (
         <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1">
           <DueChip task={task} />
+          {task.review_note && (task.stage === 'assigned' || task.stage === 'in_progress') && (
+            <span title={`Returned for rework: ${task.review_note}`} className="inline-flex items-center gap-1 rounded-md bg-[#FFEBE6] px-1.5 py-px text-[12px] font-semibold text-[#BF2600]">
+              Rework
+            </span>
+          )}
           {task.qa_assignee_name && (
             <span title={`QA: ${task.qa_assignee_name}`} className={`inline-flex max-w-[140px] items-center gap-1 truncate rounded-md px-1.5 py-px text-[12px] font-medium ${task.stage === 'in_qa' ? 'bg-[#FFE2BD] text-[#974F0C]' : 'bg-slate-100 text-slate-600'}`}>
               QA · {task.qa_assignee_name.split(' ')[0]}
@@ -306,7 +311,7 @@ const BoardColumn: React.FC<{
     <section
       ref={setNodeRef}
       aria-label={col.label}
-      className={`flex max-h-[calc(100vh-17rem)] min-h-[240px] min-w-[236px] flex-1 basis-0 flex-col rounded-xl border transition-colors ${isOver ? 'border-[color:var(--ac-400,#4C9AFF)] bg-[color:var(--ac-50,#DEEBFF)]' : `border-slate-200 ${JIRA.column}`}`}
+      className={`flex max-h-[calc(100vh-17rem)] min-h-[240px] min-w-[220px] flex-1 basis-0 flex-col rounded-xl border transition-colors ${isOver ? 'border-[color:var(--ac-400,#4C9AFF)] bg-[color:var(--ac-50,#DEEBFF)]' : `border-slate-200 ${JIRA.column}`}`}
     >
       <header className="flex shrink-0 items-center gap-2 border-b border-slate-200/70 px-3 py-2.5">
         <span aria-hidden className={`h-2.5 w-2.5 shrink-0 rounded-full ${dot}`} />
@@ -479,7 +484,7 @@ export const ProjectSprintBoard: React.FC<ProjectSprintBoardProps> = ({
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [allSubs, setAllSubs] = useState<Set<number>>(new Set());
   const [dragId, setDragId] = useState<number | null>(null);
-  /** Columns the user opened or folded by hand; the rest follow "folded when empty". */
+  /** Columns the user folded by hand; every column starts open, like Jira. */
   const [colOpen, setColOpen] = useState<Record<string, boolean>>({});
   const [holdTaskId, setHoldTaskId] = useState<number | null>(null);
   const [sendBackTaskId, setSendBackTaskId] = useState<number | null>(null);
@@ -858,7 +863,7 @@ export const ProjectSprintBoard: React.FC<ProjectSprintBoardProps> = ({
         </div>
       ) : view === 'board' ? (
         <DndContext sensors={sensors} collisionDetection={collision} onDragStart={(e: DragStartEvent) => setDragId(Number(e.active.id))} onDragCancel={() => setDragId(null)} onDragEnd={handleDragEnd}>
-          <div className="-mx-1 flex items-start gap-3 overflow-x-auto px-1 pb-4 [scrollbar-width:thin]">
+          <div className="-mx-1 flex items-stretch gap-3 overflow-x-auto px-1 pb-4 [scrollbar-width:thin]">
             {COLUMNS.map((col) => {
               const cards = topLevel.filter((t) => (t.stage ?? 'assigned') === col.stage);
               return (
@@ -866,8 +871,8 @@ export const ProjectSprintBoard: React.FC<ProjectSprintBoardProps> = ({
                   key={col.stage}
                   col={col}
                   count={cards.length}
-                  collapsed={dragId === null && !(colOpen[col.stage] ?? cards.length > 0)}
-                  onToggle={() => setColOpen((cur) => ({ ...cur, [col.stage]: !(cur[col.stage] ?? cards.length > 0) }))}
+                  collapsed={dragId === null && !(colOpen[col.stage] ?? true)}
+                  onToggle={() => setColOpen((cur) => ({ ...cur, [col.stage]: !(cur[col.stage] ?? true) }))}
                 >
                   {cards.map((t) => <BoardCard key={t.task_id} task={t} subs={subsOf.get(t.task_id) ?? []} draggable={canDrag(t)} lockedReason={lockReason(t)} onBlocked={flash} onOpen={onOpenTask} />)}
                 </BoardColumn>

@@ -879,6 +879,7 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
       due_date: t.due_date ? t.due_date.toISOString().slice(0, 10) : null,
       allocated_minutes: t.allocated_minutes,
       qa_assignee_id: t.qa_assignee_id ?? null,
+      review_note: t.review_note ?? null,
       qa_assignee_name: t.qa_assignee_id != null ? qaNames.get(t.qa_assignee_id) ?? null : null,
       logged_seconds: loggedSeconds(t.work_logs) || (t.actual_minutes || 0) * 60,
       time_by_employee: timeByEmployee(t.work_logs),

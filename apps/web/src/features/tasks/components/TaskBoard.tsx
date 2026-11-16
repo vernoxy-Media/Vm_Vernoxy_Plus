@@ -239,7 +239,7 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
       >
-        <div className="-mx-1 flex snap-x snap-mandatory gap-2 overflow-x-auto px-1 pb-3 xl:grid xl:grid-cols-5 xl:overflow-visible">
+        <div className="-mx-1 flex snap-x snap-mandatory items-stretch gap-3 overflow-x-auto px-1 pb-4 [scrollbar-width:thin]">
           {STAGE_CONFIGS.map((col) => (
             <TaskColumn
               key={col.stage}

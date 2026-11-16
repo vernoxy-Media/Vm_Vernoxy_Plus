@@ -28,7 +28,7 @@ export interface LeadKanbanColumnProps {
   onLoadMore?: () => void;
 }
 
-export const LeadKanbanColumn: React.FC<LeadKanbanColumnProps> = ({ status, title, count, leads, dot, accent, tint, dimmed, allStatuses, onMove, selectedLeadId = null, onView, onAction, single = false, canLoadMore = false, loadingMore = false, onLoadMore }) => {
+export const LeadKanbanColumn: React.FC<LeadKanbanColumnProps> = ({ status, title, count, leads, dot, accent, dimmed, allStatuses, onMove, selectedLeadId = null, onView, onAction, single = false, canLoadMore = false, loadingMore = false, onLoadMore }) => {
   const { setNodeRef, isOver } = useDroppable({ id: status, data: { status } });
 
   // Fetch the next cards when the bottom of the column comes into view.
@@ -44,19 +44,19 @@ export const LeadKanbanColumn: React.FC<LeadKanbanColumnProps> = ({ status, titl
     <section
       ref={setNodeRef}
       aria-label={`${title} leads`}
-      className={`flex h-full min-h-0 snap-start flex-col rounded-3xl border transition-all duration-150 ${single ? 'w-full' : 'w-[82vw] shrink-0 md:w-auto md:min-w-[16.5rem] md:max-w-[26rem] md:flex-1'} ${
-        isOver ? `scale-[1.01] ${accent} bg-white shadow-xl ring-4 ring-primary/10` : `border-gray-200/70 ${tint}`
+      className={`flex h-full min-h-0 snap-start flex-col rounded-xl border transition-all duration-150 ${single ? 'w-full' : 'w-[82vw] shrink-0 md:w-auto md:min-w-[16.5rem] md:max-w-[26rem] md:flex-1'} ${
+        isOver ? `${accent} bg-white shadow-xl ring-4 ring-primary/10` : 'border-slate-200 bg-slate-50'
       } ${dimmed && !isOver ? 'opacity-60' : ''}`}
     >
-      <header className="flex items-center justify-between px-4 pb-2 pt-3">
-        <div className="flex items-center gap-2.5">
-          <span className={`h-2.5 w-2.5 rounded-full ${dot}`} />
-          <h3 className="text-[13px] font-bold tracking-tight text-gray-900">{title}</h3>
+      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-200/70 px-3 py-2.5">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${dot}`} />
+          <h3 className="truncate text-[12px] font-bold uppercase tracking-wide text-slate-600">{title}</h3>
         </div>
-        <span className="rounded-full bg-white px-2.5 py-0.5 text-xs font-bold text-gray-700 shadow-2xs ring-1 ring-gray-200">{count}</span>
+        <span className="inline-flex min-w-[22px] items-center justify-center rounded-full bg-white px-1.5 text-[12px] font-semibold text-slate-600 shadow-[inset_0_0_0_1px_rgb(226,232,240)]">{count}</span>
       </header>
 
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-3 pb-3">
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-3">
         {leads.length === 0 ? (
           <div
             className={`flex h-36 flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed text-center transition-colors ${

@@ -25,7 +25,7 @@ import { JiraAvatar } from '@/shared/ui/JiraAvatar';
 import type { TaskPriority, TaskStage } from '../types';
 import { formatMinutesToHuman } from './DurationField';
 import { formatDisplayDate } from '@/shared/utils/date.utils';
-import { dueLabel, minutesOverEstimate } from '@/shared/utils/schedule.utils';
+import { dueLabel, dueStatus, minutesOverEstimate } from '@/shared/utils/schedule.utils';
 
 export interface TaskCardProps {
   task: TaskBoardCardDto;
@@ -151,7 +151,8 @@ export const TaskCard: React.FC<TaskCardProps> = ({
               <UserCheck className="h-3.5 w-3.5" /> {task.lead_employee_name}
             </span>
           )}
-          {task.is_overdue && <span className="rounded-[3px] bg-[#FFEBE6] px-1 py-px font-semibold text-[#BF2600]" title={dueLabel(task.due_date) ?? undefined}>Overdue</span>}
+          {task.is_overdue && <span className="rounded-[3px] bg-[#FFEBE6] px-1 py-px font-semibold text-[#BF2600]" title={dueLabel(task.due_date) ?? undefined}>Overdue{dueStatus(task.due_date)?.tone === 'overdue' ? ` · ${dueStatus(task.due_date)!.short.replace(' overdue', '')}` : ''}</span>}
+          {!task.is_overdue && !isCompleted && dueStatus(task.due_date)?.tone === 'today' && <span className="rounded-[3px] bg-[#FFF0B3] px-1 py-px font-semibold text-[#974F0C]">Due today</span>}
           {overBy > 0 && !isCompleted && (
             <span className="rounded-[3px] bg-[#FFF0B3] px-1 py-px font-semibold text-[#974F0C]" title={`${formatMinutesToHuman(task.actual_minutes)} spent of ${formatMinutesToHuman(task.allocated_minutes)} estimated`}>
               Over estimate +{formatMinutesToHuman(overBy)}

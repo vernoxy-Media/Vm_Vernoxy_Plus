@@ -45,6 +45,7 @@ import {
   Database,
   Flag,
   Bug,
+  Handshake,
 } from 'lucide-react';
 import type { MeResponseDto } from '@vernoxy-pulse/api-client';
 
@@ -206,6 +207,8 @@ export interface SettingsSectionConfig {
   component: React.ComponentType;
   isVisible: (user: MeResponseDto | null) => boolean;
   group?: string;
+  /** A heading inside a big group (Sales has three), so its screens are not one long row of tabs. */
+  subgroup?: string;
 }
 
 export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
@@ -247,7 +250,7 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     group: 'Employee',
   },
 
-  // ── CRM ───────────────────────────────────────────
+  // ── Sales (master data used by Companies, Leads, Follow-ups and the filters) ──
   {
     id: 'industries',
     label: 'Industries',
@@ -255,7 +258,8 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     icon: Factory,
     component: SettingsIndustriesSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
-    group: 'CRM',
+    group: 'Sales',
+    subgroup: 'Companies & contacts',
   },
   {
     id: 'customer-types',
@@ -264,7 +268,8 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     icon: Users,
     component: SettingsCustomerTypesSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
-    group: 'CRM',
+    group: 'Sales',
+    subgroup: 'Companies & contacts',
   },
   {
     id: 'service-fit',
@@ -273,7 +278,8 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     icon: Briefcase,
     component: SettingsServiceFitSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
-    group: 'CRM',
+    group: 'Sales',
+    subgroup: 'Leads & follow-ups',
   },
   {
     id: 'designation',
@@ -282,7 +288,8 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     icon: UserSquare,
     component: SettingsContactDesignationSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
-    group: 'CRM',
+    group: 'Sales',
+    subgroup: 'Companies & contacts',
   },
   {
     id: 'nature-of-business',
@@ -291,7 +298,8 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     icon: Building2,
     component: SettingsNatureOfBusinessSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
-    group: 'CRM',
+    group: 'Sales',
+    subgroup: 'Companies & contacts',
   },
   {
     id: 'gidc-name',
@@ -300,7 +308,8 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     icon: MapPin,
     component: SettingsGidcNamesSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
-    group: 'CRM',
+    group: 'Sales',
+    subgroup: 'Locations',
   },
   {
     id: 'gidc-phase',
@@ -309,7 +318,8 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     icon: Compass,
     component: SettingsGidcAreasSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
-    group: 'CRM',
+    group: 'Sales',
+    subgroup: 'Locations',
   },
   {
     id: 'city',
@@ -318,7 +328,8 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     icon: MapPin,
     component: SettingsCitiesSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
-    group: 'CRM',
+    group: 'Sales',
+    subgroup: 'Locations',
   },
   {
     id: 'state',
@@ -327,7 +338,8 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     icon: MapIcon,
     component: SettingsStatesSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
-    group: 'CRM',
+    group: 'Sales',
+    subgroup: 'Locations',
   },
   {
     id: 'country',
@@ -336,7 +348,8 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     icon: Globe,
     component: SettingsCountriesSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
-    group: 'CRM',
+    group: 'Sales',
+    subgroup: 'Locations',
   },
   {
     id: 'call-not-received-reasons',
@@ -345,7 +358,8 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     icon: PhoneOff,
     component: SettingsCallNotReceivedReasonsSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
-    group: 'CRM',
+    group: 'Sales',
+    subgroup: 'Leads & follow-ups',
   },
   {
     id: 'lead-sources',
@@ -354,7 +368,8 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     icon: Antenna,
     component: SettingsLeadSourcesSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
-    group: 'CRM',
+    group: 'Sales',
+    subgroup: 'Leads & follow-ups',
   },
   {
     id: 'lost-reasons',
@@ -363,7 +378,8 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     icon: ThumbsDown,
     component: SettingsLostReasonsSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
-    group: 'CRM',
+    group: 'Sales',
+    subgroup: 'Leads & follow-ups',
   },
   {
     id: 'person-departments',
@@ -372,7 +388,8 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     icon: UserSquare,
     component: SettingsPersonDepartmentsSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
-    group: 'CRM',
+    group: 'Sales',
+    subgroup: 'Companies & contacts',
   },
 
   // ── Tasks ─────────────────────────────────────────
@@ -698,7 +715,7 @@ export interface SettingsMainGroup {
 
 export const SETTINGS_MAIN_GROUPS: SettingsMainGroup[] = [
   { id: 'Employee', name: 'Employee', icon: UserCheck },
-  { id: 'CRM', name: 'CRM', icon: Users },
+  { id: 'Sales', name: 'Sales', icon: Handshake },
   { id: 'Tasks', name: 'Tasks', icon: Tag },
   { id: 'Projects', name: 'Projects', icon: Shapes },
   { id: 'HR', name: 'HR', icon: Clock },

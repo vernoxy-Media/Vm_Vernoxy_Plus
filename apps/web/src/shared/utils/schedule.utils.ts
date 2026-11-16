@@ -28,6 +28,29 @@ export function dueLabel(date?: string | null): string | null {
   return `Due in ${n} day${n === 1 ? '' : 's'}`;
 }
 
+export type DueTone = 'overdue' | 'today' | 'soon' | 'later';
+
+/**
+ * Where a due date stands, the way Jira flags it: red once it is past, amber on the day and the day before.
+ * `short` fits a card ("3d overdue"), `long` fits a details panel ("3 days overdue"). Null for a closed issue or no date.
+ */
+export function dueStatus(date?: string | null, closed = false, now: Date = new Date()): { tone: DueTone; short: string; long: string; days: number } | null {
+  const n = daysFromToday(date, now);
+  if (n === null || closed) return null;
+  if (n < 0) return { tone: 'overdue', short: `${-n}d overdue`, long: `${-n} day${n === -1 ? '' : 's'} overdue`, days: n };
+  if (n === 0) return { tone: 'today', short: 'Due today', long: 'Due today', days: n };
+  if (n === 1) return { tone: 'soon', short: 'Due tomorrow', long: 'Due tomorrow', days: n };
+  return { tone: 'later', short: `In ${n}d`, long: `Due in ${n} days`, days: n };
+}
+
+/** Chip colours for a due status (Jira lozenges). */
+export const DUE_TONE_CLASS: Record<DueTone, string> = {
+  overdue: 'bg-[#FFEBE6] text-[#BF2600]',
+  today: 'bg-[#FFF0B3] text-[#974F0C]',
+  soon: 'bg-[#FFF0B3] text-[#974F0C]',
+  later: 'bg-[rgba(9,30,66,0.08)] text-[#42526E]',
+};
+
 /** Minutes the work went over its estimate: 0 when there is no estimate or it is still within it. */
 export function minutesOverEstimate(estimated?: number | null, actual?: number | null): number {
   if (!estimated || estimated <= 0) return 0;

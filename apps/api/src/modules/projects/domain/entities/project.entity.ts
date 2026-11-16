@@ -131,6 +131,8 @@ export interface ProjectTaskEntity {
   /** Tester a finished task goes to before approval; null when the task has no QA step. */
   qa_assignee_id?: number | null;
   qa_assignee_name?: string | null;
+  /** Why QA or the approver sent the task back to the developer; set while it is being reworked. */
+  review_note?: string | null;
   /** Exact seconds worked on this task, from its work log. */
   logged_seconds: number;
   /** Seconds each employee worked on this task. */

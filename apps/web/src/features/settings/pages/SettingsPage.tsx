@@ -109,6 +109,11 @@ export const SettingsPage: React.FC = () => {
   const currentGroupSections = sectionGroups[currentGroup] || [];
   const groups = SETTINGS_MAIN_GROUPS.filter((g) => (sectionGroups[g.name] || []).length > 0);
 
+  // A big group (Sales) is split under headings: pick the heading first, then one of its few screens
+  const subgroups = Array.from(new Set(currentGroupSections.map((x) => x.subgroup).filter((x): x is string => Boolean(x))));
+  const currentSubgroup = currentSection?.subgroup;
+  const tabSections = subgroups.length > 0 ? currentGroupSections.filter((x) => x.subgroup === currentSubgroup) : currentGroupSections;
+
   const jumpGroups = groups.map((g) => ({ id: g.id, name: g.name, icon: g.icon, sections: sectionGroups[g.name] }));
 
   return (
@@ -162,10 +167,33 @@ export const SettingsPage: React.FC = () => {
         </ScrollableTabs>
 
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          {/* Headings inside a big category */}
+          {subgroups.length > 1 && (
+            <nav aria-label={`${currentGroup} sections`} className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-slate-50/70 px-4 py-3 sm:px-6">
+              {subgroups.map((name) => {
+                const items = currentGroupSections.filter((x) => x.subgroup === name);
+                const on = name === currentSubgroup;
+                return (
+                  <NavLink
+                    key={name}
+                    to={items[0].path}
+                    aria-current={on ? 'page' : undefined}
+                    className={`inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition ${
+                      on ? 'bg-slate-900 text-white shadow-sm' : 'border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900'
+                    }`}
+                  >
+                    {name}
+                    <span className={`rounded-full px-1.5 text-[11px] font-bold ${on ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>{items.length}</span>
+                  </NavLink>
+                );
+              })}
+            </nav>
+          )}
+
           {/* Pages of the chosen category */}
-          {currentGroupSections.length > 1 && (
-            <ScrollableTabs label={`${currentGroup} settings`} watch={sectionId}>
-                {currentGroupSections.map((subSection) => {
+          {tabSections.length > 1 && (
+            <ScrollableTabs label={`${currentSubgroup ?? currentGroup} settings`} watch={sectionId}>
+                {tabSections.map((subSection) => {
                   const SubIcon = subSection.icon;
                   const active = currentSection?.id === subSection.id;
                   return (
