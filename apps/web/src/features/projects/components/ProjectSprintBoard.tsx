@@ -295,7 +295,7 @@ const BoardColumn: React.FC<{
       <section
         ref={setNodeRef}
         aria-label={`${col.label} (collapsed)`}
-        className={`flex w-10 shrink-0 self-stretch flex-col rounded-xl border transition-colors sm:w-11 ${isOver ? 'border-[color:var(--ac-400,#4C9AFF)] bg-[color:var(--ac-50,#DEEBFF)]' : 'border-slate-200 bg-slate-50 hover:bg-slate-100'}`}
+        className={`flex w-10 shrink-0 snap-start self-stretch flex-col rounded-xl border transition-colors sm:w-11 ${isOver ? 'border-[color:var(--ac-400,#4C9AFF)] bg-[color:var(--ac-50,#DEEBFF)]' : 'border-slate-200 bg-slate-50 hover:bg-slate-100'}`}
       >
         <button type="button" onClick={onToggle} aria-label={`Expand ${col.label}`} className="flex h-full min-h-[240px] w-full cursor-pointer flex-col items-center gap-2 rounded-xl px-1 py-3 text-slate-500 hover:text-slate-800">
           <ChevronRight className="h-4 w-4" />
@@ -863,7 +863,7 @@ export const ProjectSprintBoard: React.FC<ProjectSprintBoardProps> = ({
         </div>
       ) : view === 'board' ? (
         <DndContext sensors={sensors} collisionDetection={collision} onDragStart={(e: DragStartEvent) => setDragId(Number(e.active.id))} onDragCancel={() => setDragId(null)} onDragEnd={handleDragEnd}>
-          <div className="-mx-1 flex snap-x snap-proximity items-stretch gap-2 overflow-x-auto px-1 pb-4 [scrollbar-width:thin] sm:gap-3">
+          <div className="-mx-1 flex items-stretch gap-2 overflow-x-auto overscroll-x-contain px-1 pb-4 max-sm:snap-x max-sm:snap-proximity max-sm:scroll-px-1 [scrollbar-width:thin] sm:gap-3">
             {COLUMNS.map((col) => {
               const cards = topLevel.filter((t) => (t.stage ?? 'assigned') === col.stage);
               return (
