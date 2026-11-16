@@ -295,13 +295,13 @@ const BoardColumn: React.FC<{
       <section
         ref={setNodeRef}
         aria-label={`${col.label} (collapsed)`}
-        className={`flex w-11 shrink-0 flex-col items-center rounded-xl border py-2 transition-colors ${isOver ? 'border-[color:var(--ac-400,#4C9AFF)] bg-[color:var(--ac-50,#DEEBFF)]' : 'border-slate-200 bg-slate-50'}`}
+        className={`flex w-10 shrink-0 self-stretch flex-col rounded-xl border transition-colors sm:w-11 ${isOver ? 'border-[color:var(--ac-400,#4C9AFF)] bg-[color:var(--ac-50,#DEEBFF)]' : 'border-slate-200 bg-slate-50 hover:bg-slate-100'}`}
       >
-        <button type="button" onClick={onToggle} title={`Expand ${col.label}`} aria-label={`Expand ${col.label}`} className="flex cursor-pointer flex-col items-center gap-2 rounded-lg px-1 py-1 text-slate-500 hover:bg-white hover:text-slate-800">
+        <button type="button" onClick={onToggle} aria-label={`Expand ${col.label}`} className="flex h-full min-h-[240px] w-full cursor-pointer flex-col items-center gap-2 rounded-xl px-1 py-3 text-slate-500 hover:text-slate-800">
           <ChevronRight className="h-4 w-4" />
           <span aria-hidden className={`h-2.5 w-2.5 rounded-full ${dot}`} />
           <span className="inline-flex min-w-[20px] items-center justify-center rounded-full bg-white px-1 text-[11px] font-semibold text-slate-600 shadow-[inset_0_0_0_1px_rgb(226,232,240)]">{count}</span>
-          <span className="text-[12px] font-bold uppercase tracking-wide [text-orientation:mixed] [writing-mode:vertical-rl]">{col.label}</span>
+          <span className="mt-1 whitespace-nowrap text-[12px] font-bold uppercase tracking-wide [text-orientation:mixed] [writing-mode:vertical-rl]">{col.label}</span>
         </button>
       </section>
     );
@@ -311,7 +311,7 @@ const BoardColumn: React.FC<{
     <section
       ref={setNodeRef}
       aria-label={col.label}
-      className={`flex max-h-[calc(100vh-17rem)] min-h-[240px] min-w-[220px] flex-1 basis-0 flex-col rounded-xl border transition-colors ${isOver ? 'border-[color:var(--ac-400,#4C9AFF)] bg-[color:var(--ac-50,#DEEBFF)]' : `border-slate-200 ${JIRA.column}`}`}
+      className={`flex max-h-[calc(100dvh-16rem)] min-h-[240px] w-[78vw] max-w-[380px] shrink-0 snap-start flex-col rounded-xl border transition-colors sm:w-auto sm:min-w-[240px] sm:flex-1 sm:basis-0 ${isOver ? 'border-[color:var(--ac-400,#4C9AFF)] bg-[color:var(--ac-50,#DEEBFF)]' : `border-slate-200 ${JIRA.column}`}`}
     >
       <header className="flex shrink-0 items-center gap-2 border-b border-slate-200/70 px-3 py-2.5">
         <span aria-hidden className={`h-2.5 w-2.5 shrink-0 rounded-full ${dot}`} />
@@ -863,7 +863,7 @@ export const ProjectSprintBoard: React.FC<ProjectSprintBoardProps> = ({
         </div>
       ) : view === 'board' ? (
         <DndContext sensors={sensors} collisionDetection={collision} onDragStart={(e: DragStartEvent) => setDragId(Number(e.active.id))} onDragCancel={() => setDragId(null)} onDragEnd={handleDragEnd}>
-          <div className="-mx-1 flex items-stretch gap-3 overflow-x-auto px-1 pb-4 [scrollbar-width:thin]">
+          <div className="-mx-1 flex snap-x snap-proximity items-stretch gap-2 overflow-x-auto px-1 pb-4 [scrollbar-width:thin] sm:gap-3">
             {COLUMNS.map((col) => {
               const cards = topLevel.filter((t) => (t.stage ?? 'assigned') === col.stage);
               return (

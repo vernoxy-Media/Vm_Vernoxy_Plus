@@ -67,8 +67,8 @@ const ScrollableTabs: React.FC<{ label: string; watch?: string; watchPrefix?: st
         aria-label={label}
         className={
           pills
-            ? // Small screens scroll sideways; from md up the categories wrap onto a second line so every one stays visible
-              'flex gap-1.5 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm [scrollbar-width:none] md:flex-wrap md:overflow-visible [&::-webkit-scrollbar]:hidden'
+            ? // One row: the categories spread across the width when there is room, and scroll sideways (with arrows) when there is not
+              'flex gap-1 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm [scrollbar-width:none] lg:justify-between [&::-webkit-scrollbar]:hidden'
             : '-mb-px flex gap-6 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
         }
       >
@@ -149,7 +149,7 @@ export const SettingsPage: React.FC = () => {
                 aria-selected={active}
                 aria-label={group.name}
                 title={group.name}
-                className={`group flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-3 py-2 text-[13.5px] font-semibold transition-all duration-200 ${
+                className={`group flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl px-2.5 py-2 text-[13px] font-semibold transition-all duration-200 ${
                   active
                     ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/30'
                     : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
