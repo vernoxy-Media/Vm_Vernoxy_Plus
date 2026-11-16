@@ -49,6 +49,7 @@ export class PrismaEmployeeAuthRepository implements EmployeeAuthRepository {
 
     return {
       emp_id: raw.emp_id,
+      employee_code: raw.employee_code ?? null,
       name: raw.name,
       email: raw.email,
       mob: raw.mob,
@@ -99,6 +100,7 @@ export class PrismaEmployeeAuthRepository implements EmployeeAuthRepository {
 
     return {
       emp_id: raw.emp_id,
+      employee_code: raw.employee_code ?? null,
       name: raw.name,
       email: raw.email,
       mob: raw.mob,

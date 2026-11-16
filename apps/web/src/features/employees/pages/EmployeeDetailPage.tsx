@@ -336,7 +336,7 @@ export const EmployeeDetailPage: React.FC = () => {
 
                 <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 font-medium">
                   <span className="font-mono text-slate-500 font-medium">
-                    EMP-{String(employee.emp_id).padStart(4, '0')}
+                    {(employee as { employee_code?: string }).employee_code || `EMP-${String(employee.emp_id).padStart(4, '0')}`}
                   </span>
                   <span>&bull;</span>
                   <span className="text-slate-500 font-medium">

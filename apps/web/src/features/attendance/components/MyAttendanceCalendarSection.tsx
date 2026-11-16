@@ -390,7 +390,7 @@ export const MyAttendanceCalendarSection: React.FC = () => {
           date={detailModal.date}
           record={detailModal.record}
           employeeInfo={{
-            empId: user?.emp_id,
+            empId: (user as { employee_code?: string | null } | null)?.employee_code || user?.emp_id,
             name: user?.name,
             department: (user as any)?.department?.department_name || (user as any)?.dep_name,
           }}

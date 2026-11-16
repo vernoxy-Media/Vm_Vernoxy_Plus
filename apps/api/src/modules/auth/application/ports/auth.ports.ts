@@ -55,6 +55,8 @@ export interface MailPort {
 
 export interface EmployeeWithAuth {
   emp_id: number;
+  /** The stored Employee ID, e.g. EMP-0013. */
+  employee_code?: string | null;
   name: string;
   email: string;
   mob: string | null;
