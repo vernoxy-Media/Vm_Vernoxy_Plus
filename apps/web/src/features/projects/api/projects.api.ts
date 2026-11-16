@@ -10,6 +10,7 @@ import type {
   ProjectBugItem,
   CreateProjectBugPayload,
   ProjectDiscussionItem,
+  DiscussionAttachment,
   ProjectItem,
   ProjectStatus,
   ProjectTaskItem,
@@ -211,7 +212,7 @@ export async function fetchProjectMentionable(projectId: number): Promise<Array<
 export async function createProjectDiscussion(
   projectId: number,
   message: string,
-  attachments?: string[],
+  attachments?: DiscussionAttachment[],
   tagged_employee_ids?: number[]
 ): Promise<ProjectDiscussionItem> {
   return customFetch<ProjectDiscussionItem>(`${BASE_URL}/${projectId}/discussions`, {
@@ -219,6 +220,22 @@ export async function createProjectDiscussion(
     body: JSON.stringify({ message, attachments, tagged_employee_ids }),
     headers: { 'Content-Type': 'application/json' },
   });
+}
+
+/** Uploads one file for a comment; the result is what createProjectDiscussion takes as an attachment. */
+export async function uploadDiscussionFile(projectId: number, file: File): Promise<DiscussionAttachment> {
+  const form = new FormData();
+  form.append('file', file);
+  form.append('entity_type', 'project_discussion');
+  form.append('entity_id', String(projectId));
+  const uploaded = await customFetch<{ attachment_id: number }>('/api/v1/attachments/upload', { method: 'POST', body: form });
+  return {
+    attachment_id: uploaded.attachment_id,
+    name: file.name,
+    mime: file.type || 'application/octet-stream',
+    size: file.size,
+    url: `/api/v1/attachments/${uploaded.attachment_id}/download`,
+  };
 }
 
 export async function fetchProjectActivityLogs(projectId: number): Promise<ProjectActivityLogItem[]> {

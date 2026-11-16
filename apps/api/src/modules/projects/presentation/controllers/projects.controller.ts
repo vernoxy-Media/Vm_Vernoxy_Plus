@@ -60,6 +60,7 @@ import { mapTaskErrorToHttp } from '../../../tasks/presentation/tasks-error.mapp
 import { ProjectAccessService, type ProjectRole } from '../../application/services/project-access.service';
 import { deliveryBlockMessage, evaluateDelivery } from '../../domain/services/delivery';
 import { canMoveBug, canSeeActivity, canSeeBug, canSeeDiscussionMessage, seesEverything, type Viewer } from '../../domain/services/visibility';
+import { sanitizeDiscussionAttachments } from '../../domain/services/discussion-attachments';
 
 /** Project BFD 3.6: allowed bug status moves ("If QA fails, the bug goes back to Ready for Dev"). */
 const BUG_FLOW: Record<string, string[]> = {
@@ -495,7 +496,7 @@ export class ProjectsController {
       id,
       user.emp_id,
       dto.message,
-      dto.attachments,
+      sanitizeDiscussionAttachments(dto.attachments),
     );
     this.eventsService.emitToProject(id, 'discussion:new_message', msg);
 

@@ -30,6 +30,7 @@ import {
   fetchProjectDiscussions,
   fetchProjectMentionable,
   createProjectDiscussion,
+  uploadDiscussionFile,
   fetchProjectActivityLogs,
   fetchProjectBugs,
   createProjectBug,
@@ -718,8 +719,9 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
                         onChangeDate={changeDate}
                         onMoveStage={moveStageStrict}
                         onTrackWorkSession={trackSessionStrict}
-                        onComment={async (message, taggedIds) => {
-                          await createProjectDiscussion(projectId, `${issuePrefix}${message}`, undefined, taggedIds);
+                        onUploadFile={(file) => uploadDiscussionFile(projectId, file)}
+                        onComment={async (message, taggedIds, files) => {
+                          await createProjectDiscussion(projectId, `${issuePrefix}${message}`, files, taggedIds);
                           setDiscussions(await fetchProjectDiscussions(projectId));
                         }}
                       />
@@ -790,8 +792,9 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
                     currentUserId={user?.emp_id}
                     currentUserName={user?.name}
                     currentUserAvatar={(user as { profile_picture?: string | null } | null)?.profile_picture ?? null}
-                    onSend={async (message, taggedIds) => {
-                      await createProjectDiscussion(projectId, message, undefined, taggedIds);
+                    onUploadFile={(file) => uploadDiscussionFile(projectId, file)}
+                    onSend={async (message, taggedIds, files) => {
+                      await createProjectDiscussion(projectId, message, files, taggedIds);
                       const updated = await fetchProjectDiscussions(projectId);
                       setDiscussions(updated);
                     }}

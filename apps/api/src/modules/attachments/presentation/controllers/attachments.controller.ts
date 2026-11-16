@@ -8,6 +8,7 @@ import {
   Param,
   Req,
   Res,
+  Headers,
   ParseIntPipe,
   UseGuards,
   UseInterceptors,
@@ -25,6 +26,7 @@ import {
   CreateAttachmentDto,
   ReorderAttachmentsDto,
 } from '../dto/attachment.dto';
+import { isShareableType } from '../../../projects/domain/services/discussion-attachments';
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -65,6 +67,7 @@ export class AttachmentsController {
   async downloadAttachment(
     @Param('id', ParseIntPipe) id: number,
     @Res({ passthrough: true }) res: Response,
+    @Headers('range') range?: string,
   ): Promise<StreamableFile> {
     const attachment = await this.attachmentsService.getAttachmentById(id);
 
@@ -84,13 +87,31 @@ export class AttachmentsController {
       throw new NotFoundException(`Physical file for attachment #${id} not found on server`);
     }
 
+    const mime = attachment.mime_type || 'application/octet-stream';
+    // A page or an svg is never shown inline: it could run script. Everything else opens in the browser.
+    const inline = !['text/html', 'image/svg+xml'].includes(mime.toLowerCase().split(';')[0].trim());
     res.set({
-      'Content-Type': attachment.mime_type || 'application/octet-stream',
-      'Content-Disposition': `inline; filename="${encodeURIComponent(attachment.file_name)}"`,
+      'Content-Type': mime,
+      'Content-Disposition': `${inline ? 'inline' : 'attachment'}; filename="${encodeURIComponent(attachment.file_name)}"`,
+      'Accept-Ranges': 'bytes',
+      'X-Content-Type-Options': 'nosniff',
     });
 
-    const stream = fs.createReadStream(filePath);
-    return new StreamableFile(stream);
+    // Videos need partial reads so the player can seek and start before the whole file is down
+    const size = fs.statSync(filePath).size;
+    const m = range ? /^bytes=(\d*)-(\d*)$/.exec(range.trim()) : null;
+    if (m && (m[1] !== '' || m[2] !== '')) {
+      const start = m[1] === '' ? Math.max(size - Number(m[2]), 0) : Number(m[1]);
+      const end = m[1] === '' || m[2] === '' ? size - 1 : Math.min(Number(m[2]), size - 1);
+      if (start >= size || start > end) {
+        res.status(416).set({ 'Content-Range': `bytes */${size}` });
+        return new StreamableFile(Buffer.alloc(0));
+      }
+      res.status(206).set({ 'Content-Range': `bytes ${start}-${end}/${size}`, 'Content-Length': String(end - start + 1) });
+      return new StreamableFile(fs.createReadStream(filePath, { start, end }));
+    }
+    res.set({ 'Content-Length': String(size) });
+    return new StreamableFile(fs.createReadStream(filePath));
   }
 
   // ---------------------------------------------------------------------------
@@ -132,6 +153,9 @@ export class AttachmentsController {
     }
     if (!entityType) {
       throw new BadRequestException('entity_type is required');
+    }
+    if (entityType.trim().toLowerCase() === 'project_discussion' && !isShareableType(file.mimetype)) {
+      throw new BadRequestException('That type of file cannot be shared. Send a picture, video, PDF, document, spreadsheet or zip.');
     }
 
     const userId = req.user?.emp_id || 1;

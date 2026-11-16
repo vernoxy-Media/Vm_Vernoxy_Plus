@@ -6,6 +6,7 @@ import {
   IsDateString,
   IsInt,
   IsArray,
+  ArrayMaxSize,
   MaxLength,
   ValidateNested,
   IsBoolean,
@@ -609,10 +610,11 @@ export class CreateDiscussionDto {
   @IsNotEmpty()
   message!: string;
 
-  @ApiPropertyOptional({ type: [String] })
+  @ApiPropertyOptional({ description: 'Files shared with the message: [{ attachment_id, name, mime, size, url }], at most 10' })
   @IsOptional()
   @IsArray()
-  attachments?: string[];
+  @ArrayMaxSize(10)
+  attachments?: Array<{ attachment_id: number; name: string; mime: string; size: number; url: string }>;
 
   @ApiPropertyOptional({ type: [Number], description: 'Employee IDs tagged with @ in the message' })
   @IsOptional()

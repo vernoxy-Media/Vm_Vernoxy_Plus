@@ -1125,6 +1125,7 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
       sender_name: r.employees?.name ?? 'Unknown',
       sender_avatar: r.employees?.profile_picture ?? null,
       message: r.message,
+      attachments: Array.isArray(r.attachments) ? r.attachments : [],
       created_at: r.created_at.toISOString(),
     }));
   }
@@ -1156,6 +1157,7 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
       sender_name: created.employees?.name ?? 'Unknown',
       sender_avatar: created.employees?.profile_picture ?? null,
       message: created.message,
+      attachments: Array.isArray(created.attachments) ? created.attachments : [],
       created_at: created.created_at.toISOString(),
     };
   }

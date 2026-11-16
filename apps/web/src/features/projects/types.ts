@@ -224,6 +224,15 @@ export interface CreateProjectTaskPayload {
   }>;
 }
 
+/** A file shared in a discussion or in the comments of an issue */
+export interface DiscussionAttachment {
+  attachment_id: number;
+  name: string;
+  mime: string;
+  size: number;
+  url: string;
+}
+
 export interface ProjectDiscussionItem {
   message_id: string;
   project_id: number;
@@ -231,6 +240,7 @@ export interface ProjectDiscussionItem {
   sender_name: string;
   sender_avatar?: string | null;
   message: string;
+  attachments?: DiscussionAttachment[];
   created_at: string;
 }
 

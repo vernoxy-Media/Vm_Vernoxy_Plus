@@ -24,7 +24,7 @@ import { JiraAvatar } from '@/shared/ui/JiraAvatar';
 import { useContainerWidth } from '@/shared/ui/useContainerWidth';
 import { DUE_TONE_CLASS, dueLabel, dueStatus, isPastDate } from '@/shared/utils/schedule.utils';
 import { ProjectComments } from './ProjectComments';
-import type { ProjectDiscussionItem, ProjectMember } from '../types';
+import type { DiscussionAttachment, ProjectDiscussionItem, ProjectMember } from '../types';
 
 /* ───────────────────────────── Jira vocabulary ───────────────────────────── */
 
@@ -125,7 +125,9 @@ export interface ProjectIssueViewProps {
   onMoveStage: (taskId: number, stage: TaskStage, note?: string, holdReason?: string) => void | Promise<void>;
   onTrackWorkSession: (taskId: number, action: 'start' | 'pause' | 'finish', note?: string) => Promise<void>;
   /** Without it the issue has no comments (a task that is not part of a project has no discussion). */
-  onComment?: (message: string, taggedEmployeeIds: number[]) => Promise<void>;
+  onComment?: (message: string, taggedEmployeeIds: number[], attachments: DiscussionAttachment[]) => Promise<void>;
+  /** Uploads a file for a comment; leave out to hide the attach button. */
+  onUploadFile?: (file: File) => Promise<DiscussionAttachment>;
   onAddChild?: (task: TaskDetailDto) => void;
   /** Open another issue of the project: a child from the list, or the parent from the breadcrumb. */
   onOpenIssue?: (taskId: number) => void;
@@ -153,6 +155,7 @@ export const ProjectIssueView: React.FC<ProjectIssueViewProps> = ({
   onMoveStage,
   onTrackWorkSession,
   onComment,
+  onUploadFile,
   onAddChild,
   onOpenIssue,
   projectDeadline,
@@ -559,6 +562,7 @@ export const ProjectIssueView: React.FC<ProjectIssueViewProps> = ({
                 currentUserName={currentUserName}
                 currentUserAvatar={currentUserAvatar}
                 onSend={onComment}
+                onUploadFile={onUploadFile}
               />
             )}
 

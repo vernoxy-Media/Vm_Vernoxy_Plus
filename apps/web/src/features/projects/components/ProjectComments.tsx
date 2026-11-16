@@ -1,7 +1,8 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { ArrowDownUp, CheckSquare, ChevronDown, Loader2, MessageSquare, Search } from 'lucide-react';
+import { ArrowDownUp, CheckSquare, ChevronDown, Loader2, MessageSquare, Paperclip, Search } from 'lucide-react';
 import { JiraAvatar } from '@/shared/ui/JiraAvatar';
-import type { ProjectDiscussionItem, ProjectMember } from '../types';
+import type { DiscussionAttachment, ProjectDiscussionItem, ProjectMember } from '../types';
+import { AttachmentList, ATTACH_ACCEPT, FILES_ONLY_TEXT, MAX_FILES, PendingFiles, fileProblem } from './DiscussionFiles';
 
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const Avatar: React.FC<{ name: string; id?: number; src?: string | null; size?: number }> = ({ name, id = 0, src, size = 32 }) => (
@@ -65,11 +66,13 @@ interface ProjectCommentsProps {
   currentUserId?: number;
   currentUserName?: string;
   currentUserAvatar?: string | null;
-  onSend: (message: string, taggedEmployeeIds: number[]) => Promise<void>;
+  onSend: (message: string, taggedEmployeeIds: number[], attachments: DiscussionAttachment[]) => Promise<void>;
+  /** Uploads one file; leave out to hide the attach button. */
+  onUploadFile?: (file: File) => Promise<DiscussionAttachment>;
 }
 
 /** Project discussion in the shape of Jira's comment section: a composer on top, comments below. */
-export const ProjectComments: React.FC<ProjectCommentsProps> = ({ heading = 'Discussion', comments, members, currentUserId, currentUserName = 'You', currentUserAvatar, onSend, onOpenIssue }) => {
+export const ProjectComments: React.FC<ProjectCommentsProps> = ({ heading = 'Discussion', comments, members, currentUserId, currentUserName = 'You', currentUserAvatar, onSend, onUploadFile, onOpenIssue }) => {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
@@ -80,6 +83,9 @@ export const ProjectComments: React.FC<ProjectCommentsProps> = ({ heading = 'Dis
   const [scope, setScope] = useState<'all' | 'general' | 'issues'>('all');
   const [limit, setLimit] = useState(PAGE);
   const boxRef = useRef<HTMLTextAreaElement>(null);
+  const pickerRef = useRef<HTMLInputElement>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [dragging, setDragging] = useState(false);
 
   const people = useMemo(() => Array.from(new Map(members.map((m) => [m.employee_id, m])).values()), [members]);
   const byId = useMemo(() => new Map(people.map((m) => [m.employee_id, m])), [people]);
@@ -101,15 +107,36 @@ export const ProjectComments: React.FC<ProjectCommentsProps> = ({ heading = 'Dis
     boxRef.current?.focus();
   };
 
+  /** Adds picked, pasted or dropped files to the comment, skipping (and telling about) the ones that cannot be sent. */
+  const addFiles = (picked: File[]) => {
+    if (!onUploadFile || picked.length === 0) return;
+    const problems: string[] = [];
+    const good: File[] = [];
+    for (const f of picked) {
+      const why = fileProblem(f);
+      if (why) problems.push(why);
+      else good.push(f);
+    }
+    setFiles((cur) => {
+      const room = MAX_FILES - cur.length;
+      if (good.length > room) problems.push(`A comment can carry at most ${MAX_FILES} files.`);
+      return [...cur, ...good.slice(0, Math.max(room, 0))];
+    });
+    setError(problems.length ? problems.join(' ') : null);
+    setOpen(true);
+  };
+
   const submit = async () => {
     const message = text.trim();
-    if (!message || busy) return;
+    if ((!message && files.length === 0) || busy) return;
     const tagged = people.filter((p) => message.toLowerCase().includes(`@${p.name.toLowerCase()}`)).map((p) => p.employee_id);
     setBusy(true);
     setError(null);
     try {
-      await onSend(message, tagged);
+      const uploaded = onUploadFile ? await Promise.all(files.map((f) => onUploadFile(f))) : [];
+      await onSend(message || FILES_ONLY_TEXT, tagged, uploaded);
       setText('');
+      setFiles([]);
       setOpen(false);
     } catch (err) {
       const e = err as { detail?: string; message?: string } | null;
@@ -121,6 +148,7 @@ export const ProjectComments: React.FC<ProjectCommentsProps> = ({ heading = 'Dis
 
   const cancel = () => {
     setText('');
+    setFiles([]);
     setError(null);
     setOpen(false);
   };
@@ -197,10 +225,22 @@ export const ProjectComments: React.FC<ProjectCommentsProps> = ({ heading = 'Dis
                 value={text}
                 onChange={(e) => { setText(e.target.value); setPick(0); }}
                 onKeyDown={onKeyDown}
+                onPaste={(e) => {
+                  const pasted = Array.from(e.clipboardData?.files ?? []);
+                  if (pasted.length && onUploadFile) { e.preventDefault(); addFiles(pasted); }
+                }}
+                onDragOver={(e) => { if (onUploadFile && e.dataTransfer.types.includes('Files')) { e.preventDefault(); setDragging(true); } }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={(e) => {
+                  setDragging(false);
+                  if (!onUploadFile) return;
+                  e.preventDefault();
+                  addFiles(Array.from(e.dataTransfer.files));
+                }}
                 rows={3}
                 placeholder="Add a comment…"
                 aria-label="Add a comment"
-                className="block w-full resize-y rounded-[3px] border-2 border-[color:var(--ac-400,#4C9AFF)] bg-white p-2.5 text-[14px] leading-5 text-[#172B4D] placeholder:text-[#7A869A] focus:outline-none"
+                className={`block w-full resize-y rounded-[3px] border-2 bg-white p-2.5 ${dragging ? 'border-dashed border-[color:var(--ac-main,#0052CC)] bg-[color:var(--ac-50,#DEEBFF)]' : 'border-[color:var(--ac-400,#4C9AFF)]'} text-[14px] leading-5 text-[#172B4D] placeholder:text-[#7A869A] focus:outline-none`}
               />
               {suggestions.length > 0 && (
                 <ul role="listbox" aria-label="Mention a teammate" className="absolute left-0 top-full z-20 mt-1 w-64 overflow-hidden rounded-[3px] bg-white py-1 shadow-[0_4px_8px_-2px_rgba(9,30,66,0.25),0_0_1px_rgba(9,30,66,0.31)]">
@@ -214,13 +254,22 @@ export const ProjectComments: React.FC<ProjectCommentsProps> = ({ heading = 'Dis
                   ))}
                 </ul>
               )}
+              <PendingFiles files={files} onRemove={(i) => setFiles((cur) => cur.filter((_, k) => k !== i))} disabled={busy} />
               {error && <p role="alert" className="mt-2 rounded-[3px] bg-[#FFEBE6] px-2.5 py-1.5 text-[13px] text-[#BF2600]">{error}</p>}
               <div className="mt-2 flex flex-wrap items-center gap-2">
-                <button type="button" disabled={!text.trim() || busy} onClick={submit} className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-[3px] bg-[color:var(--ac-main,#0052CC)] px-3 text-[14px] font-medium text-white transition hover:bg-[color:var(--ac-hover,#0065FF)] disabled:cursor-not-allowed disabled:opacity-50">
+                <button type="button" disabled={(!text.trim() && files.length === 0) || busy} onClick={submit} className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-[3px] bg-[color:var(--ac-main,#0052CC)] px-3 text-[14px] font-medium text-white transition hover:bg-[color:var(--ac-hover,#0065FF)] disabled:cursor-not-allowed disabled:opacity-50">
                   {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Save
                 </button>
                 <button type="button" onClick={cancel} className="h-8 cursor-pointer rounded-[3px] px-3 text-[14px] font-medium text-[#42526E] hover:bg-[rgba(9,30,66,0.08)]">Cancel</button>
-                <span className="hidden text-[12px] text-[#5E6C84] sm:inline">Pro tip: type <b>@</b> to mention a teammate · Ctrl+Enter to save</span>
+                {onUploadFile && (
+                  <>
+                    <input ref={pickerRef} type="file" multiple accept={ATTACH_ACCEPT} className="hidden" onChange={(e) => { addFiles(Array.from(e.target.files ?? [])); e.target.value = ''; }} />
+                    <button type="button" disabled={busy} onClick={() => pickerRef.current?.click()} title="Attach pictures, videos or files" className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-[3px] px-2.5 text-[14px] font-medium text-[#42526E] hover:bg-[rgba(9,30,66,0.08)] disabled:opacity-50">
+                      <Paperclip className="h-4 w-4" /> Attach
+                    </button>
+                  </>
+                )}
+                <span className="hidden text-[12px] text-[#5E6C84] md:inline">Type <b>@</b> to mention · paste or drop files · Ctrl+Enter to save</span>
               </div>
             </>
           )}
@@ -304,11 +353,14 @@ export const ProjectComments: React.FC<ProjectCommentsProps> = ({ heading = 'Dis
                           </button>
                         )}
                       </p>
-                      <div className="mt-1 text-[14px] leading-6 text-[#172B4D]">
-                        <Folded long={long}>
-                          <p className="whitespace-pre-wrap break-words">{withMentions(r.text)}</p>
-                        </Folded>
-                      </div>
+                      {!(c.attachments?.length && r.text.trim() === FILES_ONLY_TEXT) && (
+                        <div className="mt-1 text-[14px] leading-6 text-[#172B4D]">
+                          <Folded long={long}>
+                            <p className="whitespace-pre-wrap break-words">{withMentions(r.text)}</p>
+                          </Folded>
+                        </div>
+                      )}
+                      <AttachmentList files={c.attachments ?? []} />
                     </div>
                   </li>
                 </React.Fragment>
