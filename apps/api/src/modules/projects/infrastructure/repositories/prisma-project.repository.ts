@@ -946,7 +946,7 @@ export class PrismaProjectRepository implements ProjectRepositoryPort {
       where: {
         project_id: projectId,
         deleted_at: null,
-        OR: [{ lead_employee_id: empId }, { task_assignees: { some: { employee_id: empId, deleted_at: null } } }],
+        OR: [{ lead_employee_id: empId }, { qa_assignee_id: empId }, { task_assignees: { some: { employee_id: empId, deleted_at: null } } }],
       },
       select: { task_code: true },
     });

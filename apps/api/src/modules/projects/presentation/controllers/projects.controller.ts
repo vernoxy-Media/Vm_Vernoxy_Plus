@@ -60,7 +60,7 @@ import { mapTaskErrorToHttp } from '../../../tasks/presentation/tasks-error.mapp
 import { ProjectFinancialsService } from '../../application/services/project-financials.service';
 import { ProjectAccessService, type ProjectRole } from '../../application/services/project-access.service';
 import { deliveryBlockMessage, evaluateDelivery } from '../../domain/services/delivery';
-import { canMoveBug, canSeeActivity, canSeeBug, canSeeDiscussionMessage, seesEverything, type Viewer } from '../../domain/services/visibility';
+import { canMoveBug, canSeeActivity, canSeeBug, canSeeDiscussionMessage, isTesterOf, seesEverything, type Viewer } from '../../domain/services/visibility';
 import { sanitizeDiscussionAttachments } from '../../domain/services/discussion-attachments';
 
 /** Project BFD 3.6: allowed bug status moves ("If QA fails, the bug goes back to Ready for Dev"). */
@@ -430,8 +430,9 @@ export class ProjectsController {
     const sId = sprintId ? parseInt(sprintId, 10) : undefined;
     const tasks = await this.getSprintTasksUseCase.execute(id, sId);
     if (role.isAdmin || role.isPM) return tasks;
-    // BFD 3.3: an employee sees only their own tasks in the project.
-    return tasks.filter((t: any) => (t.assignees || []).some((a: any) => (a.emp_id ?? a.employee_id) === empId));
+    // BFD 3.3: an employee sees only their own tasks in the project, and the tasks they are the QA tester of.
+    const me: Viewer = { empId, isAdmin: false, isPM: false };
+    return tasks.filter((t: any) => (t.assignees || []).some((a: any) => (a.emp_id ?? a.employee_id) === empId) || isTesterOf(me, t));
   }
 
   @Post(':id/tasks')

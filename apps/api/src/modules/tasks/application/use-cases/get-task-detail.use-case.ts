@@ -33,6 +33,11 @@ export class GetTaskDetailUseCase {
         const history = await this.taskRepo.getHistory(taskId);
         return { task, history };
       }
+      // The QA tester opens the task they are asked to test
+      if (task.qa_assignee_id != null && task.qa_assignee_id === requestingEmpId) {
+        const history = await this.taskRepo.getHistory(taskId);
+        return { task, history };
+      }
       if (!isAssignee && !isLead && !isSubTaskAssignee) {
         throw new TaskPermissionDeniedError('You do not have access to view this task');
       }

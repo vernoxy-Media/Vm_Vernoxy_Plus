@@ -1226,6 +1226,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
           WHERE st_chk.parent_task_id = t.task_id AND ta_chk.employee_id = $${pIdx}
         ))
         OR (t.source = 'quick' AND t.created_by = $${pIdx})
+        OR (t.qa_assignee_id = $${pIdx} AND t.stage = 'in_qa')
       )`;
       params.push(forEmpId);
       pIdx++;
@@ -1445,6 +1446,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
           WHERE st_chk.parent_task_id = t.task_id AND ta_chk.employee_id = $${pIdx}
         ))
         OR (t.source = 'quick' AND t.created_by = $${pIdx})
+        OR (t.qa_assignee_id = $${pIdx} AND t.stage = 'in_qa')
       )`;
       params.push(forEmpId);
     } else {
