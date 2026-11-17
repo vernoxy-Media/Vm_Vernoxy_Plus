@@ -104,6 +104,9 @@ export class TaskBoardCardDto {
   @ApiPropertyOptional({ type: String, nullable: true })
   lead_employee_name!: string | null;
 
+  @ApiPropertyOptional({ type: Number, nullable: true, description: 'Manager of the task project' })
+  project_manager_id?: number | null;
+
   @ApiPropertyOptional({ type: Number, nullable: true, description: 'QA assignee of a project task' })
   qa_assignee_id?: number | null;
 

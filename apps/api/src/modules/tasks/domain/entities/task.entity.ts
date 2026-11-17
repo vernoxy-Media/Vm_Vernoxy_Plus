@@ -56,6 +56,8 @@ export interface TaskEntity {
   project_id?: number | null;
   project_no?: string | null;
   project_name?: string | null;
+  /** Manager of the task's project; may approve or send back its submitted tasks. */
+  project_manager_id?: number | null;
   lead_employee_id: number | null;
   lead_employee_name?: string | null;
   /** The tester a project task goes to after the developer finishes it; null when the task has no QA step. */

@@ -130,7 +130,7 @@ export const TaskIssuePanel: React.FC<TaskIssuePanelProps> = ({ task, isOpen, is
               task={task}
               projectName={task.project_name || heading}
               isAdmin={isAdmin}
-              canApprove={isAdmin}
+              canApprove={isAdmin || (task as { project_manager_id?: number | null }).project_manager_id === user?.emp_id}
               currentEmpId={user?.emp_id}
               members={[]}
               comments={[]}

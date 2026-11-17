@@ -1226,7 +1226,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
           WHERE st_chk.parent_task_id = t.task_id AND ta_chk.employee_id = $${pIdx}
         ))
         OR (t.source = 'quick' AND t.created_by = $${pIdx})
-        OR (t.qa_assignee_id = $${pIdx} AND t.stage = 'in_qa')
+        OR (t.qa_assignee_id = $${pIdx} AND t.stage IN ('in_qa', 'requested', 'completed'))
       )`;
       params.push(forEmpId);
       pIdx++;
@@ -1446,7 +1446,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
           WHERE st_chk.parent_task_id = t.task_id AND ta_chk.employee_id = $${pIdx}
         ))
         OR (t.source = 'quick' AND t.created_by = $${pIdx})
-        OR (t.qa_assignee_id = $${pIdx} AND t.stage = 'in_qa')
+        OR (t.qa_assignee_id = $${pIdx} AND t.stage IN ('in_qa', 'requested', 'completed'))
       )`;
       params.push(forEmpId);
     } else {
@@ -1595,7 +1595,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
     const project = projectId
       ? await tx.projects.findUnique({
           where: { project_id: projectId },
-          select: { project_id: true, project_no: true, project_name: true },
+          select: { project_id: true, project_no: true, project_name: true, project_manager_id: true },
         })
       : null;
     const qaAssignee = row.qa_assignee_id
@@ -1623,6 +1623,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
       project_id: project?.project_id ?? null,
       project_no: project?.project_no ?? null,
       project_name: project?.project_name ?? null,
+      project_manager_id: project?.project_manager_id ?? null,
       lead_employee_id: row.lead_employee_id,
       lead_employee_name: row.employees_tasks_lead_employee_idToemployees?.name ?? null,
       qa_assignee_id: row.qa_assignee_id ?? null,
