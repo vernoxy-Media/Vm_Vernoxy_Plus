@@ -13,7 +13,6 @@ import {
 import { PrismaClient, Prisma, employee_status } from '@prisma/client';
 import { ConflictDomainError } from '../../domain/errors/organization.errors';
 import { FileStoragePort, STORAGE_TOKENS } from '../../../storage/public-api';
-import { PREDEFINED_DOCS } from '../../application/services/employee-document.service';
 
 @Injectable()
 export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
@@ -641,15 +640,20 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       },
     });
 
-    // Seed predefined employee_documents so required documents start in file_pending status
+    // Give the new employee the standard document checklist so required documents start in file_pending.
+    // NOTE FOR THE TEAM: the checklist comes from the database (employee_document_checklist, kept in
+    // Settings -> Employee Documents), no longer from PREDEFINED_DOCS in the code.
     try {
+      const checklist = await client.$queryRaw<Array<{ document_type: string; title: string; category: string; is_required_for_activation: boolean }>>`
+        SELECT document_type, title, category, is_required_for_activation
+        FROM employee_document_checklist WHERE is_active ORDER BY display_order, checklist_id`;
       await (client as any).employee_documents.createMany({
-        data: PREDEFINED_DOCS.map((def) => {
-          const isReq = def.isRequiredForActivation ?? false;
+        data: checklist.map((def) => {
+          const isReq = def.is_required_for_activation;
           return {
             emp_id: created.emp_id,
             category: def.category,
-            document_type: def.type,
+            document_type: def.document_type,
             title: def.title,
             is_ticked: isReq,
             status: isReq ? 'file_pending' : 'not_ticked',

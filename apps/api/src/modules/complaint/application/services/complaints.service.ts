@@ -1650,32 +1650,32 @@ export class ComplaintsService {
       const no = c.complaint_no;
       const conf = Boolean(c.is_confidential);
       const label = conf ? `Confidential complaint ${no}` : `${no} "${String(c.subject || '').slice(0, 80)}"`;
-      const send = (recipients: Array<number | null | undefined>, kind: string, title: string, body: string, email = false) =>
-        this.deliver(c.complaint_id, c.complainant_id, actorId, { recipients, kind, title, body, email });
+      const send = (recipients: Array<number | null | undefined>, kind: string, title: string, body: string) =>
+        this.deliver(c.complaint_id, c.complainant_id, actorId, { recipients, kind, title, body });
       const others = (ids: Array<number | null | undefined>) => ids.filter((id) => id && id !== actorId);
       const handler = c.handler_id as number | null;
 
       switch (event) {
         case 'submitted':
           await send(admins, 'complaint_submitted', conf ? `A confidential complaint ${no} needs your attention` : `New complaint ${no}`,
-            conf ? `A confidential complaint ${no} needs your review.` : `${label} was submitted and waits for review.`, true);
+            conf ? `A confidential complaint ${no} needs your review.` : `${label} was submitted and waits for review.`);
           await send([c.complainant_id], 'complaint_received', `Complaint ${no} received`,
-            `Your complaint ${no} was submitted. The Admin will review it.`, true);
+            `Your complaint ${no} was submitted. The Admin will review it.`);
           break;
         case 'accepted':
           await send([handler], 'complaint_assigned', `Complaint ${no} assigned to you`,
-            `${label} is assigned to you. Priority ${c.priority}, target ${fmt(c.target_date)}.${!conf && extra.remarks ? ` Note: ${extra.remarks}` : ''}`, true);
+            `${label} is assigned to you. Priority ${c.priority}, target ${fmt(c.target_date)}.${!conf && extra.remarks ? ` Note: ${extra.remarks}` : ''}`);
           await send([c.complainant_id], 'complaint_accepted', `Complaint ${no} accepted`,
-            `Your complaint ${no} was accepted. Target date ${fmt(c.target_date)}.`, true);
+            `Your complaint ${no} was accepted. Target date ${fmt(c.target_date)}.`);
           break;
         case 'closed_without_action':
           await send([c.complainant_id], 'complaint_closed_without_action', `Complaint ${no} closed without action`,
-            `Your complaint ${no} was closed without action. Reason: ${extra.reason}. ${extra.remarks || ''}`.trim(), true);
+            `Your complaint ${no} was closed without action. Reason: ${extra.reason}. ${extra.remarks || ''}`.trim());
           break;
         case 'reassigned':
-          await send([extra.oldHandler], 'complaint_reassigned', `Complaint ${no} reassigned`, `${label} was reassigned to another handler.`, true);
-          await send([handler], 'complaint_assigned', `Complaint ${no} assigned to you`, `${label} was reassigned to you. Target ${fmt(c.target_date)}.`, true);
-          await send([c.complainant_id], 'complaint_reassigned', `Complaint ${no} has a new handler`, `Your complaint ${no} has a new handler.`, true);
+          await send([extra.oldHandler], 'complaint_reassigned', `Complaint ${no} reassigned`, `${label} was reassigned to another handler.`);
+          await send([handler], 'complaint_assigned', `Complaint ${no} assigned to you`, `${label} was reassigned to you. Target ${fmt(c.target_date)}.`);
+          await send([c.complainant_id], 'complaint_reassigned', `Complaint ${no} has a new handler`, `Your complaint ${no} has a new handler.`);
           break;
         case 'priority_changed':
         case 'target_changed':
@@ -1701,22 +1701,22 @@ export class ComplaintsService {
           break;
         case 'resolved':
           await send([c.complainant_id], 'complaint_resolved', `Complaint ${no} resolved`,
-            `Your complaint ${no} is resolved. Please confirm the resolution or reopen it within the confirmation window.`, true);
-          await send(others(admins), 'complaint_resolved', `Complaint ${no} resolved`, `${label} was resolved and waits to be closed.`, true);
+            `Your complaint ${no} is resolved. Please confirm the resolution or reopen it within the confirmation window.`);
+          await send(others(admins), 'complaint_resolved', `Complaint ${no} resolved`, `${label} was resolved and waits to be closed.`);
           break;
         case 'confirmed':
           await send(admins, 'complaint_confirmed', `Complaint ${no} confirmed`, `The employee confirmed the resolution of ${no}. It can be closed.`);
           break;
         case 'reopened':
           await send([handler, ...admins], 'complaint_reopened', `Complaint ${no} reopened`,
-            `${label} was reopened by the employee (${c.reopen_count} time${c.reopen_count === 1 ? '' : 's'})${conf ? '' : `: ${String(extra.reason || '').slice(0, 150)}`}.`, true);
+            `${label} was reopened by the employee (${c.reopen_count} time${c.reopen_count === 1 ? '' : 's'})${conf ? '' : `: ${String(extra.reason || '').slice(0, 150)}`}.`);
           break;
         case 'sent_back':
-          await send([handler], 'complaint_sent_back', `Complaint ${no} sent back`, `${label} was sent back to you by the Admin. ${conf ? '' : extra.remarks || ''}`.trim(), true);
-          await send([c.complainant_id], 'complaint_sent_back', `Complaint ${no} reopened by the Admin`, `Work on your complaint ${no} continues.`, true);
+          await send([handler], 'complaint_sent_back', `Complaint ${no} sent back`, `${label} was sent back to you by the Admin. ${conf ? '' : extra.remarks || ''}`.trim());
+          await send([c.complainant_id], 'complaint_sent_back', `Complaint ${no} reopened by the Admin`, `Work on your complaint ${no} continues.`);
           break;
         case 'closed':
-          await send(others([c.complainant_id, handler]), 'complaint_closed', `Complaint ${no} closed`, `Complaint ${no} is closed.`, true);
+          await send(others([c.complainant_id, handler]), 'complaint_closed', `Complaint ${no} closed`, `Complaint ${no} is closed.`);
           break;
         case 'withdrawn':
           await send([...admins, handler], 'complaint_withdrawn', `Complaint ${no} withdrawn`, `${label} was withdrawn by the employee.`);
@@ -1727,8 +1727,8 @@ export class ComplaintsService {
     }
   }
 
-  /** Sends and writes "Notification sent" in the History (to whom, channel, email delivered). */
-  async deliver(complaintId: number, complainantId: number, actorId: number | null, n: { recipients: Array<number | null | undefined>; kind: string; title: string; body: string; email?: boolean }) {
+  /** Sends in-app and writes "Notification sent" in the History (to whom). */
+  async deliver(complaintId: number, complainantId: number, actorId: number | null, n: { recipients: Array<number | null | undefined>; kind: string; title: string; body: string }) {
     const results = await this.notifier.send({ ...n, complaintId, actorId });
     for (const r of results) {
       await this.recordHistory(
@@ -1737,7 +1737,7 @@ export class ComplaintsService {
         undefined,
         undefined,
         undefined,
-        `${r.name} told by ${r.email ? 'in-app and email' : 'in-app'}${r.email && r.delivered === false ? ' (Email not delivered)' : ''}`,
+        `${r.name} told in-app`,
         // The employee does not see notifications sent to others (BFD 8)
         r.empId !== complainantId,
       );

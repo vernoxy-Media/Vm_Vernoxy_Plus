@@ -19,42 +19,19 @@ import {
   EmployeeActivationStatusDto,
   ActivateEmployeeResponseDto,
 } from '../../presentation/dto/employee-document.dto';
+import { ChecklistItem, EmployeeDocumentChecklistService } from './employee-document-checklist.service';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as argon2 from 'argon2';
 
-export interface PredefinedDoc {
-  type: string;
-  category: 'given_to_employee' | 'taken_from_employee' | 'agreement';
-  title: string;
-  lockWhenActive?: boolean;
-  isRequiredForActivation?: boolean;
-}
-
-export const PREDEFINED_DOCS: PredefinedDoc[] = [
-  // Agreement (Moved to top as requested)
-  { type: 'nda_signed', category: 'agreement', title: 'NDA signed', isRequiredForActivation: true },
-
-  // Given to employee
-  { type: 'offer_letter', category: 'given_to_employee', title: 'Offer Letter' },
-  { type: 'joining_letter', category: 'given_to_employee', title: 'Joining Letter' },
-  { type: 'experience_letter', category: 'given_to_employee', title: 'Experience Letter', lockWhenActive: true },
-  { type: 'salary_slip', category: 'given_to_employee', title: 'Salary Slip', lockWhenActive: true },
-  { type: 'relieving_letter', category: 'given_to_employee', title: 'Relieving Letter', lockWhenActive: true },
-
-  // Taken from employee (BFD Screen 8 Part 2 rules)
-  { type: 'marksheet_10th', category: 'taken_from_employee', title: '10th Standard Marksheet', isRequiredForActivation: true },
-  { type: 'marksheet_12th', category: 'taken_from_employee', title: '12th Standard Marksheet (or Diploma)', isRequiredForActivation: true },
-  { type: 'marksheet_ug', category: 'taken_from_employee', title: 'Graduation Degree / Marksheet' },
-  { type: 'marksheet_pg', category: 'taken_from_employee', title: 'Post-Graduation Marksheet' },
-  { type: 'pan_card', category: 'taken_from_employee', title: 'PAN Card' },
-  { type: 'aadhaar_card', category: 'taken_from_employee', title: 'Aadhaar Card', isRequiredForActivation: true },
-  { type: 'passport_photos', category: 'taken_from_employee', title: 'Passport Size Photo', isRequiredForActivation: true },
-  { type: 'bank_details', category: 'taken_from_employee', title: 'Bank Details (Passbook or cancelled cheque)', isRequiredForActivation: true },
-  { type: 'experience_letter_old', category: 'taken_from_employee', title: 'Previous Experience / Relieving Letter' },
-  { type: 'salary_slip_old', category: 'taken_from_employee', title: 'Last 3 Salary Slips' },
-];
+/*
+ * NOTE FOR THE TEAM: the standard document checklist is no longer a list in this file (it was
+ * PREDEFINED_DOCS). It comes from the database table employee_document_checklist, which the Admin
+ * keeps in Settings -> Employee Documents (name, required for activation, order, active).
+ * See EmployeeDocumentChecklistService. "Add Document" on an employee's tab still adds a one-off
+ * document for that employee only (addCustomDocument below).
+ */
 
 const argon2Options: argon2.HashOptions = {
   type: argon2.argon2id,
@@ -90,6 +67,7 @@ export class EmployeeDocumentService implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly checklist: EmployeeDocumentChecklistService,
     @Optional() @Inject(AUTH_TOKENS.MailPort) private readonly mailPort?: MailPort,
   ) {}
 
@@ -172,33 +150,36 @@ export class EmployeeDocumentService implements OnModuleInit, OnModuleDestroy {
       existingMap.set(d.document_type, d);
     }
 
-    // Check and create missing predefined docs
-    for (const def of PREDEFINED_DOCS) {
-      if (!existingMap.has(def.type)) {
-        const isReq = def.isRequiredForActivation ?? false;
-        const defaultStatus = def.lockWhenActive && !isEmployeeDeactivated
+    // Standard checklist from the database (Settings -> Employee Documents), not from the code.
+    const checklist: ChecklistItem[] = await this.checklist.all();
+
+    // Give the employee any active checklist document they do not have yet
+    for (const def of checklist) {
+      if (def.is_active && !existingMap.has(def.document_type)) {
+        const isReq = def.is_required_for_activation;
+        const defaultStatus = def.lock_when_active && !isEmployeeDeactivated
           ? 'locked'
           : (isReq ? 'file_pending' : 'not_ticked');
         const defaultTicked = isReq;
         const inserted = await this.prisma.$queryRaw<any[]>`
           INSERT INTO employee_documents (emp_id, category, document_type, title, is_ticked, status, is_required_for_activation)
-          VALUES (${empId}, ${def.category}, ${def.type}, ${def.title}, ${defaultTicked}, ${defaultStatus}, ${isReq})
+          VALUES (${empId}, ${def.category}, ${def.document_type}, ${def.title}, ${defaultTicked}, ${defaultStatus}, ${isReq})
           ON CONFLICT (emp_id, document_type) DO UPDATE SET updated_at = NOW()
           RETURNING *
         `;
         if (inserted && inserted[0]) {
-          existingMap.set(def.type, inserted[0]);
+          existingMap.set(def.document_type, inserted[0]);
         }
       }
     }
 
-    // Return all sorted in the order of PREDEFINED_DOCS
+    // Return all in the checklist order (a switched-off item still shows for employees who have it)
     const results: EmployeeDocumentItemDto[] = [];
-    for (const def of PREDEFINED_DOCS) {
-      const doc = existingMap.get(def.type);
+    for (const def of checklist) {
+      const doc = existingMap.get(def.document_type);
       if (doc) {
         let status = doc.status;
-        if (def.lockWhenActive) {
+        if (def.lock_when_active) {
           if (!isEmployeeDeactivated) {
             status = 'locked';
           } else if (isEmployeeDeactivated && status === 'locked') {
@@ -215,7 +196,7 @@ export class EmployeeDocumentService implements OnModuleInit, OnModuleDestroy {
           title: doc.title,
           is_ticked: Boolean(doc.is_ticked),
           status,
-          is_required_for_activation: Boolean(doc.is_required_for_activation ?? def.isRequiredForActivation),
+          is_required_for_activation: Boolean(doc.is_required_for_activation ?? def.is_required_for_activation),
           file_url: doc.file_url,
           file_name: doc.file_name,
           file_size: doc.file_size ? Number(doc.file_size) : null,
@@ -229,9 +210,10 @@ export class EmployeeDocumentService implements OnModuleInit, OnModuleDestroy {
       }
     }
 
-    // Also include any custom / other documents added for this employee
+    // Also include any custom / other documents added for this employee (not in the checklist)
+    const inChecklist = new Set(checklist.map((def) => def.document_type));
     for (const d of existingDocs) {
-      if (!PREDEFINED_DOCS.some((def) => def.type === d.document_type)) {
+      if (!inChecklist.has(d.document_type)) {
         if (d.document_type === 'offer_letter_old' || d.document_type === 'joining_letter_old') {
           continue;
         }

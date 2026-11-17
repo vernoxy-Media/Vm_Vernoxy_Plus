@@ -1,9 +1,11 @@
-import React, { useMemo, useState } from 'react';
-import { Award, Briefcase, ClipboardList, Star, Users } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { ArrowLeft, Award, Briefcase, ClipboardList, Star, Users } from 'lucide-react';
 import { useDepartmentOptionsQuery } from '@/features/organization/hooks/use-organization';
 import { useMyPerfReviewQuery, usePerfCyclesQuery } from '../hooks/use-performance';
 import { CYCLE_STATUS_LABEL, CycleStatusBadge, windowLabel } from '../components/perf-ui';
 import { SelfReviewTab } from '../components/SelfReviewTab';
+import { MyReviewsList } from '../components/MyReviewsList';
 import { TeamReviewTab } from '../components/TeamReviewTab';
 import { RatingSummaryTab } from '../components/RatingSummaryTab';
 import { ProjectRatingTab } from '../components/ProjectRatingTab';
@@ -30,6 +32,14 @@ export const PerformancePage: React.FC = () => {
   }, [isAdmin, isManager, isPM]);
   const [tab, setTab] = useState<Tab>('SELF');
   const [focusEmp, setFocusEmp] = useState<number | null>(null);
+  // Self Review starts as the list of my reviews; a review opens in full only when clicked.
+  const [selfOpen, setSelfOpen] = useState(false);
+  // The open cycle's review is created the first time "my review" loads: refresh the list once it exists.
+  const qc = useQueryClient();
+  const myReviewId = my?.review?.review_id;
+  useEffect(() => {
+    if (myReviewId) qc.invalidateQueries({ queryKey: ['perf-my-list'] });
+  }, [myReviewId, qc]);
   const current = tabs.some((t) => t.id === tab) ? tab : 'SELF';
   const cycle = my?.cycle;
 
@@ -92,7 +102,26 @@ export const PerformancePage: React.FC = () => {
         </div>
       )}
 
-      {current === 'SELF' && <SelfReviewTab data={my} loading={isLoading} />}
+      {current === 'SELF' &&
+        (selfOpen ? (
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => setSelfOpen(false)}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-700 hover:text-blue-900 hover:underline"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" /> All my reviews
+            </button>
+            <SelfReviewTab data={my} loading={isLoading} />
+          </div>
+        ) : (
+          <MyReviewsList
+            onOpen={(id) => {
+              setCycleId(id);
+              setSelfOpen(true);
+            }}
+          />
+        ))}
       {current === 'TEAM' && (
         <TeamReviewTab cycleId={activeCycleId} isAdmin={isAdmin} isManager={isManager} departments={departments} focusEmpId={focusEmp} />
       )}

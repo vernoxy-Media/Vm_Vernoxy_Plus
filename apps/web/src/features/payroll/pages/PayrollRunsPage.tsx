@@ -47,7 +47,12 @@ export const PayrollRunsPage: React.FC = () => {
           <button type="button" className={btn.secondary} onClick={() => navigate('/admin/payroll/reports')}>
             <BarChart3 className="h-4 w-4" /> Reports
           </button>
-          <button type="button" className={btn.secondary} onClick={() => setSettingsOpen(true)}>
+          {/* The Admin edits Payroll Settings in Settings -> HR; Accounts users only view them here. */}
+          <button
+            type="button"
+            className={btn.secondary}
+            onClick={() => (me?.can_edit_settings ? navigate('/admin/settings/payroll-settings') : setSettingsOpen(true))}
+          >
             <Settings className="h-4 w-4" /> Settings
           </button>
           <button type="button" className={btn.primary} onClick={() => setStartFor(null)}>
@@ -173,7 +178,7 @@ export const PayrollRunsPage: React.FC = () => {
       </div>
 
       <StartPayrollModal open={startFor !== undefined} preset={startFor ?? null} onClose={() => setStartFor(undefined)} />
-      <PayrollSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} canEdit={Boolean(me?.can_edit_settings)} />
+      <PayrollSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 };

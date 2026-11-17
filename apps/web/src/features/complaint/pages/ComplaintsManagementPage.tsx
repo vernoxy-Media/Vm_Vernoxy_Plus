@@ -754,30 +754,21 @@ export const ComplaintsManagementPage: React.FC = (): React.ReactElement => {
                         )}
                       </td>
                       <td className="px-5 py-3.5 text-right">
-                        {c.status === 'New' ? (
-                          <div className="flex items-center justify-end gap-1">
-                            <button type="button" onClick={() => openAcceptModal(c)} className="h-8 cursor-pointer rounded-lg bg-indigo-600 px-3.5 text-[13px] font-semibold text-white shadow-sm shadow-indigo-600/25 transition hover:bg-indigo-700">
-                              Review
-                            </button>
-                            <RowActionsMenu
-                              label={`More actions for ${c.complaint_no}`}
-                              actions={[
-                                { label: 'View details', icon: Search, onClick: () => setViewingComplaintId(c.complaint_id) },
-                                { label: 'Close without action', icon: XCircle, danger: true, onClick: () => openCloseWithoutAction(c) },
-                              ]}
-                            />
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-end gap-1">
-                            <button type="button" onClick={() => setViewingComplaintId(c.complaint_id)} className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-lg px-3 text-[13px] font-semibold text-indigo-600 transition hover:bg-indigo-50">
-                              Open <ChevronRight className="h-4 w-4" />
-                            </button>
-                            <RowActionsMenu
-                              label={`More actions for ${c.complaint_no}`}
-                              actions={[{ label: 'View details', icon: Search, onClick: () => setViewingComplaintId(c.complaint_id) }]}
-                            />
-                          </div>
-                        )}
+                        {/* One ⋮ menu per row (same as Leave and Licenses). New complaints: Review first. */}
+                        <div className="flex justify-end">
+                          <RowActionsMenu
+                            label={`Actions for ${c.complaint_no}`}
+                            actions={
+                              c.status === 'New'
+                                ? [
+                                    { label: 'Review & assign', icon: CheckCircle2, onClick: () => openAcceptModal(c) },
+                                    { label: 'View details', icon: Search, onClick: () => setViewingComplaintId(c.complaint_id) },
+                                    { label: 'Close without action', icon: XCircle, danger: true, onClick: () => openCloseWithoutAction(c) },
+                                  ]
+                                : [{ label: 'Open details', icon: Search, onClick: () => setViewingComplaintId(c.complaint_id) }]
+                            }
+                          />
+                        </div>
                       </td>
                     </tr>
                   ))}

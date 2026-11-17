@@ -78,14 +78,17 @@ import { GetDeactivateWarningUseCase } from './application/use-cases/get-deactiv
 import { GetEmployeeHistoryUseCase } from './application/use-cases/get-employee-history.use-case';
 import { EmployeeDocumentController } from './presentation/controllers/employee-document.controller';
 import { EmployeeDocumentService } from './application/services/employee-document.service';
+import { EmployeeDocumentChecklistService } from './application/services/employee-document-checklist.service';
+import { EmployeeDocumentChecklistController } from './presentation/controllers/employee-document-checklist.controller';
 import { AUTH_TOKENS } from '../auth/application/ports/tokens';
 import { MailPort } from '../auth/application/ports/auth.ports';
 
 @Module({
   imports: [AuthModule, StorageModule],
-  controllers: [DepartmentController, RoleController, EmployeeController, EmployeeDocumentController],
+  controllers: [DepartmentController, RoleController, EmployeeController, EmployeeDocumentController, EmployeeDocumentChecklistController],
   providers: [
     EmployeeDocumentService,
+    EmployeeDocumentChecklistService,
     // Ports Implementations
     {
       provide: DEPARTMENT_REPOSITORY_TOKEN,

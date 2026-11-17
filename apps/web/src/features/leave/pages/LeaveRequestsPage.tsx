@@ -52,7 +52,7 @@ interface Props {
   hideBreadcrumb?: boolean;
   /** Reporting Manager: read-only list of the team's requests. */
   teamMode?: boolean;
-  onNavigate?: (tab: 'calendar' | 'balances' | 'reports') => void;
+  onNavigate?: (tab: 'balances' | 'reports') => void;
 }
 
 export const LeaveRequestsPage: React.FC<Props> = ({ teamMode = false, onNavigate }) => {
@@ -197,9 +197,6 @@ export const LeaveRequestsPage: React.FC<Props> = ({ teamMode = false, onNavigat
           </div>
           {!teamMode && (
             <div className="flex flex-wrap items-center gap-2">
-              <Btn onClick={() => onNavigate?.('calendar')}>
-                <CalendarDays className="h-4 w-4 text-slate-500" /> Calendar
-              </Btn>
               <Btn onClick={() => onNavigate?.('balances')}>
                 <Wallet className="h-4 w-4 text-slate-500" /> Balances
               </Btn>

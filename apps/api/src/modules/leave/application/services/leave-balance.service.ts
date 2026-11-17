@@ -240,6 +240,14 @@ export class LeaveBalanceService {
     const proRata = emp.pro_rata !== false;
     const rules = await this.core.getPolicyRules(emp.leave_policy_id);
     let count = 0;
+    // Credits already given this leave year, read once. Without this, every page open ran one
+    // transaction per type per month (the key check was only inside it), which made Leave slow.
+    const given = new Set(
+      (
+        await this.prisma.$queryRaw<Array<{ credit_key: string }>>`
+          SELECT credit_key FROM leave_ledger WHERE emp_id = ${empId} AND credit_key IS NOT NULL AND leave_year = ${year};`
+      ).map((r) => r.credit_key),
+    );
 
     for (const rule of rules) {
       if (!rule.balance_tracked || rule.status !== 'ACTIVE') continue;
@@ -257,24 +265,20 @@ export class LeaveBalanceService {
         if (joined >= start) {
           const months = monthsLeftInLeaveYear(joined, s.start_month);
           const days = proRata ? roundDownHalf((perYear * months) / 12) : perYear;
-          const ok = await this.prisma.$transaction((tx) =>
-            this.credit(tx, {
+          const ok = await this.creditOnce(given, {
               empId, typeId, year, column: 'opening_balance', days,
               entryType: 'OPENING_BALANCE',
               note: `Opening Balance from Joining Date ${fmtDate(joined)}: ${rule.code} +${days}`,
               creditKey: `OB:${empId}:${typeId}:${year}`,
-            }),
-          );
+          });
           if (ok) count++;
         } else {
-          const ok = await this.prisma.$transaction((tx) =>
-            this.credit(tx, {
+          const ok = await this.creditOnce(given, {
               empId, typeId, year, column: 'credited_days', days: perYear,
               entryType: 'YEARLY_CREDIT',
               note: `Yearly credit ${label}: ${rule.code} +${perYear}`,
               creditKey: `YC:${empId}:${typeId}:${year}`,
-            }),
-          );
+          });
           if (ok) count++;
         }
         continue;
@@ -287,14 +291,12 @@ export class LeaveBalanceService {
         const joinedDay = Number(joined.slice(8, 10));
         const joinMonthStart = `${joined.slice(0, 7)}-01`;
         if (!proRata || joinedDay <= 15) {
-          const ok = await this.prisma.$transaction((tx) =>
-            this.credit(tx, {
+          const ok = await this.creditOnce(given, {
               empId, typeId, year, column: 'opening_balance', days: monthly,
               entryType: 'OPENING_BALANCE',
               note: `Opening Balance from Joining Date ${fmtDate(joined)}: ${rule.code} +${monthly}`,
               creditKey: `OB:${empId}:${typeId}:${year}`,
-            }),
-          );
+          });
           if (ok) count++;
         }
         firstMonth = this.nextMonthStart(joinMonthStart);
@@ -304,18 +306,24 @@ export class LeaveBalanceService {
       }
       for (const m of monthStarts(firstMonth, today)) {
         if (m < start) continue;
-        const ok = await this.prisma.$transaction((tx) =>
-          this.credit(tx, {
+        const ok = await this.creditOnce(given, {
             empId, typeId, year, column: 'credited_days', days: monthly,
             entryType: 'MONTHLY_CREDIT',
             note: `Monthly credit ${monthName(Number(m.slice(5, 7))).slice(0, 3)} ${m.slice(0, 4)}: ${rule.code} +${monthly}`,
             creditKey: `MC:${empId}:${typeId}:${m.slice(0, 7)}`,
-          }),
-        );
+        });
         if (ok) count++;
       }
     }
     return count;
+  }
+
+  /** One credit, skipped without touching the database when its key was already given. */
+  private async creditOnce(given: Set<string>, p: Parameters<LeaveBalanceService['credit']>[1]): Promise<boolean> {
+    if (p.creditKey && given.has(p.creditKey)) return false;
+    const ok = await this.prisma.$transaction((tx) => this.credit(tx, p));
+    if (ok && p.creditKey) given.add(p.creditKey);
+    return ok;
   }
 
   private nextMonthStart(monthStart: string): string {

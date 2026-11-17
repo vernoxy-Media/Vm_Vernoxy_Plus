@@ -380,21 +380,22 @@ export class LeaveCoreService {
   // ---------------------------------------------------------------------------
 
   /** Returns the month name of the first locked attendance month touching the dates. */
+  /**
+   * The first locked month among the dates, as "October 2026", or null. Reads the attendance month
+   * lock itself (attendance_month_locks). It used to read payroll_runs.attendance_locked, a copy that
+   * is only refreshed when payroll is calculated, so leave could still be changed in a month whose
+   * attendance had just been locked.
+   */
   async findLockedMonth(dates: string[], db: Db = this.prisma): Promise<string | null> {
     if (!dates.length) return null;
-    const from = dates[0];
-    const to = dates[dates.length - 1];
-    const rows = await db.$queryRaw<any[]>`
-      SELECT payroll_month, payroll_year, start_date, end_date FROM payroll_runs
-      WHERE attendance_locked = true AND start_date <= ${to}::date AND end_date >= ${from}::date
-      ORDER BY start_date ASC;
+    const months = Array.from(new Set(dates.map((d) => d.slice(0, 7))));
+    const rows = await db.$queryRaw<Array<{ lock_year: number; lock_month: number }>>`
+      SELECT lock_year, lock_month FROM attendance_month_locks
+      WHERE is_locked AND to_char(make_date(lock_year, lock_month, 1), 'YYYY-MM') = ANY(${months}::text[])
+      ORDER BY lock_year, lock_month LIMIT 1;
     `;
-    for (const r of rows) {
-      const s = toDateStr(r.start_date);
-      const e = toDateStr(r.end_date);
-      if (dates.some((d) => d >= s && d <= e)) return monthName(Number(r.payroll_month));
-    }
-    return null;
+    const r = rows[0];
+    return r ? `${monthName(Number(r.lock_month))} ${r.lock_year}` : null;
   }
 
   async findCheckIn(empId: number, dates: string[], db: Db = this.prisma): Promise<string | null> {

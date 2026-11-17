@@ -47,6 +47,8 @@ import {
   Bug,
   Handshake,
   GitBranch,
+  FileCheck2,
+  Banknote,
 } from 'lucide-react';
 import type { MeResponseDto } from '@vernoxy-pulse/api-client';
 
@@ -110,6 +112,9 @@ const SettingsComplaintSettingsSection = React.lazy(() =>
 const SettingsLicenseSection = React.lazy(() =>
   import('./sections/SettingsLicenseSection').then((m) => ({ default: m.SettingsLicenseSection }))
 );
+const SettingsPayrollSection = React.lazy(() =>
+  import('./sections/SettingsPayrollSection').then((m) => ({ default: m.SettingsPayrollSection }))
+);
 const SalarySlipTemplatePage = React.lazy(() =>
   import('@/features/document-templates/pages/SalarySlipTemplatePage').then((m) => ({ default: m.SalarySlipTemplatePage }))
 );
@@ -136,6 +141,9 @@ const SettingsGendersSection = React.lazy(() =>
 );
 const SettingsBloodGroupsSection = React.lazy(() =>
   import('./sections/SettingsBloodGroupsSection').then((m) => ({ default: m.SettingsBloodGroupsSection }))
+);
+const SettingsEmployeeDocumentsSection = React.lazy(() =>
+  import('./sections/SettingsEmployeeDocumentsSection').then((m) => ({ default: m.SettingsEmployeeDocumentsSection }))
 );
 const SettingsDeactivationReasonsSection = React.lazy(() =>
   import('./sections/SettingsDeactivationReasonsSection').then((m) => ({ default: m.SettingsDeactivationReasonsSection }))
@@ -253,6 +261,16 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     path: '/admin/settings/blood-groups',
     icon: Heart,
     component: SettingsBloodGroupsSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Employee',
+  },
+  {
+    // Standard document checklist (from the database, table employee_document_checklist)
+    id: 'employee-documents',
+    label: 'Employee Documents',
+    path: '/admin/settings/employee-documents',
+    icon: FileCheck2,
+    component: SettingsEmployeeDocumentsSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
     group: 'Employee',
   },
@@ -617,6 +635,15 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     path: '/admin/settings/license-settings',
     icon: Laptop,
     component: SettingsLicenseSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'HR',
+  },
+  {
+    id: 'payroll-settings',
+    label: 'Payroll Settings',
+    path: '/admin/settings/payroll-settings',
+    icon: Banknote,
+    component: SettingsPayrollSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
     group: 'HR',
   },

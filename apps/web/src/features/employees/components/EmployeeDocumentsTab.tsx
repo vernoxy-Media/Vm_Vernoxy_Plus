@@ -248,6 +248,9 @@ export const EmployeeDocumentsTab: React.FC<EmployeeDocumentsTabProps> = ({
   const requiredDocs = docs.filter((d) => d.is_required_for_activation);
   const requiredUploaded = requiredDocs.filter(isDocComplete).length;
 
+  // NOTE FOR THE TEAM: these documents come from the database. The standard ones are the checklist in
+  // Settings -> Employee Documents (table employee_document_checklist: name, required, order); "Add Document"
+  // below adds a one-off document for this employee only. Nothing here is a fixed list in the code.
   // Agreements (Moved to top as requested)
   const agreementDocs = docs.filter((d) => d.category === 'agreement' || d.document_type === 'nda_signed');
   const givenDocs = docs.filter((d) => d.category === 'given_to_employee');

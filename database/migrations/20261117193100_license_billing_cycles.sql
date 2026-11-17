@@ -1,5 +1,5 @@
 -- migrate:up
--- (Renumbered from 20261117180000, which qa also used for task_priority_stage_masters. Safe to run again.)
+-- (Renumbered from 20261117180000, then 20261117190000: qa used both numbers. Safe to run again.)
 -- Software License: Billing Cycles become a list the Admin manages (Settings -> License Settings),
 -- instead of five names fixed in the code. Each cycle says how long one term is, because the
 -- "term and cycle" check and the yearly cost are worked out from that length:

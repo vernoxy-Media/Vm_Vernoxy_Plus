@@ -86,7 +86,7 @@ export const LeaveDashboardCard: React.FC = () => {
             {[
               { to: '/leave?tab=requests', n: data.admin.pending_count, label: 'Pending', tone: 'text-amber-600' },
               { to: '/leave?tab=requests', n: data.admin.cancellation_requests_count, label: 'Cancel requests', tone: 'text-rose-600' },
-              { to: '/leave?tab=calendar', n: data.admin.on_leave_today.length, label: 'On leave today', tone: 'text-blue-600' },
+              { to: '/calendar', n: data.admin.on_leave_today.length, label: 'On leave today', tone: 'text-blue-600' },
             ].map((t) => (
               <Link key={t.label} to={t.to} className="rounded-xl border border-slate-200 p-3 text-center transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-sm">
                 <div className={`text-xl font-extrabold tabular-nums ${t.n ? t.tone : 'text-slate-900'}`}>{t.n}</div>

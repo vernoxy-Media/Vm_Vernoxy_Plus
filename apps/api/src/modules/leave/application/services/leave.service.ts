@@ -259,7 +259,7 @@ export class LeaveService {
     if (locked) {
       err('from_date', 'LOCKED', self
         ? `Attendance for ${locked} is locked. Please contact the Admin.`
-        : `Attendance for ${locked} is locked.`);
+        : `Attendance for ${locked} is locked, so this leave cannot change that month's pay. Ask Accounts to pay the day as a Day Adjustment in Payroll.`);
     }
 
     // Balance
@@ -395,8 +395,10 @@ export class LeaveService {
     const year = yearParam || currentYear;
     const range = leaveYearRange(year, settings.start_month);
 
-    const balances = emp.leave_policy_id ? await this.buildBalanceCards(emp, year, settings) : [];
-    const requests = await this.prisma.$queryRaw<any[]>`
+    // Independent reads, run together (one after another they made My Leave slow).
+    const [balances, requests, years, applyTypes] = await Promise.all([
+      emp.leave_policy_id ? this.buildBalanceCards(emp, year, settings) : Promise.resolve([]),
+      this.prisma.$queryRaw<any[]>`
       SELECT r.request_id, r.request_no, r.emp_id, r.leave_type_id, r.is_paid, r.duration, r.from_date, r.to_date,
              r.leave_days, r.reason, r.attachment_url, r.is_short_notice, r.status, r.applied_at, r.decided_at,
              r.decision_remarks, r.cancellation_reason, r.cancellation_remarks, r.added_by_admin, r.leave_year,
@@ -408,14 +410,15 @@ export class LeaveService {
       WHERE r.emp_id = ${empId}
         AND COALESCE(r.leave_year, EXTRACT(YEAR FROM r.from_date)::int) = ${year}
       ORDER BY (r.status = 'PENDING') DESC, r.applied_at DESC;
-    `;
-
-    const years = await this.prisma.$queryRaw<any[]>`
+    `,
+      this.prisma.$queryRaw<any[]>`
       SELECT DISTINCT leave_year FROM (
         SELECT leave_year FROM leave_balances WHERE emp_id = ${empId}
         UNION SELECT COALESCE(leave_year, EXTRACT(YEAR FROM from_date)::int) FROM leave_requests WHERE emp_id = ${empId}
       ) x WHERE leave_year IS NOT NULL ORDER BY leave_year DESC;
-    `;
+    `,
+      emp.leave_policy_id ? this.getApplyTypes(emp, settings) : Promise.resolve([]),
+    ]);
     const yearOptions = Array.from(new Set([currentYear, ...years.map((y) => Number(y.leave_year))]))
       .filter((y) => y <= currentYear)
       .sort((a, b) => b - a)
@@ -441,7 +444,7 @@ export class LeaveService {
       leave_year_range: range,
       year_options: yearOptions,
       balances,
-      apply_types: emp.leave_policy_id ? await this.getApplyTypes(emp, settings) : [],
+      apply_types: applyTypes,
       requests: requests.map((r) => this.mapRequestRow(r, today)),
     };
   }
@@ -801,7 +804,10 @@ export class LeaveService {
     const all = dates.length ? dates : [toDateStr(req.from_date), toDateStr(req.to_date)];
     const locked = await this.core.findLockedMonth(all, db);
     if (locked) {
-      throw new BadRequestException({ message: `Attendance for ${locked} is locked. Please contact the Admin.`, code: 'LOCKED' });
+      throw new BadRequestException({
+        message: `Attendance for ${locked} is locked. To change that month's pay, Accounts adds a Day Adjustment in Payroll.`,
+        code: 'LOCKED',
+      });
     }
   }
 

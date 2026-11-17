@@ -174,7 +174,7 @@ export function perfFieldErrors(err: any): Record<string, string> {
 }
 
 const invalidateAll = (qc: ReturnType<typeof useQueryClient>) => {
-  ['perf-cycles', 'perf-forms', 'perf-my-review', 'perf-team', 'perf-summary', 'perf-project-members', 'perf-coverage'].forEach((k) =>
+  ['perf-cycles', 'perf-forms', 'perf-my-review', 'perf-my-list', 'perf-team', 'perf-summary', 'perf-project-members', 'perf-coverage'].forEach((k) =>
     qc.invalidateQueries({ queryKey: [k] }),
   );
 };
@@ -291,6 +291,23 @@ export function useMyPerfReviewQuery(cycleId?: number) {
   return useQuery<MyReviewResponse>({
     queryKey: ['perf-my-review', cycleId],
     queryFn: () => customFetch<MyReviewResponse>(`${API}/reviews/my${qs({ cycle_id: cycleId })}`),
+  });
+}
+
+/** One of my reviews, for the Self Review list (newest first). */
+export interface MyReviewListItem {
+  review_id: number;
+  cycle: PerfCycleItem;
+  self_status: string;
+  self_submitted_at: string | null;
+  self_avg_rating: number | null;
+  final_rating: number | null;
+}
+
+export function useMyReviewsListQuery() {
+  return useQuery<MyReviewListItem[]>({
+    queryKey: ['perf-my-list'],
+    queryFn: () => customFetch<MyReviewListItem[]>(`${API}/reviews/my-list`),
   });
 }
 

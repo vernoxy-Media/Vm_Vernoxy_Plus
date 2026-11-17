@@ -149,9 +149,9 @@ export const AssignLicenseModal: React.FC<AssignLicenseModalProps> = ({
 
  return (
  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
- <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-200 my-8 overflow-hidden">
+ <div className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl border border-slate-200 my-8">
  {/* Header */}
- <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50/50 ">
+ <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50/50 rounded-t-2xl">
  <div>
  <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
  <UserPlus className="w-5 h-5 text-blue-600" />
@@ -227,14 +227,14 @@ export const AssignLicenseModal: React.FC<AssignLicenseModalProps> = ({
  </button>
  </div>
 
- <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+ <div className="space-y-3">
  {rows.map((row, idx) => (
  <div
  key={idx}
  className="flex flex-col sm:flex-row items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-200 "
  >
  {/* Employee Dropdown */}
- <div className="w-full sm:w-5/12">
+ <div className="w-full sm:w-1/2">
  <SearchableSelect
                         placeholder="Select Employee"
                         searchPlaceholder="Search by employee name or email..."
@@ -256,7 +256,7 @@ export const AssignLicenseModal: React.FC<AssignLicenseModalProps> = ({
  </div>
 
  {/* Login Account ID */}
- <div className="w-full sm:w-3/12">
+ <div className="w-full sm:flex-1 sm:min-w-0">
  <input
  type="text"
  placeholder="Login / Account ID"
@@ -268,7 +268,7 @@ export const AssignLicenseModal: React.FC<AssignLicenseModalProps> = ({
  </div>
 
  {/* Remarks */}
- <div className="w-full sm:w-3/12">
+ <div className="w-full sm:flex-1 sm:min-w-0">
  <input
  type="text"
  placeholder="Remarks / Note"

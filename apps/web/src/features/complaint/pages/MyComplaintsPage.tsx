@@ -110,7 +110,7 @@ export const MyComplaintsPage: React.FC = (): React.ReactElement => {
   // type IT & Equipment and the software name filled in: /complaints?new=1&type=...&subject=...
   const [searchParams, setSearchParams] = useSearchParams();
   const { user: me } = useAuth();
-  // Links in emails: /complaints?open=ID. Own complaints open here; others open on the Complaints tab.
+  // Links from notifications: /complaints?open=ID. Own complaints open here; others open on the Complaints tab.
   useEffect(() => {
     const open = Number(searchParams.get('open'));
     if (open) setViewingComplaintId(open);

@@ -64,10 +64,10 @@ export class ComplaintSchedulerService implements OnApplicationBootstrap, OnModu
   }
 
   /** Sends once per recipient and key, through the service so the History records it. */
-  private async once(c: any, recipients: number[], kind: string, key: string, title: string, body: string, email = false) {
+  private async once(c: any, recipients: number[], kind: string, key: string, title: string, body: string) {
     const todo = await this.notifier.notYetSent(kind, c.complaint_id, recipients.filter(Boolean), key);
     if (!todo.length) return;
-    await this.complaints.deliver(c.complaint_id, c.complainant_id, null, { recipients: todo, kind, title, body: `${body} [#${key}]`, email });
+    await this.complaints.deliver(c.complaint_id, c.complainant_id, null, { recipients: todo, kind, title, body: `${body} [#${key}]` });
   }
 
   private label(c: any) {
@@ -184,12 +184,12 @@ export class ComplaintSchedulerService implements OnApplicationBootstrap, OnModu
       const left = daysBetween(today, target);
       if (left >= 0 && left <= beforeTarget && c.handler_id) {
         await this.once(c, [c.handler_id], 'complaint_target_reminder', `target-${target}`, `${c.complaint_no} is due on ${target.split('-').reverse().join('-')}`,
-          `${this.label(c)} should be resolved by its Target Date.`, true);
+          `${this.label(c)} should be resolved by its Target Date.`);
       }
       if (left < 0) {
-        // First time: the handler and all Admins (email). Then daily to the handler.
+        // First time: the handler and all Admins. Then daily to the handler.
         await this.once(c, [c.handler_id ?? 0, ...admins], 'complaint_overdue', `overdue-${target}`, `${c.complaint_no} is overdue`,
-          `${this.label(c)} passed its Target Date (${target.split('-').reverse().join('-')}).`, true);
+          `${this.label(c)} passed its Target Date (${target.split('-').reverse().join('-')}).`);
         if (c.handler_id) {
           await this.once(c, [c.handler_id], 'complaint_overdue_daily', `overdue-${target}-${today}`, `${c.complaint_no} is still overdue`,
             `${this.label(c)} is overdue by ${-left} day${left === -1 ? '' : 's'}.`);

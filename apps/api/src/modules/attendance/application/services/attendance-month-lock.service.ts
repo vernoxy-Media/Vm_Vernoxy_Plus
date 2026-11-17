@@ -66,6 +66,19 @@ export class AttendanceMonthLockService {
     const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
     const lastDay = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
     if (lastDay >= today) throw new BadRequestException(`${MONTHS[month - 1]} ${year} has not ended yet. A month can be locked after its last day.`);
+    // Pending leave must be decided first: once the month is locked, leave can no longer change it,
+    // and an undecided day would stay Absent (LOP) in Payroll.
+    const firstDay = `${year}-${String(month).padStart(2, '0')}-01`;
+    const [pending] = await this.prisma.$queryRaw<Array<{ n: number }>>`
+      SELECT count(DISTINCT r.request_id)::int AS n
+      FROM leave_requests r JOIN leave_request_days d ON d.request_id = r.request_id
+      WHERE r.status = 'PENDING' AND d.leave_date BETWEEN ${firstDay}::date AND ${lastDay}::date;
+    `;
+    if (pending?.n) {
+      throw new ConflictException(
+        `${pending.n} leave request${pending.n === 1 ? ' is' : 's are'} still Pending in ${MONTHS[month - 1]} ${year}. Approve or reject ${pending.n === 1 ? 'it' : 'them'} in Leave, then lock the month.`,
+      );
+    }
     await this.prisma.$executeRaw`
       INSERT INTO attendance_month_locks (lock_year, lock_month, is_locked, lock_mode, locked_at, locked_by, updated_at)
       VALUES (${year}, ${month}, true, ${mode}, clock_timestamp(), ${adminId}::int, clock_timestamp())

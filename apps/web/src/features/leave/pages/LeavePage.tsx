@@ -5,10 +5,10 @@ import { MyLeavePage } from './MyLeavePage';
 import { LeaveRequestsPage } from './LeaveRequestsPage';
 import { LeaveReportsPage } from './LeaveReportsPage';
 import { LeaveBalancesPage } from './LeaveBalancesPage';
-import { LeaveCalendarPage } from './LeaveCalendarPage';
 import { useLeaveDashboardQuery } from '../hooks/use-leave';
 
-type Tab = 'my-leave' | 'requests' | 'team' | 'calendar' | 'balances' | 'reports';
+// Leave Calendar was removed: approved leave is shown in the main Calendar (Leaves layer).
+type Tab = 'my-leave' | 'requests' | 'team' | 'balances' | 'reports';
 
 export const LeavePage: React.FC = () => {
   const { user } = useAuth();
@@ -22,7 +22,6 @@ export const LeavePage: React.FC = () => {
     { id: 'my-leave', label: 'My Leave' },
     ...(isAdmin ? [{ id: 'requests' as Tab, label: 'Leave Requests' }] : []),
     ...(!isAdmin && isManager ? [{ id: 'team' as Tab, label: 'Team Leave' }] : []),
-    ...(isAdmin || isManager ? [{ id: 'calendar' as Tab, label: 'Leave Calendar' }] : []),
     ...(isAdmin ? [{ id: 'balances' as Tab, label: 'Balances' }, { id: 'reports' as Tab, label: 'Reports' }] : []),
   ];
   const normalized: Tab = requested === 'management' ? 'requests' : (requested as Tab);
@@ -66,7 +65,6 @@ export const LeavePage: React.FC = () => {
 
       {active === 'requests' && <LeaveRequestsPage hideBreadcrumb onNavigate={(t) => go(t)} />}
       {active === 'team' && <LeaveRequestsPage hideBreadcrumb teamMode />}
-      {active === 'calendar' && <LeaveCalendarPage isAdmin={isAdmin} />}
       {active === 'balances' && <LeaveBalancesPage />}
       {active === 'reports' && <LeaveReportsPage />}
       {active === 'my-leave' && <MyLeavePage hideBreadcrumb />}

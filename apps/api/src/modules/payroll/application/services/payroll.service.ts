@@ -297,6 +297,7 @@ export class PayrollService {
     const noShift = ctx.defaultShiftId ? [] : emps.filter((e) => !ctx.employeeShifts[String(e.emp_id)]);
     const noUan = emps.filter((e) => e.pay.pfApplicable && !e.pay.uan);
     const noBank = emps.filter((e) => e.pay.paymentMode === 'BANK_TRANSFER' && (!e.pay.bankName || !e.pay.accountNumber || !e.pay.ifsc));
+    const pendingLeave = await this.pendingLeaveIn(ctx.start, ctx.end, emps.map((e) => e.emp_id));
     let pendingOt = 0;
     if (run) {
       const [p] = await this.prisma.$queryRaw<any[]>`SELECT count(*)::int AS n FROM payroll_ot_entries WHERE payroll_run_id = ${run.payroll_run_id} AND status = 'PENDING';`;
@@ -317,6 +318,9 @@ export class PayrollService {
       ...(noBank.length ? [{ level: 'WARNING', ok: false, label: `${names(noBank)}: Payment Mode is Bank transfer but bank details are incomplete` }] : []),
       ...(onboarding.length ? [{ level: 'WARNING', ok: false, label: `${names(onboarding)}: Onboarding, not yet activated. Paid from the Joining Date.` }] : []),
       ...(pendingOt ? [{ level: 'WARNING', ok: false, label: `${pendingOt} OT entries are waiting for approval (can be approved before lock)` }] : []),
+      ...(pendingLeave.count
+        ? [{ level: 'WARNING', ok: false, label: `${pendingLeave.count} leave request${pendingLeave.count === 1 ? ' is' : 's are'} still Pending (${pendingLeave.names}). Until decided the day counts as LOP; decide them before lock.` }]
+        : []),
     ];
     return {
       year,
@@ -567,6 +571,24 @@ export class PayrollService {
   }
 
   /** A short signature of every source Payroll reads; it changes when any source changes (BFD 6 Rules). */
+  /**
+   * Leave requests of the month still waiting for a decision. Payroll pays only approved leave, so
+   * an undecided day would be paid as LOP; the run cannot be locked until they are decided.
+   */
+  private async pendingLeaveIn(start: string, end: string, empIds?: number[]): Promise<{ count: number; names: string }> {
+    const onlyThese = empIds ? Prisma.sql`AND r.emp_id = ANY(${empIds}::int[])` : Prisma.empty;
+    const rows = await this.prisma.$queryRaw<Array<{ request_no: string; name: string }>>`
+      SELECT DISTINCT r.request_no, e.name
+      FROM leave_requests r
+      JOIN leave_request_days d ON d.request_id = r.request_id
+      JOIN employees e ON e.emp_id = r.emp_id
+      WHERE r.status = 'PENDING' AND d.leave_date BETWEEN ${start}::date AND ${end}::date ${onlyThese}
+      ORDER BY r.request_no;
+    `;
+    const names = rows.slice(0, 3).map((x) => `${x.request_no} (${x.name})`).join(', ') + (rows.length > 3 ? ` and ${rows.length - 3} more` : '');
+    return { count: rows.length, names };
+  }
+
   private async fingerprint(ctx: MonthContext): Promise<string> {
     try {
       const [r] = await this.prisma.$queryRaw<any[]>`
@@ -637,6 +659,10 @@ export class PayrollService {
       }
     }
     const pendingOt = otEntries.filter((o) => o.status === 'PENDING').length;
+    const pendingLeave = run.status === 'DRAFT' ? await this.pendingLeaveIn(ctx.start, ctx.end, employees.map((e) => Number(e.emp_id))) : { count: 0, names: '' };
+    if (pendingLeave.count) {
+      warnings.push({ emp_id: null, employee_code: '—', employee_name: 'Leave', code: 'LEAVE_PENDING', message: `${pendingLeave.count} leave request${pendingLeave.count === 1 ? ' is' : 's are'} still Pending: ${pendingLeave.names}` });
+    }
     if (pendingOt) warnings.push({ emp_id: null, employee_code: '—', employee_name: 'OT Hours', code: 'OT_PENDING', message: `${pendingOt} OT entries are pending` });
     const dataChanged = run.status === 'DRAFT' && Boolean(run.source_fingerprint) && fp !== run.source_fingerprint;
     const lockChecks = [
@@ -646,6 +672,13 @@ export class PayrollService {
         label: ctx.attendanceLocked ? `${MONTHS[month - 1]} attendance is locked (${istDate(ctx.attendanceLockedAt)})` : `Lock ${MONTHS[month - 1]} attendance first`,
       },
       { key: 'ot', ok: pendingOt === 0, label: pendingOt === 0 ? `All ${otEntries.length} OT entries are approved or rejected` : `${pendingOt} OT entries are pending` },
+      {
+        key: 'leave',
+        ok: pendingLeave.count === 0,
+        label: pendingLeave.count === 0
+          ? 'No leave request of the month is waiting for a decision'
+          : `${pendingLeave.count} leave request${pendingLeave.count === 1 ? ' is' : 's are'} still Pending. Approve or reject them in Leave first.`,
+      },
       { key: 'errors', ok: errors.length === 0, label: errors.length === 0 ? 'No employee has an error' : `${errors.length} employee error${errors.length === 1 ? '' : 's'}` },
       {
         key: 'fresh',
