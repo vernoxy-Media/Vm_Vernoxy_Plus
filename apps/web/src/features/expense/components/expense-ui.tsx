@@ -1,7 +1,60 @@
 import React from 'react';
 import { X } from 'lucide-react';
 
-export { StatCard, Field, inputCls, initials } from '@/features/complaint/components/complaint-ui';
+export { initials } from '@/features/complaint/components/complaint-ui';
+
+/** Jira look shared by every Expense screen: flat 3px corners, #172B4D text, #DFE1E6 borders, #0052CC actions. */
+export const inputCls =
+  'h-9 w-full rounded-[3px] border-2 border-[#DFE1E6] bg-[#FAFBFC] px-2.5 text-[14px] text-[#172B4D] placeholder:text-[#7A869A] transition hover:bg-[#EBECF0] focus:border-[#4C9AFF] focus:bg-white focus:outline-hidden';
+
+/** Labelled wrapper for a control. */
+export const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
+  <div className="min-w-0">
+    <label className="mb-1 block text-[12px] font-semibold text-[#6B778C]">{label}</label>
+    {children}
+  </div>
+);
+
+interface StatCardProps {
+  label: string;
+  value: React.ReactNode;
+  unit?: string;
+  hint?: React.ReactNode;
+  icon: React.ElementType;
+  tone?: string;
+  tile?: string;
+  bar?: string;
+  onClick?: () => void;
+}
+
+/** A flat Jira-style summary card: small grey label, large number, a small icon tile. */
+export const StatCard: React.FC<StatCardProps> = ({ label, value, unit, hint, icon: Icon, tone = 'text-[#172B4D]', tile = 'bg-[#DEEBFF] text-[#0052CC]', onClick }) => {
+  const cls = 'rounded-[3px] border border-[#DFE1E6] bg-white p-4 text-left transition';
+  const body = (
+    <>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[12px] font-semibold text-[#6B778C]">{label}</p>
+          <p className={`mt-1.5 text-[26px] font-medium leading-8 ${tone}`}>
+            {value}
+            {unit && <span className="ml-1.5 text-sm font-normal text-[#6B778C]">{unit}</span>}
+          </p>
+        </div>
+        <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[3px] ${tile.replace(/ring-\S+/g, '')}`}>
+          <Icon className="h-4 w-4" />
+        </span>
+      </div>
+      {hint && <p className="mt-2 text-[12px] text-[#6B778C]">{hint}</p>}
+    </>
+  );
+  return onClick ? (
+    <button type="button" onClick={onClick} className={`${cls} hover:bg-[#F4F5F7]`}>
+      {body}
+    </button>
+  ) : (
+    <div className={cls}>{body}</div>
+  );
+};
 
 export const inr = (n: number | null | undefined) =>
   `₹ ${Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -27,18 +80,17 @@ interface Tone {
 
 /** BFD 5 status names. */
 const CLAIM_STATUS: Record<string, Tone & { label: string }> = {
-  DRAFT: { label: 'Draft', chip: 'bg-slate-100 text-slate-600 ring-slate-200', dot: 'bg-slate-400' },
-  SUBMITTED: { label: 'Submitted', chip: 'bg-amber-50 text-amber-700 ring-amber-100', dot: 'bg-amber-500' },
-  APPROVED: { label: 'Approved', chip: 'bg-emerald-50 text-emerald-700 ring-emerald-100', dot: 'bg-emerald-500' },
-  REIMBURSED: { label: 'Reimbursed', chip: 'bg-indigo-50 text-indigo-700 ring-indigo-100', dot: 'bg-indigo-500' },
-  REJECTED: { label: 'Rejected', chip: 'bg-rose-50 text-rose-700 ring-rose-100', dot: 'bg-rose-500' },
+  DRAFT: { label: 'Draft', chip: 'bg-[#DFE1E6] text-[#42526E]', dot: 'bg-[#42526E]' },
+  SUBMITTED: { label: 'Submitted', chip: 'bg-[#FFF0B3] text-[#172B4D]', dot: 'bg-[#FF991F]' },
+  APPROVED: { label: 'Approved', chip: 'bg-[#E3FCEF] text-[#006644]', dot: 'bg-[#00875A]' },
+  REIMBURSED: { label: 'Reimbursed', chip: 'bg-[#DEEBFF] text-[#0747A6]', dot: 'bg-[#0052CC]' },
+  REJECTED: { label: 'Rejected', chip: 'bg-[#FFEBE6] text-[#BF2600]', dot: 'bg-[#DE350B]' },
 };
 
 export const ClaimStatusBadge: React.FC<{ status: string; label?: string }> = ({ status, label }) => {
   const t = CLAIM_STATUS[status] ?? CLAIM_STATUS.DRAFT;
   return (
-    <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ${t.chip}`}>
-      <span className={`h-1.5 w-1.5 rounded-full ${t.dot}`} />
+    <span className={`inline-flex items-center whitespace-nowrap rounded-[3px] px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${t.chip}`}>
       {label ?? t.label}
     </span>
   );
@@ -62,7 +114,7 @@ export const FlagChips: React.FC<{ claim: FlagSource; clean?: string }> = ({ cla
   return (
     <div className="flex flex-wrap items-center gap-1">
       {chips.map((c) => (
-        <span key={c.key} className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[10.5px] font-semibold text-amber-700 ring-1 ring-amber-100">
+        <span key={c.key} className="inline-flex items-center rounded-[3px] bg-[#FFF0B3] px-1.5 py-0.5 text-[10.5px] font-bold uppercase text-[#172B4D]">
           {c.label}
         </span>
       ))}
@@ -80,7 +132,7 @@ export const Modal: React.FC<{
   width?: string;
   /** Flat, square Jira-style dialog. */
   jira?: boolean;
-}> = ({ open, title, subtitle, onClose, children, footer, width = 'max-w-lg', jira }) => {
+}> = ({ open, title, subtitle, onClose, children, footer, width = 'max-w-lg', jira = true }) => {
   if (!open) return null;
   return (
     <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${jira ? 'bg-[#091E42]/55' : 'bg-slate-900/40 backdrop-blur-[2px]'}`} onMouseDown={onClose}>
@@ -107,15 +159,11 @@ export const Modal: React.FC<{
 };
 
 export const btn = {
-  primary:
-    'inline-flex items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-[13px] font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50',
-  secondary:
-    'inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50',
-  danger:
-    'inline-flex items-center justify-center gap-1.5 rounded-xl bg-rose-600 px-4 py-2 text-[13px] font-semibold text-white shadow-sm transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50',
-  success:
-    'inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-[13px] font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50',
-  link: 'text-[12.5px] font-semibold text-blue-600 hover:text-blue-700 hover:underline disabled:opacity-50',
+  primary: 'inline-flex h-8 items-center justify-center gap-1.5 rounded-[3px] bg-[#0052CC] px-3 text-[14px] font-medium text-white transition hover:bg-[#0065FF] disabled:cursor-not-allowed disabled:bg-[#F4F5F7] disabled:text-[#A5ADBA]',
+  secondary: 'inline-flex h-8 items-center justify-center gap-1.5 rounded-[3px] bg-[rgba(9,30,66,0.04)] px-3 text-[14px] font-medium text-[#42526E] transition hover:bg-[rgba(9,30,66,0.08)] disabled:cursor-not-allowed disabled:opacity-50',
+  danger: 'inline-flex h-8 items-center justify-center gap-1.5 rounded-[3px] bg-[#DE350B] px-3 text-[14px] font-medium text-white transition hover:bg-[#BF2600] disabled:cursor-not-allowed disabled:opacity-50',
+  link: 'inline-flex items-center gap-1 rounded-[3px] px-1.5 py-0.5 text-[13px] font-medium text-[#0052CC] transition hover:bg-[#DEEBFF] hover:underline disabled:cursor-not-allowed disabled:opacity-50',
+  success: 'inline-flex h-8 items-center justify-center gap-1.5 rounded-[3px] bg-[#00875A] px-3 text-[14px] font-medium text-white transition hover:bg-[#006644] disabled:cursor-not-allowed disabled:opacity-50',
 };
 
 export const FieldError: React.FC<{ msg?: string | null }> = ({ msg }) =>
@@ -123,19 +171,19 @@ export const FieldError: React.FC<{ msg?: string | null }> = ({ msg }) =>
 
 export const Banner: React.FC<{ tone?: 'error' | 'warn' | 'info' | 'ok'; children: React.ReactNode }> = ({ tone = 'error', children }) => {
   const cls = {
-    error: 'border-rose-200 bg-rose-50 text-rose-700',
-    warn: 'border-amber-200 bg-amber-50 text-amber-800',
-    info: 'border-blue-200 bg-blue-50 text-blue-700',
-    ok: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    error: 'bg-[#FFEBE6] text-[#BF2600]',
+    warn: 'bg-[#FFFAE6] text-[#172B4D]',
+    info: 'bg-[#DEEBFF] text-[#0747A6]',
+    ok: 'bg-[#E3FCEF] text-[#006644]',
   }[tone];
-  return <div className={`rounded-xl border px-3.5 py-2.5 text-[12.5px] font-medium ${cls}`}>{children}</div>;
+  return <div className={`rounded-[3px] px-3.5 py-2.5 text-[13px] font-medium ${cls}`}>{children}</div>;
 };
 
 export const Pager: React.FC<{ page: number; pageSize: number; total: number; onPage: (p: number) => void }> = ({ page, pageSize, total, onPage }) => {
   const pages = Math.max(1, Math.ceil(total / pageSize));
   if (total <= pageSize) return null;
   return (
-    <div className="flex items-center justify-between gap-3 border-t border-slate-100 px-4 py-3 text-xs text-slate-500">
+    <div className="flex items-center justify-between gap-3 border-t border-[#DFE1E6] px-4 py-3 text-xs text-[#6B778C]">
       <span>
         {(page - 1) * pageSize + 1}–{Math.min(total, page * pageSize)} of {total}
       </span>
@@ -154,11 +202,11 @@ export const Pager: React.FC<{ page: number; pageSize: number; total: number; on
 /** A filter with its BFD name above it. */
 export const FilterField: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
   <div className="flex shrink-0 flex-col">
-    <span className="mb-1 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-slate-500">{label}</span>
+    <span className="mb-1 text-[12px] font-semibold text-[#6B778C]">{label}</span>
     {children}
   </div>
 );
 
 /** Inline filter controls: same look as inputs, but sized by the caller so they sit in one row. */
 export const filterCls =
-  'h-10 shrink-0 rounded-xl border border-slate-200 bg-white px-3 text-[13px] text-slate-700 transition hover:border-slate-300 focus:border-blue-500 focus:outline-hidden focus:ring-4 focus:ring-blue-500/10';
+  'h-9 shrink-0 rounded-[3px] border-2 border-[#DFE1E6] bg-[#FAFBFC] px-2.5 text-[14px] text-[#172B4D] transition hover:bg-[#EBECF0] focus:border-[#4C9AFF] focus:bg-white focus:outline-hidden';

@@ -134,7 +134,7 @@ export const ClaimReviewModal: React.FC<{
         }
       >
         {isLoading ? (
-          <div className="flex h-48 items-center justify-center text-slate-400">
+          <div className="flex h-48 items-center justify-center text-[#6B778C]">
             <Loader2 className="h-5 w-5 animate-spin" />
           </div>
         ) : error || !c ? (
@@ -147,7 +147,7 @@ export const ClaimReviewModal: React.FC<{
                 <Banner tone="warn">You are the only Admin, so you can decide your own claim. It will be marked Self-approved.</Banner>
               )}
 
-              <div className="grid grid-cols-2 gap-x-4 gap-y-3 rounded-xl border border-slate-200 p-4 text-[12.5px]">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-3 rounded-[3px] border border-[#DFE1E6] p-4 text-[12.5px]">
                 <Info label="Employee" value={`${c.employee.name} · ${c.employee.emp_code}`} />
                 <Info label="Department" value={c.employee.department_name || '—'} />
                 <Info label="Expense Date" value={fmtDate(c.expense_date)} />
@@ -172,7 +172,7 @@ export const ClaimReviewModal: React.FC<{
                 )}
                 {c.status === 'APPROVED' && c.payroll_run_id && <Info label="Reimbursement" value="Added to a payroll run" />}
                 {c.bank && (
-                  <div className="col-span-2 rounded-lg bg-slate-50 px-3 py-2">
+                  <div className="col-span-2 rounded-[3px] bg-[#F4F5F7] px-3 py-2">
                     <Info label="Bank details" value={[c.bank.bank_name, c.bank.account_number, c.bank.ifsc_code].filter(Boolean).join(' · ') || 'Not on file'} />
                   </div>
                 )}
@@ -180,7 +180,7 @@ export const ClaimReviewModal: React.FC<{
 
               {c.checks.length > 0 && (
                 <div>
-                  <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Checks</h4>
+                  <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[#6B778C]">Checks</h4>
                   <ul className="space-y-1.5">
                     {c.checks.map((k, i) => (
                       <li key={i} className={`flex items-center gap-2 text-[12.5px] ${k.ok ? 'text-emerald-700' : 'text-amber-700'}`}>
@@ -198,27 +198,27 @@ export const ClaimReviewModal: React.FC<{
               )}
 
               <div>
-                <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">History</h4>
-                <ol className="relative space-y-3 border-l border-slate-200 pl-4">
+                <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[#6B778C]">History</h4>
+                <ol className="relative space-y-3 border-l border-[#DFE1E6] pl-4">
                   {c.history.map((h, i) => (
                     <li key={i} className="text-[12.5px]">
                       <span className="absolute -left-[5px] mt-1.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-blue-500" />
-                      <p className="font-semibold text-slate-800">
-                        {h.event} <span className="font-normal text-slate-400">· {fmtDateTime(h.at)}</span>
+                      <p className="font-semibold text-[#172B4D]">
+                        {h.event} <span className="font-normal text-[#6B778C]">· {fmtDateTime(h.at)}</span>
                       </p>
-                      <p className="text-slate-500">
+                      <p className="text-[#6B778C]">
                         {h.summary}
                         {h.by ? ` — ${h.by}` : ''}
                       </p>
                     </li>
                   ))}
-                  {!c.history.length && <li className="text-[12.5px] text-slate-400">No history yet.</li>}
+                  {!c.history.length && <li className="text-[12.5px] text-[#6B778C]">No history yet.</li>}
                 </ol>
               </div>
             </div>
 
             <div>
-              <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Receipts ({c.receipts.length})</h4>
+              <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[#6B778C]">Receipts ({c.receipts.length})</h4>
               <ReceiptViewer receipts={c.receipts} claimId={c.claim_id} claimNo={c.claim_no} />
             </div>
           </div>
@@ -249,7 +249,7 @@ export const ClaimReviewModal: React.FC<{
       >
         <div className="space-y-3">
           {hasFlags && (
-            <div className="space-y-2 rounded-xl border border-amber-200 bg-amber-50 p-3">
+            <div className="space-y-2 rounded-[3px] border border-amber-200 bg-amber-50 p-3">
               {c!.flags.map((f) => (
                 <p key={f.code} className="text-[12.5px] text-amber-800">
                   • {f.label}
@@ -263,7 +263,7 @@ export const ClaimReviewModal: React.FC<{
             </div>
           )}
           <div>
-            <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-slate-500">Remarks (optional)</label>
+            <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-[#6B778C]">Remarks (optional)</label>
             <textarea rows={3} maxLength={500} className={`${inputCls} h-auto py-2`} value={remarks} onChange={(e) => setRemarks(e.target.value)} />
             <FieldError msg={errs.remarks} />
           </div>
@@ -300,7 +300,7 @@ export const ClaimReviewModal: React.FC<{
       >
         <div className="space-y-3">
           <div>
-            <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-[#6B778C]">
               Reason<span className="text-rose-500">*</span>
             </label>
             <select className={inputCls} value={reasonCode} onChange={(e) => setReasonCode(e.target.value)}>
@@ -314,7 +314,7 @@ export const ClaimReviewModal: React.FC<{
             <FieldError msg={errs.reason_code} />
           </div>
           <div>
-            <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-[#6B778C]">
               Remarks<span className="text-rose-500">*</span>
             </label>
             <textarea rows={3} maxLength={500} className={`${inputCls} h-auto py-2`} value={remarks} onChange={(e) => setRemarks(e.target.value)} />
@@ -348,7 +348,7 @@ export const ClaimReviewModal: React.FC<{
           </>
         }
       >
-        <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+        <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-[#6B778C]">
           Reason<span className="text-rose-500">*</span>
         </label>
         <textarea rows={3} maxLength={500} className={`${inputCls} h-auto py-2`} value={remarks} onChange={(e) => setRemarks(e.target.value)} />
@@ -377,7 +377,7 @@ export const ClaimReviewModal: React.FC<{
           </>
         }
       >
-        <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-slate-500">Reason (optional)</label>
+        <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-[#6B778C]">Reason (optional)</label>
         <textarea rows={2} maxLength={300} className={`${inputCls} h-auto py-2`} value={remarks} onChange={(e) => setRemarks(e.target.value)} />
       </Modal>
 
@@ -397,7 +397,7 @@ export const ClaimReviewModal: React.FC<{
           </>
         }
       >
-        <p className="text-[13px] text-slate-600">The Draft and its receipts will be removed.</p>
+        <p className="text-[13px] text-[#42526E]">The Draft and its receipts will be removed.</p>
       </Modal>
     </>
   );
@@ -405,7 +405,7 @@ export const ClaimReviewModal: React.FC<{
 
 const Info: React.FC<{ label: string; value: React.ReactNode; strong?: boolean }> = ({ label, value, strong }) => (
   <div className="min-w-0">
-    <p className="text-[10.5px] font-semibold uppercase tracking-wider text-slate-400">{label}</p>
-    <p className={`break-words ${strong ? 'text-[15px] font-bold text-slate-900' : 'text-slate-700'}`}>{value}</p>
+    <p className="text-[11px] font-semibold uppercase text-[#6B778C]">{label}</p>
+    <p className={`break-words ${strong ? 'text-[15px] font-bold text-[#172B4D]' : 'text-[#42526E]'}`}>{value}</p>
   </div>
 );
