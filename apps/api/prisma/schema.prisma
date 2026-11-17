@@ -1700,12 +1700,31 @@ model document_templates {
   created_by                                         Int?
   updated_at                                         DateTime?              @db.Timestamptz(6)
   updated_by                                         Int?
+  /// Editable layout (document-templates module); NULL for the older fixed-HTML templates.
+  layout_json                                        Json?
+  /// DRAFT | APPROVED | RETIRED (migration 20261116100000). At most one DRAFT per document_type.
+  status                                             String                 @default("APPROVED") @db.VarChar(20)
+  version                                            Int                    @default(1)
+  approved_by                                        Int?
+  approved_at                                        DateTime?              @db.Timestamptz(6)
   employees_document_templates_created_byToemployees employees?             @relation("document_templates_created_byToemployees", fields: [created_by], references: [emp_id], onUpdate: NoAction)
   employees_document_templates_updated_byToemployees employees?             @relation("document_templates_updated_byToemployees", fields: [updated_by], references: [emp_id], onUpdate: NoAction)
   documents                                          employee_documents[]
   payroll_salary_slips                               payroll_salary_slips[]
 
   @@index([document_type], map: "ix_document_templates_type")
+}
+
+/// Images used by document templates (the company letterhead). Stored in the database so they survive a redeploy.
+model document_template_assets {
+  asset_id     Int      @id @default(autoincrement())
+  purpose      String   @db.VarChar(40)
+  file_name    String?  @db.VarChar(200)
+  content_type String   @db.VarChar(50)
+  byte_size    Int
+  data         Bytes
+  created_at   DateTime @default(now()) @db.Timestamptz(6)
+  created_by   Int?
 }
 
 model employee_documents {

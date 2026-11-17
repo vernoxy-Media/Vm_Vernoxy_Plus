@@ -99,6 +99,12 @@ const SettingsComplaintSettingsSection = React.lazy(() =>
 const SettingsLicenseSection = React.lazy(() =>
   import('./sections/SettingsLicenseSection').then((m) => ({ default: m.SettingsLicenseSection }))
 );
+const SalarySlipTemplatePage = React.lazy(() =>
+  import('@/features/document-templates/pages/SalarySlipTemplatePage').then((m) => ({ default: m.SalarySlipTemplatePage }))
+);
+const QuotationTemplatePage = React.lazy(() =>
+  import('@/features/document-templates/pages/QuotationTemplatePage').then((m) => ({ default: m.QuotationTemplatePage }))
+);
 const SettingsClientLoginsSection = React.lazy(() =>
   import('./sections/SettingsClientLoginsSection').then((m) => ({ default: m.SettingsClientLoginsSection }))
 );
@@ -560,6 +566,24 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
     group: 'HR',
   },
+  {
+    id: 'salary-slip-template',
+    label: 'Salary Slip Template',
+    path: '/admin/settings/salary-slip-template',
+    icon: Receipt,
+    component: SalarySlipTemplatePage,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Templates',
+  },
+  {
+    id: 'quotation-template',
+    label: 'Quotation Template',
+    path: '/admin/settings/quotation-template',
+    icon: Layers,
+    component: QuotationTemplatePage,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Templates',
+  },
   // ── Knowledge Base ─────────────────────────────────
   {
     id: 'knowledge-base-categories',
@@ -706,5 +730,6 @@ export const SETTINGS_MAIN_GROUPS: SettingsMainGroup[] = [
   { id: 'Knowledge Base', name: 'Knowledge Base', icon: BookOpen },
   { id: 'Performance', name: 'Performance', icon: Award },
   { id: 'Clients', name: 'Clients', icon: Building },
+  { id: 'Templates', name: 'Templates', icon: Receipt },
   { id: 'Test data', name: 'Test data', icon: Trash2 },
 ];

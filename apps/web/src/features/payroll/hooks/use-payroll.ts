@@ -354,6 +354,36 @@ export const bankFileUrl = (year: number, month: number) => `${BASE}/${year}/${m
 export const usePayrollMe = () =>
   useQuery({ queryKey: ['payroll', 'me'], queryFn: () => customFetch<PayrollMe>(`${BASE}/me`), staleTime: 60_000 });
 
+export interface SlipPreviewRun {
+  year: number;
+  month: number;
+  label: string;
+  status: string;
+  employee_count: number;
+}
+
+export interface SlipPreviewEmployee {
+  emp_id: number;
+  name: string;
+  employee_code: string | null;
+}
+
+export const useSlipPreviewRunsQuery = (enabled = true) =>
+  useQuery({
+    queryKey: ['payroll', 'slip-preview', 'runs'],
+    queryFn: () => customFetch<SlipPreviewRun[]>(`${BASE}/slip-preview/runs`),
+    enabled,
+    staleTime: 30_000,
+  });
+
+export const useSlipPreviewEmployeesQuery = (year?: number, month?: number, enabled = true) =>
+  useQuery({
+    queryKey: ['payroll', 'slip-preview', 'employees', year, month],
+    queryFn: () =>
+      customFetch<{ exists: boolean; status?: string; employees: SlipPreviewEmployee[] }>(`${BASE}/slip-preview/${year}/${month}/employees`),
+    enabled: enabled && Boolean(year && month),
+  });
+
 export const usePayrollRunsQuery = (year?: number, status?: string, page = 1) =>
   useQuery({
     queryKey: ['payroll', 'runs', year, status, page],

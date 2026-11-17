@@ -16,6 +16,8 @@ import { Issue, round2, rupeesInWords, slipNumber } from '../../domain/payroll-r
 import { MonthContext, PayrollCalculationService, empCode } from './payroll-calculation.service';
 import { PayrollAccessService, PayrollViewer } from './payroll-access.service';
 import { PayrollNotifierService } from './payroll-notifier.service';
+import { RenderDocumentUseCase, SALARY_SLIP_KIND } from '../../../document-templates/public-api';
+import { SLIP_DATA_COLUMNS, slipAdjustments, toSalarySlipData } from './salary-slip-data';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 export const monthLabel = (year: number, month: number) => `${MONTHS[month - 1]} ${year}`;
@@ -33,8 +35,6 @@ const RUN_COLUMNS = Prisma.sql`pr.payroll_run_id, pr.payroll_month, pr.payroll_y
   pr.paid_at, pr.paid_by, pr.attendance_locked, pr.attendance_locked_at, pr.full_day_hours, pr.source_fingerprint, pr.total_employees,
   pr.gross_earnings, pr.employee_pf_total, pr.employer_pf_total, pr.total_salary`;
 
-const PE_SLIP_COLUMNS = Prisma.sql`payroll_employee_id, emp_id, employee_name, employee_code, department_names, role_name, pf_applicable, uan,
-  account_number, paid_days, lop_days, ot_hours, basic_salary, ot_amount, employee_pf, total_deductions, gross_earnings, total_salary, flag::text AS flag`;
 
 @Injectable()
 export class PayrollService {
@@ -45,6 +45,7 @@ export class PayrollService {
     private readonly calc: PayrollCalculationService,
     private readonly access: PayrollAccessService,
     private readonly notifier: PayrollNotifierService,
+    private readonly documents: RenderDocumentUseCase,
   ) {}
 
   // ===========================================================================
@@ -1092,27 +1093,17 @@ export class PayrollService {
     return { filename: `bank-file-${year}-${String(month).padStart(2, '0')}.csv`, csv: lines.join('\n') };
   }
 
-  /** Bulk Salary Slips from the active Salary Slip template (Template Management). */
+  /**
+   * Bulk Salary Slips. Made from the approved Salary Slip template (Template Management); until one is
+   * approved, from the older fixed-HTML template.
+   */
   async generateSalarySlips(year: number, month: number, actorId: number) {
     const run = await this.getRun(year, month);
     if (run.status === 'DRAFT') throw new ConflictException('Lock payroll first.');
-    const [tpl] = await this.prisma.$queryRaw<any[]>`
-      SELECT template_id, content_html, COALESCE(updated_at, created_at) AS version
-      FROM document_templates WHERE document_type = 'payroll_salary_slip' AND COALESCE(is_active, true)
-      ORDER BY COALESCE(updated_at, created_at) DESC LIMIT 1;
-    `;
-    if (!tpl) throw new ConflictException('There is no active Salary Slip template in Template Management.');
-    // template_version is varchar(40): keep a short ISO timestamp of the template's last change.
-    const tplVersion = tpl.version ? new Date(tpl.version).toISOString().slice(0, 19) : null;
     const settings = await this.calc.settings();
-    const employees = await this.prisma.$queryRaw<any[]>`SELECT ${PE_SLIP_COLUMNS} FROM payroll_employees WHERE payroll_run_id = ${run.payroll_run_id} ORDER BY emp_id;`;
-    const adjustments = await this.prisma.$queryRaw<any[]>`
-      SELECT pa.payroll_employee_id, pa.type::text AS type, pa.amount, ml.label
-      FROM payroll_adjustments pa JOIN payroll_employees pe ON pe.payroll_employee_id = pa.payroll_employee_id
-      LEFT JOIN master_lookup ml ON ml.lookup_id = pa.category_id
-      WHERE pe.payroll_run_id = ${run.payroll_run_id} AND pa.is_active AND pa.type <> 'DAY_ADJUSTMENT'
-      ORDER BY pa.created_at;
-    `;
+    const employees = await this.prisma.$queryRaw<any[]>`SELECT ${SLIP_DATA_COLUMNS} FROM payroll_employees WHERE payroll_run_id = ${run.payroll_run_id} ORDER BY emp_id;`;
+    const adjustments = await slipAdjustments(this.prisma, run.payroll_run_id);
+    let legacy: { template_id: number; content_html: string; version: string | null } | null | undefined;
     let count = 0;
     for (const e of employees) {
       if (e.flag === 'ERROR') continue;
@@ -1120,21 +1111,38 @@ export class PayrollService {
         SELECT payroll_slip_id, revision_number, status::text AS status FROM payroll_salary_slips
         WHERE payroll_employee_id = ${e.payroll_employee_id} ORDER BY revision_number DESC LIMIT 1;
       `;
-      const html = this.renderSlip(tpl.content_html, settings, run, e, adjustments.filter((a) => a.payroll_employee_id === e.payroll_employee_id), null);
-      if (last && last.status === 'GENERATED') {
-        // Not released yet: made again in place.
-        const number = slipNumber(year, month, e.emp_id, last.revision_number);
+      // Not released yet: made again in place with the same number. Otherwise a new revision.
+      const remake = Boolean(last && last.status === 'GENERATED');
+      const revision = !last ? 0 : remake ? Number(last.revision_number) : Number(last.revision_number) + 1;
+      const number = slipNumber(year, month, e.emp_id, revision);
+      const own = adjustments.filter((a) => a.payroll_employee_id === e.payroll_employee_id);
+
+      let html: string;
+      let templateId: number;
+      let tplVersion: string | null;
+      const rendered = await this.documents.execute(SALARY_SLIP_KIND, toSalarySlipData(run, e, own, number));
+      if (rendered) {
+        html = rendered.html;
+        templateId = rendered.template_id;
+        tplVersion = `v${rendered.version}`;
+      } else {
+        if (legacy === undefined) legacy = await this.legacySlipTemplate();
+        if (!legacy) throw new ConflictException('There is no approved Salary Slip template. Approve one in Settings → Salary Slip Template.');
+        html = this.withNumber(this.renderSlip(legacy.content_html, settings, run, e, own, null), number);
+        templateId = legacy.template_id;
+        tplVersion = legacy.version;
+      }
+
+      if (remake) {
         await this.prisma.$executeRaw`
-          UPDATE payroll_salary_slips SET content_html = ${this.withNumber(html, number)}, template_id = ${tpl.template_id},
+          UPDATE payroll_salary_slips SET content_html = ${html}, template_id = ${templateId},
             template_version = ${tplVersion}, generated_at = clock_timestamp(), updated_at = clock_timestamp()
           WHERE payroll_slip_id = ${last.payroll_slip_id};
         `;
       } else {
-        const revision = last ? Number(last.revision_number) + 1 : 0;
-        const number = slipNumber(year, month, e.emp_id, revision);
         await this.prisma.$executeRaw`
           INSERT INTO payroll_salary_slips (payroll_employee_id, template_id, slip_number, revision_number, status, template_version, content_html, generated_at)
-          VALUES (${e.payroll_employee_id}, ${tpl.template_id}, ${number}, ${revision}, 'GENERATED', ${tplVersion}, ${this.withNumber(html, number)}, clock_timestamp())
+          VALUES (${e.payroll_employee_id}, ${templateId}, ${number}, ${revision}, 'GENERATED', ${tplVersion}, ${html}, clock_timestamp())
           ON CONFLICT (slip_number) DO NOTHING;
         `;
       }
@@ -1146,6 +1154,18 @@ export class PayrollService {
 
   private withNumber(html: string, number: string) {
     return html.replace(/\{\{SlipNumber\}\}/g, number);
+  }
+
+  /** The older fixed-HTML Salary Slip template, used until a Template Management version is approved. */
+  private async legacySlipTemplate(): Promise<{ template_id: number; content_html: string; version: string | null } | null> {
+    const [tpl] = await this.prisma.$queryRaw<any[]>`
+      SELECT template_id, content_html, COALESCE(updated_at, created_at) AS version
+      FROM document_templates WHERE document_type = ${SALARY_SLIP_KIND} AND COALESCE(is_active, true)
+      ORDER BY COALESCE(updated_at, created_at) DESC LIMIT 1;
+    `;
+    if (!tpl) return null;
+    // template_version is varchar(40): keep a short ISO timestamp of the template's last change.
+    return { template_id: tpl.template_id, content_html: tpl.content_html, version: tpl.version ? new Date(tpl.version).toISOString().slice(0, 19) : null };
   }
 
   private renderSlip(template: string, settings: any, run: any, e: any, adjustments: any[], number: string | null) {
@@ -1227,30 +1247,24 @@ export class PayrollService {
   /** Latest slip of one employee in a run (Accounts/Admin), or a preview before slips are made. */
   async getEmployeeSalarySlip(year: number, month: number, empId: number) {
     const run = await this.getRun(year, month);
-    const [e] = await this.prisma.$queryRaw<any[]>`SELECT ${PE_SLIP_COLUMNS} FROM payroll_employees WHERE payroll_run_id = ${run.payroll_run_id} AND emp_id = ${empId};`;
+    const [e] = await this.prisma.$queryRaw<any[]>`SELECT ${SLIP_DATA_COLUMNS} FROM payroll_employees WHERE payroll_run_id = ${run.payroll_run_id} AND emp_id = ${empId};`;
     if (!e) throw new NotFoundException(`${empCode(empId)} is not in this run.`);
     const [slip] = await this.prisma.$queryRaw<any[]>`
       SELECT payroll_slip_id, slip_number, revision_number, status::text AS status, content_html, generated_at, released_at, released_to_email
       FROM payroll_salary_slips WHERE payroll_employee_id = ${e.payroll_employee_id} ORDER BY revision_number DESC LIMIT 1;
     `;
     if (slip) return { ...slip, preview: false };
-    const [tpl] = await this.prisma.$queryRaw<any[]>`
-      SELECT content_html FROM document_templates WHERE document_type = 'payroll_salary_slip' AND COALESCE(is_active, true)
-      ORDER BY COALESCE(updated_at, created_at) DESC LIMIT 1;
-    `;
-    if (!tpl) throw new ConflictException('There is no active Salary Slip template in Template Management.');
-    const adjustments = await this.prisma.$queryRaw<any[]>`
-      SELECT pa.type::text AS type, pa.amount, ml.label FROM payroll_adjustments pa LEFT JOIN master_lookup ml ON ml.lookup_id = pa.category_id
-      WHERE pa.payroll_employee_id = ${e.payroll_employee_id} AND pa.is_active AND pa.type <> 'DAY_ADJUSTMENT' ORDER BY pa.created_at;
-    `;
-    const settings = await this.calc.settings();
+    const adjustments = await slipAdjustments(this.prisma, run.payroll_run_id, e.payroll_employee_id);
     const number = slipNumber(year, month, empId, 0);
-    return {
-      slip_number: number,
-      status: 'PREVIEW',
-      content_html: this.renderSlip(tpl.content_html, settings, run, e, adjustments, number),
-      preview: true,
-    };
+    const rendered = await this.documents.execute(SALARY_SLIP_KIND, toSalarySlipData(run, e, adjustments, number));
+    let html: string;
+    if (rendered) html = rendered.html;
+    else {
+      const legacy = await this.legacySlipTemplate();
+      if (!legacy) throw new ConflictException('There is no approved Salary Slip template. Approve one in Settings → Salary Slip Template.');
+      html = this.renderSlip(legacy.content_html, await this.calc.settings(), run, e, adjustments, number);
+    }
+    return { slip_number: number, status: 'PREVIEW', content_html: html, preview: true };
   }
 
   /** Own released slips (employee profile). Accounts/Admin may pass another employee. */
@@ -1280,6 +1294,44 @@ export class PayrollService {
       throw new ForbiddenException('This Salary Slip is not released yet.');
     }
     return s;
+  }
+
+  /** Months that have a payroll run, newest first — for the Salary Slip template test toolbar. */
+  async listSlipPreviewRuns() {
+    const rows = await this.prisma.$queryRaw<any[]>`
+      SELECT pr.payroll_year, pr.payroll_month, pr.status::text AS status,
+             (SELECT count(*)::int FROM payroll_employees pe WHERE pe.payroll_run_id = pr.payroll_run_id) AS employee_count
+      FROM payroll_runs pr
+      ORDER BY pr.payroll_year DESC, pr.payroll_month DESC
+    `;
+    return rows.map((r) => ({
+      year: Number(r.payroll_year),
+      month: Number(r.payroll_month),
+      label: monthLabel(Number(r.payroll_year), Number(r.payroll_month)),
+      status: r.status as string,
+      employee_count: Number(r.employee_count) || 0,
+    }));
+  }
+
+  /** Employees on one run (empty exists:false when that month was never started). */
+  async slipPreviewEmployees(year: number, month: number) {
+    if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
+      throw new BadRequestException('Choose a payroll month.');
+    }
+    const [run] = await this.prisma.$queryRaw<any[]>`
+      SELECT payroll_run_id, status::text AS status FROM payroll_runs WHERE payroll_year = ${year} AND payroll_month = ${month};
+    `;
+    if (!run) return { exists: false, employees: [] as Array<{ emp_id: number; name: string; employee_code: string | null }> };
+    const employees = await this.prisma.$queryRaw<any[]>`
+      SELECT emp_id, employee_name AS name, employee_code
+      FROM payroll_employees WHERE payroll_run_id = ${run.payroll_run_id}
+      ORDER BY employee_name
+    `;
+    return {
+      exists: true,
+      status: run.status as string,
+      employees: employees.map((e) => ({ emp_id: Number(e.emp_id), name: String(e.name), employee_code: e.employee_code ? String(e.employee_code) : null })),
+    };
   }
 }
 

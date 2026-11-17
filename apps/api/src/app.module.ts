@@ -31,6 +31,7 @@ import { PerformanceModule } from './modules/performance/performance.module';
 import { MaintenanceModule } from './modules/maintenance/maintenance.module';
 import { ClientPortalModule } from './modules/client-portal/client-portal.module';
 import { PreferencesModule } from './modules/preferences/preferences.module';
+import { DocumentTemplatesModule } from './modules/document-templates/public-api';
 
 @Module({
 
@@ -56,6 +57,7 @@ import { PreferencesModule } from './modules/preferences/preferences.module';
     ProjectsModule,
     WebsocketsModule,
     RecruitmentModule,
+    DocumentTemplatesModule,
     PayrollModule,
     LeaveModule,
     ExpenseModule,

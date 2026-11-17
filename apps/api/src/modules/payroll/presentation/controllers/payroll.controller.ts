@@ -140,6 +140,26 @@ export class PayrollController {
     return report;
   }
 
+  // --- Salary Slip template test data -----------------------------------------
+
+  @Get('slip-preview/runs')
+  @ApiOperation({ summary: 'Payroll months that exist, for the Salary Slip template preview' })
+  async slipPreviewRuns(@Req() req: any) {
+    await this.access.assertPayroll(requireEmpId(req.user));
+    return this.payroll.listSlipPreviewRuns();
+  }
+
+  @Get('slip-preview/:year/:month/employees')
+  @ApiOperation({ summary: 'Employees on one payroll run, for the Salary Slip template preview' })
+  async slipPreviewEmployees(
+    @Req() req: any,
+    @Param('year', ParseIntPipe) year: number,
+    @Param('month', ParseIntPipe) month: number,
+  ) {
+    await this.access.assertPayroll(requireEmpId(req.user));
+    return this.payroll.slipPreviewEmployees(year, month);
+  }
+
   // --- Runs -------------------------------------------------------------------
 
   @Get('runs')

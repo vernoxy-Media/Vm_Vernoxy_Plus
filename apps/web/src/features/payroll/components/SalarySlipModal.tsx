@@ -1,4 +1,6 @@
-import React, { useRef } from 'react';
+import React from 'react';
+import { printHtmlDocument } from '@/shared/utils/print-html';
+import { TemplatePreviewFrame } from '@/features/document-templates/components/TemplatePreviewFrame';
 import { Loader2, Printer } from 'lucide-react';
 import { SalarySlip, errorText } from '../hooks/use-payroll';
 import { Banner, Modal, btn, fmtStamp } from './payroll-ui';
@@ -12,8 +14,8 @@ export const SalarySlipModal: React.FC<{ open: boolean; onClose: () => void; sli
   error,
   title,
 }) => {
-  const frame = useRef<HTMLIFrameElement>(null);
-  const doc = slip ? `<!doctype html><html><head><meta charset="utf-8"><title>${slip.slip_number}</title><style>body{margin:24px;}@media print{body{margin:0;}}</style></head><body>${slip.content_html}</body></html>` : '';
+  // Printed from a full-size A4 frame; "Save as PDF" in the print dialog downloads it, named after the slip.
+  const print = () => slip && printHtmlDocument(slip.content_html, `Salary Slip ${slip.slip_number.replace(/[\/:*?"<>|]+/g, '-')}`);
   return (
     <Modal
       open={open}
@@ -32,7 +34,7 @@ export const SalarySlipModal: React.FC<{ open: boolean; onClose: () => void; sli
           <button type="button" className={btn.secondary} onClick={onClose}>
             Close
           </button>
-          <button type="button" className={btn.primary} disabled={!slip} onClick={() => frame.current?.contentWindow?.print()}>
+          <button type="button" className={btn.primary} disabled={!slip} onClick={print}>
             <Printer className="h-4 w-4" /> Print / Save as PDF
           </button>
         </>
@@ -45,7 +47,9 @@ export const SalarySlipModal: React.FC<{ open: boolean; onClose: () => void; sli
       ) : error ? (
         <Banner>{errorText(error)}</Banner>
       ) : slip ? (
-        <iframe ref={frame} title="Salary Slip" srcDoc={doc} className="h-[70vh] w-full rounded-xl border border-slate-200 bg-white" />
+        <div className="max-h-[70vh] overflow-y-auto">
+          <TemplatePreviewFrame html={slip.content_html} loading={false} title={`Salary Slip ${slip.slip_number}`} />
+        </div>
       ) : null}
     </Modal>
   );

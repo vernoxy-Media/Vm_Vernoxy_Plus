@@ -293,6 +293,9 @@ importers:
       multer:
         specifier: ^2.4.0
         version: 2.4.0
+      mustache:
+        specifier: 4.2.0
+        version: 4.2.0
       nodemailer:
         specifier: ^10.0.16
         version: 10.0.16
@@ -336,6 +339,9 @@ importers:
       '@types/multer':
         specifier: ^2.3.0
         version: 2.3.0
+      '@types/mustache':
+        specifier: 4.2.5
+        version: 4.2.5
       '@types/node':
         specifier: ^22.13.0
         version: 22.20.5
@@ -418,6 +424,9 @@ importers:
       '@playwright/test':
         specifier: ^1.64.0
         version: 1.64.0
+      '@types/node':
+        specifier: ^22.13.0
+        version: 22.20.5
       '@types/react':
         specifier: ^18.3.18
         version: 18.3.31
@@ -2140,6 +2149,9 @@ packages:
 
   '@types/multer@2.3.0':
     resolution: {integrity: sha512-i7STIm9V4K2MPH4ZYMtrZAwNxs3kglk2LgleaTuB9pUXgADBcQYQuYMd7+6xgTIxfoggIkFA/DkkvycdZpIARA==}
+
+  '@types/mustache@4.2.5':
+    resolution: {integrity: sha512-PLwiVvTBg59tGFL/8VpcGvqOu3L4OuveNvPi0EYbWchRdEVP++yRUXJPFl+CApKEq13017/4Nf7aQ5lTtHUNsA==}
 
   '@types/node@14.18.63':
     resolution: {integrity: sha512-fAtCfv4jJg+ExtXhvCkCqUKZ+4ok/JQk01qDKhL5BDDoS3AxKXhV5/MAVUZyQnSEd2GT92fkgZl0pz0Q0AzcIQ==}
@@ -4109,6 +4121,10 @@ packages:
   multer@2.4.0:
     resolution: {integrity: sha512-7dqa0ZcFfzbefdTuIkzOSMvZWC0J7FLqBOjJUZvDCXShIURWKxAyTT1wHhnE5q19c7jOJf43IYYKjBmZVZmvhg==}
     engines: {node: '>= 10.16.0'}
+
+  mustache@4.2.0:
+    resolution: {integrity: sha512-71ippSywq5Yb7/tVYyGbkBggbU8H3u5Rz56fH60jGFgr8uHwxs+aSKeqmluIVzM0m0kB7xQjKS6qPfd0b2ZoqQ==}
+    hasBin: true
 
   mute-stream@2.0.0:
     resolution: {integrity: sha512-WWdIxpyjEn+FhQJQQv9aQAYlHoNVdzIzUySNV1gHUPDSdZJ3yZn7pAAbQcV7B56Mvu881q9FZV+0Vx2xC44VWA==}
@@ -7304,6 +7320,8 @@ snapshots:
     dependencies:
       '@types/express': 5.0.6
 
+  '@types/mustache@4.2.5': {}
+
   '@types/node@14.18.63': {}
 
   '@types/node@22.20.5':
@@ -9645,6 +9663,8 @@ snapshots:
       append-field: 1.0.0
       busboy: 1.6.0
       type-is: 1.6.18
+
+  mustache@4.2.0: {}
 
   mute-stream@2.0.0: {}
 
