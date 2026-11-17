@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { keepPreviousData } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
 import {
   useTasksControllerGetBoard,
@@ -29,6 +30,7 @@ import { TaskIssuePanel } from '../components/TaskIssuePanel';
 import { PRIMARY_BUTTON, TaskPageHeader, TaskStatStrip, ViewSwitch } from '../components/TaskPageChrome';
 import { TaskFormModal } from '../components/TaskFormModal';
 import { useSocket } from '@/shared/socket/SocketContext';
+import { useDebouncedSearch } from '../hooks/use-debounced-search';
 
 export const TaskManagementPage: React.FC = () => {
   const [filters, setFilters] = useState<TaskBoardQueryDto>({});
@@ -39,7 +41,11 @@ export const TaskManagementPage: React.FC = () => {
   const { socket } = useSocket();
 
 
-  const { data: rawBoard, refetch: refetchBoard, isLoading: isBoardLoading } = useTasksControllerGetBoard(filters);
+  // A typed search waits for a pause, and the board that is already on screen stays (dimmed) while the new one loads
+  const queryFilters = useDebouncedSearch(filters);
+  const { data: rawBoard, refetch: refetchBoard, isError: isBoardError, isFetching: isBoardFetching } = useTasksControllerGetBoard(queryFilters, {
+    query: { placeholderData: keepPreviousData },
+  });
   const board: TaskBoardResultDto | undefined =
     (rawBoard?.data as TaskBoardResultDto | undefined) ?? (rawBoard as unknown as TaskBoardResultDto | undefined);
 
@@ -199,9 +205,12 @@ export const TaskManagementPage: React.FC = () => {
       />
 
       {/* Main View: Kanban or List */}
-      {isBoardLoading || !board ? (
+      <div className={isBoardFetching && board ? 'opacity-60 transition-opacity' : 'transition-opacity'}>
+      {!board ? (
         <div className="flex h-64 items-center justify-center rounded-2xl bg-white border border-slate-200/80">
-          <div className="text-sm font-medium text-slate-400">Loading tasks board...</div>
+          <div className="text-sm font-medium text-slate-400">
+            {isBoardError ? 'Could not load tasks. Please try again.' : 'Loading tasks board...'}
+          </div>
         </div>
       ) : viewMode === 'kanban' ? (
         <TaskBoard
@@ -218,6 +227,7 @@ export const TaskManagementPage: React.FC = () => {
           onMoveStage={handleMoveStage}
         />
       )}
+      </div>
 
       {/* The task, as a Jira issue */}
       <TaskIssuePanel
