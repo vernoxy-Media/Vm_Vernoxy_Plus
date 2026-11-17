@@ -2,7 +2,6 @@ import React from 'react';
 import { Search, X } from 'lucide-react';
 import type { TaskBoardQueryDto } from '../types';
 import { useLookupsQuery } from '@/features/organization/hooks/use-master-data';
-import { stageName } from '../utils/stage-labels';
 
 export interface TaskFiltersBarProps {
   filters: TaskBoardQueryDto;
@@ -136,7 +135,7 @@ export const TaskFiltersBar: React.FC<TaskFiltersBarProps> = ({
         <option value="">All Stages</option>
         {stages.map((s) => (
           <option key={s.code} value={s.code}>
-            {stageName(s.code) !== s.code ? stageName(s.code) : s.label}
+            {s.label}
           </option>
         ))}
       </select>

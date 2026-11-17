@@ -46,6 +46,7 @@ import {
   Flag,
   Bug,
   Handshake,
+  GitBranch,
 } from 'lucide-react';
 import type { MeResponseDto } from '@vernoxy-pulse/api-client';
 
@@ -57,6 +58,15 @@ const SettingsCustomerTypesSection = React.lazy(() =>
 );
 const SettingsTaskTypesSection = React.lazy(() =>
   import('./sections/SettingsTaskTypesSection').then((m) => ({ default: m.SettingsTaskTypesSection }))
+);
+const SettingsTaskPrioritiesSection = React.lazy(() =>
+  import('./sections/SettingsTaskMastersSections').then((m) => ({ default: m.SettingsTaskPrioritiesSection }))
+);
+const SettingsTaskSourcesSection = React.lazy(() =>
+  import('./sections/SettingsTaskMastersSections').then((m) => ({ default: m.SettingsTaskSourcesSection }))
+);
+const SettingsTaskStagesSection = React.lazy(() =>
+  import('./sections/SettingsTaskMastersSections').then((m) => ({ default: m.SettingsTaskStagesSection }))
 );
 const SettingsBreakTypesSection = React.lazy(() =>
   import('./sections/SettingsBreakTypesSection').then((m) => ({ default: m.SettingsBreakTypesSection }))
@@ -399,6 +409,33 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     path: '/admin/settings/task-types',
     icon: Tag,
     component: SettingsTaskTypesSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Tasks',
+  },
+  {
+    id: 'task-priorities',
+    label: 'Task Priorities',
+    path: '/admin/settings/task-priorities',
+    icon: Flag,
+    component: SettingsTaskPrioritiesSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Tasks',
+  },
+  {
+    id: 'task-sources',
+    label: 'Task Sources',
+    path: '/admin/settings/task-sources',
+    icon: GitBranch,
+    component: SettingsTaskSourcesSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Tasks',
+  },
+  {
+    id: 'task-stages',
+    label: 'Task Stages',
+    path: '/admin/settings/task-stages',
+    icon: Layers,
+    component: SettingsTaskStagesSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
     group: 'Tasks',
   },

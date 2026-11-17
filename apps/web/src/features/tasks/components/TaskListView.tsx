@@ -27,6 +27,7 @@ import { StageDecisionDialog } from './StageDecisionDialog';
 import { HoldReasonModal } from './HoldReasonModal';
 import { useLookupsQuery } from '@/features/organization/hooks/use-master-data';
 import { STAGE_LOZENGE, STAGE_NAME } from '../utils/stage-labels';
+import { useTaskLabels } from '../hooks/use-task-labels';
 
 /** Moves the employee can make from the Stage dropdown (Task BFD 3.3). */
 const EMPLOYEE_MOVES: Partial<Record<TaskStage, TaskStage[]>> = {
@@ -65,9 +66,10 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
 }) => {
   const { data: sourceLookups = [] } = useLookupsQuery('task_source');
   const { data: stageLookups = [] } = useLookupsQuery('task_stage');
+  const { priorityLabel } = useTaskLabels();
   const sourceLabel = (code?: string | null) => sourceLookups.find((l) => l.code === code)?.label || code || '-';
-  // The five stages always carry the same names as the board; a stage the workflow does not know falls back to master data
-  const stageLabel = (code: string) => STAGE_LABELS[code as TaskStage]?.label || stageLookups.find((l) => l.code === code)?.label || code;
+  // Master data names the stages (Settings > Tasks > Task Stages); the built-in name only fills in when it has no row
+  const stageLabel = (code: string) => stageLookups.find((l) => l.code === code)?.label || STAGE_LABELS[code as TaskStage]?.label || code;
   const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
   const [subtasksMap, setSubtasksMap] = useState<Record<number, TaskDetailDto[]>>({});
   const [loadingSubtasks, setLoadingSubtasks] = useState<Record<number, boolean>>({});
@@ -271,9 +273,9 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
                           const p = PRIORITY_VIEW[task.priority as TaskPriority] ?? PRIORITY_VIEW.medium;
                           const PIcon = p.icon;
                           return (
-                            <span className="inline-flex items-center gap-1.5 text-[13px] text-[#42526E]" title={`Priority: ${p.label}`}>
+                            <span className="inline-flex items-center gap-1.5 text-[13px] text-[#42526E]" title={`Priority: ${priorityLabel(task.priority, p.label)}`}>
                               <PIcon className={`h-4 w-4 ${p.color}`} strokeWidth={3} />
-                              {p.label}
+                              {priorityLabel(task.priority, p.label)}
                             </span>
                           );
                         })()}
