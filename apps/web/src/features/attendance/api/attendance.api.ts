@@ -461,7 +461,7 @@ export async function fetchAttendanceReports(
 
 
 /** Current position from the browser, or null when it is denied, unavailable or slow. */
-export function getBrowserLocation(timeoutMs = 15000): Promise<{ latitude: number; longitude: number; accuracy: number } | null> {
+export function getBrowserLocation(timeoutMs = 25000): Promise<{ latitude: number; longitude: number; accuracy: number } | null> {
   if (typeof navigator === 'undefined' || !navigator.geolocation) return Promise.resolve(null);
   const GOOD_ENOUGH_METRES = 50;
   return new Promise((resolve) => {
@@ -526,7 +526,10 @@ export function describeLocationAccuracy(metres?: number | null): { text: string
 }
 
 /** The Google map of a point, for an <iframe>. It needs no key. */
-export function googleMapEmbedUrl(latitude: number, longitude: number, zoom = 17): string {
+export function googleMapEmbedUrl(latitude: number, longitude: number, accuracyMetres?: number | null): string {
+  // A coarse reading is a guess within a radius, so zoom out to show the area instead of one street that looks exact
+  const a = accuracyMetres ?? 0;
+  const zoom = a > 3000 ? 13 : a > 1000 ? 14 : a > 300 ? 15 : a > 100 ? 16 : 17;
   return `https://maps.google.com/maps?q=${latitude},${longitude}&z=${zoom}&hl=en&output=embed`;
 }
 

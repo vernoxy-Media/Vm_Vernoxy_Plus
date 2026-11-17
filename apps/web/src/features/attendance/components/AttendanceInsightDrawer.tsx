@@ -489,7 +489,7 @@ export const AttendanceInsightDrawer: React.FC<AttendanceInsightDrawerProps> = (
                       title="Punch location"
                       loading="lazy"
                       className="h-40 w-full"
-                      src={googleMapEmbedUrl(record.latitude, record.longitude)}
+                      src={googleMapEmbedUrl(record.latitude, record.longitude, record.location_accuracy_m)}
                     />
                   </div>
                 )}

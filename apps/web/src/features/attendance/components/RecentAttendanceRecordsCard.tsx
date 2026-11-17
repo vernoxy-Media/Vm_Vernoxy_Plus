@@ -686,7 +686,7 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
               title="Punch location"
               className="h-44 w-full"
               loading="lazy"
-              src={googleMapEmbedUrl(mapFor.record.latitude, mapFor.record.longitude)}
+              src={googleMapEmbedUrl(mapFor.record.latitude, mapFor.record.longitude, mapFor.record.location_accuracy_m)}
             />
             {(() => {
               const acc = describeLocationAccuracy(mapFor.record.location_accuracy_m);
