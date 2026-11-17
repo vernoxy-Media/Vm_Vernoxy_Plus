@@ -79,6 +79,7 @@ export const ProjectComments: React.FC<ProjectCommentsProps> = ({ heading = 'Dis
   const [error, setError] = useState<string | null>(null);
   const [newestFirst, setNewestFirst] = useState(true);
   const [pick, setPick] = useState(0);
+  const [caret, setCaret] = useState(0);
   const [query, setQuery] = useState('');
   const [scope, setScope] = useState<'all' | 'general' | 'issues'>('all');
   const [limit, setLimit] = useState(PAGE);
@@ -90,11 +91,9 @@ export const ProjectComments: React.FC<ProjectCommentsProps> = ({ heading = 'Dis
   const people = useMemo(() => Array.from(new Map(members.map((m) => [m.employee_id, m])).values()), [members]);
   const byId = useMemo(() => new Map(people.map((m) => [m.employee_id, m])), [people]);
 
-  /** The @name being typed at the end of the text, if any. */
-  const mention = useMemo(() => {
-    const m = /(^|\s)@([\w.-]*(?:\s[\w.-]*)?)$/.exec(text);
-    return m ? m[2] : null;
-  }, [text]);
+  /** The @name being typed right before the cursor (anywhere in the text, not only at the end), if any. */
+  const mentionMatch = useMemo(() => /(^|\s)@([\w.-]*(?:[ ][\w.-]*)?)$/.exec(text.slice(0, caret)), [text, caret]);
+  const mention = mentionMatch ? mentionMatch[2] : null;
   const suggestions = useMemo(() => {
     if (mention === null) return [];
     const q = mention.toLowerCase();
@@ -102,9 +101,18 @@ export const ProjectComments: React.FC<ProjectCommentsProps> = ({ heading = 'Dis
   }, [mention, people]);
 
   const choose = (name: string) => {
-    setText((cur) => cur.replace(/@[\w.-]*(?:\s[\w.-]*)?$/, `@${name} `));
+    if (!mentionMatch) return;
+    const start = mentionMatch.index + mentionMatch[1].length;
+    const insert = `@${name} `;
+    const next = text.slice(0, start) + insert + text.slice(caret);
+    const pos = start + insert.length;
+    setText(next);
+    setCaret(pos);
     setPick(0);
-    boxRef.current?.focus();
+    const box = boxRef.current;
+    box?.focus();
+    // Put the cursor right after the inserted name once React has rendered the new text.
+    window.setTimeout(() => box?.setSelectionRange(pos, pos), 0);
   };
 
   /** Adds picked, pasted or dropped files to the comment, skipping (and telling about) the ones that cannot be sent. */
@@ -223,7 +231,8 @@ export const ProjectComments: React.FC<ProjectCommentsProps> = ({ heading = 'Dis
               <textarea
                 ref={boxRef}
                 value={text}
-                onChange={(e) => { setText(e.target.value); setPick(0); }}
+                onChange={(e) => { setText(e.target.value); setCaret(e.target.selectionStart ?? e.target.value.length); setPick(0); }}
+                onSelect={(e) => setCaret(e.currentTarget.selectionStart ?? 0)}
                 onKeyDown={onKeyDown}
                 onPaste={(e) => {
                   const pasted = Array.from(e.clipboardData?.files ?? []);
