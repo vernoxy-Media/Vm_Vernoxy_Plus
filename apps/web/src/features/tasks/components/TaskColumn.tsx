@@ -72,7 +72,7 @@ export const TaskColumn: React.FC<TaskColumnProps> = ({
       </header>
 
       <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
-        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-2 [scrollbar-width:thin]">
+        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-2">
           {tasks.length === 0 ? (
             <p className={`flex h-24 items-center justify-center rounded-lg border border-dashed px-3 text-center text-[12px] font-medium transition-colors ${isOver ? 'border-[color:var(--ac-400,#4C9AFF)] text-[color:var(--ac-main,#0052CC)]' : 'border-slate-300/80 text-slate-400'}`}>
               {isOver ? 'Drop here' : 'No tasks'}
