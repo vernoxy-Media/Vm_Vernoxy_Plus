@@ -750,6 +750,7 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
                             members={project.members ?? []}
                             canManage={isManagerOrAdmin}
                             isAdmin={isAdmin}
+                            canApprove={isManagerOrAdmin}
                             currentEmpId={user?.emp_id}
                             view={boardView}
                             onViewChange={setBoardView}

@@ -434,8 +434,9 @@ export interface ProjectSprintBoardProps {
   sprints: SprintItem[];
   members: Array<{ employee_id: number; name: string }>;
   canManage: boolean;
-  /** Admins approve or send back work that is In Review. */
   isAdmin: boolean;
+  /** Approvers (the admin, or the project manager) approve or send back work that is In Review, and may pass QA. Defaults to isAdmin. */
+  canApprove?: boolean;
   currentEmpId?: number;
   /** When given, the parent owns Board / Backlog (for example a sidebar) and the board hides its own tabs. */
   view?: 'board' | 'list';
@@ -461,6 +462,7 @@ export const ProjectSprintBoard: React.FC<ProjectSprintBoardProps> = ({
   sprints,
   canManage,
   isAdmin,
+  canApprove: canApproveProp,
   currentEmpId,
   view: controlledView,
   onViewChange,
@@ -552,11 +554,17 @@ export const ProjectSprintBoard: React.FC<ProjectSprintBoardProps> = ({
     return hits.length ? hits : closestCorners(args);
   };
 
-  /** Who may drag a card at all: its assignee, or an admin approving something In Review. */
+  const approver = canApproveProp ?? isAdmin;
+
+  /**
+   * Who may drag a card, by the stage it is in:
+   * To Do / In Progress / On Hold: its assignees. In QA: the QA tester, or an approver.
+   * In Review: only an approver (admin or project manager). Done: nobody.
+   */
   const canDrag = (t: ProjectTaskItem) => {
     if (t.stage === 'completed') return false;
-    if (isAdmin && (t.stage === 'requested' || t.stage === 'in_qa')) return true;
-    if (t.stage === 'in_qa') return Boolean(currentEmpId && t.qa_assignee_id === currentEmpId);
+    if (t.stage === 'requested') return approver;
+    if (t.stage === 'in_qa') return approver || Boolean(currentEmpId && t.qa_assignee_id === currentEmpId);
     return Boolean(currentEmpId && t.assignees?.some((a) => a.emp_id === currentEmpId));
   };
 
@@ -564,6 +572,7 @@ export const ProjectSprintBoard: React.FC<ProjectSprintBoardProps> = ({
   const lockReason = (t: ProjectTaskItem): string | undefined => {
     if (t.stage === 'completed') return 'Done issues cannot be moved';
     if (canDrag(t)) return undefined;
+    if (t.stage === 'requested') return 'Only the admin or the project manager can approve or send back this issue';
     if (t.stage === 'in_qa') return t.qa_assignee_name ? `Only ${t.qa_assignee_name} (QA) can move this issue` : 'Only the QA assignee can move this issue';
     const names = (t.assignees ?? []).map((a) => a.name).join(', ');
     return names ? `Only ${names} can move this issue` : 'Only the assignee can move this issue';
@@ -598,9 +607,10 @@ export const ProjectSprintBoard: React.FC<ProjectSprintBoardProps> = ({
     if (target === 'hold') return setHoldTaskId(task.task_id);
     if (target === 'in_qa' && !task.qa_assignee_id) return flash('This issue has no QA assignee, so it cannot be sent to QA.');
     if (task.stage === 'in_qa' && target === 'in_progress' && canDrag(task)) return setSendBackTaskId(task.task_id);
-    if (task.stage === 'requested' && target === 'in_progress' && isAdmin) return setSendBackTaskId(task.task_id);
-    if (target === 'completed' && !isAdmin) return flash('Only an admin can approve an issue as Done.');
-    const approverMove = (isAdmin && task.stage === 'requested' && (target === 'completed' || target === 'in_progress')) || (task.stage === 'in_qa' && canDrag(task) && target === 'requested');
+    if (task.stage === 'requested' && target === 'in_progress' && approver) return setSendBackTaskId(task.task_id);
+    if (target === 'completed' && !approver) return flash('Only the admin or the project manager can approve an issue as Done.');
+    if (target === 'completed' && task.stage !== 'requested') return flash('An issue must be In Review before it can be approved as Done.');
+    const approverMove = (approver && task.stage === 'requested' && (target === 'completed' || target === 'in_progress')) || (task.stage === 'in_qa' && canDrag(task) && target === 'requested');
     if (!approverMove && !canDrag(task)) return flash('Only the assignee can move this issue.');
     onMoveStage(task.task_id, target as TaskStage);
   };
