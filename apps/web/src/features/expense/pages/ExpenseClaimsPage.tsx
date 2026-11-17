@@ -186,6 +186,7 @@ export const ExpenseClaimsPage: React.FC = () => {
               <option value="">All</option>
               <option value="Office Expense">Office Expense</option>
               <option value="Personal Expense">Personal Expense</option>
+              <option value="Project Expense">Project Expense</option>
             </select>
           </FilterField>
           <FilterField label="Expense Date From">

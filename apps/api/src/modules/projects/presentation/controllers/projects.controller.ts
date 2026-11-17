@@ -57,6 +57,7 @@ import { CreateNotificationUseCase } from '../../../notifications/public-api';
 import { AddSubTaskUseCase, CreateTaskUseCase, parseDueDate, validateDateRange } from '../../../tasks/public-api';
 import { CreateSubTaskDto } from '../../../tasks/presentation/dto/task.dto';
 import { mapTaskErrorToHttp } from '../../../tasks/presentation/tasks-error.mapper';
+import { ProjectFinancialsService } from '../../application/services/project-financials.service';
 import { ProjectAccessService, type ProjectRole } from '../../application/services/project-access.service';
 import { deliveryBlockMessage, evaluateDelivery } from '../../domain/services/delivery';
 import { canMoveBug, canSeeActivity, canSeeBug, canSeeDiscussionMessage, seesEverything, type Viewer } from '../../domain/services/visibility';
@@ -109,6 +110,7 @@ export class ProjectsController {
     private readonly updateProjectUseCase: UpdateProjectUseCase,
     private readonly createNotificationUseCase: CreateNotificationUseCase,
     private readonly access: ProjectAccessService,
+    private readonly financials: ProjectFinancialsService,
     private readonly createTaskUseCase: CreateTaskUseCase,
     private readonly addSubTaskUseCase: AddSubTaskUseCase,
   ) {}
@@ -164,6 +166,25 @@ export class ProjectsController {
       return this.projectRepo.getBugsForEmployee(employeeId === 'all' ? null : Number(employeeId) || empId);
     }
     return this.projectRepo.getBugsForEmployee(empId);
+  }
+
+  @Get('financials')
+  @ApiOperation({ summary: 'Actual expense, revenue and profit of every project (Admin only)' })
+  async getFinancials(@Req() req: Request, @Query('client_id') clientId?: string, @Query('project_id') projectId?: string) {
+    await this.assertAdmin(req.user!.emp_id);
+    return this.financials.compute({ clientId: Number(clientId) || undefined, projectId: Number(projectId) || undefined });
+  }
+
+  @Patch(':id/revenue')
+  @ApiOperation({ summary: 'Set or clear the revenue of one project (Admin only)' })
+  async setRevenue(@Req() req: Request, @Param('id', ParseIntPipe) id: number, @Body() body: { project_revenue: number | null }) {
+    await this.assertAdmin(req.user!.emp_id);
+    const v = body?.project_revenue as unknown;
+    return this.financials.setProjectRevenue(id, v === null || v === undefined || v === '' ? null : Number(v), req.user!.emp_id);
+  }
+
+  private async assertAdmin(empId: number) {
+    if (!(await this.access.isAdmin(empId))) throw new ForbiddenException('Only the Admin can see project revenue, expenses and profit.');
   }
 
   @Get('client-options')

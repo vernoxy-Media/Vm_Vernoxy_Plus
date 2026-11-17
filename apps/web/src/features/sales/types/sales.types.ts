@@ -448,6 +448,8 @@ export interface ClientFormResponse {
   result_note: string;
   can_convert: boolean;
   blocked_reason: string | null;
+  /** Only the Admin may record the project revenue. */
+  can_set_revenue?: boolean;
 }
 
 export interface ClientDetailResponse {

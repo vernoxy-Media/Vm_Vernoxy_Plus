@@ -110,7 +110,7 @@ describe('ClientUseCases.convert', () => {
   it('converts, tells the Admins and the Lead By user, and clears cancelled follow-ups off the Calendar', async () => {
     const { uc, repo, notifier, calendar, followUps } = setup();
     const out = await uc.convert(10, good, owner, NOW);
-    expect(repo.convert).toHaveBeenCalledWith({ lead_id: 10, won_on: new Date('2026-11-10T00:00:00.000Z'), win_note: good.win_note, actor_emp_id: 7 });
+    expect(repo.convert).toHaveBeenCalledWith({ lead_id: 10, won_on: new Date('2026-11-10T00:00:00.000Z'), win_note: good.win_note, project_revenue: null, actor_emp_id: 7 });
     expect(out.client).toEqual({ client_id: 55, client_code: 'CLI-0009' });
 
     const sent = notifier.send.mock.calls[0][0] as Array<{ recipient_emp_id: number }>;

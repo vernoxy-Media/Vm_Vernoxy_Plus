@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { customFetch } from '@vernoxy-pulse/api-client';
 import {
   fetchProjects,
   fetchAssignableEmployees,
@@ -23,8 +24,9 @@ function hoursBetween(from?: string | null, to?: string | null): number {
 
 /**
  * Everything on the Project dashboard comes from the database: the projects (with the estimate and the time worked
- * on every task and sub-task), their tasks and their bugs. There is no revenue or expense data to read yet,
- * so `financials` stays empty and the two money charts say so instead of showing made-up numbers.
+ * on every task and sub-task), their tasks and their bugs. Revenue and actual expense come from the Admin-only
+ * financials endpoint; for anybody else the request is refused and `hasFinancials` stays false, so the two money
+ * charts are not shown.
  */
 export function useProjectDashboardData() {
   const [projects, setProjects] = useState<EnrichedProjectItem[]>([]);
@@ -32,16 +34,20 @@ export function useProjectDashboardData() {
   const [isLoading, setIsLoading] = useState(true);
   const [isFetching, setIsFetching] = useState(false);
   const [isError, setIsError] = useState(false);
+  const [hasFinancials, setHasFinancials] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
       setIsFetching(true);
       setIsError(false);
 
-      const [fetchedProjects, fetchedEmployees] = await Promise.all([
+      const [fetchedProjects, fetchedEmployees, money] = await Promise.all([
         fetchProjects({ status: 'all' }),
         fetchAssignableEmployees(),
+        customFetch<{ projects: Array<{ project_id: number; revenue: number | null; actual_expense: number }> }>('/api/v1/projects/financials').catch(() => null),
       ]);
+      const moneyBy = new Map((money?.projects ?? []).map((m) => [m.project_id, m]));
+      setHasFinancials(money !== null);
 
       setEmployees(fetchedEmployees);
 
@@ -99,7 +105,7 @@ export function useProjectDashboardData() {
             estimated_hours: round1((p.total_estimated_minutes ?? 0) / 60),
             actual_hours: round1((p.actual_work_minutes ?? 0) / 60),
             tasks,
-            financials: {},
+            financials: { revenue: moneyBy.get(p.project_id)?.revenue ?? undefined, approved_expenses: moneyBy.get(p.project_id)?.actual_expense ?? 0 },
             bugs,
           };
         }),
@@ -125,6 +131,7 @@ export function useProjectDashboardData() {
     isLoading,
     isFetching,
     isError,
+    hasFinancials,
     refetch: loadData,
   };
 }

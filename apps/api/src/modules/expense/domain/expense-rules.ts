@@ -4,6 +4,7 @@
 
 export const OFFICE = 'Office Expense';
 export const PERSONAL = 'Personal Expense';
+export const PROJECT = 'Project Expense';
 export const MAX_AMOUNT = 1000000;
 export const MAX_FILES = 5;
 export const MAX_FILE_BYTES = 5 * 1024 * 1024;
@@ -14,6 +15,7 @@ export interface ClaimInput {
   expense_date?: string | null;
   category_id?: number | null;
   expense_type?: string | null;
+  project_id?: number | null;
   amount?: number | null;
   merchant_name?: string | null;
   description?: string | null;
@@ -56,6 +58,8 @@ export function inr(n: number | null | undefined): string {
 }
 
 export function typeAllowed(cat: Pick<CategoryRule, 'allowed_type'>, type: string): boolean {
+  // A Project Expense is a company expense, so it is allowed wherever Office Expense is.
+  if (type === PROJECT) return cat.allowed_type !== 'PERSONAL';
   if (cat.allowed_type === 'BOTH') return type === OFFICE || type === PERSONAL;
   return cat.allowed_type === 'OFFICE' ? type === OFFICE : type === PERSONAL;
 }
@@ -99,6 +103,7 @@ export function submitErrors(
   else if (category && !typeAllowed(category, input.expense_type)) {
     e.expense_type = `${category.name} allows only ${category.allowed_type === 'OFFICE' ? OFFICE : PERSONAL}.`;
   }
+  if (input.expense_type === PROJECT && !input.project_id) e.project_id = 'Please select a project.';
   if (input.amount === undefined || input.amount === null) e.amount = need;
   else if (!validAmount(Number(input.amount))) e.amount = 'Please enter an amount more than 0.';
   const desc = (input.description || '').trim();

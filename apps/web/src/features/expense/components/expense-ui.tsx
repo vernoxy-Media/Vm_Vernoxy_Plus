@@ -78,27 +78,29 @@ export const Modal: React.FC<{
   children: React.ReactNode;
   footer?: React.ReactNode;
   width?: string;
-}> = ({ open, title, subtitle, onClose, children, footer, width = 'max-w-lg' }) => {
+  /** Flat, square Jira-style dialog. */
+  jira?: boolean;
+}> = ({ open, title, subtitle, onClose, children, footer, width = 'max-w-lg', jira }) => {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-[2px]" onMouseDown={onClose}>
+    <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${jira ? 'bg-[#091E42]/55' : 'bg-slate-900/40 backdrop-blur-[2px]'}`} onMouseDown={onClose}>
       <div
-        className={`flex max-h-[92vh] w-full ${width} flex-col overflow-hidden rounded-2xl bg-white shadow-2xl`}
+        className={`flex max-h-[92vh] w-full ${width} flex-col overflow-hidden bg-white ${jira ? 'rounded-[3px] shadow-[0_8px_16px_-4px_rgba(9,30,66,0.25),0_0_1px_rgba(9,30,66,0.31)]' : 'rounded-2xl shadow-2xl'}`}
         onMouseDown={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
       >
-        <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4">
+        <div className={`flex items-start justify-between gap-4 px-6 ${jira ? 'pb-2 pt-5' : 'border-b border-slate-100 py-4'}`}>
           <div className="min-w-0">
-            <h3 className="text-[15px] font-bold text-slate-900">{title}</h3>
-            {subtitle && <div className="mt-0.5 text-xs text-slate-500">{subtitle}</div>}
+            <h3 className={jira ? 'text-[20px] font-medium leading-7 text-[#172B4D]' : 'text-[15px] font-bold text-slate-900'}>{title}</h3>
+            {subtitle && <div className={`mt-0.5 text-xs ${jira ? 'text-[#6B778C]' : 'text-slate-500'}`}>{subtitle}</div>}
           </div>
           <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600" aria-label="Close">
             <X className="h-4 w-4" />
           </button>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div>
-        {footer && <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 bg-slate-50/60 px-5 py-3">{footer}</div>}
+        <div className={`min-h-0 flex-1 overflow-y-auto px-6 ${jira ? 'py-3' : 'py-4'}`}>{children}</div>
+        {footer && <div className={`flex flex-wrap items-center justify-end gap-2 px-6 py-4 ${jira ? '' : 'border-t border-slate-100 bg-slate-50/60'}`}>{footer}</div>}
       </div>
     </div>
   );

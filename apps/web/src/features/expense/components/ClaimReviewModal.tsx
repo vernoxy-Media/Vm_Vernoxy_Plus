@@ -153,6 +153,7 @@ export const ClaimReviewModal: React.FC<{
                 <Info label="Expense Date" value={fmtDate(c.expense_date)} />
                 <Info label="Category" value={c.category?.name || '—'} />
                 <Info label="Expense Type" value={c.expense_type || '—'} />
+                {(c as any).project && <Info label="Project" value={`${(c as any).project.project_name} · ${(c as any).project.project_no}`} />}
                 <Info label="Amount" value={c.amount != null ? inr(c.amount) : '—'} strong />
                 <Info label="Merchant / Paid to" value={c.merchant_name || '—'} />
                 <Info label="Submitted" value={fmtDateTime(c.submitted_at)} />

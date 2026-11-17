@@ -1307,6 +1307,7 @@ model project_sprints {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model projects {
+  project_revenue                             Decimal?   @db.Decimal(14, 2)
   project_id                                       Int                    @id(map: "pk_projects") @default(autoincrement())
   project_no                                       String                 @db.VarChar(30)
   project_name                                     String                 @db.VarChar(150)
@@ -2133,6 +2134,7 @@ model expense_categories {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model expense_claims {
+  project_id                                                                       Int?
   claim_id                                                                         Int                  @id(map: "pk_expense_claims") @default(autoincrement())
   claim_no                                                                         String?              @db.VarChar(30)
   emp_id                                                                           Int
@@ -2576,6 +2578,7 @@ model settings_change_log {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model clients {
+  project_revenue                             Decimal?   @db.Decimal(14, 2)
   client_id                                   Int        @id(map: "pk_clients") @default(autoincrement())
   client_code                                 String?    @unique(map: "ux_clients_client_code") @db.VarChar(50)
   company_id                                  Int

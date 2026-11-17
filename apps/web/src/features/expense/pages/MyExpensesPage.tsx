@@ -124,6 +124,7 @@ export const MyExpensesPage: React.FC = () => {
               <option value="">All</option>
               <option value="Office Expense">Office Expense</option>
               <option value="Personal Expense">Personal Expense</option>
+              <option value="Project Expense">Project Expense</option>
             </select>
           </FilterField>
           {isFetching && !isLoading && <Loader2 className="mb-2.5 h-4 w-4 animate-spin text-slate-400" />}

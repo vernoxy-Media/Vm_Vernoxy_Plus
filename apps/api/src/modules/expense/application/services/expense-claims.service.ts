@@ -266,6 +266,21 @@ export class ExpenseClaimsService {
     };
   }
 
+  /** Projects an employee can charge a Project Expense to (live ones, newest first). */
+  private async selectableProjects() {
+    const rows = await this.prisma.projects.findMany({
+      where: { deleted_at: null, project_status: { notIn: ['cancelled'] } },
+      select: { project_id: true, project_no: true, project_name: true, client_name: true },
+      orderBy: { project_name: 'asc' },
+    });
+    return rows.map((p) => ({ project_id: p.project_id, project_no: p.project_no, project_name: p.project_name, client_name: p.client_name }));
+  }
+
+  private async projectRef(projectId: number) {
+    const p = await this.prisma.projects.findFirst({ where: { project_id: projectId }, select: { project_id: true, project_no: true, project_name: true, client_name: true } });
+    return p ? { project_id: p.project_id, project_no: p.project_no, project_name: p.project_name, client_name: p.client_name } : null;
+  }
+
   /** Form data: active categories with their rules, types and the employee header (BFD 4 Part 1). */
   async formOptions(empId: number) {
     const [emp] = await this.prisma.$queryRaw<any[]>`
@@ -285,6 +300,7 @@ export class ExpenseClaimsService {
         receipt_threshold_amount: Number(c.receipt_threshold_amount),
       })),
       types: types.map((t: any) => ({ code: t.code, name: t.name })),
+      projects: await this.selectableProjects(),
       claim_window_days: s.claim_window_days,
       after_claim_window_action: s.after_claim_window_action,
       today: todayStr(),
@@ -307,10 +323,17 @@ export class ExpenseClaimsService {
       expense_date: dto.expense_date ?? (existing ? toDateStr(existing.expense_date) : null),
       category_id: dto.category_id ?? existing?.category_id ?? null,
       expense_type: dto.expense_type ?? existing?.expense_type ?? null,
+      project_id: null,
       amount: dto.amount ?? (existing?.amount != null ? Number(existing.amount) : null),
       merchant_name: dto.merchant_name !== undefined ? dto.merchant_name?.trim() || null : existing?.merchant_name ?? null,
       description: dto.description !== undefined ? dto.description?.trim() || null : existing?.description ?? null,
     };
+    // The project belongs to a Project Expense only; changing the type clears it.
+    input.project_id = input.expense_type === 'Project Expense' ? (dto.project_id !== undefined ? dto.project_id : existing?.project_id ?? null) : null;
+    if (input.project_id) {
+      const proj = await this.prisma.projects.findFirst({ where: { project_id: input.project_id, deleted_at: null }, select: { project_id: true } });
+      if (!proj) throw fieldError({ project_id: 'This project is no longer available. Please choose another.' });
+    }
     const today = todayStr();
     const dErr = draftErrors(input, today);
     if (Object.keys(dErr).length) throw fieldError(dErr);
@@ -323,16 +346,16 @@ export class ExpenseClaimsService {
       if (cid) {
         await tx.$executeRaw`
           UPDATE expense_claims SET expense_date = ${input.expense_date}::date, category_id = ${input.category_id ?? null}::int,
-            expense_type = ${input.expense_type ?? null}, amount = ${input.amount ?? null}::numeric, merchant_name = ${input.merchant_name ?? null},
+            expense_type = ${input.expense_type ?? null}, project_id = ${input.project_id ?? null}::int, amount = ${input.amount ?? null}::numeric, merchant_name = ${input.merchant_name ?? null},
             description = ${input.description ?? null}, updated_at = clock_timestamp(), updated_by = ${empId}, row_version = row_version + 1
           WHERE claim_id = ${cid} AND status = 'DRAFT';
         `;
         await this.history(tx, cid, 'Draft Saved', empId, `Saved as Draft by employee`);
       } else {
         const [row] = await tx.$queryRaw<any[]>`
-          INSERT INTO expense_claims (emp_id, expense_date, category_id, expense_type, amount, merchant_name, description, status,
+          INSERT INTO expense_claims (emp_id, expense_date, category_id, expense_type, project_id, amount, merchant_name, description, status,
                                       copied_from_claim_id, created_by)
-          VALUES (${empId}, ${input.expense_date}::date, ${input.category_id ?? null}::int, ${input.expense_type ?? null},
+          VALUES (${empId}, ${input.expense_date}::date, ${input.category_id ?? null}::int, ${input.expense_type ?? null}, ${input.project_id ?? null}::int,
                   ${input.amount ?? null}::numeric, ${input.merchant_name ?? null}, ${input.description ?? null}, 'DRAFT',
                   ${dto.copied_from_claim_id ?? null}::int, ${empId})
           RETURNING claim_id;
@@ -388,6 +411,7 @@ export class ExpenseClaimsService {
       expense_date: toDateStr(c.expense_date),
       category_id: c.category_id,
       expense_type: c.expense_type,
+      project_id: (c as any).project_id ?? null,
       amount: c.amount != null ? Number(c.amount) : null,
       merchant_name: c.merchant_name,
       description: c.description,
@@ -485,8 +509,8 @@ export class ExpenseClaimsService {
     if (o.status !== 'REJECTED') throw new BadRequestException('Only a Rejected claim can be copied into a new claim.');
     const newId = await this.prisma.$transaction(async (tx) => {
       const [row] = await tx.$queryRaw<any[]>`
-        INSERT INTO expense_claims (emp_id, expense_date, category_id, expense_type, amount, merchant_name, description, status, copied_from_claim_id, created_by)
-        SELECT emp_id, LEAST(expense_date, CURRENT_DATE), category_id, expense_type, amount, merchant_name, description, 'DRAFT', claim_id, ${empId}
+        INSERT INTO expense_claims (emp_id, expense_date, category_id, expense_type, project_id, amount, merchant_name, description, status, copied_from_claim_id, created_by)
+        SELECT emp_id, LEAST(expense_date, CURRENT_DATE), category_id, expense_type, project_id, amount, merchant_name, description, 'DRAFT', claim_id, ${empId}
         FROM expense_claims WHERE claim_id = ${claimId}
         RETURNING claim_id;
       `;
@@ -599,6 +623,8 @@ export class ExpenseClaimsService {
           }
         : null,
       expense_type: c.expense_type,
+      project_id: (c as any).project_id ?? null,
+      project: (c as any).project_id ? await this.projectRef((c as any).project_id) : null,
       amount: c.amount != null ? Number(c.amount) : null,
       merchant_name: c.merchant_name,
       description: c.description,

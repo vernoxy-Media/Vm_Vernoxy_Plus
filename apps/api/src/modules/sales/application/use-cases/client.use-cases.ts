@@ -43,9 +43,20 @@ export interface ClientForm {
   /** false while the lead cannot be marked as Won (it is not Qualified, or already converted). */
   can_convert: boolean;
   blocked_reason: string | null;
+  /** Only the Admin may record what the client pays; everyone else never sees the field. */
+  can_set_revenue: boolean;
 }
 
 const REVERSE_REASON_MAX = 500;
+const REVENUE_MSG = 'Please enter a valid amount (0 or more, up to 2 decimals).';
+
+/** Empty -> null (the field is optional). A bad number -> 'invalid'. */
+function parseRevenue(v: number | string | null | undefined): number | null | 'invalid' {
+  if (v === null || v === undefined || (typeof v === 'string' && v.trim() === '')) return null;
+  const n = typeof v === 'number' ? v : Number(String(v).replace(/,/g, '').trim());
+  if (!Number.isFinite(n) || n < 0 || n > 99999999999 || Math.round(n * 100) !== Number((n * 100).toFixed(6))) return 'invalid';
+  return n;
+}
 
 /** Mark as Won and Convert to Client (BFD section 9). */
 export class ClientUseCases {
@@ -94,6 +105,7 @@ export class ClientUseCases {
       result_note: 'The lead status becomes Converted and is locked. The company is marked as a Client.',
       can_convert: blocked === null && mine,
       blocked_reason: blocked ?? (mine ? null : 'Only the Lead By user or the Admin can mark this lead as won.'),
+      can_set_revenue: actor.is_admin,
     };
   }
 
@@ -103,7 +115,7 @@ export class ClientUseCases {
    */
   async convert(
     leadId: number,
-    input: { won_on?: string | null; win_note?: string | null },
+    input: { won_on?: string | null; win_note?: string | null; project_revenue?: number | string | null },
     actor: SalesActor,
     now = new Date(),
   ): Promise<{ client: ClientDetail; lead: LeadDetail; reused_existing_client: boolean }> {
@@ -123,12 +135,16 @@ export class ClientUseCases {
 
     const fields = { won_on: cleanText(input.won_on), win_note: cleanText(input.win_note) };
     const errors = validateWon(fields, (await this.context(leadId)).lead.created_at, now);
+    // Revenue is optional and Admin only: for anybody else it is ignored.
+    const revenue = actor.is_admin ? parseRevenue(input.project_revenue) : null;
+    if (revenue === 'invalid') errors.push({ field: 'project_revenue', message: REVENUE_MSG });
     if (errors.length > 0) throw new FieldValidationError(errors);
 
     const result = await this.repo.convert({
       lead_id: leadId,
       won_on: dateOnly(fields.won_on as string),
       win_note: fields.win_note as string,
+      project_revenue: revenue as number | null,
       actor_emp_id: actor.emp_id,
     });
 
@@ -157,6 +173,16 @@ export class ClientUseCases {
    * "The Admin can reverse it only while the client has no project, with a reason."
    * The lead goes back to Qualified; when it was the client's only lead the client is removed too.
    */
+  /** Admin only: record or change what the client pays for its project(s). Empty clears it. */
+  async setRevenue(clientId: number, input: { project_revenue?: number | string | null }, actor: SalesActor) {
+    if (!actor.is_admin) throw new ForbiddenSalesError('Only the Admin can record the project revenue.');
+    const revenue = parseRevenue(input.project_revenue);
+    if (revenue === 'invalid') throw new FieldValidationError([{ field: 'project_revenue', message: REVENUE_MSG }]);
+    const saved = await this.repo.setProjectRevenue(clientId, revenue, actor.emp_id);
+    if (!saved) throw new NotFoundSalesError('Client not found.');
+    return saved;
+  }
+
   async reverse(leadId: number, input: { reason?: string | null }, actor: SalesActor) {
     if (!actor.is_admin) throw new ForbiddenSalesError('A conversion can only be reversed by the Admin.');
     const lead = assertLeadFound(await this.work.getLeadForWork(leadId));
