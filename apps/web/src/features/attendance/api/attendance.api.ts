@@ -461,14 +461,34 @@ export async function fetchAttendanceReports(
 
 
 /** Current position from the browser, or null when it is denied, unavailable or slow. */
-export function getBrowserLocation(timeoutMs = 10000): Promise<{ latitude: number; longitude: number; accuracy: number } | null> {
+export function getBrowserLocation(timeoutMs = 15000): Promise<{ latitude: number; longitude: number; accuracy: number } | null> {
   if (typeof navigator === 'undefined' || !navigator.geolocation) return Promise.resolve(null);
+  const GOOD_ENOUGH_METRES = 50;
   return new Promise((resolve) => {
-    navigator.geolocation.getCurrentPosition(
-      (p) => resolve({ latitude: p.coords.latitude, longitude: p.coords.longitude, accuracy: p.coords.accuracy }),
-      () => resolve(null),
+    let best: { latitude: number; longitude: number; accuracy: number } | null = null;
+    let done = false;
+    let watchId: number | null = null;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const finish = () => {
+      if (done) return;
+      done = true;
+      if (watchId != null) navigator.geolocation.clearWatch(watchId);
+      if (timer) clearTimeout(timer);
+      resolve(best);
+    };
+
+    // The first fix on a laptop is usually a coarse WiFi/IP guess; later fixes get sharper, so keep the most accurate one.
+    watchId = navigator.geolocation.watchPosition(
+      (p) => {
+        const reading = { latitude: p.coords.latitude, longitude: p.coords.longitude, accuracy: p.coords.accuracy };
+        if (!best || reading.accuracy < best.accuracy) best = reading;
+        if (best.accuracy <= GOOD_ENOUGH_METRES) finish();
+      },
+      () => finish(),
       { enableHighAccuracy: true, timeout: timeoutMs, maximumAge: 0 },
     );
+    timer = setTimeout(finish, timeoutMs);
   });
 }
 
