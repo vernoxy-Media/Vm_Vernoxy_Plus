@@ -137,6 +137,8 @@ export const SettingsLookupSection: React.FC<SettingsLookupSectionProps> = ({
       label: 'Code (optional)',
       type: 'text',
       placeholder: 'Auto-generated from name if left blank',
+      // A fixed list's code is saved on every task, so it can never change
+      readOnlyOnEdit: fixedList,
       helpText: codeHelp ?? 'Unique identifier used in API and exports. Use lowercase_snake_case.',
     },
     {

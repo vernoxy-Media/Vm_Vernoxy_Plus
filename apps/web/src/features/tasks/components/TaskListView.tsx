@@ -27,6 +27,7 @@ import { StageDecisionDialog } from './StageDecisionDialog';
 import { HoldReasonModal } from './HoldReasonModal';
 import { useLookupsQuery } from '@/features/organization/hooks/use-master-data';
 import { STAGE_LOZENGE, STAGE_NAME } from '../utils/stage-labels';
+import { useTaskLabels } from '../hooks/use-task-labels';
 
 /** Moves the employee can make from the Stage dropdown (Task BFD 3.3). */
 const EMPLOYEE_MOVES: Partial<Record<TaskStage, TaskStage[]>> = {
@@ -65,9 +66,10 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
 }) => {
   const { data: sourceLookups = [] } = useLookupsQuery('task_source');
   const { data: stageLookups = [] } = useLookupsQuery('task_stage');
+  const { priorityLabel } = useTaskLabels();
   const sourceLabel = (code?: string | null) => sourceLookups.find((l) => l.code === code)?.label || code || '-';
-  // The five stages always carry the same names as the board; a stage the workflow does not know falls back to master data
-  const stageLabel = (code: string) => STAGE_LABELS[code as TaskStage]?.label || stageLookups.find((l) => l.code === code)?.label || code;
+  // Master data names the stages (Settings > Tasks > Task Stages); the built-in name only fills in when it has no row
+  const stageLabel = (code: string) => stageLookups.find((l) => l.code === code)?.label || STAGE_LABELS[code as TaskStage]?.label || code;
   const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
   const [subtasksMap, setSubtasksMap] = useState<Record<number, TaskDetailDto[]>>({});
   const [loadingSubtasks, setLoadingSubtasks] = useState<Record<number, boolean>>({});
@@ -149,17 +151,17 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-left text-[13px]">
           <thead>
-            <tr className="border-b-2 border-[#DFE1E6] bg-white text-[12px] font-semibold text-[#5E6C84]">
-              <th className="py-3 px-3 w-10 text-center"></th>
-              <th className="py-3 px-3">Task ID</th>
-              <th className="py-3 px-3 min-w-[200px]">Task Name</th>
-              {isAdmin && <th className="py-3 px-3 min-w-[150px]">Assigned To</th>}
-              <th className="py-3 px-3">Task Type</th>
-              <th className="py-3 px-3">Priority</th>
-              <th className="py-3 px-3">Allocated Time</th>
-              {!isAdmin && <th className="py-3 px-3">Source</th>}
-              <th className="py-3 px-3">Stage</th>
-              <th className="py-3 px-3 text-right">Actions</th>
+            <tr className="border-b border-[#DFE1E6] bg-white text-[11px] font-semibold uppercase tracking-wide text-[#5E6C84]">
+              <th className="py-2 px-3 w-10 text-center"></th>
+              <th className="py-2 px-3">Task ID</th>
+              <th className="py-2 px-3 min-w-[200px]">Task Name</th>
+              {isAdmin && <th className="py-2 px-3 min-w-[150px]">Assigned To</th>}
+              <th className="py-2 px-3">Task Type</th>
+              <th className="py-2 px-3">Priority</th>
+              <th className="py-2 px-3">Allocated Time</th>
+              {!isAdmin && <th className="py-2 px-3">Source</th>}
+              <th className="py-2 px-3">Stage</th>
+              <th className="py-2 px-3 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#DFE1E6] text-[#172B4D]">
@@ -197,23 +199,23 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
                       </td>
 
                       {/* Task ID */}
-                      <td className="py-3 px-3 font-mono font-bold text-slate-600 whitespace-nowrap">
+                      <td className="py-2 px-3 whitespace-nowrap">
                         <button
                           type="button"
                           onClick={() => onCardClick(task.task_id)}
-                          className="hover:text-blue-600 hover:underline cursor-pointer"
+                          className={`cursor-pointer text-[13px] font-medium hover:underline ${isCompleted ? 'text-[#7A869A] line-through' : 'text-[color:var(--ac-main,#0052CC)]'}`}
                         >
                           {task.task_code}
                         </button>
                       </td>
 
                       {/* Task Name */}
-                      <td className="py-3 px-3">
+                      <td className="py-2 px-3">
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
                             onClick={() => onCardClick(task.task_id)}
-                            className="font-medium text-slate-900 hover:text-blue-600 line-clamp-1 text-left cursor-pointer"
+                            className="line-clamp-1 cursor-pointer text-left text-[14px] text-[#172B4D] hover:text-[color:var(--ac-main,#0052CC)] hover:underline"
                           >
                             {task.title}
                           </button>
@@ -234,7 +236,7 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
 
                       {/* Assigned To (Lead + employee count for tasks with subtasks per BFD Section 2.2) */}
                       {isAdmin && (
-                      <td className="py-3 px-3">
+                      <td className="py-2 px-3">
                         <div className="flex items-center gap-2">
                           <AvatarStack assignees={task.assignees} size={22} max={2} />
                           <div className="min-w-0">
@@ -259,31 +261,31 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
                       )}
 
                       {/* Task Type */}
-                      <td className="py-3 px-3 whitespace-nowrap">
-                        <span className="font-medium text-slate-600 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-md">
+                      <td className="py-2 px-3 whitespace-nowrap">
+                        <span className="rounded-[3px] bg-[#F4F5F7] px-1.5 py-px text-[12px] font-medium text-[#42526E]">
                           {task.other_task_type ? `${task.task_type_label}: ${task.other_task_type}` : task.task_type_label || 'General'}
                         </span>
                       </td>
 
                       {/* Priority */}
-                      <td className="py-3 px-3 whitespace-nowrap">
+                      <td className="py-2 px-3 whitespace-nowrap">
                         {(() => {
                           const p = PRIORITY_VIEW[task.priority as TaskPriority] ?? PRIORITY_VIEW.medium;
                           const PIcon = p.icon;
                           return (
-                            <span className="inline-flex items-center gap-1.5 text-[#172B4D]">
+                            <span className="inline-flex items-center gap-1.5 text-[13px] text-[#42526E]" title={`Priority: ${priorityLabel(task.priority, p.label)}`}>
                               <PIcon className={`h-4 w-4 ${p.color}`} strokeWidth={3} />
-                              {p.label}
+                              {priorityLabel(task.priority, p.label)}
                             </span>
                           );
                         })()}
                       </td>
 
                       {/* Allocated Time */}
-                      <td className="py-3 px-3 whitespace-nowrap">
+                      <td className="py-2 px-3 whitespace-nowrap">
                         {task.allocated_minutes ? (
-                          <span className="inline-flex items-center gap-1 text-slate-600 font-medium">
-                            <Clock className="w-3 h-3 text-slate-400" />
+                          <span className="inline-flex items-center gap-1 text-[13px] text-[#42526E]">
+                            <Clock className="w-3 h-3 text-[#7A869A]" />
                             {formatMinutesToHuman(task.allocated_minutes)}
                           </span>
                         ) : (
@@ -292,10 +294,10 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
                       </td>
 
                       {/* Source (employee view, BFD 3.2) */}
-                      {!isAdmin && <td className="py-3 px-3 whitespace-nowrap text-slate-600">{sourceLabel((task as any).source)}</td>}
+                      {!isAdmin && <td className="py-2 px-3 whitespace-nowrap text-[13px] capitalize text-[#42526E]">{sourceLabel((task as any).source)}</td>}
 
                       {/* Stage — the employee changes it from a dropdown, same rules as Kanban (BFD 3.2) */}
-                      <td className="py-3 px-3 whitespace-nowrap">
+                      <td className="py-2 px-3 whitespace-nowrap">
                         {!isAdmin && EMPLOYEE_MOVES[task.stage as TaskStage] ? (
                           <select
                             value={task.stage}
@@ -324,12 +326,12 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
                       </td>
 
                       {/* Actions */}
-                      <td className="py-3 px-3 text-right whitespace-nowrap">
+                      <td className="py-2 px-3 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1">
                           <button
                             type="button"
                             onClick={() => onCardClick(task.task_id)}
-                            className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                            className="rounded-[3px] p-1 text-[#6B778C] transition-colors hover:bg-[rgba(9,30,66,0.08)] hover:text-[#172B4D] cursor-pointer"
                             title="View Details"
                           >
                             <Eye className="w-4 h-4" />
@@ -361,7 +363,7 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
                             <button
                               type="button"
                               onClick={() => onMoveStage(task.task_id, 'in_progress')}
-                              className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded text-[11px] font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 cursor-pointer"
+                              className="inline-flex items-center gap-0.5 h-6 px-2 rounded-[3px] text-[12px] font-medium text-[#42526E] bg-[rgba(9,30,66,0.04)] hover:bg-[rgba(9,30,66,0.08)] cursor-pointer"
                             >
                               <Play className="w-2.5 h-2.5" /> Start
                             </button>
@@ -380,7 +382,7 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
                               <button
                                 type="button"
                                 onClick={() => onMoveStage(task.task_id, 'requested')}
-                                className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded text-[11px] font-semibold text-purple-600 bg-purple-50 hover:bg-purple-100 cursor-pointer"
+                                className="inline-flex items-center gap-0.5 h-6 px-2 rounded-[3px] text-[12px] font-medium text-white bg-[color:var(--ac-main,#0052CC)] hover:opacity-90 cursor-pointer"
                               >
                                 <Send className="w-2.5 h-2.5" /> Submit
                               </button>
@@ -391,7 +393,7 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
                             <button
                               type="button"
                               onClick={() => onMoveStage(task.task_id, 'in_progress')}
-                              className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded text-[11px] font-semibold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 cursor-pointer"
+                              className="inline-flex items-center gap-0.5 h-6 px-2 rounded-[3px] text-[12px] font-medium text-[#42526E] bg-[rgba(9,30,66,0.04)] hover:bg-[rgba(9,30,66,0.08)] cursor-pointer"
                             >
                               <RotateCcw className="w-2.5 h-2.5" /> Resume
                             </button>
@@ -501,7 +503,7 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
                                               <button
                                                 type="button"
                                                 onClick={() => handleMoveSubtask(task.task_id, st.task_id, 'in_progress')}
-                                                className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded text-[11px] font-semibold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 cursor-pointer"
+                                                className="inline-flex items-center gap-0.5 h-6 px-2 rounded-[3px] text-[12px] font-medium text-[#42526E] bg-[rgba(9,30,66,0.04)] hover:bg-[rgba(9,30,66,0.08)] cursor-pointer"
                                                 title="Resume Sub-task"
                                               >
                                                 <RotateCcw className="w-2.5 h-2.5" /> Resume
@@ -513,7 +515,7 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
                                               <button
                                                 type="button"
                                                 onClick={() => handleMoveSubtask(task.task_id, st.task_id, 'in_progress')}
-                                                className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded text-[11px] font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 cursor-pointer"
+                                                className="inline-flex items-center gap-0.5 h-6 px-2 rounded-[3px] text-[12px] font-medium text-[#42526E] bg-[rgba(9,30,66,0.04)] hover:bg-[rgba(9,30,66,0.08)] cursor-pointer"
                                               >
                                                 <Play className="w-2.5 h-2.5" /> Start
                                               </button>
@@ -532,7 +534,7 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
                                                 <button
                                                   type="button"
                                                   onClick={() => handleMoveSubtask(task.task_id, st.task_id, 'requested')}
-                                                  className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded text-[11px] font-semibold text-purple-600 bg-purple-50 hover:bg-purple-100 cursor-pointer"
+                                                  className="inline-flex items-center gap-0.5 h-6 px-2 rounded-[3px] text-[12px] font-medium text-white bg-[color:var(--ac-main,#0052CC)] hover:opacity-90 cursor-pointer"
                                                 >
                                                   <Send className="w-2.5 h-2.5" /> Submit
                                                 </button>
@@ -543,7 +545,7 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
                                               <button
                                                 type="button"
                                                 onClick={() => handleMoveSubtask(task.task_id, st.task_id, 'in_progress')}
-                                                className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded text-[11px] font-semibold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 cursor-pointer"
+                                                className="inline-flex items-center gap-0.5 h-6 px-2 rounded-[3px] text-[12px] font-medium text-[#42526E] bg-[rgba(9,30,66,0.04)] hover:bg-[rgba(9,30,66,0.08)] cursor-pointer"
                                               >
                                                 <RotateCcw className="w-2.5 h-2.5" /> Resume
                                               </button>

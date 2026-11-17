@@ -1264,7 +1264,8 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
     }
 
     if (filters?.priority) {
-      whereClause += ` AND t.priority = $${pIdx++}`;
+      // Raw SQL sends the value as text, and Postgres will not compare an enum column to text without a cast
+      whereClause += ` AND t.priority = $${pIdx++}::task_priority`;
       params.push(filters.priority);
     }
 
@@ -1274,7 +1275,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
     }
 
     if (filters?.stage) {
-      whereClause += ` AND t.stage = $${pIdx++}`;
+      whereClause += ` AND t.stage = $${pIdx++}::task_stage`;
       params.push(filters.stage);
     }
 

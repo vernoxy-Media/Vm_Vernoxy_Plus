@@ -103,6 +103,7 @@ export class MoveTaskStageUseCase {
     // a main task with sub-tasks is timed on its sub-tasks.
     const startTimer =
       command.targetStage === 'in_progress' && (isAssignee || isLead) && !isApproverAction && !existing.has_sub_tasks;
+    const parentBefore = existing.parent_task_id ? await this.taskRepo.findById(existing.parent_task_id) : null;
 
     const updated = await this.taskRepo.moveStage(command.taskId, {
       target_stage: targetStage,
@@ -117,7 +118,25 @@ export class MoveTaskStageUseCase {
     // Handle notifications asynchronously without failing the stage transition
     this.dispatchNotifications(existing.stage, targetStage, updated, { ...command, isAdmin: isApprover }, projectManagerId).catch(() => {});
 
+    // When the last sub-task is submitted the parent task moves to QA by itself: tell the parent's tester too.
+    this.notifyParentQa(parentBefore, updated, command).catch(() => {});
+
     return updated;
+  }
+
+  private async notifyParentQa(parentBefore: TaskEntity | null, child: TaskEntity, command: MoveTaskStageCommand): Promise<void> {
+    if (!parentBefore || parentBefore.stage === 'in_qa' || !child.parent_task_id) return;
+    const parent = await this.taskRepo.findById(child.parent_task_id);
+    if (!parent || parent.stage !== 'in_qa' || !parent.qa_assignee_id || parent.qa_assignee_id === command.actorEmpId) return;
+    await this.createNotificationUseCase.execute({
+      recipient_id: parent.qa_assignee_id,
+      kind: 'task_ready_for_qa',
+      title: `Submitted for QA: ${parent.task_code}`,
+      body: `All sub-tasks of "${parent.title}" are finished. ${command.actorName} submitted the last one, so the task is ready for your testing.`,
+      entity_type: 'task',
+      entity_id: parent.task_id,
+      created_by: command.actorEmpId,
+    });
   }
 
   private async dispatchNotifications(
@@ -132,8 +151,8 @@ export class MoveTaskStageUseCase {
       await this.createNotificationUseCase.execute({
         recipient_id: task.qa_assignee_id,
         kind: 'task_ready_for_qa',
-        title: `Ready for QA: ${task.task_code}`,
-        body: `${command.actorName} has finished "${task.title}". It is ready for your testing.`,
+        title: `Submitted for QA: ${task.task_code}`,
+        body: `${command.actorName} has submitted "${task.title}" for QA. Please test it and pass or return it.`,
         entity_type: 'task',
         entity_id: task.task_id,
         created_by: command.actorEmpId,
@@ -181,8 +200,8 @@ export class MoveTaskStageUseCase {
         .map((id) => ({
           recipient_id: id,
           kind: 'task_review_requested',
-          title: `Review Requested: ${task.task_code}`,
-          body: fromStage === 'in_qa' ? `${command.actorName} passed QA for "${task.title}". It is ready for your approval.` : `${command.actorName} submitted "${task.title}" for review`,
+          title: `Submitted for Review: ${task.task_code}`,
+          body: fromStage === 'in_qa' ? `${command.actorName} passed QA for "${task.title}". It is ready for your approval.` : `${command.actorName} has submitted "${task.title}" for your review.`,
           entity_type: 'task',
           entity_id: task.task_id,
           created_by: command.actorEmpId,

@@ -2,7 +2,6 @@ import React from 'react';
 import { Search, X } from 'lucide-react';
 import type { TaskBoardQueryDto } from '../types';
 import { useLookupsQuery } from '@/features/organization/hooks/use-master-data';
-import { stageName } from '../utils/stage-labels';
 
 export interface TaskFiltersBarProps {
   filters: TaskBoardQueryDto;
@@ -17,6 +16,25 @@ export interface TaskFiltersBarProps {
 const SELECT =
   'h-8 rounded-[3px] border-2 border-[#DFE1E6] bg-[#FAFBFC] px-2 text-[14px] text-[#172B4D] transition-colors hover:bg-[#EBECF0] focus:border-[color:var(--ac-400,#4C9AFF)] focus:bg-white focus:outline-none';
 
+const DEFAULT_STAGES = [
+  { code: 'assigned', label: 'To Do' },
+  { code: 'in_progress', label: 'In Progress' },
+  { code: 'hold', label: 'On Hold' },
+  { code: 'requested', label: 'In Review' },
+  { code: 'completed', label: 'Done' },
+];
+const DEFAULT_PRIORITIES = [
+  { code: 'critical', label: 'Highest' },
+  { code: 'high', label: 'High' },
+  { code: 'medium', label: 'Medium' },
+  { code: 'low', label: 'Low' },
+];
+const DEFAULT_SOURCES = [
+  { code: 'personal', label: 'Personal Task' },
+  { code: 'project', label: 'Project Task' },
+  { code: 'quick', label: 'Task created by an employee' },
+];
+
 /** Search and filters. Stage, Priority, Task Type and Source options come from master data. */
 export const TaskFiltersBar: React.FC<TaskFiltersBarProps> = ({
   filters,
@@ -25,9 +43,13 @@ export const TaskFiltersBar: React.FC<TaskFiltersBarProps> = ({
   assigneeOptions = [],
   showSource = false,
 }) => {
-  const { data: stages = [] } = useLookupsQuery('task_stage');
-  const { data: priorities = [] } = useLookupsQuery('task_priority');
-  const { data: sources = [] } = useLookupsQuery('task_source');
+  // Master data wins; the built-in list only fills in while master data has no rows, so a filter is never empty.
+  const { data: stageRows = [] } = useLookupsQuery('task_stage');
+  const { data: priorityRows = [] } = useLookupsQuery('task_priority');
+  const { data: sourceRows = [] } = useLookupsQuery('task_source');
+  const stages = stageRows.length ? stageRows : DEFAULT_STAGES;
+  const priorities = priorityRows.length ? priorityRows : DEFAULT_PRIORITIES;
+  const sources = sourceRows.length ? sourceRows : DEFAULT_SOURCES;
 
   const hasActiveFilters = Boolean(
     filters.search || filters.priority || filters.task_type_id || filters.assignee_id || filters.stage || filters.source,
@@ -113,7 +135,7 @@ export const TaskFiltersBar: React.FC<TaskFiltersBarProps> = ({
         <option value="">All Stages</option>
         {stages.map((s) => (
           <option key={s.code} value={s.code}>
-            {stageName(s.code) !== s.code ? stageName(s.code) : s.label}
+            {s.label}
           </option>
         ))}
       </select>
