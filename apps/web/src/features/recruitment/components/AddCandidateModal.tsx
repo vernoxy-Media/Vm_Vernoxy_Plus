@@ -28,6 +28,7 @@ import {
 } from '@/features/organization/hooks/use-organization';
 import { useLookupsQuery } from '@/features/organization/hooks/use-master-data';
 import { CountryPhoneInput, SearchableSelect } from '@/shared/ui';
+import { parseApiError } from '@/shared/utils/api-error';
 
 function formatExp(years?: number | null, months?: number | null): string {
   const y = years || 0;
@@ -67,6 +68,68 @@ function parseExperienceString(str: string): { years: number; months: number } {
 
   return { years: 0, months: 0 };
 }
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function nameError(value: string): string | undefined {
+  const v = value.trim();
+  if (!v) return 'Please enter candidate full name.';
+  if (v.length < 2) return 'Name must be at least 2 characters.';
+  if (!/\p{L}/u.test(v)) return 'Name must contain letters.';
+  if (!/^[\p{L}\p{M}][\p{L}\p{M}\s.'-]*$/u.test(v)) {
+    return 'Name can only contain letters, spaces, . \' and -.';
+  }
+  return undefined;
+}
+
+function phoneError(value: string): string | undefined {
+  const digits = value.replace(/\D/g, '');
+  if (digits.length !== 10) return 'The phone number must be 10 digits.';
+  return undefined;
+}
+
+function emailError(value: string): string | undefined {
+  if (!value.trim() || !EMAIL_RE.test(value.trim())) return 'Please enter a valid email address.';
+  return undefined;
+}
+
+function experienceError(value: string): string | undefined {
+  const s = value.trim().toLowerCase();
+  if (!s) return undefined;
+  const valid =
+    /^\d+(?:\.\d+)?$/.test(s) ||
+    /^(?:\d+(?:\.\d+)?\s*(?:years?|yrs?|y)\b)?\s*(?:\d+\s*(?:months?|mos?|m)\b)?$/.test(s);
+  if (!valid) return 'Enter experience like "3 years 4 months".';
+  const { years } = parseExperienceString(s);
+  if (years > 50) return 'Experience cannot be more than 50 years.';
+  return undefined;
+}
+
+function ctcError(value: string): string | undefined {
+  if (value === '') return undefined;
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 0) return 'Please enter 0 or more.';
+  return undefined;
+}
+
+// Maps API (snake_case) field names to the form's error keys.
+const API_FIELD_TO_ERROR_KEY: Record<string, string> = {
+  name: 'name',
+  phone: 'phone',
+  email: 'email',
+  role_id: 'role',
+  dep_id: 'department',
+  exp_years: 'totalExperience',
+  exp_months: 'totalExperience',
+  current_ctc: 'currentCtc',
+  expected_ctc: 'expectedCtc',
+  serving_notice_lwd: 'servingNoticeLwd',
+  source_portal: 'sourcePortal',
+  referred_by_emp_id: 'referredBy',
+  consultancy_name: 'consultancy',
+  college_name: 'college',
+  source_details: 'sourceDetails',
+};
 
 interface AddCandidateModalProps {
   isOpen: boolean;
@@ -339,14 +402,12 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
   // Validation
   const validateInfoTab = () => {
     const errs: Record<string, string> = {};
-    if (!name.trim()) errs.name = 'Please enter candidate full name.';
-    const cleanPhone = phone.replace(/\D/g, '').slice(-10);
-    if (!cleanPhone || cleanPhone.length !== 10) {
-      errs.phone = 'The phone number must be 10 digits.';
-    }
-    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      errs.email = 'Please enter a valid email address.';
-    }
+    const nameErr = nameError(name);
+    if (nameErr) errs.name = nameErr;
+    const phoneErr = phoneError(phone);
+    if (phoneErr) errs.phone = phoneErr;
+    const emailErr = emailError(email);
+    if (emailErr) errs.email = emailErr;
 
     setErrors((prev) => {
       const next = { ...prev };
@@ -368,17 +429,24 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
       if (noticePeriod === 'serving_notice' && !servingNoticeLwd) {
         errs.servingNoticeLwd = 'Please specify the last working day.';
       }
+      const expErr = experienceError(totalExperience);
+      if (expErr) errs.totalExperience = expErr;
+      const curErr = ctcError(currentCtc);
+      if (curErr) errs.currentCtc = curErr;
     }
+    const expectedErr = ctcError(expectedCtc);
+    if (expectedErr) errs.expectedCtc = expectedErr;
 
+    const keys = ['role', 'department', 'servingNoticeLwd', 'totalExperience', 'currentCtc', 'expectedCtc'];
     setErrors((prev) => {
       const next = { ...prev };
-      if (errs.role) next.role = errs.role; else delete next.role;
-      if (errs.department) next.department = errs.department; else delete next.department;
-      if (errs.servingNoticeLwd) next.servingNoticeLwd = errs.servingNoticeLwd; else delete next.servingNoticeLwd;
+      for (const k of keys) {
+        if (errs[k]) next[k] = errs[k]; else delete next[k];
+      }
       return next;
     });
 
-    return !errs.role && !errs.department && !errs.servingNoticeLwd;
+    return keys.every((k) => !errs[k]);
   };
 
   const handleContinue = () => {
@@ -396,14 +464,12 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
   const validateForm = () => {
     const errs: Record<string, string> = {};
 
-    if (!name.trim()) errs.name = 'Please enter candidate full name.';
-    const cleanPhone = phone.replace(/\D/g, '').slice(-10);
-    if (!cleanPhone || cleanPhone.length !== 10) {
-      errs.phone = 'The phone number must be 10 digits.';
-    }
-    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      errs.email = 'Please enter a valid email address.';
-    }
+    const nameErr = nameError(name);
+    if (nameErr) errs.name = nameErr;
+    const phoneErr = phoneError(phone);
+    if (phoneErr) errs.phone = phoneErr;
+    const emailErr = emailError(email);
+    if (emailErr) errs.email = emailErr;
     if (!selectedRoleId) errs.role = 'Please select a position applied for.';
     if (!selectedDepId) errs.department = 'Please select a department.';
 
@@ -411,7 +477,13 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
       if (noticePeriod === 'serving_notice' && !servingNoticeLwd) {
         errs.servingNoticeLwd = 'Please specify the last working day.';
       }
+      const expErr = experienceError(totalExperience);
+      if (expErr) errs.totalExperience = expErr;
+      const curErr = ctcError(currentCtc);
+      if (curErr) errs.currentCtc = curErr;
     }
+    const expectedErr = ctcError(expectedCtc);
+    if (expectedErr) errs.expectedCtc = expectedErr;
 
     if (source === 'job_portal' && !sourcePortal) {
       errs.sourcePortal = 'Please select a job portal.';
@@ -433,7 +505,14 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
     if (Object.keys(errs).length > 0) {
       if (errs.name || errs.phone || errs.email) {
         setActiveTab('info');
-      } else if (errs.role || errs.department || errs.servingNoticeLwd) {
+      } else if (
+        errs.role ||
+        errs.department ||
+        errs.servingNoticeLwd ||
+        errs.totalExperience ||
+        errs.currentCtc ||
+        errs.expectedCtc
+      ) {
         setActiveTab('experience');
       } else {
         setActiveTab('source');
@@ -487,6 +566,26 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
   const handleClose = () => {
     resetForm();
     onClose();
+  };
+
+  // Show an API failure under the field it belongs to; anything unmapped stays in the top banner.
+  const showApiError = (err: unknown, fallback: string) => {
+    const parsed = parseApiError(err, fallback);
+    const fieldErrors: Record<string, string> = {};
+    for (const issue of parsed.issues) {
+      const key = issue.field ? API_FIELD_TO_ERROR_KEY[issue.field] : undefined;
+      if (key && !fieldErrors[key]) fieldErrors[key] = issue.message;
+    }
+    const keys = Object.keys(fieldErrors);
+    if (keys.length === 0) {
+      setGlobalError(parsed.message);
+      return;
+    }
+    setErrors((prev) => ({ ...prev, ...fieldErrors }));
+    setGlobalError(parsed.issues.length > keys.length ? parsed.message : null);
+    if (keys.some((k) => ['name', 'phone', 'email'].includes(k))) setActiveTab('info');
+    else if (keys.some((k) => ['role', 'department', 'servingNoticeLwd', 'totalExperience', 'currentCtc', 'expectedCtc'].includes(k))) setActiveTab('experience');
+    else setActiveTab('source');
   };
 
   // Final Candidate Creation Handler (Strictly executed ONLY from Tab 3: Source & Notes)
@@ -543,8 +642,8 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
             if (onSuccess) onSuccess();
             handleClose();
           },
-          onError: (err: any) => {
-            setGlobalError(err?.detail || err?.message || 'Failed to update candidate. Please try again.');
+          onError: (err: unknown) => {
+            showApiError(err, 'Failed to update candidate. Please try again.');
           },
         },
       );
@@ -562,8 +661,8 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
           });
           if (onSuccess) onSuccess();
         },
-        onError: (err: any) => {
-          setGlobalError(err?.detail || err?.message || 'Failed to create candidate. Please try again.');
+        onError: (err: unknown) => {
+          showApiError(err, 'Failed to create candidate. Please try again.');
         },
       },
     );
@@ -803,6 +902,7 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
                       setPhone(val);
                       if (errors.phone) setErrors((prev) => ({ ...prev, phone: '' }));
                     }}
+                    maxLength={10}
                     placeholder="9876543210"
                     error={errors.phone}
                   />
@@ -1050,10 +1150,14 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
                         const parsed = parseExperienceString(val);
                         setExpYears(parsed.years);
                         setExpMonths(parsed.months);
+                        if (errors.totalExperience) setErrors((prev) => ({ ...prev, totalExperience: '' }));
                       }}
                       placeholder="3 years 4 months"
                       className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
                     />
+                    {errors.totalExperience && (
+                      <p className="text-[11px] text-red-500 font-medium">{errors.totalExperience}</p>
+                    )}
                     <datalist id="candidate-exp-presets">
                       <option value="6 months" />
                       <option value="1 year" />
@@ -1075,10 +1179,14 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
                         type="number"
                         min={0}
                         value={currentCtc}
-                        onChange={(e) => setCurrentCtc(e.target.value)}
+                        onChange={(e) => {
+                          setCurrentCtc(e.target.value);
+                          if (errors.currentCtc) setErrors((prev) => ({ ...prev, currentCtc: '' }));
+                        }}
                         placeholder="e.g. 600000"
                         className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
                       />
+                      {errors.currentCtc && <p className="text-[11px] text-red-500 font-medium">{errors.currentCtc}</p>}
                     </div>
 
                     <div className="space-y-1.5">
@@ -1087,10 +1195,14 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
                         type="number"
                         min={0}
                         value={expectedCtc}
-                        onChange={(e) => setExpectedCtc(e.target.value)}
+                        onChange={(e) => {
+                          setExpectedCtc(e.target.value);
+                          if (errors.expectedCtc) setErrors((prev) => ({ ...prev, expectedCtc: '' }));
+                        }}
                         placeholder="e.g. 850000"
                         className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
                       />
+                      {errors.expectedCtc && <p className="text-[11px] text-red-500 font-medium">{errors.expectedCtc}</p>}
                     </div>
                   </div>
 
@@ -1140,10 +1252,14 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
                     type="number"
                     min={0}
                     value={expectedCtc}
-                    onChange={(e) => setExpectedCtc(e.target.value)}
+                    onChange={(e) => {
+                      setExpectedCtc(e.target.value);
+                      if (errors.expectedCtc) setErrors((prev) => ({ ...prev, expectedCtc: '' }));
+                    }}
                     placeholder="e.g. 350000"
                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
                   />
+                  {errors.expectedCtc && <p className="text-[11px] text-red-500 font-medium">{errors.expectedCtc}</p>}
                 </div>
               )}
 
