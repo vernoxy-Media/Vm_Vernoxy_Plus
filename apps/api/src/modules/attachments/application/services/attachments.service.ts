@@ -7,6 +7,7 @@ import { PrismaService } from '../../../../core/prisma/prisma.service';
 import { CreateAttachmentDto } from '../../presentation/dto/attachment.dto';
 import * as path from 'path';
 import * as fs from 'fs';
+import { uploadRoot } from './storage-root';
 
 @Injectable()
 export class AttachmentsService {
@@ -132,8 +133,7 @@ export class AttachmentsService {
     const normalizedType = entityType.trim().toUpperCase();
 
     // Storage directory: storage/attachments/<entityType>/<entityId>/
-    const repoRoot = path.resolve(__dirname, '../../../../../../..');
-    const storageDir = path.resolve(repoRoot, 'storage', 'attachments', normalizedType, String(entityId));
+    const storageDir = path.resolve(uploadRoot(), 'attachments', normalizedType, String(entityId));
 
     if (!fs.existsSync(storageDir)) {
       await fs.promises.mkdir(storageDir, { recursive: true });
