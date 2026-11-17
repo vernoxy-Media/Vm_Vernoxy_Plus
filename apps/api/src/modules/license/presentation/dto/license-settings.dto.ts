@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsIn,
   IsString,
   IsInt,
   IsBoolean,
@@ -8,6 +9,44 @@ import {
   Min,
   Max,
 } from 'class-validator';
+
+export class CreateBillingCycleDto {
+  @ApiProperty({ description: 'Name shown in the Billing Cycle list, e.g. "8 Months"' })
+  @IsString()
+  name!: string;
+
+  @ApiProperty({ enum: ['FIXED', 'TERM', 'ONE_TIME'], description: 'FIXED: one term lasts `months`; TERM: length from the term dates (Multi-year); ONE_TIME: no renewal' })
+  @IsIn(['FIXED', 'TERM', 'ONE_TIME'], { message: 'Choose how long one term of this cycle lasts.' })
+  kind!: 'FIXED' | 'TERM' | 'ONE_TIME';
+
+  @ApiPropertyOptional({ description: 'Length of one term in months (FIXED only), 1 to 120' })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(120)
+  months?: number | null;
+
+  @ApiPropertyOptional({ description: 'Display order' })
+  @IsOptional()
+  @IsInt()
+  display_order?: number;
+
+  @ApiPropertyOptional({ description: 'Active flag' })
+  @IsOptional()
+  @IsBoolean()
+  is_active?: boolean;
+}
+
+export class UpdateBillingCycleDto {
+  @ApiPropertyOptional() @IsOptional() @IsString() name?: string;
+  @ApiPropertyOptional({ enum: ['FIXED', 'TERM', 'ONE_TIME'] })
+  @IsOptional()
+  @IsIn(['FIXED', 'TERM', 'ONE_TIME'], { message: 'Choose how long one term of this cycle lasts.' })
+  kind?: 'FIXED' | 'TERM' | 'ONE_TIME';
+  @ApiPropertyOptional() @IsOptional() @IsInt() @Min(1) @Max(120) months?: number | null;
+  @ApiPropertyOptional() @IsOptional() @IsInt() display_order?: number;
+  @ApiPropertyOptional() @IsOptional() @IsBoolean() is_active?: boolean;
+}
 
 export class CreateCategoryDto {
   @ApiProperty({ description: 'Category name' })
@@ -141,6 +180,12 @@ export class UpdateLicenseSettingsDto {
   @IsOptional()
   @IsInt()
   max_trial_days?: number;
+
+  @ApiPropertyOptional({ description: 'License Types switched off (BFD 11)', type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  disabled_license_types?: string[];
 
   @ApiPropertyOptional({ description: 'Default currency symbol (e.g. ₹ or $)' })
   @IsOptional()

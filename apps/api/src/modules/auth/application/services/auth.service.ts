@@ -39,6 +39,24 @@ import {
   TooManyRequestsAuthException,
 } from '../errors/auth.errors';
 
+/**
+ * Recruitment & Onboarding BFD, Part 7 "Login rule": a temporary password works once and expires
+ * after 7 days; the Admin can "Resend login" to issue a new one. A password is temporary while
+ * must_change_password is set, and it was issued at password_changed_at.
+ */
+export const TEMPORARY_PASSWORD_VALID_DAYS = 7;
+export const TEMPORARY_PASSWORD_EXPIRED_MESSAGE =
+  'Your temporary password has expired. Use "Forgot password" to set a new one, or ask the Admin to resend your login.';
+
+export function isTemporaryPasswordExpired(
+  credentials: { must_change_password: boolean; password_changed_at?: Date | null } | null | undefined,
+  now: Date,
+): boolean {
+  if (!credentials?.must_change_password || !credentials.password_changed_at) return false;
+  const issuedAt = new Date(credentials.password_changed_at).getTime();
+  return now.getTime() - issuedAt > TEMPORARY_PASSWORD_VALID_DAYS * 86_400_000;
+}
+
 export interface LoginResult {
   challenge_id: string;
   masked_email: string;
@@ -140,6 +158,19 @@ export class AuthService {
       throw new UnauthorizedAuthException(GENERIC_AUTH_ERROR_MESSAGE);
     }
 
+    // A temporary password older than 7 days no longer works. Checked only after the password is
+    // verified, so the message never reveals anything to someone who does not know it.
+    if (isTemporaryPasswordExpired(emp.credentials, this.clock.now())) {
+      await this.authEventRepo.createEvent({
+        emp_id: emp.emp_id,
+        event_type: 'login_password_failed',
+        ip_address: clientIp,
+        user_agent: userAgent,
+        details: { reason: 'temporary_password_expired' },
+      });
+      throw new UnauthorizedAuthException(TEMPORARY_PASSWORD_EXPIRED_MESSAGE);
+    }
+
     // Password valid -> reset failed attempts and record last login
     await this.employeeRepo.resetFailedAttemptsAndSetLastLogin(emp.emp_id, this.clock.now());
 
@@ -234,6 +265,19 @@ export class AuthService {
         user_agent: userAgent,
       });
       throw new UnauthorizedAuthException(GENERIC_AUTH_ERROR_MESSAGE);
+    }
+
+    // A temporary password older than 7 days no longer works. Checked only after the password is
+    // verified, so the message never reveals anything to someone who does not know it.
+    if (isTemporaryPasswordExpired(emp.credentials, this.clock.now())) {
+      await this.authEventRepo.createEvent({
+        emp_id: emp.emp_id,
+        event_type: 'login_password_failed',
+        ip_address: clientIp,
+        user_agent: userAgent,
+        details: { reason: 'temporary_password_expired' },
+      });
+      throw new UnauthorizedAuthException(TEMPORARY_PASSWORD_EXPIRED_MESSAGE);
     }
 
     // Password valid -> reset failed attempts and record last login

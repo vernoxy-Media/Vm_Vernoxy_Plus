@@ -8,6 +8,7 @@ import {
   Bug,
   FileText,
   AlertTriangle,
+  RotateCcw,
 } from 'lucide-react';
 import { CalendarRange, KanbanSquare, ListTodo, Timer, Server } from 'lucide-react';
 import { ProjectDateRange, ProjectTimelineView } from './ProjectTimelineView';
@@ -130,6 +131,9 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
   // Filters
   const [selectedEmpFilter, setSelectedEmpFilter] = useState('all');
   const [selectedSprintFilter, setSelectedSprintFilter] = useState<string>('all');
+  // Summary period filter (BFD 2.6): Date period + Employee drive the KPI cards and Person-wise Summary.
+  const [periodFrom, setPeriodFrom] = useState('');
+  const [periodTo, setPeriodTo] = useState('');
 
   // Dedicated Bug Tab Filters
 
@@ -299,13 +303,28 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
   const empTasks = useMemo(() => (empId === null ? tasks : tasks.filter((t) => t.assignees?.some((a) => a.emp_id === empId))), [tasks, empId]);
   const empBugs = useMemo(() => (empId === null ? bugs : bugs.filter((b) => b.assigned_to === empId || b.reported_by === empId)), [bugs, empId]);
 
+  // A task belongs to the Summary period when it was created, started, sent for review or completed
+  // inside it (BFD 2.6). With no dates picked every task counts, so the Summary is unchanged.
+  const inPeriod = useCallback(
+    (t: ProjectTaskItem) => {
+      if (!periodFrom && !periodTo) return true;
+      const dates = [t.created_at, t.started_at, t.requested_at, t.completed_at]
+        .filter(Boolean)
+        .map((d) => String(d).slice(0, 10));
+      return dates.some((d) => (!periodFrom || d >= periodFrom) && (!periodTo || d <= periodTo));
+    },
+    [periodFrom, periodTo],
+  );
+  const periodTasks = useMemo(() => tasks.filter(inPeriod), [tasks, inPeriod]);
+  const summaryTasks = useMemo(() => empTasks.filter(inPeriod), [empTasks, inPeriod]);
+
   const kpiData = useMemo(() => {
     if (!project) return { estHours: 0, actHours: 0, startDate: '', deadline: '', actualEndDate: null };
 
     const estHours = project.total_estimated_minutes
       ? Math.round(((project.total_estimated_minutes || 0) / 60) * 10) / 10
       : 0;
-    const actSeconds = empTasks.reduce((acc, t) => acc + (t.logged_seconds ?? ((t as any).actual_minutes || 0) * 60), 0);
+    const actSeconds = summaryTasks.reduce((acc, t) => acc + (t.logged_seconds ?? ((t as any).actual_minutes || 0) * 60), 0);
     const actHours = Math.round((actSeconds / 3600) * 10) / 10;
 
     return {
@@ -315,7 +334,7 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
       deadline: project.deadline ? new Date(project.deadline).toLocaleDateString('en-GB') : '---',
       actualEndDate: project.actual_end_date ? new Date(project.actual_end_date).toLocaleDateString('en-GB') : null,
     };
-  }, [project, empTasks]);
+  }, [project, summaryTasks]);
 
   // Filtered Tasks
   const filteredTasks = useMemo(() => {
@@ -337,7 +356,7 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
     return project.members
       .filter((m) => selectedEmpFilter === 'all' || String(m.employee_id) === selectedEmpFilter)
       .map((member) => {
-        const memberTasks = tasks.filter((t) =>
+        const memberTasks = periodTasks.filter((t) =>
           t.assignees?.some((a) => a.emp_id === member.employee_id)
         );
 
@@ -345,7 +364,7 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
         const completedTasks = memberTasks.filter((t) => t.stage === 'completed').length;
         const estMinutes = memberTasks.reduce((sum, t) => sum + (t.allocated_minutes || 0), 0);
         // What this person logged themselves; a task shared by two people is not counted twice
-        const actSeconds = tasks.reduce((sum, t) => sum + (t.time_by_employee?.find((x) => x.employee_id === member.employee_id)?.seconds ?? 0), 0);
+        const actSeconds = periodTasks.reduce((sum, t) => sum + (t.time_by_employee?.find((x) => x.employee_id === member.employee_id)?.seconds ?? 0), 0);
 
         return {
           emp_id: member.employee_id,
@@ -359,7 +378,7 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
           completionRate: totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0,
         };
       });
-  }, [project, tasks, selectedEmpFilter]);
+  }, [project, periodTasks, selectedEmpFilter]);
 
   // Status Update Handlers
   /** Delivery closes the project, so it goes through its own checklist first. */
@@ -818,10 +837,46 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
                 )}
 
                 {/* 3. TAB: SUMMARY */}
+                {/* Summary period (BFD 2.6). The employee filter above already narrows it. */}
+                {activeTab === 'overview' && isManagerOrAdmin && (
+                  <div className="flex flex-wrap items-center gap-2 text-[13px] text-[#5E6C84]">
+                    <span className="font-semibold text-[#172B4D]">Period</span>
+                    <input
+                      type="date"
+                      value={periodFrom}
+                      max={periodTo || undefined}
+                      onChange={(e) => setPeriodFrom(e.target.value)}
+                      aria-label="Period from"
+                      className="h-8 rounded-[3px] border-2 border-[#DFE1E6] bg-[#FAFBFC] px-2 text-[14px] text-[#172B4D] focus:border-[#4C9AFF] focus:bg-white focus:outline-none"
+                    />
+                    <span>to</span>
+                    <input
+                      type="date"
+                      value={periodTo}
+                      min={periodFrom || undefined}
+                      onChange={(e) => setPeriodTo(e.target.value)}
+                      aria-label="Period to"
+                      className="h-8 rounded-[3px] border-2 border-[#DFE1E6] bg-[#FAFBFC] px-2 text-[14px] text-[#172B4D] focus:border-[#4C9AFF] focus:bg-white focus:outline-none"
+                    />
+                    {(periodFrom || periodTo) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPeriodFrom('');
+                          setPeriodTo('');
+                        }}
+                        className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-[3px] px-2 font-medium text-[#42526E] hover:bg-[rgba(9,30,66,0.08)]"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" /> Reset period
+                      </button>
+                    )}
+                  </div>
+                )}
+
                 {activeTab === 'overview' && (
                   <ProjectSummaryView
                     project={project}
-                    tasks={empTasks}
+                    tasks={summaryTasks}
                     kpi={kpiData}
                     workload={personWiseSummary}
                     canEdit={isAdmin}

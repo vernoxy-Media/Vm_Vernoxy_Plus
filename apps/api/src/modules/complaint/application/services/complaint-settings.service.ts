@@ -5,6 +5,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../../core/prisma/prisma.service';
+import { ComplaintNotifierService } from './complaint-notifier.service';
 import {
   CreateComplaintTypeDto,
   UpdateComplaintTypeDto,
@@ -13,7 +14,10 @@ import {
 
 @Injectable()
 export class ComplaintSettingsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifier: ComplaintNotifierService,
+  ) {}
 
   // ===========================================================================
   // 1. COMPLAINT TYPES (MASTER DATA CRUD - BFD Page 12 & 29)
@@ -326,6 +330,18 @@ export class ComplaintSettingsService {
           new_value: ch.newVal,
           changed_by: userId,
         },
+      });
+    }
+
+    // BFD 13: Complaint Settings changed -> all Admins (in-app)
+    if (changes.length) {
+      const admins = (await this.notifier.adminIds()).filter((id) => id !== userId);
+      await this.notifier.send({
+        recipients: admins,
+        kind: 'complaint_settings_changed',
+        title: 'Complaint Settings changed',
+        body: `Changed: ${changes.map((c) => c.field.replace(/_/g, ' ')).join(', ')}.`,
+        actorId: userId,
       });
     }
 

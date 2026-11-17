@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Users,
@@ -129,6 +129,8 @@ export const CandidatesPage: React.FC = () => {
       setSortField(field);
       setSortDirection(field === 'applied_date' ? 'desc' : 'asc');
     }
+    // The server sorts the whole list, so a new order starts again from page 1.
+    setCurrentPage(1);
   };
 
   // Stage Dropdown & Decision Modal state
@@ -205,6 +207,8 @@ export const CandidatesPage: React.FC = () => {
     stage: stageFilter || undefined,
     limit: pageSize,
     offset: (currentPage - 1) * pageSize,
+    sort: sortField,
+    dir: sortDirection,
   });
 
   const candidates = candidateData?.items || [];
@@ -247,28 +251,8 @@ export const CandidatesPage: React.FC = () => {
   const startIndex = totalCount > 0 ? (validCurrentPage - 1) * pageSize + 1 : 0;
   const endIndex = Math.min(validCurrentPage * pageSize, totalCount);
 
-  const sortedCandidates = useMemo(() => {
-    const list = [...candidates];
-    if (sortField === 'candidate') {
-      list.sort((a, b) => {
-        const res = (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' });
-        return sortDirection === 'asc' ? res : -res;
-      });
-    } else if (sortField === 'experience') {
-      list.sort((a, b) => {
-        const expA = (a.exp_years || 0) * 12 + (a.exp_months || 0);
-        const expB = (b.exp_years || 0) * 12 + (b.exp_months || 0);
-        return sortDirection === 'asc' ? expA - expB : expB - expA;
-      });
-    } else if (sortField === 'applied_date') {
-      list.sort((a, b) => {
-        const da = new Date(a.created_at || 0).getTime();
-        const db = new Date(b.created_at || 0).getTime();
-        return sortDirection === 'asc' ? da - db : db - da;
-      });
-    }
-    return list;
-  }, [candidates, sortField, sortDirection]);
+  // Sorted by the server across all pages (BFD Section 3 "Sorting"), not only the 10 rows shown.
+  const sortedCandidates = candidates;
 
   const hasActiveFilters = Boolean(
     searchTerm.trim() || roleFilter !== undefined || sourceFilter || stageFilter !== 'Open',

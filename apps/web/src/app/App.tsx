@@ -13,6 +13,7 @@ import { AppThemeSync } from '@/shared/theme/AppThemeSync';
 import { NotFoundPage } from './NotFoundPage';
 import { CompanyRoute } from '@/features/companies/components/CompanyRoute';
 import { AppLayout } from '@/shared/layouts/AppLayout';
+import { PayrollGate } from '@/features/payroll/components/payroll-ui';
 
 // Sales CRM Feature imports
 import { SalesRoute } from '@/features/sales/components/common/SalesRoute';
@@ -35,6 +36,9 @@ const CandidateDetailPage = lazy(() => import('@/features/recruitment/pages/Cand
 const PayrollRunsPage = lazy(() => import('@/features/payroll/pages/PayrollRunsPage').then((m) => ({ default: m.PayrollRunsPage })));
 const PayrollRegisterPage = lazy(() => import('@/features/payroll/pages/PayrollRegisterPage').then((m) => ({ default: m.PayrollRegisterPage })));
 const EmployeeSalarySheetPage = lazy(() => import('@/features/payroll/pages/EmployeeSalarySheetPage').then((m) => ({ default: m.EmployeeSalarySheetPage })));
+const PayrollReportsPage = lazy(() => import('@/features/payroll/pages/PayrollReportsPage').then((m) => ({ default: m.PayrollReportsPage })));
+const OtApprovalsPage = lazy(() => import('@/features/payroll/pages/OtApprovalsPage').then((m) => ({ default: m.OtApprovalsPage })));
+const MySalarySlipsPage = lazy(() => import('@/features/payroll/pages/MySalarySlipsPage').then((m) => ({ default: m.MySalarySlipsPage })));
 const LeavePage = lazy(() => import('@/features/leave/pages/LeavePage').then((m) => ({ default: m.LeavePage })));
 const ExpensesPage = lazy(() => import('@/features/expense/pages/ExpensesPage').then((m) => ({ default: m.ExpensesPage })));
 const ComplaintsPage = lazy(() => import('@/features/complaint/pages/ComplaintsPage').then((m) => ({ default: m.ComplaintsPage })));
@@ -536,35 +540,73 @@ export const App: React.FC = () => {
                 }
               />
 
-              {/* Payroll Module */}
+              {/* Payroll Module: Admin and Accounts (BFD Section 14); OT approvals for Reporting Managers; own slips for everyone */}
               <Route
                 path="/admin/payroll"
                 element={
-                  <AdminRoute>
+                  <ProtectedRoute>
                     <AppLayout fluid>
+                      <PayrollGate>
                       <PayrollRunsPage />
+                    </PayrollGate>
                     </AppLayout>
-                  </AdminRoute>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/payroll/reports"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout fluid>
+                      <PayrollGate>
+                      <PayrollReportsPage />
+                    </PayrollGate>
+                    </AppLayout>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/admin/payroll/:year/:month"
                 element={
-                  <AdminRoute>
+                  <ProtectedRoute>
                     <AppLayout fluid>
+                      <PayrollGate>
                       <PayrollRegisterPage />
+                    </PayrollGate>
                     </AppLayout>
-                  </AdminRoute>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/admin/payroll/:year/:month/employee/:empId"
                 element={
-                  <AdminRoute>
+                  <ProtectedRoute>
                     <AppLayout fluid>
+                      <PayrollGate>
                       <EmployeeSalarySheetPage />
+                    </PayrollGate>
                     </AppLayout>
-                  </AdminRoute>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/payroll/ot-approvals"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout fluid>
+                      <OtApprovalsPage />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/salary-slips"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout fluid>
+                      <MySalarySlipsPage />
+                    </AppLayout>
+                  </ProtectedRoute>
                 }
               />
 

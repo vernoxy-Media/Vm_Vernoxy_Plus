@@ -38,6 +38,7 @@ import { parsePunch, validateRegularization } from '../domain/services/regulariz
 import { regularizationMessages, type RegularizationFacts } from '../domain/services/regularization-messages';
 import { CreateNotificationUseCase } from '../../notifications/public-api';
 import { JwtAuthGuard } from '../../auth/public-api';
+import { AttendanceMonthLockService } from '../application/services/attendance-month-lock.service';
 import { AttendanceAdminGuard } from './guards/attendance-admin.guard';
 import { PunchInUseCase } from '../application/use-cases/punch-in.use-case';
 import { ResumeWorkUseCase } from '../application/use-cases/resume-work.use-case';
@@ -116,7 +117,9 @@ export class AttendanceController {
     private readonly taskRepo?: TaskRepositoryPort,
     @Optional()
     private readonly notifications?: CreateNotificationUseCase,
+    @Optional() private readonly monthLocks?: AttendanceMonthLockService,
   ) {}
+
 
   private readonly logger = new Logger('AttendanceController');
 
@@ -415,6 +418,7 @@ export class AttendanceController {
   ) {
     try {
       const empId = req.user!.emp_id;
+      await this.monthLocks?.assertOpen(dto.work_date);
       return await this.createCorrectionUseCase.execute({
         empId,
         workDate: dto.work_date,
@@ -440,6 +444,7 @@ export class AttendanceController {
   ) {
     try {
       const adminId = req.user!.emp_id;
+      await this.monthLocks?.assertCorrectionOpen(id);
       return await this.approveCorrectionUseCase.execute(id, adminId);
     } catch (err) {
       throw mapAttendanceErrorToHttp(err);
@@ -507,6 +512,8 @@ export class AttendanceController {
     try {
       const viewerEmpId = req.user!.emp_id;
       const targetEmpId = dto.emp_id && (await this.isAdmin(viewerEmpId)) ? dto.emp_id : viewerEmpId;
+      await this.monthLocks?.assertOpen(dto.work_date);
+      
 
       // A bare "09:30" is Indian time; a full date-time is taken as it is (see regularization-rules)
       const parseDate = (val?: string | null): Date | null => parsePunch(val, dto.work_date);
@@ -584,9 +591,11 @@ export class AttendanceController {
   ) {
     try {
       const approverId = req.user!.emp_id;
+      await this.monthLocks?.assertCorrectionOpen(id);
       const done = await this.attendanceRepo.approveRegularization(id, approverId, dto.comment);
       void this.tellAbout('approved', done, { empId: approverId, name: (req.user as { name?: string }).name || 'An administrator' });
       return done;
+
     } catch (err) {
       throw mapAttendanceErrorToHttp(err);
     }
@@ -621,6 +630,7 @@ export class AttendanceController {
   ) {
     try {
       const approverId = req.user!.emp_id;
+      for (const rid of dto.ids || []) await this.monthLocks?.assertCorrectionOpen(Number(rid));
       return await this.attendanceRepo.bulkApproveRegularizations(dto.ids, approverId);
     } catch (err) {
       throw mapAttendanceErrorToHttp(err);
@@ -642,6 +652,7 @@ export class AttendanceController {
   ) {
     try {
       const adminId = req.user!.emp_id;
+      await this.monthLocks?.assertOpen(date);
       return await this.adminUpsertDayUseCase.execute({
         empId: id,
         workDate: date,

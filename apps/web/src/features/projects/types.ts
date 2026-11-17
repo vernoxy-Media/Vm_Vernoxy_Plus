@@ -197,6 +197,11 @@ export interface ProjectTaskItem {
   /** Seconds each employee worked on this task. */
   time_by_employee?: Array<{ employee_id: number; employee_name: string; seconds: number }>;
   created_at: string;
+  task_type?: string | null;
+  actual_minutes?: number;
+  started_at?: string | null;
+  requested_at?: string | null;
+  completed_at?: string | null;
 }
 
 /** Same fields as Create Task in the Task Module, plus Sprint (Project BFD 2.7). */

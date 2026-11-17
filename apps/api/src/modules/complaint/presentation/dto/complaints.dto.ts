@@ -49,6 +49,11 @@ export enum ResolutionOutcome {
 // -----------------------------------------------------------------------------
 
 export class CreateComplaintDto {
+  @ApiPropertyOptional({ description: 'Submit anyway after the warnings (old date, possible duplicate)' })
+  @IsOptional()
+  @IsBoolean()
+  confirm?: boolean;
+
   @ApiProperty({ description: 'Short title of complaint (5 to 150 chars)', example: 'Laptop shuts down during client calls' })
   @IsString()
   @Length(5, 150)

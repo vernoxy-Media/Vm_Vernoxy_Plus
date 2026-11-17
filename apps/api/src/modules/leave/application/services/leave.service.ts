@@ -581,7 +581,6 @@ export class LeaveService {
       recipients: await this.core.getAdminIds(),
       title: `${v.emp.name} applied for ${v.type!.name}`,
       body: `${v.emp.name} applied for ${v.type!.name} (${days} days), ${dates}. Request ${created.request_no}${v.isShortNotice ? ' · Short notice' : ''}.`,
-      email: true,
       requestId: created.request_id,
       kind: 'leave_submitted',
       actorId: empId,
@@ -591,7 +590,6 @@ export class LeaveService {
       recipients: [v.emp.reporting_manager],
       title: `Copy: ${v.emp.name} applied for ${v.type!.name}`,
       body: `${v.emp.name} applied for ${v.type!.name} (${days} days), ${dates}. The Admin will decide. Request ${created.request_no}.`,
-      email: true,
       requestId: created.request_id,
       kind: 'leave_submitted',
       actorId: empId,
@@ -601,7 +599,6 @@ export class LeaveService {
       recipients: [empId],
       title: `Leave request ${created.request_no} submitted`,
       body: `Your ${v.type!.name} request for ${days} days, ${dates}, is waiting for the Admin.`,
-      email: true,
       requestId: created.request_id,
       kind: 'leave_submitted',
       actorId: empId,
@@ -873,7 +870,7 @@ export class LeaveService {
       recipients: await this.core.getAdminIds(),
       title: `${emp.name} asked to cancel ${req.request_no}`,
       body: `${emp.name} asked to cancel the approved leave ${req.request_no} (${this.describeDates(req)}). Reason: ${dto.cancellation_reason}`,
-      email: true, requestId, kind: 'leave_cancellation_requested', actorId: empId, employeeId: req.emp_id,
+      requestId, kind: 'leave_cancellation_requested', actorId: empId, employeeId: req.emp_id,
     });
     return { success: true, message: 'Cancellation requested. The leave stays Approved until the Admin decides.' };
   }
@@ -958,7 +955,7 @@ export class LeaveService {
       recipients: [emp.emp_id, emp.reporting_manager],
       title: `Leave ${req.request_no} approved`,
       body: `${type.name} for ${emp.name}, ${this.describeDates(req)} (${this.core.fmtDays(num(req.leave_days))} days), was approved by ${admin?.name || 'the Admin'}.${dto.remarks ? ` Remarks: ${dto.remarks}` : ''}`,
-      email: true, requestId, kind: 'leave_approved', actorId: adminId, employeeId: emp.emp_id,
+      requestId, kind: 'leave_approved', actorId: adminId, employeeId: emp.emp_id,
     });
     return this.getLeaveRequestDetails(requestId, { empId: adminId, isAdmin: true });
   }
@@ -990,7 +987,7 @@ export class LeaveService {
       recipients: [emp.emp_id, emp.reporting_manager],
       title: `Leave ${req.request_no} rejected`,
       body: `${type.name} for ${emp.name}, ${this.describeDates(req)}, was rejected by ${admin?.name || 'the Admin'}. Remarks: ${dto.remarks}`,
-      email: true, requestId, kind: 'leave_rejected', actorId: adminId, employeeId: emp.emp_id,
+      requestId, kind: 'leave_rejected', actorId: adminId, employeeId: emp.emp_id,
     });
     return this.getLeaveRequestDetails(requestId, { empId: adminId, isAdmin: true });
   }
@@ -1039,7 +1036,7 @@ export class LeaveService {
       body: dto.agree
         ? `The leave ${req.request_no} (${this.describeDates(req)}) was cancelled by ${admin?.name || 'the Admin'}. The days went back to the balance.${dto.remarks ? ` Remarks: ${dto.remarks}` : ''}`
         : `The leave ${req.request_no} (${this.describeDates(req)}) stays Approved. Remarks: ${dto.remarks}`,
-      email: true, requestId, kind: dto.agree ? 'leave_cancelled' : 'leave_cancellation_refused', actorId: adminId,
+      requestId, kind: dto.agree ? 'leave_cancelled' : 'leave_cancellation_refused', actorId: adminId,
       employeeId: emp.emp_id,
     });
     return this.getLeaveRequestDetails(requestId, { empId: adminId, isAdmin: true });
@@ -1078,7 +1075,7 @@ export class LeaveService {
         recipients: [emp.emp_id, emp.reporting_manager],
         title: `Leave ${req.request_no} cancelled`,
         body: `The leave ${req.request_no} (${this.describeDates(req)}) was cancelled by ${admin?.name || 'the Admin'}. Reason: ${dto.reason}`,
-        email: true, requestId, kind: 'leave_cancelled', actorId: adminId, employeeId: emp.emp_id,
+        requestId, kind: 'leave_cancelled', actorId: adminId, employeeId: emp.emp_id,
       });
       return this.getLeaveRequestDetails(requestId, { empId: adminId, isAdmin: true });
     }
@@ -1133,7 +1130,7 @@ export class LeaveService {
       recipients: [v.emp.emp_id, v.emp.reporting_manager],
       title: `Leave ${created.request_no} added`,
       body: `${admin?.name || 'The Admin'} added ${v.type!.name} for ${v.emp.name}, ${this.describeDates(created)} (${this.core.fmtDays(v.calc!.leave_days)} days).${dto.remarks ? ` Remarks: ${dto.remarks}` : ''}`,
-      email: true, requestId: created.request_id, kind: 'leave_added', actorId: adminId, employeeId: v.emp.emp_id,
+      requestId: created.request_id, kind: 'leave_added', actorId: adminId, employeeId: v.emp.emp_id,
     });
     return this.mapRequestRow(created);
   }

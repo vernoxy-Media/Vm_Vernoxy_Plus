@@ -307,7 +307,7 @@ export class LeaveJobsService implements OnApplicationBootstrap, OnModuleDestroy
       });
     }
 
-    // 2. A Pending request's first day has come - all Admins, in-app and email
+    // 2. A Pending request's first day has come - all Admins, in-app
     const started = await this.prisma.$queryRaw<any[]>`
       SELECT r.request_id, r.request_no, r.from_date, e.name, t.name AS leave_type_name
       FROM leave_requests r JOIN employees e ON e.emp_id = r.emp_id
@@ -320,7 +320,7 @@ export class LeaveJobsService implements OnApplicationBootstrap, OnModuleDestroy
         recipients: admins,
         title: `Leave started without a decision: ${r.request_no}`,
         body: `${r.name}'s ${r.leave_type_name} request starts on ${fmtDate(toDateStr(r.from_date))} and is still Pending. The day shows Absent until it is decided.`,
-        email: true, requestId: r.request_id, kind: 'leave_reminder',
+        requestId: r.request_id, kind: 'leave_reminder',
       });
     }
 

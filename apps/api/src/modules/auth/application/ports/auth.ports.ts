@@ -78,6 +78,8 @@ export interface EmployeeWithAuth {
     failed_attempts: number;
     locked_until: Date | null;
     last_login_at: Date | null;
+    /** When this password was set. For a temporary password, when it was issued. */
+    password_changed_at?: Date | null;
   } | null;
 }
 

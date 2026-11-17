@@ -254,8 +254,14 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
           },
           {
             onSuccess: (matches) => {
+              // When editing, the candidate itself (and the employee it became) is not a duplicate.
               const currentId = candidateToEdit?.candidate_id ?? candidateToEdit?.candidateId;
-              const filteredMatches = (matches || []).filter((m: any) => m.candidate_id !== currentId);
+              const ownEmpId = candidateToEdit?.converted_to_emp_id ?? candidateToEdit?.convertedToEmpId;
+              const filteredMatches = (matches || []).filter(
+                (m: any) =>
+                  !(m.type === 'candidate' && currentId != null && Number(m.id) === Number(currentId)) &&
+                  !(m.type === 'employee' && ownEmpId != null && Number(m.id) === Number(ownEmpId)),
+              );
               setDuplicates(filteredMatches);
             },
             onError: () => {

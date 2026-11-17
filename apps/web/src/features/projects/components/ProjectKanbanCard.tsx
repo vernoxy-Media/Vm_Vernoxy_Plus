@@ -14,6 +14,8 @@ export interface ProjectKanbanCardProps {
   project: ProjectItem;
   onSelectProject?: (project: ProjectItem) => void;
   isOverlay?: boolean;
+  /** Only Admin or the project's PM may drag a card (BFD). */
+  canMove?: boolean;
 }
 
 const categoryLabels: Record<string, string> = {
@@ -42,6 +44,7 @@ export const ProjectKanbanCard: React.FC<ProjectKanbanCardProps> = ({
   project,
   onSelectProject,
   isOverlay = false,
+  canMove = true,
 }) => {
   const {
     attributes,
@@ -57,7 +60,7 @@ export const ProjectKanbanCard: React.FC<ProjectKanbanCardProps> = ({
       project,
       status: project.project_status,
     },
-    disabled: isOverlay,
+    disabled: isOverlay || !canMove,
   });
 
   const style: React.CSSProperties = {

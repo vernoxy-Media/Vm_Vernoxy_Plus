@@ -6,6 +6,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../../core/prisma/prisma.service';
+import { ComplaintNotifierService } from './complaint-notifier.service';
 import {
   CreateComplaintDto,
   AcceptAndAssignDto,
@@ -25,9 +26,15 @@ import {
   ComplaintReportsQueryDto,
 } from '../../presentation/dto/complaints.dto';
 
+const fmt = (d: Date | string | null | undefined) =>
+  d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+
 @Injectable()
 export class ComplaintsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifier: ComplaintNotifierService,
+  ) {}
 
   // ===========================================================================
   // 1. GENERATE COMPLAINT NUMBER (CMP/YYYY/MM/NNNN) - BFD Page 3
@@ -66,6 +73,35 @@ export class ComplaintsService {
     today.setHours(23, 59, 59, 999);
     if (complaintDate > today) {
       throw new BadRequestException('The complaint date cannot be in the future.');
+    }
+
+    // "Warning" checks: the employee may submit after reading them (BFD 4 Part 4).
+    const settings = await this.prisma.complaint_settings.findFirst();
+    const warnings: string[] = [];
+    const oldDays = settings?.old_date_warning_days ?? 90;
+    const ageDays = Math.floor((Date.now() - complaintDate.getTime()) / 86_400_000);
+    if (ageDays > oldDays) warnings.push(`This issue happened more than ${oldDays} days ago. You can still submit it.`);
+    if (settings?.duplicate_warning !== false) {
+      const dup = await this.prisma.complaints.findFirst({
+        where: {
+          complainant_id: complainantId,
+          complaint_type_id: dto.complaint_type_id,
+          related_department_id: dto.related_department_id,
+          status: { in: ['New', 'Open', 'In Progress'] },
+          created_at: { gte: new Date(Date.now() - 7 * 86_400_000) },
+          deleted_at: null,
+        },
+        select: { complaint_no: true },
+        orderBy: { created_at: 'desc' },
+      });
+      if (dup) warnings.push(`You already have an active complaint of this type (${dup.complaint_no}). Add a remark there, or submit a new complaint anyway?`);
+    }
+    if (warnings.length && !(dto as any).confirm) {
+      throw new ConflictException({
+        message: warnings.join(' '),
+        code: 'CONFIRM_REQUIRED',
+        errors: warnings.map((m) => ({ field: 'confirm', message: m })),
+      });
     }
 
     // Force confidentiality if type requires it (e.g. Behaviour & Conduct)
@@ -124,6 +160,7 @@ export class ComplaintsService {
       isConfidential ? 'Confidential complaint submitted' : 'Complaint submitted',
     );
 
+    await this.announce(created, 'submitted', complainantId);
     return created;
   }
 
@@ -606,9 +643,8 @@ export class ComplaintsService {
       where: { complaint_id: complaintId, deleted_at: null },
     });
     if (!complaint) throw new NotFoundException('Complaint not found');
-    if (complaint.status !== 'New') {
-      throw new BadRequestException('Only complaints in New status can be accepted and assigned.');
-    }
+    if (complaint.status !== 'New') await this.alreadyDecided(complaint);
+    await this.assertMayReview(complaint, adminId);
 
     if (dto.handler_id === complaint.complainant_id) {
       throw new BadRequestException('A handler can never be assigned to their own complaint.');
@@ -618,7 +654,7 @@ export class ComplaintsService {
     const isSelfReviewed = complaint.complainant_id === adminId;
 
     const updated = await this.prisma.complaints.update({
-      where: { complaint_id: complaintId },
+      where: { complaint_id: complaintId, row_version: complaint.row_version },
       data: {
         status: 'Open',
         handler_id: dto.handler_id,
@@ -632,7 +668,7 @@ export class ComplaintsService {
         updated_by: adminId,
         row_version: { increment: 1 },
       },
-    });
+    }).catch((e) => this.stale(e, complaintId));
 
     if (dto.remarks && dto.remarks.trim().length > 0) {
       await this.prisma.complaint_remarks.create({
@@ -654,6 +690,7 @@ export class ComplaintsService {
       dto.remarks || `Assigned to handler #${dto.handler_id} with priority ${dto.priority}`,
     );
 
+    await this.announce(updated, 'accepted', adminId, { remarks: dto.remarks });
     return updated;
   }
 
@@ -666,12 +703,11 @@ export class ComplaintsService {
       where: { complaint_id: complaintId, deleted_at: null },
     });
     if (!complaint) throw new NotFoundException('Complaint not found');
-    if (complaint.status !== 'New') {
-      throw new BadRequestException('Only complaints in New status can be closed without action.');
-    }
+    if (complaint.status !== 'New') await this.alreadyDecided(complaint);
+    await this.assertMayReview(complaint, adminId);
 
     const updated = await this.prisma.complaints.update({
-      where: { complaint_id: complaintId },
+      where: { complaint_id: complaintId, row_version: complaint.row_version },
       data: {
         status: 'Closed',
         closure_type: 'Without action',
@@ -684,7 +720,7 @@ export class ComplaintsService {
         updated_by: adminId,
         row_version: { increment: 1 },
       },
-    });
+    }).catch((e) => this.stale(e, complaintId));
 
     await this.recordHistory(
       complaintId,
@@ -695,6 +731,7 @@ export class ComplaintsService {
       `Reason: ${dto.reason}. ${dto.remarks.trim()}`,
     );
 
+    await this.announce(updated, 'closed_without_action', adminId, { reason: dto.reason, remarks: dto.remarks });
     return updated;
   }
 
@@ -716,7 +753,7 @@ export class ComplaintsService {
 
     const oldHandler = complaint.handler_id;
     const updated = await this.prisma.complaints.update({
-      where: { complaint_id: complaintId },
+      where: { complaint_id: complaintId, row_version: complaint.row_version },
       data: {
         handler_id: dto.handler_id,
         reassign_reason: dto.reason.trim(),
@@ -724,7 +761,7 @@ export class ComplaintsService {
         updated_by: adminId,
         row_version: { increment: 1 },
       },
-    });
+    }).catch((e) => this.stale(e, complaintId));
 
     await this.recordHistory(
       complaintId,
@@ -735,6 +772,7 @@ export class ComplaintsService {
       dto.reason.trim(),
     );
 
+    await this.announce(updated, 'reassigned', adminId, { oldHandler, reason: dto.reason });
     return updated;
   }
 
@@ -749,7 +787,7 @@ export class ComplaintsService {
 
     const oldPriority = complaint.priority;
     const updated = await this.prisma.complaints.update({
-      where: { complaint_id: complaintId },
+      where: { complaint_id: complaintId, row_version: complaint.row_version },
       data: {
         priority: dto.priority,
         priority_change_reason: dto.reason.trim(),
@@ -757,7 +795,7 @@ export class ComplaintsService {
         updated_by: adminId,
         row_version: { increment: 1 },
       },
-    });
+    }).catch((e) => this.stale(e, complaintId));
 
     await this.recordHistory(
       complaintId,
@@ -768,6 +806,7 @@ export class ComplaintsService {
       dto.reason.trim(),
     );
 
+    await this.announce(updated, 'priority_changed', adminId, { reason: dto.reason });
     return updated;
   }
 
@@ -784,7 +823,7 @@ export class ComplaintsService {
     const oldDateStr = complaint.target_date ? complaint.target_date.toISOString().split('T')[0] : 'None';
 
     const updated = await this.prisma.complaints.update({
-      where: { complaint_id: complaintId },
+      where: { complaint_id: complaintId, row_version: complaint.row_version },
       data: {
         target_date: newDate,
         target_change_reason: dto.reason.trim(),
@@ -792,7 +831,7 @@ export class ComplaintsService {
         updated_by: adminId,
         row_version: { increment: 1 },
       },
-    });
+    }).catch((e) => this.stale(e, complaintId));
 
     await this.recordHistory(
       complaintId,
@@ -803,6 +842,7 @@ export class ComplaintsService {
       dto.reason.trim(),
     );
 
+    await this.announce(updated, 'target_changed', adminId, { reason: dto.reason });
     return updated;
   }
 
@@ -822,7 +862,7 @@ export class ComplaintsService {
     }
 
     const updated = await this.prisma.complaints.update({
-      where: { complaint_id: complaintId },
+      where: { complaint_id: complaintId, row_version: complaint.row_version },
       data: {
         is_confidential: dto.is_confidential,
         confidential_reason: dto.reason?.trim() || null,
@@ -830,7 +870,7 @@ export class ComplaintsService {
         updated_by: adminId,
         row_version: { increment: 1 },
       },
-    });
+    }).catch((e) => this.stale(e, complaintId));
 
     await this.recordHistory(
       complaintId,
@@ -861,7 +901,7 @@ export class ComplaintsService {
     }
 
     const updated = await this.prisma.complaints.update({
-      where: { complaint_id: complaintId },
+      where: { complaint_id: complaintId, row_version: complaint.row_version },
       data: {
         status: 'In Progress',
         work_started_at: new Date(),
@@ -869,7 +909,7 @@ export class ComplaintsService {
         updated_by: userEmpId,
         row_version: { increment: 1 },
       },
-    });
+    }).catch((e) => this.stale(e, complaintId));
 
     await this.recordHistory(
       complaintId,
@@ -880,6 +920,7 @@ export class ComplaintsService {
       'Handler started work',
     );
 
+    await this.announce(updated, 'started', userEmpId);
     return updated;
   }
 
@@ -898,7 +939,7 @@ export class ComplaintsService {
     // Adding first action on an Open complaint automatically moves it to In Progress (BFD Pg 23)
     if (complaint.status === 'Open') {
       await this.prisma.complaints.update({
-        where: { complaint_id: complaintId },
+        where: { complaint_id: complaintId, row_version: complaint.row_version },
         data: {
           status: 'In Progress',
           work_started_at: new Date(),
@@ -906,7 +947,7 @@ export class ComplaintsService {
           updated_by: userEmpId,
           row_version: { increment: 1 },
         },
-      });
+      }).catch((e) => this.stale(e, complaintId));
       await this.recordHistory(complaintId, 'Status changed', userEmpId, 'Open', 'In Progress', 'Action added');
     }
 
@@ -940,6 +981,7 @@ export class ComplaintsService {
       dto.action_text.trim().substring(0, 100),
     );
 
+    await this.announce(complaint, 'action_added', userEmpId, { text: dto.action_text });
     return action;
   }
 
@@ -974,6 +1016,7 @@ export class ComplaintsService {
       isInternal,
     );
 
+    await this.announce(complaint, isInternal ? 'internal_remark' : 'remark', userEmpId);
     return remark;
   }
 
@@ -1024,14 +1067,14 @@ export class ComplaintsService {
     }
 
     const updated = await this.prisma.complaints.update({
-      where: { complaint_id: complaintId },
+      where: { complaint_id: complaintId, row_version: complaint.row_version },
       data: {
         status: 'Resolved',
         updated_at: now,
         updated_by: userEmpId,
         row_version: { increment: 1 },
       },
-    });
+    }).catch((e) => this.stale(e, complaintId));
 
     await this.recordHistory(
       complaintId,
@@ -1042,6 +1085,7 @@ export class ComplaintsService {
       `Outcome: ${dto.outcome}`,
     );
 
+    await this.announce(updated, 'resolved', userEmpId);
     return { complaint: updated, resolution };
   }
 
@@ -1085,6 +1129,7 @@ export class ComplaintsService {
       dto.comment?.trim() || 'Employee confirmed resolution',
     );
 
+    await this.announce(complaint, 'confirmed', empId);
     return { message: 'Complaint resolution confirmed.' };
   }
 
@@ -1133,7 +1178,7 @@ export class ComplaintsService {
     }
 
     const updated = await this.prisma.complaints.update({
-      where: { complaint_id: complaintId },
+      where: { complaint_id: complaintId, row_version: complaint.row_version },
       data: {
         status: 'In Progress',
         target_date: newTarget,
@@ -1142,7 +1187,7 @@ export class ComplaintsService {
         updated_by: empId,
         row_version: { increment: 1 },
       },
-    });
+    }).catch((e) => this.stale(e, complaintId));
 
     await this.recordHistory(
       complaintId,
@@ -1153,6 +1198,7 @@ export class ComplaintsService {
       dto.reason.trim(),
     );
 
+    await this.announce(updated, 'reopened', empId, { reason: dto.reason });
     return updated;
   }
 
@@ -1172,7 +1218,7 @@ export class ComplaintsService {
     }
 
     const updated = await this.prisma.complaints.update({
-      where: { complaint_id: complaintId },
+      where: { complaint_id: complaintId, row_version: complaint.row_version },
       data: {
         status: 'In Progress',
         target_date: newTarget,
@@ -1180,7 +1226,7 @@ export class ComplaintsService {
         updated_by: adminId,
         row_version: { increment: 1 },
       },
-    });
+    }).catch((e) => this.stale(e, complaintId));
 
     await this.recordHistory(
       complaintId,
@@ -1191,6 +1237,7 @@ export class ComplaintsService {
       dto.remarks.trim(),
     );
 
+    await this.announce(updated, 'sent_back', adminId, { remarks: dto.remarks });
     return updated;
   }
 
@@ -1221,7 +1268,7 @@ export class ComplaintsService {
     }
 
     const updated = await this.prisma.complaints.update({
-      where: { complaint_id: complaintId },
+      where: { complaint_id: complaintId, row_version: complaint.row_version },
       data: {
         status: 'Closed',
         closure_type: 'Resolved',
@@ -1232,7 +1279,7 @@ export class ComplaintsService {
         updated_by: adminId,
         row_version: { increment: 1 },
       },
-    });
+    }).catch((e) => this.stale(e, complaintId));
 
     await this.recordHistory(
       complaintId,
@@ -1243,6 +1290,7 @@ export class ComplaintsService {
       dto.remarks?.trim() || 'Complaint closed as Resolved by Admin',
     );
 
+    await this.announce(updated, 'closed', adminId);
     return updated;
   }
 
@@ -1260,7 +1308,7 @@ export class ComplaintsService {
 
     const now = new Date();
     const updated = await this.prisma.complaints.update({
-      where: { complaint_id: complaintId },
+      where: { complaint_id: complaintId, row_version: complaint.row_version },
       data: {
         status: 'Closed',
         closure_type: 'Withdrawn',
@@ -1272,7 +1320,7 @@ export class ComplaintsService {
         updated_by: empId,
         row_version: { increment: 1 },
       },
-    });
+    }).catch((e) => this.stale(e, complaintId));
 
     await this.recordHistory(
       complaintId,
@@ -1283,6 +1331,7 @@ export class ComplaintsService {
       dto.reason?.trim() || 'Withdrawn by employee',
     );
 
+    await this.announce(complaint, 'withdrawn', empId);
     return updated;
   }
 
@@ -1528,6 +1577,172 @@ export class ComplaintsService {
   // ===========================================================================
   // 12. AUDIT HISTORY RECORDER (BFD Page 27)
   // ===========================================================================
+
+  // ===========================================================================
+  // DASHBOARD CARD (BFD 11 Part 3)
+  // ===========================================================================
+  async getDashboard(empId: number, isAdmin: boolean) {
+    const today = new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00.000Z');
+    const active = { in: ['Open', 'In Progress'] };
+    const mine = { handler_id: empId, deleted_at: null };
+    const [myActive, myOverdue] = await Promise.all([
+      this.prisma.complaints.count({ where: { ...mine, status: active } }),
+      this.prisma.complaints.count({ where: { ...mine, status: active, target_date: { lt: today } } }),
+    ]);
+    if (!isAdmin) return { role: myActive || myOverdue ? 'handler' : 'none', handler: { active: myActive, overdue: myOverdue } };
+    const [fresh, overdue, waiting] = await Promise.all([
+      this.prisma.complaints.count({ where: { deleted_at: null, status: 'New' } }),
+      this.prisma.complaints.count({ where: { deleted_at: null, status: active, target_date: { lt: today } } }),
+      this.prisma.complaints.count({ where: { deleted_at: null, status: 'Resolved' } }),
+    ]);
+    return { role: 'admin', admin: { new: fresh, overdue, resolved_waiting: waiting }, handler: { active: myActive, overdue: myOverdue } };
+  }
+
+  // ===========================================================================
+  // SAFEGUARDS (BFD 5 Part 4, 14)
+  // ===========================================================================
+
+  /** The update matched no row: someone else changed the complaint first. */
+  private async stale(e: any, complaintId: number): Promise<never> {
+    if (e?.code !== 'P2025') throw e;
+    const c = await this.prisma.complaints.findFirst({
+      where: { complaint_id: complaintId },
+      select: { status: true, closure_type: true, updated_by: true },
+    });
+    if (c?.status === 'Closed' && c.closure_type === 'Withdrawn') {
+      throw new ConflictException('This complaint was withdrawn by the employee.');
+    }
+    const who = c?.updated_by
+      ? (await this.prisma.employees.findUnique({ where: { emp_id: c.updated_by }, select: { name: true } }))?.name
+      : null;
+    throw new ConflictException(`This complaint was changed by ${who || 'someone else'}. Refresh to see the latest.`);
+  }
+
+  /** A New complaint is decided once; the second Admin is told who decided and when. */
+  private async alreadyDecided(c: any): Promise<never> {
+    if (c.status === 'Closed' && c.closure_type === 'Withdrawn') {
+      throw new ConflictException('This complaint was withdrawn by the employee.');
+    }
+    const byId = c.status === 'Closed' ? c.closed_by : c.assigned_by;
+    const at: Date | null = c.status === 'Closed' ? c.closed_at : c.assigned_at;
+    const who = byId ? (await this.prisma.employees.findUnique({ where: { emp_id: byId }, select: { name: true } }))?.name : null;
+    const what = c.status === 'Closed' ? 'closed' : 'accepted';
+    const when = at ? at.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
+    throw new ConflictException(`This complaint was already ${what}${who ? ` by ${who}` : ''}${when ? ` on ${when}` : ''}.`);
+  }
+
+  /** An Admin's own complaint is reviewed by another Admin; a sole Admin may review it ("Self-reviewed"). */
+  private async assertMayReview(c: any, adminId: number) {
+    if (c.complainant_id !== adminId) return;
+    const admins = await this.notifier.adminIds();
+    if (admins.some((id) => id !== adminId)) {
+      throw new ForbiddenException('Your own complaint is reviewed by another Admin.');
+    }
+  }
+
+  // ===========================================================================
+  // NOTIFICATIONS (BFD 13). Confidential: only the Complaint No. and a link.
+  // ===========================================================================
+
+  private async announce(c: any, event: string, actorId: number | null, extra: Record<string, any> = {}) {
+    try {
+      const admins = await this.notifier.adminIds();
+      const no = c.complaint_no;
+      const conf = Boolean(c.is_confidential);
+      const label = conf ? `Confidential complaint ${no}` : `${no} "${String(c.subject || '').slice(0, 80)}"`;
+      const send = (recipients: Array<number | null | undefined>, kind: string, title: string, body: string, email = false) =>
+        this.deliver(c.complaint_id, c.complainant_id, actorId, { recipients, kind, title, body, email });
+      const others = (ids: Array<number | null | undefined>) => ids.filter((id) => id && id !== actorId);
+      const handler = c.handler_id as number | null;
+
+      switch (event) {
+        case 'submitted':
+          await send(admins, 'complaint_submitted', conf ? `A confidential complaint ${no} needs your attention` : `New complaint ${no}`,
+            conf ? `A confidential complaint ${no} needs your review.` : `${label} was submitted and waits for review.`, true);
+          await send([c.complainant_id], 'complaint_received', `Complaint ${no} received`,
+            `Your complaint ${no} was submitted. The Admin will review it.`, true);
+          break;
+        case 'accepted':
+          await send([handler], 'complaint_assigned', `Complaint ${no} assigned to you`,
+            `${label} is assigned to you. Priority ${c.priority}, target ${fmt(c.target_date)}.${!conf && extra.remarks ? ` Note: ${extra.remarks}` : ''}`, true);
+          await send([c.complainant_id], 'complaint_accepted', `Complaint ${no} accepted`,
+            `Your complaint ${no} was accepted. Target date ${fmt(c.target_date)}.`, true);
+          break;
+        case 'closed_without_action':
+          await send([c.complainant_id], 'complaint_closed_without_action', `Complaint ${no} closed without action`,
+            `Your complaint ${no} was closed without action. Reason: ${extra.reason}. ${extra.remarks || ''}`.trim(), true);
+          break;
+        case 'reassigned':
+          await send([extra.oldHandler], 'complaint_reassigned', `Complaint ${no} reassigned`, `${label} was reassigned to another handler.`, true);
+          await send([handler], 'complaint_assigned', `Complaint ${no} assigned to you`, `${label} was reassigned to you. Target ${fmt(c.target_date)}.`, true);
+          await send([c.complainant_id], 'complaint_reassigned', `Complaint ${no} has a new handler`, `Your complaint ${no} has a new handler.`, true);
+          break;
+        case 'priority_changed':
+        case 'target_changed':
+          await send(others([handler, c.complainant_id]), 'complaint_target_changed', `Complaint ${no} updated`,
+            `${event === 'priority_changed' ? `Priority is now ${c.priority}` : `Target Date is now ${fmt(c.target_date)}`}. Reason: ${extra.reason}`);
+          break;
+        case 'started':
+          await send([c.complainant_id], 'complaint_in_progress', `Work started on ${no}`, `The handler started working on your complaint ${no}.`);
+          break;
+        case 'action_added':
+          await send(others([c.complainant_id]), 'complaint_action_added', `Update on ${no}`,
+            `An action was recorded on your complaint ${no}${conf ? '' : `: ${String(extra.text || '').slice(0, 120)}`}.`);
+          break;
+        case 'remark': {
+          // employee -> handler (Admin while New); handler/Admin -> employee
+          const to = actorId === c.complainant_id ? (c.status === 'New' || !handler ? admins : [handler]) : [c.complainant_id];
+          await send(others(to), 'complaint_remark', `New remark on ${no}`, `A remark was added on ${conf ? `complaint ${no}` : label}.`);
+          break;
+        }
+        case 'internal_remark':
+          // Internal remarks go to the other of the two: handler <-> Admin
+          await send(others(actorId === handler ? admins : [handler]), 'complaint_internal_remark', `Internal remark on ${no}`, `An internal remark was added on complaint ${no}.`);
+          break;
+        case 'resolved':
+          await send([c.complainant_id], 'complaint_resolved', `Complaint ${no} resolved`,
+            `Your complaint ${no} is resolved. Please confirm the resolution or reopen it within the confirmation window.`, true);
+          await send(others(admins), 'complaint_resolved', `Complaint ${no} resolved`, `${label} was resolved and waits to be closed.`, true);
+          break;
+        case 'confirmed':
+          await send(admins, 'complaint_confirmed', `Complaint ${no} confirmed`, `The employee confirmed the resolution of ${no}. It can be closed.`);
+          break;
+        case 'reopened':
+          await send([handler, ...admins], 'complaint_reopened', `Complaint ${no} reopened`,
+            `${label} was reopened by the employee (${c.reopen_count} time${c.reopen_count === 1 ? '' : 's'})${conf ? '' : `: ${String(extra.reason || '').slice(0, 150)}`}.`, true);
+          break;
+        case 'sent_back':
+          await send([handler], 'complaint_sent_back', `Complaint ${no} sent back`, `${label} was sent back to you by the Admin. ${conf ? '' : extra.remarks || ''}`.trim(), true);
+          await send([c.complainant_id], 'complaint_sent_back', `Complaint ${no} reopened by the Admin`, `Work on your complaint ${no} continues.`, true);
+          break;
+        case 'closed':
+          await send(others([c.complainant_id, handler]), 'complaint_closed', `Complaint ${no} closed`, `Complaint ${no} is closed.`, true);
+          break;
+        case 'withdrawn':
+          await send([...admins, handler], 'complaint_withdrawn', `Complaint ${no} withdrawn`, `${label} was withdrawn by the employee.`);
+          break;
+      }
+    } catch (err: any) {
+      console.error('Complaint notification failed:', err?.message);
+    }
+  }
+
+  /** Sends and writes "Notification sent" in the History (to whom, channel, email delivered). */
+  async deliver(complaintId: number, complainantId: number, actorId: number | null, n: { recipients: Array<number | null | undefined>; kind: string; title: string; body: string; email?: boolean }) {
+    const results = await this.notifier.send({ ...n, complaintId, actorId });
+    for (const r of results) {
+      await this.recordHistory(
+        complaintId,
+        'Notification sent',
+        undefined,
+        undefined,
+        undefined,
+        `${r.name} told by ${r.email ? 'in-app and email' : 'in-app'}${r.email && r.delivered === false ? ' (Email not delivered)' : ''}`,
+        // The employee does not see notifications sent to others (BFD 8)
+        r.empId !== complainantId,
+      );
+    }
+  }
 
   private async recordHistory(
     complaintId: number,

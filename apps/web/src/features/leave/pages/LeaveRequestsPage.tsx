@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import { Plus, Search, Download, Printer, ChevronLeft, ChevronRight, CalendarDays, Wallet, BarChart3, CheckCircle2, Hourglass, AlertCircle } from 'lucide-react';
+import { Plus, Search, Download, Printer, CalendarDays, Wallet, BarChart3, CheckCircle2, Hourglass, AlertCircle, Eye, XCircle } from 'lucide-react';
+import { Pagination } from '@/shared/ui/Pagination';
+import { RowActionsMenu, type RowAction } from '@/shared/ui/RowActionsMenu';
 import { KpiStat, type KpiTone } from '@/shared/ui/dashboard/DashboardShell';
 import { customFetch } from '@vernoxy-pulse/api-client';
 import {
@@ -7,6 +9,7 @@ import {
   LeaveRequestsList,
   leaveExportUrl,
   useAdminLeaveRequestsQuery,
+  useApproveLeaveRequestMutation,
   useLeaveTypesQuery,
   useTeamLeaveRequestsQuery,
 } from '../hooks/use-leave';
@@ -44,7 +47,6 @@ const FIELD =
 
 const initialsOf = (name?: string) =>
   (name || '?').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join('') || '?';
-const PAGE_SIZE = 20;
 
 interface Props {
   hideBreadcrumb?: boolean;
@@ -64,6 +66,7 @@ export const LeaveRequestsPage: React.FC<Props> = ({ teamMode = false, onNavigat
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [viewId, setViewId] = useState<number | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [toast, setToast] = useState('');
@@ -79,7 +82,7 @@ export const LeaveRequestsPage: React.FC<Props> = ({ teamMode = false, onNavigat
     from_date: fromDate || undefined,
     to_date: toDate || undefined,
     page,
-    page_size: PAGE_SIZE,
+    page_size: pageSize,
   };
   const adminQuery = useAdminLeaveRequestsQuery(filters, !teamMode);
   const teamQuery = useTeamLeaveRequestsQuery(filters, teamMode);
@@ -92,7 +95,6 @@ export const LeaveRequestsPage: React.FC<Props> = ({ teamMode = false, onNavigat
   const counters = data?.counters;
   const rows = data?.requests || [];
   const total = data?.total || 0;
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const resetPage = () => setPage(1);
 
   const flash = (m: string) => {
@@ -157,19 +159,29 @@ export const LeaveRequestsPage: React.FC<Props> = ({ teamMode = false, onNavigat
   };
 
   const noFilters = !counter && !search && !typeId && !depId && !empId && !fromDate && !toDate;
+  // Row menu (⋮). Approving needs no remarks, so it can be done from the list; rejecting needs
+  // remarks and opens the request. Cancellation requests are decided inside the request.
+  const approveMut = useApproveLeaveRequestMutation();
+  const approve = async (r: (typeof rows)[number]) => {
+    if (!window.confirm(`Approve ${r.employee_name}'s ${r.leave_type_name} (${fmtDays(r.leave_days)} d, ${dateRangeLabel(r.from_date, r.to_date, r.duration)})?`)) return;
+    try {
+      await approveMut.mutateAsync({ id: r.request_id });
+      flash(`${r.request_no} approved.`);
+    } catch (err: any) {
+      flash(err?.message || 'Could not approve the request.');
+    }
+  };
   const rowAction = (r: (typeof rows)[number]) => {
-    const review = !teamMode && (r.status === 'PENDING' || r.status === 'CANCELLATION_REQUESTED');
-    return (
-      <button
-        type="button"
-        onClick={() => setViewId(r.request_id)}
-        className={`cursor-pointer whitespace-nowrap rounded-xl px-4 py-2 text-xs font-semibold transition active:scale-[0.97] ${
-          review ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/25 hover:brightness-110' : 'border border-slate-200 bg-white text-slate-700 shadow-2xs hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700'
-        }`}
-      >
-        {review ? 'Review' : 'View'}
-      </button>
-    );
+    const canDecide = !teamMode && r.status === 'PENDING';
+    const cancellation = !teamMode && r.status === 'CANCELLATION_REQUESTED';
+    const actions: RowAction[] = [
+      { label: canDecide || cancellation ? 'Review' : 'View details', icon: Eye, onClick: () => setViewId(r.request_id) },
+    ];
+    if (canDecide) {
+      actions.push({ label: 'Approve', icon: CheckCircle2, onClick: () => approve(r), disabled: approveMut.isPending });
+      actions.push({ label: 'Reject…', icon: XCircle, danger: true, onClick: () => setViewId(r.request_id) });
+    }
+    return <RowActionsMenu label={`Actions for ${r.request_no}`} actions={actions} />;
   };
 
   return (
@@ -473,21 +485,17 @@ export const LeaveRequestsPage: React.FC<Props> = ({ teamMode = false, onNavigat
           </>
         )}
 
-        {total > PAGE_SIZE && (
-          <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-500">
-            <span>
-              {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total}
-            </span>
-            <div className="flex items-center gap-1">
-              <button type="button" disabled={page <= 1} onClick={() => setPage(page - 1)} aria-label="Previous page" className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-slate-200 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">
-                <ChevronLeft className="h-3.5 w-3.5" />
-              </button>
-              <span className="px-2 tabular-nums">{page} / {totalPages}</span>
-              <button type="button" disabled={page >= totalPages} onClick={() => setPage(page + 1)} aria-label="Next page" className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-slate-200 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">
-                <ChevronRight className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          </div>
+        {total > 0 && (
+          <Pagination
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            onPageChange={setPage}
+            onPageSizeChange={(n) => {
+              setPageSize(n);
+              setPage(1);
+            }}
+          />
         )}
       </section>
 

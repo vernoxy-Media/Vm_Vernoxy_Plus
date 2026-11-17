@@ -123,9 +123,13 @@ export function useCandidatesQuery(params: {
   endDate?: string;
   limit?: number;
   offset?: number;
-}) {
+  sort?: 'candidate' | 'experience' | 'applied_date';
+  dir?: 'asc' | 'desc';
+}, options: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: ['candidates', params],
+    // The candidates API is Admin-only; callers outside Recruitment pass enabled: isAdmin.
+    enabled: options.enabled ?? true,
     queryFn: () => {
       const searchParams = new URLSearchParams();
       if (params.q) searchParams.set('q', params.q);
@@ -138,6 +142,8 @@ export function useCandidatesQuery(params: {
       if (params.endDate) searchParams.set('endDate', params.endDate);
       if (params.limit !== undefined) searchParams.set('limit', String(params.limit));
       if (params.offset !== undefined) searchParams.set('offset', String(params.offset));
+      if (params.sort) searchParams.set('sort', params.sort);
+      if (params.dir) searchParams.set('dir', params.dir);
 
       const qs = searchParams.toString();
       return customFetch<CandidateListResponse>(`/api/v1/candidates${qs ? `?${qs}` : ''}`);

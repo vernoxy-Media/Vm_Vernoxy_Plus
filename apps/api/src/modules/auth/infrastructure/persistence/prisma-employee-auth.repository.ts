@@ -71,6 +71,7 @@ export class PrismaEmployeeAuthRepository implements EmployeeAuthRepository {
             failed_attempts: creds.failed_attempts,
             locked_until: creds.locked_until,
             last_login_at: creds.last_login_at,
+            password_changed_at: creds.password_changed_at ?? null,
           }
         : null,
     };
@@ -122,6 +123,7 @@ export class PrismaEmployeeAuthRepository implements EmployeeAuthRepository {
             failed_attempts: creds.failed_attempts,
             locked_until: creds.locked_until,
             last_login_at: creds.last_login_at,
+            password_changed_at: creds.password_changed_at ?? null,
           }
         : null,
     };

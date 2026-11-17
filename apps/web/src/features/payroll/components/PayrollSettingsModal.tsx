@@ -1,262 +1,267 @@
-import React, { useState, useEffect } from 'react';
-import { X, Settings, ShieldCheck, Loader2, Check } from 'lucide-react';
-import {
-  usePayrollSettingsQuery,
-  useUpdatePayrollSettingsMutation,
-  PayrollSettings,
-} from '../hooks/use-payroll';
+import React, { useEffect, useState } from 'react';
+import { Loader2, Plus } from 'lucide-react';
+import { useEmployeeOptionsQuery } from '@/features/organization/hooks/use-organization';
+import { PayrollSettings, errorText, fieldErrors, useAddCategoryMutation, usePayrollSettingsQuery, useUpdateCategoryMutation, useUpdatePayrollSettingsMutation } from '../hooks/use-payroll';
+import { Banner, FieldError, Modal, btn, inputCls } from './payroll-ui';
 
-interface PayrollSettingsModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
+const L: React.FC<{ t: string; children: React.ReactNode; err?: string }> = ({ t, children, err }) => (
+  <div>
+    <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-slate-500">{t}</label>
+    {children}
+    <FieldError msg={err} />
+  </div>
+);
 
-export const PayrollSettingsModal: React.FC<PayrollSettingsModalProps> = ({
-  isOpen,
-  onClose,
-}) => {
-  const { data: settings, isLoading } = usePayrollSettingsQuery();
-  const updateMutation = useUpdatePayrollSettingsMutation();
-
+/** Section 12: Payroll Settings. The Admin edits; Accounts can only view. */
+export const PayrollSettingsModal: React.FC<{ open: boolean; onClose: () => void; canEdit: boolean }> = ({ open, onClose, canEdit }) => {
+  const { data, isLoading, error } = usePayrollSettingsQuery(open);
+  const { data: people = [] } = useEmployeeOptionsQuery();
+  const save = useUpdatePayrollSettingsMutation();
+  const addCat = useAddCategoryMutation();
+  const updCat = useUpdateCategoryMutation();
   const [form, setForm] = useState<Partial<PayrollSettings>>({});
-  const [successMsg, setSuccessMsg] = useState(false);
+  const [errs, setErrs] = useState<Record<string, string>>({});
+  const [msg, setMsg] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
+  const [newCat, setNewCat] = useState<{ kind: 'ADDITION' | 'DEDUCTION'; label: string }>({ kind: 'ADDITION', label: '' });
 
   useEffect(() => {
-    if (settings) {
-      setForm({
-        default_employee_pf_pct: Number(settings.default_employee_pf_pct) || 12,
-        default_employer_pf_pct: Number(settings.default_employer_pf_pct) || 12,
-        apply_pf_wage_limit: settings.apply_pf_wage_limit !== false,
-        pf_wage_limit: Number(settings.pf_wage_limit) || 15000,
-        missing_punch_default: settings.missing_punch_default || 'UNPAID',
-        ot_rounding: settings.ot_rounding || 'THIRTY',
-        total_salary_rounding: settings.total_salary_rounding || 'NEAREST_RUPEE',
-        pay_day: Number(settings.pay_day) || 7,
-      });
+    if (open && data) {
+      setForm(data);
+      setErrs({});
+      setMsg(null);
     }
-  }, [settings]);
+  }, [open, data]);
 
-  if (!isOpen) return null;
+  const set = (k: keyof PayrollSettings, v: any) => setForm((f) => ({ ...f, [k]: v }));
+  const ro = !canEdit;
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const submit = async () => {
+    const e: Record<string, string> = {};
+    const pct = (v: any) => Number(v) >= 0 && Number(v) <= 100;
+    if (!pct(form.default_employee_pf_pct)) e.default_employee_pf_pct = '0 to 100.';
+    if (!pct(form.default_employer_pf_pct)) e.default_employer_pf_pct = '0 to 100.';
+    if (form.apply_pf_wage_limit && !(Number(form.pf_wage_limit) > 0)) e.pf_wage_limit = 'More than 0. Required when the limit is applied.';
+    if (!(Number(form.pay_day) >= 1 && Number(form.pay_day) <= 28)) e.pay_day = '1 to 28.';
+    if (Object.keys(e).length) return setErrs(e);
+    setMsg(null);
     try {
-      await updateMutation.mutateAsync(form);
-      setSuccessMsg(true);
-      setTimeout(() => setSuccessMsg(false), 2500);
-    } catch (err: any) {
-      alert(err.message || 'Failed to update settings');
+      await save.mutateAsync({
+        default_employee_pf_pct: Number(form.default_employee_pf_pct),
+        default_employer_pf_pct: Number(form.default_employer_pf_pct),
+        apply_pf_wage_limit: Boolean(form.apply_pf_wage_limit),
+        pf_wage_limit: Number(form.pf_wage_limit),
+        missing_punch_default: form.missing_punch_default,
+        ot_rounding: form.ot_rounding,
+        total_salary_rounding: form.total_salary_rounding,
+        pay_day: Number(form.pay_day),
+        accounts_emp_ids: form.accounts_emp_ids,
+        company_name: form.company_name ?? '',
+        company_address: form.company_address ?? '',
+      });
+      setMsg({ tone: 'ok', text: 'Settings saved. New values apply to runs calculated from now; locked runs are not changed.' });
+    } catch (err) {
+      const fe = fieldErrors(err);
+      if (Object.keys(fe).length) setErrs(fe);
+      else setMsg({ tone: 'error', text: errorText(err) });
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div
-        className="bg-white rounded-3xl max-w-xl w-full shadow-2xl border border-slate-100 overflow-hidden transform transition-all animate-in zoom-in-95 duration-200"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-slate-100 text-slate-800 border border-slate-200/80">
-              <Settings className="w-5 h-5 text-slate-700" />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-slate-900 tracking-tight">Payroll Settings</h3>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Configure payroll calculation rules, PF policies, and overtime rounding.
-              </p>
+    <Modal
+      open={open}
+      onClose={onClose}
+      width="max-w-3xl"
+      title="Payroll Settings"
+      subtitle={canEdit ? 'Every change is kept in the Change Log.' : 'View only. The Admin edits these settings.'}
+      footer={
+        <>
+          <button type="button" className={btn.secondary} onClick={onClose}>
+            Close
+          </button>
+          {canEdit && (
+            <button type="button" className={btn.primary} disabled={save.isPending} onClick={submit}>
+              {save.isPending && <Loader2 className="h-4 w-4 animate-spin" />} Save Settings
+            </button>
+          )}
+        </>
+      }
+    >
+      {isLoading ? (
+        <div className="flex h-40 items-center justify-center text-slate-400">
+          <Loader2 className="h-5 w-5 animate-spin" />
+        </div>
+      ) : error || !data ? (
+        <Banner>{errorText(error)}</Banner>
+      ) : (
+        <div className="space-y-5">
+          {msg && <Banner tone={msg.tone === 'ok' ? 'ok' : 'error'}>{msg.text}</Banner>}
+          <fieldset disabled={ro} className="grid gap-3 sm:grid-cols-2">
+            <L t="Payroll Month">
+              <div className={`${inputCls} flex items-center bg-slate-50 text-slate-500`}>{data.payroll_month}</div>
+            </L>
+            <L t="Pay day (1–28)" err={errs.pay_day}>
+              <input type="number" min={1} max={28} className={inputCls} value={form.pay_day ?? ''} onChange={(e) => set('pay_day', e.target.value)} />
+            </L>
+            <L t="Employee PF share %" err={errs.default_employee_pf_pct}>
+              <input type="number" min={0} max={100} step="0.01" className={inputCls} value={form.default_employee_pf_pct ?? ''} onChange={(e) => set('default_employee_pf_pct', e.target.value)} />
+            </L>
+            <L t="Employer PF share %" err={errs.default_employer_pf_pct}>
+              <input type="number" min={0} max={100} step="0.01" className={inputCls} value={form.default_employer_pf_pct ?? ''} onChange={(e) => set('default_employer_pf_pct', e.target.value)} />
+            </L>
+            <L t="Apply PF Wage Limit">
+              <select className={inputCls} value={form.apply_pf_wage_limit ? 'yes' : 'no'} onChange={(e) => set('apply_pf_wage_limit', e.target.value === 'yes')}>
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+              </select>
+            </L>
+            <L t="PF Wage Limit (₹)" err={errs.pf_wage_limit}>
+              <input type="number" min={1} step="0.01" className={inputCls} value={form.pf_wage_limit ?? ''} disabled={ro || !form.apply_pf_wage_limit} onChange={(e) => set('pf_wage_limit', e.target.value)} />
+            </L>
+            <L t="Missing Punch at lock">
+              <select className={inputCls} value={form.missing_punch_default} onChange={(e) => set('missing_punch_default', e.target.value)}>
+                <option value="UNPAID">Unpaid</option>
+                <option value="FULL">Full day</option>
+              </select>
+            </L>
+            <L t="OT rounding">
+              <select className={inputCls} value={form.ot_rounding} onChange={(e) => set('ot_rounding', e.target.value)}>
+                <option value="THIRTY">Down to 30 minutes</option>
+                <option value="FIFTEEN">Down to 15 minutes</option>
+                <option value="NONE">None</option>
+              </select>
+            </L>
+            <L t="Total Salary rounding">
+              <select className={inputCls} value={form.total_salary_rounding} onChange={(e) => set('total_salary_rounding', e.target.value)}>
+                <option value="NEAREST_RUPEE">Nearest rupee</option>
+                <option value="NONE">None (2 decimals)</option>
+              </select>
+            </L>
+            <L t="Full Day Hours (from Attendance Settings)">
+              <div className={`${inputCls} flex items-center bg-slate-50 text-slate-500`}>{data.full_day_hours} hours</div>
+            </L>
+          </fieldset>
+
+          <fieldset disabled={ro}>
+            <L t="Accounts users (run payroll, see salary figures inside Payroll only)" err={errs.accounts_emp_ids}>
+              <div className="mb-2 flex flex-wrap gap-1.5">
+                {(form.accounts_emp_ids || []).map((id) => (
+                  <span key={id} className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-1 text-[12px] font-semibold text-indigo-700 ring-1 ring-indigo-100">
+                    {(people as any[]).find((p) => (p.emp_id ?? p.id) === id)?.name ?? data.accounts_users.find((u) => u.emp_id === id)?.name ?? `#${id}`}
+                    {canEdit && (
+                      <button type="button" className="text-indigo-400 hover:text-rose-600" onClick={() => set('accounts_emp_ids', (form.accounts_emp_ids || []).filter((x) => x !== id))}>
+                        ×
+                      </button>
+                    )}
+                  </span>
+                ))}
+                {!(form.accounts_emp_ids || []).length && <span className="text-[12px] text-slate-400">No one yet. Only the Admin can run payroll.</span>}
+              </div>
+              {canEdit && (
+                <select
+                  className={inputCls}
+                  value=""
+                  onChange={(e) => {
+                    const id = Number(e.target.value);
+                    if (id && !(form.accounts_emp_ids || []).includes(id)) set('accounts_emp_ids', [...(form.accounts_emp_ids || []), id]);
+                  }}
+                >
+                  <option value="">Add an employee…</option>
+                  {(people as any[])
+                    .filter((p) => !(form.accounts_emp_ids || []).includes(p.emp_id ?? p.id))
+                    .map((p) => (
+                      <option key={p.emp_id ?? p.id} value={p.emp_id ?? p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                </select>
+              )}
+            </L>
+          </fieldset>
+
+          <fieldset disabled={ro} className="grid gap-3 sm:grid-cols-2">
+            <L t="Company name (Salary Slip)">
+              <input className={inputCls} maxLength={150} value={form.company_name ?? ''} onChange={(e) => set('company_name', e.target.value)} />
+            </L>
+            <L t="Company address (Salary Slip)">
+              <input className={inputCls} maxLength={300} value={form.company_address ?? ''} onChange={(e) => set('company_address', e.target.value)} />
+            </L>
+          </fieldset>
+
+          <div>
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Paid leave types (from Leave Management)</p>
+            <div className="flex flex-wrap gap-1.5">
+              {data.paid_leave_types.map((l) => (
+                <span key={l.name} className={`rounded-full px-2.5 py-1 text-[12px] font-semibold ring-1 ${l.is_paid ? 'bg-emerald-50 text-emerald-700 ring-emerald-100' : 'bg-slate-100 text-slate-500 ring-slate-200'}`}>
+                  {l.name} · {l.is_paid ? 'Paid' : 'Unpaid'}
+                </span>
+              ))}
+              {!data.paid_leave_types.length && <span className="text-[12px] text-slate-400">—</span>}
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
 
-        {/* Form Body */}
-        <form onSubmit={handleSave}>
-          <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
-            {successMsg && (
-              <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
-                <Check className="w-4 h-4 text-emerald-600" />
-                <span>Settings saved successfully! New runs will use these rules.</span>
+          <div>
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Adjustment categories</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {(['ADDITION', 'DEDUCTION'] as const).map((k) => (
+                <div key={k} className="rounded-xl border border-slate-200">
+                  <p className="border-b border-slate-100 px-3 py-2 text-[12px] font-bold text-slate-700">{k === 'ADDITION' ? 'Additions' : 'Deductions'}</p>
+                  <ul className="divide-y divide-slate-100">
+                    {data.adjustment_categories
+                      .filter((c) => c.kind === k)
+                      .map((c) => (
+                        <li key={c.category_id} className="flex items-center justify-between gap-2 px-3 py-1.5 text-[12.5px]">
+                          <span className={c.is_active ? 'text-slate-800' : 'text-slate-400 line-through'}>{c.label}</span>
+                          {canEdit && (
+                            <span className="flex gap-2">
+                              <button
+                                type="button"
+                                className={btn.link}
+                                onClick={() => {
+                                  const label = window.prompt('Rename category', c.label)?.trim();
+                                  if (label && label !== c.label) updCat.mutate({ id: c.category_id, data: { label } });
+                                }}
+                              >
+                                Rename
+                              </button>
+                              <button type="button" className={btn.link} onClick={() => updCat.mutate({ id: c.category_id, data: { is_active: !c.is_active } })}>
+                                {c.is_active ? 'Switch off' : 'Switch on'}
+                              </button>
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+            {canEdit && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                <select className={`${inputCls} w-36`} value={newCat.kind} onChange={(e) => setNewCat((n) => ({ ...n, kind: e.target.value as any }))}>
+                  <option value="ADDITION">Addition</option>
+                  <option value="DEDUCTION">Deduction</option>
+                </select>
+                <input className={`${inputCls} w-56`} placeholder="New category" value={newCat.label} onChange={(e) => setNewCat((n) => ({ ...n, label: e.target.value }))} />
+                <button
+                  type="button"
+                  className={btn.secondary}
+                  disabled={addCat.isPending || newCat.label.trim().length < 2}
+                  onClick={async () => {
+                    try {
+                      await addCat.mutateAsync({ kind: newCat.kind, label: newCat.label.trim() });
+                      setNewCat((n) => ({ ...n, label: '' }));
+                    } catch (e) {
+                      setMsg({ tone: 'error', text: errorText(e) });
+                    }
+                  }}
+                >
+                  <Plus className="h-4 w-4" /> Add
+                </button>
               </div>
             )}
-
-            {/* PF Settings */}
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-4">
-              <h4 className="text-xs font-bold text-slate-800 tracking-wider uppercase">
-                Provident Fund (PF) Rules
-              </h4>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-2xs font-semibold text-slate-600 mb-1">
-                    Employee PF Share (%)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.1"
-                    value={form.default_employee_pf_pct ?? 12}
-                    onChange={(e) =>
-                      setForm({ ...form, default_employee_pf_pct: parseFloat(e.target.value) })
-                    }
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-2xs font-semibold text-slate-600 mb-1">
-                    Employer PF Share (%)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.1"
-                    value={form.default_employer_pf_pct ?? 12}
-                    onChange={(e) =>
-                      setForm({ ...form, default_employer_pf_pct: parseFloat(e.target.value) })
-                    }
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-semibold text-slate-800">Apply Statutory PF Wage Limit</p>
-                  <p className="text-2xs text-slate-500">Cap PF wage calculation at ₹ 15,000</p>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={form.apply_pf_wage_limit ?? true}
-                  onChange={(e) => setForm({ ...form, apply_pf_wage_limit: e.target.checked })}
-                  className="w-4 h-4 text-blue-600 rounded-sm border-slate-300 focus:ring-blue-500"
-                />
-              </div>
-
-              {form.apply_pf_wage_limit && (
-                <div>
-                  <label className="block text-2xs font-semibold text-slate-600 mb-1">
-                    PF Wage Limit (₹)
-                  </label>
-                  <input
-                    type="number"
-                    min="1000"
-                    step="500"
-                    value={form.pf_wage_limit ?? 15000}
-                    onChange={(e) => setForm({ ...form, pf_wage_limit: parseFloat(e.target.value) })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Attendance & Rounding Rules */}
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-4">
-              <h4 className="text-xs font-bold text-slate-800 tracking-wider uppercase">
-                Attendance & Rounding Rules
-              </h4>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-2xs font-semibold text-slate-600 mb-1">
-                    Missing Punch at Lock
-                  </label>
-                  <select
-                    value={form.missing_punch_default || 'UNPAID'}
-                    onChange={(e) =>
-                      setForm({ ...form, missing_punch_default: e.target.value as any })
-                    }
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
-                  >
-                    <option value="UNPAID">Unpaid (Loss of Pay)</option>
-                    <option value="FULL">Full day (Paid)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-2xs font-semibold text-slate-600 mb-1">
-                    Overtime (OT) Rounding
-                  </label>
-                  <select
-                    value={form.ot_rounding || 'THIRTY'}
-                    onChange={(e) => setForm({ ...form, ot_rounding: e.target.value as any })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
-                  >
-                    <option value="THIRTY">Down to 30 minutes</option>
-                    <option value="FIFTEEN">Down to 15 minutes</option>
-                    <option value="NONE">Exact hours (No rounding)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-2xs font-semibold text-slate-600 mb-1">
-                    Total Salary Rounding
-                  </label>
-                  <select
-                    value={form.total_salary_rounding || 'NEAREST_RUPEE'}
-                    onChange={(e) =>
-                      setForm({ ...form, total_salary_rounding: e.target.value as any })
-                    }
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
-                  >
-                    <option value="NEAREST_RUPEE">Nearest rupee (50p round up)</option>
-                    <option value="NONE">Keep 2 decimal places</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-2xs font-semibold text-slate-600 mb-1">
-                    Monthly Pay Day
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="28"
-                    value={form.pay_day ?? 7}
-                    onChange={(e) => setForm({ ...form, pay_day: parseInt(e.target.value, 10) })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
-                  />
-                  <p className="text-3xs text-slate-400 mt-1">Normal salary disbursement day of month</p>
-                </div>
-              </div>
-            </div>
+            <p className="mt-1.5 text-[11px] text-slate-400">A category in use cannot be deleted, only switched off.</p>
           </div>
-
-          {/* Footer */}
-          <div className="p-6 bg-slate-50/70 border-t border-slate-100 flex items-center justify-end gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={updateMutation.isPending || isLoading}
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs hover:shadow-md transition cursor-pointer disabled:opacity-50"
-            >
-              {updateMutation.isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <ShieldCheck className="w-4 h-4" />
-              )}
-              <span>Save Settings</span>
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        </div>
+      )}
+    </Modal>
   );
 };

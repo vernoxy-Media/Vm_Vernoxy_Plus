@@ -249,8 +249,8 @@ export const HomePage: React.FC = () => {
                     Date of Birth
                   </dt>
                   <dd className="mt-1.5 text-sm font-semibold text-slate-900">
-                    {activeEmployee.dob ? (
-                      new Date(activeEmployee.dob).toLocaleDateString('en-GB', {
+                    {activeEmployee.birth_date ? (
+                      new Date(activeEmployee.birth_date).toLocaleDateString('en-GB', {
                         day: '2-digit',
                         month: 'short',
                         year: 'numeric',
@@ -269,7 +269,7 @@ export const HomePage: React.FC = () => {
                   Current Residential Address
                 </dt>
                 <dd className="mt-1.5 text-sm font-semibold text-slate-900">
-                  {activeEmployee.cur_address || (
+                  {activeEmployee.address || (
                     <span className="text-slate-400 font-normal italic">No residential address specified.</span>
                   )}
                 </dd>
@@ -286,8 +286,8 @@ export const HomePage: React.FC = () => {
                     {activeEmployee.emergency_contacts.map((ec: any, idx: number) => (
                       <div key={idx} className="bg-white p-3 rounded-lg border border-slate-200/70 text-xs">
                         <span className="font-semibold text-slate-800">{ec.name}</span>
-                        <span className="text-slate-500 ml-1.5">({ec.relationship})</span>
-                        <div className="text-slate-600 font-mono mt-0.5">{ec.phone}</div>
+                        {ec.relation && <span className="text-slate-500 ml-1.5">({ec.relation})</span>}
+                        <div className="text-slate-600 font-mono mt-0.5">{ec.number}</div>
                       </div>
                     ))}
                   </div>

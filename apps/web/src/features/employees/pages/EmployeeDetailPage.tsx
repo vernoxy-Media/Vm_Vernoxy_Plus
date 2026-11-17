@@ -172,7 +172,10 @@ export const EmployeeDetailPage: React.FC = () => {
 
   const deactivateMutation = useDeactivateEmployeeMutation();
   const { data: attendanceSettings } = useAttendanceSettingsQuery();
-  const { data: candidatesData } = useCandidatesQuery({});
+  const { data: candidatesData } = useCandidatesQuery(
+    {},
+    { enabled: Boolean(currentUser?.access?.can_manage_organization) },
+  );
 
   const assignedShiftId = employee ? attendanceSettings?.employee_shifts?.[String(employee.emp_id)] : undefined;
   const assignedShift = attendanceSettings?.shifts?.find((s) => String(s.shift_id) === String(assignedShiftId));

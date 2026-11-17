@@ -203,7 +203,8 @@ export const LeaveRequestDetailsModal: React.FC<{ requestId: number | null; onCl
           r.employee_name,
           r.emp_code,
           r.department_name,
-          r.reporting_manager_name ? `Reporting Manager: ${r.reporting_manager_name}` : null,
+          // Always shown, so a missing manager is visible instead of silently left out.
+          `Reporting Manager: ${r.reporting_manager_name || 'Not assigned'}`,
           `Applied ${fmtDateTime(r.applied_at)}`,
           r.added_by_admin ? `Added by ${r.applied_by_name || 'Admin'}` : null,
         ]

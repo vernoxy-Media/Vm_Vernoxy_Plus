@@ -32,6 +32,8 @@ export interface ProjectKanbanViewProps {
   onSelectProject: (project: ProjectItem) => void;
   onStatusChange?: (projectId: number, newStatus: ProjectStatus, reason?: string) => Promise<any>;
   activeStatus?: string;
+  /** Admin or the project's PM only; employees cannot drag (BFD). */
+  canMove?: (project: ProjectItem) => boolean;
 }
 
 export interface ProjectStageConfig {
@@ -106,6 +108,7 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
   onSelectProject,
   onStatusChange,
   activeStatus,
+  canMove,
 }) => {
   const [localProjects, setLocalProjects] = useState<ProjectItem[]>(projects);
   const [activeProject, setActiveProject] = useState<ProjectItem | null>(null);
@@ -412,6 +415,7 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
     const projectId = parseInt(active.id.toString(), 10);
     const project = findProjectById(projectId);
     if (!project) return;
+    if (canMove && !canMove(project)) return;
 
     const targetStatus = getStatusFromDroppable(over);
     if (!targetStatus || targetStatus === project.project_status) {
@@ -476,6 +480,7 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
                 projects={stageProjects}
                 onSelectProject={onSelectProject}
                 isDraggingAny={activeProject !== null}
+                canMove={canMove}
               />
             );
           })}

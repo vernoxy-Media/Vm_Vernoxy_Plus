@@ -14,6 +14,9 @@ import {
   Sliders,
   CheckCircle2,
   RefreshCw,
+  CalendarClock,
+  Power,
+  UserMinus,
 } from 'lucide-react';
 import {
   useLicenseSettingsQuery,
@@ -42,8 +45,19 @@ import {
   LicenseReason,
 } from '@/features/license/hooks/use-license-settings';
 import { useEmployeeOptionsQuery } from '@/features/organization/hooks/use-organization';
+import { BillingCyclesSettings } from '@/features/license/components/BillingCyclesSettings';
+import { RowActionsMenu, type RowAction } from '@/shared/ui/RowActionsMenu';
 
-type ActiveTab = 'categories' | 'vendors' | 'revoke_reasons' | 'discontinue_reasons' | 'managers' | 'rules';
+type ActiveTab = 'categories' | 'billing_cycles' | 'vendors' | 'revoke_reasons' | 'discontinue_reasons' | 'managers' | 'rules';
+
+const LICENSE_TYPE_OPTIONS = [
+  'Subscription · Per User',
+  'Subscription · Organisation',
+  'Perpetual · Per User',
+  'Perpetual · Organisation',
+  'Free / Open Source',
+  'Trial',
+];
 
 export const SettingsLicenseSection: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('categories');
@@ -331,6 +345,21 @@ export const SettingsLicenseSection: React.FC = () => {
     d.name.toLowerCase().includes(searchDiscontinue.trim().toLowerCase()),
   );
 
+  // Row menu (⋮): Edit, Activate / Deactivate, Delete. In-use items are deactivated by the server on Delete.
+  const rowActions = (item: { is_active: boolean }, onEdit: () => void, onToggle: () => void, onDelete: () => void): RowAction[] => [
+    { label: 'Edit', icon: Pencil, onClick: onEdit },
+    { label: item.is_active ? 'Deactivate' : 'Activate', icon: Power, onClick: onToggle },
+    { label: 'Delete', icon: Trash2, danger: true, onClick: onDelete },
+  ];
+  const toggled = (p: Promise<unknown>) => p.catch((err: any) => alert(err?.message || 'Could not change the status.'));
+  const toggle_category = (c: LicenseCategory) =>
+    toggled(updateCategoryMut.mutateAsync({ id: c.category_id, dto: { name: c.name, display_order: c.display_order, is_active: !c.is_active } }));
+  const toggle_vendor = (v: LicenseVendor) => toggled(updateVendorMut.mutateAsync({ id: v.vendor_id, dto: { name: v.name, is_active: !v.is_active } }));
+  const toggle_revoke = (r: LicenseReason) =>
+    toggled(updateRevokeMut.mutateAsync({ id: r.reason_id, dto: { name: r.name, display_order: r.display_order, is_active: !r.is_active } }));
+  const toggle_discontinue = (d: LicenseReason) =>
+    toggled(updateDiscontinueMut.mutateAsync({ id: d.reason_id, dto: { name: d.name, display_order: d.display_order, is_active: !d.is_active } }));
+
   // ── 5. Managers ────────────────────────────────────────────────────────────
   const { data: managers = [], isLoading: isLoadingManagers } = useLicenseManagersQuery();
   const { data: employeeOptions = [] } = useEmployeeOptionsQuery();
@@ -383,6 +412,7 @@ export const SettingsLicenseSection: React.FC = () => {
     recovery_reminder_days: 3,
     max_trial_days: 90,
     currency: '₹',
+    disabled_license_types: [] as string[],
   });
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [settingsSuccess, setSettingsSuccess] = useState(false);
@@ -398,6 +428,7 @@ export const SettingsLicenseSection: React.FC = () => {
         recovery_reminder_days: settings.recovery_reminder_days,
         max_trial_days: settings.max_trial_days,
         currency: settings.currency || '₹',
+        disabled_license_types: settings.disabled_license_types || [],
       });
       setSettingsLoaded(true);
     }
@@ -412,7 +443,7 @@ export const SettingsLicenseSection: React.FC = () => {
       setSettingsSuccess(true);
       setTimeout(() => setSettingsSuccess(false), 3000);
     } catch (err: any) {
-      setSettingsError(err?.message || 'Failed to save settings');
+      setSettingsError(err?.detail || err?.message || 'Failed to save settings');
     }
   };
 
@@ -447,6 +478,19 @@ export const SettingsLicenseSection: React.FC = () => {
           <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${activeTab === 'categories' ? 'bg-blue-700 text-white' : 'bg-slate-200 text-slate-700'}`}>
             {categories.length}
           </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('billing_cycles')}
+          className={`px-3.5 py-2 font-semibold rounded-xl transition cursor-pointer flex items-center gap-2 ${
+            activeTab === 'billing_cycles'
+              ? 'bg-blue-600 text-white shadow-xs'
+              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+          }`}
+        >
+          <CalendarClock className="w-3.5 h-3.5" />
+          Billing Cycles
         </button>
 
         <button
@@ -591,24 +635,7 @@ export const SettingsLicenseSection: React.FC = () => {
                         </span>
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <button
-                            type="button"
-                            onClick={() => openEditCategory(c)}
-                            title="Edit"
-                            className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteCategory(c)}
-                            title="Delete"
-                            className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                        <div className="flex justify-end"><RowActionsMenu label={`Actions for ${c.name}`} actions={rowActions(c, () => openEditCategory(c), () => toggle_category(c), () => handleDeleteCategory(c))} /></div>
                       </td>
                     </tr>
                   ))
@@ -618,6 +645,8 @@ export const SettingsLicenseSection: React.FC = () => {
           </div>
         </div>
       )}
+
+      {activeTab === 'billing_cycles' && <BillingCyclesSettings />}
 
       {/* ───────────────────────────────────────────────────────────────────────
           TAB 2: VENDORS
@@ -681,24 +710,7 @@ export const SettingsLicenseSection: React.FC = () => {
                         </span>
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <button
-                            type="button"
-                            onClick={() => openEditVendor(v)}
-                            title="Edit"
-                            className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteVendor(v)}
-                            title="Delete"
-                            className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                        <div className="flex justify-end"><RowActionsMenu label={`Actions for ${v.name}`} actions={rowActions(v, () => openEditVendor(v), () => toggle_vendor(v), () => handleDeleteVendor(v))} /></div>
                       </td>
                     </tr>
                   ))
@@ -773,24 +785,7 @@ export const SettingsLicenseSection: React.FC = () => {
                         </span>
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <button
-                            type="button"
-                            onClick={() => openEditRevoke(r)}
-                            title="Edit"
-                            className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteRevoke(r)}
-                            title="Delete"
-                            className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                        <div className="flex justify-end"><RowActionsMenu label={`Actions for ${r.name}`} actions={rowActions(r, () => openEditRevoke(r), () => toggle_revoke(r), () => handleDeleteRevoke(r))} /></div>
                       </td>
                     </tr>
                   ))
@@ -865,24 +860,7 @@ export const SettingsLicenseSection: React.FC = () => {
                         </span>
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <button
-                            type="button"
-                            onClick={() => openEditDiscontinue(d)}
-                            title="Edit"
-                            className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteDiscontinue(d)}
-                            title="Delete"
-                            className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                        <div className="flex justify-end"><RowActionsMenu label={`Actions for ${d.name}`} actions={rowActions(d, () => openEditDiscontinue(d), () => toggle_discontinue(d), () => handleDeleteDiscontinue(d))} /></div>
                       </td>
                     </tr>
                   ))
@@ -998,13 +976,12 @@ export const SettingsLicenseSection: React.FC = () => {
                             {m.created_at ? new Date(m.created_at).toLocaleDateString() : '—'}
                           </td>
                           <td className="py-3 px-4 text-right">
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveManager(m.emp_id, emp?.name || `Emp #${m.emp_id}`)}
-                              className="px-2.5 py-1 text-xs text-rose-600 hover:bg-rose-50 border border-rose-200 rounded-lg transition cursor-pointer font-medium"
-                            >
-                              Revoke Access
-                            </button>
+                            <div className="flex justify-end">
+                              <RowActionsMenu
+                                label={`Actions for ${emp?.name || `Emp #${m.emp_id}`}`}
+                                actions={[{ label: 'Revoke access', icon: UserMinus, danger: true, onClick: () => handleRemoveManager(m.emp_id, emp?.name || `Emp #${m.emp_id}`) }]}
+                              />
+                            </div>
                           </td>
                         </tr>
                       );
@@ -1114,6 +1091,35 @@ export const SettingsLicenseSection: React.FC = () => {
                 <span className="text-[11px] text-slate-400 mt-1 block">
                   Upper limit when setting up trial software licenses.
                 </span>
+              </div>
+            </div>
+
+            {/* License Types (BFD 11): the six types can be switched off, not added. Existing software keeps its type. */}
+            <div className="border-t border-slate-100 pt-5">
+              <h4 className="text-xs font-semibold text-slate-700 mb-1">License Types in use</h4>
+              <p className="text-[11px] text-slate-400 mb-2.5">A type switched off cannot be picked for new software. Existing software keeps its type.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {LICENSE_TYPE_OPTIONS.map((t) => {
+                  const on = !settingsForm.disabled_license_types.includes(t);
+                  return (
+                    <label key={t} className="flex items-center gap-2.5 rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-700 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={on}
+                        onChange={() =>
+                          setSettingsForm({
+                            ...settingsForm,
+                            disabled_license_types: on
+                              ? [...settingsForm.disabled_license_types, t]
+                              : settingsForm.disabled_license_types.filter((x) => x !== t),
+                          })
+                        }
+                        className="w-4 h-4 rounded border-slate-300"
+                      />
+                      {t}
+                    </label>
+                  );
+                })}
               </div>
             </div>
 

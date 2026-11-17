@@ -1,233 +1,167 @@
-import React, { useState } from 'react';
-import { X, Edit3, Loader2, AlertCircle } from 'lucide-react';
-import { useSaveDayAdjustmentMutation, PayrollDayItem } from '../hooks/use-payroll';
+import React, { useEffect, useState } from 'react';
+import { Lock } from 'lucide-react';
+import { PaidAs, PayrollDayItem, errorText, fieldErrors, useRemoveDayAdjustmentMutation, useSaveDayAdjustmentMutation } from '../hooks/use-payroll';
+import { Banner, FieldError, Modal, PAID_AS_LABEL, btn, fmtDate, inputCls, money } from './payroll-ui';
 
-interface DayAdjustmentModalProps {
-  isOpen: boolean;
+const REASONS = ['Attendance correction after month lock', 'Approved work outside office', 'Management approval (paid absence)', 'Penalty', 'Other'];
+const CODE_LABEL: Record<string, string> = { P: 'P – Present', HD: 'HD – Half Day', A: 'A – Absent (no check-in)', L: 'L – Paid leave', LWP: 'LWP – Unpaid leave', MP: 'MP – Missing punch', 'L+HD': 'Half-day leave + Half Day worked', 'L/A': 'Half-day leave, other half absent' };
+const value = (p: PaidAs) => (p === 'FULL' ? 1 : p === 'HALF' ? 0.5 : 0);
+
+/** Screen 6: Day Adjustment pop-up (BFD 8 Part 1). Attendance is never changed. */
+export const DayAdjustmentModal: React.FC<{
+  open: boolean;
   onClose: () => void;
   day: PayrollDayItem | null;
   payrollEmployeeId: number;
-  employeeName?: string;
-  dailyRate: number;
-}
+  employeeLabel: string;
+  basicSalary: number;
+  locked: boolean;
+}> = ({ open, onClose, day, payrollEmployeeId, employeeLabel, basicSalary, locked }) => {
+  const save = useSaveDayAdjustmentMutation();
+  const remove = useRemoveDayAdjustmentMutation();
+  const [payAs, setPayAs] = useState<'FULL' | 'HALF' | 'UNPAID' | ''>('');
+  const [reason, setReason] = useState(REASONS[0]);
+  const [note, setNote] = useState('');
+  const [removing, setRemoving] = useState(false);
+  const [errs, setErrs] = useState<Record<string, string>>({});
+  const [banner, setBanner] = useState<string | null>(null);
 
-export const DayAdjustmentModal: React.FC<DayAdjustmentModalProps> = ({
-  isOpen,
-  onClose,
-  day,
-  payrollEmployeeId,
-  employeeName,
-  dailyRate,
-}) => {
-  const saveMutation = useSaveDayAdjustmentMutation();
+  useEffect(() => {
+    if (!open) return;
+    setPayAs('');
+    setReason(REASONS[0]);
+    setNote('');
+    setRemoving(false);
+    setErrs({});
+    setBanner(null);
+  }, [open, day?.payroll_employee_day_id]);
 
-  const [paidAs, setPaidAs] = useState<'FULL' | 'HALF' | 'UNPAID'>('FULL');
-  const [reason, setReason] = useState<string>('Attendance correction after month lock');
-  const [note, setNote] = useState<string>('');
-  const [error, setError] = useState<string | null>(null);
+  if (!day) return null;
+  const rate = day.daily_rate;
+  const delta = payAs ? (value(payAs) - value(day.paid_as)) * rate : 0;
 
-  if (!isOpen || !day) return null;
-
-  const currentPaidAs = day.paid_as;
-
-  // Calculate effect
-  const getAmountForPaidAs = (mode: 'FULL' | 'HALF' | 'UNPAID') => {
-    if (mode === 'FULL') return dailyRate;
-    if (mode === 'HALF') return Math.round(dailyRate * 0.5 * 100) / 100;
-    return 0;
-  };
-
-  const currentAmount = getAmountForPaidAs(currentPaidAs as any);
-  const newAmount = getAmountForPaidAs(paidAs);
-  const diff = Math.round((newAmount - currentAmount) * 100) / 100;
-
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (paidAs === currentPaidAs) {
-      setError(`This day is already paid as ${currentPaidAs === 'FULL' ? 'Full day' : currentPaidAs === 'HALF' ? 'Half day' : 'Unpaid'}.`);
-      return;
+  const submit = async () => {
+    const e: Record<string, string> = {};
+    if (!removing) {
+      if (!payAs) e.pay_this_day_as = 'Please fill this field.';
+      else if (payAs === day.paid_as) e.pay_this_day_as = `This day is already paid as ${PAID_AS_LABEL[day.paid_as]}.`;
+      if (!reason) e.reason = 'Please fill this field.';
     }
-    if (note.trim().length < 10) {
-      setError('Please write at least 10 characters explaining the reason.');
-      return;
-    }
-
+    if (note.trim().length < 10) e.note = 'Please write at least 10 characters.';
+    if (Object.keys(e).length) return setErrs(e);
+    setBanner(null);
     try {
-      await saveMutation.mutateAsync({
-        payrollEmployeeId,
-        dayId: day.payroll_employee_day_id,
-        data: {
-          pay_this_day_as: paidAs,
-          reason,
-          note: note.trim(),
-        },
-      });
+      if (removing) await remove.mutateAsync({ peId: payrollEmployeeId, dayId: day.payroll_employee_day_id, reason: note.trim() });
+      else await save.mutateAsync({ peId: payrollEmployeeId, dayId: day.payroll_employee_day_id, data: { pay_this_day_as: payAs, reason, note: note.trim() } });
       onClose();
-    } catch (err: any) {
-      setError(err.message || 'Failed to save adjustment');
+    } catch (err) {
+      const fe = fieldErrors(err);
+      if (Object.keys(fe).length) setErrs(fe);
+      else setBanner(errorText(err));
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div
-        className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-100 overflow-hidden transform transition-all animate-in zoom-in-95 duration-200"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200/60">
-              <Edit3 className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-slate-900 tracking-tight">
-                Day Adjustment • {day.attendance_date}
-              </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Adjust how {employeeName || 'this employee'} is paid on this working day.
-              </p>
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={`Day Adjustment · ${new Date(`${day.attendance_date}T00:00:00`).toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}`}
+      subtitle={employeeLabel}
+      footer={
+        locked ? (
+          <button type="button" className={btn.secondary} onClick={onClose}>
+            Close
+          </button>
+        ) : (
+          <>
+            {day.is_adjusted && !removing && (
+              <button type="button" className={`${btn.secondary} mr-auto`} onClick={() => setRemoving(true)}>
+                Remove adjustment
+              </button>
+            )}
+            <button type="button" className={btn.secondary} onClick={onClose}>
+              Cancel
+            </button>
+            <button type="button" className={removing ? btn.danger : btn.primary} disabled={save.isPending || remove.isPending} onClick={submit}>
+              {removing ? 'Remove adjustment' : 'Save adjustment'}
+            </button>
+          </>
+        )
+      }
+    >
+      <div className="space-y-4">
+        {locked && <Banner tone="warn">Payroll is locked. Ask the Admin to unlock.</Banner>}
+        {banner && <Banner>{banner}</Banner>}
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Attendance status</p>
+            <div className={`${inputCls} flex items-center justify-between bg-slate-50 text-slate-600`}>
+              {CODE_LABEL[day.attendance_code] || day.attendance_code}
+              <Lock className="h-3.5 w-3.5" />
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div>
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Paid now as</p>
+            <div className={`${inputCls} flex items-center bg-slate-50 text-slate-600`}>
+              {PAID_AS_LABEL[day.paid_as]} · {money(day.calculated_amount)}
+              {day.is_adjusted && day.original_paid_as ? <span className="ml-2 text-[11px] text-orange-600">(attendance: {PAID_AS_LABEL[day.original_paid_as]})</span> : null}
+            </div>
+          </div>
         </div>
 
-        {/* Body */}
-        <form onSubmit={handleSave}>
-          <div className="p-6 space-y-4">
-            {error && (
-              <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            {/* Attendance Status & Paid Now As */}
-            <div className="grid grid-cols-2 gap-4 p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
-              <div>
-                <p className="text-3xs font-bold text-slate-400 uppercase tracking-wider">Attendance Status</p>
-                <p className="text-xs font-bold text-slate-800 mt-0.5">
-                  {day.attendance_code === 'P'
-                    ? 'P - Present'
-                    : day.attendance_code === 'HD'
-                    ? 'HD - Half Day'
-                    : day.attendance_code === 'L'
-                    ? 'L - Leave'
-                    : day.attendance_code === 'MP'
-                    ? 'MP - Missing Punch'
-                    : 'A - Absent (no check-in)'}
-                </p>
-              </div>
-              <div>
-                <p className="text-3xs font-bold text-slate-400 uppercase tracking-wider">Paid Now As</p>
-                <p className="text-xs font-bold text-slate-800 mt-0.5">
-                  {currentPaidAs} • ₹ {currentAmount.toLocaleString()}
-                </p>
-              </div>
-            </div>
-
-            {/* Pay this day as */}
+        {!removing && !locked && (
+          <>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-2">
-                Pay this day as <span className="text-rose-500">*</span>
-              </label>
-              <div className="grid grid-cols-3 gap-3">
-                {[
-                  { value: 'FULL', label: 'Full day', amt: dailyRate },
-                  { value: 'HALF', label: 'Half day', amt: Math.round(dailyRate * 0.5 * 100) / 100 },
-                  { value: 'UNPAID', label: 'Unpaid', amt: 0 },
-                ].map((opt) => (
+              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                Pay this day as<span className="text-rose-500">*</span>
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {(['FULL', 'HALF', 'UNPAID'] as const).map((p) => (
                   <button
-                    key={opt.value}
+                    key={p}
                     type="button"
-                    onClick={() => setPaidAs(opt.value as any)}
-                    className={`p-3 rounded-2xl border text-center transition ${
-                      paidAs === opt.value
-                        ? 'border-blue-600 bg-blue-50/50 text-blue-900 ring-2 ring-blue-500/20'
-                        : 'border-slate-200 hover:bg-slate-50 text-slate-700'
-                    }`}
+                    onClick={() => setPayAs(p)}
+                    className={`rounded-xl border px-3 py-2 text-[12.5px] font-semibold ${payAs === p ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
                   >
-                    <p className="text-xs font-bold">{opt.label}</p>
-                    <p className="text-2xs font-semibold text-slate-500 mt-0.5">₹ {opt.amt.toLocaleString()}</p>
+                    {PAID_AS_LABEL[p]} · {money(value(p) * rate)}
                   </button>
                 ))}
               </div>
+              <FieldError msg={errs.pay_this_day_as} />
             </div>
-
-            {/* Reason */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                Reason <span className="text-rose-500">*</span>
-              </label>
-              <select
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 bg-white"
-              >
-                <option value="Attendance correction after month lock">
-                  Attendance correction after month lock
-                </option>
-                <option value="Approved work outside office">Approved work outside office</option>
-                <option value="Management approval (paid absence)">
-                  Management approval (paid absence)
-                </option>
-                <option value="Penalty">Penalty</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-
-            {/* Note */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                Note <span className="text-rose-500">*</span> (10 to 250 characters)
-              </label>
-              <textarea
-                rows={3}
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="Client visit at site confirmed by reporting manager..."
-                maxLength={250}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
-              />
-              <p className="text-3xs text-slate-400 mt-1">{note.length} / 250 characters</p>
-            </div>
-
-            {/* Effect */}
-            <div className="p-3.5 rounded-2xl bg-blue-50/60 border border-blue-200/60 text-xs text-blue-900">
-              <span className="font-bold">Effect on Basic Salary: </span>
-              {diff >= 0 ? `+ ₹ ${diff.toLocaleString()}` : `- ₹ ${Math.abs(diff).toLocaleString()}`}
-              <p className="text-2xs text-blue-700/80 mt-0.5">
-                Attendance record remains unchanged; only payroll is credited for this day.
+              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                Reason<span className="text-rose-500">*</span>
               </p>
+              <select className={inputCls} value={reason} onChange={(e) => setReason(e.target.value)}>
+                {REASONS.map((r) => (
+                  <option key={r}>{r}</option>
+                ))}
+              </select>
+              <FieldError msg={errs.reason} />
             </div>
-          </div>
+          </>
+        )}
 
-          {/* Footer */}
-          <div className="p-6 bg-slate-50/70 border-t border-slate-100 flex items-center justify-end gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={saveMutation.isPending}
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs hover:shadow-md transition cursor-pointer disabled:opacity-50"
-            >
-              {saveMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-              <span>Save adjustment</span>
-            </button>
+        {!locked && (
+          <div>
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              {removing ? 'Reason for removing' : 'Note'}
+              <span className="text-rose-500">*</span>
+            </p>
+            <textarea rows={3} maxLength={250} className={`${inputCls} h-auto py-2`} value={note} onChange={(e) => setNote(e.target.value)} />
+            <FieldError msg={errs.note || errs.reason} />
           </div>
-        </form>
+        )}
+
+        {!removing && payAs && payAs !== day.paid_as && (
+          <Banner tone="ok">
+            Basic Salary {money(basicSalary)} → <b>{money(basicSalary + delta)}</b> ({delta >= 0 ? '+' : ''}
+            {money(delta)}). PF and Total Salary are worked out again. Attendance is not changed.
+          </Banner>
+        )}
+        {removing && <Banner tone="info">The day goes back to the attendance value ({fmtDate(day.attendance_date)}).</Banner>}
       </div>
-    </div>
+    </Modal>
   );
 };

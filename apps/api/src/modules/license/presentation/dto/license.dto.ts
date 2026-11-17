@@ -117,6 +117,11 @@ export class CreateSoftwareLicenseDto {
   @IsOptional()
   @IsArray()
   attachment_ids?: number[];
+
+  @ApiPropertyOptional({ description: 'Save anyway after the "Confirm" checks (term vs cycle, duplicate, already expired)' })
+  @IsOptional()
+  @IsBoolean()
+  confirm?: boolean;
 }
 
 export class UpdateSoftwareLicenseDto {
@@ -164,9 +169,19 @@ export class UpdateSoftwareLicenseDto {
   @IsOptional()
   @IsBoolean()
   auto_renews?: boolean;
+
+  @ApiPropertyOptional({ description: 'Required when Total Seats is reduced' })
+  @IsOptional()
+  @IsString()
+  reason?: string;
 }
 
 export class RenewLicenseDto {
+  /** Renewal Date: the date paid, today or a past date (BFD 7 Part 2, marker 4). */
+  @IsOptional()
+  @IsString()
+  renewal_date?: string;
+
   @ApiProperty({ description: 'Term start date (YYYY-MM-DD)' })
   @IsString()
   start_date!: string;
@@ -292,6 +307,14 @@ export class QuerySoftwareLicenseDto {
   @IsString()
   license_type?: string;
 
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() owner_id?: number;
+  /** Expiry within the next 30, 60 or 90 days. */
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() expiry_within?: number;
+  @ApiPropertyOptional() @IsOptional() @IsString() expiry_from?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() expiry_to?: string;
+  /** Export: every row with the filters applied. */
+  @ApiPropertyOptional() @IsOptional() @IsString() all?: string;
+
   @ApiPropertyOptional({ description: 'Page number' })
   @IsOptional()
   @Type(() => Number)
@@ -303,4 +326,71 @@ export class QuerySoftwareLicenseDto {
   @Type(() => Number)
   @IsInt()
   limit?: number;
+}
+
+/** Revoke several seats of one software with one date and one reason (BFD 6 Part 2). */
+export class BulkRevokeLicenseDto {
+  @ApiProperty({ type: [Number] })
+  @IsArray()
+  @IsInt({ each: true })
+  assignment_ids!: number[];
+
+  @ApiProperty()
+  @IsString()
+  revoked_on!: string;
+
+  @ApiProperty()
+  @IsInt()
+  revoke_reason_id!: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  revoke_remarks?: string;
+}
+
+/** More seats in the middle of a term (BFD 5 Part 2). */
+export class AddSeatsDto {
+  @ApiProperty()
+  @Type(() => Number)
+  @IsInt()
+  seats!: number;
+
+  @ApiProperty({ description: 'Cost of the added seats (₹)' })
+  @Type(() => Number)
+  @IsNumber()
+  cost!: number;
+
+  @ApiProperty()
+  @IsString()
+  added_on!: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  invoice_order_no?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  remarks?: string;
+
+  @ApiPropertyOptional({ type: [Number] })
+  @IsOptional()
+  @IsArray()
+  attachment_ids?: number[];
+}
+
+/** Correct a mistake in the current term, with a reason (BFD 5 Part 2, 15). */
+export class CorrectTermDto {
+  @ApiPropertyOptional() @IsOptional() @IsString() purchase_date?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() start_date?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() expiry_date?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() billing_cycle?: string;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() cost?: number;
+  @ApiPropertyOptional() @IsOptional() @IsString() invoice_order_no?: string;
+
+  @ApiProperty({ description: '10 to 500 characters' })
+  @IsString()
+  reason!: string;
 }

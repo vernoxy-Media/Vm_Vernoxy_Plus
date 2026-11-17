@@ -8,6 +8,9 @@ interface DiscontinueSoftwareModalProps {
  softwareId: number;
  softwareName: string;
  activeSeats: number;
+ /** Current term dates: the Effective Date can go back to the Start Date or forward up to the Expiry Date. */
+ termStart?: string | null;
+ termExpiry?: string | null;
  onClose: () => void;
  onSuccess?: () => void;
 }
@@ -17,6 +20,8 @@ export const DiscontinueSoftwareModal: React.FC<DiscontinueSoftwareModalProps> =
  softwareId,
  softwareName,
  activeSeats,
+ termStart,
+ termExpiry,
  onClose,
  onSuccess,
 }) => {
@@ -33,6 +38,10 @@ export const DiscontinueSoftwareModal: React.FC<DiscontinueSoftwareModalProps> =
 
  if (!isOpen) return null;
 
+ const minDate = termStart ? termStart.slice(0, 10) : undefined;
+ const maxDate = termExpiry && termExpiry.slice(0, 10) > todayStr ? termExpiry.slice(0, 10) : todayStr;
+ const isFuture = discontinueDate > todayStr;
+
  const otherSoftwareOptions = (softwareListData?.items || []).filter(
  (s) => s.software_id !== softwareId,
  );
@@ -45,6 +54,18 @@ export const DiscontinueSoftwareModal: React.FC<DiscontinueSoftwareModalProps> =
  setErrorMsg('Please select a discontinuation reason');
  return;
  }
+ if (minDate && discontinueDate < minDate) {
+ setErrorMsg('The date cannot be before the current term started.');
+ return;
+ }
+ if (discontinueDate > maxDate) {
+ setErrorMsg(termExpiry ? 'A future date can be up to the Expiry Date.' : 'This software has no Expiry Date. Choose today or a past date.');
+ return;
+ }
+ if (remarks.trim().length < 10 || remarks.trim().length > 500) {
+ setErrorMsg('Please write 10 to 500 characters in Remarks.');
+ return;
+ }
 
  try {
  await discontinueMutation.mutateAsync({
@@ -52,7 +73,7 @@ export const DiscontinueSoftwareModal: React.FC<DiscontinueSoftwareModalProps> =
  dto: {
  discontinue_date: discontinueDate,
  discontinue_reason_id: Number(reasonId),
- discontinue_remarks: remarks.trim() || undefined,
+ discontinue_remarks: remarks.trim(),
  replaced_by_software_id:
  replacedBySoftwareId !== '' ? Number(replacedBySoftwareId) : undefined,
  },
@@ -61,7 +82,7 @@ export const DiscontinueSoftwareModal: React.FC<DiscontinueSoftwareModalProps> =
  onSuccess?.();
  onClose();
  } catch (err: any) {
- setErrorMsg(err?.message || 'Failed to discontinue software');
+ setErrorMsg(err?.detail || err?.message || 'Failed to discontinue software');
  }
  };
 
@@ -114,6 +135,8 @@ export const DiscontinueSoftwareModal: React.FC<DiscontinueSoftwareModalProps> =
  <input
  type="date"
  required
+ min={minDate}
+ max={maxDate}
  value={discontinueDate}
  onChange={(e) => setDiscontinueDate(e.target.value)}
  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl bg-white text-slate-900 "
@@ -164,16 +187,27 @@ export const DiscontinueSoftwareModal: React.FC<DiscontinueSoftwareModalProps> =
  {/* Remarks */}
  <div>
  <label className="block text-xs font-medium text-slate-700 mb-1">
- Remarks
+ Remarks <span className="text-red-500">*</span>
  </label>
  <textarea
  rows={2}
+ required
+ minLength={10}
+ maxLength={500}
  value={remarks}
  onChange={(e) => setRemarks(e.target.value)}
  placeholder="e.g. Migration completed to Canva Pro; old accounts closed"
  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl bg-white text-slate-900 "
  />
+ <span className="mt-0.5 block text-right text-[10.5px] text-slate-400">{remarks.trim().length} / 500 (at least 10)</span>
  </div>
+
+ {isFuture && (
+ <div className="p-3 text-xs text-blue-800 bg-blue-50 border border-blue-200 rounded-xl">
+ The software stays in use until {discontinueDate.split('-').reverse().join('-')}. On that date every seat is revoked
+ with the reason "Software discontinued" and the software becomes read-only.
+ </div>
+ )}
 
  {/* Action Buttons */}
  <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 ">
@@ -189,7 +223,7 @@ export const DiscontinueSoftwareModal: React.FC<DiscontinueSoftwareModalProps> =
  disabled={discontinueMutation.isPending}
  className="inline-flex items-center gap-2 px-5 py-2 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-xs transition disabled:opacity-50"
  >
- {discontinueMutation.isPending ? 'Discontinuing...' : 'Confirm Discontinue'}
+ {discontinueMutation.isPending ? 'Saving...' : isFuture ? 'Schedule Discontinue' : 'Confirm Discontinue'}
  </button>
  </div>
  </form>

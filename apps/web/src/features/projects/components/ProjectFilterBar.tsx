@@ -1,6 +1,7 @@
 import React from 'react';
 import { Search, LayoutGrid, List, Kanban, X } from 'lucide-react';
 import type { AssignableEmployee } from '../types';
+import { useLookupsQuery } from '@/features/organization/hooks/use-master-data';
 
 export type ViewMode = 'grid' | 'list' | 'kanban';
 
@@ -17,6 +18,8 @@ interface ProjectFilterBarProps {
   onStartDateChange: (val: string) => void;
   endDate: string;
   onEndDateChange: (val: string) => void;
+  projectType?: string;
+  onProjectTypeChange?: (val: string) => void;
   onClearFilters: () => void;
   hasActiveFilters: boolean;
   managers: AssignableEmployee[];
@@ -57,10 +60,16 @@ export const ProjectFilterBar: React.FC<ProjectFilterBarProps> = ({
   onStartDateChange,
   endDate,
   onEndDateChange,
+  projectType = 'all',
+  onProjectTypeChange,
   onClearFilters,
   hasActiveFilters,
   managers,
-}) => (
+}) => {
+  // Project Type options come from master data (Settings → Project Type).
+  const { data: projectTypes = [] } = useLookupsQuery('project_type');
+
+  return (
   <div className="space-y-2.5">
     <div className="flex flex-wrap items-center gap-2">
       <div className="relative min-w-[200px] flex-1 sm:max-w-xs">
@@ -88,6 +97,22 @@ export const ProjectFilterBar: React.FC<ProjectFilterBarProps> = ({
           </option>
         ))}
       </select>
+
+      {onProjectTypeChange && (
+        <select
+          value={projectType}
+          onChange={(e) => onProjectTypeChange(e.target.value)}
+          aria-label="Project type"
+          className={`${CONTROL} max-w-[180px] truncate`}
+        >
+          <option value="all">All project types</option>
+          {projectTypes.map((t) => (
+            <option key={t.code} value={t.code}>
+              {t.label}
+            </option>
+          ))}
+        </select>
+      )}
 
       <div className="flex items-center gap-1.5 text-[13px] text-[#5E6C84]">
         <input type="date" value={startDate} onChange={(e) => onStartDateChange(e.target.value)} aria-label="Start date from" title="Start date from" className={`${CONTROL} w-[140px]`} />
@@ -145,4 +170,5 @@ export const ProjectFilterBar: React.FC<ProjectFilterBarProps> = ({
       })}
     </div>
   </div>
-);
+  );
+};

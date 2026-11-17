@@ -19,12 +19,16 @@ import {
  useSoftwareListQuery,
  useLicensesToRecoverQuery,
  useSyncLicensesMutation,
+ useLicenseAccessQuery,
+ fetchAllSoftware,
 } from '../hooks/use-licenses';
 import {
  useLicenseCategoriesQuery,
  useLicenseVendorsQuery,
 } from '../hooks/use-license-settings';
 import { RowActionsMenu } from '@/shared/ui/RowActionsMenu';
+import { ExportMenu } from '@/shared/ui/ExportMenu';
+import { dmy } from '@/shared/utils/table-export';
 import { AddSoftwareModal } from './AddSoftwareModal';
 import { SoftwareDetailsModal } from './SoftwareDetailsModal';
 import { AssignLicenseModal } from './AssignLicenseModal';
@@ -42,31 +46,55 @@ const LICENSE_TYPES = [
  'Trial',
 ];
 
-const STATUSES = ['All', 'Active', 'Expiring Soon', 'Expired', 'Discontinued'];
+// Status default: all except Discontinued (BFD 3, marker 4)
+const STATUSES: Array<{ value: string; label: string }> = [
+ { value: 'Not Discontinued', label: 'All except Discontinued' },
+ { value: 'All', label: 'All' },
+ { value: 'Active', label: 'Active' },
+ { value: 'Expiring Soon', label: 'Expiring Soon' },
+ { value: 'Expired', label: 'Expired' },
+ { value: 'Trial', label: 'Trial' },
+ { value: 'Discontinued', label: 'Discontinued' },
+];
+const EXPIRY_OPTIONS = [
+ { value: '', label: 'Any' },
+ { value: '30', label: 'Next 30 days' },
+ { value: '60', label: 'Next 60 days' },
+ { value: '90', label: 'Next 90 days' },
+ { value: 'range', label: 'Date range' },
+];
 
 export const SoftwareRegisterView: React.FC = () => {
  const [search, setSearch] = useState('');
  const [categoryId, setCategoryId] = useState<number | undefined>(undefined);
  const [vendorId, setVendorId] = useState<number | undefined>(undefined);
- const [status, setStatus] = useState('All');
+ const [status, setStatus] = useState('Not Discontinued');
  const [licenseType, setLicenseType] = useState('All');
+ const [expiry, setExpiry] = useState('');
+ const [expiryFrom, setExpiryFrom] = useState('');
+ const [expiryTo, setExpiryTo] = useState('');
  const [page, setPage] = useState(1);
 
- // Queries
- const { data: listData, isLoading, refetch } = useSoftwareListQuery({
+ // Queries (20 software on one page, nearest Expiry Date first - BFD 3)
+ const listFilters = {
  search: search || undefined,
  category_id: categoryId,
  vendor_id: vendorId,
- status: status !== 'All' ? status : undefined,
+ status,
  license_type: licenseType !== 'All' ? licenseType : undefined,
- page,
- limit: 15,
- });
+ expiry_within: expiry && expiry !== 'range' ? Number(expiry) : undefined,
+ expiry_from: expiry === 'range' && expiryFrom ? expiryFrom : undefined,
+ expiry_to: expiry === 'range' && expiryTo ? expiryTo : undefined,
+ };
+ const { data: listData, isLoading, refetch } = useSoftwareListQuery({ ...listFilters, page, limit: 20 });
 
  const { data: categories = [] } = useLicenseCategoriesQuery();
  const { data: vendors = [] } = useLicenseVendorsQuery();
  const { data: licensesToRecover = [] } = useLicensesToRecoverQuery();
  const syncMutation = useSyncLicensesMutation();
+ // BFD 13: only the Admin and License Managers add, assign and renew.
+ const { data: access } = useLicenseAccessQuery();
+ const canManage = Boolean(access?.can_manage);
 
  // Modals state
  const [isAddOpen, setIsAddOpen] = useState(false);
@@ -106,7 +134,43 @@ export const SoftwareRegisterView: React.FC = () => {
  const tileTone = (name: string) => TILE_TONES[[...(name || '?')].reduce((a, c) => a + c.charCodeAt(0), 0) % TILE_TONES.length];
  const fmtDate = (d: string) => new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
  const daysLeft = (d: string) => Math.ceil((new Date(d).setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0)) / 86400000);
- const filtersOn = Boolean(search || categoryId || vendorId || status !== 'All' || licenseType !== 'All');
+ const filtersOn = Boolean(search || categoryId || vendorId || status !== 'Not Discontinued' || licenseType !== 'All' || expiry);
+ const canSeeCosts = Boolean(access?.can_view_all || access?.is_software_owner);
+
+ // Export: every row with the filters applied; License keys are never exported (BFD 3).
+ const buildExport = async () => {
+ const rows = await fetchAllSoftware(listFilters);
+ return {
+ title: 'Software Licenses',
+ sheet: 'Software Register',
+ columns: [
+ { header: 'Software ID', key: 'code' },
+ { header: 'Software', key: 'name' },
+ { header: 'Vendor', key: 'vendor' },
+ { header: 'Category', key: 'category' },
+ { header: 'License Type', key: 'type' },
+ { header: 'Seats Used / Total', key: 'seats' },
+ { header: 'Expiry', key: 'expiry' },
+ { header: 'Days left', key: 'days' },
+ ...(canSeeCosts ? [{ header: 'Yearly cost (₹)', key: 'yearly', money: true }] : []),
+ { header: 'Owner', key: 'owner' },
+ { header: 'Status', key: 'status' },
+ ],
+ rows: rows.map((r) => ({
+ code: r.software_code,
+ name: r.software_name,
+ vendor: r.vendor,
+ category: r.category,
+ type: r.license_type,
+ seats: r.total_seats === null ? `${r.assigned_seats} / No limit` : `${r.assigned_seats} / ${r.total_seats}`,
+ expiry: r.latest_term?.expiry_date ? dmy(r.latest_term.expiry_date) : 'No expiry',
+ days: r.days_left ?? '',
+ yearly: r.yearly_cost ?? '',
+ owner: r.owner?.name || '',
+ status: r.status,
+ })),
+ };
+ };
  const filterCls =
  'h-10 rounded-xl border border-slate-200 bg-white px-3 text-[13px] text-slate-700 transition hover:border-slate-300 focus:border-blue-500 focus:outline-hidden focus:ring-4 focus:ring-blue-500/10';
  const labelCls = 'mb-1 block text-[10.5px] font-semibold uppercase tracking-[0.06em] text-slate-500';
@@ -122,11 +186,11 @@ export const SoftwareRegisterView: React.FC = () => {
  onClick?: () => void;
  }> = [
  {
- label: 'Active Software Assets',
- value: String(summary.activeLicenses),
+ label: 'Software in use',
+ value: String(summary.softwareInUse ?? summary.activeLicenses),
  hint: (
  <>
- Approx. monthly spend <strong className="text-slate-700">₹{summary.approxMonthlySpend.toLocaleString('en-IN')}</strong>
+ <strong className="text-slate-700">{summary.seatsUsed ?? 0}</strong> of {summary.seatsTotal ?? 0} seats used
  </>
  ),
  icon: Layers,
@@ -147,14 +211,15 @@ export const SoftwareRegisterView: React.FC = () => {
  tile: 'bg-amber-50 text-amber-600 ring-amber-100',
  bar: 'from-amber-400 to-orange-500',
  onClick: () => {
- setStatus('Expiring Soon');
+ setStatus('Not Discontinued');
+ setExpiry('30');
  setPage(1);
  },
  },
  {
- label: 'Expired & Inactive',
- value: String(summary.expired + summary.discontinued),
- hint: `${summary.expired} expired · ${summary.discontinued} discontinued`,
+ label: 'Expired, not renewed',
+ value: String(summary.expired),
+ hint: `${summary.discontinued} discontinued (hidden by default)`,
  icon: Ban,
  tone: 'text-rose-600',
  tile: 'bg-rose-50 text-rose-600 ring-rose-100',
@@ -165,9 +230,9 @@ export const SoftwareRegisterView: React.FC = () => {
  },
  },
  {
- label: 'Projected Annual Spend',
- value: `₹${summary.approxAnnualSpend.toLocaleString('en-IN')}`,
- hint: 'Across all active terms',
+ label: 'Yearly cost of subscriptions',
+ value: canSeeCosts ? `₹${(summary.yearlyCost ?? summary.approxAnnualSpend).toLocaleString('en-IN')}` : '—',
+ hint: 'Cost × 12 ÷ months of the cycle; Multi-year ÷ years',
  icon: IndianRupee,
  tone: 'text-emerald-600',
  tile: 'bg-emerald-50 text-emerald-600 ring-emerald-100',
@@ -259,7 +324,7 @@ export const SoftwareRegisterView: React.FC = () => {
  setSearch(e.target.value);
  setPage(1);
  }}
- placeholder="Search software name, code (SW-...) or vendor"
+ placeholder="Search by Software ID, name, vendor or assigned employee"
  className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/60 pl-10 pr-3 text-[13px] text-slate-800 transition placeholder:text-slate-400 hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:outline-hidden focus:ring-4 focus:ring-blue-500/10"
  />
  </div>
@@ -274,6 +339,8 @@ export const SoftwareRegisterView: React.FC = () => {
  <RefreshCw className={`h-4 w-4 text-slate-500 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
  Sync Status
  </button>
+ <ExportMenu build={buildExport} />
+ {canManage && (
  <button
  type="button"
  onClick={() => setIsAddOpen(true)}
@@ -282,6 +349,7 @@ export const SoftwareRegisterView: React.FC = () => {
  <Plus className="h-4 w-4" />
  Add Software
  </button>
+ )}
  </div>
  </div>
 
@@ -333,12 +401,41 @@ export const SoftwareRegisterView: React.FC = () => {
  className={`${filterCls} w-40`}
  >
  {STATUSES.map((s) => (
- <option key={s} value={s}>
- {s}
+ <option key={s.value} value={s.value}>
+ {s.label}
  </option>
  ))}
  </select>
  </div>
+ <div>
+ <label className={labelCls}>Expiry</label>
+ <select
+ value={expiry}
+ onChange={(e) => {
+ setExpiry(e.target.value);
+ setPage(1);
+ }}
+ className={`${filterCls} w-40`}
+ >
+ {EXPIRY_OPTIONS.map((o) => (
+ <option key={o.value} value={o.value}>
+ {o.label}
+ </option>
+ ))}
+ </select>
+ </div>
+ {expiry === 'range' && (
+ <>
+ <div>
+ <label className={labelCls}>Expiry from</label>
+ <input type="date" value={expiryFrom} onChange={(e) => { setExpiryFrom(e.target.value); setPage(1); }} className={`${filterCls} w-40`} />
+ </div>
+ <div>
+ <label className={labelCls}>Expiry to</label>
+ <input type="date" value={expiryTo} min={expiryFrom || undefined} onChange={(e) => { setExpiryTo(e.target.value); setPage(1); }} className={`${filterCls} w-40`} />
+ </div>
+ </>
+ )}
  <div>
  <label className={labelCls}>Type</label>
  <select
@@ -363,8 +460,11 @@ export const SoftwareRegisterView: React.FC = () => {
  setSearch('');
  setCategoryId(undefined);
  setVendorId(undefined);
- setStatus('All');
+ setStatus('Not Discontinued');
  setLicenseType('All');
+ setExpiry('');
+ setExpiryFrom('');
+ setExpiryTo('');
  setPage(1);
  }}
  className="inline-flex h-10 items-center gap-1.5 rounded-xl px-3 text-[12.5px] font-semibold text-blue-600 transition hover:bg-blue-50"
@@ -431,7 +531,11 @@ export const SoftwareRegisterView: React.FC = () => {
  const left = expiry ? daysLeft(expiry) : null;
  const [kind, scope] = String(item.license_type || '').split(' · ');
  return (
- <tr key={item.software_id} className="transition hover:bg-blue-50/30">
+ <tr
+ key={item.software_id}
+ onClick={() => setSelectedSoftwareId(item.software_id)}
+ className="cursor-pointer transition hover:bg-blue-50/30"
+ >
  {/* Software */}
  <td className="px-5 py-3.5">
  <div className="flex items-center gap-3">
@@ -496,7 +600,7 @@ export const SoftwareRegisterView: React.FC = () => {
  {item.latest_term ? (
  <>
  <div className="text-[13px] font-bold text-slate-900">₹{item.latest_term.cost.toLocaleString('en-IN')}</div>
- <div className="text-[11px] text-slate-400">{item.latest_term.billing_cycle || 'Annual'}</div>
+ <div className="text-[11px] text-slate-400">{item.latest_term.billing_cycle || '—'}</div>
  </>
  ) : (
  <span className="text-slate-300">—</span>
@@ -532,14 +636,14 @@ export const SoftwareRegisterView: React.FC = () => {
  </span>
  </td>
 
- {/* Actions */}
- <td className="px-5 py-3.5">
+ {/* Actions: clicks here must not open the row */}
+ <td className="px-5 py-3.5" onClick={(e) => e.stopPropagation()}>
  <div className="flex items-center justify-end">
  <RowActionsMenu
  label={`More actions for ${item.software_name}`}
  actions={[
  { label: 'View details', icon: Eye, onClick: () => setSelectedSoftwareId(item.software_id) },
- ...(item.status !== 'Discontinued'
+ ...(canManage && item.status !== 'Discontinued'
  ? [
  { label: 'Assign seats', icon: UserPlus, onClick: () => setQuickAssignSoftware(item) },
  { label: 'Renew license', icon: RotateCw, onClick: () => setQuickRenewSoftware(item) },
@@ -600,7 +704,6 @@ export const SoftwareRegisterView: React.FC = () => {
  isOpen={Boolean(selectedSoftwareId)}
  softwareId={selectedSoftwareId}
  onClose={() => setSelectedSoftwareId(null)}
- canManage={true}
  />
  )}
 
@@ -621,12 +724,16 @@ export const SoftwareRegisterView: React.FC = () => {
  isOpen={Boolean(quickRenewSoftware)}
  softwareId={quickRenewSoftware.software_id}
  softwareName={quickRenewSoftware.software_name}
+ softwareCode={quickRenewSoftware.software_code}
+ licenseType={quickRenewSoftware.license_type}
+ assignedSeats={quickRenewSoftware.assigned_seats}
  previousTerm={
  quickRenewSoftware.latest_term
  ? {
  term_number: quickRenewSoftware.latest_term.term_number,
  billing_cycle: quickRenewSoftware.latest_term.billing_cycle,
  cost: quickRenewSoftware.latest_term.cost,
+ start_date: quickRenewSoftware.latest_term.start_date,
  expiry_date: quickRenewSoftware.latest_term.expiry_date,
  total_seats: quickRenewSoftware.total_seats,
  }

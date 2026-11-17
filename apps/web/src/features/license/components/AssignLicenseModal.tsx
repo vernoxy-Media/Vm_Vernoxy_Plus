@@ -10,6 +10,10 @@ interface AssignLicenseModalProps {
  softwareName: string;
  totalSeats: number | null;
  assignedSeats: number;
+ /** Employees who already hold a seat: not offered (BFD 6 Part 1, marker 1). */
+ heldEmpIds?: number[];
+ /** Assigned From cannot be before the Start Date of Term 1. */
+ firstTermStart?: string | null;
  onClose: () => void;
  onSuccess?: () => void;
 }
@@ -26,6 +30,8 @@ export const AssignLicenseModal: React.FC<AssignLicenseModalProps> = ({
  softwareName,
  totalSeats,
  assignedSeats,
+ heldEmpIds = [],
+ firstTermStart,
  onClose,
  onSuccess,
 }) => {
@@ -40,8 +46,24 @@ export const AssignLicenseModal: React.FC<AssignLicenseModalProps> = ({
  { emp_id: '', login_account_id: '', remarks: '' },
  ]);
  const [errorMsg, setErrorMsg] = useState('');
+ const [doneNote, setDoneNote] = useState<string | null>(null);
 
  if (!isOpen) return null;
+
+ const minDate = firstTermStart ? firstTermStart.slice(0, 10) : undefined;
+ const picked = rows.map((r) => r.emp_id).filter((id) => id !== '') as number[];
+ const optionsFor = (current: number | '') =>
+ employeeOptions
+ .filter((emp: any) => !heldEmpIds.includes(emp.emp_id) && (emp.emp_id === current || !picked.includes(emp.emp_id)))
+ .map((emp: any) => ({ value: emp.emp_id, label: emp.name, sublabel: emp.email }));
+ // Seat check (marker 4)
+ const notEnough = availableSeats !== null && picked.length > availableSeats;
+ const seatNote =
+ availableSeats === null
+ ? 'This software has no seat limit.'
+ : notEnough
+ ? `Only ${availableSeats} seat${availableSeats === 1 ? ' is' : 's are'} free.`
+ : `${picked.length} of the ${availableSeats} free seat${availableSeats === 1 ? '' : 's'} will be used. ${availableSeats - picked.length} seat${availableSeats - picked.length === 1 ? '' : 's'} will stay free.`;
 
  const handleAddRow = () => {
  if (availableSeats !== null && rows.length >= availableSeats) {
@@ -82,12 +104,24 @@ export const AssignLicenseModal: React.FC<AssignLicenseModalProps> = ({
 
  // Capacity check
  if (availableSeats !== null && empIds.length > availableSeats) {
- setErrorMsg(`Only ${availableSeats} seat(s) available, but ${empIds.length} requested.`);
+ setErrorMsg(`Only ${availableSeats} seat${availableSeats === 1 ? ' is' : 's are'} free.`);
+ return;
+ }
+ if (assignedFrom > todayStr) {
+ setErrorMsg('The Assigned From date cannot be in the future.');
+ return;
+ }
+ if (minDate && assignedFrom < minDate) {
+ setErrorMsg('The date cannot be before the Start Date of Term 1.');
+ return;
+ }
+ if (rows.some((r) => r.login_account_id.trim().length > 100)) {
+ setErrorMsg('A Login / Account ID can be up to 100 characters.');
  return;
  }
 
  try {
- await assignMutation.mutateAsync({
+ const res: any = await assignMutation.mutateAsync({
  id: softwareId,
  dto: {
  assigned_from: assignedFrom,
@@ -102,9 +136,14 @@ export const AssignLicenseModal: React.FC<AssignLicenseModalProps> = ({
  });
 
  onSuccess?.();
+ // Someone deactivated meanwhile is skipped; the others are assigned (BFD 15).
+ if (res?.skipped?.length) {
+ setDoneNote(`Assigned ${res.count}. ${res.skipped.join('. ')}.`);
+ return;
+ }
  onClose();
  } catch (err: any) {
- setErrorMsg(err?.message || 'Failed to assign seats');
+ setErrorMsg(err?.detail || err?.message || 'Failed to assign seats');
  }
  };
 
@@ -150,6 +189,12 @@ export const AssignLicenseModal: React.FC<AssignLicenseModalProps> = ({
  <span>{errorMsg}</span>
  </div>
  )}
+ {doneNote && (
+ <div className="flex items-center gap-2 p-3 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl">
+ <AlertCircle className="w-4 h-4 shrink-0" />
+ <span>{doneNote}</span>
+ </div>
+ )}
 
  {/* Assigned From Date */}
  <div className="w-full sm:w-1/2">
@@ -159,6 +204,8 @@ export const AssignLicenseModal: React.FC<AssignLicenseModalProps> = ({
  <input
  type="date"
  required
+ min={minDate}
+ max={todayStr}
  value={assignedFrom}
  onChange={(e) => setAssignedFrom(e.target.value)}
  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl bg-white text-slate-900 "
@@ -192,12 +239,19 @@ export const AssignLicenseModal: React.FC<AssignLicenseModalProps> = ({
                         placeholder="Select Employee"
                         searchPlaceholder="Search by employee name or email..."
                         value={row.emp_id}
-                        onChange={(val) => handleRowChange(idx, 'emp_id', val ? Number(val) : '')}
-                        options={employeeOptions.map((emp: any) => ({
-                          value: emp.emp_id,
-                          label: emp.name,
-                          sublabel: emp.email,
-                        }))}
+                        onChange={(val) => {
+                          const id = val ? Number(val) : '';
+                          const emp: any = employeeOptions.find((e: any) => e.emp_id === id);
+                          const updated = [...rows];
+                          updated[idx] = {
+                            ...updated[idx],
+                            emp_id: id,
+                            // The office email is filled in and can be changed (marker 3).
+                            login_account_id: updated[idx].login_account_id || emp?.office_email || emp?.email || '',
+                          };
+                          setRows(updated);
+                        }}
+                        options={optionsFor(row.emp_id)}
                       />
  </div>
 
@@ -205,7 +259,8 @@ export const AssignLicenseModal: React.FC<AssignLicenseModalProps> = ({
  <div className="w-full sm:w-3/12">
  <input
  type="text"
- placeholder="Login ID / Email (optional)"
+ placeholder="Login / Account ID"
+ maxLength={100}
  value={row.login_account_id}
  onChange={(e) => handleRowChange(idx, 'login_account_id', e.target.value)}
  className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white text-slate-900 "
@@ -239,6 +294,10 @@ export const AssignLicenseModal: React.FC<AssignLicenseModalProps> = ({
  </div>
  </div>
 
+ <div className={`p-3 text-xs rounded-xl border ${notEnough ? 'bg-red-50 border-red-200 text-red-700' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
+ {seatNote}
+ </div>
+
  {/* Action Buttons */}
  <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 ">
  <button
@@ -246,11 +305,11 @@ export const AssignLicenseModal: React.FC<AssignLicenseModalProps> = ({
  onClick={onClose}
  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 rounded-xl transition"
  >
- Cancel
+ {doneNote ? 'Close' : 'Cancel'}
  </button>
  <button
  type="submit"
- disabled={assignMutation.isPending}
+ disabled={assignMutation.isPending || notEnough || Boolean(doneNote)}
  className="inline-flex items-center gap-2 px-5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-xs transition disabled:opacity-50"
  >
  {assignMutation.isPending ? 'Assigning...' : `Assign Seats (${rows.length})`}

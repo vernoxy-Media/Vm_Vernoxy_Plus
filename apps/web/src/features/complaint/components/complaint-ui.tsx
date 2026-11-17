@@ -1,3 +1,4 @@
+import { exportPdf } from '@/shared/utils/table-export';
 import React from 'react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -93,3 +94,36 @@ export const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ 
 
 export const inputCls =
   'h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-[13px] text-slate-700 transition hover:border-slate-300 focus:border-blue-500 focus:outline-hidden focus:ring-4 focus:ring-blue-500/10';
+
+/** BFD 8: the Complaint History is also available as a PDF from Complaint Details (for example for an audit). */
+export const HistoryPdfButton: React.FC<{
+  complaintNo: string;
+  subject?: string | null;
+  confidential?: boolean;
+  history: Array<{ event: string; created_at: string; performed_by_name?: string | null; remarks?: string | null }>;
+}> = ({ complaintNo, subject, confidential, history }) => (
+  <button
+    type="button"
+    onClick={() =>
+      exportPdf({
+        title: `Complaint History · ${complaintNo}${!confidential && subject ? ` · ${subject}` : ''}`,
+        sheet: `History ${complaintNo}`,
+        columns: [
+          { header: 'Date and time', key: 'when' },
+          { header: 'Event', key: 'event' },
+          { header: 'Details', key: 'remarks' },
+          { header: 'By', key: 'by' },
+        ],
+        rows: history.map((h) => ({
+          when: new Date(h.created_at).toLocaleString('en-GB'),
+          event: h.event,
+          remarks: h.remarks || '',
+          by: h.performed_by_name || 'System',
+        })),
+      })
+    }
+    className="text-[11px] font-semibold text-indigo-600 hover:underline"
+  >
+    Download PDF
+  </button>
+);

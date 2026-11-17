@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { customFetch } from '@vernoxy-pulse/api-client';
+import type { BillingCycle, BillingCycleKind } from '../billing-cycles';
 
 export interface LicenseCategory {
   category_id: number;
@@ -48,6 +49,8 @@ export interface LicenseSettings {
   recovery_reminder_days: number;
   max_trial_days: number;
   currency: string;
+  /** License Types switched off (BFD 11). */
+  disabled_license_types?: string[];
 }
 
 // -----------------------------------------------------------------------------
@@ -127,6 +130,47 @@ export function useDeleteLicenseCategoryMutation() {
     },
   });
 }
+
+// -----------------------------------------------------------------------------
+// 2b. Billing Cycles
+// -----------------------------------------------------------------------------
+export interface BillingCycleInput {
+  name?: string;
+  kind?: BillingCycleKind;
+  months?: number | null;
+  display_order?: number;
+  is_active?: boolean;
+}
+
+/** Billing Cycles from Settings -> License Settings; inactive ones too (forms still show a term's old cycle). */
+export function useBillingCyclesQuery() {
+  return useQuery({
+    queryKey: ['license-billing-cycles'],
+    queryFn: () => customFetch<BillingCycle[]>('/api/v1/licenses/settings/billing-cycles?includeInactive=true'),
+    staleTime: 5 * 60_000,
+  });
+}
+
+function useBillingCycleMutation<V>(fn: (v: V) => Promise<unknown>) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['license-billing-cycles'] }),
+  });
+}
+
+export const useCreateBillingCycleMutation = () =>
+  useBillingCycleMutation((dto: BillingCycleInput) =>
+    customFetch<BillingCycle>('/api/v1/licenses/settings/billing-cycles', { method: 'POST', body: JSON.stringify(dto) }),
+  );
+
+export const useUpdateBillingCycleMutation = () =>
+  useBillingCycleMutation(({ id, dto }: { id: number; dto: BillingCycleInput }) =>
+    customFetch<BillingCycle>(`/api/v1/licenses/settings/billing-cycles/${id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
+  );
+
+export const useDeleteBillingCycleMutation = () =>
+  useBillingCycleMutation((id: number) => customFetch(`/api/v1/licenses/settings/billing-cycles/${id}`, { method: 'DELETE' }));
 
 // -----------------------------------------------------------------------------
 // 3. Vendors

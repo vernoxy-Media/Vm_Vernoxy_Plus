@@ -40,6 +40,8 @@ import { MarkCandidateDecisionUseCase } from '../../application/use-cases/mark-c
 import { GetNextEmployeeCodeUseCase } from '../../application/use-cases/get-next-employee-code.use-case';
 import { ConvertCandidateToEmployeeUseCase } from '../../application/use-cases/convert-candidate-to-employee.use-case';
 import { UpdateCandidateUseCase } from '../../application/use-cases/update-candidate.use-case';
+import { RecruitmentAdminGuard } from '../guards/recruitment-admin.guard';
+import { isValidResumeSignature, signResumeUrl } from '../../application/services/resume-url';
 import {
   CreateCandidateDto,
   CheckDuplicateCandidateDto,
@@ -63,7 +65,7 @@ function toCandidateItemDto(c: any): CandidateItemDto {
     email: c.email,
     gender_id: c.genderId ?? c.gender_id ?? null,
     current_location: c.currentLocation ?? c.current_location ?? null,
-    resume_url: c.resumeUrl ?? c.resume_url ?? null,
+    resume_url: signResumeUrl(c.resumeUrl ?? c.resume_url ?? null),
     resume_filename: c.resumeFilename ?? c.resume_filename ?? null,
     role_id: c.roleId ?? c.role_id,
     role_name: c.roleName ?? c.role_name,
@@ -164,7 +166,7 @@ function toCandidateItemDto(c: any): CandidateItemDto {
 
 @ApiTags('Recruitment Candidates')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RecruitmentAdminGuard)
 @Controller('candidates')
 export class CandidateController {
   constructor(
@@ -252,7 +254,8 @@ export class CandidateController {
     await fs.promises.writeFile(absPath, file.buffer);
 
     return {
-      resume_url: `/api/v1/candidates/resumes/${diskFileName}`,
+      // Signed so the form can show "View" right away; the signature is removed again on save.
+      resume_url: signResumeUrl(`/api/v1/candidates/resumes/${diskFileName}`)!,
       resume_filename: file.originalname,
       resume_size: file.size,
       resume_mime: file.mimetype,
@@ -287,7 +290,10 @@ export class CandidateController {
     @Query('endDate') endDate?: string,
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
+    @Query('sort') sort?: string,
+    @Query('dir') dir?: string,
   ): Promise<CandidateListResponseDto> {
+    const sortBy = sort === 'candidate' || sort === 'experience' || sort === 'applied_date' ? sort : undefined;
     return this.listCandidatesUseCase.execute({
       q,
       roleId: roleId ? parseInt(roleId, 10) : undefined,
@@ -299,6 +305,8 @@ export class CandidateController {
       endDate,
       limit: limit ? parseInt(limit, 10) : 10,
       offset: offset ? parseInt(offset, 10) : 0,
+      sortBy,
+      sortDir: dir === 'asc' ? 'asc' : 'desc',
     });
   }
 
@@ -383,12 +391,25 @@ export class CandidateController {
 @Controller('candidates/resumes')
 export class CandidateResumeController {
   @Get(':filename')
-  @ApiOperation({ summary: 'Publicly view or download candidate resume' })
+  @ApiOperation({ summary: 'View or download a candidate resume through a signed, expiring link' })
   async downloadResume(
     @Param('filename') filename: string,
+    @Query('exp') exp: string | undefined,
+    @Query('sig') sig: string | undefined,
     @Res() res: Response,
   ): Promise<void> {
     const cleanFilename = path.basename(filename);
+    // Links come only from the Admin-only candidates API, signed and short-lived. A bare or
+    // expired link is refused, so a resume cannot be opened by guessing or sharing the path.
+    if (!isValidResumeSignature(cleanFilename, exp, sig)) {
+      res.status(HttpStatus.FORBIDDEN).json({
+        type: 'about:blank',
+        title: 'Forbidden',
+        status: 403,
+        detail: 'This resume link has expired or is not valid. Open the candidate again to get a new link.',
+      });
+      return;
+    }
     const candidates = [
       path.resolve(process.cwd(), 'storage', 'candidate-resumes'),
       path.resolve(process.cwd(), '..', '..', 'storage', 'candidate-resumes'),

@@ -11,6 +11,15 @@ export interface CandidateFilterParams {
   endDate?: string;
   limit?: number;
   offset?: number;
+  sortBy?: 'candidate' | 'experience' | 'applied_date';
+  sortDir?: 'asc' | 'desc';
+}
+
+export interface DuplicateCheckOptions {
+  /** The candidate being edited, so it does not match itself. */
+  excludeCandidateId?: number;
+  /** The employee that candidate became, so a converted candidate does not match its own employee. */
+  excludeEmpId?: number | null;
 }
 
 export interface CandidateStats {
@@ -55,7 +64,7 @@ export interface ICandidateRepository {
   findById(candidateId: number): Promise<CandidateProps | null>;
   findMany(params: CandidateFilterParams): Promise<{ items: CandidateProps[]; total: number }>;
   getStats(): Promise<CandidateStats>;
-  checkDuplicates(phone: string, email: string): Promise<CandidateDuplicateMatch[]>;
+  checkDuplicates(phone: string, email: string, options?: DuplicateCheckOptions): Promise<CandidateDuplicateMatch[]>;
   updateStage(candidateId: number, stage: string, updatedBy?: number): Promise<CandidateProps>;
   markDecision(candidateId: number, data: MarkDecisionParams, decisionBy?: number): Promise<CandidateProps>;
   getNextEmployeeCode(): Promise<{ nextEmpId: number; nextEmpCode: string }>;

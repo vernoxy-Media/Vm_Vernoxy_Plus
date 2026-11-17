@@ -463,9 +463,10 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
           stage: true,
           parent_task_id: true,
           task_code: true,
+          started_at: true,
+          actual_minutes: true,
           is_timer_running: true,
           timer_started_at: true,
-          actual_minutes: true,
           work_logs: true,
         },
       });
@@ -473,6 +474,9 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
 
       const fromStage = existing.stage as TaskStage;
       const toStage = input.target_stage;
+      const clockNow = new Date();
+      const workLogs = Array.isArray(existing.work_logs) ? [...(existing.work_logs as any[])] : [];
+      const newLogId = () => `log_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
       let eventType: any = 'stage_changed';
       if (toStage === 'hold') {
@@ -547,28 +551,38 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
         }
       }
 
-      // A task that leaves In Progress (hold, QA, review, approved) must stop its own running timer,
-      // otherwise time keeps counting on finished work.
-      if (toStage !== 'in_progress' && existing.is_timer_running) {
-        const stopNow = new Date();
+      // Work clock follows the stage: In Progress starts it, any other stage stops it (qa's timing rules).
+      if (toStage === 'in_progress' && input.start_timer && !existing.is_timer_running) {
+        updateData.is_timer_running = true;
+        updateData.timer_started_at = clockNow;
+        if (!existing.started_at) updateData.started_at = clockNow;
+        workLogs.push({
+          log_id: newLogId(),
+          employee_id: input.actor_emp_id,
+          employee_name: input.actor_name || 'Employee',
+          action: existing.started_at ? 'resume' : 'start',
+          timestamp: clockNow.toISOString(),
+          note: 'Clock started: task moved to In Progress',
+        });
+        updateData.work_logs = workLogs;
+      } else if (toStage !== 'in_progress' && existing.is_timer_running) {
         const elapsed = existing.timer_started_at
-          ? Math.max(0, Math.floor((stopNow.getTime() - new Date(existing.timer_started_at).getTime()) / 1000))
+          ? Math.max(0, Math.floor((clockNow.getTime() - new Date(existing.timer_started_at).getTime()) / 1000))
           : 0;
-        const stopLogs = Array.isArray(existing.work_logs) ? [...(existing.work_logs as any[])] : [];
-        const runner = timerRunner(stopLogs);
-        updateData.actual_minutes = minutesAfter(stopLogs, existing.actual_minutes, elapsed);
+        const runner = timerRunner(workLogs);
+        updateData.actual_minutes = minutesAfter(workLogs, existing.actual_minutes, elapsed);
         updateData.is_timer_running = false;
         updateData.timer_started_at = null;
-        stopLogs.push({
-          log_id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        workLogs.push({
+          log_id: newLogId(),
           employee_id: runner?.id ?? input.actor_emp_id,
           employee_name: runner?.name || 'Employee',
           action: toStage === 'hold' ? 'pause' : 'finish',
-          timestamp: stopNow.toISOString(),
+          timestamp: clockNow.toISOString(),
           duration_seconds: elapsed,
           note: `Timer stopped automatically: task moved to ${toStage}`,
         });
-        updateData.work_logs = stopLogs;
+        updateData.work_logs = workLogs;
       }
 
       if (toStage === 'hold') {

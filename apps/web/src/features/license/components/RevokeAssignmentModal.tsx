@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, UserMinus, ArrowRightLeft, AlertCircle } from 'lucide-react';
-import { useRevokeAssignmentMutation } from '../hooks/use-licenses';
+import { useRevokeAssignmentMutation, useRevokeManyMutation } from '../hooks/use-licenses';
 import { useLicenseRevokeReasonsQuery } from '../hooks/use-license-settings';
 import { useEmployeeOptionsQuery } from '@/features/organization/hooks/use-organization';
 
@@ -9,6 +9,8 @@ interface RevokeAssignmentModalProps {
  assignmentId: number;
  softwareName: string;
  employeeName: string;
+ /** Revoke several (BFD 6 Part 2): one date and one reason for all of them. No transfer. */
+ bulk?: { softwareId: number; assignmentIds: number[] };
  onClose: () => void;
  onSuccess?: () => void;
 }
@@ -18,12 +20,15 @@ export const RevokeAssignmentModal: React.FC<RevokeAssignmentModalProps> = ({
  assignmentId,
  softwareName,
  employeeName,
+ bulk,
  onClose,
  onSuccess,
 }) => {
  const { data: reasons = [] } = useLicenseRevokeReasonsQuery();
  const { data: employeeOptions = [] } = useEmployeeOptionsQuery();
  const revokeMutation = useRevokeAssignmentMutation();
+ const revokeMany = useRevokeManyMutation();
+ const isBulk = Boolean(bulk && bulk.assignmentIds.length);
 
  const todayStr = new Date().toISOString().split('T')[0];
  const [revokedOn, setRevokedOn] = useState(todayStr);
@@ -48,7 +53,26 @@ export const RevokeAssignmentModal: React.FC<RevokeAssignmentModalProps> = ({
  return;
  }
 
+ if (revokedOn > todayStr) {
+ setErrorMsg('The revoke date cannot be in the future.');
+ return;
+ }
+
  try {
+ if (isBulk && bulk) {
+ await revokeMany.mutateAsync({
+ softwareId: bulk.softwareId,
+ dto: {
+ assignment_ids: bulk.assignmentIds,
+ revoked_on: revokedOn,
+ revoke_reason_id: Number(reasonId),
+ revoke_remarks: remarks.trim() || undefined,
+ },
+ });
+ onSuccess?.();
+ onClose();
+ return;
+ }
  await revokeMutation.mutateAsync({
  assignmentId,
  dto: {
@@ -62,7 +86,7 @@ export const RevokeAssignmentModal: React.FC<RevokeAssignmentModalProps> = ({
  onSuccess?.();
  onClose();
  } catch (err: any) {
- setErrorMsg(err?.message || 'Failed to revoke assignment');
+ setErrorMsg(err?.detail || err?.message || 'Failed to revoke assignment');
  }
  };
 
@@ -78,10 +102,14 @@ export const RevokeAssignmentModal: React.FC<RevokeAssignmentModalProps> = ({
  ) : (
  <UserMinus className="w-5 h-5 text-red-600" />
  )}
- {isTransferring ? 'Transfer License Seat' : 'Revoke License Seat'}
+ {isBulk ? `Revoke ${bulk!.assignmentIds.length} Seats` : isTransferring ? 'Transfer License Seat' : 'Revoke License Seat'}
  </h2>
  <p className="text-xs text-slate-500">
- {softwareName} • Currently assigned to <strong>{employeeName}</strong>
+ {isBulk ? (
+ <>{softwareName} • One date and one reason for every selected seat</>
+ ) : (
+ <>{softwareName} • Currently assigned to <strong>{employeeName}</strong></>
+ )}
  </p>
  </div>
  <button
@@ -102,7 +130,8 @@ export const RevokeAssignmentModal: React.FC<RevokeAssignmentModalProps> = ({
  </div>
  )}
 
- {/* Action Toggle */}
+ {/* Action Toggle (single seat only) */}
+ {!isBulk && (
  <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl">
  <button
  type="button"
@@ -127,6 +156,7 @@ export const RevokeAssignmentModal: React.FC<RevokeAssignmentModalProps> = ({
  Transfer Seat to Another Colleague
  </button>
  </div>
+ )}
 
  {/* Transfer Target (If Transferring) */}
  {isTransferring && (
@@ -158,6 +188,7 @@ export const RevokeAssignmentModal: React.FC<RevokeAssignmentModalProps> = ({
  <input
  type="date"
  required
+ max={todayStr}
  value={revokedOn}
  onChange={(e) => setRevokedOn(e.target.value)}
  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl bg-white text-slate-900 "
@@ -209,13 +240,15 @@ export const RevokeAssignmentModal: React.FC<RevokeAssignmentModalProps> = ({
  </button>
  <button
  type="submit"
- disabled={revokeMutation.isPending}
+ disabled={revokeMutation.isPending || revokeMany.isPending}
  className={`inline-flex items-center gap-2 px-5 py-2 text-xs font-semibold text-white rounded-xl shadow-xs transition disabled:opacity-50 ${
  isTransferring ? 'bg-purple-600 hover:bg-purple-700' : 'bg-red-600 hover:bg-red-700'
  }`}
  >
- {revokeMutation.isPending
+ {revokeMutation.isPending || revokeMany.isPending
  ? 'Processing...'
+ : isBulk
+ ? `Revoke ${bulk!.assignmentIds.length} Seats`
  : isTransferring
  ? 'Transfer Seat'
  : 'Revoke Assignment'}

@@ -1,196 +1,172 @@
-import React, { useState } from 'react';
-import { X, CheckCircle2, Download, Loader2 } from 'lucide-react';
-import { useMarkPaidMutation } from '../hooks/use-payroll';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Download, Loader2 } from 'lucide-react';
+import { PayrollEmployeeItem, bankFileUrl, downloadFile, errorText, fieldErrors, useMarkPaidMutation } from '../hooks/use-payroll';
+import { Banner, FieldError, Modal, btn, inputCls, money, todayIST } from './payroll-ui';
 
-interface MarkPaidModalProps {
-  isOpen: boolean;
+const MODE: Record<string, string> = { BANK_TRANSFER: 'Bank transfer', CHEQUE: 'Cheque', CASH: 'Cash' };
+
+/** Mark as Paid (BFD 10 Part 3): all or the ticked employees; mode and reference per Payment Mode. */
+export const MarkPaidModal: React.FC<{
+  open: boolean;
   onClose: () => void;
   year: number;
   month: number;
-  monthName: string;
-  totalSalary: number;
-  totalEmployees: number;
-  employees: any[];
-}
+  monthLabel: string;
+  lockedAt: string | null;
+  employees: PayrollEmployeeItem[];
+}> = ({ open, onClose, year, month, monthLabel, lockedAt, employees }) => {
+  const pay = useMarkPaidMutation();
+  const unpaid = useMemo(() => employees.filter((e) => !e.is_paid), [employees]);
+  const [selected, setSelected] = useState<number[]>([]);
+  const [date, setDate] = useState(todayIST());
+  const [batch, setBatch] = useState('');
+  const [cheques, setCheques] = useState<Record<string, string>>({});
+  const [cashRef, setCashRef] = useState('');
+  const [errs, setErrs] = useState<Record<string, string>>({});
+  const [banner, setBanner] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
+  const minDate = lockedAt ? new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date(lockedAt)) : undefined;
 
-export const MarkPaidModal: React.FC<MarkPaidModalProps> = ({
-  isOpen,
-  onClose,
-  year,
-  month,
-  monthName,
-  totalSalary,
-  totalEmployees,
-  employees,
-}) => {
-  const markPaidMutation = useMarkPaidMutation();
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const [paymentDate, setPaymentDate] = useState(todayStr);
-  const [paymentReference, setPaymentReference] = useState('');
+  useEffect(() => {
+    if (!open) return;
+    setSelected(unpaid.map((e) => e.emp_id));
+    setDate(todayIST());
+    setBatch('');
+    setCheques({});
+    setCashRef('');
+    setErrs({});
+    setBanner(null);
+  }, [open, unpaid]);
 
-  if (!isOpen) return null;
+  const chosen = unpaid.filter((e) => selected.includes(e.emp_id));
+  const bank = chosen.filter((e) => e.payment_mode === 'BANK_TRANSFER');
+  const cheque = chosen.filter((e) => e.payment_mode === 'CHEQUE');
+  const cash = chosen.filter((e) => e.payment_mode === 'CASH');
+  const missingBank = bank.filter((e) => !e.account_number || !e.ifsc_code);
 
-  const handleDownloadBankFile = () => {
-    // Generate CSV for bank transfer
-    const bankEmployees = employees.filter((e) => e.payment_mode === 'BANK_TRANSFER');
-    const headers = ['Employee Name', 'Employee Code', 'Bank Name', 'Account Number', 'IFSC Code', 'Amount (INR)'];
-    const rows = bankEmployees.map((e) => [
-      `"${e.employee_name}"`,
-      `"${e.employee_code}"`,
-      `"${e.bank_name || ''}"`,
-      `"${e.account_number || ''}"`,
-      `"${e.ifsc_code || ''}"`,
-      e.total_salary,
-    ]);
-
-    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `bank_salary_disbursement_${year}_${month}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const handleMarkPaid = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const submit = async () => {
+    const e: Record<string, string> = {};
+    if (!date) e.payment_date = 'Please fill this field.';
+    else if (date > todayIST()) e.payment_date = 'The payment date cannot be in the future.';
+    else if (minDate && date < minDate) e.payment_date = 'The payment date cannot be before the lock date.';
+    if (!chosen.length) e.emp_ids = 'Please select at least one employee.';
+    if (bank.length && !batch.trim()) e.batch_reference = 'Please enter the bank batch reference.';
+    if (cheque.some((c) => !cheques[String(c.emp_id)]?.trim())) e.cheque_numbers = 'Please enter a cheque number for every cheque payment.';
+    if (Object.keys(e).length) return setErrs(e);
+    setBanner(null);
     try {
-      await markPaidMutation.mutateAsync({
+      await pay.mutateAsync({
         year,
         month,
-        data: {
-          payment_date: paymentDate,
-          payment_reference: paymentReference || undefined,
-        },
+        data: { payment_date: date, emp_ids: chosen.map((c) => c.emp_id), batch_reference: batch.trim() || undefined, cheque_numbers: cheques, cash_reference: cashRef.trim() || undefined },
       });
       onClose();
-    } catch (err: any) {
-      alert(err.message || 'Failed to mark as paid');
+    } catch (err) {
+      const fe = fieldErrors(err);
+      if (Object.keys(fe).length) setErrs(fe);
+      else setBanner(errorText(err));
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div
-        className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-100 overflow-hidden transform transition-all animate-in zoom-in-95 duration-200"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100">
-              <CheckCircle2 className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-slate-900 tracking-tight">
-                Record Payment • {monthName}
-              </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Mark salary payment as disbursed to {totalEmployees} employees.
-              </p>
-            </div>
-          </div>
+    <Modal
+      open={open}
+      onClose={onClose}
+      width="max-w-2xl"
+      title={`Mark as Paid · ${monthLabel}`}
+      subtitle="The run is Paid when every employee is paid."
+      footer={
+        <>
           <button
             type="button"
-            onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition"
+            className={`${btn.secondary} mr-auto`}
+            disabled={downloading}
+            onClick={async () => {
+              setDownloading(true);
+              try {
+                await downloadFile(bankFileUrl(year, month), `bank-file-${year}-${String(month).padStart(2, '0')}.csv`);
+              } catch (e: any) {
+                setBanner(e?.message || 'Download failed.');
+              } finally {
+                setDownloading(false);
+              }
+            }}
           >
-            <X className="w-5 h-5" />
+            <Download className="h-4 w-4" /> Download bank file
           </button>
+          <button type="button" className={btn.secondary} onClick={onClose}>
+            Cancel
+          </button>
+          <button type="button" className={btn.success} disabled={pay.isPending} onClick={submit}>
+            {pay.isPending && <Loader2 className="h-4 w-4 animate-spin" />} Mark as Paid
+          </button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        {banner && <Banner>{banner}</Banner>}
+        {missingBank.length > 0 && (
+          <Banner tone="warn">
+            {missingBank.map((m) => m.employee_name).join(', ')}: bank account or IFSC missing. They are left out of the bank file; pay them by cheque or fill the bank details.
+          </Banner>
+        )}
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              Payment Date<span className="text-rose-500">*</span>
+            </label>
+            <input type="date" className={inputCls} value={date} min={minDate} max={todayIST()} onChange={(e) => setDate(e.target.value)} />
+            <FieldError msg={errs.payment_date} />
+          </div>
+          {bank.length > 0 && (
+            <div>
+              <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                Bank batch reference<span className="text-rose-500">*</span>
+              </label>
+              <input className={inputCls} maxLength={100} value={batch} onChange={(e) => setBatch(e.target.value)} />
+              <FieldError msg={errs.batch_reference} />
+            </div>
+          )}
+          {cash.length > 0 && (
+            <div>
+              <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-slate-500">Cash reference</label>
+              <input className={inputCls} maxLength={100} value={cashRef} onChange={(e) => setCashRef(e.target.value)} />
+            </div>
+          )}
         </div>
-
-        {/* Form Body */}
-        <form onSubmit={handleMarkPaid}>
-          <div className="p-6 space-y-4">
-            {/* Total payout card */}
-            <div className="p-4 rounded-2xl bg-emerald-50/50 border border-emerald-100 text-center">
-              <p className="text-2xs font-bold text-emerald-700 uppercase tracking-wider">
-                Total Salary Payout
-              </p>
-              <p className="text-2xl font-black text-emerald-900 mt-0.5">
-                ₹ {totalSalary.toLocaleString()}
-              </p>
-              <p className="text-2xs text-emerald-700/80 mt-1">
-                Net amount for {totalEmployees} employees
-              </p>
-            </div>
-
-            {/* Bank File Download */}
-            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-bold text-slate-800">Download Bank File</p>
-                <p className="text-2xs text-slate-500">
-                  CSV file with account numbers, IFSC codes, and salary amounts
-                </p>
+        <div>
+          <div className="mb-1.5 flex items-center justify-between">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Paid for</p>
+            <button type="button" className={btn.link} onClick={() => setSelected(selected.length === unpaid.length ? [] : unpaid.map((u) => u.emp_id))}>
+              {selected.length === unpaid.length ? 'Clear' : 'Select all'}
+            </button>
+          </div>
+          <FieldError msg={errs.emp_ids || errs.cheque_numbers} />
+          <div className="max-h-72 overflow-y-auto rounded-xl border border-slate-200">
+            {unpaid.map((e) => (
+              <div key={e.emp_id} className="flex items-center gap-3 border-b border-slate-100 px-3 py-2 text-[12.5px] last:border-0">
+                <input type="checkbox" checked={selected.includes(e.emp_id)} onChange={() => setSelected((s) => (s.includes(e.emp_id) ? s.filter((x) => x !== e.emp_id) : [...s, e.emp_id]))} />
+                <span className="min-w-0 flex-1 truncate font-medium text-slate-800">
+                  {e.employee_name} <span className="text-slate-400">· {MODE[e.payment_mode] || e.payment_mode}</span>
+                </span>
+                {e.payment_mode === 'CHEQUE' && selected.includes(e.emp_id) && (
+                  <input
+                    className="h-8 w-32 rounded-lg border border-slate-200 px-2 text-[12px]"
+                    placeholder="Cheque no."
+                    value={cheques[String(e.emp_id)] || ''}
+                    onChange={(ev) => setCheques((c) => ({ ...c, [String(e.emp_id)]: ev.target.value }))}
+                  />
+                )}
+                <span className="w-24 text-right font-semibold text-slate-900">{money(e.total_salary, 0)}</span>
               </div>
-              <button
-                type="button"
-                onClick={handleDownloadBankFile}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition shadow-2xs"
-              >
-                <Download className="w-3.5 h-3.5 text-blue-600" />
-                <span>CSV</span>
-              </button>
-            </div>
-
-            {/* Payment Date */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                Payment Date <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="date"
-                required
-                value={paymentDate}
-                onChange={(e) => setPaymentDate(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
-              />
-            </div>
-
-            {/* Reference Number */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                Payment Reference / Batch Number
-              </label>
-              <input
-                type="text"
-                placeholder="e.g. UTR-982341920, BATCH-SEP-26"
-                value={paymentReference}
-                onChange={(e) => setPaymentReference(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
-              />
-              <p className="text-3xs text-slate-400 mt-1">
-                Bank transaction reference or cheque number
-              </p>
-            </div>
+            ))}
+            {!unpaid.length && <p className="px-3 py-6 text-center text-[12.5px] text-slate-500">Everyone is paid.</p>}
           </div>
-
-          {/* Footer */}
-          <div className="p-6 bg-slate-50/70 border-t border-slate-100 flex items-center justify-end gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={markPaidMutation.isPending}
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs hover:shadow-md transition cursor-pointer disabled:opacity-50"
-            >
-              {markPaidMutation.isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <CheckCircle2 className="w-4 h-4" />
-              )}
-              <span>Mark as Paid</span>
-            </button>
-          </div>
-        </form>
+          <p className="mt-1.5 text-right text-[12px] text-slate-500">
+            {chosen.length} selected · {money(chosen.reduce((s, c) => s + c.total_salary, 0), 0)}
+          </p>
+        </div>
       </div>
-    </div>
+    </Modal>
   );
 };

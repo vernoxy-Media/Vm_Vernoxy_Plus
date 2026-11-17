@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { ExportMenu } from '@/shared/ui/ExportMenu';
+import { dmy } from '@/shared/utils/table-export';
 import {
   BarChart3,
   ArrowLeft,
-  Download,
   Filter,
   FilterX,
   Loader2,
@@ -36,6 +37,10 @@ export const ComplaintReportsPage: React.FC = (): React.ReactElement => {
   const [typeId, setTypeId] = useState<number | undefined>(undefined);
   const [priority, setPriority] = useState<string>('');
   const [status, setStatus] = useState<string>('');
+  // Summary "Group by" (BFD 11 marker 7) and the complaints behind a breakdown row
+  const [summaryGroup, setSummaryGroup] = useState<'type' | 'department' | 'handler'>('type');
+  const [focus, setFocus] = useState<{ field: 'type_name' | 'department_name' | 'handler_name'; value: string } | null>(null);
+  const navigate = useNavigate();
 
   // Queries
   const { data: types = [] } = useComplaintTypesQuery(true);
@@ -60,57 +65,73 @@ export const ComplaintReportsPage: React.FC = (): React.ReactElement => {
         ? 'department'
         : reportType === 'handler_performance'
         ? 'handler'
+        : reportType === 'summary'
+        ? summaryGroup
         : undefined,
   });
 
-  const exportCsv = () => {
-    if (!data) return;
-    const csvRows: string[][] = [];
-
-    if (reportType === 'summary') {
-      csvRows.push(['Metric', 'Value']);
-      csvRows.push(['Total Received', String(data.totals?.received || 0)]);
-      csvRows.push(['Total Closed', String(data.totals?.closed || 0)]);
-      csvRows.push(['Avg Days to Resolve', String(data.totals?.avg_time_to_resolve_days || 0)]);
-      csvRows.push(['Overdue Now', String(data.totals?.overdue_now || 0)]);
-      csvRows.push(['Reopened', String(data.totals?.reopened || 0)]);
-    } else if (data.breakdown && data.breakdown.length > 0) {
-      csvRows.push(['Group / Entity', 'Received', 'Active', 'Closed', 'Overdue', 'Avg Days to Resolve']);
-      data.breakdown.forEach((b) => {
-        csvRows.push([
-          b.name,
-          String(b.received),
-          String(b.active),
-          String(b.closed),
-          String(b.overdue),
-          String(b.avg_days),
-        ]);
-      });
-    } else if (data.complaints && data.complaints.length > 0) {
-      csvRows.push(['Complaint No', 'Date', 'Type', 'Complainant', 'Department', 'Handler', 'Status', 'Priority', 'Target Date']);
-      data.complaints.forEach((c) => {
-        csvRows.push([
-          c.complaint_no,
-          c.complaint_date?.slice(0, 10) || '',
-          c.type_name || '',
-          c.complainant_name || '',
-          c.department_name || '',
-          c.handler_name || '',
-          c.status,
-          c.priority,
-          c.target_date?.slice(0, 10) || '',
-        ]);
-      });
+  /** Export (Excel, PDF or CSV) of the tab on screen with the filters applied; subjects never included (BFD 11). */
+  const buildExport = () => {
+    const tabLabel = tabs.find((t) => t.id === reportType)?.label || 'Report';
+    const period = month || `${fromDate || '…'} to ${toDate || '…'}`;
+    const base = { title: `Complaint Reports · ${tabLabel} · ${period}`, sheet: `Complaints ${tabLabel}`, endpoint: '/api/v1/complaints/export' };
+    const groupHeader = reportType === 'by_department' ? 'Department' : reportType === 'handler_performance' ? 'Handler' : reportType === 'summary' ? summaryGroup[0].toUpperCase() + summaryGroup.slice(1) : 'Type';
+    if ((reportType === 'summary' || data?.breakdown?.length) && data?.breakdown) {
+      return {
+        ...base,
+        columns: [
+          { header: groupHeader, key: 'name' },
+          { header: 'Received', key: 'received' },
+          { header: 'Active', key: 'active' },
+          { header: 'Closed', key: 'closed' },
+          { header: 'Overdue', key: 'overdue' },
+          { header: 'Average days', key: 'avg_days' },
+        ],
+        rows: data.breakdown.map((b) => ({ ...b })),
+      };
     }
+    return {
+      ...base,
+      columns: [
+        { header: 'Complaint No.', key: 'complaint_no' },
+        { header: 'Date', key: 'date' },
+        { header: 'Raised by', key: 'complainant_name' },
+        { header: 'Department', key: 'department_name' },
+        { header: 'Type', key: 'type_name' },
+        { header: 'Priority', key: 'priority' },
+        { header: 'Handler', key: 'handler_name' },
+        { header: 'Status', key: 'status' },
+        { header: 'Target', key: 'target' },
+        { header: 'Outcome', key: 'outcome' },
+        { header: 'Closure Type', key: 'closure_type' },
+        { header: 'Times reopened', key: 'reopen_count' },
+      ],
+      rows: registerRows.map((c: any) => ({ ...c, date: dmy(c.complaint_date), target: dmy(c.target_date) })),
+    };
+  };
 
-    const csvContent = 'data:text/csv;charset=utf-8,' + csvRows.map((e) => e.join(',')).join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `complaint_report_${reportType}_${month || 'custom'}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  // Quick picks: This quarter, Last quarter, This financial year (April to March)
+  const quickPick = (kind: 'this_q' | 'last_q' | 'fy') => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const q = Math.floor(now.getMonth() / 3);
+    const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    let from: Date;
+    let to: Date;
+    if (kind === 'this_q') {
+      from = new Date(y, q * 3, 1);
+      to = new Date(y, q * 3 + 3, 0);
+    } else if (kind === 'last_q') {
+      from = new Date(y, q * 3 - 3, 1);
+      to = new Date(y, q * 3, 0);
+    } else {
+      const fyStart = now.getMonth() >= 3 ? y : y - 1;
+      from = new Date(fyStart, 3, 1);
+      to = new Date(fyStart + 1, 2, 31);
+    }
+    setMonth('');
+    setFromDate(iso(from));
+    setToDate(iso(to));
   };
 
   const tabs = [
@@ -127,6 +148,7 @@ export const ComplaintReportsPage: React.FC = (): React.ReactElement => {
   const filtersChanged =
     month !== currentMonth || Boolean(fromDate || toDate || deptId || handlerId || typeId || priority || status) || dateBasis !== 'SUBMITTED';
   const resetFilters = () => {
+    setFocus(null);
     setMonth(currentMonth);
     setFromDate('');
     setToDate('');
@@ -139,6 +161,16 @@ export const ComplaintReportsPage: React.FC = (): React.ReactElement => {
   };
 
   const trend = data?.trend ?? [];
+  // A breakdown row lists the complaints behind it (BFD 11 marker 7)
+  const registerRows = (data?.complaints ?? []).filter((c: any) => !focus || (c[focus.field] || '') === focus.value);
+  const focusField = (): 'type_name' | 'department_name' | 'handler_name' => {
+    const g = reportType === 'summary' ? summaryGroup : reportType === 'by_department' ? 'department' : reportType === 'handler_performance' ? 'handler' : 'type';
+    return g === 'department' ? 'department_name' : g === 'handler' ? 'handler_name' : 'type_name';
+  };
+  const openGroup = (name: string) => {
+    setFocus({ field: focusField(), value: name });
+    setReportType('register');
+  };
   const trendMax = Math.max(1, ...trend.map((m) => Math.max(m.received, m.closed)));
   const th = 'whitespace-nowrap px-5 py-3';
   const headRow = 'border-b border-slate-200 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500';
@@ -165,15 +197,9 @@ export const ComplaintReportsPage: React.FC = (): React.ReactElement => {
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={exportCsv}
-          disabled={isLoading || !data}
-          className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 self-start rounded-xl bg-indigo-600 px-4 text-[13px] font-semibold text-white shadow-sm shadow-indigo-600/25 transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50 sm:self-auto"
-        >
-          <Download className="h-4 w-4" />
-          Export CSV
-        </button>
+        <div className="self-start sm:self-auto">
+          <ExportMenu disabled={isLoading || !data} build={buildExport} />
+        </div>
       </div>
 
       {/* Report type */}
@@ -187,7 +213,10 @@ export const ComplaintReportsPage: React.FC = (): React.ReactElement => {
                 type="button"
                 role="tab"
                 aria-selected={on}
-                onClick={() => setReportType(tab.id)}
+                onClick={() => {
+                  setReportType(tab.id);
+                  if (tab.id !== 'register') setFocus(null);
+                }}
                 className={`cursor-pointer whitespace-nowrap rounded-lg px-4 py-2 text-[13px] font-semibold transition ${
                   on ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'
                 }`}
@@ -207,6 +236,19 @@ export const ComplaintReportsPage: React.FC = (): React.ReactElement => {
               <Filter className="h-3.5 w-3.5" />
             </span>
             Report filters
+          </div>
+          <div className="ml-auto mr-2 hidden flex-wrap items-center gap-1.5 sm:flex">
+            {(
+              [
+                ['this_q', 'This quarter'],
+                ['last_q', 'Last quarter'],
+                ['fy', 'This financial year'],
+              ] as const
+            ).map(([k, l]) => (
+              <button key={k} type="button" onClick={() => quickPick(k)} className="rounded-lg border border-slate-200 px-2.5 py-1 text-[11.5px] font-semibold text-slate-600 hover:bg-slate-50">
+                {l}
+              </button>
+            ))}
           </div>
           {filtersChanged && (
             <button type="button" onClick={resetFilters} className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-800">
@@ -365,8 +407,21 @@ export const ComplaintReportsPage: React.FC = (): React.ReactElement => {
               </div>
 
               <div className="grid grid-cols-6 gap-2 sm:gap-4">
-                {trend.map((m, i) => (
-                  <div key={i} className={`flex flex-col items-center rounded-xl px-1 pb-3 pt-3 transition ${m.is_selected ? 'bg-indigo-50/70 ring-1 ring-indigo-200' : ''}`}>
+                {trend.map((m: any, i) => (
+                  <button
+                    type="button"
+                    key={i}
+                    title={`Open ${m.label}`}
+                    onClick={() => {
+                      // Clicking a bar opens that month (BFD 11 marker 6)
+                      if (m.month) {
+                        setMonth(m.month);
+                        setFromDate('');
+                        setToDate('');
+                      }
+                    }}
+                    className={`flex cursor-pointer flex-col items-center rounded-xl px-1 pb-3 pt-3 transition hover:bg-slate-50 ${m.is_selected ? 'bg-indigo-50/70 ring-1 ring-indigo-200' : ''}`}
+                  >
                     <div className="flex h-36 w-full items-end justify-center gap-1 sm:gap-2" title={`${m.label}: ${m.received} received, ${m.closed} closed`}>
                       <div className="flex h-full w-3.5 flex-col justify-end sm:w-6">
                         <span className="mb-1 text-center text-[11px] font-bold text-slate-700">{m.received}</span>
@@ -378,11 +433,56 @@ export const ComplaintReportsPage: React.FC = (): React.ReactElement => {
                       </div>
                     </div>
                     <span className={`mt-2 text-center text-[11px] font-semibold leading-tight sm:text-xs ${m.is_selected ? 'text-indigo-700' : 'text-slate-500'}`}>{m.label}</span>
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
           )}
+
+          {/* Breakdown by type, or by department or handler with "Group by" */}
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="flex items-center justify-between px-5 pt-4">
+              <h3 className="text-[15px] font-bold text-slate-900">By {summaryGroup === 'type' ? 'complaint type' : summaryGroup}</h3>
+              <label className="flex items-center gap-2 text-xs text-slate-500">
+                Group by
+                <select value={summaryGroup} onChange={(e) => setSummaryGroup(e.target.value as any)} className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-700">
+                  <option value="type">Complaint Type</option>
+                  <option value="department">Department</option>
+                  <option value="handler">Handler</option>
+                </select>
+              </label>
+            </div>
+            {(data?.breakdown ?? []).length === 0 ? (
+              <p className="px-5 py-8 text-center text-sm text-slate-400">No complaints match your filters</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="mt-2 w-full min-w-[620px] text-left text-sm">
+                  <thead className="bg-slate-50/95">
+                    <tr className={headRow}>
+                      <th className={th}>{summaryGroup === 'type' ? 'Type' : summaryGroup === 'department' ? 'Department' : 'Handler'}</th>
+                      <th className={`${th} text-center`}>Received</th>
+                      <th className={`${th} text-center`}>Closed</th>
+                      <th className={`${th} text-center`}>Active</th>
+                      <th className={`${th} text-center`}>Avg days</th>
+                      <th className={`${th} text-center`}>Overdue</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {(data?.breakdown ?? []).map((row) => (
+                      <tr key={row.name} onClick={() => openGroup(row.name)} className="cursor-pointer transition-colors hover:bg-blue-50/30" title="List the complaints behind it">
+                        <td className="px-5 py-3 font-semibold text-slate-800">{row.name}</td>
+                        <td className="px-5 py-3 text-center">{row.received}</td>
+                        <td className="px-5 py-3 text-center">{row.closed}</td>
+                        <td className="px-5 py-3 text-center">{row.active}</td>
+                        <td className="px-5 py-3 text-center">{row.avg_days ? `${row.avg_days}` : '—'}</td>
+                        <td className={`px-5 py-3 text-center ${row.overdue ? 'font-bold text-rose-600' : ''}`}>{row.overdue}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       ) : data?.breakdown && data.breakdown.length > 0 ? (
         /* By Type / By Department / Handler Performance */
@@ -405,7 +505,7 @@ export const ComplaintReportsPage: React.FC = (): React.ReactElement => {
                   const total = data.totals?.received || 1;
                   const pct = Math.round((row.received / total) * 100);
                   return (
-                    <tr key={idx} className="transition-colors hover:bg-blue-50/30">
+                    <tr key={idx} onClick={() => openGroup(row.name)} title="List the complaints behind it" className="cursor-pointer transition-colors hover:bg-blue-50/30">
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-2.5">
                           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[11px] font-bold text-indigo-600">{initials(row.name)}</span>
@@ -438,7 +538,7 @@ export const ComplaintReportsPage: React.FC = (): React.ReactElement => {
             </table>
           </div>
         </div>
-      ) : data?.complaints && data.complaints.length > 0 ? (
+      ) : registerRows.length > 0 ? (
         /* Register, Overdue, Reopened, Closed Without Action */
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="overflow-x-auto">
@@ -457,8 +557,12 @@ export const ComplaintReportsPage: React.FC = (): React.ReactElement => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {data.complaints.map((c) => (
-                  <tr key={c.complaint_id} className="transition-colors hover:bg-blue-50/30">
+                {registerRows.map((c: any) => (
+                  <tr
+                    key={c.complaint_id}
+                    onClick={() => navigate(`/complaints?tab=manage&open=${c.complaint_id}`)}
+                    className="cursor-pointer transition-colors hover:bg-blue-50/30"
+                  >
                     <td className="px-5 py-3.5">
                       <span className="whitespace-nowrap rounded-lg bg-indigo-50 px-2.5 py-1 font-mono text-xs font-semibold text-indigo-700">{c.complaint_no}</span>
                     </td>
@@ -480,7 +584,12 @@ export const ComplaintReportsPage: React.FC = (): React.ReactElement => {
             </table>
           </div>
           <div className="border-t border-slate-100 bg-slate-50/60 px-5 py-3 text-xs text-slate-500">
-            <b className="font-semibold text-slate-800">{data.complaints.length}</b> {data.complaints.length === 1 ? 'complaint' : 'complaints'}
+            <b className="font-semibold text-slate-800">{registerRows.length}</b> {registerRows.length === 1 ? 'complaint' : 'complaints'}
+            {focus && (
+              <button type="button" onClick={() => setFocus(null)} className="ml-3 font-semibold text-indigo-600 hover:underline">
+                Showing {focus.value} only · show all
+              </button>
+            )}
           </div>
         </div>
       ) : (
@@ -488,11 +597,10 @@ export const ComplaintReportsPage: React.FC = (): React.ReactElement => {
           <span className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50 text-slate-300 ring-1 ring-slate-100">
             <SearchX className="h-7 w-7" />
           </span>
-          <p className="text-base font-semibold text-slate-800">No data for this period and filters</p>
-          <p className="mx-auto mt-1 max-w-sm text-sm text-slate-500">Try a different month or date range, or reset the filters.</p>
-          {filtersChanged && (
-            <button type="button" onClick={resetFilters} className="mt-4 inline-flex h-9 cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
-              <FilterX className="h-4 w-4" /> Reset filters
+          <p className="text-base font-semibold text-slate-800">No complaints match your filters</p>
+          {(filtersChanged || focus) && (
+            <button type="button" onClick={resetFilters} className="mt-3 text-[13px] font-semibold text-indigo-600 hover:underline">
+              Clear filters
             </button>
           )}
         </div>

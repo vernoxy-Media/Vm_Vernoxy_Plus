@@ -233,6 +233,8 @@ model employees {
   attendance_days_attendance_days_deleted_byToemployees                                      attendance_days[]                 @relation("attendance_days_deleted_byToemployees")
   attendance_days_attendance_days_emp_idToemployees                                          attendance_days[]                 @relation("attendance_days_emp_idToemployees")
   attendance_days_attendance_days_updated_byToemployees                                      attendance_days[]                 @relation("attendance_days_updated_byToemployees")
+  attendance_month_locks_attendance_month_locks_locked_byToemployees                         attendance_month_locks[]          @relation("attendance_month_locks_locked_byToemployees")
+  attendance_month_locks_attendance_month_locks_unlocked_byToemployees                       attendance_month_locks[]          @relation("attendance_month_locks_unlocked_byToemployees")
   attendance_punch_locations                                                                 attendance_punch_locations[]
   auth_events_auth_events_actor_emp_idToemployees                                            auth_events[]                     @relation("auth_events_actor_emp_idToemployees")
   auth_events_auth_events_emp_idToemployees                                                  auth_events[]                     @relation("auth_events_emp_idToemployees")
@@ -417,6 +419,7 @@ model employees {
   otp_codes_otp_codes_emp_idToemployees                                                      otp_codes[]                       @relation("otp_codes_emp_idToemployees")
   otp_codes_otp_codes_updated_byToemployees                                                  otp_codes[]                       @relation("otp_codes_updated_byToemployees")
   payroll_adjustments                                                                        payroll_adjustments[]
+  payroll_adjustments_payroll_adjustments_removed_byToemployees                              payroll_adjustments[]             @relation("payroll_adjustments_removed_byToemployees")
   payroll_employees                                                                          payroll_employees[]
   payroll_ot_entries_payroll_ot_entries_approver_idToemployees                               payroll_ot_entries[]              @relation("payroll_ot_entries_approver_idToemployees")
   payroll_ot_entries_payroll_ot_entries_emp_idToemployees                                    payroll_ot_entries[]              @relation("payroll_ot_entries_emp_idToemployees")
@@ -1446,6 +1449,9 @@ model payroll_settings {
   updated_by                                       Int?
   updated_at                                       DateTime?              @db.Timestamptz(6)
   created_at                                       DateTime               @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  accounts_emp_ids                                 Int[]                  @default([])
+  company_name                                     String?                @db.VarChar(150)
+  company_address                                  String?                @db.VarChar(300)
   employees_payroll_settings_updated_byToemployees employees?             @relation("payroll_settings_updated_byToemployees", fields: [updated_by], references: [emp_id], onUpdate: NoAction, map: "fk_payroll_settings_updated_by")
 }
 
@@ -1563,6 +1569,9 @@ model payroll_employees {
   calculated_at         DateTime?               @db.Timestamptz(6)
   created_at            DateTime                @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
   updated_at            DateTime?               @db.Timestamptz(6)
+  issues                Json                    @default("[]")
+  paid_on               DateTime?               @db.Date
+  payment_reference     String?                 @db.VarChar(100)
   payroll_adjustments   payroll_adjustments[]
   payroll_employee_days payroll_employee_days[]
   employees             employees               @relation(fields: [emp_id], references: [emp_id], onUpdate: NoAction, map: "fk_payroll_employees_emp")
@@ -1599,28 +1608,32 @@ model payroll_employee_days {
 }
 
 model payroll_adjustments {
-  payroll_adjustment_id   Int                     @id(map: "pk_payroll_adjustments") @default(autoincrement())
-  payroll_employee_id     Int
-  payroll_employee_day_id Int?
-  type                    payroll_adjustment_type
-  category_id             Int?
-  old_paid_as             payroll_paid_as?
-  new_paid_as             payroll_paid_as?
-  amount                  Decimal                 @default(0) @db.Decimal(12, 2)
-  related_date            DateTime?               @db.Date
-  reference_number        String?                 @db.VarChar(80)
-  reason                  String                  @db.VarChar(250)
-  note                    String?                 @db.VarChar(250)
-  attachment_url          String?
-  is_active               Boolean                 @default(true)
-  created_by              Int?
-  created_at              DateTime                @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
-  updated_at              DateTime?               @db.Timestamptz(6)
-  expense_claims          expense_claims[]
-  master_lookup           master_lookup?          @relation(fields: [category_id], references: [lookup_id], onDelete: Restrict, onUpdate: NoAction, map: "fk_payroll_adjustments_category")
-  employees               employees?              @relation(fields: [created_by], references: [emp_id], onUpdate: NoAction, map: "fk_payroll_adjustments_created_by")
-  payroll_employee_days   payroll_employee_days?  @relation(fields: [payroll_employee_day_id], references: [payroll_employee_day_id], onUpdate: NoAction, map: "fk_payroll_adjustments_day")
-  payroll_employees       payroll_employees       @relation(fields: [payroll_employee_id], references: [payroll_employee_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_payroll_adjustments_employee")
+  payroll_adjustment_id                               Int                     @id(map: "pk_payroll_adjustments") @default(autoincrement())
+  payroll_employee_id                                 Int
+  payroll_employee_day_id                             Int?
+  type                                                payroll_adjustment_type
+  category_id                                         Int?
+  old_paid_as                                         payroll_paid_as?
+  new_paid_as                                         payroll_paid_as?
+  amount                                              Decimal                 @default(0) @db.Decimal(12, 2)
+  related_date                                        DateTime?               @db.Date
+  reference_number                                    String?                 @db.VarChar(80)
+  reason                                              String                  @db.VarChar(250)
+  note                                                String?                 @db.VarChar(250)
+  attachment_url                                      String?
+  is_active                                           Boolean                 @default(true)
+  created_by                                          Int?
+  created_at                                          DateTime                @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at                                          DateTime?               @db.Timestamptz(6)
+  removed_reason                                      String?                 @db.VarChar(250)
+  removed_by                                          Int?
+  removed_at                                          DateTime?               @db.Timestamptz(6)
+  expense_claims                                      expense_claims[]
+  master_lookup                                       master_lookup?          @relation(fields: [category_id], references: [lookup_id], onDelete: Restrict, onUpdate: NoAction, map: "fk_payroll_adjustments_category")
+  employees                                           employees?              @relation(fields: [created_by], references: [emp_id], onUpdate: NoAction, map: "fk_payroll_adjustments_created_by")
+  payroll_employee_days                               payroll_employee_days?  @relation(fields: [payroll_employee_day_id], references: [payroll_employee_day_id], onUpdate: NoAction, map: "fk_payroll_adjustments_day")
+  payroll_employees                                   payroll_employees       @relation(fields: [payroll_employee_id], references: [payroll_employee_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_payroll_adjustments_employee")
+  employees_payroll_adjustments_removed_byToemployees employees?              @relation("payroll_adjustments_removed_byToemployees", fields: [removed_by], references: [emp_id], onUpdate: NoAction)
 
   @@index([payroll_employee_id, type], map: "ix_payroll_adjustments_employee_type")
 }
@@ -1670,6 +1683,7 @@ model payroll_salary_slips {
   released_to_email   String?             @db.VarChar(255)
   created_at          DateTime            @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
   updated_at          DateTime?           @db.Timestamptz(6)
+  content_html        String?
   payroll_employees   payroll_employees   @relation(fields: [payroll_employee_id], references: [payroll_employee_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_payroll_salary_slips_employee")
   document_templates  document_templates? @relation(fields: [template_id], references: [template_id], onDelete: Restrict, onUpdate: NoAction, map: "fk_payroll_salary_slips_template")
 
@@ -1689,12 +1703,31 @@ model document_templates {
   created_by                                         Int?
   updated_at                                         DateTime?              @db.Timestamptz(6)
   updated_by                                         Int?
+  /// Editable layout (document-templates module); NULL for the older fixed-HTML templates.
+  layout_json                                        Json?
+  /// DRAFT | APPROVED | RETIRED (migration 20261116100000). At most one DRAFT per document_type.
+  status                                             String                 @default("APPROVED") @db.VarChar(20)
+  version                                            Int                    @default(1)
+  approved_by                                        Int?
+  approved_at                                        DateTime?              @db.Timestamptz(6)
   employees_document_templates_created_byToemployees employees?             @relation("document_templates_created_byToemployees", fields: [created_by], references: [emp_id], onUpdate: NoAction)
   employees_document_templates_updated_byToemployees employees?             @relation("document_templates_updated_byToemployees", fields: [updated_by], references: [emp_id], onUpdate: NoAction)
   documents                                          employee_documents[]
   payroll_salary_slips                               payroll_salary_slips[]
 
   @@index([document_type], map: "ix_document_templates_type")
+}
+
+/// Images used by document templates (the company letterhead). Stored in the database so they survive a redeploy.
+model document_template_assets {
+  asset_id     Int      @id @default(autoincrement())
+  purpose      String   @db.VarChar(40)
+  file_name    String?  @db.VarChar(200)
+  content_type String   @db.VarChar(50)
+  byte_size    Int
+  data         Bytes
+  created_at   DateTime @default(now()) @db.Timestamptz(6)
+  created_by   Int?
 }
 
 model employee_documents {
@@ -2445,6 +2478,20 @@ model software_license_assignments {
 }
 
 /// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+/// Billing Cycles of software licenses (Settings -> License Settings). kind FIXED: one term lasts
+/// `months`; TERM: the length comes from the term's dates (Multi-year); ONE_TIME: no renewal.
+model software_license_billing_cycles {
+  cycle_id               Int                      @id @default(autoincrement())
+  name                   String                   @unique(map: "ux_software_license_billing_cycles_name") @db.VarChar(30)
+  kind                   String                   @db.VarChar(10)
+  months                 Int?                     @db.SmallInt
+  display_order          Int                      @default(1)
+  is_active              Boolean                  @default(true)
+  created_at             DateTime                 @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at             DateTime?                @db.Timestamptz(6)
+  software_license_terms software_license_terms[]
+}
+
 model software_license_categories {
   category_id       Int                 @id(map: "pk_software_license_categories") @default(autoincrement())
   name              String              @db.VarChar(100)
@@ -2499,6 +2546,7 @@ model software_license_terms {
   created_at        DateTime          @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
   employees         employees         @relation(fields: [recorded_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
   software_licenses software_licenses @relation(fields: [software_id], references: [software_id], onUpdate: NoAction)
+  software_license_billing_cycles software_license_billing_cycles? @relation(fields: [billing_cycle], references: [name], onDelete: Restrict, onUpdate: Cascade, map: "fk_software_license_terms_billing_cycle")
 
   @@unique([software_id, term_number], map: "ux_software_license_terms_seq")
   @@index([software_id, start_date, expiry_date], map: "ix_software_license_terms_dates")
@@ -3085,6 +3133,24 @@ model msg_user_state {
   employees    employees @relation(fields: [emp_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
 }
 
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model attendance_month_locks {
+  lock_year                                               Int
+  lock_month                                              Int
+  is_locked                                               Boolean    @default(true)
+  lock_mode                                               String     @default("MANUAL") @db.VarChar(10)
+  locked_at                                               DateTime?  @db.Timestamptz(6)
+  locked_by                                               Int?
+  unlocked_at                                             DateTime?  @db.Timestamptz(6)
+  unlocked_by                                             Int?
+  unlock_reason                                           String?    @db.VarChar(250)
+  updated_at                                              DateTime?  @db.Timestamptz(6)
+  employees_attendance_month_locks_locked_byToemployees   employees? @relation("attendance_month_locks_locked_byToemployees", fields: [locked_by], references: [emp_id], onUpdate: NoAction)
+  employees_attendance_month_locks_unlocked_byToemployees employees? @relation("attendance_month_locks_unlocked_byToemployees", fields: [unlocked_by], references: [emp_id], onUpdate: NoAction)
+
+  @@id([lock_year, lock_month], map: "pk_attendance_month_locks")
+}
+
 enum channel_type {
   website
   facebook
@@ -3337,6 +3403,10 @@ enum payroll_run_action {
   LOCKED
   UNLOCKED
   PAID
+  ADJUSTED
+  OT_DECIDED
+  SLIPS_GENERATED
+  SLIPS_RELEASED
 }
 
 enum payroll_total_rounding {

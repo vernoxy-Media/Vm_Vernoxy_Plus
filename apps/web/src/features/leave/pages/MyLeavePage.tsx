@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { Ban, Eye, Undo2 } from 'lucide-react';
+import { Pagination } from '@/shared/ui/Pagination';
+import { RowActionsMenu, type RowAction } from '@/shared/ui/RowActionsMenu';
 import {
   Plus,
   History,
   FileText,
-  ChevronLeft,
-  ChevronRight,
   AlertCircle,
   CheckCircle2,
   CalendarDays,
@@ -43,7 +44,6 @@ import {
   todayYmd,
 } from '../components/leave-ui';
 
-const PAGE_SIZE = 20;
 
 export interface MyLeavePageProps {
   hideBreadcrumb?: boolean;
@@ -113,6 +113,7 @@ export const MyLeavePage: React.FC<MyLeavePageProps> = ({ hideBreadcrumb = false
   const [typeFilter, setTypeFilter] = useState<number | 'ALL'>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const { data, isLoading, error } = useMyLeaveQuery(year);
 
   const [applyOpen, setApplyOpen] = useState(false);
@@ -155,7 +156,7 @@ export const MyLeavePage: React.FC<MyLeavePageProps> = ({ hideBreadcrumb = false
       ),
     [requests, typeFilter, statusFilter],
   );
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const current = Math.min(page, totalPages);
   const hasFilters = typeFilter !== 'ALL' || statusFilter !== 'ALL';
 
@@ -200,30 +201,37 @@ export const MyLeavePage: React.FC<MyLeavePageProps> = ({ hideBreadcrumb = false
     () => [...filtered].sort((x, y) => y.from_date.localeCompare(x.from_date) || y.request_id - x.request_id),
     [filtered],
   );
-  const shownRows = sortedRows.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE);
+  const shownRows = sortedRows.slice((current - 1) * pageSize, current * pageSize);
 
-  const rowAction = (label: string, onClick: () => void) => (
-    <button type="button" onClick={onClick} className="cursor-pointer text-[13px] font-semibold text-blue-600 transition hover:text-blue-800 hover:underline">
-      {label}
-    </button>
-  );
-  const rowActions = (r: LeaveRequestItem) => (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-      {rowAction('View', () => setViewId(r.request_id))}
-      {r.can_withdraw &&
-        rowAction('Withdraw', () => {
+  // Row menu (⋮): View, and Withdraw / Request cancellation when the request allows it.
+  const rowActions = (r: LeaveRequestItem) => {
+    const actions: RowAction[] = [{ label: 'View details', icon: Eye, onClick: () => setViewId(r.request_id) }];
+    if (r.can_withdraw) {
+      actions.push({
+        label: 'Withdraw',
+        icon: Undo2,
+        danger: true,
+        onClick: () => {
           setWithdrawItem(r);
           setReasonText('');
           setReasonErr('');
-        })}
-      {r.can_request_cancellation &&
-        rowAction('Request cancellation', () => {
+        },
+      });
+    }
+    if (r.can_request_cancellation) {
+      actions.push({
+        label: 'Request cancellation',
+        icon: Ban,
+        danger: true,
+        onClick: () => {
           setCancelItem(r);
           setReasonText('');
           setReasonErr('');
-        })}
-    </div>
-  );
+        },
+      });
+    }
+    return <RowActionsMenu label={`Actions for ${r.request_no}`} actions={actions} />;
+  };
   const whenNote = (r: LeaveRequestItem) =>
     r.status === 'APPROVED' ? <span className="text-[11px] font-medium text-emerald-700">{whenLabel(r.from_date.slice(0, 10), r.to_date.slice(0, 10), today)}</span> : null;
 
@@ -498,23 +506,17 @@ export const MyLeavePage: React.FC<MyLeavePageProps> = ({ hideBreadcrumb = false
           </>
         )}
 
-        {filtered.length > PAGE_SIZE && (
-          <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-500">
-            <span>
-              {(current - 1) * PAGE_SIZE + 1}–{Math.min(current * PAGE_SIZE, filtered.length)} of {filtered.length}
-            </span>
-            <div className="flex items-center gap-1">
-              <button type="button" disabled={current <= 1} onClick={() => setPage(current - 1)} aria-label="Previous page" className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-slate-200 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">
-                <ChevronLeft className="h-3.5 w-3.5" />
-              </button>
-              <span className="px-2 tabular-nums">
-                {current} / {totalPages}
-              </span>
-              <button type="button" disabled={current >= totalPages} onClick={() => setPage(current + 1)} aria-label="Next page" className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-slate-200 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">
-                <ChevronRight className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          </div>
+        {filtered.length > 0 && (
+          <Pagination
+            page={current}
+            pageSize={pageSize}
+            total={filtered.length}
+            onPageChange={setPage}
+            onPageSizeChange={(n) => {
+              setPageSize(n);
+              setPage(1);
+            }}
+          />
         )}
       </section>
 
