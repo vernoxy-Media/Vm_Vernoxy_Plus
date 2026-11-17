@@ -296,6 +296,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
     const running = await this.prisma.tasks.findMany({
       where: {
         deleted_at: null,
+        stage: { not: 'completed' }, // a completed task is locked by the DB and cannot be updated
         is_timer_running: true,
         task_assignees: { some: { employee_id: empId, deleted_at: null } },
       },
@@ -458,7 +459,15 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
     return this.prisma.$transaction(async (tx) => {
       const existing = await tx.tasks.findUnique({
         where: { task_id: taskId },
-        select: { stage: true, parent_task_id: true, task_code: true },
+        select: {
+          stage: true,
+          parent_task_id: true,
+          task_code: true,
+          is_timer_running: true,
+          timer_started_at: true,
+          actual_minutes: true,
+          work_logs: true,
+        },
       });
       if (!existing) throw new Error(`Task #${taskId} not found`);
 
@@ -490,6 +499,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
           where: {
             task_id: { not: taskId },
             deleted_at: null,
+            stage: { not: 'completed' }, // a completed task is locked by the DB and cannot be updated
             is_timer_running: true,
             task_assignees: {
               some: { employee_id: input.actor_emp_id, deleted_at: null },
@@ -535,6 +545,30 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
             },
           });
         }
+      }
+
+      // A task that leaves In Progress (hold, QA, review, approved) must stop its own running timer,
+      // otherwise time keeps counting on finished work.
+      if (toStage !== 'in_progress' && existing.is_timer_running) {
+        const stopNow = new Date();
+        const elapsed = existing.timer_started_at
+          ? Math.max(0, Math.floor((stopNow.getTime() - new Date(existing.timer_started_at).getTime()) / 1000))
+          : 0;
+        const stopLogs = Array.isArray(existing.work_logs) ? [...(existing.work_logs as any[])] : [];
+        const runner = timerRunner(stopLogs);
+        updateData.actual_minutes = minutesAfter(stopLogs, existing.actual_minutes, elapsed);
+        updateData.is_timer_running = false;
+        updateData.timer_started_at = null;
+        stopLogs.push({
+          log_id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          employee_id: runner?.id ?? input.actor_emp_id,
+          employee_name: runner?.name || 'Employee',
+          action: toStage === 'hold' ? 'pause' : 'finish',
+          timestamp: stopNow.toISOString(),
+          duration_seconds: elapsed,
+          note: `Timer stopped automatically: task moved to ${toStage}`,
+        });
+        updateData.work_logs = stopLogs;
       }
 
       if (toStage === 'hold') {
@@ -840,6 +874,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
           where: {
             task_id: { not: taskId },
             deleted_at: null,
+            stage: { not: 'completed' }, // a completed task is locked by the DB and cannot be updated
             is_timer_running: true,
             task_assignees: {
               some: { employee_id: input.actor_emp_id, deleted_at: null },
