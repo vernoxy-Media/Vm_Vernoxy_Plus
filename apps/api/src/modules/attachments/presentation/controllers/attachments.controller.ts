@@ -22,6 +22,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
 import { JwtAuthGuard } from '../../../auth/presentation/guards/jwt-auth.guard';
 import { AttachmentsService } from '../../application/services/attachments.service';
+import { findStoredFile } from '../../application/services/storage-root';
 import {
   CreateAttachmentDto,
   ReorderAttachmentsDto,
@@ -35,29 +36,8 @@ import * as fs from 'fs';
 export class AttachmentsController {
   constructor(private readonly attachmentsService: AttachmentsService) {}
 
-  // ---------------------------------------------------------------------------
-  // 1. GET ALL FOR AN ENTITY
-  // ---------------------------------------------------------------------------
-
-  @Get(':entityType/:entityId')
-  @ApiOperation({ summary: 'Get all active attachments for an entity' })
-  async getEntityAttachments(
-    @Param('entityType') entityType: string,
-    @Param('entityId', ParseIntPipe) entityId: number,
-  ) {
-    return this.attachmentsService.getAttachments(entityType, entityId);
-  }
-
-  // ---------------------------------------------------------------------------
-  // 2. GET SINGLE ATTACHMENT METADATA
-  // ---------------------------------------------------------------------------
-
-  @Get(':id')
-  @ApiOperation({ summary: 'Get attachment metadata by ID' })
-  async getAttachmentById(@Param('id', ParseIntPipe) id: number) {
-    return this.attachmentsService.getAttachmentById(id);
-  }
-
+  // NOTE: the download route is declared first on purpose. Express matches routes in order, and
+  // ':entityType/:entityId' below would otherwise take '/7/download' and fail with "numeric string is expected".
   // ---------------------------------------------------------------------------
   // 3. DOWNLOAD / STREAM ATTACHMENT FILE (Publicly streamable inline)
   // ---------------------------------------------------------------------------
@@ -71,19 +51,12 @@ export class AttachmentsController {
   ): Promise<StreamableFile> {
     const attachment = await this.attachmentsService.getAttachmentById(id);
 
-    const storageCandidate1 = path.resolve(process.cwd(), 'storage');
-    const storageCandidate2 = path.resolve(__dirname, '../../../../../..', 'storage');
-    const storageRoot = fs.existsSync(storageCandidate1) ? storageCandidate1 : storageCandidate2;
-    let filePath = '';
+    const relativePath = attachment.file_url.startsWith('/files/attachments/')
+      ? path.join('attachments', attachment.file_url.replace('/files/attachments/', ''))
+      : attachment.file_url.replace(/^[/\\]+/, '');
+    const filePath = findStoredFile(relativePath);
 
-    if (attachment.file_url.startsWith('/files/attachments/')) {
-      const relativePart = attachment.file_url.replace('/files/attachments/', '');
-      filePath = path.resolve(storageRoot, 'attachments', relativePart);
-    } else {
-      filePath = path.resolve(storageRoot, attachment.file_url);
-    }
-
-    if (!fs.existsSync(filePath)) {
+    if (!filePath) {
       throw new NotFoundException(`Physical file for attachment #${id} not found on server`);
     }
 
@@ -112,6 +85,29 @@ export class AttachmentsController {
     }
     res.set({ 'Content-Length': String(size) });
     return new StreamableFile(fs.createReadStream(filePath));
+  }
+
+  // ---------------------------------------------------------------------------
+  // 1. GET ALL FOR AN ENTITY
+  // ---------------------------------------------------------------------------
+
+  @Get(':entityType/:entityId')
+  @ApiOperation({ summary: 'Get all active attachments for an entity' })
+  async getEntityAttachments(
+    @Param('entityType') entityType: string,
+    @Param('entityId', ParseIntPipe) entityId: number,
+  ) {
+    return this.attachmentsService.getAttachments(entityType, entityId);
+  }
+
+  // ---------------------------------------------------------------------------
+  // 2. GET SINGLE ATTACHMENT METADATA
+  // ---------------------------------------------------------------------------
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get attachment metadata by ID' })
+  async getAttachmentById(@Param('id', ParseIntPipe) id: number) {
+    return this.attachmentsService.getAttachmentById(id);
   }
 
   // ---------------------------------------------------------------------------

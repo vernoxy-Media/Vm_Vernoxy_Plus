@@ -6,6 +6,7 @@ import {
 import { ApproverResolverPort } from '../../domain/ports/approver-resolver.port';
 import { TaskRepositoryPort } from '../../domain/ports/task.repository.port';
 import { CreateNotificationUseCase } from '../../../notifications/public-api';
+import { notifyParentAdvance } from './notify-parent-advance';
 
 export interface TrackWorkSessionCommand {
   taskId: number;
@@ -47,26 +48,16 @@ export class TrackWorkSessionUseCase {
     if (command.action === 'finish') {
       if (updated.stage === 'in_qa') this.notifyQa(updated, command).catch(() => {});
       else this.notifyApprovers(updated, command).catch(() => {});
-      this.notifyParentQa(parentBefore, updated, command).catch(() => {});
+      // When the last sub-task is finished the main task moves on by itself (to QA or Submitted): tell who is next.
+      notifyParentAdvance(
+        { taskRepo: this.taskRepo, approverResolver: this.approverResolver, createNotificationUseCase: this.createNotificationUseCase },
+        parentBefore,
+        updated,
+        { empId: command.actorEmpId, name: command.actorName },
+      ).catch(() => {});
     }
 
     return updated;
-  }
-
-  /** When the last sub-task is finished the parent task moves to QA by itself: tell the parent's tester too. */
-  private async notifyParentQa(parentBefore: TaskEntity | null, child: TaskEntity, command: TrackWorkSessionCommand): Promise<void> {
-    if (!parentBefore || parentBefore.stage === 'in_qa' || !child.parent_task_id) return;
-    const parent = await this.taskRepo.findById(child.parent_task_id);
-    if (!parent || parent.stage !== 'in_qa' || !parent.qa_assignee_id || parent.qa_assignee_id === command.actorEmpId) return;
-    await this.createNotificationUseCase.execute({
-      recipient_id: parent.qa_assignee_id,
-      kind: 'task_ready_for_qa',
-      title: `Submitted for QA: ${parent.task_code}`,
-      body: `All sub-tasks of "${parent.title}" are finished. ${command.actorName} submitted the last one, so the task is ready for your testing.`,
-      entity_type: 'task',
-      entity_id: parent.task_id,
-      created_by: command.actorEmpId,
-    });
   }
 
   private async notifyQa(task: TaskEntity, command: TrackWorkSessionCommand): Promise<void> {
@@ -84,7 +75,10 @@ export class TrackWorkSessionUseCase {
 
   private async notifyApprovers(task: TaskEntity, command: TrackWorkSessionCommand): Promise<void> {
     const approverIds = await this.approverResolver.getAdminApproverIds();
-    const notifyApprovers = approverIds
+    // The project's manager approves Project Tasks too, so they are told as well
+    const managerId = await this.taskRepo.getTaskProjectManagerId(task.task_id);
+    if (managerId) approverIds.push(managerId);
+    const notifyApprovers = Array.from(new Set(approverIds))
       .filter((id) => id !== command.actorEmpId)
       .map((id) => ({
         recipient_id: id,

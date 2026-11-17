@@ -8,6 +8,7 @@ import { ApproverResolverPort } from '../../domain/ports/approver-resolver.port'
 import { TaskRepositoryPort } from '../../domain/ports/task.repository.port';
 import { canTransitionStage } from '../../domain/services/task-rules';
 import { CreateNotificationUseCase } from '../../../notifications/public-api';
+import { notifyParentAdvance } from './notify-parent-advance';
 
 export interface MoveTaskStageCommand {
   taskId: number;
@@ -118,25 +119,15 @@ export class MoveTaskStageUseCase {
     // Handle notifications asynchronously without failing the stage transition
     this.dispatchNotifications(existing.stage, targetStage, updated, { ...command, isAdmin: isApprover }, projectManagerId).catch(() => {});
 
-    // When the last sub-task is submitted the parent task moves to QA by itself: tell the parent's tester too.
-    this.notifyParentQa(parentBefore, updated, command).catch(() => {});
+    // When the last sub-task is submitted the main task moves on by itself (to QA or Submitted): tell who is next.
+    notifyParentAdvance(
+      { taskRepo: this.taskRepo, approverResolver: this.approverResolver, createNotificationUseCase: this.createNotificationUseCase },
+      parentBefore,
+      updated,
+      { empId: command.actorEmpId, name: command.actorName },
+    ).catch(() => {});
 
     return updated;
-  }
-
-  private async notifyParentQa(parentBefore: TaskEntity | null, child: TaskEntity, command: MoveTaskStageCommand): Promise<void> {
-    if (!parentBefore || parentBefore.stage === 'in_qa' || !child.parent_task_id) return;
-    const parent = await this.taskRepo.findById(child.parent_task_id);
-    if (!parent || parent.stage !== 'in_qa' || !parent.qa_assignee_id || parent.qa_assignee_id === command.actorEmpId) return;
-    await this.createNotificationUseCase.execute({
-      recipient_id: parent.qa_assignee_id,
-      kind: 'task_ready_for_qa',
-      title: `Submitted for QA: ${parent.task_code}`,
-      body: `All sub-tasks of "${parent.title}" are finished. ${command.actorName} submitted the last one, so the task is ready for your testing.`,
-      entity_type: 'task',
-      entity_id: parent.task_id,
-      created_by: command.actorEmpId,
-    });
   }
 
   private async dispatchNotifications(
