@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Check,
   CheckCircle2,
@@ -165,7 +165,17 @@ export const ProjectIssueView: React.FC<ProjectIssueViewProps> = ({
   const [box, boxWidth] = useContainerWidth<HTMLDivElement>();
   const twoColumns = boxWidth >= 760;
   const [tab, setTab] = useState<'comments' | 'worklog' | 'history'>(onComment ? 'comments' : 'worklog');
-  const [now, setNow] = useState(Date.now());
+  const [tick, setNow] = useState(Date.now());
+  /* If this computer's clock runs behind the server's, a timer that "started in the future" would show no
+     movement. Remember how far behind we are and add it, so the counter always moves from the moment it started. */
+  const skewRef = useRef(0);
+  [task, ...(task.sub_tasks ?? [])].forEach((t) => {
+    if (t.is_timer_running && t.timer_started_at) {
+      const start = new Date(t.timer_started_at).getTime();
+      if (!Number.isNaN(start) && start > Date.now() + skewRef.current) skewRef.current = start - Date.now();
+    }
+  });
+  const now = tick + skewRef.current;
   const [busy, setBusy] = useState<string | null>(null);
   const [holdOpen, setHoldOpen] = useState(false);
   const [sendBackFor, setSendBackFor] = useState<number | null>(null);
@@ -201,6 +211,7 @@ export const ProjectIssueView: React.FC<ProjectIssueViewProps> = ({
   const anyRunning = Boolean(task.is_timer_running) || subs.some((s) => s.is_timer_running);
   useEffect(() => {
     if (!anyRunning) return;
+    setNow(Date.now());
     const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
   }, [anyRunning]);

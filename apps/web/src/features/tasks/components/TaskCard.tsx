@@ -129,7 +129,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
       <p className={`line-clamp-3 text-[14px] leading-5 ${isCompleted ? 'text-[#42526E]' : 'text-[#172B4D]'}`}>{task.title}</p>
 
       {/* Small facts about the work */}
-      {(task.parent_task_id || task.has_sub_tasks || task.lead_employee_name || (stage === 'hold' && task.hold_reason) || task.is_overdue || task.is_timer_running || (task.actual_minutes ?? 0) > 0 || task.allocated_minutes || task.due_date || task.task_type_label) && (
+      {(task.parent_task_id || task.has_sub_tasks || task.lead_employee_name || (stage === 'hold' && task.hold_reason) || task.is_overdue || task.is_timer_running || stage === 'in_progress' || (task.actual_minutes ?? 0) > 0 || task.allocated_minutes || task.due_date || task.task_type_label) && (
         <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[12px] text-[#5E6C84]">
           {task.task_type_label && (
             <span title={task.other_task_type || task.task_type_label} className="max-w-[120px] truncate rounded-[3px] bg-[rgba(9,30,66,0.08)] px-1 py-px font-medium text-[#42526E]">
@@ -160,6 +160,10 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           )}
           {task.is_timer_running ? (
             <span className="inline-flex items-center gap-1 font-semibold text-[#006644]"><span className="h-2 w-2 animate-pulse rounded-full bg-[#36B37E]" /> Timer running</span>
+          ) : stage === 'in_progress' ? (
+            <span className="inline-flex items-center gap-1 rounded-[3px] bg-[#FFF0B3] px-1 py-px font-semibold text-[#974F0C]" title="The timer is stopped. Open the task and press Resume.">
+              <PauseCircle className="h-3 w-3" /> Paused{(task.actual_minutes ?? 0) > 0 ? ` · ${formatMinutesToHuman(task.actual_minutes)}` : ''}
+            </span>
           ) : (task.actual_minutes ?? 0) > 0 ? (
             <span className="inline-flex items-center gap-1" title="Time spent"><Clock className="h-3.5 w-3.5" /> {formatMinutesToHuman(task.actual_minutes)} spent</span>
           ) : null}

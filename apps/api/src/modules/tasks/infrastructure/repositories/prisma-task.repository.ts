@@ -22,6 +22,9 @@ import {
   UpdateTaskRepoInput,
 } from '../../domain/ports/task.repository.port';
 
+/** When false, starting a task or sub-task never pauses the timer of another one; only its owner stops it. */
+const AUTO_PAUSE_OTHER_TASKS = false;
+
 @Injectable()
 export class PrismaTaskRepository implements TaskRepositoryPort {
   constructor(
@@ -493,7 +496,9 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
         updated_at: new Date(),
       };
 
-      if (toStage === 'in_progress') {
+      // A running timer is only stopped by its owner (Pause / Finish / Hold), never because another task or
+      // sub-task was started. Set to true to bring back the old "one running task at a time" rule.
+      if (AUTO_PAUSE_OTHER_TASKS && toStage === 'in_progress') {
         const now = new Date();
         const otherRunningTasks = await tx.tasks.findMany({
           where: {
@@ -870,7 +875,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
 
         // Enforce Section 3.4 Task Working Rules: Only one task can be running (In Progress) at a time.
         // If employee has any other task currently running with active timer, pause it.
-        const otherRunningTasks = await tx.tasks.findMany({
+        const otherRunningTasks = !AUTO_PAUSE_OTHER_TASKS ? [] : await tx.tasks.findMany({
           where: {
             task_id: { not: taskId },
             deleted_at: null,
