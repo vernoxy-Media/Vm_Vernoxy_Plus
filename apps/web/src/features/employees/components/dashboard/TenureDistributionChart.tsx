@@ -39,7 +39,7 @@ export const TenureDistributionChart: React.FC<TenureDistributionChartProps> = (
           </div>
           <div>
             <h3 className="text-sm font-bold text-slate-900 tracking-tight">
-              6. Employee Tenure Distribution
+              Employee Tenure Distribution
             </h3>
             <p className="text-[11px] text-slate-500">Service duration of active workforce</p>
           </div>

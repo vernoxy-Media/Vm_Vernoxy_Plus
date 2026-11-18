@@ -90,7 +90,7 @@ export const MultipleDepartmentWaffleChart: React.FC<MultipleDepartmentWaffleCha
           </div>
           <div>
             <h3 className="text-sm font-bold text-slate-900 tracking-tight">
-              3. Employees with Multiple Department Assignments
+              Employees with Multiple Department Assignments
             </h3>
             <p className="text-[11px] text-slate-500">Cross-department resource distribution</p>
           </div>

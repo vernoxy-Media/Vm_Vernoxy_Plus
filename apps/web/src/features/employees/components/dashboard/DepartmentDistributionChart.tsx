@@ -38,7 +38,7 @@ export const DepartmentDistributionChart: React.FC<DepartmentDistributionChartPr
           </div>
           <div>
             <h3 className="text-sm font-bold text-slate-900 tracking-tight">
-              2. Department-wise Employee Distribution
+              Department-wise Employee Distribution
             </h3>
             <p className="text-[11px] text-slate-500">Active employees across nine departments</p>
           </div>

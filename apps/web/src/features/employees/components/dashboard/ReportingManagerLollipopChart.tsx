@@ -37,7 +37,7 @@ export const ReportingManagerLollipopChart: React.FC<ReportingManagerLollipopCha
           </div>
           <div>
             <h3 className="text-sm font-bold text-slate-900 tracking-tight">
-              4. Reporting Manager Span of Control
+              Reporting Manager Span of Control
             </h3>
             <p className="text-[11px] text-slate-500">Active direct reports per manager</p>
           </div>
