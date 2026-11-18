@@ -193,7 +193,8 @@ export const CampaignCompaniesTable: React.FC<Props> = ({ campaignId, isAdmin, c
           }
         />
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-slate-200/80 bg-white shadow-xs">
+        <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
+          <div className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">
             <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
               <tr>
@@ -279,10 +280,10 @@ export const CampaignCompaniesTable: React.FC<Props> = ({ campaignId, isAdmin, c
               })}
             </tbody>
           </table>
+          </div>
+          <Pagination currentPage={page} totalPages={totalPages} totalItems={total} pageSize={PAGE_SIZE} onPageChange={(p) => setPage(p)} />
         </div>
       )}
-
-      <Pagination currentPage={page} totalPages={totalPages} totalItems={total} pageSize={PAGE_SIZE} onPageChange={(p) => setPage(p)} />
     </div>
   );
 };

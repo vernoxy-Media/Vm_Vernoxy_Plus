@@ -50,6 +50,7 @@ const AdminView: React.FC = () => {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [page, setPage] = useState(1);
+  const [tab, setTab] = useState<'campaigns' | 'performance'>('campaigns');
   const q = useDebounce(search.trim(), 300);
   const cityQ = useDebounce(city.trim(), 300);
 
@@ -100,8 +101,28 @@ const AdminView: React.FC = () => {
         <KpiCard label="Interested companies" value={overviewLoading ? '…' : k?.interested_companies ?? 0} tone="good" />
       </section>
 
+      <div className="flex gap-1 overflow-x-auto rounded-xl bg-gray-100 p-1" role="tablist" aria-label="Campaign sections">
+        {(
+          [
+            { id: 'campaigns', label: 'Campaigns' },
+            { id: 'performance', label: 'Employee-wise performance' },
+          ] as const
+        ).map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            role="tab"
+            aria-selected={tab === t.id}
+            onClick={() => setTab(t.id)}
+            className={`h-9 shrink-0 rounded-lg px-4 text-sm font-semibold transition ${tab === t.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'campaigns' && (
       <section className="space-y-3" aria-label="Campaigns">
-        <h2 className="text-base font-semibold text-gray-900">Campaigns</h2>
         <div className={`${cardCls} grid grid-cols-1 gap-2 p-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8`}>
           <div className="relative sm:col-span-2 lg:col-span-2 xl:col-span-2">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
@@ -131,14 +152,12 @@ const AdminView: React.FC = () => {
               <option key={s} value={s}>{s}</option>
             ))}
           </select>
-          <label className="flex items-center gap-2 text-xs text-gray-500">
-            <span className="w-8 shrink-0">From</span>
-            <input type="date" className={inputCls} aria-label="Starts on or after" value={from} onChange={(e) => change(() => setFrom(e.target.value))} />
-          </label>
-          <label className="flex items-center gap-2 text-xs text-gray-500">
-            <span className="w-8 shrink-0">To</span>
-            <input type="date" className={inputCls} aria-label="Ends on or before" value={to} onChange={(e) => change(() => setTo(e.target.value))} />
-          </label>
+          <div className="flex items-center gap-3 text-xs text-gray-500 sm:col-span-2 lg:col-span-2 xl:col-span-2">
+            <span className="shrink-0">From</span>
+            <input type="date" className={`${inputCls} min-w-0 flex-1`} aria-label="Starts on or after" value={from} onChange={(e) => change(() => setFrom(e.target.value))} />
+            <span className="shrink-0 font-medium">To</span>
+            <input type="date" className={`${inputCls} min-w-0 flex-1`} aria-label="Ends on or before" value={to} onChange={(e) => change(() => setTo(e.target.value))} />
+          </div>
           {filtered && (
             <button type="button" className="text-left text-sm text-gray-500 underline sm:col-span-2" onClick={clear}>
               Clear filters
@@ -162,7 +181,8 @@ const AdminView: React.FC = () => {
             onAction={filtered ? undefined : () => navigate('/sales/campaigns/new')}
           />
         ) : (
-          <div className="overflow-x-auto rounded-2xl border border-slate-200/80 bg-white shadow-xs">
+          <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
+            <div className="overflow-x-auto">
             <table className="min-w-full text-left text-sm">
               <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
                 <tr>
@@ -189,13 +209,15 @@ const AdminView: React.FC = () => {
                 ))}
               </tbody>
             </table>
+            </div>
+            <Pagination currentPage={page} totalPages={Math.max(1, Math.ceil(total / PAGE_SIZE))} totalItems={total} pageSize={PAGE_SIZE} onPageChange={setPage} />
           </div>
         )}
-        <Pagination currentPage={page} totalPages={Math.max(1, Math.ceil(total / PAGE_SIZE))} totalItems={total} pageSize={PAGE_SIZE} onPageChange={setPage} />
       </section>
+      )}
 
+      {tab === 'performance' && (
       <section className="space-y-3" aria-label="Employee-wise performance">
-        <h2 className="text-base font-semibold text-gray-900">Employee-wise performance</h2>
         <div className="overflow-x-auto rounded-2xl border border-slate-200/80 bg-white shadow-xs">
           <table className="min-w-full text-left text-sm">
             <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
@@ -229,6 +251,7 @@ const AdminView: React.FC = () => {
           </table>
         </div>
       </section>
+      )}
     </>
   );
 };
