@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Save, Users } from 'lucide-react';
 import { useAssignCompanies, useCampaignWorkload, useSetTargets } from '../../hooks/useCampaigns';
 import { parseApiError } from '../../utils/error';
-import { ProgressBar, cardCls, inputCls, primaryBtn, secondaryBtn } from './campaign-ui';
+import { cardCls, inputCls, primaryBtn, secondaryBtn } from './campaign-ui';
 
 interface Props {
   campaignId: number;
@@ -105,17 +105,14 @@ export const AssignPanel: React.FC<Props> = ({ campaignId, disabled, onShowUnass
             <tr>
               <th className="w-10 px-3 py-3"><span className="sr-only">Share with</span></th>
               <th className="px-3 py-3">Employee</th>
-              <th className="px-3 py-3">Assigned</th>
-              <th className="px-3 py-3">Called</th>
-              <th className="px-3 py-3">Pending</th>
+              <th className="px-3 py-3">Assigned companies</th>
               <th className="px-3 py-3">Calls per day</th>
-              <th className="px-3 py-3">Today</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-3 py-8 text-center text-gray-500">No Sales employees found.</td>
+                <td colSpan={4} className="px-3 py-8 text-center text-gray-500">No Sales employees found.</td>
               </tr>
             ) : (
               rows.map((r) => (
@@ -125,8 +122,6 @@ export const AssignPanel: React.FC<Props> = ({ campaignId, disabled, onShowUnass
                   </td>
                   <td className="px-3 py-3 font-semibold text-gray-900">{r.name}</td>
                   <td className="px-3 py-3 text-gray-700">{r.assigned}</td>
-                  <td className="px-3 py-3 text-gray-700">{r.called}</td>
-                  <td className="px-3 py-3 text-gray-700">{r.pending}</td>
                   <td className="px-3 py-3">
                     <input
                       type="number"
@@ -138,12 +133,6 @@ export const AssignPanel: React.FC<Props> = ({ campaignId, disabled, onShowUnass
                       onChange={(e) => setTargetState((t) => ({ ...t, [r.emp_id]: e.target.value }))}
                     />
                   </td>
-                  <td className="w-40 px-3 py-3">
-                    <div className="text-xs text-gray-600">
-                      {r.calls_today} / {r.daily_target}
-                    </div>
-                    <ProgressBar done={r.calls_today} total={r.daily_target} className="mt-1" />
-                  </td>
                 </tr>
               ))
             )}
@@ -154,10 +143,7 @@ export const AssignPanel: React.FC<Props> = ({ campaignId, disabled, onShowUnass
                 <td className="px-3 py-3" />
                 <td className="px-3 py-3">Total</td>
                 <td className="px-3 py-3">{rows.reduce((n, r) => n + r.assigned, 0)}</td>
-                <td className="px-3 py-3">{rows.reduce((n, r) => n + r.called, 0)}</td>
-                <td className="px-3 py-3">{rows.reduce((n, r) => n + r.pending, 0)}</td>
                 <td className="px-3 py-3">{totalTarget}</td>
-                <td className="px-3 py-3">{rows.reduce((n, r) => n + r.calls_today, 0)}</td>
               </tr>
             </tfoot>
           )}

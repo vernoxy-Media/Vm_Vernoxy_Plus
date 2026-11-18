@@ -9,7 +9,7 @@ import { EmptyState } from '../components/common/EmptyState';
 import { TableSkeleton } from '../components/common/SkeletonLoader';
 import { parseApiError } from '../utils/error';
 import { CAMPAIGN_STATUSES } from '../types/campaign.types';
-import { CampaignStatusPill, KpiCard, ProgressBar, cardCls, fmtDay, inputCls, primaryBtn, secondaryBtn } from '../components/campaigns/campaign-ui';
+import { CampaignStatusPill, KpiCard, ProgressBar, cardCls, inputCls, primaryBtn, secondaryBtn } from '../components/campaigns/campaign-ui';
 
 const PAGE_SIZE = 10;
 
@@ -169,7 +169,6 @@ const AdminView: React.FC = () => {
                   <th className="px-4 py-3">Campaign</th>
                   <th className="px-4 py-3">City</th>
                   <th className="px-4 py-3">Type</th>
-                  <th className="px-4 py-3">Dates</th>
                   <th className="px-4 py-3">Companies</th>
                   <th className="px-4 py-3" title="Companies that have been called at least once">Completed</th>
                   <th className="px-4 py-3">Status</th>
@@ -180,19 +179,11 @@ const AdminView: React.FC = () => {
                   <tr key={c.campaign_id} className="hover:bg-gray-50/60">
                     <td className="px-4 py-3">
                       <Link to={`/sales/campaigns/${c.campaign_id}`} className="font-semibold text-gray-900 hover:text-blue-600">{c.name}</Link>
-                      {c.industry_name && <div className="text-xs text-gray-500">{c.industry_name}</div>}
                     </td>
                     <td className="px-4 py-3 text-gray-700">{c.target_cities.length ? c.target_cities.join(', ') : '-'}</td>
                     <td className="px-4 py-3 text-gray-700">{c.campaign_type}</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-gray-700">{fmtDay(c.start_date)} – {fmtDay(c.end_date)}</td>
-                    <td className="px-4 py-3 text-gray-700">
-                      {c.total_companies}
-                      {c.total_companies > c.assigned_companies && <span className="ml-1 text-xs text-amber-600">({c.total_companies - c.assigned_companies} unassigned)</span>}
-                    </td>
-                    <td className="w-40 px-4 py-3">
-                      <div className="text-gray-700">{c.called_companies}</div>
-                      <ProgressBar done={c.called_companies} total={c.total_companies} className="mt-1" />
-                    </td>
+                    <td className="px-4 py-3 text-gray-700">{c.total_companies}</td>
+                    <td className="px-4 py-3 text-gray-700">{c.called_companies}</td>
                     <td className="px-4 py-3"><CampaignStatusPill status={c.status} /></td>
                   </tr>
                 ))}
@@ -215,14 +206,13 @@ const AdminView: React.FC = () => {
                 <th className="px-4 py-3">Calls</th>
                 <th className="px-4 py-3">Meetings</th>
                 <th className="px-4 py-3">Pending</th>
-                <th className="px-4 py-3">Today</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {overviewLoading ? (
-                <tr><td colSpan={7} className="px-4 py-6 text-center text-gray-500">Loading…</td></tr>
+                <tr><td colSpan={6} className="px-4 py-6 text-center text-gray-500">Loading…</td></tr>
               ) : !overview || overview.employees.length === 0 ? (
-                <tr><td colSpan={7} className="px-4 py-6 text-center text-gray-500">Nothing is assigned yet.</td></tr>
+                <tr><td colSpan={6} className="px-4 py-6 text-center text-gray-500">Nothing is assigned yet.</td></tr>
               ) : (
                 overview.employees.map((e) => (
                   <tr key={`${e.campaign_id}-${e.emp_id}`}>
@@ -232,10 +222,6 @@ const AdminView: React.FC = () => {
                     <td className="px-4 py-3 text-gray-700">{e.calls}</td>
                     <td className="px-4 py-3 text-gray-700">{e.meetings}</td>
                     <td className="px-4 py-3 text-gray-700">{e.pending}</td>
-                    <td className="w-40 px-4 py-3">
-                      <div className="text-xs text-gray-600">{e.calls_today} / {e.daily_target}</div>
-                      <ProgressBar done={e.calls_today} total={e.daily_target} className="mt-1" />
-                    </td>
                   </tr>
                 ))
               )}
@@ -295,27 +281,20 @@ const EmployeeView: React.FC = () => {
               <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
                 <tr>
                   <th className="px-4 py-3">Campaign</th>
-                  <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">Assigned</th>
                   <th className="px-4 py-3">Called</th>
                   <th className="px-4 py-3">Pending</th>
                   <th className="px-4 py-3">Meetings</th>
-                  <th className="px-4 py-3">Today</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {data.campaigns.map((c) => (
                   <tr key={c.campaign_id} className="hover:bg-gray-50/60">
                     <td className="px-4 py-3"><Link to={`/sales/campaigns/${c.campaign_id}`} className="font-semibold text-gray-900 hover:text-blue-600">{c.name}</Link></td>
-                    <td className="px-4 py-3"><CampaignStatusPill status={c.status} /></td>
                     <td className="px-4 py-3 text-gray-700">{c.assigned}</td>
                     <td className="px-4 py-3 text-gray-700">{c.called}</td>
                     <td className="px-4 py-3 text-gray-700">{c.pending}</td>
                     <td className="px-4 py-3 text-gray-700">{c.meetings}</td>
-                    <td className="w-40 px-4 py-3">
-                      <div className="text-xs text-gray-600">{c.calls_today} / {c.daily_target}</div>
-                      <ProgressBar done={c.calls_today} total={c.daily_target} className="mt-1" />
-                    </td>
                   </tr>
                 ))}
               </tbody>
