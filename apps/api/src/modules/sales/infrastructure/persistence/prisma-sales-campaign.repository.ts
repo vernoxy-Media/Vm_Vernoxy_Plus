@@ -30,8 +30,8 @@ const DAY_END = sql`((date_trunc('day', now() AT TIME ZONE 'Asia/Kolkata') + int
 /** The stage of the company's latest lead, or "No lead". */
 const LEAD_STAGE = sql`COALESCE((SELECT l.lead_stage FROM leads l WHERE l.company_id = co.company_id AND l.deleted_at IS NULL ORDER BY l.created_at DESC, l.lead_id DESC LIMIT 1), 'No lead')`;
 
-/** A Sales employee: active, and either in the Sales department or an Admin (the same rule the access guard uses). */
-const ELIGIBLE_EMPLOYEE = sql`e.status = 'Active' AND e.deleted_at IS NULL AND (r.is_admin = true OR lower(d.name) LIKE 'sales%')`;
+/** A person who can be given companies to call: an active employee of the Sales department. An Admin who is not in Sales is not on the list. */
+const ELIGIBLE_EMPLOYEE = sql`e.status = 'Active' AND e.deleted_at IS NULL AND lower(d.name) LIKE 'sales%'`;
 
 const MAX_ADD = 5000;
 

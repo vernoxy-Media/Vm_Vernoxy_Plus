@@ -204,6 +204,8 @@ export type CampaignDetail = CampaignDetailAdmin | CampaignDetailMine;
 export interface WorkloadResponse {
   workload: WorkloadRow[];
   unassigned_companies: number;
+  /** Companies held by someone who is not in the Sales department (for example an Admin). They need to be moved. */
+  other_assigned: number;
 }
 
 export interface MyDashboard {

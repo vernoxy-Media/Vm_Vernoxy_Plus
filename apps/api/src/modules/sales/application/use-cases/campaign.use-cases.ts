@@ -132,7 +132,7 @@ export class CampaignUseCases {
   async get(id: number, actor: SalesActor) {
     const campaign = await this.mustFind(id);
     if (actor.is_admin) {
-      return { campaign, workload: await this.workloadRows(id), unassigned_companies: await this.repo.unassignedCount(id) };
+      return { campaign, ...(await this.workloadRows(id)), unassigned_companies: await this.repo.unassignedCount(id) };
     }
     const mine = await this.repo.employeeStats({ campaign_id: id, emp_id: actor.emp_id });
     if (campaign.status === 'Draft' || mine.length === 0) {
@@ -268,13 +268,13 @@ export class CampaignUseCases {
     if (errors.length) throw new FieldValidationError(errors);
     for (const t of targets) await this.mustBeEligible(t.emp_id, 'targets');
     await this.repo.setTargets(campaignId, targets, actor.emp_id);
-    return { workload: await this.workloadRows(campaignId) };
+    return await this.workloadRows(campaignId);
   }
 
   async workload(campaignId: number, actor: SalesActor) {
     this.requireAdmin(actor);
     await this.mustFind(campaignId);
-    return { workload: await this.workloadRows(campaignId), unassigned_companies: await this.repo.unassignedCount(campaignId) };
+    return { ...(await this.workloadRows(campaignId)), unassigned_companies: await this.repo.unassignedCount(campaignId) };
   }
 
   private async mustBeEligible(empId: number, field: string) {
@@ -283,8 +283,12 @@ export class CampaignUseCases {
     }
   }
 
-  /** Every Sales employee, with zeros for those who have nothing assigned yet, so the Admin can hand work to them. */
-  private async workloadRows(campaignId: number): Promise<WorkloadRow[]> {
+  /**
+   * Every Sales employee, with zeros for those who have nothing assigned yet, so the Admin can hand work to them.
+   * Only people from the Sales department are listed. If companies are still held by someone who is not (for example an
+   * Admin who was given some earlier), they are not listed but counted in `other_assigned`, so the Admin can move them.
+   */
+  private async workloadRows(campaignId: number): Promise<{ workload: WorkloadRow[]; other_assigned: number }> {
     const [masters, stats, targets] = await Promise.all([
       this.repo.getMasters(),
       this.repo.employeeStats({ campaign_id: campaignId }),
@@ -293,9 +297,9 @@ export class CampaignUseCases {
     const byEmp = new Map<number, EmployeeCampaignStats>(stats.map((s) => [s.emp_id, s]));
     const target = new Map(targets.map((t) => [t.emp_id, t.daily_target]));
     const names = new Map(masters.employees.map((e) => [e.emp_id, e.name]));
-    const empIds = new Set<number>([...names.keys(), ...byEmp.keys(), ...target.keys()]);
+    const other_assigned = stats.filter((s) => !names.has(s.emp_id)).reduce((n, s) => n + s.assigned, 0);
 
-    return [...empIds]
+    const workload = [...names.keys()]
       .map((emp_id): WorkloadRow => {
         const s = byEmp.get(emp_id);
         return {
@@ -316,6 +320,8 @@ export class CampaignUseCases {
         };
       })
       .sort((a, b) => b.assigned - a.assigned || a.name.localeCompare(b.name));
+
+    return { workload, other_assigned };
   }
 
   // ----------------------------------------------------- calling work ----
