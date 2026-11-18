@@ -16,6 +16,7 @@ import {
   Clock,
   Calendar,
   CalendarClock,
+  Megaphone,
   CheckSquare,
   FolderKanban,
   Banknote,
@@ -134,6 +135,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggleC
     child('Company Database', '/sales/companies', starts('/sales/companies'), 'sales-companies'),
     child('Lead Pipeline', '/sales/leads', starts('/sales/leads'), 'sales-leads'),
     child('Follow-ups', '/sales/follow-ups', starts('/sales/follow-ups'), 'sales-follow-ups', followUpBadge),
+    child('Campaign Management', '/sales/campaigns', starts('/sales/campaigns'), 'sales-campaigns'),
     child('Clients', '/sales/clients', starts('/sales/clients'), 'sales-clients'),
     child('Reports', '/sales/reports', starts('/sales/reports'), 'sales-reports'),
   ];
@@ -562,6 +564,8 @@ function salesIcon(idKey: string): LucideIcon {
       return Handshake;
     case 'sales-follow-ups':
       return CalendarClock;
+    case 'sales-campaigns':
+      return Megaphone;
     case 'sales-reports':
       return BarChart3;
     case 'sales-clients':

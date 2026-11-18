@@ -64,6 +64,9 @@ import { HistoryPage as SalesHistoryPage } from '@/features/sales/pages/HistoryP
 import { RightsPage as SalesRightsPage } from '@/features/sales/pages/RightsPage';
 import { ClientDetailPage } from '@/features/sales/pages/ClientDetailPage';
 import { SalesDashboardPage } from '@/features/sales/pages/SalesDashboardPage';
+import { CampaignsPage } from '@/features/sales/pages/CampaignsPage';
+import { CampaignFormPage } from '@/features/sales/pages/CampaignFormPage';
+import { CampaignDetailPage } from '@/features/sales/pages/CampaignDetailPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -727,6 +730,46 @@ export const App: React.FC = () => {
                   <SalesRoute>
                     <AppLayout fluid>
                       <FollowUpsPage />
+                    </AppLayout>
+                  </SalesRoute>
+                }
+              />
+              <Route
+                path="/sales/campaigns"
+                element={
+                  <SalesRoute>
+                    <AppLayout fluid>
+                      <CampaignsPage />
+                    </AppLayout>
+                  </SalesRoute>
+                }
+              />
+              <Route
+                path="/sales/campaigns/new"
+                element={
+                  <SalesRoute requireAdmin>
+                    <AppLayout fluid>
+                      <CampaignFormPage />
+                    </AppLayout>
+                  </SalesRoute>
+                }
+              />
+              <Route
+                path="/sales/campaigns/:id/edit"
+                element={
+                  <SalesRoute requireAdmin>
+                    <AppLayout fluid>
+                      <CampaignFormPage />
+                    </AppLayout>
+                  </SalesRoute>
+                }
+              />
+              <Route
+                path="/sales/campaigns/:id"
+                element={
+                  <SalesRoute>
+                    <AppLayout fluid>
+                      <CampaignDetailPage />
                     </AppLayout>
                   </SalesRoute>
                 }
