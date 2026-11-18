@@ -73,6 +73,8 @@ export interface ManagerSpanItem {
   managerName: string;
   isInactive?: boolean;
   directReportsCount: number;
+  /** The active employees reporting directly to this manager. */
+  reports: Array<{ empId: number; name: string }>;
 }
 
 export interface MonthlyMovementItem {

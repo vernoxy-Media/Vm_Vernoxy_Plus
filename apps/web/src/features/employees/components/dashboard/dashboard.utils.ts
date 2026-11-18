@@ -399,7 +399,7 @@ export function computeReportingManagerSpan(
   }).filter((emp) => emp.status === 'Active' && emp.reporting_manager !== null && emp.reporting_manager !== undefined);
 
   // Group active reports by manager
-  const managerMap = new Map<number, { name: string; count: number; isInactive: boolean }>();
+  const managerMap = new Map<number, { name: string; count: number; isInactive: boolean; reports: Array<{ empId: number; name: string }> }>();
 
   activeDirectReports.forEach((emp) => {
     const mgrId = emp.reporting_manager!;
@@ -410,13 +410,16 @@ export function computeReportingManagerSpan(
     const isInactive = mgrRecord ? mgrRecord.status === 'Inactive' : false;
 
     const existing = managerMap.get(mgrId);
+    const report = { empId: emp.emp_id, name: emp.name };
     if (existing) {
       existing.count += 1;
+      existing.reports.push(report);
     } else {
       managerMap.set(mgrId, {
         name: mgrName,
         count: 1,
         isInactive,
+        reports: [report],
       });
     }
   });
@@ -427,6 +430,7 @@ export function computeReportingManagerSpan(
     managerName: info.name,
     isInactive: info.isInactive,
     directReportsCount: info.count,
+    reports: info.reports.sort((a, b) => a.name.localeCompare(b.name)),
   }));
 
   // If reportingManager filter is applied, show only the selected manager(s)
