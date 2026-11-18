@@ -51,12 +51,21 @@ export interface DepartmentDistributionItem {
   percentage: number;
 }
 
+export interface MultipleDepartmentEmployee {
+  empId: number;
+  name: string;
+  /** Every department the employee belongs to; the primary one first. */
+  departments: string[];
+}
+
 export interface MultipleDepartmentCategoryItem {
   key: 'one' | 'two' | 'three_or_more';
   label: string;
   count: number;
   percentage: number;
   color: string;
+  /** The employees counted in this category. */
+  employees: MultipleDepartmentEmployee[];
 }
 
 export interface ManagerSpanItem {

@@ -4,6 +4,7 @@ import {
   PREDEFINED_DEPARTMENTS,
   DepartmentDistributionItem,
   MultipleDepartmentCategoryItem,
+  MultipleDepartmentEmployee,
   ManagerSpanItem,
   MonthlyMovementItem,
   TenureCategoryItem,
@@ -312,29 +313,43 @@ export function computeMultipleDepartmentAssignments(
         ignoreStatusFilter: true,
       }).filter((emp) => emp.status === 'Active');
 
-  let oneCount = 0;
-  let twoCount = 0;
-  let threeOrMoreCount = 0;
+  const oneList: MultipleDepartmentEmployee[] = [];
+  const twoList: MultipleDepartmentEmployee[] = [];
+  const threeOrMoreList: MultipleDepartmentEmployee[] = [];
 
   activeEmployees.forEach((emp) => {
-    // Count total distinct departments assigned to this employee across the organization
-    const deptIds = new Set<number>();
-    if (emp.dep_id) deptIds.add(emp.dep_id);
-    if (emp.departments) {
-      emp.departments.forEach((d) => {
-        if (d.dep_id) deptIds.add(d.dep_id);
-      });
-    }
+    // Distinct departments assigned to this employee (id -> name), primary first
+    const depts = new Map<number, string>();
+    if (emp.dep_id) depts.set(emp.dep_id, emp.department?.name ?? '');
+    (emp.departments ?? []).forEach((d) => {
+      if (!d.dep_id) return;
+      if (d.is_primary) {
+        const rest = new Map(depts);
+        depts.clear();
+        depts.set(d.dep_id, d.name);
+        rest.forEach((n, id) => { if (!depts.has(id)) depts.set(id, n); });
+      } else if (!depts.get(d.dep_id)) {
+        depts.set(d.dep_id, d.name);
+      }
+    });
 
-    const deptCount = Math.max(1, deptIds.size);
+    const item: MultipleDepartmentEmployee = {
+      empId: emp.emp_id,
+      name: emp.name,
+      departments: Array.from(depts.values()).filter(Boolean),
+    };
+    const deptCount = Math.max(1, depts.size);
     if (deptCount === 1) {
-      oneCount += 1;
+      oneList.push(item);
     } else if (deptCount === 2) {
-      twoCount += 1;
+      twoList.push(item);
     } else {
-      threeOrMoreCount += 1;
+      threeOrMoreList.push(item);
     }
   });
+  const oneCount = oneList.length;
+  const twoCount = twoList.length;
+  const threeOrMoreCount = threeOrMoreList.length;
 
   const totalEligible = activeEmployees.length;
 
@@ -345,6 +360,7 @@ export function computeMultipleDepartmentAssignments(
       count: oneCount,
       percentage: calculatePercentage(oneCount, totalEligible),
       color: '#2563eb', // Blue
+      employees: oneList,
     },
     {
       key: 'two',
@@ -352,6 +368,7 @@ export function computeMultipleDepartmentAssignments(
       count: twoCount,
       percentage: calculatePercentage(twoCount, totalEligible),
       color: '#f97316', // Orange / Amber
+      employees: twoList,
     },
     {
       key: 'three_or_more',
@@ -359,6 +376,7 @@ export function computeMultipleDepartmentAssignments(
       count: threeOrMoreCount,
       percentage: calculatePercentage(threeOrMoreCount, totalEligible),
       color: '#10b981', // Emerald / Green
+      employees: threeOrMoreList,
     },
   ];
 
