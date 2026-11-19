@@ -21,7 +21,7 @@ export const EmployeesMostEarlyExitsTable: React.FC<EmployeesMostEarlyExitsTable
           </div>
           <div>
             <h3 className="text-sm font-bold text-slate-900 tracking-tight">
-              8. Employees with Most Early Exits
+              Employees with Most Early Exits
             </h3>
             <p className="text-[11px] text-slate-500">Early departures review (Top 5 + ties)</p>
           </div>

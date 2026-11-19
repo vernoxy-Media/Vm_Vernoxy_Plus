@@ -21,7 +21,7 @@ export const WeeklyOffHolidaysKpiCard: React.FC<WeeklyOffHolidaysKpiCardProps> =
           </div>
           <div>
             <h3 className="text-sm font-bold text-slate-900 tracking-tight">
-              6. Working on Weekly Off & Holidays
+              Working on Weekly Off & Holidays
             </h3>
             <p className="text-[11px] text-slate-500">Non-working days attendance activity</p>
           </div>

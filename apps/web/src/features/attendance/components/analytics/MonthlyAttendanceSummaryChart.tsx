@@ -28,7 +28,7 @@ export const MonthlyAttendanceSummaryChart: React.FC<MonthlyAttendanceSummaryCha
           </div>
           <div>
             <h3 className="text-sm font-bold text-slate-900 tracking-tight">
-              2. Monthly Attendance Summary
+              Monthly Attendance Summary
             </h3>
             <p className="text-[11px] text-slate-500">
               Stacked status counts with independent late marks

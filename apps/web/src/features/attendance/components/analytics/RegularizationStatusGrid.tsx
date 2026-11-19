@@ -65,7 +65,7 @@ export const RegularizationStatusGrid: React.FC<RegularizationStatusGridProps> =
           </div>
           <div>
             <h3 className="text-sm font-bold text-slate-900 tracking-tight">
-              5. Regularization Request Status
+              Regularization Request Status
             </h3>
             <p className="text-[11px] text-slate-500">2 × 2 status breakdown with progress</p>
           </div>

@@ -31,7 +31,7 @@ export const AttendanceStatusDonutChart: React.FC<AttendanceStatusDonutChartProp
           </div>
           <div>
             <h3 className="text-sm font-bold text-slate-900 tracking-tight">
-              1. Attendance Status Overview
+              Attendance Status Overview
             </h3>
             <p className="text-[11px] text-slate-500">Distribution across five attendance statuses</p>
           </div>
