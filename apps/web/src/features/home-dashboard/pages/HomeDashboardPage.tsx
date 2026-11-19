@@ -122,7 +122,10 @@ export const HomeDashboardPage: React.FC = () => {
   };
 
   const subtitle = data
-    ? [data.viewer.role_name, data.viewer.department_name].filter(Boolean).join(' · ') +
+    ? [data.viewer.role_name, data.viewer.department_name]
+        // Role and department can have the same name (Admin in Admin): show it once
+        .filter((v, i, all) => Boolean(v) && all.findIndex((x) => x?.trim().toLowerCase() === v?.trim().toLowerCase()) === i)
+        .join(' · ') +
       ` · ${new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`
     : undefined;
 
