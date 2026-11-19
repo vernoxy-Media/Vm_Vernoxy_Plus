@@ -40,6 +40,11 @@ export function matchDepartmentName(deptName: string, predefinedName: string): b
   const p = predefinedName.toLowerCase().trim();
   if (d === p) return true;
 
+  // A department that already has one of the standard names belongs to that one only.
+  // Without this, "Sales & Business Development" matched "Software Development" (both contain
+  // "develop") and "Quality Assurance" matched "UI/UX & Design" (it contains "ui").
+  if (PREDEFINED_DEPARTMENTS.some((n) => n.toLowerCase() === d)) return false;
+
   // Aliases matching predefined master order
   if (p === 'management' && (d === 'mgmt' || d === 'executive' || d === 'management')) return true;
   if (p === 'human resources' && (d === 'hr' || d === 'human resource' || d === 'human resources' || d === 'people ops')) return true;
@@ -269,7 +274,9 @@ export function computeDepartmentDistribution(
     }
 
     return {
-      departmentName: deptName,
+      // Show the department's real name when it exists, so the chart label matches the
+      // Department module and the employee list the bar links to (e.g. "Admin", not "Administration")
+      departmentName: masterMatch?.name?.trim() || deptName,
       depId: masterMatch?.dep_id,
       count,
       percentage: 0,
