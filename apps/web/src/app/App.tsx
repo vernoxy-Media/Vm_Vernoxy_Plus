@@ -13,6 +13,7 @@ import { ForgotPasswordPage } from '@/features/auth/pages/ForgotPasswordPage';
 import { ResetPasswordPage } from '@/features/auth/pages/ResetPasswordPage';
 import { ChangePasswordPage } from '@/features/auth/pages/ChangePasswordPage';
 import { HomePage } from '@/features/home/pages/HomePage';
+import { HomeDashboardPage } from '@/features/home-dashboard/pages/HomeDashboardPage';
 import { ClientPortalApp } from '@/features/client-portal/ClientPortalApp';
 import { AppThemeSync } from '@/shared/theme/AppThemeSync';
 import { NotFoundPage } from './NotFoundPage';
@@ -110,6 +111,14 @@ export const App: React.FC = () => {
                 element={
                   <ProtectedRoute>
                     <HomePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <HomeDashboardPage />
                   </ProtectedRoute>
                 }
               />

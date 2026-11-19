@@ -145,7 +145,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggleC
   ];
 
   const common: NavEntry[] = [
-    entry('Dashboard', '/', LayoutDashboard, exact('/'), 'dashboard'),
+    entry('Dashboard', '/dashboard', LayoutDashboard, exact('/dashboard'), 'dashboard'),
     entry('Attendance', '/attendance', Clock, starts('/attendance')),
     entry('Tasks', '/my-tasks', CheckSquare, own(starts('/my-tasks', '/tasks'), taskAdmin), 'my-tasks'),
     entry('Projects', '/projects', FolderKanban, starts('/projects')),
