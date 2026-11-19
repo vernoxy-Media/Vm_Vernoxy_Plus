@@ -5,6 +5,7 @@ import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AttachmentsController } from './attachments.controller';
+import { AttachmentFileStore } from '../../application/services/attachment-file-store';
 import { AttachmentsService } from '../../application/services/attachments.service';
 import { JwtAuthGuard } from '../../../auth/presentation/guards/jwt-auth.guard';
 
@@ -24,7 +25,7 @@ describe('AttachmentsController routes', () => {
 
     const mod = await Test.createTestingModule({
       controllers: [AttachmentsController],
-      providers: [{ provide: AttachmentsService, useValue: service }],
+      providers: [{ provide: AttachmentsService, useValue: service }, AttachmentFileStore],
     })
       .overrideGuard(JwtAuthGuard)
       .useValue({ canActivate: () => true })

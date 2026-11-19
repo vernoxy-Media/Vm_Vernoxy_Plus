@@ -23,6 +23,8 @@ import { Response } from 'express';
 import { JwtAuthGuard } from '../../../auth/presentation/guards/jwt-auth.guard';
 import { AttachmentsService } from '../../application/services/attachments.service';
 import { findStoredFile } from '../../application/services/storage-root';
+import { AttachmentFileStore, CLOUD_URL_PREFIX } from '../../application/services/attachment-file-store';
+import { Readable } from 'stream';
 import {
   CreateAttachmentDto,
   ReorderAttachmentsDto,
@@ -34,7 +36,10 @@ import * as fs from 'fs';
 @ApiTags('Attachments')
 @Controller('attachments')
 export class AttachmentsController {
-  constructor(private readonly attachmentsService: AttachmentsService) {}
+  constructor(
+    private readonly attachmentsService: AttachmentsService,
+    private readonly store: AttachmentFileStore,
+  ) {}
 
   // NOTE: the download route is declared first on purpose. Express matches routes in order, and
   // ':entityType/:entityId' below would otherwise take '/7/download' and fail with "numeric string is expected".
@@ -51,14 +56,21 @@ export class AttachmentsController {
   ): Promise<StreamableFile> {
     const attachment = await this.attachmentsService.getAttachmentById(id);
 
-    const relativePath = attachment.file_url.startsWith('/files/attachments/')
-      ? path.join('attachments', attachment.file_url.replace('/files/attachments/', ''))
-      : attachment.file_url.replace(/^[/\\]+/, '');
-    const filePath = findStoredFile(relativePath);
+    // Files kept in Cloudinary are read whole (25 MB at most); files on the local disk are streamed
+    const cloud = await this.store.readCloud(attachment.file_url);
+    let filePath: string | null = null;
+    if (!cloud) {
+      const relativePath = attachment.file_url.startsWith('/files/attachments/')
+        ? path.join('attachments', attachment.file_url.replace('/files/attachments/', ''))
+        : attachment.file_url.replace(/^[/\\]+/, '');
+      filePath = attachment.file_url.startsWith(CLOUD_URL_PREFIX) ? null : findStoredFile(relativePath);
+    }
 
-    if (!filePath) {
+    if (!cloud && !filePath) {
       throw new NotFoundException(`Physical file for attachment #${id} not found on server`);
     }
+    const open = (range?: { start: number; end: number }) =>
+      cloud ? Readable.from(range ? cloud.subarray(range.start, range.end + 1) : cloud) : fs.createReadStream(filePath!, range);
 
     const mime = attachment.mime_type || 'application/octet-stream';
     // A page or an svg is never shown inline: it could run script. Everything else opens in the browser.
@@ -71,7 +83,7 @@ export class AttachmentsController {
     });
 
     // Videos need partial reads so the player can seek and start before the whole file is down
-    const size = fs.statSync(filePath).size;
+    const size = cloud ? cloud.length : fs.statSync(filePath!).size;
     const m = range ? /^bytes=(\d*)-(\d*)$/.exec(range.trim()) : null;
     if (m && (m[1] !== '' || m[2] !== '')) {
       const start = m[1] === '' ? Math.max(size - Number(m[2]), 0) : Number(m[1]);
@@ -81,10 +93,10 @@ export class AttachmentsController {
         return new StreamableFile(Buffer.alloc(0));
       }
       res.status(206).set({ 'Content-Range': `bytes ${start}-${end}/${size}`, 'Content-Length': String(end - start + 1) });
-      return new StreamableFile(fs.createReadStream(filePath, { start, end }));
+      return new StreamableFile(open({ start, end }));
     }
     res.set({ 'Content-Length': String(size) });
-    return new StreamableFile(fs.createReadStream(filePath));
+    return new StreamableFile(open());
   }
 
   // ---------------------------------------------------------------------------
