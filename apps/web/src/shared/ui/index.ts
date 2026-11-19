@@ -4,6 +4,7 @@ export * from './MultiEmployeeSelect';
 export * from './PageHeader';
 export * from './SummaryCards';
 export * from './SearchableSelect';
+export * from './SearchableCombobox';
 export * from './CountryPhoneInput';
 export * from './DepartmentMultiSelect';
 export * from './ReportingManagerSelect';
