@@ -32,7 +32,13 @@ export class TrackWorkSessionUseCase {
 
     const isAssignee = existing.assignees.some((a) => a.employee_id === command.actorEmpId);
     const isLead = existing.lead_employee_id === command.actorEmpId;
-    if (!isAssignee && !isLead) {
+    // The tester may time their own testing while the task is In QA (start / pause); QA Pass or Fail ends it.
+    const isTester = existing.stage === 'in_qa' && existing.qa_assignee_id === command.actorEmpId;
+    if (isTester && !isAssignee && !isLead) {
+      if (command.action === 'finish') {
+        throw new TaskPermissionDeniedError('Use QA Pass or QA Fail to finish testing');
+      }
+    } else if (!isAssignee && !isLead) {
       throw new TaskPermissionDeniedError('Only assigned employees can start, pause, or finish work on this task');
     }
 

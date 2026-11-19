@@ -101,6 +101,17 @@ const fmtDateTime = (d?: string | null) =>
 const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—');
 
 const WORK_ACTION: Record<string, string> = { start: 'started work', resume: 'resumed work', pause: 'paused work', finish: 'finished work' };
+const QA_ACTION: Record<string, string> = { start: 'started testing', resume: 'resumed testing', pause: 'paused testing', finish: 'finished testing' };
+
+/** Seconds the tester spent on one task: QA sessions in the log, plus the QA session running now. */
+function qaSecondsFor(t: Pick<TaskDetailDto, 'stage' | 'is_timer_running' | 'timer_started_at' | 'work_logs'>, now: number): number {
+  let sec = (t.work_logs ?? []).reduce((a, l) => a + ((l as { phase?: string }).phase === 'qa' && typeof l.duration_seconds === 'number' ? l.duration_seconds : 0), 0);
+  if ((t.stage as string) === 'in_qa' && t.is_timer_running && t.timer_started_at) {
+    const start = new Date(t.timer_started_at).getTime();
+    if (!Number.isNaN(start) && now > start) sec += Math.floor((now - start) / 1000);
+  }
+  return Math.max(0, sec);
+}
 
 /* ───────────────────────────────── View ───────────────────────────────── */
 
@@ -244,6 +255,12 @@ export const ProjectIssueView: React.FC<ProjectIssueViewProps> = ({
     return [...map.values()].sort((a, b) => b.seconds - a.seconds);
   }, [task, subs, now]);
   const topPerson = byPerson[0]?.seconds || 0;
+  /* Testing time is kept apart from development time, so the board shows how long QA took */
+  const qaSec = useMemo(() => [task, ...subs].reduce((n, t) => n + qaSecondsFor(t, now), 0), [task, subs, now]);
+  const devSec = Math.max(0, spentSec - qaSec);
+  const qaRunning = [task, ...subs].some((t) => (t.stage as string) === 'in_qa' && t.is_timer_running);
+  /** The tester times their own testing on a task that is In QA. */
+  const isTesterOf = (t: { stage?: unknown; qa_assignee_id?: number | null }) => t.stage === 'in_qa' && currentEmpId != null && t.qa_assignee_id === currentEmpId;
 
   /* Rework: every send-back (QA fail, or the approver returning it) is a "rejected" event in the history. Work logged
      after the first one is rework, the way Jira's "time spent" is read against the original estimate. */
@@ -332,6 +349,17 @@ export const ProjectIssueView: React.FC<ProjectIssueViewProps> = ({
             </button>
           </>
         )}
+        {isTesterOf(t as { stage?: unknown; qa_assignee_id?: number | null }) && (
+          t.is_timer_running ? (
+            <button type="button" disabled={wait} onClick={() => session(t, 'pause')} className={`${b} bg-[#FFF0B3] text-[#172B4D] hover:bg-[#FFE380]`} title="Pause your testing time">
+              <Pause className="h-3.5 w-3.5" /> Pause testing
+            </button>
+          ) : (
+            <button type="button" disabled={wait} onClick={() => session(t, 'start')} className={`${b} bg-[#FFE2BD] text-[#974F0C] hover:bg-[#FFD08A]`} title="Start timing your testing">
+              <Play className="h-3.5 w-3.5" /> Start testing
+            </button>
+          )
+        )}
         {st === 'hold' && (
           <button type="button" disabled={wait} onClick={() => run(`${t.task_id}_resume`, () => onMoveStage(t.task_id, 'in_progress'))} className={`${b} bg-[color:var(--ac-50,#DEEBFF)] text-[color:var(--ac-dark,#0747A6)] hover:bg-[color:var(--ac-200,#B3D4FF)]`}>
             <Play className="h-3.5 w-3.5" /> Resume
@@ -374,6 +402,7 @@ export const ProjectIssueView: React.FC<ProjectIssueViewProps> = ({
             {/* Action bar */}
             <div className="mt-3 flex flex-wrap items-center gap-2">
               {mine && <WorkButtons t={mine as TaskDetailDto} big />}
+              {!mine && isTesterOf(qa) && <WorkButtons t={task} big />}
               {mine && (mine.stage === 'assigned' || mine.stage === 'in_progress') && (
                 <button type="button" onClick={() => setHoldOpen(true)} className={BTN_SUBTLE}>On hold</button>
               )}
@@ -525,7 +554,7 @@ export const ProjectIssueView: React.FC<ProjectIssueViewProps> = ({
                         </div>
                         <Lozenge stage={s.stage} />
                         <div className="flex items-center gap-1.5">
-                          {own && <WorkButtons t={s} />}
+                          {(own || isTesterOf(s as { stage?: unknown; qa_assignee_id?: number | null })) && <WorkButtons t={s} />}
                           {canApprove && s.stage === 'requested' && (
                             <button type="button" disabled={busy !== null} onClick={() => run(`${s.task_id}_ok`, () => onMoveStage(s.task_id, 'completed'))} className={`${BTN} !h-7 !px-2 !text-[13px] bg-[#E3FCEF] text-[#006644] hover:bg-[#ABF5D1]`}>
                               <Check className="h-3.5 w-3.5" /> Approve
@@ -595,6 +624,16 @@ export const ProjectIssueView: React.FC<ProjectIssueViewProps> = ({
                     </div>
                   </div>
                 )}
+                {(qaSec > 0 || stage === 'in_qa') && (
+                  <div className="rounded-[3px] border border-[#DFE1E6]">
+                    <h4 className="border-b border-[#DFE1E6] px-4 py-2.5 text-[14px] font-semibold text-[#172B4D]">Development and QA time</h4>
+                    <dl className="grid grid-cols-3 gap-2 px-4 py-3 text-[13px]">
+                      <div><dt className="flex items-center gap-1.5 text-[#5E6C84]"><span className="h-2 w-2 rounded-full bg-[color:var(--ac-main,#0052CC)]" />Development</dt><dd className="font-semibold tabular-nums text-[#172B4D]">{dur(devSec, anyRunning && !qaRunning) || '0m'}</dd></div>
+                      <div><dt className="flex items-center gap-1.5 text-[#5E6C84]"><span className="h-2 w-2 rounded-full bg-[#FF991F]" />QA testing</dt><dd className="flex items-center gap-1.5 font-semibold tabular-nums text-[#974F0C]">{qaRunning && <span title="Testing timer running" className="h-2 w-2 animate-pulse rounded-full bg-[#36B37E]" />}{dur(qaSec, qaRunning) || '0m'}</dd></div>
+                      <div><dt className="text-[#5E6C84]">Total</dt><dd className="font-semibold tabular-nums text-[#172B4D]">{dur(spentSec, anyRunning) || '0m'}</dd></div>
+                    </dl>
+                  </div>
+                )}
                 {byPerson.length > 0 && (
                   <div className="rounded-[3px] border border-[#DFE1E6]">
                     <div className="flex items-center justify-between border-b border-[#DFE1E6] px-4 py-2.5">
@@ -627,7 +666,8 @@ export const ProjectIssueView: React.FC<ProjectIssueViewProps> = ({
                       <JiraAvatar name={l.employee_name} id={l.employee_id} size={32} />
                       <div className="min-w-0 flex-1">
                         <p className="text-[14px] leading-5 text-[#172B4D]">
-                          <b className="font-semibold">{l.employee_name}</b> <span className="text-[#42526E]">{WORK_ACTION[l.action] ?? l.action}</span>
+                          <b className="font-semibold">{l.employee_name}</b> <span className="text-[#42526E]">{((l as { phase?: string }).phase === 'qa' ? QA_ACTION : WORK_ACTION)[l.action] ?? l.action}</span>
+                          {(l as { phase?: string }).phase === 'qa' && <span className="ml-1.5 rounded-[3px] bg-[#FFE2BD] px-1 py-px text-[11px] font-bold uppercase text-[#974F0C]">QA</span>}
                           {l.code !== task.task_code && <span className="ml-1.5 rounded-[3px] bg-[#DFE1E6] px-1 py-px text-[11px] font-semibold text-[#42526E]">{l.code}</span>}
                           {isReworkLog(l) && <span className="ml-1.5 rounded-[3px] bg-[#FFEBE6] px-1 py-px text-[11px] font-bold uppercase text-[#BF2600]">Rework</span>}
                           {typeof l.duration_seconds === 'number' && l.duration_seconds > 0 && <span className="ml-2 inline-flex items-center gap-1 rounded-[3px] bg-[color:var(--ac-50,#DEEBFF)] px-1 py-px text-[12px] font-medium text-[color:var(--ac-dark,#0747A6)]"><Clock className="h-3 w-3" />{dur(l.duration_seconds)}</span>}

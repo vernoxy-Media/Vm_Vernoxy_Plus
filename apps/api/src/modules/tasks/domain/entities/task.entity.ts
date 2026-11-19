@@ -32,6 +32,8 @@ export interface TaskWorkLogItem {
   timestamp: string;
   duration_seconds?: number;
   note?: string | null;
+  /** 'qa' when the tester logged it while the task was In QA; missing for development time. */
+  phase?: 'qa';
 }
 
 export interface TaskEntity {

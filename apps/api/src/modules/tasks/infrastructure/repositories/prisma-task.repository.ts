@@ -8,7 +8,7 @@ import {
   TaskStage,
 } from '../../domain/entities/task.entity';
 import { TaskNotFoundError } from '../../domain/errors/task.errors';
-import { minutesAfter, stoppedNote, timerRunner } from '../../domain/services/work-time';
+import { minutesAfter, phaseOf, stoppedNote, timerRunner } from '../../domain/services/work-time';
 import {
   AddSubTaskRepoInput,
   CreateTaskRepoInput,
@@ -554,7 +554,8 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
 
       // A task that leaves In Progress (hold, QA, review, approved) must stop its own running timer,
       // otherwise time keeps counting on finished work.
-      if (toStage !== 'in_progress' && existing.is_timer_running) {
+      // A tester's running QA timer also stops when QA fails the task, so it never turns into development time.
+      if ((toStage !== 'in_progress' || fromStage === 'in_qa') && existing.is_timer_running) {
         const stopNow = new Date();
         const elapsed = existing.timer_started_at
           ? Math.max(0, Math.floor((stopNow.getTime() - new Date(existing.timer_started_at).getTime()) / 1000))
@@ -572,6 +573,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
           timestamp: stopNow.toISOString(),
           duration_seconds: elapsed,
           note: `Timer stopped automatically: task moved to ${toStage}`,
+          ...(phaseOf(fromStage) ? { phase: 'qa' } : {}),
         });
         updateData.work_logs = stopLogs;
       }
@@ -829,7 +831,9 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
       if (!existing) throw new Error(`Task #${taskId} not found`);
 
       // If called on parent task with sub-tasks, redirect action to the caller's assigned subtask
-      if (existing.has_sub_tasks) {
+      // The tester logs QA time on the task that is In QA itself, never on a developer's sub-task.
+      const testerOnThisTask = existing.stage === 'in_qa' && existing.qa_assignee_id === input.actor_emp_id;
+      if (existing.has_sub_tasks && !testerOnThisTask) {
         const callerSubTask = await tx.tasks.findFirst({
           where: {
             parent_task_id: taskId,
@@ -945,6 +949,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
           action: existing.started_at ? 'resume' : 'start',
           timestamp: now.toISOString(),
           note: input.note || null,
+          ...(phaseOf(existing.stage) ? { phase: 'qa' } : {}),
         });
         updateData.work_logs = existingLogs;
 
@@ -1018,6 +1023,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
           timestamp: now.toISOString(),
           duration_seconds: elapsedSeconds,
           note: stoppedNote(input.note, runner, { id: input.actor_emp_id, name: input.actor_name }),
+          ...(phaseOf(existing.stage) ? { phase: 'qa' } : {}),
         });
         updateData.work_logs = existingLogs;
 
@@ -1544,6 +1550,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
         due_date: cr.due_date ? cr.due_date.toISOString().slice(0, 10) : null,
         allocated_minutes: cr.allocated_minutes,
         stage: cr.stage,
+        qa_assignee_id: cr.qa_assignee_id ?? null,
         review_note: cr.review_note,
         hold_reason: cr.hold_reason,
         source: (cr.source as TaskSource) || 'personal',

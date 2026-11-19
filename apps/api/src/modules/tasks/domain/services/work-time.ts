@@ -10,6 +10,8 @@ export interface WorkLogLike {
   employee_name?: string;
   action?: string;
   duration_seconds?: number | null;
+  /** 'qa' for time the tester logged while the task was In QA; missing means development time. */
+  phase?: string | null;
 }
 
 const asLogs = (logs: unknown): WorkLogLike[] => (Array.isArray(logs) ? (logs as WorkLogLike[]) : []);
@@ -18,6 +20,14 @@ const asLogs = (logs: unknown): WorkLogLike[] => (Array.isArray(logs) ? (logs as
 export function loggedSeconds(logs: unknown): number {
   return asLogs(logs).reduce((n, l) => n + (typeof l?.duration_seconds === 'number' && l.duration_seconds > 0 ? l.duration_seconds : 0), 0);
 }
+
+/** Exact seconds the tester logged while the task was In QA. */
+export function qaSeconds(logs: unknown): number {
+  return asLogs(logs).reduce((n, l) => n + (l?.phase === 'qa' && typeof l.duration_seconds === 'number' && l.duration_seconds > 0 ? l.duration_seconds : 0), 0);
+}
+
+/** The log phase for work done while a task is in `stage`. */
+export const phaseOf = (stage: string | null | undefined): 'qa' | undefined => (stage === 'in_qa' ? 'qa' : undefined);
 
 /**
  * Whole minutes worked after adding a session of `addSeconds`. Uses the exact seconds of the log, not

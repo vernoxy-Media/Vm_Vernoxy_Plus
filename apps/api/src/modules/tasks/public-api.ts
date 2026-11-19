@@ -34,5 +34,5 @@ export {
   parseDueDate,
   validateDateRange,
 } from './domain/services/task-rules';
-export { loggedSeconds, timeByEmployee } from './domain/services/work-time';
+export { loggedSeconds, qaSeconds, timeByEmployee } from './domain/services/work-time';
 export type { EmployeeTime } from './domain/services/work-time';

@@ -39,6 +39,9 @@ export class TaskWorkLogItemDto {
 
   @ApiPropertyOptional({ type: String, nullable: true })
   note?: string | null;
+
+  @ApiPropertyOptional({ enum: ['qa'], description: 'qa = time logged by the tester while In QA; missing = development time' })
+  phase?: 'qa';
 }
 
 export class TaskAssigneeSummaryDto {

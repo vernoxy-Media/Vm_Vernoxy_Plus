@@ -17,4 +17,6 @@ export interface TaskWorkLogItemDto {
   duration_seconds?: number | null;
   /** @nullable */
   note?: string | null;
+  /** qa = time logged by the tester while In QA; missing = development time */
+  phase?: 'qa';
 }
