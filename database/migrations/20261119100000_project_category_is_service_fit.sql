@@ -59,7 +59,11 @@ FROM _category_map c
 WHERE s.lookup_type = 'service_fit' AND s.code = c.new_code AND s.deleted_at IS NOT NULL
   AND EXISTS (SELECT 1 FROM projects p WHERE p.category::text = c.old_code);
 
+-- This rule compares the category with the enum value 'other', so it is dropped for the change and put back on text
+ALTER TABLE projects DROP CONSTRAINT IF EXISTS ck_projects_other_category;
 ALTER TABLE projects ALTER COLUMN category TYPE VARCHAR(50) USING category::text;
+ALTER TABLE projects ADD CONSTRAINT ck_projects_other_category
+    CHECK (category <> 'other' OR (other_category IS NOT NULL AND length(btrim(other_category)) > 0));
 
 UPDATE projects p SET category = c.new_code
 FROM _category_map c
@@ -89,4 +93,7 @@ WHERE s.lookup_type = 'state' AND s.deleted_at IS NULL AND s.parent_id IS NULL
 
 -- migrate:down
 -- Projects whose category is not one of the original eight values cannot go back to the enum.
+ALTER TABLE projects DROP CONSTRAINT IF EXISTS ck_projects_other_category;
 ALTER TABLE projects ALTER COLUMN category TYPE project_category USING category::project_category;
+ALTER TABLE projects ADD CONSTRAINT ck_projects_other_category
+    CHECK (category <> 'other'::project_category OR (other_category IS NOT NULL AND length(btrim(other_category)) > 0));
