@@ -4,6 +4,9 @@ import {
   RegularizationRequestRecord,
   AttendanceStatusCountItem,
   MonthlyAttendanceSummaryItem,
+  SummaryGranularity,
+  AttendanceSummaryBucket,
+  AttendanceSummaryPerson,
   EmployeeLateMarkRankItem,
   DailyWorkingHoursItem,
   RegularizationStatusSummary,
@@ -233,6 +236,128 @@ export function calculateMonthlyAttendanceSummary(
         totalRecords: b.total,
       };
     });
+}
+
+const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function shortDayLabel(dateStr: string): string {
+  const [, m, d] = dateStr.split('-');
+  return `${d} ${SHORT_MONTHS[parseInt(m, 10) - 1] ?? m}`;
+}
+
+/** Monday (YYYY-MM-DD) of the week a date falls in. */
+function mondayOf(dateStr: string): string {
+  const t = Date.parse(`${dateStr}T00:00:00Z`);
+  const dow = new Date(t).getUTCDay(); // 0 = Sunday
+  const back = dow === 0 ? 6 : dow - 1;
+  return new Date(t - back * 86_400_000).toISOString().slice(0, 10);
+}
+
+/** Picks day bars for up to a month, week bars up to about four months, otherwise month bars. */
+export function defaultSummaryGranularity(records: EnrichedAttendanceRecord[]): SummaryGranularity {
+  if (records.length === 0) return 'day';
+  let min = records[0].workDate;
+  let max = records[0].workDate;
+  for (const r of records) {
+    if (r.workDate < min) min = r.workDate;
+    if (r.workDate > max) max = r.workDate;
+  }
+  const spanDays = (Date.parse(`${max}T00:00:00Z`) - Date.parse(`${min}T00:00:00Z`)) / 86_400_000 + 1;
+  if (spanDays <= 31) return 'day';
+  if (spanDays <= 120) return 'week';
+  return 'month';
+}
+
+/**
+ * Attendance Summary chart data: counts per day, week or month, plus the employees behind the
+ * Absent, Late and Missing Punch numbers so a bar can be opened to see who they are.
+ * One record per employee per date; Late is counted on its own and is not part of the status total.
+ */
+export function calculateAttendanceSummaryBuckets(
+  records: EnrichedAttendanceRecord[],
+  granularity: SummaryGranularity,
+): AttendanceSummaryBucket[] {
+  type Acc = {
+    bucket: AttendanceSummaryBucket;
+    absent: Map<number, AttendanceSummaryPerson>;
+    late: Map<number, AttendanceSummaryPerson>;
+    missing: Map<number, AttendanceSummaryPerson>;
+  };
+  const buckets = new Map<string, Acc>();
+
+  const unique = new Map<string, EnrichedAttendanceRecord>();
+  for (const r of records) {
+    const k = `${r.empId}_${r.workDate}`;
+    if (!unique.has(k)) unique.set(k, r);
+  }
+
+  const bump = (map: Map<number, AttendanceSummaryPerson>, r: EnrichedAttendanceRecord, lateMinutes = 0) => {
+    const p = map.get(r.empId);
+    if (p) {
+      p.days += 1;
+      if (lateMinutes) p.lateMinutes = (p.lateMinutes ?? 0) + lateMinutes;
+    } else {
+      map.set(r.empId, {
+        empId: r.empId,
+        employeeName: r.employeeName,
+        department: r.department,
+        days: 1,
+        ...(lateMinutes ? { lateMinutes } : {}),
+      });
+    }
+  };
+
+  for (const r of unique.values()) {
+    const key = granularity === 'month' ? r.workDate.slice(0, 7) : granularity === 'week' ? mondayOf(r.workDate) : r.workDate;
+    let acc = buckets.get(key);
+    if (!acc) {
+      let label: string;
+      let fullLabel: string;
+      if (granularity === 'month') {
+        const [y, m] = key.split('-');
+        label = SHORT_MONTHS[parseInt(m, 10) - 1] ?? m;
+        fullLabel = `${label} ${y}`;
+      } else if (granularity === 'week') {
+        const sunday = new Date(Date.parse(`${key}T00:00:00Z`) + 6 * 86_400_000).toISOString().slice(0, 10);
+        label = shortDayLabel(key);
+        fullLabel = `Week of ${shortDayLabel(key)} – ${shortDayLabel(sunday)}`;
+      } else {
+        label = shortDayLabel(key);
+        const dow = new Date(`${key}T00:00:00Z`).toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' });
+        fullLabel = `${dow}, ${shortDayLabel(key)} ${key.slice(0, 4)}`;
+      }
+      acc = {
+        bucket: {
+          key, label, fullLabel,
+          presentCount: 0, absentCount: 0, halfDayCount: 0, onLeaveCount: 0, missingPunchCount: 0,
+          lateMarkCount: 0, totalRecords: 0,
+          absentEmployees: [], lateEmployees: [], missingPunchEmployees: [],
+        },
+        absent: new Map(), late: new Map(), missing: new Map(),
+      };
+      buckets.set(key, acc);
+    }
+    const b = acc.bucket;
+    b.totalRecords += 1;
+    if (r.dayStatus === 'present') b.presentCount += 1;
+    else if (r.dayStatus === 'absent') { b.absentCount += 1; bump(acc.absent, r); }
+    else if (r.dayStatus === 'half_day') b.halfDayCount += 1;
+    else if (r.dayStatus === 'on_leave') b.onLeaveCount += 1;
+    else { b.missingPunchCount += 1; bump(acc.missing, r); } // same rule as the status donut
+    if (r.isLate) { b.lateMarkCount += 1; bump(acc.late, r, r.lateMinutes); }
+  }
+
+  const byMostDays = (a: AttendanceSummaryPerson, b: AttendanceSummaryPerson) =>
+    b.days - a.days || a.employeeName.localeCompare(b.employeeName);
+
+  return Array.from(buckets.values())
+    .sort((a, b) => a.bucket.key.localeCompare(b.bucket.key))
+    .map(({ bucket, absent, late, missing }) => ({
+      ...bucket,
+      absentEmployees: Array.from(absent.values()).sort(byMostDays),
+      lateEmployees: Array.from(late.values()).sort(byMostDays),
+      missingPunchEmployees: Array.from(missing.values()).sort(byMostDays),
+    }));
 }
 
 // US04: Employees with Most Late Marks (Ranked Data Table)

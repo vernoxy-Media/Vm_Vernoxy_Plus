@@ -198,6 +198,7 @@ export function useAttendanceAnalytics() {
     isLoading,
     error,
     refetch,
+    filteredRecords,
     statusOverview,
     monthlySummary,
     topLateMarks,

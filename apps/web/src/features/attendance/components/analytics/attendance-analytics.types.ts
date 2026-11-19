@@ -114,6 +114,35 @@ export interface MonthlyAttendanceSummaryItem {
   totalRecords: number;
 }
 
+export type SummaryGranularity = 'day' | 'week' | 'month';
+
+/** An employee listed under a bar: how many days (and, for late marks, minutes) they had that status. */
+export interface AttendanceSummaryPerson {
+  empId: number;
+  employeeName: string;
+  department: string;
+  days: number;
+  /** Total minutes late, only filled in for the late list. */
+  lateMinutes?: number;
+}
+
+/** One bar of the Attendance Summary chart: a day, a week (Monday start) or a month. */
+export interface AttendanceSummaryBucket {
+  key: string; // YYYY-MM-DD for day and week (week = its Monday), YYYY-MM for month
+  label: string; // short axis label
+  fullLabel: string; // tooltip / panel heading
+  presentCount: number;
+  absentCount: number;
+  halfDayCount: number;
+  onLeaveCount: number;
+  missingPunchCount: number;
+  lateMarkCount: number; // counted separately, not part of totalRecords
+  totalRecords: number; // present + absent + half day + on leave + missing punch
+  absentEmployees: AttendanceSummaryPerson[];
+  lateEmployees: AttendanceSummaryPerson[];
+  missingPunchEmployees: AttendanceSummaryPerson[];
+}
+
 // US04
 export interface EmployeeLateMarkRankItem {
   rank: number;
