@@ -6,36 +6,23 @@ interface LeadOwnerHeatmapProps {
   data?: US07LeadOwnerPerformance;
 }
 
+// Same colours as the Lead Status donut so statuses read consistently.
 const STATUS_HEADERS = [
-  { key: 'new', label: 'New', color: 'text-blue-600' },
-  { key: 'contacted', label: 'Contacted', color: 'text-cyan-600' },
-  { key: 'qualified', label: 'Qualified', color: 'text-purple-600' },
-  { key: 'on_hold', label: 'On Hold', color: 'text-amber-600' },
-  { key: 'lost', label: 'Lost', color: 'text-rose-600' },
-  { key: 'converted', label: 'Converted', color: 'text-emerald-600' },
-];
-
-function getShade(val: number, max: number) {
-  if (val === 0 || max === 0) return 'bg-slate-50 text-slate-400';
-  const ratio = val / max;
-  if (ratio > 0.75) return 'bg-blue-600 text-white font-black';
-  if (ratio > 0.5) return 'bg-blue-400 text-white font-bold';
-  if (ratio > 0.25) return 'bg-blue-200 text-blue-900 font-semibold';
-  return 'bg-blue-50 text-blue-800 font-medium';
-}
+  { key: 'new', label: 'New', color: '#3b82f6' },
+  { key: 'contacted', label: 'Contacted', color: '#06b6d4' },
+  { key: 'qualified', label: 'Qualified', color: '#a855f7' },
+  { key: 'on_hold', label: 'On Hold', color: '#f59e0b' },
+  { key: 'lost', label: 'Lost', color: '#ef4444' },
+  { key: 'converted', label: 'Converted', color: '#10b981' },
+] as const;
 
 export const LeadOwnerHeatmap: React.FC<LeadOwnerHeatmapProps> = ({ data }) => {
   const [showTooltip, setShowTooltip] = useState(false);
-  const [hoveredCell, setHoveredCell] = useState<{ owner: string; status: string; count: number; total: number } | null>(null);
+  const [percentMode, setPercentMode] = useState(false);
+  const [hovered, setHovered] = useState<{ owner: string; status: string; count: number; total: number } | null>(null);
 
-  const owners = data?.owners || [];
-  let maxCell = 0;
-  owners.forEach((o) => {
-    STATUS_HEADERS.forEach((h) => {
-      const v = (o as any)[h.key] || 0;
-      if (v > maxCell) maxCell = v;
-    });
-  });
+  const owners = [...(data?.owners || [])].sort((a, b) => b.total - a.total);
+  const maxTotal = Math.max(...owners.map((o) => o.total), 1);
 
   return (
     <div className="relative flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs h-full">
@@ -63,60 +50,76 @@ export const LeadOwnerHeatmap: React.FC<LeadOwnerHeatmapProps> = ({ data }) => {
           </button>
           {showTooltip && (
             <div className="absolute right-0 top-7 z-30 w-64 rounded-xl bg-slate-900 p-2.5 text-[11px] text-white shadow-xl">
-              Heatmap grid showing lead allocation and status progress across owners. Darker cell shades represent higher lead concentrations.
+              Horizontal stacked bars per rep. Bar length shows total leads and each coloured segment shows the number of leads in that status.
             </div>
           )}
         </div>
       </div>
 
-      {/* Heatmap Table */}
-      <div className="my-3 overflow-x-auto">
-        {hoveredCell && (
-          <div className="text-center text-[10px] font-bold text-slate-700 mb-1.5">
-            {hoveredCell.owner} • {hoveredCell.status}: <span className="text-blue-600 font-extrabold">{hoveredCell.count} leads</span>{' '}
-            <span className="text-slate-400">
-              ({hoveredCell.total > 0 ? Math.round((hoveredCell.count / hoveredCell.total) * 100) : 0}% of rep's leads)
+      {/* Controls + legend */}
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-semibold text-slate-600">
+          {STATUS_HEADERS.map((h) => (
+            <span key={h.key} className="flex items-center gap-1">
+              <span className="h-2 w-2 rounded-xs" style={{ backgroundColor: h.color }} /> {h.label}
             </span>
-          </div>
-        )}
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => setPercentMode((v) => !v)}
+          className="rounded-md border border-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-600 hover:bg-slate-50 transition cursor-pointer"
+        >
+          {percentMode ? 'Show counts' : 'Show 100%'}
+        </button>
+      </div>
 
-        <table className="w-full border-collapse text-center text-xs">
-          <thead>
-            <tr className="border-b border-slate-200 text-[10px] font-bold uppercase tracking-wider">
-              <th className="py-1.5 text-left pl-2 font-bold text-slate-600">Rep / Admin</th>
-              {STATUS_HEADERS.map((h) => (
-                <th key={h.key} className={`py-1.5 px-1 ${h.color}`}>
-                  {h.label}
-                </th>
-              ))}
-              <th className="py-1.5 px-1 text-slate-800 font-black">Total</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {owners.map((o) => (
-              <tr key={o.emp_id} className="hover:bg-slate-50/50 transition">
-                <td className="py-1.5 pl-2 text-left font-semibold text-slate-800 truncate max-w-[90px]">{o.name}</td>
-                {STATUS_HEADERS.map((h) => {
-                  const val = (o as any)[h.key] || 0;
-                  const shade = getShade(val, maxCell);
-                  return (
-                    <td
-                      key={h.key}
-                      className="p-1 cursor-pointer"
-                      onMouseEnter={() => setHoveredCell({ owner: o.name, status: h.label, count: val, total: o.total })}
-                      onMouseLeave={() => setHoveredCell(null)}
-                    >
-                      <div className={`h-6 w-full rounded flex items-center justify-center text-[10px] transition ${shade}`}>
-                        {val}
+      <div className="min-h-4 mt-1 text-center text-[10px] font-bold text-slate-700">
+        {hovered && (
+          <>
+            {hovered.owner} • {hovered.status}: <span className="text-blue-600 font-extrabold">{hovered.count} leads</span>{' '}
+            <span className="text-slate-400">
+              ({hovered.total > 0 ? Math.round((hovered.count / hovered.total) * 100) : 0}% of rep's leads)
+            </span>
+          </>
+        )}
+      </div>
+
+      {/* Stacked bars */}
+      <div className="my-2 space-y-3">
+        {owners.length === 0 && <p className="py-6 text-center text-xs text-slate-400">No lead owner data for this period</p>}
+        {owners.map((o) => {
+          const barWidth = percentMode ? 100 : Math.max((o.total / maxTotal) * 100, 4);
+          return (
+            <div key={o.emp_id} className="flex flex-col gap-1">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="font-semibold text-slate-800 truncate">{o.name}</span>
+                <span className="text-[10px] font-black text-slate-900">{o.total} leads</span>
+              </div>
+              <div className="h-6 w-full rounded-md bg-slate-100 overflow-hidden">
+                <div className="flex h-full transition-all duration-300" style={{ width: `${barWidth}%` }}>
+                  {STATUS_HEADERS.map((h) => {
+                    const val = ((o as any)[h.key] as number) || 0;
+                    if (val === 0 || o.total === 0) return null;
+                    const pct = (val / o.total) * 100;
+                    return (
+                      <div
+                        key={h.key}
+                        className="flex h-full items-center justify-center text-[10px] font-bold text-white border-r border-white/60 last:border-r-0 cursor-pointer hover:brightness-110 transition"
+                        style={{ width: `${pct}%`, backgroundColor: h.color }}
+                        title={`${h.label}: ${val}`}
+                        onMouseEnter={() => setHovered({ owner: o.name, status: h.label, count: val, total: o.total })}
+                        onMouseLeave={() => setHovered(null)}
+                      >
+                        {pct >= 10 ? (percentMode ? `${Math.round(pct)}%` : val) : ''}
                       </div>
-                    </td>
-                  );
-                })}
-                <td className="py-1 px-1 font-black text-slate-900 bg-slate-50/70 text-[11px]">{o.total}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       <div className="border-t border-slate-100 pt-2 text-[11px] text-slate-400 text-center">

@@ -63,7 +63,7 @@ export const LeadStatusDonutChart: React.FC<LeadStatusDonutChartProps> = ({ data
       </div>
 
       {/* Donut and Legend */}
-      <div className="my-4 flex flex-col sm:flex-row items-center justify-center gap-6">
+      <div className="my-4 flex flex-wrap items-center justify-center gap-x-6 gap-y-4">
         <div className="relative flex items-center justify-center">
           <svg width={size} height={size} className="transform -rotate-90">
             <circle
@@ -123,8 +123,8 @@ export const LeadStatusDonutChart: React.FC<LeadStatusDonutChartProps> = ({ data
                 } ${hoveredStatus && hoveredStatus !== item.status ? 'opacity-40' : 'opacity-100'}`}
               >
                 <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
-                <span className="text-slate-700 truncate max-w-[85px]">{item.status}</span>
-                <span className="text-slate-900 font-bold ml-auto">
+                <span className="text-slate-700 whitespace-nowrap">{item.status}</span>
+                <span className="text-slate-900 font-bold ml-auto whitespace-nowrap pl-2">
                   {item.count} <span className="text-[10px] text-slate-400 font-normal">({item.percentage}%)</span>
                 </span>
               </div>
