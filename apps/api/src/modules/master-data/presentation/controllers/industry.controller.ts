@@ -145,6 +145,7 @@ export class IndustryController {
         id,
         name: dto.name,
         is_active: dto.is_active,
+        parent_id: dto.parent_id,
         updated_by: actingAdminId,
       });
       return {

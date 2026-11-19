@@ -255,11 +255,12 @@ export interface ProjectsByCategoryItem {
 }
 
 export function computeProjectsByCategory(
-  projects: EnrichedProjectItem[]
+  projects: EnrichedProjectItem[],
+  categories: Array<{ key: string; label: string; color: string }> = ALL_PROJECT_CATEGORIES
 ): ProjectsByCategoryItem[] {
   const total = projects.length;
 
-  const items = ALL_PROJECT_CATEGORIES.map((cat) => {
+  const items = categories.map((cat) => {
     const count = projects.filter((p) => p.category === cat.key).length;
     const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
     return {

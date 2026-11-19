@@ -181,7 +181,7 @@ export const SettingsLookupSection: React.FC<SettingsLookupSectionProps> = ({
               return label ? (
                 <span className="inline-flex whitespace-nowrap rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700 ring-1 ring-blue-100">{label}</span>
               ) : (
-                <span className="inline-flex whitespace-nowrap rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500">All {parent.label}s</span>
+                <span className="inline-flex whitespace-nowrap rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500">Any {parent.label}</span>
               );
             },
           },

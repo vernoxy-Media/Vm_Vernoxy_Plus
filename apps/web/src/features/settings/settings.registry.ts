@@ -6,7 +6,6 @@ import {
   Users,
   Tag,
   Coffee,
-  LayoutGrid,
   Activity,
   Shapes,
   Antenna,
@@ -70,9 +69,6 @@ const SettingsTaskStagesSection = React.lazy(() =>
 );
 const SettingsBreakTypesSection = React.lazy(() =>
   import('./sections/SettingsBreakTypesSection').then((m) => ({ default: m.SettingsBreakTypesSection }))
-);
-const SettingsProjectCategoriesSection = React.lazy(() =>
-  import('./sections/SettingsProjectCategoriesSection').then((m) => ({ default: m.SettingsProjectCategoriesSection }))
 );
 const SettingsProjectStatusesSection = React.lazy(() =>
   import('./sections/SettingsProjectStatusesSection').then((m) => ({ default: m.SettingsProjectStatusesSection }))
@@ -441,15 +437,6 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
   },
 
   // ── Projects ──────────────────────────────────────
-  {
-    id: 'project-categories',
-    label: 'Project Categories',
-    path: '/admin/settings/project-categories',
-    icon: LayoutGrid,
-    component: SettingsProjectCategoriesSection,
-    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
-    group: 'Projects',
-  },
   {
     id: 'project-statuses',
     label: 'Project Statuses',

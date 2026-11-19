@@ -9,23 +9,13 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import type { ProjectItem, ProjectStatus } from '../types';
+import { useProjectCategories } from '../hooks/use-project-categories';
 
 export interface ProjectKanbanCardProps {
   project: ProjectItem;
   onSelectProject?: (project: ProjectItem) => void;
   isOverlay?: boolean;
 }
-
-const categoryLabels: Record<string, string> = {
-  ecom_website: 'E-com',
-  portfolio_website: 'Portfolio',
-  seo: 'SEO',
-  social_media: 'Social',
-  crm: 'CRM',
-  erp: 'ERP',
-  brochure: 'Brochure',
-  other: 'Custom',
-};
 
 const STAGE_ACCENT_COLORS: Record<ProjectStatus, { border: string; accent: string }> = {
   new: { border: 'border-slate-300', accent: 'border-l-slate-400' },
@@ -66,8 +56,8 @@ export const ProjectKanbanCard: React.FC<ProjectKanbanCardProps> = ({
   };
 
   const accent = STAGE_ACCENT_COLORS[project.project_status] || STAGE_ACCENT_COLORS.new;
-  const categoryTitle =
-    categoryLabels[project.category] || project.other_category || 'General';
+  const { labelOf } = useProjectCategories();
+  const categoryTitle = labelOf(project.category, project.other_category);
 
   // Format deadline date and check if overdue
   const isOverdue = React.useMemo(() => {

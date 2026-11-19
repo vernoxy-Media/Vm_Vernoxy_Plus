@@ -72,6 +72,10 @@ export const SettingsIndustriesSection: React.FC = () => {
           data: {
             name: (values.name as string).trim(),
             is_active: Boolean(values.is_active),
+            // Sent only when it changed, so a plain rename never touches the level
+            ...(String(values.parent_id ?? '') !== String(editingItem.parent?.id ?? '')
+              ? { parent_id: values.parent_id ? Number(values.parent_id) : null }
+              : {}),
           },
         });
       } else {
@@ -87,7 +91,12 @@ export const SettingsIndustriesSection: React.FC = () => {
     }
   };
 
-  const dialogFields = getIndustryDialogFields(Boolean(editingItem), topLevelOptions);
+  const dialogFields = getIndustryDialogFields(
+    Boolean(editingItem),
+    topLevelOptions,
+    editingItem?.industry_id,
+    editingItem && editingItem.sub_count > 0 ? 'This industry has sub-industries, so it stays a top-level industry.' : null,
+  );
   const columns = getIndustryColumns();
 
   return (
@@ -178,7 +187,7 @@ export const SettingsIndustriesSection: React.FC = () => {
         fields={dialogFields}
         initialValues={
           editingItem
-            ? { name: editingItem.name, is_active: editingItem.is_active }
+            ? { name: editingItem.name, parent_id: editingItem.parent?.id ?? '', is_active: editingItem.is_active }
             : { name: '', parent_id: level === 'sub' && parentId ? parentId : '' }
         }
         isEdit={Boolean(editingItem)}

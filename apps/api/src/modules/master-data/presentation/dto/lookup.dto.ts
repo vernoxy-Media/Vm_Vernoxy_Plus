@@ -20,7 +20,6 @@ export const ALLOWED_LOOKUP_TYPES = [
   'bug_priority',
   'bug_status',
   'break_type',
-  'project_category',
   'project_status',
   'project_type',
   'lead_source',

@@ -160,12 +160,21 @@ export class PrismaIndustryRepository implements IndustryRepositoryPort {
     return this.toDomain(row);
   }
 
-  async update(id: number, data: { name?: string; is_active?: boolean; updated_by: number }): Promise<Industry> {
+  async countCompanies(id: number): Promise<number> {
+    return this.prisma.companies.count({ where: { deleted_at: null, OR: [{ industry_id: id }, { sub_industry_id: id }] } });
+  }
+
+  async countChildren(id: number): Promise<number> {
+    return this.prisma.industries.count({ where: { parent_id: id, deleted_at: null } });
+  }
+
+  async update(id: number, data: { name?: string; is_active?: boolean; parent_id?: number | null; updated_by: number }): Promise<Industry> {
     const row = await this.prisma.industries.update({
       where: { industry_id: id },
       data: {
         ...(data.name !== undefined ? { name: data.name } : {}),
         ...(data.is_active !== undefined ? { is_active: data.is_active } : {}),
+        ...(data.parent_id !== undefined ? { parent_id: data.parent_id } : {}),
         updated_by: data.updated_by,
         updated_at: new Date(),
       },

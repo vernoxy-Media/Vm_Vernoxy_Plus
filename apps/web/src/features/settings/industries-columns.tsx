@@ -64,10 +64,14 @@ export function getIndustryColumns(): MasterDataColumn<IndustryListItemDto>[] {
 export function getIndustryDialogFields(
   isEdit: boolean,
   parentOptions: { id: number; name: string }[] | undefined,
+  /** The industry being edited: it cannot be its own parent. */
+  editingId?: number,
+  /** An industry that has sub-industries (or companies) cannot change level. */
+  lockedReason?: string | null,
 ): MasterDataFormField[] {
   const parentOptionsList = [
     { value: '', label: 'None: top-level industry' },
-    ...(parentOptions?.map((o) => ({ value: o.id, label: o.name })) || []),
+    ...(parentOptions?.filter((o) => o.id !== editingId).map((o) => ({ value: o.id, label: o.name })) || []),
   ];
 
   return [
@@ -78,24 +82,26 @@ export function getIndustryDialogFields(
       required: true,
       placeholder: 'e.g. Technology, Healthcare, SaaS',
     },
-    ...(!isEdit
+    {
+      name: 'parent_id',
+      label: 'Parent Industry',
+      type: 'select' as const,
+      placeholder: 'Select Parent Industry',
+      options: parentOptionsList,
+      readOnlyOnEdit: Boolean(lockedReason),
+      helpText: isEdit
+        ? lockedReason ?? 'Pick a parent to make this a sub-industry, or choose "None" to make it a top-level industry.'
+        : 'Select a parent to create a 2nd level sub-industry.',
+    },
+    ...(isEdit
       ? [
-          {
-            name: 'parent_id',
-            label: 'Parent Industry',
-            type: 'select' as const,
-            placeholder: 'Select Parent Industry',
-            options: parentOptionsList,
-            helpText: 'Select a parent to create a 2nd level sub-industry.',
-          },
-        ]
-      : [
           {
             name: 'is_active',
             label: 'Active Status',
             type: 'checkbox' as const,
             helpText: 'Inactive industries cannot be assigned to companies.',
           },
-        ]),
+        ]
+      : []),
   ];
 }

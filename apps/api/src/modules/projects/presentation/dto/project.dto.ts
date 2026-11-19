@@ -88,37 +88,11 @@ export class CreateProjectDto {
   @IsNotEmpty()
   project_type!: string;
 
-  @ApiProperty({
-    enum: [
-      'ecom_website',
-      'portfolio_website',
-      'seo',
-      'social_media',
-      'crm',
-      'erp',
-      'brochure',
-      'other',
-    ],
-  })
-  @IsEnum([
-    'ecom_website',
-    'portfolio_website',
-    'seo',
-    'social_media',
-    'crm',
-    'erp',
-    'brochure',
-    'other',
-  ])
-  category!:
-    | 'ecom_website'
-    | 'portfolio_website'
-    | 'seo'
-    | 'social_media'
-    | 'crm'
-    | 'erp'
-    | 'brochure'
-    | 'other';
+  @ApiProperty({ description: 'Code of an active Service Fit in Master Data (Settings > Sales > Service Fits)' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(50)
+  category!: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -243,38 +217,12 @@ export class UpdateProjectDto {
   @IsString()
   project_type?: string;
 
-  @ApiPropertyOptional({
-    enum: [
-      'ecom_website',
-      'portfolio_website',
-      'seo',
-      'social_media',
-      'crm',
-      'erp',
-      'brochure',
-      'other',
-    ],
-  })
+  @ApiPropertyOptional({ description: 'Code of an active Service Fit in Master Data (Settings > Sales > Service Fits)' })
   @IsOptional()
-  @IsEnum([
-    'ecom_website',
-    'portfolio_website',
-    'seo',
-    'social_media',
-    'crm',
-    'erp',
-    'brochure',
-    'other',
-  ])
-  category?:
-    | 'ecom_website'
-    | 'portfolio_website'
-    | 'seo'
-    | 'social_media'
-    | 'crm'
-    | 'erp'
-    | 'brochure'
-    | 'other';
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(50)
+  category?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

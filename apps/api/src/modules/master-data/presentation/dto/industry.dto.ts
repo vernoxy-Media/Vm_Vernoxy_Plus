@@ -80,6 +80,11 @@ export class UpdateIndustryDto {
   @IsOptional()
   @IsBoolean()
   is_active?: boolean;
+
+  @ApiPropertyOptional({ type: Number, nullable: true, description: 'Move under this top-level industry; null makes it a top-level industry. Leave out to keep it where it is.', example: 1 })
+  @IsOptional()
+  @IsInt()
+  parent_id?: number | null;
 }
 
 export class IndustryParentDto {

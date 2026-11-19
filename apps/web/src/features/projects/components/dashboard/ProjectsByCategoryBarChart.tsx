@@ -6,6 +6,7 @@ import {
   ProjectsByCategoryItem,
 } from './project-dashboard.utils';
 import { EnrichedProjectItem } from './project-dashboard.types';
+import { useProjectCategories } from '../../hooks/use-project-categories';
 
 interface ProjectsByCategoryBarChartProps {
   projects: EnrichedProjectItem[];
@@ -18,7 +19,8 @@ export const ProjectsByCategoryBarChart: React.FC<ProjectsByCategoryBarChartProp
   const [showTooltip, setShowTooltip] = useState(false);
   const [hoveredCategory, setHoveredCategory] = useState<ProjectsByCategoryItem | null>(null);
 
-  const categories = computeProjectsByCategory(projects);
+  const { options: categoryList } = useProjectCategories(projects);
+  const categories = computeProjectsByCategory(projects, categoryList);
   // Show top categories or all 8
   const maxCount = Math.max(...categories.map((c) => c.count), 1);
 

@@ -21,17 +21,6 @@ const DEFAULT_PROJECT_TYPES = [
   { code: 'maintenance', label: 'Maintenance Project (VM-MN)' },
 ];
 
-const DEFAULT_CATEGORIES = [
-  { code: 'ecom_website', label: 'E-com Website' },
-  { code: 'portfolio_website', label: 'Portfolio Website' },
-  { code: 'seo', label: 'SEO' },
-  { code: 'social_media', label: 'Social Media' },
-  { code: 'crm', label: 'CRM' },
-  { code: 'erp', label: 'ERP' },
-  { code: 'brochure', label: 'Brochure' },
-  { code: 'other', label: 'Other' },
-];
-
 interface CreateProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -50,15 +39,14 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
   mode = 'create',
 }) => {
   const { data: projectTypeLookups = [] } = useLookupsQuery('project_type');
-  const { data: categoryLookups = [] } = useLookupsQuery('project_category');
+  const { data: categoryLookups = [] } = useLookupsQuery('service_fit');
 
   const projectTypeOptions = projectTypeLookups.length > 0
     ? projectTypeLookups.map((l) => ({ code: l.code, label: l.label }))
     : DEFAULT_PROJECT_TYPES;
 
-  const categoryOptions = categoryLookups.length > 0
-    ? categoryLookups.map((l) => ({ code: l.code, label: l.label }))
-    : DEFAULT_CATEGORIES;
+  // The category is a Service Fit from Master Data: the same list leads use
+  const baseCategoryOptions = categoryLookups.map((l) => ({ code: l.code, label: l.label }));
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,7 +56,12 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
   const [projectName, setProjectName] = useState('');
   const [description, setDescription] = useState('');
   const [projectType, setProjectType] = useState<ProjectType>('client');
-  const [category, setCategory] = useState<ProjectCategory>('ecom_website');
+  const [pickedCategory, setCategory] = useState<ProjectCategory>('');
+  // Until one is picked, the first Service Fit is selected. A project's own category stays selectable even when it was switched off.
+  const category = pickedCategory || baseCategoryOptions[0]?.code || '';
+  const categoryOptions = category && !baseCategoryOptions.some((o) => o.code === category)
+    ? [{ code: category, label: category.replace(/_/g, ' ') }, ...baseCategoryOptions]
+    : baseCategoryOptions;
   const [otherCategory, setOtherCategory] = useState('');
   const [projectStatus, setProjectStatus] = useState<ProjectStatus>('new');
   const [startDate, setStartDate] = useState('');
@@ -93,7 +86,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
         setProjectName(initialData.project_name || '');
         setDescription(initialData.description || '');
         setProjectType(initialData.project_type || 'client');
-        setCategory(initialData.category || 'ecom_website');
+        setCategory(initialData.category || '');
         setOtherCategory(initialData.other_category || '');
         setProjectStatus(initialData.project_status || 'new');
         setStartDate(initialData.start_date ? initialData.start_date.slice(0, 10) : '');
@@ -109,7 +102,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
         setProjectName('');
         setDescription('');
         setProjectType('client');
-        setCategory('ecom_website');
+        setCategory('');
         setOtherCategory('');
         setProjectStatus('new');
         setStartDate('');
@@ -164,7 +157,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
     setProjectName('');
     setDescription('');
     setProjectType('client');
-    setCategory('ecom_website');
+    setCategory('');
     setOtherCategory('');
     setProjectStatus('new');
     setStartDate('');
@@ -186,6 +179,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
     if (!deadline) e.end = 'End date / deadline is required.';
     else if (startDate && new Date(startDate) > new Date(deadline)) e.end = 'The deadline cannot be before the start date.';
     if (!projectManagerId) e.manager = 'Please select a Project Manager.';
+    if (!category) e.category = 'Please select a category.';
     if (category === 'other' && !otherCategory.trim()) e.other = 'Please specify the category.';
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -270,7 +264,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
             ))}
           </select>
         </JField>
-        <JField label="Category" required htmlFor="project-category">
+        <JField label="Category" required htmlFor="project-category" error={errors.category}>
           <select id="project-category" value={category} onChange={(e) => setCategory(e.target.value as ProjectCategory)} className={J_INPUT}>
             {categoryOptions.map((opt) => (
               <option key={opt.code} value={opt.code}>{opt.label}</option>

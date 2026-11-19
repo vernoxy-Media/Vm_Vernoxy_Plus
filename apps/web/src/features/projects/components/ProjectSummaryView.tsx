@@ -4,6 +4,7 @@ import { JiraAvatar } from '@/shared/ui/JiraAvatar';
 import { useContainerWidth } from '@/shared/ui/useContainerWidth';
 import { STATUS_LOZENGE } from './ProjectStatusMenu';
 import type { DeliveryReadiness, ProjectItem, ProjectTaskItem } from '../types';
+import { CategoryName } from './CategoryName';
 
 interface WorkloadRow {
   emp_id: number;
@@ -227,7 +228,7 @@ export const ProjectSummaryView: React.FC<ProjectSummaryViewProps> = ({ project,
               <Row label="Key">{project.project_no}</Row>
               <Row label="Status"><span className={`inline-block rounded-[3px] px-1.5 py-px text-[11px] font-bold uppercase ${status.cls}`}>{status.label}</span></Row>
               <Row label="Type"><span className="capitalize">{project.project_type.replace(/_/g, ' ')}</span></Row>
-              <Row label="Category"><span className="capitalize">{project.category.replace(/_/g, ' ')}</span></Row>
+              <Row label="Category"><span className="capitalize"><CategoryName code={project.category} other={project.other_category} /></span></Row>
               <Row label="Client">{project.client_name || 'Internal'}</Row>
               <Row label="Lead">
                 {project.project_manager_name ? (

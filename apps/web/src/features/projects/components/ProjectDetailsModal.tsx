@@ -19,6 +19,7 @@ import type {
   ProjectStatus,
 } from '../types';
 import { SprintsAndTasksView } from './SprintsAndTasksView';
+import { CategoryName } from './CategoryName';
 
 interface ProjectDetailsModalProps {
   project: ProjectItem | null;
@@ -232,7 +233,7 @@ export const ProjectDetailsModal: React.FC<ProjectDetailsModalProps> = ({
                 {project.project_name}
               </h2>
               <p className="text-xs text-slate-500 capitalize">
-                {project.project_type} Project · {project.category.replace(/_/g, ' ')}
+                {project.project_type} Project · <CategoryName code={project.category} other={project.other_category} />
               </p>
             </div>
           </div>
@@ -520,7 +521,7 @@ export const ProjectDetailsModal: React.FC<ProjectDetailsModalProps> = ({
                       <div className="flex justify-between pt-1 border-t border-slate-100">
                         <span className="text-slate-500">Category:</span>
                         <span className="font-semibold text-slate-800 capitalize">
-                          {project.category.replace(/_/g, ' ')}
+                          <CategoryName code={project.category} other={project.other_category} />
                         </span>
                       </div>
                       {project.status_change_reason && (

@@ -10,6 +10,7 @@ export interface ProjectRole {
     project_id: number;
     project_name: string;
     project_manager_id: number;
+    category: string;
     start_date: Date;
     deadline: Date;
   };
@@ -36,7 +37,7 @@ export class ProjectAccessService {
   async role(projectId: number, empId: number): Promise<ProjectRole> {
     const project = await this.prisma.projects.findFirst({
       where: { project_id: projectId, deleted_at: null },
-      select: { project_id: true, project_name: true, project_manager_id: true, start_date: true, deadline: true },
+      select: { project_id: true, project_name: true, project_manager_id: true, category: true, start_date: true, deadline: true },
     });
     if (!project) throw new NotFoundException('Project not found.');
     const [isAdmin, member] = await Promise.all([

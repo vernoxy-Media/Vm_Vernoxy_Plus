@@ -203,6 +203,12 @@ export class ProjectsController {
     return this.getAssignableEmployeesUseCase.execute();
   }
 
+  /** The category is a Service Fit from Master Data: the code must be one of the active rows. */
+  private async assertValidCategory(code: string): Promise<void> {
+    const codes = await this.projectRepo.activeLookupCodes('service_fit');
+    if (!codes.includes(code)) throw new BadRequestException('Please select a valid Category.');
+  }
+
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new project (Admin only)' })
@@ -214,6 +220,7 @@ export class ProjectsController {
     if (!(await this.access.isAdmin(user.emp_id))) {
       throw new ForbiddenException('Only the Admin can create a project.');
     }
+    await this.assertValidCategory(dto.category);
     const project = await this.createProjectUseCase.execute({
       ...dto,
       created_by: user.emp_id,
@@ -248,6 +255,9 @@ export class ProjectsController {
     if (!role.isAdmin) {
       // The Project Manager can edit only Additional, Tech-Stack and Deployment Details.
       input = Object.fromEntries(Object.entries(dto).filter(([k]) => PM_EDITABLE.includes(k)));
+    }
+    if (role.isAdmin && dto.category && dto.category !== role.project.category) {
+      await this.assertValidCategory(dto.category);
     }
     const membersChanging = role.isAdmin && Boolean(dto.member_ids || dto.project_manager_id);
     const before = membersChanging ? await this.access.memberIds(id) : [];

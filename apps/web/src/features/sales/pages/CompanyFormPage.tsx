@@ -31,6 +31,7 @@ import { companyFormSchema, CompanyFormValues } from '../schemas/company.schema'
 import { DuplicateWarningCard } from '../components/companies/DuplicateWarningCard';
 import { ExtraContactsEditor, type ExtraContact } from '../components/companies/ExtraContactsEditor';
 import { useDebounce } from '../hooks/useDebounce';
+import { citiesFor, countryOfState, stateOfCity, statesFor } from '../utils/location-options';
 import { parseApiError } from '../utils/error';
 import type {
   SalesCompanyDetailResponse,
@@ -233,6 +234,8 @@ export const CompanyFormPage: React.FC = () => {
   // Watch fields for live duplicate check (in create mode)
   const watchName = watch('name');
   const watchCity = watch('city');
+  const watchState = watch('state');
+  const watchCountry = watch('country');
   // Contacts the company has besides the one shown in the primary fields (edit mode)
   const shownContact = existingCompany?.contacts?.find((c) => c.is_primary) || existingCompany?.contacts?.[0];
   const otherContacts = (existingCompany?.contacts ?? []).filter((c) => c !== shownContact);
@@ -249,6 +252,36 @@ export const CompanyFormPage: React.FC = () => {
     if (!chosen) return masters.gidc_areas ?? [];
     return [...(map[chosen] ?? []), ...common.filter((a) => !(map[chosen] ?? []).includes(a))];
   }, [masters, watchGidcName]);
+
+  // Country > State > City: each list shows what belongs to the choice above it (Master Data links them)
+  const stateOptions = React.useMemo(() => statesFor(masters, watchCountry, watchState), [masters, watchCountry, watchState]);
+  const cityOptions = React.useMemo(() => citiesFor(masters, watchState, watchCity), [masters, watchState, watchCity]);
+  const countryOptions = React.useMemo(() => {
+    const list = masters.countries ?? [];
+    const current = (watchCountry ?? '').trim();
+    return current && !list.includes(current) ? [current, ...list] : list;
+  }, [masters, watchCountry]);
+  const LOCATION_SELECT =
+    'w-full px-3.5 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all min-h-[44px]';
+  const onCountryChange = (country: string) => {
+    // A state or city that does not belong to the new country is cleared
+    if (watchState && !statesFor(masters, country).includes(watchState)) {
+      setValue('state', '', { shouldDirty: true });
+      setValue('city', '', { shouldDirty: true });
+    }
+  };
+  const onStateChange = (state: string) => {
+    const country = countryOfState(masters, state);
+    if (country) setValue('country', country, { shouldDirty: true });
+    if (watchCity && !citiesFor(masters, state).includes(watchCity)) setValue('city', '', { shouldDirty: true });
+  };
+  const onCityChange = (city: string) => {
+    const state = stateOfCity(masters, city);
+    if (!state) return;
+    setValue('state', state, { shouldDirty: true });
+    const country = countryOfState(masters, state);
+    if (country) setValue('country', country, { shouldDirty: true });
+  };
 
   const debouncedName = useDebounce(watchName, 400);
   const debouncedCity = useDebounce(watchCity, 400);
@@ -704,26 +737,44 @@ export const CompanyFormPage: React.FC = () => {
           {/* City */}
           <div>
             <label className="block text-xs font-semibold text-gray-700 mb-1">City</label>
-            <input
-              type="text"
-              {...register('city')}
-              aria-invalid={errors.city ? true : undefined}
-              placeholder="e.g. Ahmedabad, Vadodara, Surat"
-              className="w-full px-3.5 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all min-h-[44px]"
-            />
+            {cityOptions.length > 0 ? (
+              <select {...register('city', { onChange: (e) => onCityChange(e.target.value) })} aria-invalid={errors.city ? true : undefined} className={LOCATION_SELECT}>
+                <option value="">Select city</option>
+                {cityOptions.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type="text"
+                {...register('city')}
+                aria-invalid={errors.city ? true : undefined}
+                placeholder="e.g. Ahmedabad, Vadodara, Surat"
+                className="w-full px-3.5 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all min-h-[44px]"
+              />
+            )}
             {errors.city && <p className="mt-1 text-xs font-medium text-red-600">{errors.city.message}</p>}
           </div>
 
           {/* State */}
           <div>
             <label className="block text-xs font-semibold text-gray-700 mb-1">State</label>
-            <input
-              type="text"
-              {...register('state')}
-              aria-invalid={errors.state ? true : undefined}
-              placeholder="e.g. Gujarat"
-              className="w-full px-3.5 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all min-h-[44px]"
-            />
+            {stateOptions.length > 0 ? (
+              <select {...register('state', { onChange: (e) => onStateChange(e.target.value) })} aria-invalid={errors.state ? true : undefined} className={LOCATION_SELECT}>
+                <option value="">Select state</option>
+                {stateOptions.map((st) => (
+                  <option key={st} value={st}>{st}</option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type="text"
+                {...register('state')}
+                aria-invalid={errors.state ? true : undefined}
+                placeholder="e.g. Gujarat"
+                className="w-full px-3.5 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all min-h-[44px]"
+              />
+            )}
             {errors.state && <p className="mt-1 text-xs font-medium text-red-600">{errors.state.message}</p>}
           </div>
 
@@ -743,13 +794,21 @@ export const CompanyFormPage: React.FC = () => {
           {/* Country */}
           <div>
             <label className="block text-xs font-semibold text-gray-700 mb-1">Country</label>
-            <input
-              type="text"
-              {...register('country')}
-              aria-invalid={errors.country ? true : undefined}
-              defaultValue="India"
-              className="w-full px-3.5 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all min-h-[44px]"
-            />
+            {countryOptions.length > 0 ? (
+              <select {...register('country', { onChange: (e) => onCountryChange(e.target.value) })} aria-invalid={errors.country ? true : undefined} className={LOCATION_SELECT}>
+                {countryOptions.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type="text"
+                {...register('country')}
+                aria-invalid={errors.country ? true : undefined}
+                defaultValue="India"
+                className="w-full px-3.5 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all min-h-[44px]"
+              />
+            )}
             {errors.country && <p className="mt-1 text-xs font-medium text-red-600">{errors.country.message}</p>}
           </div>
 

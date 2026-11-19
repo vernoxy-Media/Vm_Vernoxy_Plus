@@ -1,14 +1,7 @@
 export type ProjectType = 'client' | 'internal' | 'product' | 'maintenance' | (string & {});
 
-export type ProjectCategory =
-  | 'ecom_website'
-  | 'portfolio_website'
-  | 'seo'
-  | 'social_media'
-  | 'crm'
-  | 'erp'
-  | 'brochure'
-  | 'other';
+/** The code of a Service Fit in Master Data (Settings > Sales > Service Fits): leads and projects share that list. */
+export type ProjectCategory = string;
 
 export type ProjectStatus =
   | 'new'

@@ -53,6 +53,7 @@ import {
   fetchAssignableEmployees,
 } from '../api/projects.api';
 import { customFetch } from '@vernoxy-pulse/api-client';
+import { CategoryName } from '../components/CategoryName';
 import type {
   AssignableEmployee,
   CreateProjectBugPayload,
@@ -1072,7 +1073,7 @@ export const ProjectDetailPage: React.FC = () => {
                     <div>
                       <span className="text-slate-400 block text-[11px]">Category</span>
                       <span className="font-semibold text-slate-800 capitalize">
-                        {project.category.replace('_', ' ')}
+                        <CategoryName code={project.category} other={project.other_category} />
                       </span>
                     </div>
                     <div>

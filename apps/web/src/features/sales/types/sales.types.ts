@@ -182,6 +182,10 @@ export interface SalesMastersResponse {
   states: string[];
   countries: string[];
   cities: string[];
+  /** State name -> its country. A state that is not here is offered for every country. */
+  state_country_map?: Record<string, string>;
+  /** City name -> its state. A city that is not here is offered for every state. */
+  city_state_map?: Record<string, string>;
 }
 
 export interface DuplicateMatchItem {

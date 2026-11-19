@@ -11,4 +11,9 @@ export interface UpdateIndustryDto {
   name?: string;
   /** Active status */
   is_active?: boolean;
+  /**
+   * Move under this top-level industry; null makes it a top-level industry. Leave out to keep it where it is.
+   * @nullable
+   */
+  parent_id?: number | null;
 }

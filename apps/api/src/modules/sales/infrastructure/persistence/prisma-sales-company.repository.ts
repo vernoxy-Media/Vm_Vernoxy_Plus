@@ -545,6 +545,18 @@ export class PrismaSalesCompanyRepository implements SalesCompanyRepositoryPort 
         merged('city', 'city'),
       ]);
 
+    // Which country a state belongs to, and which state a city belongs to (Master Data > States / Cities)
+    const linkRows = async (type: 'state' | 'city'): Promise<Record<string, string>> => {
+      const rows = await this.prisma.master_lookup.findMany({
+        where: { lookup_type: type, deleted_at: null, is_active: true, parent: { is: { deleted_at: null } } },
+        select: { label: true, parent: { select: { label: true } } },
+      });
+      const out: Record<string, string> = {};
+      for (const row of rows) if (row.parent) out[row.label] = row.parent.label;
+      return out;
+    };
+    const [stateCountryMap, cityStateMap] = await Promise.all([linkRows('state'), linkRows('city')]);
+
     const gidcAreas = areaRows.map((r) => r.label).filter((label, i, all) => all.indexOf(label) === i);
     const gidcAreaMap: Record<string, string[]> = {};
     const gidcCommonAreas: string[] = [];
@@ -570,6 +582,8 @@ export class PrismaSalesCompanyRepository implements SalesCompanyRepositoryPort 
       states,
       countries: countries.includes('India') ? countries : ['India', ...countries],
       cities,
+      state_country_map: stateCountryMap,
+      city_state_map: cityStateMap,
     };
   }
 

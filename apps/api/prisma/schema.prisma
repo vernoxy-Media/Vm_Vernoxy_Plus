@@ -1312,7 +1312,7 @@ model projects {
   project_no                                       String                 @db.VarChar(30)
   project_name                                     String                 @db.VarChar(150)
   project_type                                     String                 @db.VarChar(50)
-  category                                         project_category
+  category                                         String                 @db.VarChar(50)
   other_category                                   String?                @db.VarChar(100)
   project_status                                   project_status         @default(new)
   start_date                                       DateTime               @db.Date
@@ -3237,17 +3237,6 @@ enum bug_status {
   qa_in_progress
   done
   not_a_bug
-}
-
-enum project_category {
-  ecom_website
-  portfolio_website
-  seo
-  social_media
-  crm
-  erp
-  brochure
-  other
 }
 
 enum project_status {
