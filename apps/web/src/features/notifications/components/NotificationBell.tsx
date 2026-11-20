@@ -23,6 +23,7 @@ function timeAgo(dateInput: string | Date): string {
 }
 
 import { useSocket } from '@/shared/socket/SocketContext';
+import { DesktopNotificationsToggle } from './DesktopNotifications';
 
 export const NotificationBell: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -84,6 +85,12 @@ export const NotificationBell: React.FC = () => {
       if (!n.read_at) await handleMarkOne(n.notification_id);
       setIsOpen(false);
       navigate('/calendar');
+      return;
+    }
+    if (n.kind.startsWith('attendance_regularization')) {
+      if (!n.read_at) await handleMarkOne(n.notification_id);
+      setIsOpen(false);
+      navigate(n.kind === 'attendance_regularization_requested' ? `/attendance?tab=regularization&request=${n.entity_id}` : '/attendance?tab=regularization');
       return;
     }
     if (n.entity_type !== 'FOLLOW_UP' && !n.kind.startsWith('follow_up')) return;
@@ -149,7 +156,7 @@ export const NotificationBell: React.FC = () => {
                   key={n.notification_id}
                   onClick={() => openNotification(n)}
                   className={`p-3.5 transition-colors ${n.read_at ? 'bg-white opacity-70' : 'bg-blue-50/20'} ${
-                    n.entity_type === 'FOLLOW_UP' || n.kind.startsWith('follow_up') ? 'cursor-pointer hover:bg-slate-50' : ''
+                    n.entity_type === 'FOLLOW_UP' || n.kind.startsWith('follow_up') || n.kind.startsWith('attendance_regularization') ? 'cursor-pointer hover:bg-slate-50' : ''
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
@@ -178,6 +185,7 @@ export const NotificationBell: React.FC = () => {
               ))
             )}
           </div>
+          <DesktopNotificationsToggle />
         </div>
       )}
     </div>

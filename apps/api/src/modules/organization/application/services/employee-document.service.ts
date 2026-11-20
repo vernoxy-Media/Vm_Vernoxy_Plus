@@ -48,7 +48,7 @@ export const PREDEFINED_DOCS: PredefinedDoc[] = [
   { type: 'marksheet_12th', category: 'taken_from_employee', title: '12th Standard Marksheet (or Diploma)', isRequiredForActivation: true },
   { type: 'marksheet_ug', category: 'taken_from_employee', title: 'Graduation Degree / Marksheet' },
   { type: 'marksheet_pg', category: 'taken_from_employee', title: 'Post-Graduation Marksheet' },
-  { type: 'pan_card', category: 'taken_from_employee', title: 'PAN Card', isRequiredForActivation: true },
+  { type: 'pan_card', category: 'taken_from_employee', title: 'PAN Card' },
   { type: 'aadhaar_card', category: 'taken_from_employee', title: 'Aadhaar Card', isRequiredForActivation: true },
   { type: 'passport_photos', category: 'taken_from_employee', title: 'Passport Size Photo', isRequiredForActivation: true },
   { type: 'bank_details', category: 'taken_from_employee', title: 'Bank Details (Passbook or cancelled cheque)', isRequiredForActivation: true },
@@ -591,7 +591,7 @@ export class EmployeeDocumentService implements OnModuleInit, OnModuleDestroy {
     let draftHtml = tpl.content_html;
     draftHtml = draftHtml.replace(/\{\{current_date\}\}/g, todayStr);
     draftHtml = draftHtml.replace(/\{\{employee_name\}\}/g, empName);
-    draftHtml = draftHtml.replace(/\{\{employee_code\}\}/g, `EMP-${String(emp.emp_id).padStart(4, '0')}`);
+    draftHtml = draftHtml.replace(/\{\{employee_code\}\}/g, emp.employee_code || `EMP-${String(emp.emp_id).padStart(4, '0')}`);
     draftHtml = draftHtml.replace(/\{\{designation\}\}/g, designationStr);
     draftHtml = draftHtml.replace(/\{\{department\}\}/g, finalDepNames);
     draftHtml = draftHtml.replace(/\{\{joining_date\}\}/g, joiningDateStr);

@@ -102,13 +102,14 @@ export class PrismaMasterLookupRepository implements MasterLookupRepositoryPort 
       if (parent) code = `${parent.code}__${code}`.slice(0, 50);
     }
 
-    // The same name twice in a list is a mistake (a child may repeat a name under another parent)
-    if (!input.parent_id) {
+    // The same name twice under the same parent (or twice in a list with no parent) is a mistake;
+    // a child may repeat a name under another parent (Phase I of two GIDCs, a city name used in two states)
+    {
       const sameName = await this.prisma.master_lookup.findFirst({
-        where: { lookup_type: input.lookup_type, parent_id: null, deleted_at: null, label: { equals: input.label.trim(), mode: 'insensitive' } },
+        where: { lookup_type: input.lookup_type, parent_id: input.parent_id ?? null, deleted_at: null, label: { equals: input.label.trim(), mode: 'insensitive' } },
         select: { label: true },
       });
-      if (sameName) throw new ConflictException(`"${sameName.label}" already exists in this list.`);
+      if (sameName) throw new ConflictException(`"${sameName.label}" already exists${input.parent_id ? ' under this parent' : ' in this list'}.`);
     }
 
     // The code must be free. Deleted rows still hold their code, so they count too.
@@ -194,6 +195,10 @@ export class PrismaMasterLookupRepository implements MasterLookupRepositoryPort 
       }
       throw err;
     }
+  }
+
+  async countChildren(id: number): Promise<number> {
+    return this.prisma.master_lookup.count({ where: { parent_id: id, deleted_at: null } });
   }
 
   async delete(id: number, actorId?: number): Promise<void> {

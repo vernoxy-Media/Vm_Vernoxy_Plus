@@ -45,6 +45,8 @@ export interface MasterLookupRepositoryPort {
   create(input: CreateMasterLookupInput): Promise<MasterLookupItem>;
   update(input: UpdateMasterLookupInput): Promise<MasterLookupItem>;
   delete(id: number, actorId?: number): Promise<void>;
+  /** How many live rows list this one as their parent (cities of a state). */
+  countChildren(id: number): Promise<number>;
 }
 
 export const MASTER_LOOKUP_REPOSITORY_PORT = Symbol('MasterLookupRepositoryPort');

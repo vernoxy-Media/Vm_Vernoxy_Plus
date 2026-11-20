@@ -5,6 +5,7 @@ import { Transform, Type } from 'class-transformer';
 export enum ExpenseType {
   OFFICE = 'Office Expense',
   PERSONAL = 'Personal Expense',
+  PROJECT = 'Project Expense',
 }
 
 export enum ClaimStatus {
@@ -39,8 +40,15 @@ export class SaveClaimDto {
 
   @ApiPropertyOptional({ enum: ExpenseType })
   @IsOptional()
-  @IsIn([ExpenseType.OFFICE, ExpenseType.PERSONAL], { message: 'Please choose Office Expense or Personal Expense.' })
+  @IsIn(Object.values(ExpenseType), { message: 'Please choose Office, Personal or Project Expense.' })
   expense_type?: string | null;
+
+  @ApiPropertyOptional({ description: 'Required when the Expense Type is Project Expense.' })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Type(() => Number)
+  project_id?: number | null;
 
   @ApiPropertyOptional({ example: 640 })
   @IsOptional()

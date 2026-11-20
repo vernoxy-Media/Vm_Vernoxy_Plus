@@ -24,7 +24,16 @@ export interface TaskColumnProps {
   isDraggingAny?: boolean;
 }
 
-/** One column of the board: a grey lane with an uppercase heading and its count, like Jira. */
+const DOT: Record<string, string> = {
+  assigned: 'bg-[#97A0AF]',
+  in_progress: 'bg-[color:var(--ac-main,#0052CC)]',
+  in_qa: 'bg-[#FF8B00]',
+  hold: 'bg-[#FF991F]',
+  requested: 'bg-[#6554C0]',
+  completed: 'bg-[#36B37E]',
+};
+
+/** One column of the board: a lane with a dot, an uppercase heading and its count, like Jira. */
 export const TaskColumn: React.FC<TaskColumnProps> = ({
   stage,
   title,
@@ -53,20 +62,19 @@ export const TaskColumn: React.FC<TaskColumnProps> = ({
     <section
       ref={setNodeRef}
       aria-label={title}
-      className={`flex min-h-[320px] w-[78vw] shrink-0 snap-start flex-col rounded-[3px] p-1.5 transition-colors sm:w-[272px] xl:w-auto ${isOver ? 'bg-[color:var(--ac-50,#DEEBFF)]' : 'bg-[#F4F5F7]'}`}
+      className={`flex max-h-[calc(100vh-17rem)] min-h-[320px] w-[78vw] shrink-0 snap-start flex-col rounded-xl border transition-colors sm:w-[272px] xl:min-w-[210px] xl:w-auto xl:flex-1 xl:basis-0 ${isOver ? 'border-[color:var(--ac-400,#4C9AFF)] bg-[color:var(--ac-50,#DEEBFF)]' : 'border-slate-200 bg-slate-50'}`}
     >
-      <header className="flex items-center gap-1.5 px-1.5 pb-2 pt-1.5">
-        <h2 className="text-[12px] font-semibold uppercase tracking-[0.02em] text-[#5E6C84]">
-          {title}
-          <span className="ml-1.5 font-medium">{count}</span>
-        </h2>
+      <header className="flex shrink-0 items-center gap-2 border-b border-slate-200/70 px-3 py-2.5">
+        <span aria-hidden className={`h-2.5 w-2.5 shrink-0 rounded-full ${DOT[stage] ?? DOT.assigned}`} />
+        <h2 className="min-w-0 flex-1 truncate text-[12px] font-bold uppercase tracking-wide text-slate-600">{title}</h2>
+        <span className="inline-flex min-w-[22px] items-center justify-center rounded-full bg-white px-1.5 text-[12px] font-semibold text-slate-600 shadow-[inset_0_0_0_1px_rgb(226,232,240)]">{count}</span>
         {isCompletedColumn && <Check className="h-3.5 w-3.5 text-[#36B37E]" strokeWidth={3} />}
       </header>
 
       <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
-        <div className="flex-1 space-y-1.5">
+        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-2">
           {tasks.length === 0 ? (
-            <p className={`rounded-[3px] border border-dashed py-6 text-center text-[12px] font-medium transition-colors ${isOver ? 'border-[color:var(--ac-400,#4C9AFF)] text-[color:var(--ac-main,#0052CC)]' : 'border-[#C1C7D0] text-[#7A869A]'}`}>
+            <p className={`flex h-24 items-center justify-center rounded-lg border border-dashed px-3 text-center text-[12px] font-medium transition-colors ${isOver ? 'border-[color:var(--ac-400,#4C9AFF)] text-[color:var(--ac-main,#0052CC)]' : 'border-slate-300/80 text-slate-400'}`}>
               {isOver ? 'Drop here' : 'No tasks'}
             </p>
           ) : (

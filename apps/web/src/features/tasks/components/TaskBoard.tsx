@@ -19,7 +19,7 @@ import { useAuth } from '@/features/auth/context/AuthContext';
 import type { TaskStage } from '../types';
 import { TaskColumn } from './TaskColumn';
 import { TaskCard } from './TaskCard';
-import { STAGE_NAME } from '../utils/stage-labels';
+import { useTaskLabels } from '../hooks/use-task-labels';
 import { StageDecisionDialog } from './StageDecisionDialog';
 import { HoldReasonModal } from './HoldReasonModal';
 
@@ -30,10 +30,7 @@ export interface TaskBoardProps {
   onMoveStage: (taskId: number, targetStage: TaskStage, note?: string, holdReason?: string) => void;
 }
 
-const STAGE_CONFIGS: { stage: TaskStage; title: string }[] = (['assigned', 'in_progress', 'hold', 'requested', 'completed'] as TaskStage[]).map((stage) => ({
-  stage,
-  title: STAGE_NAME[stage],
-}));
+const STAGE_CONFIGS: { stage: TaskStage }[] = (['assigned', 'in_progress', 'hold', 'requested', 'completed'] as TaskStage[]).map((stage) => ({ stage }));
 
 const dropAnimationConfig: DropAnimation = {
   sideEffects: defaultDropAnimationSideEffects({
@@ -54,6 +51,7 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
   onMoveStage,
 }) => {
   const { user } = useAuth();
+  const { stageLabel } = useTaskLabels();
   const [localBoard, setLocalBoard] = useState<TaskBoardResultDto>(board);
   const [activeTask, setActiveTask] = useState<TaskBoardCardDto | null>(null);
   const [rejectDialogTask, setRejectDialogTask] = useState<number | null>(null);
@@ -239,12 +237,12 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
       >
-        <div className="-mx-1 flex snap-x snap-mandatory gap-2 overflow-x-auto px-1 pb-3 xl:grid xl:grid-cols-5 xl:overflow-visible">
+        <div className="-mx-1 flex snap-x snap-mandatory items-stretch gap-3 overflow-x-auto px-1 pb-4 [scrollbar-width:thin]">
           {STAGE_CONFIGS.map((col) => (
             <TaskColumn
               key={col.stage}
               stage={col.stage}
-              title={col.title}
+              title={stageLabel(col.stage)}
               count={localBoard.counts[col.stage] ?? 0}
               tasks={localBoard.columns[col.stage] ?? []}
               isAdmin={isAdmin}

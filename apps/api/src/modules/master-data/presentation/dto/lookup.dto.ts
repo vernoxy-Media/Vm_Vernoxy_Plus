@@ -20,7 +20,6 @@ export const ALLOWED_LOOKUP_TYPES = [
   'bug_priority',
   'bug_status',
   'break_type',
-  'project_category',
   'project_status',
   'project_type',
   'lead_source',
@@ -30,6 +29,8 @@ export const ALLOWED_LOOKUP_TYPES = [
   'attendance_reason',
   'shift_type',
   'leave_type',
+  'leave_applies_to',
+  'leave_calendar_color',
   'employment_type',
   'gender',
   'blood_group',
@@ -37,6 +38,7 @@ export const ALLOWED_LOOKUP_TYPES = [
   'candidate_source',
   'job_portal',
   'notice_period',
+  'probation_period',
   'candidate_stage',
   'rejection_reason',
   'addition_category',
@@ -52,6 +54,11 @@ export const ALLOWED_LOOKUP_TYPES = [
   'state',
   'country',
   'call_not_received_reason',
+  // Project Tech Stack lists kept by the Admin
+  'tech_frontend',
+  'tech_backend',
+  'tech_cloud',
+  'tech_database',
 ];
 
 export class LookupOptionsQueryDto {

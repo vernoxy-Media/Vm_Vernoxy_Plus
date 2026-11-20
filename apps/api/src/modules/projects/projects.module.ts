@@ -1,5 +1,6 @@
 import { TasksModule } from '../tasks/public-api';
 import { ProjectAccessService } from './application/services/project-access.service';
+import { ProjectFinancialsService } from './application/services/project-financials.service';
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../core/prisma/prisma.module';
 import { AuthModule } from '../auth/auth.module';
@@ -29,6 +30,7 @@ import { NotificationsModule } from '../notifications/public-api';
   controllers: [ProjectsController],
   providers: [
     ProjectAccessService,
+    ProjectFinancialsService,
     {
       provide: PROJECT_TOKENS.ProjectRepository,
       useClass: PrismaProjectRepository,

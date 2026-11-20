@@ -1,13 +1,6 @@
 export type ProjectType = 'client' | 'internal' | 'product' | 'maintenance' | (string & {});
-export type ProjectCategory =
-  | 'ecom_website'
-  | 'portfolio_website'
-  | 'seo'
-  | 'social_media'
-  | 'crm'
-  | 'erp'
-  | 'brochure'
-  | 'other';
+/** The code of a Service Fit in Master Data (the same list leads use). */
+export type ProjectCategory = string;
 export type ProjectStatus =
   | 'new'
   | 'planning'
@@ -72,6 +65,7 @@ export interface ProjectEntity {
   tech_frontend?: string | null;
   tech_backend?: string | null;
   tech_cloud?: string | null;
+  tech_database?: string | null;
   description?: string | null;
   members: ProjectMemberEntity[];
   deployment?: ProjectDeploymentEntity | null;
@@ -127,6 +121,11 @@ export interface ProjectTaskEntity {
   start_date?: string | null;
   due_date?: string | null;
   allocated_minutes?: number | null;
+  /** Tester a finished task goes to before approval; null when the task has no QA step. */
+  qa_assignee_id?: number | null;
+  qa_assignee_name?: string | null;
+  /** Why QA or the approver sent the task back to the developer; set while it is being reworked. */
+  review_note?: string | null;
   /** Exact seconds worked on this task, from its work log. */
   logged_seconds: number;
   /** Seconds each employee worked on this task. */

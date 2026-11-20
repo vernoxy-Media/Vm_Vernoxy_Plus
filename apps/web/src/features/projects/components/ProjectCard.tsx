@@ -3,6 +3,7 @@ import { CalendarDays, Clock, ExternalLink } from 'lucide-react';
 import { JiraAvatar } from '@/shared/ui/JiraAvatar';
 import { dueLabel, isPastDate, minutesOverEstimate } from '@/shared/utils/schedule.utils';
 import type { ProjectItem, ProjectStatus } from '../types';
+import { useProjectCategories } from '../hooks/use-project-categories';
 
 interface ProjectCardProps {
   project: ProjectItem;
@@ -22,17 +23,6 @@ const LOZENGE: Record<ProjectStatus, { label: string; cls: string }> = {
   cancelled: { label: 'Cancelled', cls: 'bg-[#DFE1E6] text-[#5E6C84]' },
 };
 
-const categoryLabels: Record<string, string> = {
-  ecom_website: 'E-com Website',
-  portfolio_website: 'Portfolio Website',
-  seo: 'SEO Project',
-  social_media: 'Social Media',
-  crm: 'CRM',
-  erp: 'ERP',
-  brochure: 'Brochure',
-  other: 'Custom Project',
-};
-
 const TONES = ['bg-[color:var(--ac-main,#0052CC)]', 'bg-[#6554C0]', 'bg-[#00875A]', 'bg-[#FF8B00]', 'bg-[#DE350B]', 'bg-[#00A3BF]'];
 const toneOf = (id: number) => TONES[Math.abs(id) % TONES.length];
 const initialsOf = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join('') || '?';
@@ -46,7 +36,8 @@ const formatDate = (dateStr?: string | null, withYear = true) => {
 
 export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick }) => {
   const status = LOZENGE[project.project_status] ?? LOZENGE.new;
-  const category = categoryLabels[project.category] || project.other_category || 'General';
+  const { labelOf } = useProjectCategories();
+  const category = labelOf(project.category, project.other_category);
   const pct = Math.min(100, Math.max(0, project.progress_percentage));
   const total = project.total_tasks_count || 0;
   const finished = ['delivered', 'cancelled'].includes(project.project_status);

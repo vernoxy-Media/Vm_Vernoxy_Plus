@@ -9,11 +9,11 @@ import {
 } from 'lucide-react';
 import {
   ProjectDashboardFilters,
-  ALL_PROJECT_CATEGORIES,
   ALL_PROJECT_STATUSES,
   EnrichedProjectItem,
 } from './project-dashboard.types';
 import type { AssignableEmployee } from '../../types';
+import { useProjectCategories } from '../../hooks/use-project-categories';
 
 interface ProjectDashboardFilterBarProps {
   filters: ProjectDashboardFilters;
@@ -34,6 +34,7 @@ export const ProjectDashboardFilterBar: React.FC<ProjectDashboardFilterBarProps>
   totalFilteredCount,
   totalUnfilteredCount,
 }) => {
+  const { options: categoryChoices } = useProjectCategories(projects);
   // Count active filters (ignoring search)
   const activeFiltersCount = useMemo(() => {
     let count = 0;
@@ -163,7 +164,7 @@ export const ProjectDashboardFilterBar: React.FC<ProjectDashboardFilterBarProps>
               className="w-full h-[38px] appearance-none rounded-xl border border-slate-200 bg-slate-50/50 px-3 text-xs font-medium text-slate-800 pr-8 hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition cursor-pointer shadow-2xs"
             >
               <option value="All">All Categories</option>
-              {ALL_PROJECT_CATEGORIES.map((cat) => (
+              {categoryChoices.map((cat) => (
                 <option key={cat.key} value={cat.key}>
                   {cat.label}
                 </option>

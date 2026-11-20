@@ -1,12 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Archive, BellOff, Bell, Check, Crown, ExternalLink, FileText, Loader2, LogOut, Pencil, Pin, PinOff, Plus, Search, ShieldOff, UserMinus, X, XCircle } from 'lucide-react';
+import { Archive, BellOff, Download, Bell, Check, Crown, ExternalLink, FileText, Loader2, LogOut, Pencil, Pin, PinOff, Plus, Search, ShieldOff, UserMinus, X, XCircle } from 'lucide-react';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { errorMessage, messengerApi, type MuteChoice } from '../api';
 import { msgKeys, useMessenger } from '../MessengerContext';
 import type { Conversation, ConversationDetail, Message, Person } from '../types';
 import { conversationTitle, formatSize, isMuted, presenceLabel, tokenize } from '../utils';
-import { Lightbox, Modal, PersonAvatar, useFileUrl } from './parts';
+import { Lightbox, Modal, PersonAvatar, downloadMessageFile, useFileUrl } from './parts';
 
 interface Props {
   conversation: Conversation;
@@ -14,6 +14,8 @@ interface Props {
   onOpenDirect: (empId: number) => void;
   onLeft: () => void;
 }
+
+const canPreview = (mime: string) => mime === 'application/pdf' || mime.startsWith('video/') || mime.startsWith('audio/');
 
 const row = 'flex w-full items-center gap-3 px-5 py-3 text-left text-sm hover:bg-slate-50';
 
@@ -38,6 +40,7 @@ export const InfoPanel: React.FC<Props> = ({ conversation: conv, onClose, onOpen
   const [desc, setDesc] = useState(conv.description ?? '');
   const [adding, setAdding] = useState(false);
   const [viewer, setViewer] = useState<number | null>(null);
+  const [docViewer, setDocViewer] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<'leave' | 'close' | null>(null);
   const [muteOpen, setMuteOpen] = useState(false);
@@ -51,6 +54,13 @@ export const InfoPanel: React.FC<Props> = ({ conversation: conv, onClose, onOpen
 
   const media = useMemo(() => [...(files?.messages ?? [])].filter((m) => m.file?.mime.startsWith('image/')).reverse(), [files]);
   const docs = useMemo(() => [...(files?.messages ?? [])].filter((m) => !m.file?.mime.startsWith('image/')).reverse(), [files]);
+  // Documents the viewer can show inline; everything else (pptx, docx, xlsx...) is downloaded on click.
+  const previewDocs = useMemo(() => docs.filter((m) => canPreview(m.file?.mime ?? '')), [docs]);
+  const openDoc = (m: Message) => {
+    const i = previewDocs.findIndex((d) => d.message_id === m.message_id);
+    if (i >= 0) setDocViewer(i);
+    else downloadMessageFile(m).catch(() => setError('Could not download this file. Please try again.'));
+  };
   const links = useMemo(
     () => [...(linkMsgs?.messages ?? [])].reverse().flatMap((m) => tokenize(m.body ?? '').filter((t) => t.type === 'link').map((t) => ({ url: t.value, m }))),
     [linkMsgs],
@@ -166,12 +176,17 @@ export const InfoPanel: React.FC<Props> = ({ conversation: conv, onClose, onOpen
           {tab === 'files' && (docs.length ? (
             <ul className="divide-y divide-slate-100">
               {docs.map((m) => (
-                <li key={m.message_id} className="flex items-center gap-3 py-2">
-                  <FileText className="h-8 w-8 shrink-0 text-rose-500" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium text-slate-800">{m.file?.name}</span>
-                    <span className="block text-xs text-slate-500">{formatSize(m.file?.size ?? 0)} · {m.sender_name} · {new Date(m.created_at).toLocaleDateString()}</span>
-                  </span>
+                <li key={m.message_id} className="flex items-center gap-1">
+                  <button type="button" onClick={() => openDoc(m)} title={canPreview(m.file?.mime ?? '') ? 'Open' : 'Download'} className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-lg px-1 py-2 text-left transition hover:bg-slate-50">
+                    <FileText className="h-8 w-8 shrink-0 text-rose-500" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium text-slate-800">{m.file?.name}</span>
+                      <span className="block text-xs text-slate-500">{formatSize(m.file?.size ?? 0)} · {m.sender_name} · {new Date(m.created_at).toLocaleDateString()}</span>
+                    </span>
+                  </button>
+                  <button type="button" aria-label={`Download ${m.file?.name ?? 'file'}`} title="Download" onClick={() => downloadMessageFile(m).catch(() => setError('Could not download this file. Please try again.'))} className="shrink-0 cursor-pointer rounded-full p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-800">
+                    <Download className="h-4 w-4" />
+                  </button>
                 </li>
               ))}
             </ul>
@@ -250,6 +265,7 @@ export const InfoPanel: React.FC<Props> = ({ conversation: conv, onClose, onOpen
       )}
 
       {adding && <AddMembersModal conversationId={id} existing={(detail?.members ?? []).map((m) => m.emp_id)} onClose={() => setAdding(false)} onDone={() => { setAdding(false); refresh(); }} />}
+      {docViewer !== null && previewDocs[docViewer] && <Lightbox items={previewDocs} index={docViewer} onIndex={setDocViewer} onClose={() => setDocViewer(null)} />}
       {viewer !== null && media[viewer] && <Lightbox items={media} index={viewer} onIndex={setViewer} onClose={() => setViewer(null)} />}
     </aside>
   );

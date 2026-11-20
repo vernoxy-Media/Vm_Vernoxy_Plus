@@ -1,312 +1,337 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { ChevronDown, SlidersHorizontal } from 'lucide-react';
+import { useSalesCompanyControllerMasters, useSalesLeadControllerMasters } from '@vernoxy-pulse/api-client';
 import { Drawer } from '../common/Drawer';
-import type { SalesCompanyControllerListParams, SalesMastersResponse } from '../../types/sales.types';
-import { RotateCcw } from 'lucide-react';
+import { ChipGroup, FilterSection, MultiSelectField, PanelFooter, SelectField, TextField } from '../common/FilterFields';
+import { EMPTY_LEAD_MASTERS } from '../../types/sales.types';
+import type { SalesCompanyControllerListParams, SalesLeadMastersResponse, SalesMastersResponse } from '../../types/sales.types';
 
 export interface CompanyFilterDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   filters: SalesCompanyControllerListParams;
+  /** Optional: when the page already has the masters. Otherwise the drawer loads them itself. */
   masters?: SalesMastersResponse;
   onApply: (filters: Partial<SalesCompanyControllerListParams>) => void;
   onReset: () => void;
 }
 
-export const CompanyFilterDrawer: React.FC<CompanyFilterDrawerProps> = ({
-  isOpen,
-  onClose,
-  filters,
-  masters,
-  onApply,
-  onReset,
-}) => {
-  const [localFilters, setLocalFilters] = useState<SalesCompanyControllerListParams>({ ...filters });
+type Local = SalesCompanyControllerListParams;
 
-  const handleChange = (key: keyof SalesCompanyControllerListParams, value: unknown) => {
-    setLocalFilters((prev) => ({
-      ...prev,
-      [key]: value === '' ? undefined : value,
-    }));
+const LEAD_STATUS = [
+  { id: 'all', label: 'All' },
+  { id: 'not_a_lead', label: 'Not a lead', dot: 'bg-slate-400' },
+  { id: 'open', label: 'Open lead', dot: 'bg-blue-500' },
+  { id: 'client', label: 'Client', dot: 'bg-emerald-500' },
+  { id: 'lost', label: 'Lost', dot: 'bg-rose-500' },
+];
+const YES_NO_ANY = [
+  { id: '', label: 'Any' },
+  { id: 'yes', label: 'Yes' },
+  { id: 'no', label: 'No' },
+];
+
+/** Filters that live under "More filters". */
+const MORE_KEYS = [
+  'state', 'country', 'gidc_name', 'gidc_area_phase', 'designation',
+  'employees_min', 'employees_max', 'turnover_min', 'turnover_max', 'year_min', 'year_max',
+  'has_website', 'has_brochure', 'added_by', 'added_from', 'added_to',
+] as const;
+
+/** A filter value that may hold one or many entries (the API takes a comma separated list). */
+const list = (v: unknown): string[] => (Array.isArray(v) ? v.map(String) : v ? String(v).split(',').map((s) => s.trim()).filter(Boolean) : []);
+const tri = (v: unknown): string => (v === true ? 'yes' : v === false ? 'no' : '');
+const isSet = (v: unknown) => v !== undefined && v !== null && v !== '' && !(Array.isArray(v) && v.length === 0);
+const num = (v: unknown): number | undefined => (v === undefined || v === null || v === '' ? undefined : Number(v));
+const rupees = (n?: number) => (n === undefined || Number.isNaN(n) ? '' : `₹ ${n.toLocaleString('en-IN')}`);
+
+/** One "From – To" pair of number boxes. */
+const RangeFields: React.FC<{
+  label: string;
+  min: unknown;
+  max: unknown;
+  onMin: (v: number | undefined) => void;
+  onMax: (v: number | undefined) => void;
+  minPlaceholder: string;
+  maxPlaceholder: string;
+  hint?: React.ReactNode;
+  error?: string | null;
+}> = ({ label, min, max, onMin, onMax, minPlaceholder, maxPlaceholder, hint, error }) => (
+  <div>
+    <div className="mb-1.5 text-[13px] font-semibold text-slate-700">{label}</div>
+    <div className="grid grid-cols-2 gap-2.5">
+      <TextField type="number" min={0} inputMode="numeric" aria-label={`${label} from`} placeholder={minPlaceholder} value={min === undefined ? '' : String(min)} onChange={(e) => onMin(e.target.value === '' ? undefined : Math.max(0, Number(e.target.value)))} />
+      <TextField type="number" min={0} inputMode="numeric" aria-label={`${label} to`} placeholder={maxPlaceholder} value={max === undefined ? '' : String(max)} onChange={(e) => onMax(e.target.value === '' ? undefined : Math.max(0, Number(e.target.value)))} />
+    </div>
+    {hint && <p className="mt-1 text-[12px] text-slate-400">{hint}</p>}
+    {error && <p role="alert" className="mt-1 text-[13px] text-rose-600">{error}</p>}
+  </div>
+);
+
+export const CompanyFilterDrawer: React.FC<CompanyFilterDrawerProps> = ({ isOpen, onClose, filters, masters: given, onApply, onReset }) => {
+  const [local, setLocal] = React.useState<Local>({ ...filters });
+  const [moreOpen, setMoreOpen] = React.useState(false);
+
+  // Start from the filters in force each time the panel opens; "More filters" opens by itself when one of them is set
+  React.useEffect(() => {
+    if (!isOpen) return;
+    setLocal({ ...filters });
+    setMoreOpen(MORE_KEYS.some((k) => isSet((filters as Record<string, unknown>)[k])));
+  }, [isOpen, filters]);
+
+  const { data: raw } = useSalesCompanyControllerMasters({ query: { enabled: !given } });
+  const masters = given ?? ((raw as unknown as { data?: SalesMastersResponse })?.data ?? (raw as unknown as SalesMastersResponse | undefined));
+  const { data: leadRaw } = useSalesLeadControllerMasters();
+  const leadMasters: SalesLeadMastersResponse =
+    (leadRaw as unknown as { data?: SalesLeadMastersResponse })?.data ?? (leadRaw as unknown as SalesLeadMastersResponse) ?? EMPTY_LEAD_MASTERS;
+
+  const get = (k: string) => (local as Record<string, unknown>)[k];
+  const set = (key: string, value: unknown) =>
+    setLocal((p) => {
+      const next = { ...p } as Record<string, unknown>;
+      if (!isSet(value)) delete next[key];
+      else next[key] = value;
+      return next as Local;
+    });
+
+  const industries = masters?.industries ?? [];
+  const industryOptions = industries.map((i) => {
+    const parent = i.parent_id ? industries.find((p) => p.id === i.parent_id) : null;
+    return { value: String(i.id), label: parent ? `${parent.name} › ${i.name}` : i.name };
+  });
+  const options = (items?: string[]) => (items ?? []).map((s) => ({ value: s, label: s }));
+
+  const gidcNames = list(get('gidc_name'));
+  const areaMap = masters?.gidc_area_map ?? {};
+  const areaItems = gidcNames.length
+    ? Array.from(new Set([...gidcNames.flatMap((n) => areaMap[n] ?? []), ...(masters?.gidc_common_areas ?? [])]))
+    : masters?.gidc_areas ?? [];
+
+  const qualities = masters?.website_quality?.length ? masters.website_quality : ['Good', 'Average', 'Poor', 'No Website'];
+  const chosenQualities = list(get('website_quality'));
+  const toggleQuality = (q: string) => set('website_quality', (chosenQualities.includes(q) ? chosenQualities.filter((x) => x !== q) : [...chosenQualities, q]).join(','));
+
+  // Checks that stop Apply: a range the wrong way round, an impossible year, dates back to front
+  const thisYear = new Date().getFullYear();
+  const errors = {
+    employees: num(get('employees_min')) !== undefined && num(get('employees_max')) !== undefined && num(get('employees_min'))! > num(get('employees_max'))! ? 'The first number cannot be more than the second.' : null,
+    turnover: num(get('turnover_min')) !== undefined && num(get('turnover_max')) !== undefined && num(get('turnover_min'))! > num(get('turnover_max'))! ? 'The first amount cannot be more than the second.' : null,
+    year:
+      (num(get('year_min')) !== undefined && (num(get('year_min'))! < 1800 || num(get('year_min'))! > thisYear)) || (num(get('year_max')) !== undefined && (num(get('year_max'))! < 1800 || num(get('year_max'))! > thisYear))
+        ? `Enter a year between 1800 and ${thisYear}.`
+        : num(get('year_min')) !== undefined && num(get('year_max')) !== undefined && num(get('year_min'))! > num(get('year_max'))!
+          ? 'The first year cannot be later than the second.'
+          : null,
+    added: get('added_from') && get('added_to') && String(get('added_from')) > String(get('added_to')) ? '"From" cannot be after "To".' : null,
   };
+  const hasError = Object.values(errors).some(Boolean);
 
-  const handleApply = () => {
-    onApply(localFilters);
+  // Counts: a From-To pair is one filter
+  const pair = (a: string, b: string) => (isSet(get(a)) || isSet(get(b)) ? 1 : 0);
+  const moreCount =
+    ['state', 'country', 'gidc_name', 'gidc_area_phase', 'designation', 'has_website', 'has_brochure', 'added_by'].filter((k) => isSet(get(k))).length +
+    pair('employees_min', 'employees_max') + pair('turnover_min', 'turnover_max') + pair('year_min', 'year_max') + pair('added_from', 'added_to');
+  const mainCount =
+    (get('lead') && get('lead') !== 'all' ? 1 : 0) +
+    ['city', 'industry_ids', 'nature_of_business', 'is_gidc', 'website_quality'].filter((k) => isSet(get(k))).length;
+  const count = mainCount + moreCount;
+
+  const apply = () => {
+    if (hasError) {
+      setMoreOpen(true);
+      return;
+    }
+    onApply(local);
     onClose();
   };
-
-  const handleReset = () => {
-    setLocalFilters({});
+  const reset = () => {
+    setLocal({});
     onReset();
     onClose();
   };
-
-  const footer = (
-    <div className="flex items-center justify-between w-full">
-      <button
-        type="button"
-        onClick={handleReset}
-        className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
-      >
-        <RotateCcw className="w-3.5 h-3.5" />
-        Reset all
-      </button>
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={onClose}
-          className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 transition-colors cursor-pointer"
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          onClick={handleApply}
-          className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-xs cursor-pointer"
-        >
-          Apply Filters
-        </button>
-      </div>
-    </div>
-  );
 
   return (
     <Drawer
       isOpen={isOpen}
       onClose={onClose}
       title="Filter Companies"
-      subtitle="Narrow down the companies list"
-      footer={footer}
+      subtitle="A company is shown only when it matches every filter you set"
+      footer={<PanelFooter onReset={reset} onApply={apply} applyLabel="Apply filters" activeCount={count} />}
       size="lg"
     >
-      <div className="space-y-5">
-        {/* Lead Status */}
-        <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-            Lead Status
-          </label>
-          <select
-            value={localFilters.lead ?? 'all'}
-            onChange={(e) => handleChange('lead', e.target.value)}
-            className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-          >
-            <option value="all">All Companies</option>
-            <option value="not_a_lead">Not a Lead</option>
-            <option value="open">Open Leads</option>
-            <option value="client">Converted to Client</option>
-            <option value="lost">Lost</option>
-          </select>
-        </div>
+      {/* ───── Always shown ───── */}
+      <FilterSection title="Lead">
+        <ChipGroup ariaLabel="Lead" options={LEAD_STATUS} value={(get('lead') as string) ?? 'all'} onChange={(id) => set('lead', id || 'all')} />
+      </FilterSection>
 
-        {/* City & State */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">City</label>
-            <input
-              type="text"
-              placeholder="e.g. Ahmedabad, Surat"
-              value={Array.isArray(localFilters.city) ? localFilters.city.join(', ') : localFilters.city ?? ''}
-              onChange={(e) =>
-                handleChange('city', e.target.value ? e.target.value.split(',').map((s) => s.trim()) : undefined)
-              }
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">State</label>
-            <input
-              type="text"
-              placeholder="e.g. Gujarat, Maharashtra"
-              value={Array.isArray(localFilters.state) ? localFilters.state.join(', ') : localFilters.state ?? ''}
-              onChange={(e) =>
-                handleChange('state', e.target.value ? e.target.value.split(',').map((s) => s.trim()) : undefined)
-              }
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-            />
-          </div>
-        </div>
+      <FilterSection title="City" hint="pick one or many">
+        <MultiSelectField ariaLabel="City" value={list(get('city'))} onChange={(v) => set('city', v)} placeholder="All cities" options={options(masters?.cities)} />
+      </FilterSection>
 
-        {/* Industry */}
-        <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1.5">Industry</label>
-          <select
-            value={Array.isArray(localFilters.industry_ids) ? localFilters.industry_ids[0] ?? '' : ''}
-            onChange={(e) =>
-              handleChange('industry_ids', e.target.value ? [Number(e.target.value)] : undefined)
-            }
-            className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-          >
-            <option value="">All Industries</option>
-            {masters?.industries?.map((ind) => (
-              <option key={ind.id} value={ind.id}>
-                {ind.name}
-              </option>
-            ))}
-          </select>
-        </div>
+      <FilterSection title="Industry" hint="pick one or many">
+        <MultiSelectField
+          ariaLabel="Industry"
+          value={Array.isArray(get('industry_ids')) ? (get('industry_ids') as unknown[]).map(String) : list(get('industry_ids'))}
+          onChange={(v) => set('industry_ids', v.map(Number))}
+          placeholder="All industries"
+          options={industryOptions}
+        />
+      </FilterSection>
 
-        {/* Nature of Business */}
-        <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-            Nature of Business
-          </label>
-          <select
-            value={Array.isArray(localFilters.nature_of_business) ? localFilters.nature_of_business[0] ?? '' : ''}
-            onChange={(e) =>
-              handleChange('nature_of_business', e.target.value ? [e.target.value] : undefined)
-            }
-            className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-          >
-            <option value="">All Types</option>
-            {masters?.nature_of_business?.map((nob) => (
-              <option key={nob} value={nob}>
-                {nob}
-              </option>
-            ))}
-          </select>
-        </div>
+      <FilterSection title="Nature of business" hint="pick one or many">
+        <MultiSelectField ariaLabel="Nature of business" value={list(get('nature_of_business'))} onChange={(v) => set('nature_of_business', v)} placeholder="All types of business" options={options(masters?.nature_of_business)} />
+      </FilterSection>
 
-        {/* GIDC Details */}
-        <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-700">Located in GIDC?</span>
-            <div className="flex items-center gap-2">
+      <FilterSection title="Is GIDC?">
+        <ChipGroup
+          ariaLabel="Is GIDC"
+          value={tri(get('is_gidc'))}
+          options={[{ id: '', label: 'All' }, { id: 'yes', label: 'Yes' }, { id: 'no', label: 'No' }]}
+          onChange={(id) =>
+            setLocal((p) => {
+              const next = { ...p } as Record<string, unknown>;
+              // The GIDC name and area only mean something for a GIDC company
+              delete next.gidc_name;
+              delete next.gidc_area_phase;
+              if (id === 'yes') next.is_gidc = true;
+              else if (id === 'no') next.is_gidc = false;
+              else delete next.is_gidc;
+              return next as Local;
+            })
+          }
+        />
+      </FilterSection>
+
+      <FilterSection title="Website quality" hint="pick one or many">
+        <div className="flex flex-wrap gap-2">
+          {qualities.map((q) => {
+            const on = chosenQualities.includes(q);
+            return (
               <button
+                key={q}
                 type="button"
-                onClick={() => handleChange('is_gidc', localFilters.is_gidc === true ? undefined : true)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-medium cursor-pointer transition-colors ${
-                  localFilters.is_gidc === true
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                aria-pressed={on}
+                onClick={() => toggleQuality(q)}
+                className={`inline-flex h-9 items-center rounded-full border px-3.5 text-[13px] font-medium transition-all ${
+                  on ? 'border-primary bg-primary/10 text-primary ring-2 ring-primary/15' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
                 }`}
               >
-                Yes
+                {q}
               </button>
-              <button
-                type="button"
-                onClick={() => handleChange('is_gidc', localFilters.is_gidc === false ? undefined : false)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-medium cursor-pointer transition-colors ${
-                  localFilters.is_gidc === false
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
-                }`}
-              >
-                No
-              </button>
-            </div>
-          </div>
-
-          {localFilters.is_gidc && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2">
-              <div>
-                <label className="block text-2xs font-medium text-slate-600 mb-1">GIDC Name</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Vatva, Naroda"
-                  value={Array.isArray(localFilters.gidc_name) ? localFilters.gidc_name.join(', ') : localFilters.gidc_name ?? ''}
-                  onChange={(e) =>
-                    handleChange('gidc_name', e.target.value ? e.target.value.split(',').map((s) => s.trim()) : undefined)
-                  }
-                  className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs text-slate-800"
-                />
-              </div>
-              <div>
-                <label className="block text-2xs font-medium text-slate-600 mb-1">Area / Phase</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Phase 4"
-                  value={Array.isArray(localFilters.gidc_area_phase) ? localFilters.gidc_area_phase.join(', ') : localFilters.gidc_area_phase ?? ''}
-                  onChange={(e) =>
-                    handleChange('gidc_area_phase', e.target.value ? e.target.value.split(',').map((s) => s.trim()) : undefined)
-                  }
-                  className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs text-slate-800"
-                />
-              </div>
-            </div>
-          )}
+            );
+          })}
         </div>
+      </FilterSection>
 
-        {/* Website Quality */}
-        <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-            Website Quality
-          </label>
-          <div className="grid grid-cols-2 gap-2">
-            {['Good', 'Average', 'Poor', 'No Website'].map((quality) => {
-              const current = (localFilters.website_quality ?? '').split(',').filter(Boolean);
-              const isChecked = current.includes(quality);
-              return (
-                <label
-                  key={quality}
-                  className={`flex items-center gap-2 p-2 rounded-xl border text-xs cursor-pointer transition-colors ${
-                    isChecked
-                      ? 'border-blue-500 bg-blue-50/50 text-blue-900 font-medium'
-                      : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={isChecked}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        handleChange('website_quality', [...current, quality].join(','));
-                      } else {
-                        handleChange('website_quality', current.filter((q) => q !== quality).join(','));
-                      }
-                    }}
-                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+      {/* ───── More filters ───── */}
+      <div className="mt-2 border-t border-slate-100 pt-4">
+        <button
+          type="button"
+          aria-expanded={moreOpen}
+          onClick={() => setMoreOpen((o) => !o)}
+          className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-left transition hover:border-slate-300 hover:bg-slate-50"
+        >
+          <SlidersHorizontal className="h-4 w-4 text-slate-500" />
+          <span className="flex-1 text-sm font-semibold text-slate-800">More filters</span>
+          {moreCount > 0 && <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary">{moreCount}</span>}
+          <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${moreOpen ? 'rotate-180' : ''}`} />
+        </button>
+
+        {moreOpen && (
+          <div className="mt-4 space-y-5">
+            <FilterSection title="State and country">
+              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                <MultiSelectField ariaLabel="State" value={list(get('state'))} onChange={(v) => set('state', v)} placeholder="All states" options={options(masters?.states)} />
+                <MultiSelectField ariaLabel="Country" value={list(get('country'))} onChange={(v) => set('country', v)} placeholder="All countries" options={options(masters?.countries)} />
+              </div>
+            </FilterSection>
+
+            {get('is_gidc') === true && (
+              <FilterSection title="GIDC" hint="pick a GIDC, then its areas">
+                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                  <MultiSelectField
+                    ariaLabel="GIDC name"
+                    value={gidcNames}
+                    onChange={(v) =>
+                      setLocal((p) => {
+                        const next = { ...p } as Record<string, unknown>;
+                        // keep only the areas that still belong to a chosen GIDC
+                        const allowed = new Set(v.length ? [...v.flatMap((n) => areaMap[n] ?? []), ...(masters?.gidc_common_areas ?? [])] : (masters?.gidc_areas ?? []));
+                        const keep = list(next.gidc_area_phase).filter((x) => allowed.has(x));
+                        if (keep.length) next.gidc_area_phase = keep;
+                        else delete next.gidc_area_phase;
+                        if (v.length) next.gidc_name = v;
+                        else delete next.gidc_name;
+                        return next as Local;
+                      })
+                    }
+                    placeholder="Any GIDC"
+                    options={options(masters?.gidc_names)}
                   />
-                  <span>{quality}</span>
-                </label>
-              );
-            })}
-          </div>
-        </div>
+                  <MultiSelectField ariaLabel="Area or phase" value={list(get('gidc_area_phase'))} onChange={(v) => set('gidc_area_phase', v)} placeholder="Any area / phase" options={options(areaItems)} />
+                </div>
+              </FilterSection>
+            )}
 
-        {/* Employees & Turnover Ranges */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Min Employees</label>
-            <input
-              type="number"
-              placeholder="0"
-              value={localFilters.employees_min ?? ''}
-              onChange={(e) => handleChange('employees_min', e.target.value ? Number(e.target.value) : undefined)}
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs text-slate-800"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Max Employees</label>
-            <input
-              type="number"
-              placeholder="5000"
-              value={localFilters.employees_max ?? ''}
-              onChange={(e) => handleChange('employees_max', e.target.value ? Number(e.target.value) : undefined)}
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs text-slate-800"
-            />
-          </div>
-        </div>
+            <FilterSection title="Designation of a contact" hint="companies that have a contact with it">
+              <MultiSelectField ariaLabel="Designation" value={list(get('designation'))} onChange={(v) => set('designation', v)} placeholder="Any designation, e.g. IT Head" options={options(masters?.designation)} />
+            </FilterSection>
 
-        {/* Boolean Flags */}
-        <div className="grid grid-cols-2 gap-3">
-          <label className="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-white text-xs text-slate-700 cursor-pointer hover:bg-slate-50">
-            <input
-              type="checkbox"
-              checked={localFilters.has_website === true}
-              onChange={(e) => handleChange('has_website', e.target.checked ? true : undefined)}
-              className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-            />
-            <span>Has Website</span>
-          </label>
-          <label className="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-white text-xs text-slate-700 cursor-pointer hover:bg-slate-50">
-            <input
-              type="checkbox"
-              checked={localFilters.has_brochure === true}
-              onChange={(e) => handleChange('has_brochure', e.target.checked ? true : undefined)}
-              className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-            />
-            <span>Has Brochure</span>
-          </label>
-        </div>
+            <FilterSection title="Size and age">
+              <div className="space-y-4">
+                <RangeFields label="Estimated employees" min={get('employees_min')} max={get('employees_max')} onMin={(v) => set('employees_min', v)} onMax={(v) => set('employees_max', v)} minPlaceholder="From" maxPlaceholder="To" error={errors.employees} />
+                <RangeFields
+                  label="Estimated turnover (in rupees)"
+                  min={get('turnover_min')}
+                  max={get('turnover_max')}
+                  onMin={(v) => set('turnover_min', v)}
+                  onMax={(v) => set('turnover_max', v)}
+                  minPlaceholder="From, e.g. 5000000"
+                  maxPlaceholder="To"
+                  hint={num(get('turnover_min')) !== undefined || num(get('turnover_max')) !== undefined ? `${rupees(num(get('turnover_min'))) || 'any'} to ${rupees(num(get('turnover_max'))) || 'any'}` : undefined}
+                  error={errors.turnover}
+                />
+                <RangeFields label="Year established" min={get('year_min')} max={get('year_max')} onMin={(v) => set('year_min', v)} onMax={(v) => set('year_max', v)} minPlaceholder="From, e.g. 1995" maxPlaceholder={`To, e.g. ${thisYear}`} error={errors.year} />
+              </div>
+            </FilterSection>
+
+            <FilterSection title="Website and brochure">
+              <div className="space-y-3">
+                <div>
+                  <div className="mb-1.5 text-[13px] font-semibold text-slate-700">Has website</div>
+                  <ChipGroup ariaLabel="Has website" options={YES_NO_ANY} value={tri(get('has_website'))} onChange={(id) => set('has_website', id === 'yes' ? true : id === 'no' ? false : undefined)} />
+                </div>
+                <div>
+                  <div className="mb-1.5 text-[13px] font-semibold text-slate-700">Has brochure</div>
+                  <ChipGroup ariaLabel="Has brochure" options={YES_NO_ANY} value={tri(get('has_brochure'))} onChange={(id) => set('has_brochure', id === 'yes' ? true : id === 'no' ? false : undefined)} />
+                </div>
+              </div>
+            </FilterSection>
+
+            <FilterSection title="Added by and added on">
+              <div className="space-y-2.5">
+                <SelectField
+                  ariaLabel="Added by"
+                  value={get('added_by') ? String(get('added_by')) : ''}
+                  onChange={(v) => set('added_by', v ? Number(v) : undefined)}
+                  placeholder="Anyone"
+                  options={(leadMasters.lead_by_users ?? []).map((u) => ({ value: String(u.emp_id), label: u.name }))}
+                />
+                <div className="grid grid-cols-2 gap-2.5">
+                  <label className="block">
+                    <span className="mb-1 block text-[11px] font-medium text-slate-400">From</span>
+                    <TextField type="date" max={String(get('added_to') || '') || undefined} value={String(get('added_from') ?? '')} onChange={(e) => set('added_from', e.target.value)} />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-[11px] font-medium text-slate-400">To</span>
+                    <TextField type="date" min={String(get('added_from') || '') || undefined} value={String(get('added_to') ?? '')} onChange={(e) => set('added_to', e.target.value)} />
+                  </label>
+                </div>
+                {errors.added && <p role="alert" className="text-[13px] text-rose-600">{errors.added}</p>}
+              </div>
+            </FilterSection>
+          </div>
+        )}
       </div>
     </Drawer>
   );

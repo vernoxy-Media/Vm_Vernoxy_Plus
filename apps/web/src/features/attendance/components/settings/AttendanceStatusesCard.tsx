@@ -54,14 +54,14 @@ export const AttendanceStatusesCard: React.FC<AttendanceStatusesCardProps> = ({ 
   };
 
   return (
-    <div className="p-6 bg-white rounded-2xl border border-slate-200/90 shadow-xs space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-100">
+    <div className="p-5 sm:p-6 bg-white rounded-3xl border border-slate-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.10)] space-y-5">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-slate-100">
         <div className="flex items-center gap-2.5">
-          <div className="p-2.5 rounded-xl bg-indigo-50 text-indigo-600">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-50 to-indigo-50 text-indigo-600 ring-1 ring-inset ring-indigo-100">
             <Tag className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-slate-900">Attendance Status Codes & Labels</h3>
+            <h3 className="text-[17px] font-bold tracking-tight text-slate-900">Attendance Status Codes & Labels</h3>
             <p className="text-xs text-slate-500">
               Manage system evaluation statuses (Present, Half Day, Absent, etc.) and custom operational tags.
             </p>
@@ -72,7 +72,7 @@ export const AttendanceStatusesCard: React.FC<AttendanceStatusesCardProps> = ({ 
           type="button"
           id="add-attendance-status-button"
           onClick={handleOpenCreate}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-xs transition-colors shrink-0"
+          className="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:brightness-110 text-white text-[13px] font-semibold shadow-md shadow-blue-600/25 active:scale-[0.98] cursor-pointer transition-colors shrink-0"
         >
           <Plus className="w-4 h-4" />
           <span>Add Custom Status</span>
@@ -89,22 +89,22 @@ export const AttendanceStatusesCard: React.FC<AttendanceStatusesCardProps> = ({ 
       {/* Statuses Table */}
       <div className="overflow-x-auto rounded-xl border border-slate-200">
         <table className="w-full text-left text-xs" id="attendance-statuses-table">
-          <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase tracking-wider">
+          <thead className="bg-slate-50/95 backdrop-blur border-b border-slate-200 text-slate-500 text-[11px] font-semibold uppercase tracking-wider">
             <tr>
-              <th className="py-2.5 px-4">Status & Short Code</th>
-              <th className="py-2.5 px-4">System Key</th>
-              <th className="py-2.5 px-4">Color Badge</th>
-              <th className="py-2.5 px-4">Type</th>
-              <th className="py-2.5 px-4">State</th>
-              <th className="py-2.5 px-4 text-right">Actions</th>
+              <th className="py-3 px-5">Status & Short Code</th>
+              <th className="py-3 px-5">System Key</th>
+              <th className="py-3 px-5">Color Badge</th>
+              <th className="py-3 px-5">Type</th>
+              <th className="py-3 px-5">State</th>
+              <th className="py-3 px-5 text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-slate-100/80">
             {statuses.map((st) => {
               const theme = COLOR_MAP[st.color] || COLOR_MAP.blue;
               return (
-                <tr key={st.status_id} className="hover:bg-slate-50/60 transition-colors">
-                  <td className="py-3 px-4">
+                <tr key={st.status_id} className="hover:bg-blue-50/30 transition-colors">
+                  <td className="py-3.5 px-5">
                     <div className="flex items-center gap-2.5">
                       <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-slate-100 border border-slate-200 font-bold text-xs text-slate-800">
                         {st.short_code}
@@ -115,20 +115,20 @@ export const AttendanceStatusesCard: React.FC<AttendanceStatusesCardProps> = ({ 
                     </div>
                   </td>
 
-                  <td className="py-3 px-4">
+                  <td className="py-3.5 px-5">
                     <span className="font-mono text-[11px] text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
                       {st.code}
                     </span>
                   </td>
 
-                  <td className="py-3 px-4">
+                  <td className="py-3.5 px-5">
                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${theme.bg} ${theme.text}`}>
                       <span className={`w-2 h-2 rounded-full ${theme.badge}`} />
                       {st.color}
                     </span>
                   </td>
 
-                  <td className="py-3 px-4">
+                  <td className="py-3.5 px-5">
                     {st.is_system ? (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700">
                         <ShieldCheck className="w-3 h-3 text-slate-500" />
@@ -142,13 +142,13 @@ export const AttendanceStatusesCard: React.FC<AttendanceStatusesCardProps> = ({ 
                     )}
                   </td>
 
-                  <td className="py-3 px-4">
+                  <td className="py-3.5 px-5">
                     <span className={`text-[11px] font-semibold ${st.is_active ? 'text-emerald-600' : 'text-slate-400'}`}>
                       {st.is_active ? 'Active' : 'Inactive'}
                     </span>
                   </td>
 
-                  <td className="py-3 px-4 text-right">
+                  <td className="py-3.5 px-5 text-right">
                     <div className="flex items-center justify-end gap-1">
                       <button
                         type="button"

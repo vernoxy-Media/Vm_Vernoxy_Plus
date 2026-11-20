@@ -1,14 +1,7 @@
 export type ProjectType = 'client' | 'internal' | 'product' | 'maintenance' | (string & {});
 
-export type ProjectCategory =
-  | 'ecom_website'
-  | 'portfolio_website'
-  | 'seo'
-  | 'social_media'
-  | 'crm'
-  | 'erp'
-  | 'brochure'
-  | 'other';
+/** The code of a Service Fit in Master Data (Settings > Sales > Service Fits): leads and projects share that list. */
+export type ProjectCategory = string;
 
 export type ProjectStatus =
   | 'new'
@@ -83,6 +76,7 @@ export interface ProjectItem {
   tech_frontend?: string | null;
   tech_backend?: string | null;
   tech_cloud?: string | null;
+  tech_database?: string | null;
   description?: string | null;
   members: ProjectMember[];
   deployment?: ProjectDeployment | null;
@@ -113,6 +107,7 @@ export interface CreateProjectPayload {
   tech_frontend?: string;
   tech_backend?: string;
   tech_cloud?: string;
+  tech_database?: string;
   description?: string;
   deployment?: {
     vercel_account?: string;
@@ -178,6 +173,11 @@ export interface ProjectTaskItem {
   sprint_id?: number | null;
   parent_task_id?: number | null;
   project_id: number;
+  /** Tester a finished task goes to before approval; null when the task has no QA step. */
+  qa_assignee_id?: number | null;
+  qa_assignee_name?: string | null;
+  /** Set while the task is being reworked after QA or the approver sent it back. */
+  review_note?: string | null;
   assignees: Array<{
     emp_id: number;
     name: string;
@@ -202,6 +202,8 @@ export interface CreateProjectTaskPayload {
   assignee_ids: number[];
   task_type_id?: number;
   other_task_type?: string;
+  /** Optional QA step: who tests the issue after the developer finishes it. */
+  qa_assignee_id?: number;
   has_sub_tasks?: boolean;
   lead_employee_id?: number;
   sub_tasks?: Array<{
@@ -215,6 +217,15 @@ export interface CreateProjectTaskPayload {
   }>;
 }
 
+/** A file shared in a discussion or in the comments of an issue */
+export interface DiscussionAttachment {
+  attachment_id: number;
+  name: string;
+  mime: string;
+  size: number;
+  url: string;
+}
+
 export interface ProjectDiscussionItem {
   message_id: string;
   project_id: number;
@@ -222,6 +233,7 @@ export interface ProjectDiscussionItem {
   sender_name: string;
   sender_avatar?: string | null;
   message: string;
+  attachments?: DiscussionAttachment[];
   created_at: string;
 }
 
@@ -246,9 +258,11 @@ export type BugStatus =
   | 'done'
   | 'not_a_bug';
 
-export type BugPriority = 'low' | 'medium' | 'high';
+/** The code of a Bug Priority row in Master Data (Settings > Projects > Bug Priorities) */
+export type BugPriority = string;
 
-export type BugType = 'frontend' | 'backend' | 'ui' | 'database' | 'other';
+/** The code of a Bug Type row in Master Data (Settings > Projects > Bug Types) */
+export type BugType = string;
 
 export interface BugCommentItem {
   comment_id: number;
@@ -299,6 +313,12 @@ export interface ProjectBugItem {
   qa_started_at?: string | null;
   qa_ended_at?: string | null;
   total_time_minutes: number;
+  /** Time already spent in development / QA, in seconds (all rounds), without the stretch that is still open */
+  dev_closed_seconds?: number;
+  qa_closed_seconds?: number;
+  /** When the open development / QA stretch began; null when that stage is not running */
+  dev_running_since?: string | null;
+  qa_running_since?: string | null;
   created_at: string;
   comments?: BugCommentItem[];
   history?: BugHistoryItem[];

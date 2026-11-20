@@ -47,6 +47,11 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
           },
         },
       },
+      employee_roles_employee_roles_emp_idToemployees: {
+        include: {
+          roles: { select: { role_id: true, role_name: true } },
+        },
+      },
       master_lookup_employees_gender_idTomaster_lookup: {
         select: { lookup_id: true, code: true, label: true },
       },
@@ -57,6 +62,38 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
     };
   }
 
+  /** Replace the employee's designations with `roleIds`; `primaryRoleId` is flagged as primary. */
+  private async syncEmployeeRoles(
+    client: PrismaClient,
+    empId: number,
+    roleIds: number[],
+    primaryRoleId: number | null,
+    actorId?: number | null,
+  ): Promise<void> {
+    const ids = Array.from(new Set(roleIds));
+    if (ids.length === 0) {
+      await client.employee_roles.deleteMany({ where: { emp_id: empId } });
+      return;
+    }
+    const roleRows = await client.roles.findMany({
+      where: { role_id: { in: ids } },
+      select: { role_id: true, dep_id: true },
+    });
+    const depByRole = new Map(roleRows.map((r) => [r.role_id, r.dep_id]));
+
+    await client.employee_roles.deleteMany({ where: { emp_id: empId, role_id: { notIn: ids } } });
+    for (const roleId of ids) {
+      const depId = depByRole.get(roleId);
+      if (depId === undefined) continue;
+      const isPrimary = roleId === (primaryRoleId ?? ids[0]);
+      await client.employee_roles.upsert({
+        where: { emp_id_role_id: { emp_id: empId, role_id: roleId } },
+        create: { emp_id: empId, role_id: roleId, dep_id: depId, is_primary: isPrimary, created_by: actorId ?? null },
+        update: { dep_id: depId, is_primary: isPrimary },
+      });
+    }
+  }
+
   private mapToEntity(record: any): Employee {
     const rawDepartments = record.employee_departments_employee_departments_emp_idToemployees || [];
     const departments = rawDepartments.map((ed: any) => ({
@@ -65,8 +102,29 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       is_primary: Boolean(ed.is_primary),
     }));
 
+    const rawRoles = record.employee_roles_employee_roles_emp_idToemployees || [];
+    const roles = rawRoles.map((er: any) => ({
+      role_id: er.role_id,
+      role_name: er.roles?.role_name || '',
+      dep_id: er.dep_id,
+      is_primary: Boolean(er.is_primary),
+    }));
+    // Employees saved before multi-designation only have employees.role_id
+    const rolesWithFallback =
+      roles.length > 0
+        ? roles
+        : record.roles_employees_role_idToroles
+          ? [{
+              role_id: record.roles_employees_role_idToroles.role_id,
+              role_name: record.roles_employees_role_idToroles.role_name,
+              dep_id: record.dep_id,
+              is_primary: true,
+            }]
+          : [];
+
     return {
       emp_id: record.emp_id,
+      employee_code: record.employee_code ?? undefined,
       name: record.name,
       email: record.email,
       mob: record.mob,
@@ -98,6 +156,8 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
         name: record.departments_employees_dep_idTodepartments.name,
         is_primary: true,
       }] : []),
+      role_ids: rolesWithFallback.map((r: any) => r.role_id),
+      roles: rolesWithFallback,
       role: record.roles_employees_role_idToroles
         ? {
             role_id: record.roles_employees_role_idToroles.role_id,
@@ -208,10 +268,13 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       where.role_id = filter.role_id;
     }
 
-    if (filter.status && filter.status !== 'All' && (filter.status as string) !== 'Onboarding') {
+    if (filter.status === 'All') {
+      // Explicit "All": everyone, including employees still in Onboarding.
+    } else if (filter.status) {
+      // Active | Inactive | Onboarding
       where.status = filter.status as employee_status;
     } else {
-      // Exclude onboarding candidates from employee list - onboarding belongs to recruitment
+      // No status given (pickers, other callers): keep Onboarding people out of the generic list.
       where.status = { not: 'Onboarding' };
     }
 
@@ -256,7 +319,7 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
         orderBy: { emp_id: 'asc' },
         include: this.getEmployeeIncludes(),
       }),
-      client.employees.count({ where: { deleted_at: null, status: { not: 'Onboarding' } } }),
+      client.employees.count({ where: { deleted_at: null } }),
       client.employees.count({ where: { deleted_at: null, status: 'Active' } }),
       client.employees.count({ where: { deleted_at: null, status: 'Inactive' } }),
       client.employees.count({ where: { deleted_at: null, status: 'Onboarding' } }),
@@ -284,12 +347,12 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
           pendingMap.set(dc.emp_id, Number(dc.pending_count));
         }
         for (const item of items) {
-          item.employee_code = `EMP-${String(item.emp_id).padStart(4, '0')}`;
+          item.employee_code = item.employee_code || `EMP-${String(item.emp_id).padStart(4, '0')}`;
           item.pending_documents_count = pendingMap.get(item.emp_id) ?? 0;
         }
       } catch (err) {
         for (const item of items) {
-          item.employee_code = `EMP-${String(item.emp_id).padStart(4, '0')}`;
+          item.employee_code = item.employee_code || `EMP-${String(item.emp_id).padStart(4, '0')}`;
           item.pending_documents_count = 0;
         }
       }
@@ -340,6 +403,7 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       where,
       select: {
         emp_id: true,
+        employee_code: true,
         name: true,
         email: true,
         status: true,
@@ -356,7 +420,7 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       emp_id: r.emp_id,
       name: r.name,
       email: r.email,
-      employee_code: `EMP-${String(r.emp_id).padStart(4, '0')}`,
+      employee_code: r.employee_code ?? `EMP-${String(r.emp_id).padStart(4, '0')}`,
       role_name: r.roles_employees_role_idToroles?.role_name ?? null,
       status: r.status,
     }));
@@ -372,7 +436,37 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       include: this.getEmployeeIncludes(),
     });
 
-    return record ? this.mapToEntity(record) : null;
+    return record ? this.withContacts(client, this.mapToEntity(record)) : null;
+  }
+
+  /** The emergency contacts of an employee, first one first. */
+  private async contactsOf(client: PrismaClient, empId: number): Promise<Array<{ name: string; relation: string | null; number: string }>> {
+    const rows = await client.$queryRaw<Array<{ name: string; relation: string | null; phone: string }>>`
+      SELECT name, relation, phone FROM employee_emergency_contacts WHERE emp_id = ${empId} ORDER BY sort_order, contact_id`;
+    return rows.map((r) => ({ name: r.name, relation: r.relation, number: r.phone }));
+  }
+
+  private async withContacts(client: PrismaClient, emp: Employee): Promise<Employee> {
+    try {
+      const list = await this.contactsOf(client, emp.emp_id);
+      // An employee saved before the list existed has only the single contact on the row
+      if (list.length === 0 && emp.emergency_contact_name && emp.emergency_contact_number) {
+        list.push({ name: emp.emergency_contact_name, relation: emp.emergency_contact_relation ?? null, number: emp.emergency_contact_number });
+      }
+      return { ...emp, emergency_contacts: list };
+    } catch {
+      return emp;
+    }
+  }
+
+  private async replaceContacts(client: PrismaClient, empId: number, list: Array<{ name: string; relation: string | null; number: string }>): Promise<void> {
+    await client.$executeRaw`DELETE FROM employee_emergency_contacts WHERE emp_id = ${empId}`;
+    let order = 1;
+    for (const c of list) {
+      await client.$executeRaw`
+        INSERT INTO employee_emergency_contacts (emp_id, name, relation, phone, sort_order)
+        VALUES (${empId}, ${c.name}, ${c.relation}, ${c.number}, ${order++})`;
+    }
   }
 
   async findByEmail(email: string, tx?: unknown): Promise<Employee | null> {
@@ -412,6 +506,7 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       dep_id: number;
       department_ids?: number[];
       role_id?: number | null;
+      role_ids?: number[];
       reporting_manager?: number | null;
       joining_date: Date;
       gender_id?: number | null;
@@ -423,6 +518,7 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       emergency_contact_name?: string | null;
       emergency_contact_number?: string | null;
       emergency_contact_relation?: string | null;
+      emergency_contacts?: Array<{ name: string; relation: string | null; number: string }>;
       employment_type_id?: number | null;
       salary?: number;
       probation_period?: string | null;
@@ -495,6 +591,14 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       });
     }
 
+    await this.syncEmployeeRoles(
+      client,
+      created.emp_id,
+      data.role_ids ?? (data.role_id ? [data.role_id] : []),
+      data.role_id ?? null,
+      data.created_by,
+    );
+
     // Provision or sync employee_pay_policies
     await client.employee_pay_policies.upsert({
       where: { emp_id: created.emp_id },
@@ -565,7 +669,8 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       include: this.getEmployeeIncludes(),
     });
 
-    return this.mapToEntity(refreshed ?? created);
+    if (data.emergency_contacts !== undefined) await this.replaceContacts(client, created.emp_id, data.emergency_contacts);
+    return this.withContacts(client, this.mapToEntity(refreshed ?? created));
   }
 
   async update(
@@ -577,6 +682,7 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       dep_id?: number;
       department_ids?: number[];
       role_id?: number | null;
+      role_ids?: number[];
       reporting_manager?: number | null;
       joining_date?: Date;
       exit_date?: Date | null;
@@ -591,6 +697,7 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
       emergency_contact_name?: string | null;
       emergency_contact_number?: string | null;
       emergency_contact_relation?: string | null;
+      emergency_contacts?: Array<{ name: string; relation: string | null; number: string }>;
       employment_type_id?: number | null;
       salary?: number;
       probation_period?: string | null;
@@ -690,6 +797,19 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
         }
       }
 
+      // Synchronize employee_roles (designations) when they changed
+      if (data.role_ids !== undefined || data.role_id !== undefined) {
+        const wanted =
+          data.role_ids ?? (data.role_id ? [data.role_id] : []);
+        await this.syncEmployeeRoles(client, id, wanted, data.role_id ?? updated.role_id ?? null, data.updated_by);
+      } else if (data.department_ids !== undefined || data.dep_id !== undefined) {
+        // Departments changed but designations did not: drop designations of departments the employee left
+        const keepDeps = (await client.employee_departments.findMany({ where: { emp_id: id }, select: { dep_id: true } })).map((d) => d.dep_id);
+        await client.employee_roles.deleteMany({
+          where: { emp_id: id, dep_id: { notIn: keepDeps }, role_id: { not: updated.role_id ?? -1 } },
+        });
+      }
+
       // Synchronize employee_pay_policies if any policy fields updated
       const hasPolicyUpdates =
         data.ot_eligible !== undefined ||
@@ -757,7 +877,8 @@ export class PrismaEmployeeRepository implements EmployeeRepositoryPort {
         include: this.getEmployeeIncludes(),
       });
 
-      return this.mapToEntity(refreshed ?? updated);
+      if (data.emergency_contacts !== undefined) await this.replaceContacts(client, id, data.emergency_contacts);
+      return this.withContacts(client, this.mapToEntity(refreshed ?? updated));
     } catch (err: any) {
       if (err?.message?.includes('Hierarchy cycle detected')) {
         throw new ConflictDomainError(

@@ -2,14 +2,17 @@ import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../core/prisma/prisma.module';
 import { AuthModule } from '../auth/auth.module';
 import { TasksModule } from '../tasks/public-api';
+import { NotificationsModule } from '../notifications/public-api';
 import { ATTENDANCE_TOKENS } from './domain/ports/tokens';
 import { StorageModule } from '../storage/public-api';
 import { PrismaBirthdayRepository } from './infrastructure/repositories/prisma-birthday.repository';
 import { PrismaAttendanceRepository } from './infrastructure/repositories/prisma-attendance.repository';
 import { PrismaAppSettingsRepository } from './infrastructure/repositories/prisma-app-settings.repository';
+import { ReverseGeocoder } from './infrastructure/geocoding/reverse-geocoder';
 import { PrismaPunchLocationRepository } from './infrastructure/repositories/prisma-punch-location.repository';
 import { SystemClock } from './infrastructure/adapters/system-clock.adapter';
 import { PunchInUseCase } from './application/use-cases/punch-in.use-case';
+import { ResumeWorkUseCase } from './application/use-cases/resume-work.use-case';
 import { PunchOutUseCase } from './application/use-cases/punch-out.use-case';
 import { StartBreakUseCase } from './application/use-cases/start-break.use-case';
 import { EndBreakUseCase } from './application/use-cases/end-break.use-case';
@@ -26,11 +29,12 @@ import { AttendanceController } from './presentation/attendance.controller';
 import { AttendanceAdminGuard } from './presentation/guards/attendance-admin.guard';
 
 @Module({
-  imports: [PrismaModule, AuthModule, StorageModule, TasksModule],
+  imports: [PrismaModule, AuthModule, StorageModule, TasksModule, NotificationsModule],
   controllers: [AttendanceController],
   providers: [
     PrismaAttendanceRepository,
     PrismaAppSettingsRepository,
+    ReverseGeocoder,
     PrismaPunchLocationRepository,
     PrismaBirthdayRepository,
     {
@@ -54,6 +58,11 @@ import { AttendanceAdminGuard } from './presentation/guards/attendance-admin.gua
     {
       provide: ATTENDANCE_TOKENS.CLOCK,
       useExisting: SystemClock,
+    },
+    {
+      provide: ResumeWorkUseCase,
+      useFactory: (repo: PrismaAttendanceRepository, clock: SystemClock) => new ResumeWorkUseCase(repo, clock),
+      inject: [PrismaAttendanceRepository, SystemClock],
     },
     {
       provide: PunchInUseCase,
@@ -145,6 +154,7 @@ import { AttendanceAdminGuard } from './presentation/guards/attendance-admin.gua
     ATTENDANCE_TOKENS.APP_SETTINGS_REPOSITORY,
     ATTENDANCE_TOKENS.CLOCK,
     PunchInUseCase,
+    ResumeWorkUseCase,
     PunchOutUseCase,
     StartBreakUseCase,
     EndBreakUseCase,

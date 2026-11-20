@@ -160,6 +160,9 @@ export class MeResponseDto {
   @ApiProperty({ type: Number, example: 1 })
   emp_id!: number;
 
+  @ApiPropertyOptional({ type: String, nullable: true, example: 'EMP-0013', description: 'The stored Employee ID' })
+  employee_code?: string | null;
+
   @ApiProperty({ type: String, example: 'Vernoxy Admin' })
   name!: string;
 

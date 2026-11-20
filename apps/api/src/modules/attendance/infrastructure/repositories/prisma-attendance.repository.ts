@@ -1,4 +1,5 @@
 import type { AnalyticsEmployee, AnalyticsShift } from '../../domain/services/attendance-analytics';
+import { formatTimeIst, hourInIst, todayInIst } from '../../domain/services/attendance-analytics';
 import type { AnalyticsSource } from '../../domain/ports/attendance.repository.port';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../../core/prisma/prisma.service';
@@ -12,7 +13,7 @@ import {
   determineDayStatus,
   formatWorkDate,
 } from '../../domain/services/attendance-calculations';
-import { AlreadyPunchedOutError, AttendanceNotFoundError, AttendanceDomainError } from '../../domain/errors/attendance.errors';
+import { AlreadyPunchedInError, AlreadyPunchedOutError, AttendanceNotFoundError, AttendanceDomainError } from '../../domain/errors/attendance.errors';
 
 @Injectable()
 export class PrismaAttendanceRepository implements AttendanceRepository {
@@ -197,6 +198,31 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
     });
   }
 
+  async reopenAttendanceDay(attendanceId: number, previousCheckOutAt: Date, resumedAt: Date): Promise<AttendanceDayEntity> {
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Open the day again, only if it really is closed
+      const reopened = await tx.attendance_days.updateMany({
+        where: { attendance_id: attendanceId, deleted_at: null, check_out_at: { not: null } },
+        data: { check_out_at: null, day_status: 'incomplete', updated_at: new Date() },
+      });
+      if (reopened.count === 0) throw new AlreadyPunchedInError();
+
+      // 2. The time between the clock-out and now was not worked: a finished break
+      await tx.attendance_breaks.create({
+        data: {
+          attendance_id: attendanceId,
+          started_at: previousCheckOutAt,
+          ended_at: resumedAt,
+          break_type: 'Clocked out',
+          reason: 'Clocked out and resumed work',
+        },
+      });
+
+      const updated = await tx.attendance_days.findUnique({ where: { attendance_id: attendanceId } });
+      return this.mapDayRowToEntity(updated!);
+    });
+  }
+
   async findOpenBreak(attendanceId: number): Promise<AttendanceBreakEntity | null> {
     const row = await this.prisma.attendance_breaks.findFirst({
       where: {
@@ -287,7 +313,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
       SELECT 
         c.*,
         e.name as employee_name,
-        'EMP-' || LPAD(e.emp_id::text, 4, '0') as employee_code,
+        e.employee_code as employee_code,
         d.name as department_name
       FROM attendance_corrections c
       JOIN employees e ON e.emp_id = c.emp_id
@@ -399,7 +425,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
       conditions.push(`(
         e.name ILIKE '%${q}%' 
         OR c.request_id ILIKE '%${q}%' 
-        OR ('EMP-' || LPAD(e.emp_id::text, 4, '0')) ILIKE '%${q}%'
+        OR (e.employee_code) ILIKE '%${q}%'
       )`);
     }
 
@@ -408,7 +434,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
       SELECT 
         c.*,
         e.name as employee_name,
-        'EMP-' || LPAD(e.emp_id::text, 4, '0') as employee_code,
+        e.employee_code as employee_code,
         d.name as department_name
       FROM attendance_corrections c
       JOIN employees e ON e.emp_id = c.emp_id
@@ -436,6 +462,20 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
     createdBy: number;
   }): Promise<AttendanceCorrectionEntity> {
     const correctionId = await this.prisma.$transaction(async (tx) => {
+      // One open request per day: a second one would only confuse the approver
+      const open = await tx.$queryRaw<Array<{ request_id: string | null }>>`
+        SELECT request_id FROM attendance_corrections
+        WHERE emp_id = ${data.empId} AND work_date = ${new Date(data.workDate)} AND status = 'pending' AND deleted_at IS NULL
+        LIMIT 1
+      `;
+      if (open.length > 0) {
+        throw new AttendanceDomainError(
+          'DUPLICATE_REQUEST',
+          `A request for this day is already waiting for approval${open[0].request_id ? ` (${open[0].request_id})` : ''}. Cancel it first if you need to change it.`,
+          409,
+        );
+      }
+
       // 1. Insert correction
       const [inserted] = await tx.$queryRaw<any[]>`
         INSERT INTO attendance_corrections (
@@ -497,6 +537,14 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
     return (await this.findCorrectionById(correctionId))!;
   }
 
+  async listAdminEmpIds(): Promise<number[]> {
+    const admins = await this.prisma.employees.findMany({
+      where: { status: 'Active', deleted_at: null, roles_employees_role_idToroles: { is_admin: true } },
+      select: { emp_id: true },
+    });
+    return admins.map((a) => a.emp_id);
+  }
+
   async cancelRegularization(correctionId: number, empId: number): Promise<AttendanceCorrectionEntity> {
     const existing = await this.findCorrectionById(correctionId);
     if (!existing) {
@@ -542,11 +590,23 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
       throw new AttendanceDomainError('INVALID_STATE', `Only pending requests can be approved. Current status is ${existing.status}`, 400);
     }
 
-    const checkIn = existing.requestedCheckInAt || existing.currentCheckInAt || new Date(`${existing.workDate}T09:30:00.000Z`);
-    const checkOut = existing.requestedCheckOutAt || existing.currentCheckOutAt || new Date(`${existing.workDate}T18:30:00.000Z`);
+    // The day after approval: the corrected punch, else the one already recorded. A punch nobody gave stays empty.
+    const dayBefore = await this.prisma.attendance_days.findFirst({
+      where: { emp_id: existing.empId, work_date: new Date(existing.workDate), deleted_at: null },
+    });
+    const checkIn: Date | null = existing.requestedCheckInAt || existing.currentCheckInAt || dayBefore?.check_in_at || null;
+    const checkOut: Date | null = existing.requestedCheckOutAt || existing.currentCheckOutAt || dayBefore?.check_out_at || null;
+    if (!checkIn) {
+      throw new AttendanceDomainError(
+        'CHECK_IN_UNKNOWN',
+        'This day has no check-in, so a check-out alone cannot be approved. Reject it and ask the employee to raise "Both Clock In & Out".',
+        400,
+      );
+    }
 
-    const durationMinutes = Math.max(0, Math.floor((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 60000));
-    const dayStatus = durationMinutes >= 480 ? 'present' : (durationMinutes >= 240 ? 'half_day' : 'short');
+    const complete = checkOut !== null;
+    const durationMinutes = complete ? Math.max(0, Math.floor((new Date(checkOut!).getTime() - new Date(checkIn).getTime()) / 60000)) : 0;
+    const dayStatus = !complete ? 'incomplete' : durationMinutes >= 480 ? 'present' : durationMinutes >= 240 ? 'half_day' : 'short';
 
     await this.prisma.$transaction(async (tx) => {
       // 1. Update approval row
@@ -870,8 +930,9 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
     return {
       empId: emp.emp_id,
       status: emp.status,
-      joiningDate: emp.joining_date.toISOString().slice(0, 10),
-      exitDate: emp.exit_date ? emp.exit_date.toISOString().slice(0, 10) : null,
+      // Joining dates are stored as Indian midnight (18:30 UTC the day before), so the UTC date is one day early
+      joiningDate: formatWorkDate(emp.joining_date),
+      exitDate: emp.exit_date ? formatWorkDate(emp.exit_date) : null,
     };
   }
 
@@ -903,7 +964,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
       leave: { type_name: string; part: string; [key: string]: any } | null;
       holiday_name: string | null;
       flags: Record<string, any>;
-      breaks: Array<{ started_at: Date; ended_at: Date | null }>;
+      breaks: Array<{ started_at: Date; ended_at: Date | null; break_type?: string | null }>;
     }>;
   }> {
     const monthStartStr = `${yearMonth}-01`;
@@ -1018,7 +1079,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
             const openCalc = calculateOpenDayMinutes(
               new Date(r.check_in_at),
               now,
-              breaksList.map((b) => ({ startedAt: b.started_at, endedAt: b.ended_at })),
+              breaksList.map((b) => ({ startedAt: b.started_at, endedAt: b.ended_at, breakType: b.break_type })),
             );
             prodMinutes = openCalc.workedMinutesSoFar;
             brkMinutes = openCalc.breakMinutesSoFar;
@@ -1514,11 +1575,11 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
     status?: string;
     search?: string;
   }): Promise<any> {
-    const workDateStr = query.date || new Date().toISOString().slice(0, 10);
+    const workDateStr = query.date || todayInIst();
     const [year, month, day] = workDateStr.split('-').map(Number);
     const workDateObj = new Date(Date.UTC(year, month - 1, day));
     const dayOfWeek = workDateObj.getUTCDay();
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = todayInIst();
     const isPastDate = workDateStr < todayStr;
     const isToday = workDateStr === todayStr;
 
@@ -1553,6 +1614,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
         },
         select: {
           emp_id: true,
+          employee_code: true,
           name: true,
           dep_id: true,
           status: true,
@@ -1601,11 +1663,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
       if (!d) return null;
       const dateObj = typeof d === 'string' ? new Date(d) : d;
       if (isNaN(dateObj.getTime())) return null;
-      return dateObj.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true,
-      });
+      return formatTimeIst(dateObj);
     };
 
     const formatRegisterHours = (minutes: number): string => {
@@ -1616,7 +1674,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
     };
 
     const records = employees.map((emp) => {
-      const empCode = `EMP-${String(emp.emp_id).padStart(4, '0')}`;
+      const empCode = (emp.employee_code ?? `EMP-${String(emp.emp_id).padStart(4, '0')}`);
       const departmentName = emp.departments_employees_dep_idTodepartments?.name || 'General';
       const assignedShiftId = empShifts[String(emp.emp_id)];
       const shift = (assignedShiftId ? shifts.find((s) => s.shift_id === assignedShiftId) : null) || defaultShift;
@@ -1658,7 +1716,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
             if (isPastDate) {
               status = 'Missing Punch';
             } else if (isToday) {
-              const nowHour = new Date().getHours();
+              const nowHour = hourInIst();
               status = nowHour >= 20 ? 'Missing Punch' : 'Present';
             } else {
               status = 'Present';
@@ -1810,7 +1868,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
     status?: string;
   }): Promise<any> {
     const reportType = query.reportType || 'daily';
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = todayInIst();
 
     // Default dates
     let fromDateStr = query.fromDate;
@@ -1889,6 +1947,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
         },
         select: {
           emp_id: true,
+          employee_code: true,
           name: true,
           dep_id: true,
           status: true,
@@ -1961,7 +2020,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
       if (!d) return '--';
       const dateObj = typeof d === 'string' ? new Date(d) : d;
       if (isNaN(dateObj.getTime())) return '--';
-      return dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+      return formatTimeIst(dateObj);
     };
 
     const formatMins = (minutes: number): string => {
@@ -2102,7 +2161,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
               status = 'Missing Punch';
               statusCode = 'MP';
             } else if (isToday) {
-              const nowH = new Date().getHours();
+              const nowH = hourInIst();
               status = nowH >= 20 ? 'Missing Punch' : 'Present';
               statusCode = nowH >= 20 ? 'MP' : 'P';
             } else {
@@ -2143,7 +2202,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
 
       return {
         emp_id: emp.emp_id,
-        employee_code: `EMP-${String(emp.emp_id).padStart(4, '0')}`,
+        employee_code: (emp.employee_code ?? `EMP-${String(emp.emp_id).padStart(4, '0')}`),
         name: emp.name,
         department: emp.departments_employees_dep_idTodepartments?.name || 'General',
         department_id: emp.dep_id,
@@ -2241,7 +2300,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
 
         return {
           emp_id: emp.emp_id,
-          employee_code: `EMP-${String(emp.emp_id).padStart(4, '0')}`,
+          employee_code: (emp.employee_code ?? `EMP-${String(emp.emp_id).padStart(4, '0')}`),
           name: emp.name,
           department: emp.departments_employees_dep_idTodepartments?.name || 'General',
           days: dayCodes,
@@ -2297,7 +2356,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
         employee: targetEmp
           ? {
               emp_id: targetEmp.emp_id,
-              employee_code: `EMP-${String(targetEmp.emp_id).padStart(4, '0')}`,
+              employee_code: (targetEmp.employee_code ?? `EMP-${String(targetEmp.emp_id).padStart(4, '0')}`),
               name: targetEmp.name,
               department: targetEmp.departments_employees_dep_idTodepartments?.name || 'General',
             }
@@ -2419,7 +2478,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
         return {
           request_id: `REG-${String(c.correction_id).padStart(4, '0')}`,
           emp_id: c.emp_id,
-          employee_code: emp ? `EMP-${String(emp.emp_id).padStart(4, '0')}` : `EMP-${c.emp_id}`,
+          employee_code: emp ? (emp.employee_code ?? `EMP-${String(emp.emp_id).padStart(4, '0')}`) : `EMP-${c.emp_id}`,
           employee: emp ? emp.name : `Employee #${c.emp_id}`,
           date: c.work_date.toISOString().slice(0, 10),
           type: c.reason?.slice(0, 30) || 'Time Regularization',
@@ -2455,7 +2514,7 @@ export class PrismaAttendanceRepository implements AttendanceRepository {
       statuses: combinedStatuses,
       employees: allEmployees.map((e) => ({
         id: e.emp_id,
-        code: `EMP-${String(e.emp_id).padStart(4, '0')}`,
+        code: (e.employee_code ?? `EMP-${String(e.emp_id).padStart(4, '0')}`),
         name: e.name,
         department: e.departments_employees_dep_idTodepartments?.name || 'General',
       })),

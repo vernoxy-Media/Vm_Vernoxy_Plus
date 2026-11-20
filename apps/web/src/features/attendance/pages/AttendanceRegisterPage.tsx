@@ -19,6 +19,7 @@ import { useAttendanceRegister } from '../hooks/use-attendance';
 import { AttendanceDetailModal } from '../components/AttendanceDetailModal';
 import { AttendanceReportsSection } from '../components/AttendanceReportsSection';
 
+import { localToday } from '@/shared/utils/schedule.utils';
 interface AttendanceRegisterPageProps {
   defaultView?: 'daily' | 'reports';
 }
@@ -82,7 +83,7 @@ export const AttendanceRegisterPage: React.FC<AttendanceRegisterPageProps> = ({ 
     }
   };
 
-  const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const todayStr = useMemo(() => localToday(), []);
 
   const [selectedDate, setSelectedDate] = useState(todayStr);
   const [departmentFilter, setDepartmentFilter] = useState<number | undefined>(undefined);

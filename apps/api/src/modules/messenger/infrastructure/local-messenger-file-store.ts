@@ -28,7 +28,7 @@ export class LocalMessengerFileStore implements MessengerFileStorePort {
     return relative;
   }
 
-  open(relativePath: string): Readable | null {
+  async open(relativePath: string): Promise<Readable | null> {
     const target = path.resolve(this.root, relativePath);
     // Never leave the messenger folder, whatever the stored value says.
     if (!target.startsWith(this.root + path.sep) || !fs.existsSync(target)) return null;

@@ -73,6 +73,13 @@ export class PrismaSalesClientRepository implements SalesClientRepositoryPort {
     };
   }
 
+  async setProjectRevenue(clientId: number, revenue: number | null, actorEmpId: number) {
+    const c = await this.prisma.clients.findFirst({ where: { client_id: clientId, deleted_at: null }, select: { client_id: true } });
+    if (!c) return null;
+    const u = await this.prisma.clients.update({ where: { client_id: clientId }, data: { project_revenue: revenue, updated_by: actorEmpId, updated_at: new Date() }, select: { client_id: true, project_revenue: true } });
+    return { client_id: u.client_id, project_revenue: u.project_revenue != null ? Number(u.project_revenue) : null };
+  }
+
   async getNextClientCode(): Promise<string> {
     const row = await this.prisma.entity_counters.findFirst({ where: { entity_type: 'CLIENT', counter_key: 'GLOBAL' } });
     return `CLI-${String((row?.last_number ?? 0) + 1).padStart(4, '0')}`;
@@ -106,6 +113,7 @@ export class PrismaSalesClientRepository implements SalesClientRepositoryPort {
             converted_from_lead_id: d.lead_id,
             won_on: d.won_on,
             win_note: d.win_note,
+            project_revenue: d.project_revenue ?? null,
             owner_id: lead.lead_by_id,
             created_by: d.actor_emp_id,
           },
@@ -113,6 +121,8 @@ export class PrismaSalesClientRepository implements SalesClientRepositoryPort {
         });
       }
       const clientCode = client.client_code as string;
+      // A company that already was a client keeps its revenue unless the Admin typed a new amount now.
+      if (reused && d.project_revenue != null) await tx.clients.update({ where: { client_id: client.client_id }, data: { project_revenue: d.project_revenue } });
 
       await tx.leads.update({ where: { lead_id: d.lead_id }, data: { converted_client_id: client.client_id } });
       await tx.companies.update({ where: { company_id: companyId }, data: { is_client: true, client_code: clientCode, updated_by: d.actor_emp_id } });

@@ -113,6 +113,19 @@ export function istMinutes(d: Date): number {
   return ist.getUTCHours() * 60 + ist.getUTCMinutes();
 }
 
+/**
+ * A clock time such as "10:14 AM" in Indian time. The server runs in UTC (Render), so a time formatted without a time
+ * zone came out 5 hours 30 minutes early: 04:44 AM for a clock-in at 10:14 AM.
+ */
+export function formatTimeIst(d: Date): string {
+  return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' });
+}
+
+/** The hour of the day (0 to 23) in India right now. */
+export function hourInIst(now: Date = new Date()): number {
+  return Math.floor(istMinutes(now) / 60);
+}
+
 export function hhmm(min: number): string {
   const m = ((Math.round(min) % 1440) + 1440) % 1440;
   return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;

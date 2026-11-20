@@ -59,8 +59,8 @@ export const ExpenseClaimsPage: React.FC = () => {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">Expense Claims</h1>
-          <p className="text-[13px] text-slate-500">Review claims, approve or reject them, and see what is waiting.</p>
+          <h1 className="text-[24px] font-medium leading-8 text-[#172B4D]">Expense Claims</h1>
+          <p className="text-[13px] text-[#6B778C]">Review claims, approve or reject them, and see what is waiting.</p>
         </div>
         <button
           type="button"
@@ -103,8 +103,8 @@ export const ExpenseClaimsPage: React.FC = () => {
               value={k?.oldest_waiting_days ?? 0}
               unit="days"
               icon={CalendarClock}
-              tone={(k?.oldest_waiting_days ?? 0) >= 7 ? 'text-rose-600' : 'text-slate-700'}
-              tile="bg-rose-50 text-rose-600 ring-rose-100"
+              tone={(k?.oldest_waiting_days ?? 0) >= 7 ? 'text-[#BF2600]' : 'text-[#42526E]'}
+              tile="bg-rose-50 text-[#BF2600] ring-rose-100"
               bar="from-rose-400 to-pink-400"
             />
           </>
@@ -129,25 +129,25 @@ export const ExpenseClaimsPage: React.FC = () => {
         />
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex flex-wrap gap-1.5 border-b border-slate-100 px-4 pt-3">
+      <div className="rounded-[3px] border border-[#DFE1E6] bg-white ">
+        <div className="flex flex-wrap gap-1.5 border-b border-[#EBECF0] px-4 pt-3">
           {(data?.tabs || ['pending', 'approved', 'rejected', 'all']).map((t) => (
             <button
               key={t}
               type="button"
               onClick={() => setTab(t)}
-              className={`-mb-px border-b-2 px-3 pb-2.5 text-[13px] font-semibold ${activeTab === t ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+              className={`-mb-px border-b-2 px-3 pb-2.5 text-[13px] font-semibold ${activeTab === t ? 'border-blue-600 text-[#0052CC]' : 'border-transparent text-[#6B778C] hover:text-[#42526E]'}`}
             >
               {TAB_LABEL[t]}
-              {t === 'pending' && k?.waiting_count ? <span className="ml-1.5 rounded-full bg-amber-100 px-1.5 text-[11px] text-amber-700">{k.waiting_count}</span> : null}
+              {t === 'pending' && k?.waiting_count ? <span className="ml-1.5 rounded-[3px] bg-[#FFF0B3] px-1.5 text-[11px] font-bold text-[#172B4D]">{k.waiting_count}</span> : null}
             </button>
           ))}
         </div>
 
-        <div className="flex flex-wrap items-end gap-3 border-b border-slate-100 p-4">
+        <div className="flex flex-wrap items-end gap-3 border-b border-[#EBECF0] p-4">
           <FilterField label="Search">
             <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6B778C]" />
               <input className={`${filterCls} w-60 pl-9`} placeholder="Claim No. or employee name" value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
           </FilterField>
@@ -186,6 +186,7 @@ export const ExpenseClaimsPage: React.FC = () => {
               <option value="">All</option>
               <option value="Office Expense">Office Expense</option>
               <option value="Personal Expense">Personal Expense</option>
+              <option value="Project Expense">Project Expense</option>
             </select>
           </FilterField>
           <FilterField label="Expense Date From">
@@ -194,11 +195,11 @@ export const ExpenseClaimsPage: React.FC = () => {
           <FilterField label="Expense Date To">
             <input type="date" className={`${filterCls} w-40`} value={to} onChange={(e) => setTo(e.target.value)} />
           </FilterField>
-          {isFetching && !isLoading && <Loader2 className="mb-2.5 h-4 w-4 animate-spin text-slate-400" />}
+          {isFetching && !isLoading && <Loader2 className="mb-2.5 h-4 w-4 animate-spin text-[#6B778C]" />}
         </div>
 
         {isLoading ? (
-          <div className="flex h-48 items-center justify-center text-slate-400">
+          <div className="flex h-48 items-center justify-center text-[#6B778C]">
             <Loader2 className="h-5 w-5 animate-spin" />
           </div>
         ) : error ? (
@@ -206,12 +207,12 @@ export const ExpenseClaimsPage: React.FC = () => {
             <Banner>{errorText(error)}</Banner>
           </div>
         ) : !data?.rows.length ? (
-          <p className="px-4 py-14 text-center text-[13px] text-slate-500">{activeTab === 'pending' ? 'No claims are waiting for you.' : 'No claims match these filters.'}</p>
+          <p className="px-4 py-14 text-center text-[13px] text-[#6B778C]">{activeTab === 'pending' ? 'No claims are waiting for you.' : 'No claims match these filters.'}</p>
         ) : (
           <>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[980px] text-left text-[12.5px]">
-                <thead className="bg-slate-50 text-[10.5px] font-semibold uppercase tracking-wider text-slate-500">
+                <thead className="bg-[#F4F5F7] text-[11px] font-semibold uppercase text-[#6B778C]">
                   <tr>
                     <th className="px-4 py-2.5">Claim No.</th>
                     <th className="px-3 py-2.5">Employee</th>
@@ -224,28 +225,28 @@ export const ExpenseClaimsPage: React.FC = () => {
                     <th className="px-4 py-2.5 text-right">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-[#EBECF0]">
                   {data.rows.map((r) => (
-                    <tr key={r.claim_id} className="cursor-pointer hover:bg-slate-50/70" onClick={() => setViewId(r.claim_id)}>
-                      <td className="px-4 py-3 font-semibold text-slate-800">{r.claim_no}</td>
+                    <tr key={r.claim_id} className="cursor-pointer hover:bg-[#F4F5F7]/70" onClick={() => setViewId(r.claim_id)}>
+                      <td className="px-4 py-3 font-semibold text-[#172B4D]">{r.claim_no}</td>
                       <td className="px-3 py-3">
-                        <p className="font-semibold text-slate-800">{r.employee_name}</p>
-                        <p className="text-[11px] text-slate-400">{r.department_name || '—'}</p>
+                        <p className="font-semibold text-[#172B4D]">{r.employee_name}</p>
+                        <p className="text-[11px] text-[#6B778C]">{r.department_name || '—'}</p>
                       </td>
-                      <td className="px-3 py-3 text-slate-600">{fmtDate(r.expense_date)}</td>
-                      <td className="px-3 py-3 text-slate-700">{r.category_name || '—'}</td>
-                      <td className="px-3 py-3 text-slate-600">{r.expense_type}</td>
-                      <td className="px-3 py-3 text-right font-semibold text-slate-900">{inr(r.amount)}</td>
+                      <td className="px-3 py-3 text-[#42526E]">{fmtDate(r.expense_date)}</td>
+                      <td className="px-3 py-3 text-[#42526E]">{r.category_name || '—'}</td>
+                      <td className="px-3 py-3 text-[#42526E]">{r.expense_type}</td>
+                      <td className="px-3 py-3 text-right font-semibold text-[#172B4D]">{inr(r.amount)}</td>
                       <td className="px-3 py-3">
                         <FlagChips claim={r} />
                       </td>
                       <td className="px-3 py-3">
                         {activeTab === 'pending' ? (
-                          <span className="text-slate-600">{fmtDate(r.submitted_at)}</span>
+                          <span className="text-[#42526E]">{fmtDate(r.submitted_at)}</span>
                         ) : (
                           <>
                             <ClaimStatusBadge status={r.status} />
-                            {r.decided_by_name && <p className="mt-0.5 text-[11px] text-slate-400">by {r.decided_by_name}</p>}
+                            {r.decided_by_name && <p className="mt-0.5 text-[11px] text-[#6B778C]">by {r.decided_by_name}</p>}
                           </>
                         )}
                       </td>

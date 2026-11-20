@@ -16,6 +16,7 @@ export interface AttendanceActionsCardProps {
   isPending: boolean;
   onPunchIn: () => Promise<any>;
   onPunchOut: () => Promise<any>;
+  onResumeWork: () => Promise<any>;
   onStartBreak: (breakType?: string, reason?: string) => Promise<any>;
   onResumeBreak: () => Promise<any>;
   errorMessage?: string | null;
@@ -27,12 +28,15 @@ export interface AttendanceActionsCardProps {
 const BREAK_OPTIONS: Array<{
   id: BreakOption;
   label: string;
+  hint: string;
   icon: React.ElementType;
+  /** Soft tint behind the icon so each kind of break is recognised at a glance */
+  tint: string;
 }> = [
-  { id: 'Tea Break', label: 'Tea Break', icon: Coffee },
-  { id: 'Lunch Break', label: 'Lunch Break', icon: Utensils },
-  { id: 'Personal Break', label: 'Personal Break', icon: User },
-  { id: 'Other Break', label: 'Other Break', icon: MessageSquare },
+  { id: 'Tea Break', label: 'Tea Break', hint: 'A quick breather', icon: Coffee, tint: 'bg-amber-50 text-amber-600' },
+  { id: 'Lunch Break', label: 'Lunch Break', hint: 'Meal time', icon: Utensils, tint: 'bg-orange-50 text-orange-600' },
+  { id: 'Personal Break', label: 'Personal Break', hint: 'Step away for a moment', icon: User, tint: 'bg-sky-50 text-sky-600' },
+  { id: 'Other Break', label: 'Other Break', hint: 'Anything else', icon: MessageSquare, tint: 'bg-violet-50 text-violet-600' },
 ];
 
 export const AttendanceActionsCard: React.FC<AttendanceActionsCardProps> = ({
@@ -40,6 +44,7 @@ export const AttendanceActionsCard: React.FC<AttendanceActionsCardProps> = ({
   isPending,
   onPunchIn,
   onPunchOut,
+  onResumeWork,
   onStartBreak,
   onResumeBreak,
   onRegularize,
@@ -57,18 +62,23 @@ export const AttendanceActionsCard: React.FC<AttendanceActionsCardProps> = ({
     return () => clearInterval(timer);
   }, []);
 
-  // Close dropdown on outside click
+  // Close dropdown on outside click or Escape
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setBreakDropdownOpen(false);
       }
     }
+    function handleKey(event: KeyboardEvent) {
+      if (event.key === 'Escape') setBreakDropdownOpen(false);
+    }
     if (breakDropdownOpen) {
       document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleKey);
     }
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKey);
     };
   }, [breakDropdownOpen]);
 
@@ -96,8 +106,19 @@ export const AttendanceActionsCard: React.FC<AttendanceActionsCardProps> = ({
     return `${Math.floor(t / 60)}h ${String(t % 60).padStart(2, '0')}m`;
   };
 
+  // One tap on the red button only asks; a second tap within a few seconds clocks out. A clock-out by mistake used to
+  // end the day with no way back.
+  const [confirmOut, setConfirmOut] = useState(false);
+  useEffect(() => {
+    if (!confirmOut) return;
+    const t = window.setTimeout(() => setConfirmOut(false), 6000);
+    return () => window.clearTimeout(t);
+  }, [confirmOut]);
+
   const isWorking = today.state === 'working';
   const isOnBreak = today.state === 'on_break';
+  // Clocked out: there is one clock-in per day, so offering "Web Clock-in" again could only fail with a 409
+  const isDone = today.state === 'done';
 
   const handleSelectBreak = (type: BreakOption) => {
     setBreakDropdownOpen(false);
@@ -113,11 +134,44 @@ export const AttendanceActionsCard: React.FC<AttendanceActionsCardProps> = ({
     >
       Web Clock-out
     </button>
+  ) : isDone ? (
+    <button
+      type="button"
+      disabled={isPending}
+      onClick={() => void onResumeWork()}
+      title="Still working? This opens today again. The time since you clocked out is counted as a break."
+      className="inline-flex w-full items-center justify-center gap-2.5 rounded-xl bg-white px-5 py-4 text-base font-bold text-[color:var(--ac-dark,#1D4ED8)] shadow-md transition hover:bg-sky-50 active:scale-[0.98] disabled:opacity-60 cursor-pointer whitespace-nowrap"
+    >
+      {isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <LogIn className="h-5 w-5" />}
+      Resume work
+    </button>
+  ) : isWorking && confirmOut ? (
+    <div className="grid grid-cols-[1fr_auto] gap-2">
+      <button
+        type="button"
+        disabled={isPending}
+        onClick={() => {
+          setConfirmOut(false);
+          void onPunchOut();
+        }}
+        className="inline-flex items-center justify-center gap-2 rounded-xl bg-rose-500 px-4 py-4 text-base font-bold text-white shadow-md transition hover:bg-rose-600 active:scale-[0.98] disabled:opacity-60 cursor-pointer whitespace-nowrap"
+      >
+        <LogOut className="h-5 w-5" />
+        Yes, clock out
+      </button>
+      <button
+        type="button"
+        onClick={() => setConfirmOut(false)}
+        className="rounded-xl bg-white/15 px-4 py-4 text-sm font-semibold text-white transition hover:bg-white/25 cursor-pointer"
+      >
+        Keep working
+      </button>
+    </div>
   ) : (
     <button
       type="button"
       disabled={isPending}
-      onClick={() => (isWorking ? onPunchOut() : onPunchIn())}
+      onClick={() => (isWorking ? setConfirmOut(true) : onPunchIn())}
       className={`inline-flex w-full items-center justify-center gap-2.5 rounded-xl px-5 py-4 text-base font-bold shadow-md transition active:scale-[0.98] disabled:opacity-50 whitespace-nowrap cursor-pointer ${
         isWorking ? 'bg-rose-500 text-white hover:bg-rose-600' : 'cta-pulse bg-white text-[color:var(--ac-dark,#1D4ED8)] hover:bg-sky-50'
       }`}
@@ -132,9 +186,12 @@ export const AttendanceActionsCard: React.FC<AttendanceActionsCardProps> = ({
   return (
     <div
       id="attendance-actions-card"
-      className="relative flex flex-col justify-between gap-4 overflow-hidden rounded-2xl bg-gradient-to-br from-[color:rgb(var(--tw-indigo-950,11_27_74))] via-[color:var(--ac-dark,#16358F)] to-[color:var(--ac-main,#2563EB)] p-4 text-white shadow-lg shadow-blue-900/10 sm:p-5"
+      className="relative flex flex-col justify-between gap-4 rounded-2xl bg-gradient-to-br from-[color:rgb(var(--tw-indigo-950,11_27_74))] via-[color:var(--ac-dark,#16358F)] to-[color:var(--ac-main,#2563EB)] p-4 text-white shadow-lg shadow-blue-900/10 sm:p-5"
     >
-      <span aria-hidden className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+      {/* The glow is clipped on its own, so the card itself does not clip the break menu */}
+      <span aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
+        <span className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+      </span>
       <div className="relative flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
         <div>
           <div className="flex items-baseline whitespace-nowrap font-medium leading-none text-white">
@@ -150,6 +207,8 @@ export const AttendanceActionsCard: React.FC<AttendanceActionsCardProps> = ({
                 <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-900" />
                 Working
               </span>
+            ) : isDone ? (
+              <span className="rounded-full bg-white/20 px-3 py-1 text-[11px] font-bold text-white">Clocked out</span>
             ) : (
               <span className="rounded-full bg-white/20 px-3 py-1 text-[11px] font-bold text-white">Ready to Clock In</span>
             )}
@@ -185,24 +244,37 @@ export const AttendanceActionsCard: React.FC<AttendanceActionsCardProps> = ({
                 type="button"
                 disabled={!isWorking || isPending}
                 onClick={() => setBreakDropdownOpen((prev) => !prev)}
-                className={`${linkCls} inline-flex items-center gap-1 disabled:cursor-not-allowed disabled:opacity-40`}
+                aria-haspopup="menu"
+                aria-expanded={breakDropdownOpen}
+                className={`${linkCls} inline-flex items-center gap-1 disabled:cursor-not-allowed disabled:opacity-40 ${breakDropdownOpen ? 'bg-white/25' : ''}`}
               >
-                Take a Break <ChevronDown className="h-4 w-4" />
+                Take a Break
+                <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${breakDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
               {breakDropdownOpen && (
-                <div className="absolute left-0 top-full z-30 mt-1.5 w-52 rounded-xl border border-[#D4DCE6] bg-white py-1.5 shadow-xl animate-in fade-in">
-                  <div className="px-3 py-1 text-[10px] font-extrabold uppercase text-[#94A3B8]">Select Break</div>
+                <div
+                  role="menu"
+                  aria-label="Select break"
+                  className="absolute left-0 top-full z-50 mt-2 w-64 max-w-[calc(100vw-2rem)] origin-top-left rounded-2xl bg-white p-1.5 shadow-2xl shadow-slate-900/25 ring-1 ring-slate-900/10 animate-in fade-in zoom-in-95"
+                >
+                  <div className="px-2.5 pb-1 pt-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Select break</div>
                   {BREAK_OPTIONS.map((opt) => {
                     const Icon = opt.icon;
                     return (
                       <button
                         key={opt.id}
                         type="button"
+                        role="menuitem"
                         onClick={() => handleSelectBreak(opt.id)}
-                        className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm font-semibold text-[#1E293B] hover:bg-[#F4F4FF]"
+                        className="group flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-slate-50 focus-visible:bg-slate-50 focus-visible:outline-none cursor-pointer"
                       >
-                        <Icon className="h-3.5 w-3.5 text-[#64748B]" />
-                        <span>{opt.label}</span>
+                        <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${opt.tint}`}>
+                          <Icon className="h-4 w-4" />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block text-[13px] font-semibold leading-tight text-slate-800">{opt.label}</span>
+                          <span className="block text-[11px] leading-tight text-slate-400">{opt.hint}</span>
+                        </span>
                       </button>
                     );
                   })}

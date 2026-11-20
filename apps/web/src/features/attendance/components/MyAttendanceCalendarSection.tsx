@@ -7,6 +7,7 @@ import { AttendanceListView } from './AttendanceListView';
 import { AttendanceDetailModal } from './AttendanceDetailModal';
 import type { DayRecord } from '../types/attendance.types';
 
+import { localToday } from '@/shared/utils/schedule.utils';
 const MONTHS = [
   { value: '01', label: 'January' },
   { value: '02', label: 'February' },
@@ -27,7 +28,7 @@ const WEEK_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 export const MyAttendanceCalendarSection: React.FC = () => {
   const { user } = useAuth();
 
-  const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const todayStr = useMemo(() => localToday(), []);
   const currentYear = useMemo(() => new Date().getFullYear(), []);
   const currentMonth = useMemo(() => String(new Date().getMonth() + 1).padStart(2, '0'), []);
 
@@ -389,7 +390,7 @@ export const MyAttendanceCalendarSection: React.FC = () => {
           date={detailModal.date}
           record={detailModal.record}
           employeeInfo={{
-            empId: user?.emp_id,
+            empId: (user as { employee_code?: string | null } | null)?.employee_code || user?.emp_id,
             name: user?.name,
             department: (user as any)?.department?.department_name || (user as any)?.dep_name,
           }}

@@ -9,13 +9,15 @@ interface CreateBugModalProps {
   projectId: number;
   projectMembers: ProjectMember[];
   tasks: ProjectTaskItem[];
+  /** Pre-select this task (used when the bug is reported from a task the user is working on). */
+  defaultTaskId?: number;
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (payload: CreateProjectBugPayload) => Promise<void>;
 }
 
 /** Create Bug (Project BFD 3.5). Fields in BFD order; Status is set by the system (New). */
-export const CreateBugModal: React.FC<CreateBugModalProps> = ({ projectMembers, tasks, isOpen, onClose, onSubmit }) => {
+export const CreateBugModal: React.FC<CreateBugModalProps> = ({ projectMembers, tasks, defaultTaskId, isOpen, onClose, onSubmit }) => {
   const { data: bugTypes = [] } = useLookupsQuery('bug_type');
   const { data: bugPriorities = [] } = useLookupsQuery('bug_priority');
   const members = useMemo(
@@ -52,13 +54,23 @@ export const CreateBugModal: React.FC<CreateBugModalProps> = ({ projectMembers, 
     setPriority('low');
     setBugType('');
     setOtherBugType('');
-    setTaskId('');
+    setTaskId(defaultTaskId ? String(defaultTaskId) : '');
     setStartDate('');
     setDueDate('');
     setFile(null);
     setErrors({});
     setFormError(null);
-  }, [isOpen]);
+  }, [isOpen, defaultTaskId]);
+
+  // Keep the chosen priority valid for the Master Data list (the list can change in Settings)
+  useEffect(() => {
+    if (!isOpen || bugPriorities.length === 0) return;
+    setPriority((prev) =>
+      bugPriorities.some((p) => p.code === prev)
+        ? prev
+        : (bugPriorities.find((p) => p.code === 'low') ?? bugPriorities[bugPriorities.length - 1]).code,
+    );
+  }, [isOpen, bugPriorities]);
 
   if (!isOpen) return null;
 

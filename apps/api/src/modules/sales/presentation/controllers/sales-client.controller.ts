@@ -1,10 +1,10 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../auth/public-api';
 import { SalesAccessGuard } from '../guards/sales-access.guard';
 import { CurrentSalesActor } from '../guards/sales-actor.decorator';
 import { mapSalesErrorToHttpException } from '../sales-error.mapper';
-import { ConvertToClientBodyDto, ListClientsQueryDto, ReverseConversionBodyDto } from '../dto/sales-client.dto';
+import { ConvertToClientBodyDto, ListClientsQueryDto, ReverseConversionBodyDto, SetClientRevenueBodyDto } from '../dto/sales-client.dto';
 import { SalesActor } from '../../application/ports/sales-access-policy.port';
 import { ClientUseCases } from '../../application/use-cases/client.use-cases';
 
@@ -51,6 +51,12 @@ export class SalesClientController {
   @ApiOperation({ summary: 'List clients: search, sort, pages, and the counters' })
   list(@Query() query: ListClientsQueryDto) {
     return run(() => this.clients.list({ q: query.q, sort: query.sort ?? 'won_on', order: query.order ?? 'desc', page: query.page ?? 1, limit: query.limit ?? 12 }));
+  }
+
+  @Patch('clients/:id/revenue')
+  @ApiOperation({ summary: 'Admin only: record or change what the client pays for its project(s). Empty clears it.' })
+  setRevenue(@Param('id', ParseIntPipe) id: number, @Body() body: SetClientRevenueBodyDto, @CurrentSalesActor() actor: SalesActor) {
+    return run(() => this.clients.setRevenue(id, body, actor));
   }
 
   @Get('companies/:id/projects')

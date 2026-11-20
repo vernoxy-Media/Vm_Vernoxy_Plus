@@ -24,6 +24,13 @@ describe('planFlush', () => {
     );
   });
 
+  it('never empties a one-row settings table, even when master data is flushed', () => {
+    const tables = ['employees', 'leave_general_settings', 'leave_types', 'expense_general_settings', 'projects'];
+    const plan = planFlush(tables, KEEP, true);
+    expect(plan.keptWhole).toEqual(['expense_general_settings', 'leave_general_settings']);
+    expect(plan.deleteAll).toEqual(['leave_types', 'projects']);
+  });
+
   it('never plans to delete every employee: the admin ids are always the keep list', () => {
     const sql = deleteStatements(planFlush(TABLES, KEEP, false));
     expect(sql).toContain('DELETE FROM "employees" WHERE "emp_id" <> ALL(ARRAY[1]::int[])');

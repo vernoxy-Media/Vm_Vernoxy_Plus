@@ -399,66 +399,25 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
     }
   };
 
+  // Jump to the first field that needs attention so the user sees what is missing
+  const focusFirstInvalid = (ids: string[]) => {
+    setTimeout(() => {
+      for (const id of ids) {
+        const el = document.getElementById(id);
+        if (el) {
+          el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+          el.focus({ preventScroll: true });
+          break;
+        }
+      }
+    }, 0);
+  };
+
   // Validation
-  const validateInfoTab = () => {
-    const errs: Record<string, string> = {};
-    const nameErr = nameError(name);
-    if (nameErr) errs.name = nameErr;
-    const phoneErr = phoneError(phone);
-    if (phoneErr) errs.phone = phoneErr;
-    const emailErr = emailError(email);
-    if (emailErr) errs.email = emailErr;
-
-    setErrors((prev) => {
-      const next = { ...prev };
-      if (errs.name) next.name = errs.name; else delete next.name;
-      if (errs.phone) next.phone = errs.phone; else delete next.phone;
-      if (errs.email) next.email = errs.email; else delete next.email;
-      return next;
-    });
-
-    return !errs.name && !errs.phone && !errs.email;
-  };
-
-  const validateExperienceTab = () => {
-    const errs: Record<string, string> = {};
-    if (!selectedRoleId) errs.role = 'Please select a position applied for.';
-    if (!selectedDepId) errs.department = 'Please select a department.';
-
-    if (experienceType === 'experienced') {
-      if (noticePeriod === 'serving_notice' && !servingNoticeLwd) {
-        errs.servingNoticeLwd = 'Please specify the last working day.';
-      }
-      const expErr = experienceError(totalExperience);
-      if (expErr) errs.totalExperience = expErr;
-      const curErr = ctcError(currentCtc);
-      if (curErr) errs.currentCtc = curErr;
-    }
-    const expectedErr = ctcError(expectedCtc);
-    if (expectedErr) errs.expectedCtc = expectedErr;
-
-    const keys = ['role', 'department', 'servingNoticeLwd', 'totalExperience', 'currentCtc', 'expectedCtc'];
-    setErrors((prev) => {
-      const next = { ...prev };
-      for (const k of keys) {
-        if (errs[k]) next[k] = errs[k]; else delete next[k];
-      }
-      return next;
-    });
-
-    return keys.every((k) => !errs[k]);
-  };
-
   const handleContinue = () => {
-    if (activeTab === 'info') {
-      if (validateInfoTab()) {
-        setActiveTab('experience');
-      }
-    } else if (activeTab === 'experience') {
-      if (validateExperienceTab()) {
-        setActiveTab('source');
-      }
-    }
+    // Tabs can be browsed freely; everything is checked when the candidate is added
+    if (activeTab === 'info') setActiveTab('experience');
+    else if (activeTab === 'experience') setActiveTab('source');
   };
 
   const validateForm = () => {
@@ -504,6 +463,7 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
     setErrors(errs);
     if (Object.keys(errs).length > 0) {
       if (errs.name || errs.phone || errs.email) {
+        focusFirstInvalid([errs.name ? 'cand-name' : '', errs.phone ? 'cand-phone' : '', errs.email ? 'cand-email' : ''].filter(Boolean));
         setActiveTab('info');
       } else if (
         errs.role ||
@@ -757,15 +717,12 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
           >
             <User className="w-3.5 h-3.5" />
             <span>Candidate Info</span>
+            {(errors.name || errors.phone || errors.email) && <span className="h-2 w-2 rounded-full bg-red-500" aria-label="Needs attention" />}
           </button>
 
           <button
             type="button"
-            onClick={() => {
-              if (validateInfoTab()) {
-                setActiveTab('experience');
-              }
-            }}
+            onClick={() => setActiveTab('experience')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
               activeTab === 'experience'
                 ? 'bg-blue-600 text-white shadow-2xs'
@@ -774,15 +731,12 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
           >
             <Briefcase className="w-3.5 h-3.5" />
             <span>Position & Experience</span>
+            {(errors.role || errors.department || errors.servingNoticeLwd) && <span className="h-2 w-2 rounded-full bg-red-500" aria-label="Needs attention" />}
           </button>
 
           <button
             type="button"
-            onClick={() => {
-              if (validateInfoTab() && validateExperienceTab()) {
-                setActiveTab('source');
-              }
-            }}
+            onClick={() => setActiveTab('source')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
               activeTab === 'source'
                 ? 'bg-blue-600 text-white shadow-2xs'
@@ -791,6 +745,7 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
           >
             <Building2 className="w-3.5 h-3.5" />
             <span>Source & Notes</span>
+            {(errors.sourcePortal || errors.referredBy || errors.consultancy || errors.college || errors.sourceDetails) && <span className="h-2 w-2 rounded-full bg-red-500" aria-label="Needs attention" />}
           </button>
         </div>
 
@@ -872,15 +827,15 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
                   Full Name <span className="text-red-500">*</span>
                 </label>
                 <input
+                  id="cand-name"
                   type="text"
-                  required
                   value={name}
                   onChange={(e) => {
                     setName(e.target.value);
                     if (errors.name) setErrors((prev) => ({ ...prev, name: '' }));
                   }}
                   placeholder="Enter candidate full name"
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                  className={`w-full px-3.5 py-2.5 bg-slate-50 border ${errors.name ? 'border-red-400' : 'border-slate-200'} rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition`}
                 />
                 {errors.name && <p className="text-[11px] text-red-500 font-medium">{errors.name}</p>}
               </div>
@@ -902,8 +857,9 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
                       setPhone(val);
                       if (errors.phone) setErrors((prev) => ({ ...prev, phone: '' }));
                     }}
+                    id="cand-phone"
                     maxLength={10}
-                    placeholder="9876543210"
+                    placeholder="Enter 10-digit number"
                     error={errors.phone}
                   />
                 </div>
@@ -913,15 +869,16 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({
                     Email Address <span className="text-red-500">*</span>
                   </label>
                   <input
-                    type="email"
-                    required
+                    id="cand-email"
+                    type="text"
+                    inputMode="email"
                     value={email}
                     onChange={(e) => {
                       setEmail(e.target.value);
                       if (errors.email) setErrors((prev) => ({ ...prev, email: '' }));
                     }}
-                    placeholder="candidate@example.com"
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                    placeholder="Enter email address"
+                    className={`w-full px-3.5 py-2.5 bg-slate-50 border ${errors.email ? 'border-red-400' : 'border-slate-200'} rounded-xl text-[13.5px] text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition`}
                   />
                   {errors.email && <p className="text-[11px] text-red-500 font-medium">{errors.email}</p>}
                 </div>

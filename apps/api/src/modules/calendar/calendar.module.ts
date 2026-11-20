@@ -34,8 +34,8 @@ import { SendMeetingReminderUseCase } from './application/use-cases/send-meeting
     },
     {
       provide: CreateCalendarEventUseCase,
-      useFactory: (repo: CalendarRepositoryPort) => new CreateCalendarEventUseCase(repo),
-      inject: [CALENDAR_TOKENS.CalendarRepository],
+      useFactory: (repo: CalendarRepositoryPort, notifier: CalendarNotifierPort) => new CreateCalendarEventUseCase(repo, notifier),
+      inject: [CALENDAR_TOKENS.CalendarRepository, CALENDAR_NOTIFIER],
     },
     {
       provide: UpdateCalendarEventUseCase,

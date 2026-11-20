@@ -7,6 +7,7 @@ export * from './SearchableSelect';
 export * from './SearchableCombobox';
 export * from './CountryPhoneInput';
 export * from './DepartmentMultiSelect';
+export * from './DesignationMultiSelect';
 export * from './ReportingManagerSelect';
 export * from './RowActionsMenu';
 export * from './Pagination';

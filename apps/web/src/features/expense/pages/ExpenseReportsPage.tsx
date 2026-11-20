@@ -384,12 +384,12 @@ export const ExpenseReportsPage: React.FC = (): React.ReactElement => {
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex min-w-0 items-center gap-3.5">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-600/25">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[3px] bg-[#0052CC] text-white">
             <BarChart3 className="h-6 w-6" />
           </span>
           <div className="min-w-0">
-            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-[28px]">Expense Reports</h1>
-            <p className="mt-0.5 text-sm text-slate-500">Spending trends, policy compliance and approval turnaround.</p>
+            <h1 className="text-[24px] font-medium leading-8 text-[#172B4D]">Expense Reports</h1>
+            <p className="mt-0.5 text-sm text-[#6B778C]">Spending trends, policy compliance and approval turnaround.</p>
           </div>
         </div>
 
@@ -398,15 +398,15 @@ export const ExpenseReportsPage: React.FC = (): React.ReactElement => {
             type="button"
             onClick={handleClearFilters}
             title="Reset filters"
-            className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-[13px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+            className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-[3px] border border-[#DFE1E6] bg-white px-3.5 text-[13px] font-semibold text-[#42526E]  transition hover:bg-[#F4F5F7]"
           >
-            <RotateCcw className="h-4 w-4 text-slate-500" />
+            <RotateCcw className="h-4 w-4 text-[#6B778C]" />
             Clear filters
           </button>
           <button
             type="button"
             onClick={handleExportCSV}
-            className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-xl bg-indigo-600 px-4 text-[13px] font-semibold text-white shadow-sm shadow-indigo-600/25 transition hover:bg-indigo-700"
+            className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-[3px] bg-indigo-600 px-4 text-[13px] font-semibold text-white  shadow-indigo-600/25 transition hover:bg-indigo-700"
           >
             <Download className="h-4 w-4" />
             Export CSV
@@ -415,7 +415,7 @@ export const ExpenseReportsPage: React.FC = (): React.ReactElement => {
             type="button"
             onClick={handleExportExcel}
             disabled={excelBusy}
-            className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-xl bg-emerald-600 px-4 text-[13px] font-semibold text-white shadow-sm shadow-emerald-600/25 transition hover:bg-emerald-700 disabled:opacity-50"
+            className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-[3px] bg-[#00875A] px-4 text-[13px] font-semibold text-white  shadow-emerald-600/25 transition hover:bg-[#006644] disabled:opacity-50"
           >
             <Download className="h-4 w-4" />
             {excelBusy ? 'Preparing…' : 'Export Excel'}
@@ -423,14 +423,14 @@ export const ExpenseReportsPage: React.FC = (): React.ReactElement => {
         </div>
       </div>
       {(excelError || reportError) && (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-[12.5px] font-medium text-rose-700">
+        <div className="rounded-[3px] border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-[12.5px] font-medium text-[#BF2600]">
           {excelError || errorText(reportError)}
         </div>
       )}
 
       {/* Report type */}
       <div className="-mx-1 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div role="tablist" aria-label="Report type" className="inline-flex gap-1 rounded-xl bg-slate-100 p-1">
+        <div role="tablist" aria-label="Report type" className="inline-flex gap-1 rounded-[3px] bg-[#EBECF0] p-1">
           {reportTabs.map((tab) => {
             const on = activeTab === tab.key;
             return (
@@ -440,7 +440,7 @@ export const ExpenseReportsPage: React.FC = (): React.ReactElement => {
                 role="tab"
                 aria-selected={on}
                 onClick={() => setActiveTab(tab.key)}
-                className={`cursor-pointer whitespace-nowrap rounded-lg px-4 py-2 text-[13px] font-semibold transition ${on ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                className={`cursor-pointer whitespace-nowrap rounded-[3px] px-4 py-2 text-[13px] font-semibold transition ${on ? 'bg-white text-indigo-700 ' : 'text-[#6B778C] hover:text-[#172B4D]'}`}
               >
                 {tab.label}
               </button>
@@ -450,22 +450,22 @@ export const ExpenseReportsPage: React.FC = (): React.ReactElement => {
       </div>
 
       {/* Filters */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+      <div className="rounded-[3px] border border-[#DFE1E6] bg-white p-4  sm:p-5">
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2 text-[13px] font-bold text-slate-800">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+          <div className="flex items-center gap-2 text-[13px] font-bold text-[#172B4D]">
+            <span className="flex h-7 w-7 items-center justify-center rounded-[3px] bg-indigo-50 text-indigo-600">
               <Filter className="h-3.5 w-3.5" />
             </span>
             Filters
           </div>
           <div className="-mx-1 flex items-center gap-1.5 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <span className="shrink-0 text-xs font-medium text-slate-400">Quick picks</span>
+            <span className="shrink-0 text-xs font-medium text-[#6B778C]">Quick picks</span>
             {quickPicks.map((q) => (
               <button
                 key={q.key}
                 type="button"
                 onClick={() => handleQuickPick(q.key)}
-                className="shrink-0 cursor-pointer rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:bg-indigo-50 hover:text-indigo-700"
+                className="shrink-0 cursor-pointer rounded-[3px] bg-[rgba(9,30,66,0.04)] px-2.5 py-1 text-[13px] font-medium text-[#42526E] transition hover:bg-[rgba(9,30,66,0.08)] hover:text-[#172B4D]"
               >
                 {q.label}
               </button>
@@ -545,22 +545,22 @@ export const ExpenseReportsPage: React.FC = (): React.ReactElement => {
 
       {/* Totals */}
       <div className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 lg:grid-cols-4 lg:gap-4">
-        <StatCard label="Total period spend" value={inr(totals.total_amount)} hint={`${totals.total_claims} claims approved / reimbursed`} icon={Receipt} tone="text-slate-900" tile="bg-indigo-50 text-indigo-600 ring-indigo-100" bar="from-indigo-500 to-violet-500" />
+        <StatCard label="Total period spend" value={inr(totals.total_amount)} hint={`${totals.total_claims} claims approved / reimbursed`} icon={Receipt} tone="text-[#172B4D]" tile="bg-indigo-50 text-indigo-600 ring-indigo-100" bar="from-indigo-500 to-violet-500" />
         <StatCard label="Office expenses" value={inr(totals.office_amount)} hint={`${totals.office_count} claims (${pct(totals.office_amount)}%)`} icon={Building2} tone="text-emerald-600" tile="bg-emerald-50 text-emerald-600 ring-emerald-100" bar="from-emerald-400 to-teal-400" />
-        <StatCard label="Personal expenses" value={inr(totals.personal_amount)} hint={`${totals.personal_count} claims (${pct(totals.personal_amount)}%)`} icon={Users} tone="text-blue-600" tile="bg-blue-50 text-blue-600 ring-blue-100" bar="from-blue-500 to-sky-500" />
-        <StatCard label="Rejected claims" value={inr(totals.rejected_amount)} hint={`${totals.rejected_count} claims rejected in period`} icon={AlertCircle} tone="text-rose-600" tile="bg-rose-50 text-rose-600 ring-rose-100" bar="from-rose-500 to-pink-500" />
+        <StatCard label="Personal expenses" value={inr(totals.personal_amount)} hint={`${totals.personal_count} claims (${pct(totals.personal_amount)}%)`} icon={Users} tone="text-[#0052CC]" tile="bg-[#DEEBFF] text-[#0052CC] ring-blue-100" bar="from-blue-500 to-sky-500" />
+        <StatCard label="Rejected claims" value={inr(totals.rejected_amount)} hint={`${totals.rejected_count} claims rejected in period`} icon={AlertCircle} tone="text-[#BF2600]" tile="bg-rose-50 text-[#BF2600] ring-rose-100" bar="from-rose-500 to-pink-500" />
       </div>
 
       {/* 6-month trend */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+      <div className="rounded-[3px] border border-[#DFE1E6] bg-white p-4  sm:p-5">
         <div className="mb-4">
-          <h2 className="flex items-center gap-2 text-[15px] font-bold text-slate-900">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+          <h2 className="flex items-center gap-2 text-[15px] font-bold text-[#172B4D]">
+            <span className="flex h-7 w-7 items-center justify-center rounded-[3px] bg-indigo-50 text-indigo-600">
               <BarChart3 className="h-3.5 w-3.5" />
             </span>
             6-month spending trend
           </h2>
-          <p className="mt-1 text-xs text-slate-500">Click a bar to switch the report to that month.</p>
+          <p className="mt-1 text-xs text-[#6B778C]">Click a bar to switch the report to that month.</p>
         </div>
 
         <div className="grid grid-cols-6 gap-2 sm:gap-4">
@@ -575,18 +575,18 @@ export const ExpenseReportsPage: React.FC = (): React.ReactElement => {
                   setActiveTab('monthly');
                 }}
                 title={`${t.label}: ${inr(t.total_amount)} (${t.claim_count} claims)`}
-                className={`group flex cursor-pointer flex-col items-center rounded-xl px-1 pb-3 pt-3 transition ${t.is_selected ? 'bg-indigo-50/70 ring-1 ring-indigo-200' : 'hover:bg-slate-50'}`}
+                className={`group flex cursor-pointer flex-col items-center rounded-[3px] px-1 pb-3 pt-3 transition ${t.is_selected ? 'bg-indigo-50/70 ring-1 ring-indigo-200' : 'hover:bg-[#F4F5F7]'}`}
               >
-                <span className="mb-1 text-[11px] font-bold text-slate-600 group-hover:text-indigo-600">
+                <span className="mb-1 text-[11px] font-bold text-[#42526E] group-hover:text-indigo-600">
                   ₹{t.total_amount >= 1000 ? `${(t.total_amount / 1000).toFixed(1)}k` : t.total_amount}
                 </span>
-                <div className="flex h-32 w-full max-w-[3.5rem] items-end overflow-hidden rounded-lg bg-slate-100/80">
+                <div className="flex h-32 w-full max-w-[3.5rem] items-end overflow-hidden rounded-[3px] bg-[#EBECF0]/80">
                   <div
                     style={{ height: `${heightPercent}%` }}
-                    className={`w-full rounded-t-md transition-all ${t.is_selected ? 'bg-gradient-to-t from-indigo-600 to-indigo-400' : 'bg-gradient-to-t from-indigo-300 to-indigo-200 group-hover:from-indigo-400 group-hover:to-indigo-300'}`}
+                    className={`w-full rounded-t-md transition-all ${t.is_selected ? 'bg-[#0052CC]' : 'bg-[#B3D4FF] group-hover:from-indigo-400 group-hover:to-indigo-300'}`}
                   />
                 </div>
-                <span className={`mt-2 text-center text-[11px] font-semibold leading-tight sm:text-xs ${t.is_selected ? 'text-indigo-700' : 'text-slate-500'}`}>{t.label}</span>
+                <span className={`mt-2 text-center text-[11px] font-semibold leading-tight sm:text-xs ${t.is_selected ? 'text-indigo-700' : 'text-[#6B778C]'}`}>{t.label}</span>
               </button>
             );
           })}
@@ -594,10 +594,10 @@ export const ExpenseReportsPage: React.FC = (): React.ReactElement => {
       </div>
 
       {/* Report details */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex flex-col gap-3 border-b border-slate-100 p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="overflow-hidden rounded-[3px] border border-[#DFE1E6] bg-white ">
+        <div className="flex flex-col gap-3 border-b border-[#EBECF0] p-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h3 className="text-[15px] font-bold text-slate-900">
+            <h3 className="text-[15px] font-bold text-[#172B4D]">
               {activeTab === 'monthly' && 'Monthly spending breakdown'}
               {activeTab === 'date_range' && 'Date-range spending breakdown'}
               {activeTab === 'employee' && 'Employee-wise claims'}
@@ -606,21 +606,21 @@ export const ExpenseReportsPage: React.FC = (): React.ReactElement => {
               {activeTab === 'rejected' && 'Rejected claims (audit)'}
               {activeTab === 'reimbursement' && 'Reimbursement payouts'}
             </h3>
-            <p className="mt-0.5 text-xs text-slate-500">
+            <p className="mt-0.5 text-xs text-[#6B778C]">
               {data?.period?.from_date} to {data?.period?.to_date} · Basis: {data?.period?.date_basis}
             </p>
           </div>
 
           {(activeTab === 'monthly' || activeTab === 'date_range') && (
             <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-slate-400">Group by</span>
-              <div className="inline-flex gap-1 rounded-xl bg-slate-100 p-1 text-[13px] font-semibold">
+              <span className="text-xs font-medium text-[#6B778C]">Group by</span>
+              <div className="inline-flex gap-1 rounded-[3px] bg-[#EBECF0] p-1 text-[13px] font-semibold">
                 {(['category', 'department', 'employee'] as const).map((g) => (
                   <button
                     key={g}
                     type="button"
                     onClick={() => setGroupBy(g)}
-                    className={`cursor-pointer rounded-lg px-3 py-1.5 capitalize transition ${groupBy === g ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                    className={`cursor-pointer rounded-[3px] px-3 py-1.5 capitalize transition ${groupBy === g ? 'bg-white text-indigo-700 ' : 'text-[#6B778C] hover:text-[#172B4D]'}`}
                   >
                     {g}
                   </button>
@@ -632,9 +632,9 @@ export const ExpenseReportsPage: React.FC = (): React.ReactElement => {
 
         {/* Content based on Active Tab */}
         {isLoading ? (
-          <div className="p-16 text-center text-slate-400">
+          <div className="p-16 text-center text-[#6B778C]">
             <div className="inline-block animate-spin w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full mb-2" />
-            <p className="text-xs font-medium text-slate-500">Loading expense report data...</p>
+            <p className="text-xs font-medium text-[#6B778C]">Loading expense report data...</p>
           </div>
         ) : (
           <>
@@ -644,10 +644,10 @@ export const ExpenseReportsPage: React.FC = (): React.ReactElement => {
             {(activeTab === 'monthly' || activeTab === 'date_range') && (
               <>
                 {(!data?.breakdown || data.breakdown.length === 0) ? (
-                  <div className="p-16 text-center text-slate-400">
-                    <Receipt className="w-12 h-12 text-slate-300 mx-auto mb-2" />
-                    <h4 className="text-sm font-semibold text-slate-700">No expenses match your filters</h4>
-                    <p className="text-xs text-slate-500 mt-1">Try modifying the month, date basis, or category filters.</p>
+                  <div className="p-16 text-center text-[#6B778C]">
+                    <Receipt className="w-12 h-12 text-[#A5ADBA] mx-auto mb-2" />
+                    <h4 className="text-sm font-semibold text-[#42526E]">No expenses match your filters</h4>
+                    <p className="text-xs text-[#6B778C] mt-1">Try modifying the month, date basis, or category filters.</p>
                     <button
                       onClick={handleClearFilters}
                       className="mt-3 text-xs text-indigo-600 hover:text-indigo-800 font-semibold cursor-pointer underline"
@@ -658,7 +658,7 @@ export const ExpenseReportsPage: React.FC = (): React.ReactElement => {
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs">
-                      <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                      <thead className="bg-[#F4F5F7] text-[#42526E] font-semibold border-b border-[#DFE1E6]">
                         <tr>
                           <th className="py-3 px-4">
                             {groupBy === 'department' ? 'Department' : groupBy === 'employee' ? 'Employee' : 'Category'}
@@ -671,42 +671,42 @@ export const ExpenseReportsPage: React.FC = (): React.ReactElement => {
                           <th className="py-3 px-4 w-36">Spending Distribution</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
+                      <tbody className="divide-y divide-[#EBECF0]">
                         {data.breakdown.map((row: ExpenseReportBreakdownItem) => (
-                          <tr key={row.name} className="hover:bg-slate-50/70 transition">
-                            <td className="py-3 px-4 font-semibold text-slate-800">{row.name}</td>
-                            <td className="py-3 px-4 text-center text-slate-600">{row.claims_count}</td>
+                          <tr key={row.name} className="hover:bg-[#F4F5F7]/70 transition">
+                            <td className="py-3 px-4 font-semibold text-[#172B4D]">{row.name}</td>
+                            <td className="py-3 px-4 text-center text-[#42526E]">{row.claims_count}</td>
                             <td className="py-3 px-4 text-right font-medium text-emerald-700">
                               ₹{row.office_amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                             </td>
-                            <td className="py-3 px-4 text-right font-medium text-blue-700">
+                            <td className="py-3 px-4 text-right font-medium text-[#0052CC]">
                               ₹{row.personal_amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                             </td>
-                            <td className="py-3 px-4 text-right font-bold text-slate-900">
+                            <td className="py-3 px-4 text-right font-bold text-[#172B4D]">
                               ₹{row.total_amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                             </td>
-                            <td className="py-3 px-4 text-right font-semibold text-slate-700">
+                            <td className="py-3 px-4 text-right font-semibold text-[#42526E]">
                               {row.share_percentage}%
                             </td>
                             <td className="py-3 px-4">
-                              <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden flex">
+                              <div className="w-full bg-[#EBECF0] rounded-[3px] h-2 overflow-hidden flex">
                                 <div
                                   style={{ width: `${Math.min(100, row.share_percentage)}%` }}
-                                  className="bg-indigo-600 h-full rounded-full"
+                                  className="bg-[#0052CC] h-full rounded-[3px]"
                                 />
                               </div>
                             </td>
                           </tr>
                         ))}
                       </tbody>
-                      <tfoot className="bg-slate-50 font-bold border-t border-slate-200 text-slate-900">
+                      <tfoot className="bg-[#F4F5F7] font-bold border-t border-[#DFE1E6] text-[#172B4D]">
                         <tr>
                           <td className="py-3 px-4">Total Period Spend</td>
                           <td className="py-3 px-4 text-center">{totals.total_claims}</td>
                           <td className="py-3 px-4 text-right text-emerald-700">
                             ₹{totals.office_amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                           </td>
-                          <td className="py-3 px-4 text-right text-blue-700">
+                          <td className="py-3 px-4 text-right text-[#0052CC]">
                             ₹{totals.personal_amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                           </td>
                           <td className="py-3 px-4 text-right">
@@ -728,7 +728,7 @@ export const ExpenseReportsPage: React.FC = (): React.ReactElement => {
             {activeTab === 'employee' && (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                  <thead className="bg-[#F4F5F7] text-[#42526E] font-semibold border-b border-[#DFE1E6]">
                     <tr>
                       <th className="py-3 px-4">Claim No.</th>
                       <th className="py-3 px-4">Employee</th>
@@ -741,16 +741,16 @@ export const ExpenseReportsPage: React.FC = (): React.ReactElement => {
                       <th className="py-3 px-4">Decided On</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-[#EBECF0]">
                     {(data?.claims || []).length === 0 ? (
                       <tr>
-                        <td colSpan={9} className="py-12 text-center text-slate-400">
+                        <td colSpan={9} className="py-12 text-center text-[#6B778C]">
                           No employee expense claims found for this period.
                         </td>
                       </tr>
                     ) : (
                       (data?.claims || []).map((c: ExpenseReportClaimItem) => (
-                        <tr key={c.claim_id} className="hover:bg-slate-50 transition">
+                        <tr key={c.claim_id} className="hover:bg-[#F4F5F7] transition">
                           <td className="py-3 px-4 font-mono font-semibold text-indigo-600 flex items-center gap-1.5">
                             {c.claim_no}
                             {c.is_self_approved && (
@@ -759,9 +759,9 @@ export const ExpenseReportsPage: React.FC = (): React.ReactElement => {
                               </span>
                             )}
                           </td>
-                          <td className="py-3 px-4 font-medium text-slate-900">{c.employee_name}</td>
-                          <td className="py-3 px-4 text-slate-600">{c.expense_date}</td>
-                          <td className="py-3 px-4 text-slate-700">{c.category_name}</td>
+                          <td className="py-3 px-4 font-medium text-[#172B4D]">{c.employee_name}</td>
+                          <td className="py-3 px-4 text-[#42526E]">{c.expense_date}</td>
+                          <td className="py-3 px-4 text-[#42526E]">{c.category_name}</td>
                           <td className="py-3 px-4">
                             <span
                               className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${
@@ -773,7 +773,7 @@ export const ExpenseReportsPage: React.FC = (): React.ReactElement => {
                               {c.expense_type}
                             </span>
                           </td>
-                          <td className="py-3 px-4 text-right font-bold text-slate-900">
+                          <td className="py-3 px-4 text-right font-bold text-[#172B4D]">
                             ₹{c.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                           </td>
                           <td className="py-3 px-4">
@@ -782,17 +782,17 @@ export const ExpenseReportsPage: React.FC = (): React.ReactElement => {
                                 c.status === 'APPROVED'
                                   ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                   : c.status === 'REIMBURSED'
-                                  ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                  ? 'bg-[#DEEBFF] text-[#0052CC] border border-blue-200'
                                   : c.status === 'REJECTED'
-                                  ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                                  ? 'bg-rose-50 text-[#BF2600] border border-rose-200'
                                   : 'bg-amber-50 text-amber-700 border border-amber-200'
                               }`}
                             >
                               {c.status}
                             </span>
                           </td>
-                          <td className="py-3 px-4 text-slate-600">{c.approver_name}</td>
-                          <td className="py-3 px-4 text-slate-500">
+                          <td className="py-3 px-4 text-[#42526E]">{c.approver_name}</td>
+                          <td className="py-3 px-4 text-[#6B778C]">
                             {c.decided_at ? c.decided_at.split('T')[0] : '—'}
                           </td>
                         </tr>
@@ -809,7 +809,7 @@ export const ExpenseReportsPage: React.FC = (): React.ReactElement => {
             {activeTab === 'category' && (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                  <thead className="bg-[#F4F5F7] text-[#42526E] font-semibold border-b border-[#DFE1E6]">
                     <tr>
                       <th className="py-3 px-4">Category</th>
                       <th className="py-3 px-4">Policy Limit per Claim</th>
@@ -819,7 +819,7 @@ export const ExpenseReportsPage: React.FC = (): React.ReactElement => {
                       <th className="py-3 px-4 text-center">Claims Above Limit</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-[#EBECF0]">
                     {categoryOptions.map((cat: any) => {
                       const claimsForCat = (data?.claims || []).filter((c) => c.category_id === cat.category_id);
                       const catTotal = claimsForCat.reduce((acc, c) => acc + c.amount, 0);
@@ -827,16 +827,16 @@ export const ExpenseReportsPage: React.FC = (): React.ReactElement => {
                       const aboveLimitCount = claimsForCat.filter((c) => c.is_above_limit).length;
 
                       return (
-                        <tr key={cat.category_id} className="hover:bg-slate-50 transition">
-                          <td className="py-3 px-4 font-semibold text-slate-800">{cat.name}</td>
-                          <td className="py-3 px-4 text-slate-600">
+                        <tr key={cat.category_id} className="hover:bg-[#F4F5F7] transition">
+                          <td className="py-3 px-4 font-semibold text-[#172B4D]">{cat.name}</td>
+                          <td className="py-3 px-4 text-[#42526E]">
                             {cat.limit_per_claim ? `₹${Number(cat.limit_per_claim).toLocaleString('en-IN')}` : 'No limit'}
                           </td>
-                          <td className="py-3 px-4 text-center text-slate-700 font-medium">{catCount}</td>
-                          <td className="py-3 px-4 text-right font-bold text-slate-900">
+                          <td className="py-3 px-4 text-center text-[#42526E] font-medium">{catCount}</td>
+                          <td className="py-3 px-4 text-right font-bold text-[#172B4D]">
                             ₹{catTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                           </td>
-                          <td className="py-3 px-4 text-right text-slate-700">
+                          <td className="py-3 px-4 text-right text-[#42526E]">
                             ₹{(catCount > 0 ? catTotal / catCount : 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                           </td>
                           <td className="py-3 px-4 text-center">
@@ -845,7 +845,7 @@ export const ExpenseReportsPage: React.FC = (): React.ReactElement => {
                                 ⚠ {aboveLimitCount} flagged
                               </span>
                             ) : (
-                              <span className="text-slate-400">0</span>
+                              <span className="text-[#6B778C]">0</span>
                             )}
                           </td>
                         </tr>
@@ -862,44 +862,44 @@ export const ExpenseReportsPage: React.FC = (): React.ReactElement => {
             {activeTab === 'approvals' && (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                  <thead className="bg-[#F4F5F7] text-[#42526E] font-semibold border-b border-[#DFE1E6]">
                     <tr>
                       <th className="py-3 px-4">Approver</th>
                       <th className="py-3 px-4 text-center">Claims Decided</th>
                       <th className="py-3 px-4 text-center text-emerald-700">Approved</th>
-                      <th className="py-3 px-4 text-center text-rose-700">Rejected</th>
+                      <th className="py-3 px-4 text-center text-[#BF2600]">Rejected</th>
                       <th className="py-3 px-4 text-center">Avg Days to Decide</th>
                       <th className="py-3 px-4 text-center text-amber-700">Waiting Now</th>
                       <th className="py-3 px-4 text-center">Oldest Waiting (Days)</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-[#EBECF0]">
                     {(!data?.approvals_summary || data.approvals_summary.length === 0) ? (
                       <tr>
-                        <td colSpan={7} className="py-12 text-center text-slate-400">
+                        <td colSpan={7} className="py-12 text-center text-[#6B778C]">
                           No approval turnaround data recorded for this period.
                         </td>
                       </tr>
                     ) : (
                       data.approvals_summary.map((st: ExpenseApproverPerformanceItem) => (
-                        <tr key={st.approver_id} className="hover:bg-slate-50 transition">
-                          <td className="py-3 px-4 font-semibold text-slate-800">{st.approver_name}</td>
-                          <td className="py-3 px-4 text-center font-bold text-slate-900">{st.claims_decided}</td>
+                        <tr key={st.approver_id} className="hover:bg-[#F4F5F7] transition">
+                          <td className="py-3 px-4 font-semibold text-[#172B4D]">{st.approver_name}</td>
+                          <td className="py-3 px-4 text-center font-bold text-[#172B4D]">{st.claims_decided}</td>
                           <td className="py-3 px-4 text-center font-semibold text-emerald-600">{st.claims_approved}</td>
-                          <td className="py-3 px-4 text-center font-semibold text-rose-600">{st.claims_rejected}</td>
-                          <td className="py-3 px-4 text-center font-mono font-medium text-slate-700">
+                          <td className="py-3 px-4 text-center font-semibold text-[#BF2600]">{st.claims_rejected}</td>
+                          <td className="py-3 px-4 text-center font-mono font-medium text-[#42526E]">
                             {st.avg_days_to_decide} days
                           </td>
                           <td className="py-3 px-4 text-center font-bold text-amber-700">
                             {st.waiting_now > 0 ? (
-                              <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[11px]">
+                              <span className="px-1.5 py-0.5 rounded-[3px] bg-[#FFF0B3] text-[#172B4D] text-[11px] font-bold uppercase">
                                 {st.waiting_now} pending
                               </span>
                             ) : (
                               '0'
                             )}
                           </td>
-                          <td className="py-3 px-4 text-center font-medium text-slate-600">
+                          <td className="py-3 px-4 text-center font-medium text-[#42526E]">
                             {st.waiting_now > 0 ? `${st.oldest_waiting_days} days` : '—'}
                           </td>
                         </tr>
@@ -916,7 +916,7 @@ export const ExpenseReportsPage: React.FC = (): React.ReactElement => {
             {activeTab === 'rejected' && (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                  <thead className="bg-[#F4F5F7] text-[#42526E] font-semibold border-b border-[#DFE1E6]">
                     <tr>
                       <th className="py-3 px-4">Claim No.</th>
                       <th className="py-3 px-4">Employee</th>
@@ -929,10 +929,10 @@ export const ExpenseReportsPage: React.FC = (): React.ReactElement => {
                       <th className="py-3 px-4">Rejected Date</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-[#EBECF0]">
                     {!(data?.claims || []).some((c) => c.status === 'REJECTED') ? (
                       <tr>
-                        <td colSpan={9} className="py-12 text-center text-slate-400">
+                        <td colSpan={9} className="py-12 text-center text-[#6B778C]">
                           <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
                           No claims were rejected during this period.
                         </td>
@@ -941,20 +941,20 @@ export const ExpenseReportsPage: React.FC = (): React.ReactElement => {
                       (data?.claims || [])
                         .filter((c) => c.status === 'REJECTED')
                         .map((c: ExpenseReportClaimItem) => (
-                          <tr key={c.claim_id} className="hover:bg-slate-50 transition">
-                            <td className="py-3 px-4 font-mono font-semibold text-rose-600">{c.claim_no}</td>
-                            <td className="py-3 px-4 font-medium text-slate-900">{c.employee_name}</td>
-                            <td className="py-3 px-4 text-slate-600">{c.expense_date}</td>
-                            <td className="py-3 px-4 text-slate-700">{c.category_name}</td>
-                            <td className="py-3 px-4 text-right font-bold text-slate-900">
+                          <tr key={c.claim_id} className="hover:bg-[#F4F5F7] transition">
+                            <td className="py-3 px-4 font-mono font-semibold text-[#BF2600]">{c.claim_no}</td>
+                            <td className="py-3 px-4 font-medium text-[#172B4D]">{c.employee_name}</td>
+                            <td className="py-3 px-4 text-[#42526E]">{c.expense_date}</td>
+                            <td className="py-3 px-4 text-[#42526E]">{c.category_name}</td>
+                            <td className="py-3 px-4 text-right font-bold text-[#172B4D]">
                               ₹{c.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                             </td>
-                            <td className="py-3 px-4 font-semibold text-rose-700">{c.rejection_reason}</td>
-                            <td className="py-3 px-4 text-slate-600 max-w-xs truncate" title={c.decision_remarks || ''}>
+                            <td className="py-3 px-4 font-semibold text-[#BF2600]">{c.rejection_reason}</td>
+                            <td className="py-3 px-4 text-[#42526E] max-w-xs truncate" title={c.decision_remarks || ''}>
                               {c.decision_remarks || '—'}
                             </td>
-                            <td className="py-3 px-4 text-slate-600">{c.approver_name}</td>
-                            <td className="py-3 px-4 text-slate-500">
+                            <td className="py-3 px-4 text-[#42526E]">{c.approver_name}</td>
+                            <td className="py-3 px-4 text-[#6B778C]">
                               {c.decided_at ? c.decided_at.split('T')[0] : '—'}
                             </td>
                           </tr>
@@ -971,7 +971,7 @@ export const ExpenseReportsPage: React.FC = (): React.ReactElement => {
             {activeTab === 'reimbursement' && (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                  <thead className="bg-[#F4F5F7] text-[#42526E] font-semibold border-b border-[#DFE1E6]">
                     <tr>
                       <th className="py-3 px-4">Claim No.</th>
                       <th className="py-3 px-4">Employee</th>
@@ -984,10 +984,10 @@ export const ExpenseReportsPage: React.FC = (): React.ReactElement => {
                       <th className="py-3 px-4">Payment Date</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-[#EBECF0]">
                     {!(data?.claims || []).some((c) => c.status === 'APPROVED' || c.status === 'REIMBURSED') ? (
                       <tr>
-                        <td colSpan={9} className="py-12 text-center text-slate-400">
+                        <td colSpan={9} className="py-12 text-center text-[#6B778C]">
                           No approved reimbursement claims found in this period.
                         </td>
                       </tr>
@@ -995,16 +995,16 @@ export const ExpenseReportsPage: React.FC = (): React.ReactElement => {
                       (data?.claims || [])
                         .filter((c) => c.status === 'APPROVED' || c.status === 'REIMBURSED')
                         .map((c: ExpenseReportClaimItem) => (
-                          <tr key={c.claim_id} className="hover:bg-slate-50 transition">
+                          <tr key={c.claim_id} className="hover:bg-[#F4F5F7] transition">
                             <td className="py-3 px-4 font-mono font-semibold text-indigo-600">{c.claim_no}</td>
-                            <td className="py-3 px-4 font-medium text-slate-900">{c.employee_name}</td>
-                            <td className="py-3 px-4 text-slate-600">
+                            <td className="py-3 px-4 font-medium text-[#172B4D]">{c.employee_name}</td>
+                            <td className="py-3 px-4 text-[#42526E]">
                               {c.decided_at ? c.decided_at.split('T')[0] : '—'}
                             </td>
-                            <td className="py-3 px-4 text-right font-bold text-slate-900">
+                            <td className="py-3 px-4 text-right font-bold text-[#172B4D]">
                               ₹{c.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                             </td>
-                            <td className="py-3 px-4 font-medium text-slate-700">
+                            <td className="py-3 px-4 font-medium text-[#42526E]">
                               {c.reimbursement_method === 'PAYROLL' ? (
                                 <span className="text-purple-700 font-semibold">With salary</span>
                               ) : (
@@ -1022,9 +1022,9 @@ export const ExpenseReportsPage: React.FC = (): React.ReactElement => {
                                 {c.status === 'REIMBURSED' ? 'Paid' : 'Pending Payout'}
                               </span>
                             </td>
-                            <td className="py-3 px-4 text-slate-700">{c.payment_mode || '—'}</td>
-                            <td className="py-3 px-4 font-mono text-slate-600">{c.payment_reference_no || '—'}</td>
-                            <td className="py-3 px-4 text-slate-600">{c.payment_date || '—'}</td>
+                            <td className="py-3 px-4 text-[#42526E]">{c.payment_mode || '—'}</td>
+                            <td className="py-3 px-4 font-mono text-[#42526E]">{c.payment_reference_no || '—'}</td>
+                            <td className="py-3 px-4 text-[#42526E]">{c.payment_date || '—'}</td>
                           </tr>
                         ))
                     )}

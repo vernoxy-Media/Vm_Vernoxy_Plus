@@ -6,7 +6,7 @@ export class ListEmployeesUseCase {
 
   async execute(
     filter: EmployeeListFilter,
-  ): Promise<{ items: Employee[]; next_cursor: string | null; stats?: { total: number; active: number; inactive: number } }> {
+  ): Promise<{ items: Employee[]; next_cursor: string | null; stats?: { total: number; active: number; inactive: number; onboarding?: number } }> {
     return this.employeeRepo.findMany(filter);
   }
 }

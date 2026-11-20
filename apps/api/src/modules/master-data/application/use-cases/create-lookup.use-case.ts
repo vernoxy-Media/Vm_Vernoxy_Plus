@@ -13,7 +13,12 @@ export interface CreateLookupInput {
 }
 
 /** Which lookup type may have a parent, and what the parent must be. */
-export const LOOKUP_PARENT_RULES: Record<string, string> = { gidc_phase: 'gidc_name' };
+export const LOOKUP_PARENT_RULES: Record<string, string> = {
+  gidc_phase: 'gidc_name',
+  // Location chain: a city belongs to a state, a state belongs to a country
+  city: 'state',
+  state: 'country',
+};
 
 export class CreateLookupUseCase {
   constructor(private readonly repo: MasterLookupRepositoryPort) {}

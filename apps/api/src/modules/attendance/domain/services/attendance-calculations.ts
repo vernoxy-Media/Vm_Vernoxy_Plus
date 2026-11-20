@@ -1,7 +1,11 @@
 export interface BreakInterval {
   startedAt: Date;
   endedAt: Date | null;
+  /** 'Clocked out' marks the gap between a clock-out and "Resume work": not worked, but not a break either */
+  breakType?: string | null;
 }
+
+export const CLOCKED_OUT_BREAK_TYPE = 'Clocked out';
 
 export interface DayTargetParams {
   isWeeklyOff: boolean;
@@ -26,18 +30,22 @@ export function calculateCompletedDayMinutes(
   const totalSessionSeconds = Math.max(0, Math.floor((checkOutAt.getTime() - checkInAt.getTime()) / 1000));
 
   let totalBreakSeconds = 0;
+  let awaySeconds = 0;
   for (const b of breaks) {
     const end = b.endedAt || checkOutAt;
     const durSeconds = Math.max(0, Math.floor((end.getTime() - b.startedAt.getTime()) / 1000));
-    totalBreakSeconds += durSeconds;
+    if (b.breakType === CLOCKED_OUT_BREAK_TYPE) awaySeconds += durSeconds;
+    else totalBreakSeconds += durSeconds;
   }
 
-  // Cap break seconds at total session seconds
-  if (totalBreakSeconds > totalSessionSeconds) {
-    totalBreakSeconds = totalSessionSeconds;
+  // Cap at total session seconds
+  if (totalBreakSeconds + awaySeconds > totalSessionSeconds) {
+    totalBreakSeconds = Math.min(totalBreakSeconds, totalSessionSeconds);
+    awaySeconds = totalSessionSeconds - totalBreakSeconds;
   }
 
-  const workSeconds = Math.max(0, totalSessionSeconds - totalBreakSeconds);
+  // Time clocked out is not worked, but it is not reported as break time
+  const workSeconds = Math.max(0, totalSessionSeconds - totalBreakSeconds - awaySeconds);
 
   const breakMinutes = Math.floor(totalBreakSeconds / 60);
   const productionMinutes = Math.floor(workSeconds / 60);
@@ -64,17 +72,21 @@ export function calculateOpenDayMinutes(
   const totalElapsedSeconds = Math.max(0, Math.floor((now.getTime() - checkInAt.getTime()) / 1000));
 
   let totalBreakSeconds = 0;
+  let awaySeconds = 0;
   for (const b of breaks) {
     const end = b.endedAt || now;
     const durSeconds = Math.max(0, Math.floor((end.getTime() - b.startedAt.getTime()) / 1000));
-    totalBreakSeconds += durSeconds;
+    if (b.breakType === CLOCKED_OUT_BREAK_TYPE) awaySeconds += durSeconds;
+    else totalBreakSeconds += durSeconds;
   }
 
-  if (totalBreakSeconds > totalElapsedSeconds) {
-    totalBreakSeconds = totalElapsedSeconds;
+  if (totalBreakSeconds + awaySeconds > totalElapsedSeconds) {
+    totalBreakSeconds = Math.min(totalBreakSeconds, totalElapsedSeconds);
+    awaySeconds = totalElapsedSeconds - totalBreakSeconds;
   }
 
-  const workedSeconds = Math.max(0, totalElapsedSeconds - totalBreakSeconds);
+  // Time clocked out is not worked, but it is not reported as break time
+  const workedSeconds = Math.max(0, totalElapsedSeconds - totalBreakSeconds - awaySeconds);
 
   return {
     workedSeconds,
@@ -184,6 +196,8 @@ export interface MonthSummaryDayInput {
 
 export interface MonthSummaryResult {
   scheduled_working_days: number;
+  /** Working days from the joining date up to and including today (the base for the % present) */
+  working_days_so_far: number;
   days_present: number;
   days_full: number;
   days_half: number;
@@ -208,6 +222,7 @@ export function calculateMonthSummary(
   halfDayMinutes = DEFAULT_HALF_DAY_MINUTES,
 ): MonthSummaryResult {
   let scheduled_working_days = 0;
+  let working_days_so_far = 0;
   let days_present = 0;
   let days_full = 0;
   let days_half = 0;
@@ -232,6 +247,7 @@ export function calculateMonthSummary(
     const isScheduledWorkingDay = !d.isWeeklyOff && !d.isHoliday;
     if (isScheduledWorkingDay) {
       scheduled_working_days++;
+      if (d.isPast || d.isToday) working_days_so_far++;
       if (d.leaveType === 'full') {
         leave_days += 1.0;
       } else if (d.leaveType === 'half') {
@@ -258,6 +274,10 @@ export function calculateMonthSummary(
       } else if (d.attendance.dayStatus === 'half_day') {
         days_half++;
         days_present++;
+      } else if (d.isToday) {
+        // Today is still running (the employee can resume after a clock-out): clocked in = present, never absent yet
+        days_incomplete++;
+        days_present++;
       } else if (d.attendance.dayStatus === 'short' || d.attendance.dayStatus === 'absent') {
         days_short++;
         // BFD Section 2: Hours below Half Day (< 4 hours) is Absent (A)
@@ -276,6 +296,7 @@ export function calculateMonthSummary(
 
   return {
     scheduled_working_days,
+    working_days_so_far,
     days_present,
     days_full,
     days_half,

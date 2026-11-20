@@ -8,6 +8,7 @@ const cookieParser = require('cookie-parser');
 import { GlobalExceptionFilter } from './core/filters/global-exception.filter';
 import { createValidationException } from './core/filters/validation-exception.factory';
 import { EnvConfig } from './core/config/env.config';
+import { gzipResponses } from './core/http/gzip.middleware';
 
 export function configureApp(app: INestApplication, env?: EnvConfig): void {
   (app.getHttpAdapter().getInstance() as express.Application).set('trust proxy', true);
@@ -18,6 +19,8 @@ export function configureApp(app: INestApplication, env?: EnvConfig): void {
       contentSecurityPolicy: false,
     }),
   );
+  // Replies are sent gzipped when the browser accepts it (lists of tasks, projects, chats are mostly repeating JSON)
+  app.use(gzipResponses());
   app.use(cookieParser());
   app.use(express.json({ limit: '10kb' }));
   app.use(express.urlencoded({ extended: true, limit: '10kb' }));

@@ -9,6 +9,7 @@ import {
   useDeleteRoleMutation,
 } from '@/features/organization/hooks/use-organization';
 import { SearchableSelect, RowActionsMenu, CursorPager, type RowAction } from '@/shared/ui';
+import { OrgDialog, OrgField, OrgToggle, orgInputCls, orgTextareaCls } from '@/features/organization/components/OrgDialog';
 import {
   ShieldCheck,
   Plus,
@@ -457,260 +458,122 @@ export const SettingsRolesSection: React.FC = () => {
         )}
       </div>
 
-      {/* Create Designation Modal */}
+      {/* Create Designation */}
       {isCreateOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in">
-          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
-                  <ShieldCheck className="w-5 h-5" />
-                </div>
-                <h3 className="text-base font-bold text-slate-900">New Designation</h3>
-              </div>
-              <button
-                onClick={() => setIsCreateOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-1"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreate} className="p-6 space-y-4">
-              {formError && (
-                <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs font-medium text-rose-700 flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                  <span>{formError}</span>
-                </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Department *
-                </label>
-                <SearchableSelect
-                  options={deptSelectOptions}
-                  value={formDepId || null}
-                  onChange={(val) => setFormDepId(val ? Number(val) : '')}
-                  placeholder="Select Department"
-                  searchPlaceholder="Search department..."
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="role-name-input"
-                  className="block text-xs font-semibold text-slate-700 mb-1.5"
-                >
-                  Designation *
-                </label>
-                <input
-                  type="text"
-                  id="role-name-input"
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                  placeholder="e.g. Lead Frontend Engineer"
-                  className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all"
-                  required
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="role-desc-input"
-                  className="block text-xs font-semibold text-slate-700 mb-1.5"
-                >
-                  Description (Optional)
-                </label>
-                <textarea
-                  id="role-desc-input"
-                  rows={2}
-                  value={formDesc}
-                  onChange={(e) => setFormDesc(e.target.value)}
-                  placeholder="Key responsibilities or job description"
-                  className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all"
-                />
-              </div>
-
-              <div className="pt-2 flex items-center justify-end gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setIsCreateOpen(false)}
-                  className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  id="role-submit-button"
-                  disabled={createMutation.isPending}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 disabled:opacity-50 transition-colors"
-                >
-                  {createMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  Create Designation
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <OrgDialog
+          icon={ShieldCheck}
+          title="New Designation"
+          subtitle="A job title that belongs to one department."
+          onClose={() => setIsCreateOpen(false)}
+          onSubmit={handleCreate}
+          submitLabel="Create Designation"
+          submitId="role-submit-button"
+          pending={createMutation.isPending}
+          error={formError}
+        >
+          <OrgField label="Department" required>
+            <SearchableSelect
+              options={deptSelectOptions}
+              value={formDepId || null}
+              onChange={(val) => setFormDepId(val ? Number(val) : '')}
+              placeholder="Select Department"
+              searchPlaceholder="Search department..."
+            />
+          </OrgField>
+          <OrgField label="Designation" htmlFor="role-name-input" required>
+            <input
+              type="text"
+              id="role-name-input"
+              value={formName}
+              onChange={(e) => setFormName(e.target.value)}
+              placeholder="e.g. Lead Frontend Engineer"
+              className={orgInputCls}
+              required
+            />
+          </OrgField>
+          <OrgField label="Description (optional)" htmlFor="role-desc-input">
+            <textarea
+              id="role-desc-input"
+              rows={3}
+              value={formDesc}
+              onChange={(e) => setFormDesc(e.target.value)}
+              placeholder="Key responsibilities or job description"
+              className={orgTextareaCls}
+            />
+          </OrgField>
+        </OrgDialog>
       )}
 
-      {/* Edit Role Modal */}
+      {/* Edit Designation */}
       {editingRole && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in">
-          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
-                  <Edit2 className="w-5 h-5" />
-                </div>
-                <h3 className="text-base font-bold text-slate-900">Edit Designation</h3>
-              </div>
-              <button
-                onClick={() => setEditingRole(null)}
-                className="text-slate-400 hover:text-slate-600 p-1"
-              >
-                <X className="w-5 h-5" />
-              </button>
+        <OrgDialog
+          icon={Edit2}
+          title="Edit Designation"
+          subtitle={`Update the details of ${editingRole.role_name}.`}
+          onClose={() => setEditingRole(null)}
+          onSubmit={handleUpdate}
+          submitLabel="Save Changes"
+          submitId="edit-role-submit-button"
+          pending={updateMutation.isPending}
+          error={formError}
+        >
+          <OrgField label="Department" hint="A designation cannot move to another department.">
+            <div className="flex h-11 items-center rounded-xl border border-slate-200 bg-slate-100/70 px-3.5 text-sm font-medium text-slate-600">
+              {deptOptions?.find((d) => d.dep_id === editingRole.dep_id)?.name || `Dep #${editingRole.dep_id}`}
             </div>
-
-            <form onSubmit={handleUpdate} className="p-6 space-y-4">
-              {formError && (
-                <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs font-medium text-rose-700 flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                  <span>{formError}</span>
-                </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1.5">
-                  Department (Immutable)
-                </label>
-                <div className="px-3.5 py-2.5 rounded-xl text-sm bg-slate-50 border border-slate-200 text-slate-600 font-medium">
-                  {deptOptions?.find((d) => d.dep_id === editingRole.dep_id)?.name ||
-                    `Dep #${editingRole.dep_id}`}
-                </div>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="edit-role-name-input"
-                  className="block text-xs font-semibold text-slate-700 mb-1.5"
-                >
-                  Designation *
-                </label>
-                <input
-                  type="text"
-                  id="edit-role-name-input"
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all"
-                  required
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="edit-role-desc-input"
-                  className="block text-xs font-semibold text-slate-700 mb-1.5"
-                >
-                  Description
-                </label>
-                <textarea
-                  id="edit-role-desc-input"
-                  rows={2}
-                  value={formDesc}
-                  onChange={(e) => setFormDesc(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all"
-                />
-              </div>
-
-              <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-                <div>
-                  <span className="text-xs font-semibold text-slate-800 block">Designation Active</span>
-                  <span className="text-xs text-slate-500">
-                    {editingRole.is_admin
-                      ? 'Admin designations cannot be deactivated.'
-                      : 'Deactivating is blocked if active employees are assigned.'}
-                  </span>
-                </div>
-                <input
-                  type="checkbox"
-                  id="edit-role-status-toggle"
-                  checked={formActive}
-                  disabled={editingRole.is_admin}
-                  onChange={(e) => setFormActive(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 disabled:opacity-40"
-                />
-              </div>
-
-              <div className="pt-2 flex items-center justify-end gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setEditingRole(null)}
-                  className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  id="edit-role-submit-button"
-                  disabled={updateMutation.isPending}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 disabled:opacity-50 transition-colors"
-                >
-                  {updateMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  Save Changes
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+          </OrgField>
+          <OrgField label="Designation" htmlFor="edit-role-name-input" required>
+            <input
+              type="text"
+              id="edit-role-name-input"
+              value={formName}
+              onChange={(e) => setFormName(e.target.value)}
+              className={orgInputCls}
+              required
+            />
+          </OrgField>
+          <OrgField label="Description" htmlFor="edit-role-desc-input">
+            <textarea
+              id="edit-role-desc-input"
+              rows={3}
+              value={formDesc}
+              onChange={(e) => setFormDesc(e.target.value)}
+              className={orgTextareaCls}
+            />
+          </OrgField>
+          <OrgToggle
+            id="edit-role-status-toggle"
+            label="Designation Active"
+            description={
+              editingRole.is_admin
+                ? 'Admin designations cannot be deactivated.'
+                : 'Deactivating is blocked if active employees are assigned.'
+            }
+            checked={formActive}
+            disabled={editingRole.is_admin}
+            onChange={setFormActive}
+          />
+        </OrgDialog>
       )}
 
-      {/* Delete Role Confirmation Modal */}
+      {/* Delete Designation */}
       {deletingRole && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in">
-          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
-            <div className="p-6 text-center">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-50 text-rose-600 mb-4">
-                <Trash2 className="w-6 h-6" />
-              </div>
-              <h3 className="text-base font-bold text-slate-900 mb-1">Delete Designation?</h3>
-              <p className="text-xs text-slate-500 mb-4">
-                Are you sure you want to soft delete designation{' '}
-                <span className="font-semibold text-slate-900">"{deletingRole.role_name}"</span>?
-                This action is blocked if active employees are currently assigned to it.
-              </p>
-
-              {formError && (
-                <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs font-medium text-rose-700 flex items-start gap-2 text-left mb-4">
-                  <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                  <span>{formError}</span>
-                </div>
-              )}
-
-              <div className="flex items-center justify-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setDeletingRole(null)}
-                  className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  id="confirm-delete-role-button"
-                  onClick={handleDelete}
-                  disabled={deleteMutation.isPending}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rose-600 text-xs font-semibold text-white shadow-xs hover:bg-rose-500 disabled:opacity-50 transition-all"
-                >
-                  {deleteMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  Delete Designation
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <OrgDialog
+          icon={Trash2}
+          danger
+          title="Delete Designation?"
+          subtitle="This is a soft delete. It is blocked while active employees are assigned to it."
+          onClose={() => setDeletingRole(null)}
+          onConfirm={handleDelete}
+          submitLabel="Delete Designation"
+          submitId="confirm-delete-role-button"
+          pending={deleteMutation.isPending}
+          error={formError}
+        >
+          <p className="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 text-sm text-slate-600">
+            You are about to delete <span className="font-semibold text-slate-900">"{deletingRole.role_name}"</span>.
+          </p>
+        </OrgDialog>
       )}
     </div>
   );

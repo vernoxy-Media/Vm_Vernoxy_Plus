@@ -16,7 +16,7 @@ import type {
   TodayAttendanceData,
   CorrectionRequestPayload,
 } from '../types/attendance.types';
-import { startBreak, savePunchLocation } from '../api/attendance.api';
+import { startBreak, savePunchLocation, resumeWork } from '../api/attendance.api';
 import { fetchAttendanceRegister, fetchAttendanceReports } from '../api/attendance.api';
 import type {
   AttendanceRegisterQuery,
@@ -25,6 +25,7 @@ import type {
   AttendanceReportsResponse,
 } from '../api/attendance.api';
 
+import { localToday } from '@/shared/utils/schedule.utils';
 export const ATTENDANCE_QUERY_KEY = 'attendance_dashboard';
 export const ATTENDANCE_DAY_QUERY_KEY = 'attendance_day_detail';
 export const ATTENDANCE_REGISTER_QUERY_KEY = 'attendance_register';
@@ -32,7 +33,7 @@ export const ATTENDANCE_REPORTS_QUERY_KEY = 'attendance_reports';
 
 function mapApiTodayBlock(t: any): TodayAttendanceData {
   if (!t) {
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = localToday();
     return {
       date: todayStr,
       company_timezone: 'Asia/Kolkata',
@@ -134,10 +135,13 @@ function mapApiDashboardToUiModel(apiData: any): AttendanceDashboardResponse {
 
   const monthSummary = {
     scheduled_days: summary.scheduled_working_days ?? 0,
+    days_so_far: summary.working_days_so_far ?? summary.scheduled_working_days ?? 0,
     present_days: summary.days_present ?? 0,
     total_working_seconds: (summary.total_production_minutes ?? 0) * 60,
     total_break_seconds: (summary.total_break_minutes ?? 0) * 60,
     leave_days: summary.leave_days ?? 0,
+    weekly_offs: summary.weekly_offs ?? 0,
+    holidays: summary.holidays ?? 0,
     absent_days: summary.days_absent ?? 0,
     remaining_days: Math.max(0, (summary.scheduled_working_days ?? 0) - (summary.days_present ?? 0)),
   };
@@ -168,6 +172,7 @@ function mapApiDashboardToUiModel(apiData: any): AttendanceDashboardResponse {
       breaks: d.breaks || [],
       latitude: (d.punch_location?.in ?? d.punch_location?.out)?.latitude ?? null,
       longitude: (d.punch_location?.in ?? d.punch_location?.out)?.longitude ?? null,
+      location_accuracy_m: (d.punch_location?.in ?? d.punch_location?.out)?.accuracyM ?? null,
       leave_part: (d.leave?.part as 'full' | 'half' | undefined) || null,
       can_request_correction: d.date <= today.date,
       is_today: d.date === today.date,
@@ -358,6 +363,17 @@ export function usePunchActions({ month, onConflict, onAnnounce }: PunchMutation
     },
   });
 
+  const resumeWorkMutation = useMutation({
+    mutationFn: () => resumeWork(),
+    onSuccess: (data) => {
+      updateTodayData(data);
+      onAnnounce?.('Back at work. The time since you clocked out is counted as a break.');
+    },
+    onError: (err: any) => {
+      handleConflict(err);
+    },
+  });
+
   const startBreakMutation = useMutation({
     mutationFn: async (variables?: { breakType?: string; reason?: string }) => {
       try {
@@ -397,12 +413,14 @@ export function usePunchActions({ month, onConflict, onAnnounce }: PunchMutation
   const isPending =
     punchInMutation.isPending ||
     punchOutMutation.isPending ||
+    resumeWorkMutation.isPending ||
     startBreakMutation.isPending ||
     resumeBreakMutation.isPending;
 
   return {
     punchInMutation,
     punchOutMutation,
+    resumeWorkMutation,
     startBreakMutation,
     resumeBreakMutation,
     isPending,

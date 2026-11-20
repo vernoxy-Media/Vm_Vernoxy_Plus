@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { parseApiError } from '@/shared/utils/api-error';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -13,7 +13,6 @@ import {
   Lock,
   Upload,
   Camera,
-  HeartHandshake,
   Calendar,
   CreditCard,
   Briefcase,
@@ -37,7 +36,8 @@ import {
   employeeEditSchema,
   type EmployeeEditFormValues,
 } from '../schemas/employee-form.schema';
-import { CountryPhoneInput, DepartmentMultiSelect, SearchableSelect, ReportingManagerSelect } from '@/shared/ui';
+import { EmergencyContactsField } from './EmergencyContactsField';
+import { CountryPhoneInput, DepartmentMultiSelect, DesignationMultiSelect, ReportingManagerSelect } from '@/shared/ui';
 import { useAuth } from '@/features/auth/context/AuthContext';
 
 interface EditProfileModalProps {
@@ -68,6 +68,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   const { data: deptOptions = [] } = useDepartmentOptionsQuery();
   const { data: managerOptions = [] } = useEmployeeOptionsQuery();
   const { data: genderLookups = [] } = useLookupsQuery('gender');
+  const { data: probationLookups = [] } = useLookupsQuery('probation_period');
   const { data: employmentTypeLookups = [] } = useLookupsQuery('employment_type');
   const { data: bloodGroupLookups = [] } = useLookupsQuery('blood_group');
   const { data: leavePolicies = [] } = useLeavePoliciesQuery();
@@ -99,6 +100,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
       office_email: '',
       mob: '',
       gender_id: '' as unknown as number,
+      emergency_contacts: [],
       emergency_contact_name: '',
       emergency_contact_number: '',
       emergency_contact_relation: '',
@@ -107,6 +109,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
       address: '',
       dep_id: 1,
       department_ids: [],
+      role_ids: [],
       role_id: '' as unknown as number,
       reporting_manager: null,
       employment_type_id: '' as unknown as number,
@@ -141,7 +144,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     watch,
     setValue,
     trigger,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
   } = form;
 
   const watchedDepIds = watch('department_ids') || [];
@@ -155,8 +158,17 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   }, [watchedJoiningDate, attendanceSettings, selectedShiftId]);
 
   // Filter roles based on selected departments
-  const primaryDepId = watchedDepIds.length > 0 ? watchedDepIds[0] : undefined;
-  const { data: roleOptions = [] } = useRoleOptionsQuery(primaryDepId);
+  const { data: fetchedRoleOptions = [] } = useRoleOptionsQuery(watchedDepIds);
+  const watchedRoleIds: number[] = watch('role_ids') || [];
+  // Designations of the selected departments, plus the ones the employee already holds (so their chips show before the list loads)
+  const roleOptions = React.useMemo(() => {
+    const map = new Map<number, any>();
+    ((employee as any)?.roles || []).forEach((r: any) => {
+      map.set(r.role_id, { ...r, dep_name: deptOptions.find((d: any) => d.dep_id === r.dep_id)?.name });
+    });
+    (fetchedRoleOptions as any[]).forEach((r) => map.set(r.role_id, r));
+    return Array.from(map.values()).filter((r) => !r.dep_id || watchedDepIds.includes(r.dep_id));
+  }, [employee, fetchedRoleOptions, deptOptions, watchedDepIds]);
 
   // Automatically scroll form to top when active tab changes
   useEffect(() => {
@@ -182,6 +194,14 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
         office_email: employee.office_email || '',
         mob: employee.mob || '',
         gender_id: employee.gender_id || ('' as any),
+        emergency_contacts: (() => {
+          const list = ((employee as any).emergency_contacts as Array<{ name: string; relation?: string | null; number: string }> | undefined) ?? [];
+          if (list.length > 0) return list.map((c) => ({ name: c.name || '', relation: c.relation || '', number: c.number || '' }));
+          // Employees saved before several contacts existed have the one contact on the profile itself
+          return employee.emergency_contact_name || employee.emergency_contact_number
+            ? [{ name: employee.emergency_contact_name || '', relation: employee.emergency_contact_relation || '', number: employee.emergency_contact_number || '' }]
+            : [];
+        })(),
         emergency_contact_name: employee.emergency_contact_name || '',
         emergency_contact_number: employee.emergency_contact_number || '',
         emergency_contact_relation: employee.emergency_contact_relation || '',
@@ -190,6 +210,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
         address: employee.address || '',
         dep_id: employee.dep_id || depIds[0] || 1,
         department_ids: depIds,
+        role_ids: ((employee as any).role_ids as number[] | undefined) ?? (employee.role_id ? [employee.role_id] : []),
         role_id: employee.role_id || ('' as any),
         reporting_manager: employee.reporting_manager || null,
         employment_type_id: employee.employment_type_id || ('' as any),
@@ -246,8 +267,14 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     }
   };
 
+  // What is saved besides the form fields: a new photo, or a different shift
+  const originalShiftId = attendanceSettings?.employee_shifts?.[String(employee?.emp_id)]
+    ? String(attendanceSettings?.employee_shifts?.[String(employee?.emp_id)])
+    : 'default';
+  const hasChanges = isDirty || Boolean(selectedPhotoFile) || selectedShiftId !== originalShiftId;
+
   const requestClose = () => {
-    if (form.formState.isDirty) {
+    if (hasChanges) {
       setShowConfirmLeave(true);
     } else {
       handleForceClose();
@@ -290,9 +317,10 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
       office_email: values.office_email?.trim() || undefined,
       mob: values.mob?.trim() || undefined,
       gender_id: values.gender_id ? Number(values.gender_id) : null,
-      emergency_contact_name: values.emergency_contact_name?.trim() || undefined,
-      emergency_contact_number: values.emergency_contact_number?.trim() || undefined,
-      emergency_contact_relation: values.emergency_contact_relation?.trim() || undefined,
+      // Every contact on the form is saved; a row left empty is dropped
+      emergency_contacts: (values.emergency_contacts || [])
+        .filter((c) => c.name?.trim() || c.number?.trim())
+        .map((c) => ({ name: c.name.trim(), relation: c.relation?.trim() || null, number: c.number.trim() })),
       birth_date: values.birth_date || null,
       blood_group: values.blood_group || undefined,
       address: values.address?.trim() || undefined,
@@ -301,7 +329,8 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     if (isOrgAdmin) {
       updatePayload.dep_id = primaryDep;
       updatePayload.department_ids = departmentIds;
-      updatePayload.role_id = values.role_id ? Number(values.role_id) : null;
+      updatePayload.role_ids = values.role_ids || [];
+      updatePayload.role_id = values.role_ids?.[0] ?? (values.role_id ? Number(values.role_id) : null);
       updatePayload.reporting_manager = values.reporting_manager ? Number(values.reporting_manager) : null;
       updatePayload.leave_policy_id = values.leave_policy_id ? Number(values.leave_policy_id) : undefined;
       updatePayload.employment_type_id = values.employment_type_id ? Number(values.employment_type_id) : null;
@@ -440,6 +469,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
         {/* Scrollable Form Body */}
         <form
           ref={formContainerRef}
+          noValidate
           onSubmit={handleSubmit(onSubmit)}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT' && activeTab !== 'job') {
@@ -501,7 +531,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                       <input
                         type="text"
                         disabled
-                        value={employee.emp_code || (employee.emp_id ? `EMP-${String(employee.emp_id).padStart(4, '0')}` : '')}
+                        value={employee.emp_code || (employee as { employee_code?: string }).employee_code || (employee.emp_id ? `EMP-${String(employee.emp_id).padStart(4, '0')}` : '')}
                         className="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-500 font-mono cursor-not-allowed select-all"
                       />
                       <Lock className="w-3.5 h-3.5 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -553,53 +583,14 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 </div>
               </div>
 
-              {/* Marker 5 & 6: Emergency Contact */}
-              <div className="bg-slate-50/70 rounded-2xl p-5 border border-slate-200/80 space-y-4">
-                <div className="flex items-center gap-2 pb-2.5 border-b border-slate-200/60">
-                  <HeartHandshake className="w-4 h-4 text-rose-600" />
-                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Emergency Contact</h3>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  {/* Marker 5: Emergency Contact Name */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700">Emergency Contact Name</label>
-                    <input
-                      type="text"
-                      {...register('emergency_contact_name')}
-                      placeholder="Who to call in an emergency"
-                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                    />
-                  </div>
-
-                  {/* Relationship */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700">Relationship</label>
-                    <input
-                      type="text"
-                      {...register('emergency_contact_relation')}
-                      placeholder="How they are related (e.g. Father, Spouse)"
-                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                    />
-                  </div>
-                </div>
-
-                {/* Marker 6: Emergency Contact Number */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-700">Emergency Contact Number</label>
-                  <CountryPhoneInput
-                    value={watch('emergency_contact_number') || ''}
-                    onChange={(val) =>
-                      setValue('emergency_contact_number', val, {
-                        shouldValidate: true,
-                        shouldDirty: true,
-                      })
-                    }
-                    placeholder="9876543210"
-                    error={errors.emergency_contact_number?.message}
-                  />
-                </div>
-              </div>
+              {/* Emergency contacts: any number up to five */}
+              <EmergencyContactsField
+                control={form.control as never}
+                register={register as never}
+                watch={watch}
+                setValue={setValue}
+                errors={errors as never}
+              />
 
               {/* Marker 7, 8, 9, 10, 11: Personal & Office Info */}
               <div className="bg-slate-50/70 rounded-2xl p-5 border border-slate-200/80 space-y-4">
@@ -720,6 +711,15 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                       if (!isOrgAdmin) return;
                       setValue('department_ids', ids, { shouldValidate: true, shouldDirty: true });
                       setValue('dep_id', ids[0] || 1, { shouldValidate: true, shouldDirty: true });
+                      // Drop designations of departments that were just removed
+                      const keep = watchedRoleIds.filter((rid) => {
+                        const r = (roleOptions as any[]).find((o) => o.role_id === rid);
+                        return r && ids.includes(r.dep_id);
+                      });
+                      if (keep.length !== watchedRoleIds.length) {
+                        setValue('role_ids', keep, { shouldValidate: true, shouldDirty: true });
+                        setValue('role_id', (keep[0] ?? '') as any, { shouldDirty: true });
+                      }
                     }}
                     placeholder="Select Department(s)..."
                     error={errors.department_ids?.message}
@@ -729,24 +729,18 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   {/* Designation */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700">Designation</label>
-                    <SearchableSelect
-                      options={roleOptions.map((r: any) => ({
-                        value: r.role_id,
-                        label: r.role_name || r.name,
-                      }))}
-                      value={watch('role_id')}
+                    <label className="text-xs font-semibold text-slate-700">Designation(s)</label>
+                    <DesignationMultiSelect
+                      roles={roleOptions as any[]}
+                      selectedIds={watchedRoleIds}
                       disabled={!isOrgAdmin}
-                      onChange={(val) => {
+                      onChange={(ids) => {
                         if (!isOrgAdmin) return;
-                        setValue('role_id', val ? Number(val) : ('' as any), {
-                          shouldValidate: true,
-                          shouldDirty: true,
-                        });
+                        setValue('role_ids', ids, { shouldValidate: true, shouldDirty: true });
+                        setValue('role_id', (ids[0] ?? '') as any, { shouldDirty: true });
                       }}
-                      placeholder="Select Designation"
-                      searchPlaceholder="Search designation..."
-                      error={errors.role_id?.message}
+                      placeholder="Select Designation(s)..."
+                      error={errors.role_ids?.message}
                     />
                   </div>
 
@@ -864,7 +858,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                           : 'bg-white text-slate-800 cursor-pointer focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500'
                       }`}
                     >
-                      <option value="">Default Leave Policy</option>
+                      <option value="">No leave policy (cannot apply for leave)</option>
                       {leavePolicies.map((lp) => (
                         <option key={lp.policy_id} value={lp.policy_id}>
                           {lp.name}
@@ -891,13 +885,9 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                       }`}
                     />
                     <datalist id="edit-probation-options">
-                      <option value="0" />
-                      <option value="None" />
-                      <option value="30 Days" />
-                      <option value="60 Days" />
-                      <option value="90 Days (3 Months)" />
-                      <option value="6 Months" />
-                      <option value="1 Year" />
+                      {probationLookups.map((p) => (
+                        <option key={p.id} value={p.label} />
+                      ))}
                     </datalist>
                   </div>
 
@@ -1154,10 +1144,11 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                     >
                       <option value="Active">Active</option>
                       <option value="Inactive">Inactive</option>
-                      <option value="On Leave">On Leave</option>
-                      <option value="Terminated">Terminated</option>
-                      <option value="Resigned">Resigned</option>
+                      {employee?.status === 'Onboarding' && <option value="Onboarding">Onboarding</option>}
                     </select>
+                    {watch('status') === 'Inactive' && employee?.status !== 'Inactive' && (
+                      <p className="text-[11px] text-slate-500">No reason needed here: the employee is recorded as Resigned.</p>
+                    )}
                   </div>
 
                   <div className="space-y-1.5">
@@ -1223,8 +1214,9 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 <button
                   key="btn-save-employee"
                   type="submit"
-                  disabled={isSubmitting}
-                  className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  disabled={isSubmitting || !hasChanges}
+                  title={!hasChanges ? 'Change something to save' : undefined}
+                  className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
                   <span>Save Changes</span>

@@ -6,7 +6,7 @@ export const SettingsLeadSourcesSection: React.FC = () => (
   <SettingsLookupSection
     lookupType="lead_source"
     title="Lead Sources"
-    description="Track where your leads and prospects originated (e.g. Website, Referral, LinkedIn, Cold Call). Used in CRM analytics."
+    description="Track where your leads and prospects originated (e.g. Website, Referral, LinkedIn, Cold Call). Used in Sales: lead forms, filters and reports."
     addLabel="Add Lead Source"
     searchPlaceholder="Search lead sources..."
     icon={Antenna}

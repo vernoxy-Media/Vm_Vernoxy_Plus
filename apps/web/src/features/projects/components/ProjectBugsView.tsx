@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { Bug, ChevronDown, ChevronUp, Clock, Equal, Inbox, Search } from 'lucide-react';
+import { useBugMeta } from '../bug-meta';
+import { Bug, Clock, Inbox, Search } from 'lucide-react';
 import { JiraAvatar } from '@/shared/ui/JiraAvatar';
 import type { BugStatus, ProjectBugItem } from '../types';
 
@@ -13,12 +14,6 @@ const STATUS: Record<BugStatus, { label: string; cls: string }> = {
   done: { label: 'Done', cls: 'bg-[#E3FCEF] text-[#006644]' },
   not_a_bug: { label: 'Not a bug', cls: 'bg-[#DFE1E6] text-[#42526E]' },
 };
-
-const PRIORITY = {
-  high: { label: 'High', icon: ChevronUp, color: 'text-[#E9494A]' },
-  medium: { label: 'Medium', icon: Equal, color: 'text-[#E97F33]' },
-  low: { label: 'Low', icon: ChevronDown, color: 'text-[#2D8738]' },
-} as const;
 
 const GROUPS = [
   { id: 'all', label: 'All', match: () => true },
@@ -39,6 +34,7 @@ interface ProjectBugsViewProps {
 
 /** Bugs as a Jira issue list: filter chips with counts, a search box and one row per bug. */
 export const ProjectBugsView: React.FC<ProjectBugsViewProps> = ({ bugs, onOpenBug, scopeNote }) => {
+  const { priority: priorityMeta } = useBugMeta();
   const [group, setGroup] = useState<(typeof GROUPS)[number]['id']>('all');
   const [search, setSearch] = useState('');
 
@@ -92,7 +88,7 @@ export const ProjectBugsView: React.FC<ProjectBugsViewProps> = ({ bugs, onOpenBu
         <ul className="overflow-hidden rounded-[3px] border border-[#DFE1E6]">
           {rows.map((b) => {
             const st = STATUS[b.status] ?? STATUS.new;
-            const p = PRIORITY[b.priority as keyof typeof PRIORITY] ?? PRIORITY.medium;
+            const p = priorityMeta(b.priority);
             const PIcon = p.icon;
             return (
               <li key={b.bug_id} className="border-b border-[#DFE1E6] bg-white last:border-b-0">

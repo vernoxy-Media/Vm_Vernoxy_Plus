@@ -41,7 +41,8 @@ export interface MasterDataPageProps<T> {
   page?: number;
   pageSize?: number;
   onPageSizeChange?: (size: number) => void;
-  onAdd: () => void;
+  /** Leave out for a fixed list that must not get new rows */
+  onAdd?: () => void;
   onEdit?: (item: T) => void;
   onDelete?: (item: T) => void;
   canDelete?: (item: T) => boolean;
@@ -117,14 +118,16 @@ export function MasterDataPage<T>({
             {description && <p className="mt-0.5 text-sm text-slate-500">{description}</p>}
           </div>
         </div>
-        <button
-          type="button"
-          onClick={onAdd}
-          className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-[13px] font-semibold text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700 focus:outline-hidden focus:ring-4 focus:ring-blue-600/20 active:scale-[0.98]"
-        >
-          <Plus className="h-4 w-4" strokeWidth={2.5} />
-          {addLabel}
-        </button>
+        {onAdd && (
+          <button
+            type="button"
+            onClick={onAdd}
+            className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-[13px] font-semibold text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700 focus:outline-hidden focus:ring-4 focus:ring-blue-600/20 active:scale-[0.98]"
+          >
+            <Plus className="h-4 w-4" strokeWidth={2.5} />
+            {addLabel}
+          </button>
+        )}
       </div>
 
       {/* Toolbar */}

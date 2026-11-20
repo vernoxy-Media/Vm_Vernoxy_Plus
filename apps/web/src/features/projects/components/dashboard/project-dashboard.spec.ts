@@ -184,6 +184,8 @@ describe('Project Management Dashboard: US01 - US10 Acceptance Criteria', () => 
       assert.equal(formatDateDDMMYYYY('2026-10-28'), '28-10-2026');
       assert.equal(formatLakh(980000), '₹9.8L');
       assert.equal(formatLakh(1500000), '₹15.0L');
+      assert.equal(formatLakh(54.04), '₹54');
+      assert.equal(formatLakh(4500), '₹4,500');
     });
   });
 

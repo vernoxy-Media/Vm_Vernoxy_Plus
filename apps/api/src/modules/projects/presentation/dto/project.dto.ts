@@ -6,6 +6,7 @@ import {
   IsDateString,
   IsInt,
   IsArray,
+  ArrayMaxSize,
   MaxLength,
   ValidateNested,
   IsBoolean,
@@ -87,37 +88,11 @@ export class CreateProjectDto {
   @IsNotEmpty()
   project_type!: string;
 
-  @ApiProperty({
-    enum: [
-      'ecom_website',
-      'portfolio_website',
-      'seo',
-      'social_media',
-      'crm',
-      'erp',
-      'brochure',
-      'other',
-    ],
-  })
-  @IsEnum([
-    'ecom_website',
-    'portfolio_website',
-    'seo',
-    'social_media',
-    'crm',
-    'erp',
-    'brochure',
-    'other',
-  ])
-  category!:
-    | 'ecom_website'
-    | 'portfolio_website'
-    | 'seo'
-    | 'social_media'
-    | 'crm'
-    | 'erp'
-    | 'brochure'
-    | 'other';
+  @ApiProperty({ description: 'Code of an active Service Fit in Master Data (Settings > Sales > Service Fits)' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(50)
+  category!: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -211,6 +186,11 @@ export class CreateProjectDto {
   @IsString()
   tech_cloud?: string;
 
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  tech_database?: string;
+
   @ApiPropertyOptional({ type: CreateDeploymentDto })
   @IsOptional()
   @ValidateNested()
@@ -237,38 +217,12 @@ export class UpdateProjectDto {
   @IsString()
   project_type?: string;
 
-  @ApiPropertyOptional({
-    enum: [
-      'ecom_website',
-      'portfolio_website',
-      'seo',
-      'social_media',
-      'crm',
-      'erp',
-      'brochure',
-      'other',
-    ],
-  })
+  @ApiPropertyOptional({ description: 'Code of an active Service Fit in Master Data (Settings > Sales > Service Fits)' })
   @IsOptional()
-  @IsEnum([
-    'ecom_website',
-    'portfolio_website',
-    'seo',
-    'social_media',
-    'crm',
-    'erp',
-    'brochure',
-    'other',
-  ])
-  category?:
-    | 'ecom_website'
-    | 'portfolio_website'
-    | 'seo'
-    | 'social_media'
-    | 'crm'
-    | 'erp'
-    | 'brochure'
-    | 'other';
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(50)
+  category?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -365,6 +319,11 @@ export class UpdateProjectDto {
   @IsOptional()
   @IsString()
   tech_cloud?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  tech_database?: string;
 
   @ApiPropertyOptional({ type: CreateDeploymentDto })
   @IsOptional()
@@ -570,6 +529,12 @@ export class CreateProjectTaskDto {
   @MaxLength(100, { message: 'Other Task Type cannot be longer than 100 characters.' })
   other_task_type?: string;
 
+  @ApiPropertyOptional({ example: 2, description: 'Optional QA assignee who tests the task after the developer finishes' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  qa_assignee_id?: number;
+
   @ApiPropertyOptional({ example: 1 })
   @IsOptional()
   @Type(() => Number)
@@ -593,10 +558,11 @@ export class CreateDiscussionDto {
   @IsNotEmpty()
   message!: string;
 
-  @ApiPropertyOptional({ type: [String] })
+  @ApiPropertyOptional({ description: 'Files shared with the message: [{ attachment_id, name, mime, size, url }], at most 10' })
   @IsOptional()
   @IsArray()
-  attachments?: string[];
+  @ArrayMaxSize(10)
+  attachments?: Array<{ attachment_id: number; name: string; mime: string; size: number; url: string }>;
 
   @ApiPropertyOptional({ type: [Number], description: 'Employee IDs tagged with @ in the message' })
   @IsOptional()
@@ -647,14 +613,17 @@ export class CreateBugDto {
   @IsInt({ message: 'Please select the employee in Assigned To.' })
   assigned_to!: number;
 
-  @ApiPropertyOptional({ enum: ['low', 'medium', 'high'], default: 'low' })
+  @ApiPropertyOptional({ type: String, default: 'low', description: 'Code of an active Bug Priority in Master Data' })
   @IsOptional()
-  @IsEnum(['low', 'medium', 'high'], { message: 'Please select the Priority.' })
-  priority?: 'low' | 'medium' | 'high';
+  @IsString({ message: 'Please select the Priority.' })
+  @MaxLength(50)
+  priority?: string;
 
-  @ApiProperty({ enum: ['frontend', 'backend', 'ui', 'database', 'other'] })
-  @IsEnum(['frontend', 'backend', 'ui', 'database', 'other'], { message: 'Please select the Bug Type.' })
-  bug_type!: 'frontend' | 'backend' | 'ui' | 'database' | 'other';
+  @ApiProperty({ type: String, description: 'Code of an active Bug Type in Master Data' })
+  @IsString({ message: 'Please select the Bug Type.' })
+  @IsNotEmpty({ message: 'Please select the Bug Type.' })
+  @MaxLength(50)
+  bug_type!: string;
 
   @ApiPropertyOptional()
   @IsOptional()

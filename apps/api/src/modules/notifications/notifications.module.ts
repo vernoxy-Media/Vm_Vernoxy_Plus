@@ -12,9 +12,10 @@ import { NotificationRepositoryPort } from './domain/ports/notification.reposito
 
 import { AuthModule } from '../auth/auth.module';
 import { EventsService } from '../websockets/public-api';
+import { PushModule, PushService } from '../push/public-api';
 
 @Module({
-  imports: [PrismaModule, AuthModule],
+  imports: [PrismaModule, AuthModule, PushModule],
   controllers: [NotificationsController],
   providers: [
     {
@@ -43,9 +44,9 @@ import { EventsService } from '../websockets/public-api';
     },
     {
       provide: CreateNotificationUseCase,
-      useFactory: (repo: NotificationRepositoryPort, eventsService: EventsService) =>
-        new CreateNotificationUseCase(repo, eventsService),
-      inject: [NOTIFICATION_TOKENS.NotificationRepository, EventsService],
+      useFactory: (repo: NotificationRepositoryPort, eventsService: EventsService, push: PushService) =>
+        new CreateNotificationUseCase(repo, eventsService, push),
+      inject: [NOTIFICATION_TOKENS.NotificationRepository, EventsService, PushService],
     },
   ],
   exports: [

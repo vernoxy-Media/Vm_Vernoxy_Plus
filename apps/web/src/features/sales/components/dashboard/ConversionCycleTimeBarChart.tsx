@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Info, Clock } from 'lucide-react';
+import React from 'react';
+import { Clock } from 'lucide-react';
 import { US08LeadConversionCycleTime } from '../../types/sales-dashboard.types';
+import { Badge, ChartCard, ChartTooltip, EmptyState, Segmented, TipRow, TipTitle, useChartTooltip } from './ChartShell';
 
 interface ConversionCycleTimeBarChartProps {
   data?: US08LeadConversionCycleTime;
@@ -8,116 +9,84 @@ interface ConversionCycleTimeBarChartProps {
   onCompareByChange: (c: 'source' | 'owner') => void;
 }
 
+type Group = US08LeadConversionCycleTime['groups'][number];
+
 export const ConversionCycleTimeBarChart: React.FC<ConversionCycleTimeBarChartProps> = ({
   data,
   compareBy,
   onCompareByChange,
 }) => {
-  const [showTooltip, setShowTooltip] = useState(false);
-  const [hoveredGroup, setHoveredGroup] = useState<any | null>(null);
-
+  const { ref, tip, move, hide } = useChartTooltip<Group>();
   const groups = data?.groups || [];
   const maxDays = Math.max(...groups.map((g) => g.average_days), 10);
-  const overallAvg = data?.overall_average_days || 0;
-  const overallMedian = data?.overall_median_days || 0;
 
   return (
-    <div className="relative flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs h-full">
-      {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-2 border-b border-slate-100 pb-3">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-600">
-            <Clock className="h-4 w-4" />
-          </div>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <h3 className="text-sm font-bold text-slate-900 tracking-tight whitespace-nowrap">Lead Conversion Cycle Time</h3>
-              <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full shrink-0">
-                Avg: {overallAvg}d | Med: {overallMedian}d
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-500 line-clamp-1">Days taken to convert from Date Added to Won On</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-1.5 shrink-0 ml-auto">
-          <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-[10px] font-semibold">
-            <button
-              type="button"
-              onClick={() => onCompareByChange('source')}
-              className={`rounded px-1.5 py-0.5 transition cursor-pointer ${
-                compareBy === 'source' ? 'bg-white font-bold text-blue-700 shadow-xs' : 'text-slate-500 hover:text-slate-900'
-              }`}
-            >
-              Source
-            </button>
-            <button
-              type="button"
-              onClick={() => onCompareByChange('owner')}
-              className={`rounded px-1.5 py-0.5 transition cursor-pointer ${
-                compareBy === 'owner' ? 'bg-white font-bold text-blue-700 shadow-xs' : 'text-slate-500 hover:text-slate-900'
-              }`}
-            >
-              Owner
-            </button>
-          </div>
-
-          <div className="relative">
-            <button
-              type="button"
-              onMouseEnter={() => setShowTooltip(true)}
-              onMouseLeave={() => setShowTooltip(false)}
-              aria-label="KPI Information"
-              className="p-1 rounded-lg text-slate-400 hover:text-slate-600 transition cursor-pointer"
-            >
-              <Info className="h-4 w-4" />
-            </button>
-            {showTooltip && (
-              <div className="absolute right-0 top-7 z-30 w-64 rounded-xl bg-slate-900 p-2.5 text-[11px] text-white shadow-xl">
-                Horizontal bar chart showing average conversion cycle time in whole calendar days (Won on - Date Added). Fastest groups appear first.
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Bars */}
-      <div className="space-y-3 my-3">
-        {hoveredGroup && (
-          <div className="text-center text-[10px] font-bold text-slate-700">
-            {hoveredGroup.name}: avg {hoveredGroup.average_days}d, med {hoveredGroup.median_days}d, range {hoveredGroup.min_days}d - {hoveredGroup.max_days}d ({hoveredGroup.converted_count} won)
-          </div>
-        )}
-
-        {groups.map((g, idx) => {
-          const widthPct = Math.round((g.average_days / maxDays) * 100);
-          return (
+    <ChartCard
+      cardRef={ref}
+      icon={Clock}
+      tone="sky"
+      title="Lead Conversion Cycle Time"
+      badge={
+        <Badge>
+          Avg {data?.overall_average_days || 0}d · Med {data?.overall_median_days || 0}d
+        </Badge>
+      }
+      subtitle="Days taken to convert from Date Added to Won On"
+      info="Horizontal bar chart showing average conversion cycle time in whole calendar days (Won on - Date Added). Fastest groups appear first."
+      actions={
+        <Segmented
+          value={compareBy}
+          onChange={onCompareByChange}
+          options={[
+            { id: 'source', label: 'Source' },
+            { id: 'owner', label: 'Owner' },
+          ]}
+        />
+      }
+      footer={`Fastest converting ${compareBy === 'source' ? 'sources' : 'owners'} appear at top`}
+      onLeave={hide}
+      tooltip={
+        <ChartTooltip tip={tip}>
+          {tip && (
+            <>
+              <TipTitle>{tip.data.name}</TipTitle>
+              <TipRow color="#0ea5e9" label="Average" value={`${tip.data.average_days} days`} />
+              <TipRow label="Median" value={`${tip.data.median_days} days`} />
+              <TipRow label="Fastest" value={`${tip.data.min_days} days`} />
+              <TipRow label="Slowest" value={`${tip.data.max_days} days`} />
+              <TipRow label="Leads won" value={tip.data.converted_count} />
+            </>
+          )}
+        </ChartTooltip>
+      }
+    >
+      {groups.length === 0 ? (
+        <EmptyState text="No converted leads in this period." />
+      ) : (
+        <div className="space-y-1">
+          {groups.map((g) => (
             <div
-              key={idx}
-              className="group flex flex-col gap-1 cursor-pointer"
-              onMouseEnter={() => setHoveredGroup(g)}
-              onMouseLeave={() => setHoveredGroup(null)}
+              key={g.name}
+              onMouseMove={(e) => move(e, g)}
+              onMouseLeave={hide}
+              className="group cursor-pointer rounded-lg px-2 py-2 transition hover:bg-slate-50"
             >
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="font-semibold text-slate-700 truncate max-w-[140px]">
-                  {g.name} <span className="text-[10px] text-slate-400 font-normal">(n={g.converted_count})</span>
+              <div className="mb-1.5 flex items-center justify-between gap-3 text-xs">
+                <span className="truncate font-medium text-slate-700" title={g.name}>
+                  {g.name} <span className="text-[10px] font-normal text-slate-400">(n={g.converted_count})</span>
                 </span>
-                <span className="font-bold text-slate-900">{g.average_days} days</span>
+                <span className="shrink-0 font-semibold tabular-nums text-slate-900">{g.average_days} days</span>
               </div>
-              <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
+              <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
                 <div
-                  className="h-full rounded-full bg-sky-500 transition-all duration-300 group-hover:bg-sky-600"
-                  style={{ width: `${Math.max(widthPct, 2)}%` }}
+                  className="h-full rounded-full bg-gradient-to-r from-sky-500 to-sky-400 transition-all duration-300 group-hover:from-sky-600 group-hover:to-sky-500"
+                  style={{ width: `${Math.max((g.average_days / maxDays) * 100, 2)}%` }}
                 />
               </div>
             </div>
-          );
-        })}
-      </div>
-
-      <div className="border-t border-slate-100 pt-2 text-[11px] text-slate-400 text-center">
-        Fastest converting {compareBy === 'source' ? 'sources' : 'owners'} appear at top
-      </div>
-    </div>
+          ))}
+        </div>
+      )}
+    </ChartCard>
   );
 };

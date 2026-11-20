@@ -161,6 +161,7 @@ model departments {
   employees_departments_deleted_byToemployees     employees?                     @relation("departments_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_departments_deleted_by")
   employees_departments_updated_byToemployees     employees?                     @relation("departments_updated_byToemployees", fields: [updated_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_departments_updated_by")
   employee_departments                            employee_departments[]
+  employee_roles                                  employee_roles[]
   employees_employees_dep_idTodepartments         employees[]                    @relation("employees_dep_idTodepartments")
   expense_authorised_approvers                    expense_authorised_approvers[]
   roles                                           roles[]
@@ -169,6 +170,7 @@ model departments {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model employees {
   emp_id                                                                                     Int                               @id(map: "pk_employees") @default(autoincrement())
+  employee_code                                                                              String?                           @unique(map: "ux_employees_employee_code") @db.VarChar(20)
   name                                                                                       String                            @db.VarChar(255)
   email                                                                                      String                            @db.VarChar(255)
   mob                                                                                        String                            @db.VarChar(20)
@@ -308,6 +310,8 @@ model employees {
   employee_credentials_employee_credentials_updated_byToemployees                            employee_credentials[]            @relation("employee_credentials_updated_byToemployees")
   employee_departments_employee_departments_created_byToemployees                            employee_departments[]            @relation("employee_departments_created_byToemployees")
   employee_departments_employee_departments_emp_idToemployees                                employee_departments[]            @relation("employee_departments_emp_idToemployees")
+  employee_roles_employee_roles_created_byToemployees                                        employee_roles[]                  @relation("employee_roles_created_byToemployees")
+  employee_roles_employee_roles_emp_idToemployees                                            employee_roles[]                  @relation("employee_roles_emp_idToemployees")
   employee_documents_employee_documents_created_byToemployees                                employee_documents[]              @relation("employee_documents_created_byToemployees")
   employee_documents                                                                         employee_documents[]
   employee_documents_employee_documents_issued_byToemployees                                 employee_documents[]              @relation("employee_documents_issued_byToemployees")
@@ -694,6 +698,7 @@ model roles {
   candidates_candidates_final_role_idToroles candidates[] @relation("candidates_final_role_idToroles")
   candidates                                 candidates[]
   employees_employees_role_idToroles         employees[]  @relation("employees_role_idToroles")
+  employee_roles                             employee_roles[]
   employees_employees_role_id_dep_idToroles  employees[]  @relation("employees_role_id_dep_idToroles")
   employees_roles_created_byToemployees      employees?   @relation("roles_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_roles_created_by")
   employees_roles_deleted_byToemployees      employees?   @relation("roles_deleted_byToemployees", fields: [deleted_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_roles_deleted_by")
@@ -1063,6 +1068,7 @@ model tasks {
   timer_started_at                            DateTime?         @db.Timestamptz(6)
   work_logs                                   Json              @default("[]")
   sprint_id                                   Int?
+  qa_assignee_id                              Int?
   calendar_events                             calendar_events[]
   project_bugs                                project_bugs[]
   task_assignees                              task_assignees[]
@@ -1176,9 +1182,9 @@ model project_bugs {
   actual_result                                 String
   assigned_to                                   Int
   reported_by                                   Int
-  priority                                      bug_priority   @default(low)
+  priority                                      String       @db.VarChar(50) @default("low")
   status                                        bug_status     @default(new)
-  bug_type                                      bug_type
+  bug_type                                      String   @db.VarChar(50)
   other_bug_type                                String?        @db.VarChar(100)
   attachment_url                                String?        @db.VarChar(500)
   dev_started_at                                DateTime?      @db.Timestamptz(6)
@@ -1301,11 +1307,12 @@ model project_sprints {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model projects {
+  project_revenue                             Decimal?   @db.Decimal(14, 2)
   project_id                                       Int                    @id(map: "pk_projects") @default(autoincrement())
   project_no                                       String                 @db.VarChar(30)
   project_name                                     String                 @db.VarChar(150)
   project_type                                     String                 @db.VarChar(50)
-  category                                         project_category
+  category                                         String                 @db.VarChar(50)
   other_category                                   String?                @db.VarChar(100)
   project_status                                   project_status         @default(new)
   start_date                                       DateTime               @db.Date
@@ -1320,6 +1327,7 @@ model projects {
   tech_frontend                                    String?
   tech_backend                                     String?
   tech_cloud                                       String?
+  tech_database                                    String?
   row_version                                      Int                    @default(1)
   created_at                                       DateTime               @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
   created_by                                       Int?
@@ -1380,6 +1388,23 @@ model employee_departments {
   @@id([emp_id, dep_id])
   @@index([dep_id], map: "ix_employee_departments_dep_id")
   @@index([emp_id], map: "ix_employee_departments_emp_id")
+}
+
+model employee_roles {
+  emp_id                                         Int
+  role_id                                        Int
+  dep_id                                         Int
+  is_primary                                     Boolean     @default(false)
+  created_at                                     DateTime    @default(now()) @db.Timestamptz(6)
+  created_by                                     Int?
+  employees_employee_roles_created_byToemployees employees?  @relation("employee_roles_created_byToemployees", fields: [created_by], references: [emp_id], onDelete: NoAction, onUpdate: NoAction)
+  employees_employee_roles_emp_idToemployees     employees   @relation("employee_roles_emp_idToemployees", fields: [emp_id], references: [emp_id], onDelete: Cascade, onUpdate: NoAction)
+  roles                                          roles       @relation(fields: [role_id], references: [role_id], onDelete: NoAction, onUpdate: NoAction)
+  departments                                    departments @relation(fields: [dep_id], references: [dep_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([emp_id, role_id], map: "pk_employee_roles")
+  @@index([emp_id], map: "ix_employee_roles_emp_id")
+  @@index([role_id], map: "ix_employee_roles_role_id")
 }
 
 model employee_pay_policies {
@@ -2109,6 +2134,7 @@ model expense_categories {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model expense_claims {
+  project_id                                                                       Int?
   claim_id                                                                         Int                  @id(map: "pk_expense_claims") @default(autoincrement())
   claim_no                                                                         String?              @db.VarChar(30)
   emp_id                                                                           Int
@@ -2552,6 +2578,7 @@ model settings_change_log {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model clients {
+  project_revenue                             Decimal?   @db.Decimal(14, 2)
   client_id                                   Int        @id(map: "pk_clients") @default(autoincrement())
   client_code                                 String?    @unique(map: "ux_clients_client_code") @db.VarChar(50)
   company_id                                  Int
@@ -3174,6 +3201,7 @@ enum task_priority {
 enum task_stage {
   assigned
   in_progress
+  in_qa
   hold
   requested
   completed
@@ -3200,12 +3228,6 @@ enum calendar_rsvp_status {
   tentative
 }
 
-enum bug_priority {
-  high
-  medium
-  low
-}
-
 enum bug_status {
   new
   open
@@ -3215,25 +3237,6 @@ enum bug_status {
   qa_in_progress
   done
   not_a_bug
-}
-
-enum bug_type {
-  frontend
-  backend
-  ui
-  database
-  other
-}
-
-enum project_category {
-  ecom_website
-  portfolio_website
-  seo
-  social_media
-  crm
-  erp
-  brochure
-  other
 }
 
 enum project_status {

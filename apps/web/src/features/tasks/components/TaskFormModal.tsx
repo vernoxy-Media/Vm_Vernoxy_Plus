@@ -94,6 +94,7 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
   const [assigneeIds, setAssigneeIds] = useState<number[]>([]);
   const [hasSubTasks, setHasSubTasks] = useState(false);
   const [leadId, setLeadId] = useState<number | undefined>(undefined);
+  const [qaId, setQaId] = useState<number | undefined>(undefined);
   const [priority, setPriority] = useState<TaskPriority>('medium');
   const [taskTypeId, setTaskTypeId] = useState<number | undefined>(undefined);
   const [otherTaskType, setOtherTaskType] = useState('');
@@ -114,6 +115,7 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
     setAssigneeIds(d?.assignees?.map((a: any) => a.employee_id) || []);
     setHasSubTasks(Boolean(d?.has_sub_tasks));
     setLeadId(d?.lead_employee_id || undefined);
+    setQaId(d?.qa_assignee_id || undefined);
     setPriority((d?.priority as TaskPriority) || 'medium');
     setTaskTypeId(d?.task_type_id || undefined);
     setOtherTaskType(d?.other_task_type || '');
@@ -130,6 +132,7 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, initialData, defaultSprintId]);
 
+  const qaOptions = useMemo(() => employees.filter((e) => !assigneeIds.includes(e.emp_id)), [employees, assigneeIds]);
   const mainEmployees = useMemo(() => employees.filter((e) => assigneeIds.includes(e.emp_id)), [employees, assigneeIds]);
   const subTotal = subTasks.reduce((s, st) => s + (st.allocatedMinutes || 0), 0);
   const timesMatch = !hasSubTasks || subTasks.length === 0 || subTotal === (allocatedMinutes || 0);
@@ -166,6 +169,7 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
       if (hasSubTasks && !leadId) e.lead = 'Please select the Lead.';
       else if (hasSubTasks && leadId && !assigneeIds.includes(leadId)) e.lead = 'The Lead must be one of the employees in Assigned To.';
     }
+    if (qaId && assigneeIds.includes(qaId)) e.qa = 'QA must be a different person from the developer.';
     if (!priority) e.priority = 'Please select the Priority.';
     if (!taskTypeId) e.taskType = 'Please select the Task Type.';
     if (isOther(taskTypeId)) {
@@ -211,7 +215,11 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
         other_task_type: isOther(taskTypeId) ? otherTaskType.trim() : undefined,
       };
       if (!isQuick) payload.assignee_ids = assigneeIds;
-      if (mode === 'project') payload.sprint_id = sprintId || undefined;
+      if (mode === 'project') {
+        payload.sprint_id = sprintId || undefined;
+        // Editing may remove the QA step, so an empty field is sent as null there
+        payload.qa_assignee_id = qaId || (isEdit ? null : undefined);
+      }
       if (!isEdit) {
         payload.has_sub_tasks = hasSubTasks;
         if (hasSubTasks) {
@@ -375,6 +383,22 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
               <Err text={errors.assignees} />
             </>
           )}
+        </div>
+      )}
+
+      {mode === 'project' && (
+        <div>
+          <label className={LABEL}>QA (tester)</label>
+          <select value={qaId ? String(qaId) : ''} onChange={(e) => setQaId(e.target.value ? Number(e.target.value) : undefined)} className={INPUT}>
+            <option value="">No QA step: goes straight to approval</option>
+            {qaOptions.map((emp) => (
+              <option key={emp.emp_id} value={emp.emp_id}>
+                {emp.name}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-[12px] text-[#5E6C84]">When the developer finishes, the issue goes to this person for testing before approval.</p>
+          <Err text={errors.qa} />
         </div>
       )}
 

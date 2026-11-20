@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Settings, ClipboardCheck, RefreshCw, Download, Clock, FileText, CheckCircle2, X, Calendar, BarChart3 } from 'lucide-react';
 import { getAccessToken } from '@vernoxy-pulse/api-client';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useAttendanceDashboard, usePunchActions } from '../hooks/use-attendance';
+import { fetchRegularizationDetail } from '../api/attendance.api';
 import { EmployeeSwitcher, type SwitcherEmployee } from '../components/EmployeeSwitcher';
 import { AttendanceSkeleton } from '../components/AttendanceSkeleton';
 import { AttendanceDashboardCards } from '../components/AttendanceDashboardCards';
@@ -13,6 +14,7 @@ import { ApprovalsPanel } from '../components/ApprovalsPanel';
 import { MyAttendanceCalendarSection } from '../components/MyAttendanceCalendarSection';
 import { AttendanceAnalyticsDashboardTab } from '../components/analytics/AttendanceAnalyticsDashboardTab';
 
+import { localToday } from '@/shared/utils/schedule.utils';
 const MONTH_OPTIONS = [
   { value: '01', label: 'January' },
   { value: '02', label: 'February' },
@@ -33,7 +35,7 @@ export const AttendancePage: React.FC = () => {
   // Only administrators manage other people's attendance; everyone else works on their own.
   const canManageAttendance = Boolean(user?.access?.can_manage_organization);
 
-  const todayDateStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const todayDateStr = useMemo(() => localToday(), []);
   const currentMonthStr = useMemo(() => todayDateStr.slice(0, 7), [todayDateStr]);
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -76,11 +78,31 @@ export const AttendancePage: React.FC = () => {
   const [viewEmp, setViewEmp] = useState<SwitcherEmployee | null>(null);
   const viewing = canManageAttendance ? viewEmp : null;
 
+  // A notification link (?request=12): open the employee who raised it, on the Regularizations tab
+  const requestParam = searchParams.get('request');
+  useEffect(() => {
+    if (!requestParam || !canManageAttendance) return;
+    let off = false;
+    fetchRegularizationDetail(Number(requestParam))
+      .then((r) => {
+        if (off) return;
+        if (r.empId !== user?.emp_id) setViewEmp({ emp_id: r.empId, name: r.employeeName ?? `Employee #${r.empId}` });
+        setAttendanceTab('regularization');
+        setSearchParams({ tab: 'regularization' });
+      })
+      .catch(() => setSearchParams({ tab: 'regularization' }));
+    return () => {
+      off = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestParam, canManageAttendance]);
+
   const { data, isLoading, error, refetch } = useAttendanceDashboard(selectedMonth, viewing?.emp_id);
 
   const {
     punchInMutation,
     punchOutMutation,
+    resumeWorkMutation,
     startBreakMutation,
     resumeBreakMutation,
     isPending,
@@ -115,6 +137,7 @@ export const AttendancePage: React.FC = () => {
 
   const handlePunchIn = () => runAction(() => punchInMutation.mutateAsync(), 'Failed to punch in');
   const handlePunchOut = () => runAction(() => punchOutMutation.mutateAsync(), 'Failed to punch out');
+  const handleResumeWork = () => runAction(() => resumeWorkMutation.mutateAsync(), 'Failed to resume work');
   const handleStartBreak = (breakType?: string, reason?: string) =>
     runAction(() => startBreakMutation.mutateAsync({ breakType, reason }), 'Failed to start break');
   const handleResumeBreak = () => runAction(() => resumeBreakMutation.mutateAsync(), 'Failed to resume break');
@@ -385,6 +408,7 @@ export const AttendancePage: React.FC = () => {
           isPending={isPending}
           onPunchIn={handlePunchIn}
           onPunchOut={handlePunchOut}
+          onResumeWork={handleResumeWork}
           onStartBreak={handleStartBreak}
           onResumeBreak={handleResumeBreak}
           actionError={actionError}

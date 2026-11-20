@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { FileText, Loader2, Paperclip, Trash2, UploadCloud } from 'lucide-react';
+import { Briefcase, Building2, Check, ChevronDown, FileText, FolderKanban, Loader2, Paperclip, Search, Trash2, UploadCloud, User, X } from 'lucide-react';
 import {
   ClaimFlag,
+  ProjectOption,
   ReceiptItem,
   errorText,
   fieldErrors,
@@ -11,10 +12,30 @@ import {
   useFormOptions,
   useSaveClaim,
 } from '../hooks/use-expenses';
-import { Banner, FieldError, Modal, btn, inputCls, inr } from './expense-ui';
+import { Banner, FieldError, Modal, inr } from './expense-ui';
+
+/** Jira look: flat 3px corners, grey field that turns white with a blue border on focus. */
+const inputCls =
+  'h-9 w-full rounded-[3px] border-2 border-[#DFE1E6] bg-[#FAFBFC] px-2.5 text-[14px] text-[#172B4D] placeholder:text-[#7A869A] transition hover:bg-[#EBECF0] focus:border-[#4C9AFF] focus:bg-white focus:outline-hidden';
+const btn = {
+  primary: 'inline-flex h-8 items-center justify-center gap-1.5 rounded-[3px] bg-[#0052CC] px-3 text-[14px] font-medium text-white transition hover:bg-[#0065FF] disabled:cursor-not-allowed disabled:bg-[#F4F5F7] disabled:text-[#A5ADBA]',
+  secondary: 'inline-flex h-8 items-center justify-center gap-1.5 rounded-[3px] bg-[rgba(9,30,66,0.04)] px-3 text-[14px] font-medium text-[#42526E] transition hover:bg-[rgba(9,30,66,0.08)] disabled:cursor-not-allowed disabled:opacity-50',
+  danger: 'inline-flex h-8 items-center justify-center gap-1.5 rounded-[3px] bg-[#DE350B] px-3 text-[14px] font-medium text-white transition hover:bg-[#BF2600] disabled:cursor-not-allowed disabled:opacity-50',
+};
 
 const OFFICE = 'Office Expense';
 const PERSONAL = 'Personal Expense';
+const PROJECT = 'Project Expense';
+
+/** Which Expense Types a category allows. A Project Expense is a company expense, so it follows Office. */
+const choicesFor = (allowed?: 'OFFICE' | 'PERSONAL' | 'BOTH'): string[] =>
+  !allowed || allowed === 'BOTH' ? [OFFICE, PERSONAL, PROJECT] : allowed === 'OFFICE' ? [OFFICE, PROJECT] : [PERSONAL];
+
+const TYPE_META: Record<string, { icon: React.ElementType; hint: string }> = {
+  [OFFICE]: { icon: Building2, hint: 'Day-to-day running of the office' },
+  [PERSONAL]: { icon: User, hint: 'Personal needs allowed by policy' },
+  [PROJECT]: { icon: FolderKanban, hint: 'Charged directly to one project' },
+};
 const MAX_FILES = 5;
 const MAX_BYTES = 5 * 1024 * 1024;
 const FILE_RULE = 'Only PDF, JPG or PNG up to 5 MB, up to 5 files.';
@@ -23,12 +44,13 @@ interface FormState {
   expense_date: string;
   category_id: string;
   expense_type: string;
+  project_id: string;
   amount: string;
   merchant_name: string;
   description: string;
 }
 
-const EMPTY: FormState = { expense_date: '', category_id: '', expense_type: '', amount: '', merchant_name: '', description: '' };
+const EMPTY: FormState = { expense_date: '', category_id: '', expense_type: '', project_id: '', amount: '', merchant_name: '', description: '' };
 
 const daysBetween = (from: string, to: string) => Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86400000);
 
@@ -65,6 +87,7 @@ export const ExpenseFormModal: React.FC<{
         expense_date: claim.expense_date || '',
         category_id: claim.category_id ? String(claim.category_id) : '',
         expense_type: claim.expense_type || '',
+        project_id: claim.project_id ? String(claim.project_id) : '',
         amount: claim.amount != null ? String(claim.amount) : '',
         merchant_name: claim.merchant_name || '',
         description: claim.description || '',
@@ -87,7 +110,12 @@ export const ExpenseFormModal: React.FC<{
     return list;
   }, [opts, claim]);
   const cat = categories.find((c) => String(c.category_id) === form.category_id) || null;
-  const typeChoices = !cat ? [OFFICE, PERSONAL] : cat.allowed_type === 'BOTH' ? [OFFICE, PERSONAL] : cat.allowed_type === 'OFFICE' ? [OFFICE] : [PERSONAL];
+  const typeChoices = choicesFor(cat?.allowed_type);
+  const projects = useMemo(() => {
+    const list = opts?.projects || [];
+    if (claim?.project && !list.some((p) => p.project_id === claim.project!.project_id)) return [...list, claim.project];
+    return list;
+  }, [opts, claim]);
   const amount = Number(form.amount);
   const dirty = JSON.stringify([form, receipts.map((r) => r.attachment_id)]) !== initial;
 
@@ -97,12 +125,15 @@ export const ExpenseFormModal: React.FC<{
       if (k === 'category_id') {
         const c = categories.find((x) => String(x.category_id) === v);
         // Category decides the Expense Type when it allows only one.
-        if (c && c.allowed_type !== 'BOTH') next.expense_type = c.allowed_type === 'OFFICE' ? OFFICE : PERSONAL;
-        else if (c && next.expense_type && ![OFFICE, PERSONAL].includes(next.expense_type)) next.expense_type = '';
+        const choices = choicesFor(c?.allowed_type);
+        if (c && next.expense_type && !choices.includes(next.expense_type)) next.expense_type = choices.length === 1 ? choices[0] : '';
+        else if (c && !next.expense_type && choices.length === 1) next.expense_type = choices[0];
       }
+      // The project belongs to a Project Expense only: any other type clears it.
+      if (next.expense_type !== PROJECT) next.project_id = '';
       return next;
     });
-    setErrors((e) => ({ ...e, [k]: '' }));
+    setErrors((e) => ({ ...e, [k]: '', ...(k === 'expense_type' ? { project_id: '' } : {}) }));
   };
 
   // Live notes under fields (BFD 4 Part 2).
@@ -155,6 +186,7 @@ export const ExpenseFormModal: React.FC<{
     if (!form.category_id) e.category_id = need;
     if (!form.expense_type) e.expense_type = need;
     else if (cat && !typeChoices.includes(form.expense_type)) e.expense_type = `${cat.name} allows only ${typeChoices[0]}.`;
+    if (form.expense_type === PROJECT && !form.project_id) e.project_id = 'Please select a project.';
     if (!form.amount) e.amount = need;
     const d = form.description.trim();
     if (!d) e.description = need;
@@ -180,6 +212,7 @@ export const ExpenseFormModal: React.FC<{
           expense_date: form.expense_date,
           category_id: form.category_id ? Number(form.category_id) : null,
           expense_type: form.expense_type || null,
+          project_id: form.expense_type === PROJECT && form.project_id ? Number(form.project_id) : null,
           amount: form.amount ? Number(form.amount) : null,
           merchant_name: form.merchant_name.trim() || null,
           description: form.description.trim() || null,
@@ -216,6 +249,7 @@ export const ExpenseFormModal: React.FC<{
         open={open}
         onClose={close}
         width="max-w-2xl"
+        jira
         title={claimId ? `Edit Expense${claim?.claim_no ? ` · ${claim.claim_no}` : ''}` : 'Add Expense'}
         subtitle={claim?.copied_from_claim_id ? 'Copied from a rejected claim' : 'Save as Draft needs only the Expense Date.'}
         footer={
@@ -241,16 +275,16 @@ export const ExpenseFormModal: React.FC<{
             {banner && <Banner>{banner}</Banner>}
 
             {/* Part 1: who is claiming (read only) */}
-            <div className="grid grid-cols-2 gap-3 rounded-xl bg-slate-50 px-4 py-3 text-[12.5px]">
+            <div className="grid grid-cols-2 gap-3 rounded-[3px] bg-[#F4F5F7] px-4 py-3 text-[13px]">
               <div>
-                <p className="text-[10.5px] font-semibold uppercase tracking-wider text-slate-400">Employee</p>
-                <p className="font-semibold text-slate-800">
-                  {(claim?.employee || opts?.employee)?.name} <span className="font-normal text-slate-400">· {(claim?.employee || opts?.employee)?.emp_code}</span>
+                <p className="text-[11px] font-semibold text-[#6B778C]">Employee</p>
+                <p className="font-medium text-[#172B4D]">
+                  {(claim?.employee || opts?.employee)?.name} <span className="font-normal text-[#6B778C]">· {(claim?.employee || opts?.employee)?.emp_code}</span>
                 </p>
               </div>
               <div>
-                <p className="text-[10.5px] font-semibold uppercase tracking-wider text-slate-400">Department</p>
-                <p className="font-semibold text-slate-800">{(claim?.employee || opts?.employee)?.department_name || '—'}</p>
+                <p className="text-[11px] font-semibold text-[#6B778C]">Department</p>
+                <p className="font-medium text-[#172B4D]">{(claim?.employee || opts?.employee)?.department_name || '—'}</p>
               </div>
             </div>
 
@@ -274,33 +308,52 @@ export const ExpenseFormModal: React.FC<{
                 </select>
                 <FieldError msg={errors.category_id} />
                 {cat && (
-                  <p className="mt-1 text-[11.5px] text-slate-500">
+                  <p className="mt-1 text-[12px] text-[#6B778C]">
                     {cat.limit_per_claim ? `Limit ${inr(cat.limit_per_claim)} per claim. ` : 'No limit. '}
                     {cat.receipt_rule === 'ALWAYS' ? 'Receipt always needed.' : `Receipt needed above ${inr(cat.receipt_threshold_amount)}.`}
                   </p>
                 )}
               </div>
 
-              <div>
+              <div className="sm:col-span-2">
                 <Label text="Expense Type" required />
-                <div className="flex gap-2">
-                  {[OFFICE, PERSONAL].map((t) => {
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {[OFFICE, PERSONAL, PROJECT].map((t) => {
                     const allowed = typeChoices.includes(t);
+                    const active = form.expense_type === t;
+                    const Icon = TYPE_META[t].icon;
                     return (
                       <label
                         key={t}
-                        className={`flex flex-1 cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-[12.5px] font-semibold ${
-                          form.expense_type === t ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 text-slate-600'
-                        } ${allowed ? '' : 'cursor-not-allowed opacity-40'}`}
+                        title={allowed ? undefined : `${cat?.name} does not allow ${t}.`}
+                        className={`group relative flex items-start gap-2.5 rounded-[3px] border-2 px-3 py-2.5 transition ${
+                          active ? 'border-[#0052CC] bg-[#DEEBFF]' : 'border-[#DFE1E6] bg-[#FAFBFC] hover:bg-[#EBECF0]'
+                        } ${allowed ? 'cursor-pointer' : 'cursor-not-allowed opacity-40'}`}
                       >
-                        <input type="radio" className="sr-only" disabled={!allowed} checked={form.expense_type === t} onChange={() => set('expense_type', t)} />
-                        {t}
+                        <input type="radio" name="expense_type" className="sr-only" disabled={!allowed} checked={active} onChange={() => set('expense_type', t)} />
+                        <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-[3px] ${active ? 'bg-[#0052CC] text-white' : 'bg-[#DFE1E6] text-[#42526E]'}`}>
+                          <Icon className="h-4 w-4" />
+                        </span>
+                        <span className="min-w-0">
+                          <span className={`block text-[12.5px] font-semibold ${active ? 'text-[#0747A6]' : 'text-[#172B4D]'}`}>{t}</span>
+                          <span className="block text-[11px] leading-snug text-[#6B778C]">{TYPE_META[t].hint}</span>
+                        </span>
+                        {active && <Check className="absolute right-2 top-2 h-3.5 w-3.5 text-[#0052CC]" />}
                       </label>
                     );
                   })}
                 </div>
                 <FieldError msg={errors.expense_type} />
               </div>
+
+              {form.expense_type === PROJECT && (
+                <div className="sm:col-span-2">
+                  <Label text="Project" required />
+                  <ProjectPicker projects={projects} value={form.project_id} invalid={!!errors.project_id} onChange={(v) => set('project_id', v)} />
+                  <FieldError msg={errors.project_id} />
+                  {!errors.project_id && <p className="mt-1 text-[12px] text-[#6B778C]">Once approved, this amount is added to the actual expense of the project.</p>}
+                </div>
+              )}
 
               <div>
                 <Label text="Amount (₹)" required />
@@ -336,7 +389,7 @@ export const ExpenseFormModal: React.FC<{
                 />
                 <div className="flex justify-between">
                   <FieldError msg={errors.description} />
-                  <span className="ml-auto mt-1 text-[11px] text-slate-400">{form.description.length}/500</span>
+                  <span className="ml-auto mt-1 text-[11px] text-[#6B778C]">{form.description.length}/500</span>
                 </div>
               </div>
             </div>
@@ -356,8 +409,8 @@ export const ExpenseFormModal: React.FC<{
                   void addFiles(e.dataTransfer.files);
                 }}
                 onClick={() => fileRef.current?.click()}
-                className={`flex cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed px-4 py-5 text-center transition ${
-                  drag ? 'border-blue-400 bg-blue-50' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                className={`flex cursor-pointer flex-col items-center justify-center gap-1 rounded-[3px] border-2 border-dashed px-4 py-5 text-center transition ${
+                  drag ? 'border-[#4C9AFF] bg-[#DEEBFF]' : 'border-[#DFE1E6] bg-[#FAFBFC] hover:bg-[#EBECF0]'
                 }`}
               >
                 <UploadCloud className="h-6 w-6 text-slate-400" />
@@ -379,7 +432,7 @@ export const ExpenseFormModal: React.FC<{
               {(receipts.length > 0 || uploading > 0) && (
                 <ul className="mt-2 space-y-1.5">
                   {receipts.map((r) => (
-                    <li key={r.attachment_id} className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-1.5 text-[12.5px]">
+                    <li key={r.attachment_id} className="flex items-center gap-2 rounded-[3px] border border-[#DFE1E6] px-3 py-1.5 text-[13px]">
                       {/^image\//.test(r.mime_type || '') ? <Paperclip className="h-3.5 w-3.5 text-blue-500" /> : <FileText className="h-3.5 w-3.5 text-rose-500" />}
                       <span className="min-w-0 flex-1 truncate text-slate-700">{r.file_name}</span>
                       <span className="text-[11px] text-slate-400">{(r.file_size_bytes / 1024).toFixed(0)} KB</span>
@@ -455,8 +508,102 @@ export const ExpenseFormModal: React.FC<{
 };
 
 const Label: React.FC<{ text: string; required?: boolean }> = ({ text, required }) => (
-  <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-500">
+  <label className="mb-1 block text-[12px] font-semibold text-[#6B778C]">
     {text}
-    {required && <span className="ml-0.5 text-rose-500">*</span>}
+    {required && <span className="ml-0.5 text-[#DE350B]">*</span>}
   </label>
 );
+
+/** Searchable single-select of projects. */
+const ProjectPicker: React.FC<{ projects: ProjectOption[]; value: string; invalid?: boolean; onChange: (v: string) => void }> = ({ projects, value, invalid, onChange }) => {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
+  const box = useRef<HTMLDivElement>(null);
+  const selected = projects.find((p) => String(p.project_id) === value) || null;
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent) => {
+      if (box.current && !box.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [open]);
+
+  const needle = q.trim().toLowerCase();
+  const list = needle ? projects.filter((p) => `${p.project_name} ${p.project_no} ${p.client_name || ''}`.toLowerCase().includes(needle)) : projects;
+
+  return (
+    <div ref={box} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className={`flex h-9 w-full items-center gap-2 rounded-[3px] border-2 px-2.5 text-left text-[14px] transition focus:outline-hidden ${
+          invalid ? 'border-[#DE350B] bg-white' : open ? 'border-[#4C9AFF] bg-white' : 'border-[#DFE1E6] bg-[#FAFBFC] hover:bg-[#EBECF0]'
+        }`}
+      >
+        <Briefcase className="h-4 w-4 shrink-0 text-slate-400" />
+        {selected ? (
+          <span className="min-w-0 flex-1 truncate font-medium text-[#172B4D]">
+            {selected.project_name} <span className="font-normal text-slate-400">· {selected.project_no}</span>
+          </span>
+        ) : (
+          <span className="flex-1 text-slate-400">Search and select a project</span>
+        )}
+        {selected && (
+          <span
+            role="button"
+            aria-label="Clear project"
+            className="rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            onClick={(e) => {
+              e.stopPropagation();
+              onChange('');
+            }}
+          >
+            <X className="h-3.5 w-3.5" />
+          </span>
+        )}
+        <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-[3px] bg-white shadow-[0_4px_8px_-2px_rgba(9,30,66,0.25),0_0_1px_rgba(9,30,66,0.31)]">
+          <div className="flex items-center gap-2 border-b border-[#DFE1E6] px-3 py-2">
+            <Search className="h-4 w-4 text-slate-400" />
+            <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by project, number or client" className="w-full bg-transparent text-[14px] text-[#172B4D] outline-none placeholder:text-[#7A869A]" />
+          </div>
+          <ul className="max-h-56 overflow-y-auto py-1">
+            {list.length === 0 ? (
+              <li className="px-3 py-4 text-center text-[12.5px] text-slate-400">{projects.length === 0 ? 'No projects available.' : 'No project matches your search.'}</li>
+            ) : (
+              list.map((p) => {
+                const on = String(p.project_id) === value;
+                return (
+                  <li key={p.project_id}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onChange(String(p.project_id));
+                        setOpen(false);
+                        setQ('');
+                      }}
+                      className={`flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] hover:bg-[#F4F5F7] ${on ? 'bg-[#DEEBFF]' : ''}`}
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate font-medium text-[#172B4D]">{p.project_name}</span>
+                        <span className="block truncate text-[11px] text-slate-400">
+                          {p.project_no}
+                          {p.client_name ? ` · ${p.client_name}` : ''}
+                        </span>
+                      </span>
+                      {on && <Check className="h-4 w-4 text-[#0052CC]" />}
+                    </button>
+                  </li>
+                );
+              })
+            )}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+};

@@ -281,6 +281,16 @@ export class UpdateGeneralSettingsDto {
   @Min(1)
   @Max(24)
   comp_off_hours_per_day?: number;
+
+  @ApiPropertyOptional({ nullable: true, description: 'The Leave Policy a new employee gets. null: none.' })
+  @IsOptional()
+  @IsInt()
+  default_policy_id?: number | null;
+
+  @ApiPropertyOptional({ description: 'Also give the default policy to active employees who have no policy now.' })
+  @IsOptional()
+  @IsBoolean()
+  assign_to_employees_without_policy?: boolean;
 }
 
 // =============================================================================

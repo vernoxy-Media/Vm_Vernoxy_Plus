@@ -20,6 +20,7 @@ export interface AttendanceDashboardCardsProps {
   isPending: boolean;
   onPunchIn: () => Promise<void>;
   onPunchOut: () => Promise<void>;
+  onResumeWork: () => Promise<void>;
   onStartBreak: (breakType?: string, reason?: string) => Promise<any>;
   onResumeBreak: () => Promise<void>;
   actionError: string | null;
@@ -60,6 +61,7 @@ export const AttendanceDashboardCards: React.FC<AttendanceDashboardCardsProps> =
   isPending,
   onPunchIn,
   onPunchOut,
+  onResumeWork,
   onStartBreak,
   onResumeBreak,
   actionError,
@@ -174,6 +176,7 @@ export const AttendanceDashboardCards: React.FC<AttendanceDashboardCardsProps> =
           isPending={isPending}
           onPunchIn={onPunchIn}
           onPunchOut={onPunchOut}
+          onResumeWork={onResumeWork}
           onStartBreak={onStartBreak}
           onResumeBreak={onResumeBreak}
           errorMessage={actionError}

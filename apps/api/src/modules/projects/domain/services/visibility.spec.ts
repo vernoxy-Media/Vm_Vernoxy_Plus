@@ -1,4 +1,4 @@
-import { canMoveBug, canSeeActivity, canSeeBug, canSeeDiscussionMessage, seesEverything, taskKeyOfMessage, Viewer } from './visibility';
+import { canMoveBug, canSeeActivity, canSeeBug, canSeeDiscussionMessage, isTesterOf, seesEverything, taskKeyOfMessage, Viewer } from './visibility';
 
 const admin: Viewer = { empId: 1, isAdmin: true, isPM: false };
 const pm: Viewer = { empId: 2, isAdmin: false, isPM: true };
@@ -11,8 +11,17 @@ describe('project visibility', () => {
     expect(seesEverything(asha)).toBe(false);
   });
 
+  describe('QA tester', () => {
+    it('sees the tasks they are the QA assignee of, and not other people\'s', () => {
+      expect(isTesterOf(asha, { qa_assignee_id: 3 })).toBe(true);
+      expect(isTesterOf(asha, { qa_assignee_id: 9 })).toBe(false);
+      expect(isTesterOf(asha, { qa_assignee_id: null })).toBe(false);
+      expect(isTesterOf(asha, {})).toBe(false);
+    });
+  });
+
   describe('bugs', () => {
-    const mine = { assigned_to: 3, reported_by: 9 };
+    const mine ={ assigned_to: 3, reported_by: 9 };
     const reportedByMe = { assigned_to: 8, reported_by: 3 };
     const someoneElses = { assigned_to: 8, reported_by: 9 };
 

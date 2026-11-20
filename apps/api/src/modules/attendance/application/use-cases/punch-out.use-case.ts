@@ -73,6 +73,7 @@ export class PunchOutUseCase {
     const intervals = existingBreaks.map((b) => ({
       startedAt: b.startedAt,
       endedAt: b.endedAt || now, // Any open break ends at Punch Out instant
+      breakType: b.breakType,
     }));
 
     const { productionMinutes, breakMinutes } = calculateCompletedDayMinutes(

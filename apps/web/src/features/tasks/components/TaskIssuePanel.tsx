@@ -1,10 +1,13 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
-import { ExternalLink, FolderKanban, Loader2, Zap } from 'lucide-react';
+import { Bug, CheckCircle2, ExternalLink, FolderKanban, Loader2, Zap } from 'lucide-react';
 import type { TaskDetailDto } from '@vernoxy-pulse/api-client';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { ProjectIssueView } from '@/features/projects/components/ProjectIssueView';
+import { CreateBugModal } from '@/features/projects/components/CreateBugModal';
+import { createProjectBug, fetchProjectDetail, fetchSprintTasks } from '@/features/projects/api/projects.api';
+import type { CreateProjectBugPayload, ProjectMember, ProjectTaskItem } from '@/features/projects/types';
 import type { TaskStage } from '../types';
 
 interface TaskIssuePanelProps {
@@ -27,6 +30,43 @@ interface TaskIssuePanelProps {
  */
 export const TaskIssuePanel: React.FC<TaskIssuePanelProps> = ({ task, isOpen, isAdmin, heading, onClose, onEdit, onMoveStage, onTrackWorkSession, onChangeDate }) => {
   const { user } = useAuth();
+
+  // Report a bug against this task (QA and anyone else working on a project task)
+  const [bugOpen, setBugOpen] = useState(false);
+  const [bugLoading, setBugLoading] = useState(false);
+  const [bugMembers, setBugMembers] = useState<ProjectMember[]>([]);
+  const [bugTasks, setBugTasks] = useState<ProjectTaskItem[]>([]);
+  const [bugError, setBugError] = useState<string | null>(null);
+  const [bugDone, setBugDone] = useState(false);
+
+  const isAssignedToMe = Boolean(
+    task && user && (task.assignees?.some((a) => a.employee_id === user.emp_id) || task.lead_employee_id === user.emp_id),
+  );
+  const canReportBug = Boolean(task?.project_id && (isAssignedToMe || isAdmin));
+
+  const openBugForm = async () => {
+    if (!task?.project_id) return;
+    setBugError(null);
+    setBugLoading(true);
+    try {
+      const [project, tasks] = await Promise.all([fetchProjectDetail(task.project_id), fetchSprintTasks(task.project_id)]);
+      setBugMembers(project.members || []);
+      setBugTasks(tasks);
+      setBugOpen(true);
+    } catch (err: any) {
+      setBugError(err?.detail || err?.message || 'Could not open the bug form. Please try again.');
+    } finally {
+      setBugLoading(false);
+    }
+  };
+
+  const submitBug = async (payload: CreateProjectBugPayload) => {
+    if (!task?.project_id) return;
+    await createProjectBug(task.project_id, payload);
+    setBugOpen(false);
+    setBugDone(true);
+    setTimeout(() => setBugDone(false), 4000);
+  };
 
   useEffect(() => {
     if (!isOpen) return;
@@ -61,6 +101,24 @@ export const TaskIssuePanel: React.FC<TaskIssuePanelProps> = ({ task, isOpen, is
                   <Zap className="h-3.5 w-3.5" /> Quick task: only you see it
                 </span>
               )}
+              {canReportBug && (
+                <button
+                  type="button"
+                  id="task-report-bug-button"
+                  onClick={openBugForm}
+                  disabled={bugLoading}
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-[3px] bg-[#FFEBE6] px-2 py-1 font-medium text-[#BF2600] transition hover:bg-[#FFBDAD] disabled:opacity-60"
+                >
+                  {bugLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Bug className="h-3.5 w-3.5" />}
+                  Report bug
+                </button>
+              )}
+              {bugDone && (
+                <span role="status" className="inline-flex items-center gap-1.5 rounded-[3px] bg-[#E3FCEF] px-2 py-1 font-medium text-[#006644]">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Bug reported
+                </span>
+              )}
+              {bugError && <span role="alert" className="text-[#BF2600]">{bugError}</span>}
               {task.parent_task_id && task.parent_task_code && (
                 <span className="text-[#5E6C84]">Sub-task of {task.parent_task_code}{task.parent_task_title ? ` · ${task.parent_task_title}` : ''}</span>
               )}
@@ -72,7 +130,7 @@ export const TaskIssuePanel: React.FC<TaskIssuePanelProps> = ({ task, isOpen, is
               task={task}
               projectName={task.project_name || heading}
               isAdmin={isAdmin}
-              canApprove={isAdmin}
+              canApprove={isAdmin || (task as { project_manager_id?: number | null }).project_manager_id === user?.emp_id}
               currentEmpId={user?.emp_id}
               members={[]}
               comments={[]}
@@ -90,6 +148,18 @@ export const TaskIssuePanel: React.FC<TaskIssuePanelProps> = ({ task, isOpen, is
           )}
         </div>
       </aside>
+
+      {task?.project_id && (
+        <CreateBugModal
+          projectId={task.project_id}
+          projectMembers={bugMembers}
+          tasks={bugTasks}
+          defaultTaskId={task.task_id}
+          isOpen={bugOpen}
+          onClose={() => setBugOpen(false)}
+          onSubmit={submitBug}
+        />
+      )}
     </div>,
     document.body,
   );

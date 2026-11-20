@@ -8,6 +8,8 @@ import {
   Loader2,
   
   Briefcase,
+  IndianRupee,
+  Lock,
   ExternalLink,
   
 } from 'lucide-react';
@@ -42,6 +44,7 @@ export const MarkWonModal: React.FC<MarkWonModalProps> = ({
   const todayStr = new Date().toISOString().split('T')[0];
   const [wonOn, setWonOn] = useState<string>(todayStr);
   const [winNote, setWinNote] = useState<string>('');
+  const [revenue, setRevenue] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [createdClientId, setCreatedClientId] = useState<number | null>(null);
 
@@ -63,6 +66,7 @@ export const MarkWonModal: React.FC<MarkWonModalProps> = ({
   }, [formData?.won_on.default]);
 
   const convertMutation = useSalesClientControllerConvert();
+  const canSetRevenue = Boolean(formData?.can_set_revenue);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,13 +77,21 @@ export const MarkWonModal: React.FC<MarkWonModalProps> = ({
       return;
     }
 
+    const revenueClean = revenue.replace(/,/g, '').trim();
+    if (canSetRevenue && revenueClean && !/^\d+(\.\d{1,2})?$/.test(revenueClean)) {
+      setErrorMessage('Please enter a valid project revenue (numbers only, up to 2 decimals) or leave it empty.');
+      return;
+    }
+
     try {
       const response = await convertMutation.mutateAsync({
         id: leadId,
         data: {
           won_on: wonOn,
           win_note: winNote.trim() || undefined,
-        },
+          // Optional, Admin only; the server ignores it for everybody else.
+          ...(canSetRevenue && revenueClean ? { project_revenue: Number(revenueClean) } : {}),
+        } as never,
       });
 
       queryClient.invalidateQueries({ queryKey: ['/api/v1/sales/leads'] });
@@ -221,6 +233,39 @@ export const MarkWonModal: React.FC<MarkWonModalProps> = ({
                 The date the proposal or PO was formally agreed (cannot be in the future).
               </p>
             </div>
+
+            {/* Project revenue: Admin only, optional */}
+            {canSetRevenue && (
+              <div className="rounded-xl border border-indigo-200/70 bg-gradient-to-br from-indigo-50/70 to-white p-3.5">
+                <div className="flex items-center justify-between gap-2">
+                  <label htmlFor="project-revenue" className="flex items-center gap-2 text-xs font-semibold text-gray-800">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600">
+                      <IndianRupee className="h-4 w-4" />
+                    </span>
+                    Project Revenue
+                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500">Optional</span>
+                  </label>
+                  <span className="inline-flex items-center gap-1 text-[10.5px] font-medium text-indigo-600">
+                    <Lock className="h-3 w-3" /> Visible to Admin only
+                  </span>
+                </div>
+                <div className="relative mt-2.5">
+                  <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-semibold text-gray-400">₹</span>
+                  <input
+                    id="project-revenue"
+                    inputMode="decimal"
+                    value={revenue}
+                    onChange={(e) => setRevenue(e.target.value.replace(/[^\d.,]/g, ''))}
+                    placeholder="e.g. 5,00,000"
+                    className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-8 pr-3.5 text-sm font-semibold text-gray-900 placeholder:font-normal placeholder:text-gray-400 focus:border-indigo-500 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 min-h-[44px]"
+                  />
+                </div>
+                <p className="mt-1.5 text-[11px] leading-snug text-gray-500">
+                  What the client pays for the project. It is used to work out project profit. You can leave it empty and add it later from the Client record.
+                </p>
+              </div>
+            )}
+
 
             {/* Win Note */}
             <div>

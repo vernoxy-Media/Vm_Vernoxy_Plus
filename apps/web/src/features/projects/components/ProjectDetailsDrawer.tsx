@@ -9,7 +9,7 @@ import {
   FileText,
   AlertTriangle,
 } from 'lucide-react';
-import { CalendarRange, KanbanSquare, ListTodo, Timer } from 'lucide-react';
+import { CalendarRange, KanbanSquare, ListTodo, Timer, Server } from 'lucide-react';
 import { ProjectDateRange, ProjectTimelineView } from './ProjectTimelineView';
 import { ProjectWorkspaceNav, type WorkspaceNavGroup } from './ProjectWorkspaceNav';
 import { useAuth } from '@/features/auth/context/AuthContext';
@@ -28,7 +28,9 @@ import {
   moveTaskToSprint,
   createProjectTask,
   fetchProjectDiscussions,
+  fetchProjectMentionable,
   createProjectDiscussion,
+  uploadDiscussionFile,
   fetchProjectActivityLogs,
   fetchProjectBugs,
   createProjectBug,
@@ -45,6 +47,7 @@ import type {
   ProjectBugItem,
   ProjectDiscussionItem,
   ProjectItem,
+  ProjectMember,
   ProjectStatus,
   ProjectTaskItem,
   SprintItem,
@@ -60,6 +63,7 @@ import { DeliverProjectDialog } from './DeliverProjectDialog';
 import { ProjectTimeReport } from './ProjectTimeReport';
 import { ProjectBugsView } from './ProjectBugsView';
 import { ProjectSummaryView } from './ProjectSummaryView';
+import { ProjectTechDeploymentView } from './ProjectTechDeploymentView';
 import { ProjectStatusMenu } from './ProjectStatusMenu';
 import { TaskFormModal } from '@/features/tasks/components/TaskFormModal';
 import { CreateProjectTaskModal } from './CreateProjectTaskModal';
@@ -120,7 +124,7 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   // Final 4 Tabs: Tasks, Discussion, Overview, Activity Logs
-  const [activeTab, setActiveTab] = useState<'tasks' | 'timeline' | 'timelog' | 'discussion' | 'overview' | 'activity'>('tasks');
+  const [activeTab, setActiveTab] = useState<'tasks' | 'timeline' | 'timelog' | 'discussion' | 'overview' | 'details' | 'activity'>('tasks');
   const [tasksSubTab, setTasksSubTab] = useState<'board' | 'bugs'>('board');
 
   // Filters
@@ -146,6 +150,7 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
   const [targetStatusChange, setTargetStatusChange] = useState<ProjectStatus | null>(null);
   const [deliverOpen, setDeliverOpen] = useState(false);
   const [delivery, setDelivery] = useState<DeliveryReadiness | null>(null);
+  const [mentionable, setMentionable] = useState<ProjectMember[]>([]);
   const [statusReason, setStatusReason] = useState('');
   const [isSubmittingStatus, setIsSubmittingStatus] = useState(false);
 
@@ -158,7 +163,7 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
     try {
       setIsLoading(true);
       setError(null);
-      const [pData, sData, tData, dData, aData, bData, empData] = await Promise.all([
+      const [pData, sData, tData, dData, aData, bData, empData, mentionData] = await Promise.all([
         fetchProjectDetail(projectId),
         fetchProjectSprints(projectId),
         fetchSprintTasks(projectId),
@@ -166,8 +171,12 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
         fetchProjectActivityLogs(projectId),
         fetchProjectBugs(projectId),
         fetchAssignableEmployees(),
+        fetchProjectMentionable(projectId),
       ]);
 
+      setMentionable(
+        mentionData.map((p) => ({ member_id: p.employee_id, project_id: projectId, employee_id: p.employee_id, name: p.name, email: p.email, profile_picture: p.profile_picture, role_in_project: '' })),
+      );
       setProject(pData);
       setSprints(sData);
       setTasks(tData);
@@ -556,6 +565,7 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
       title: 'Project',
       items: [
         { id: 'overview', label: 'Summary', icon: FileText },
+        { id: 'details', label: 'Tech & Deployment', icon: Server },
         ...(isManagerOrAdmin ? [{ id: 'timelog', label: 'Time log', icon: Timer }] : []),
         { id: 'activity', label: 'Activity', icon: History, badge: activityLogs.length },
       ],
@@ -693,10 +703,10 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
                         projectName={project.project_name}
                         sprintName={issueSprintName}
                         isAdmin={isAdmin}
-                        canApprove={isAdmin}
+                        canApprove={isManagerOrAdmin}
                         currentEmpId={user?.emp_id}
                         canManage={isManagerOrAdmin}
-                        members={project.members || []}
+                        members={mentionable.length ? mentionable : project.members || []}
                         comments={issueComments}
                         currentUserName={user?.name}
                         currentUserAvatar={(user as { profile_picture?: string | null } | null)?.profile_picture ?? null}
@@ -709,8 +719,9 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
                         onChangeDate={changeDate}
                         onMoveStage={moveStageStrict}
                         onTrackWorkSession={trackSessionStrict}
-                        onComment={async (message, taggedIds) => {
-                          await createProjectDiscussion(projectId, `${issuePrefix}${message}`, undefined, taggedIds);
+                        onUploadFile={(file) => uploadDiscussionFile(projectId, file)}
+                        onComment={async (message, taggedIds, files) => {
+                          await createProjectDiscussion(projectId, `${issuePrefix}${message}`, files, taggedIds);
                           setDiscussions(await fetchProjectDiscussions(projectId));
                         }}
                       />
@@ -739,6 +750,7 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
                             members={project.members ?? []}
                             canManage={isManagerOrAdmin}
                             isAdmin={isAdmin}
+                            canApprove={isManagerOrAdmin}
                             currentEmpId={user?.emp_id}
                             view={boardView}
                             onViewChange={setBoardView}
@@ -770,12 +782,20 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
                 {activeTab === 'discussion' && (
                   <ProjectComments
                     comments={discussions}
-                    members={project.members || []}
+                    members={mentionable.length ? mentionable : project.members || []}
+                    onOpenIssue={(key) => {
+                      const hit = tasks.find((x) => x.task_code === key);
+                      if (!hit) return;
+                      setActiveTab('tasks');
+                      setTasksSubTab('board');
+                      setSelectedDrawerTaskId(hit.task_id);
+                    }}
                     currentUserId={user?.emp_id}
                     currentUserName={user?.name}
                     currentUserAvatar={(user as { profile_picture?: string | null } | null)?.profile_picture ?? null}
-                    onSend={async (message, taggedIds) => {
-                      await createProjectDiscussion(projectId, message, undefined, taggedIds);
+                    onUploadFile={(file) => uploadDiscussionFile(projectId, file)}
+                    onSend={async (message, taggedIds, files) => {
+                      await createProjectDiscussion(projectId, message, files, taggedIds);
                       const updated = await fetchProjectDiscussions(projectId);
                       setDiscussions(updated);
                     }}
@@ -810,6 +830,16 @@ export const ProjectDetailsDrawer: React.FC<ProjectDetailsDrawerProps> = ({
                     onEdit={() => setIsEditProjectModalOpen(true)}
                     delivery={isManagerOrAdmin ? delivery : null}
                     onDeliver={isManagerOrAdmin ? () => setDeliverOpen(true) : undefined}
+                  />
+                )}
+
+                {/* TAB: TECH STACK & DEPLOYMENT (everyone on the project views; Admin and Project Manager edit) */}
+                {activeTab === 'details' && (
+                  <ProjectTechDeploymentView
+                    project={project}
+                    employees={employees}
+                    canEdit={isManagerOrAdmin}
+                    onSaved={setProject}
                   />
                 )}
 

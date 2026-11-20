@@ -11,6 +11,8 @@ import { UpcomingDeadlinesTimelineChart } from './UpcomingDeadlinesTimelineChart
 import { EstimatedVsActualHoursChart } from './EstimatedVsActualHoursChart';
 import { PersonWiseWorkHoursChart } from './PersonWiseWorkHoursChart';
 import { BugResolutionTimeLineChart } from './BugResolutionTimeLineChart';
+import { ActualExpensesLollipopChart } from './ActualExpensesLollipopChart';
+import { ProjectProfitabilityDivergingChart } from './ProjectProfitabilityDivergingChart';
 import {
   DASH_GRID,
   DashboardEmpty,
@@ -18,18 +20,14 @@ import {
   DashboardHeader,
   DashboardSkeleton,
   KpiStat,
-  UnavailableCard,
 } from '@/shared/ui/dashboard/DashboardShell';
 import { isPastDate } from '@/shared/utils/schedule.utils';
-
-const MONEY_REASON =
-  'A project has no contract value yet and expenses are not linked to a project, so revenue, cost and profit cannot be worked out. Once those are recorded on the project, this chart can be drawn.';
 
 const hoursLabel = (h: number) => `${Math.round(h).toLocaleString()}h`;
 
 export const ProjectDashboardTab: React.FC = () => {
   const [filters, setFilters] = useState<ProjectDashboardFilters>(INITIAL_PROJECT_DASHBOARD_FILTERS);
-  const { projects, employees, isLoading, isFetching, isError, refetch } = useProjectDashboardData();
+  const { projects, employees, isLoading, isFetching, isError, hasFinancials, refetch } = useProjectDashboardData();
 
   const handleClearFilters = () => setFilters(INITIAL_PROJECT_DASHBOARD_FILTERS);
   const filteredProjects = useMemo(() => filterProjects(projects, filters), [projects, filters]);
@@ -121,12 +119,17 @@ export const ProjectDashboardTab: React.FC = () => {
               <div className="min-h-[380px] min-w-0">
                 <BugResolutionTimeLineChart projects={filteredProjects} />
               </div>
-              <div className="min-w-0">
-                <UnavailableCard title="Actual expenses by project" reason={MONEY_REASON} />
-              </div>
-              <div className="min-w-0">
-                <UnavailableCard title="Project profitability" reason={MONEY_REASON} />
-              </div>
+              {/* Revenue, expense and profit are for the Admin only */}
+              {hasFinancials && (
+                <>
+                  <div className="min-w-0">
+                    <ActualExpensesLollipopChart projects={filteredProjects} />
+                  </div>
+                  <div className="min-w-0">
+                    <ProjectProfitabilityDivergingChart projects={filteredProjects} />
+                  </div>
+                </>
+              )}
             </div>
           )}
         </>

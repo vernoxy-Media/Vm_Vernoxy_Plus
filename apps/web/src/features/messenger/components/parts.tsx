@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Download, FileText, Loader2, Music, Video, X, ZoomIn, ZoomOut } from 'lucide-react';
 import { Avatar } from '@/shared/ui/Avatar';
 import { fetchMessageFile } from '../api';
@@ -144,7 +145,8 @@ export const Lightbox: React.FC<{ items: Message[]; index: number; onIndex: (i: 
   }, [index, items.length, onIndex, onClose]);
 
   const mime = m.file?.mime ?? '';
-  return (
+  // Portal to <body> so a transformed / overflow-clipped parent (e.g. the info side panel) cannot trap or hide the viewer.
+  return createPortal(
     <div className="fixed inset-0 z-[90] flex flex-col bg-slate-950/95" role="dialog" aria-modal="true" aria-label={m.file?.name}>
       <div className="flex items-center gap-2 px-4 py-3 text-white">
         <button ref={closeRef} type="button" onClick={onClose} aria-label="Close" className="rounded-full p-2 hover:bg-white/10">
@@ -197,7 +199,8 @@ export const Lightbox: React.FC<{ items: Message[]; index: number; onIndex: (i: 
           <button type="button" aria-label="Next" onClick={() => onIndex(index + 1)} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-3 text-xl text-white hover:bg-white/20">›</button>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
 

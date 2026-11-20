@@ -6,7 +6,6 @@ import {
   Users,
   Tag,
   Coffee,
-  LayoutGrid,
   Activity,
   Shapes,
   Antenna,
@@ -37,7 +36,16 @@ import {
   PhoneOff,
   Trash2,
   Building,
+  Palette,
   LucideIcon,
+  Code,
+  Server,
+  Cloud,
+  Database,
+  Flag,
+  Bug,
+  Handshake,
+  GitBranch,
 } from 'lucide-react';
 import type { MeResponseDto } from '@vernoxy-pulse/api-client';
 
@@ -50,11 +58,17 @@ const SettingsCustomerTypesSection = React.lazy(() =>
 const SettingsTaskTypesSection = React.lazy(() =>
   import('./sections/SettingsTaskTypesSection').then((m) => ({ default: m.SettingsTaskTypesSection }))
 );
+const SettingsTaskPrioritiesSection = React.lazy(() =>
+  import('./sections/SettingsTaskMastersSections').then((m) => ({ default: m.SettingsTaskPrioritiesSection }))
+);
+const SettingsTaskSourcesSection = React.lazy(() =>
+  import('./sections/SettingsTaskMastersSections').then((m) => ({ default: m.SettingsTaskSourcesSection }))
+);
+const SettingsTaskStagesSection = React.lazy(() =>
+  import('./sections/SettingsTaskMastersSections').then((m) => ({ default: m.SettingsTaskStagesSection }))
+);
 const SettingsBreakTypesSection = React.lazy(() =>
   import('./sections/SettingsBreakTypesSection').then((m) => ({ default: m.SettingsBreakTypesSection }))
-);
-const SettingsProjectCategoriesSection = React.lazy(() =>
-  import('./sections/SettingsProjectCategoriesSection').then((m) => ({ default: m.SettingsProjectCategoriesSection }))
 );
 const SettingsProjectStatusesSection = React.lazy(() =>
   import('./sections/SettingsProjectStatusesSection').then((m) => ({ default: m.SettingsProjectStatusesSection }))
@@ -119,6 +133,12 @@ const SettingsDeactivationReasonsSection = React.lazy(() =>
 const SettingsCandidateSourcesSection = React.lazy(() =>
   import('./sections/SettingsCandidateSourcesSection').then((m) => ({ default: m.SettingsCandidateSourcesSection }))
 );
+const SettingsLeaveAppliesToSection = React.lazy(() =>
+  import('./sections/SettingsLeaveAppliesToSection').then((m) => ({ default: m.SettingsLeaveAppliesToSection }))
+);
+const SettingsLeaveColoursSection = React.lazy(() =>
+  import('./sections/SettingsLeaveColoursSection').then((m) => ({ default: m.SettingsLeaveColoursSection }))
+);
 const SettingsJobPortalsSection = React.lazy(() =>
   import('./sections/SettingsJobPortalsSection').then((m) => ({ default: m.SettingsJobPortalsSection }))
 );
@@ -165,6 +185,26 @@ const SettingsCallNotReceivedReasonsSection = React.lazy(() =>
   import('./sections/SettingsCallNotReceivedReasonsSection').then((m) => ({ default: m.SettingsCallNotReceivedReasonsSection }))
 );
 
+const SettingsBugPrioritiesSection = React.lazy(() =>
+  import('./sections/SettingsBugMastersSections').then((m) => ({ default: m.SettingsBugPrioritiesSection }))
+);
+const SettingsBugTypesSection = React.lazy(() =>
+  import('./sections/SettingsBugMastersSections').then((m) => ({ default: m.SettingsBugTypesSection }))
+);
+
+const SettingsTechFrontendSection = React.lazy(() =>
+  import('./sections/SettingsTechStackSections').then((m) => ({ default: m.SettingsTechFrontendSection }))
+);
+const SettingsTechBackendSection = React.lazy(() =>
+  import('./sections/SettingsTechStackSections').then((m) => ({ default: m.SettingsTechBackendSection }))
+);
+const SettingsTechCloudSection = React.lazy(() =>
+  import('./sections/SettingsTechStackSections').then((m) => ({ default: m.SettingsTechCloudSection }))
+);
+const SettingsTechDatabaseSection = React.lazy(() =>
+  import('./sections/SettingsTechStackSections').then((m) => ({ default: m.SettingsTechDatabaseSection }))
+);
+
 export interface SettingsSectionConfig {
   id: string;
   label: string;
@@ -173,6 +213,8 @@ export interface SettingsSectionConfig {
   component: React.ComponentType;
   isVisible: (user: MeResponseDto | null) => boolean;
   group?: string;
+  /** A heading inside a big group (Sales has three), so its screens are not one long row of tabs. */
+  subgroup?: string;
 }
 
 export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
@@ -214,7 +256,7 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     group: 'Employee',
   },
 
-  // ── CRM ───────────────────────────────────────────
+  // ── Sales (master data used by Companies, Leads, Follow-ups and the filters) ──
   {
     id: 'industries',
     label: 'Industries',
@@ -222,7 +264,8 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     icon: Factory,
     component: SettingsIndustriesSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
-    group: 'CRM',
+    group: 'Sales',
+    subgroup: 'Companies & contacts',
   },
   {
     id: 'customer-types',
@@ -231,7 +274,8 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     icon: Users,
     component: SettingsCustomerTypesSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
-    group: 'CRM',
+    group: 'Sales',
+    subgroup: 'Companies & contacts',
   },
   {
     id: 'service-fit',
@@ -240,7 +284,8 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     icon: Briefcase,
     component: SettingsServiceFitSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
-    group: 'CRM',
+    group: 'Sales',
+    subgroup: 'Leads & follow-ups',
   },
   {
     id: 'designation',
@@ -249,7 +294,8 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     icon: UserSquare,
     component: SettingsContactDesignationSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
-    group: 'CRM',
+    group: 'Sales',
+    subgroup: 'Companies & contacts',
   },
   {
     id: 'nature-of-business',
@@ -258,7 +304,8 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     icon: Building2,
     component: SettingsNatureOfBusinessSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
-    group: 'CRM',
+    group: 'Sales',
+    subgroup: 'Companies & contacts',
   },
   {
     id: 'gidc-name',
@@ -267,7 +314,8 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     icon: MapPin,
     component: SettingsGidcNamesSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
-    group: 'CRM',
+    group: 'Sales',
+    subgroup: 'Locations',
   },
   {
     id: 'gidc-phase',
@@ -276,7 +324,8 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     icon: Compass,
     component: SettingsGidcAreasSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
-    group: 'CRM',
+    group: 'Sales',
+    subgroup: 'Locations',
   },
   {
     id: 'city',
@@ -285,7 +334,8 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     icon: MapPin,
     component: SettingsCitiesSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
-    group: 'CRM',
+    group: 'Sales',
+    subgroup: 'Locations',
   },
   {
     id: 'state',
@@ -294,7 +344,8 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     icon: MapIcon,
     component: SettingsStatesSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
-    group: 'CRM',
+    group: 'Sales',
+    subgroup: 'Locations',
   },
   {
     id: 'country',
@@ -303,7 +354,8 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     icon: Globe,
     component: SettingsCountriesSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
-    group: 'CRM',
+    group: 'Sales',
+    subgroup: 'Locations',
   },
   {
     id: 'call-not-received-reasons',
@@ -312,7 +364,8 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     icon: PhoneOff,
     component: SettingsCallNotReceivedReasonsSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
-    group: 'CRM',
+    group: 'Sales',
+    subgroup: 'Leads & follow-ups',
   },
   {
     id: 'lead-sources',
@@ -321,7 +374,8 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     icon: Antenna,
     component: SettingsLeadSourcesSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
-    group: 'CRM',
+    group: 'Sales',
+    subgroup: 'Leads & follow-ups',
   },
   {
     id: 'lost-reasons',
@@ -330,7 +384,8 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     icon: ThumbsDown,
     component: SettingsLostReasonsSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
-    group: 'CRM',
+    group: 'Sales',
+    subgroup: 'Leads & follow-ups',
   },
   {
     id: 'person-departments',
@@ -339,7 +394,8 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     icon: UserSquare,
     component: SettingsPersonDepartmentsSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
-    group: 'CRM',
+    group: 'Sales',
+    subgroup: 'Companies & contacts',
   },
 
   // ── Tasks ─────────────────────────────────────────
@@ -352,17 +408,35 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
     group: 'Tasks',
   },
+  {
+    id: 'task-priorities',
+    label: 'Task Priorities',
+    path: '/admin/settings/task-priorities',
+    icon: Flag,
+    component: SettingsTaskPrioritiesSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Tasks',
+  },
+  {
+    id: 'task-sources',
+    label: 'Task Sources',
+    path: '/admin/settings/task-sources',
+    icon: GitBranch,
+    component: SettingsTaskSourcesSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Tasks',
+  },
+  {
+    id: 'task-stages',
+    label: 'Task Stages',
+    path: '/admin/settings/task-stages',
+    icon: Layers,
+    component: SettingsTaskStagesSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Tasks',
+  },
 
   // ── Projects ──────────────────────────────────────
-  {
-    id: 'project-categories',
-    label: 'Project Categories',
-    path: '/admin/settings/project-categories',
-    icon: LayoutGrid,
-    component: SettingsProjectCategoriesSection,
-    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
-    group: 'Projects',
-  },
   {
     id: 'project-statuses',
     label: 'Project Statuses',
@@ -378,6 +452,60 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     path: '/admin/settings/project-types',
     icon: Shapes,
     component: SettingsProjectTypesSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Projects',
+  },
+  {
+    id: 'bug-priorities',
+    label: 'Bug Priorities',
+    path: '/admin/settings/bug-priorities',
+    icon: Flag,
+    component: SettingsBugPrioritiesSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Projects',
+  },
+  {
+    id: 'bug-types',
+    label: 'Bug Types',
+    path: '/admin/settings/bug-types',
+    icon: Bug,
+    component: SettingsBugTypesSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Projects',
+  },
+  {
+    id: 'tech-frontend',
+    label: 'Front-End Technologies',
+    path: '/admin/settings/tech-frontend',
+    icon: Code,
+    component: SettingsTechFrontendSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Projects',
+  },
+  {
+    id: 'tech-backend',
+    label: 'Back-End Technologies',
+    path: '/admin/settings/tech-backend',
+    icon: Server,
+    component: SettingsTechBackendSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Projects',
+  },
+  {
+    id: 'tech-cloud',
+    label: 'Cloud Platforms',
+    path: '/admin/settings/tech-cloud',
+    icon: Cloud,
+    component: SettingsTechCloudSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'Projects',
+  },
+  {
+    id: 'tech-database',
+    label: 'Databases',
+    path: '/admin/settings/tech-database',
+    icon: Database,
+    component: SettingsTechDatabaseSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
     group: 'Projects',
   },
@@ -425,6 +553,24 @@ export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
     path: '/admin/settings/leave-types',
     icon: CalendarOff,
     component: SettingsLeaveTypesSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'HR',
+  },
+  {
+    id: 'leave-applies-to',
+    label: 'Leave Applies To',
+    path: '/admin/settings/leave-applies-to',
+    icon: Users,
+    component: SettingsLeaveAppliesToSection,
+    isVisible: (user) => Boolean(user?.access?.can_manage_organization),
+    group: 'HR',
+  },
+  {
+    id: 'leave-colours',
+    label: 'Leave Calendar Colours',
+    path: '/admin/settings/leave-colours',
+    icon: Palette,
+    component: SettingsLeaveColoursSection,
     isVisible: (user) => Boolean(user?.access?.can_manage_organization),
     group: 'HR',
   },
@@ -593,7 +739,7 @@ export interface SettingsMainGroup {
 
 export const SETTINGS_MAIN_GROUPS: SettingsMainGroup[] = [
   { id: 'Employee', name: 'Employee', icon: UserCheck },
-  { id: 'CRM', name: 'CRM', icon: Users },
+  { id: 'Sales', name: 'Sales', icon: Handshake },
   { id: 'Tasks', name: 'Tasks', icon: Tag },
   { id: 'Projects', name: 'Projects', icon: Shapes },
   { id: 'HR', name: 'HR', icon: Clock },

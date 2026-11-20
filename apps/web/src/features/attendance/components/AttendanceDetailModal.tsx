@@ -8,6 +8,7 @@ import {
   calculateEarlyExitMinutes,
 } from '../utils/attendance-detail.utils';
 
+import { localToday } from '@/shared/utils/schedule.utils';
 export interface AttendanceDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -46,7 +47,7 @@ export const AttendanceDetailModal: React.FC<AttendanceDetailModalProps> = ({
     }
   }, [isOpen, onClose]);
 
-  const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const todayStr = useMemo(() => localToday(), []);
 
   if (!isOpen || !date) return null;
 

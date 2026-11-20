@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import type { DayRecord } from '../types/attendance.types';
 
+import { localToday } from '@/shared/utils/schedule.utils';
 export interface AttendanceCalendarPickerProps {
   selectedDate: string; // "YYYY-MM-DD"
   onSelectDate: (date: string) => void;
@@ -36,12 +37,12 @@ export const AttendanceCalendarPicker: React.FC<AttendanceCalendarPickerProps> =
   selectedDate,
   onSelectDate,
   records = [],
-  maxDate = new Date().toISOString().slice(0, 10),
+  maxDate = localToday(),
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = localToday();
   const isSelectedToday = selectedDate === todayStr;
 
   // View state for the calendar popover (year and month 1..12)

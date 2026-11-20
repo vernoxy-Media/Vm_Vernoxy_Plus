@@ -5,7 +5,7 @@ import { customFetch, getAccessToken } from '@vernoxy-pulse/api-client';
 // Types (Expense Management BFD 1.0)
 // =============================================================================
 
-export type ExpenseType = 'Office Expense' | 'Personal Expense';
+export type ExpenseType = 'Office Expense' | 'Personal Expense' | 'Project Expense';
 export type ClaimStatus = 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED' | 'REIMBURSED';
 /** Labels come from the expense_payment_mode lookup. */
 export type PaymentMode = string;
@@ -88,10 +88,18 @@ export interface FormCategory {
   receipt_threshold_amount: number;
 }
 
+export interface ProjectOption {
+  project_id: number;
+  project_no: string;
+  project_name: string;
+  client_name: string | null;
+}
+
 export interface FormOptions {
   employee: { emp_id: number; name: string; emp_code: string; department_name: string | null };
   categories: FormCategory[];
   types: Array<{ code: string; name: string }>;
+  projects: ProjectOption[];
   claim_window_days: number;
   after_claim_window_action: 'FLAG_AS_LATE' | 'STOP_SUBMISSION';
   today: string;
@@ -115,6 +123,8 @@ export interface ClaimDetails {
   category_id: number | null;
   category: (FormCategory & { is_active: boolean }) | null;
   expense_type: string | null;
+  project_id: number | null;
+  project: ProjectOption | null;
   amount: number | null;
   merchant_name: string | null;
   description: string | null;
@@ -152,6 +162,7 @@ export interface SaveClaimPayload {
   expense_date?: string;
   category_id?: number | null;
   expense_type?: string | null;
+  project_id?: number | null;
   amount?: number | null;
   merchant_name?: string | null;
   description?: string | null;

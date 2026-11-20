@@ -5,7 +5,6 @@
  * Sales CRM + HRMS REST API contracts
  * OpenAPI spec version: 1.0.0
  */
-import type { UpdateProjectDtoCategory } from './updateProjectDtoCategory';
 import type { UpdateProjectDtoProjectStatus } from './updateProjectDtoProjectStatus';
 import type { CreateDeploymentDto } from './createDeploymentDto';
 import type { CreateCredentialDto } from './createCredentialDto';
@@ -14,7 +13,8 @@ export interface UpdateProjectDto {
   project_name?: string;
   /** Project type (client, internal, product, maintenance, or custom lookup code) */
   project_type?: string;
-  category?: UpdateProjectDtoCategory;
+  /** Code of an active Service Fit in Master Data (Settings > Sales > Service Fits) */
+  category?: string;
   other_category?: string;
   start_date?: string;
   deadline?: string;
@@ -29,6 +29,7 @@ export interface UpdateProjectDto {
   tech_frontend?: string;
   tech_backend?: string;
   tech_cloud?: string;
+  tech_database?: string;
   deployment?: CreateDeploymentDto;
   credentials?: CreateCredentialDto[];
 }

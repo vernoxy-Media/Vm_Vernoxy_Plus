@@ -31,7 +31,7 @@ export const ExpensesPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {tabs.length > 1 && (
-        <div className="flex max-w-full gap-1.5 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:inline-flex">
+        <div className="flex max-w-full gap-1 overflow-x-auto border-b-2 border-[#DFE1E6] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {tabs.map((t) => {
             const Icon = t.icon;
             const on = active === t.key;
@@ -40,11 +40,11 @@ export const ExpensesPage: React.FC = () => {
                 key={t.key}
                 type="button"
                 onClick={() => setParams(t.key === 'my-expenses' ? {} : { tab: t.key })}
-                className={`inline-flex shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-[13.5px] font-semibold transition-all duration-200 ${
-                  on ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/30' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                className={`-mb-0.5 inline-flex shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap border-b-2 px-3 py-2.5 text-[14px] font-medium transition-colors ${
+                  on ? 'border-[#0052CC] text-[#0052CC]' : 'border-transparent text-[#42526E] hover:bg-[#F4F5F7] hover:text-[#172B4D]'
                 }`}
               >
-                <Icon className={`h-4 w-4 ${on ? 'text-white' : t.color}`} />
+                <Icon className="h-4 w-4" />
                 <span>{t.label}</span>
               </button>
             );

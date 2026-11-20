@@ -57,9 +57,11 @@ import { CreateNotificationUseCase } from '../../../notifications/public-api';
 import { AddSubTaskUseCase, CreateTaskUseCase, parseDueDate, validateDateRange } from '../../../tasks/public-api';
 import { CreateSubTaskDto } from '../../../tasks/presentation/dto/task.dto';
 import { mapTaskErrorToHttp } from '../../../tasks/presentation/tasks-error.mapper';
+import { ProjectFinancialsService } from '../../application/services/project-financials.service';
 import { ProjectAccessService, type ProjectRole } from '../../application/services/project-access.service';
 import { deliveryBlockMessage, evaluateDelivery } from '../../domain/services/delivery';
-import { canMoveBug, canSeeActivity, canSeeBug, canSeeDiscussionMessage, seesEverything, type Viewer } from '../../domain/services/visibility';
+import { canMoveBug, canSeeActivity, canSeeBug, canSeeDiscussionMessage, isTesterOf, seesEverything, type Viewer } from '../../domain/services/visibility';
+import { sanitizeDiscussionAttachments } from '../../domain/services/discussion-attachments';
 
 /** Project BFD 3.6: allowed bug status moves ("If QA fails, the bug goes back to Ready for Dev"). */
 const BUG_FLOW: Record<string, string[]> = {
@@ -81,6 +83,7 @@ const PM_EDITABLE = [
   'tech_frontend',
   'tech_backend',
   'tech_cloud',
+  'tech_database',
   'deployment',
   'credentials',
 ];
@@ -107,6 +110,7 @@ export class ProjectsController {
     private readonly updateProjectUseCase: UpdateProjectUseCase,
     private readonly createNotificationUseCase: CreateNotificationUseCase,
     private readonly access: ProjectAccessService,
+    private readonly financials: ProjectFinancialsService,
     private readonly createTaskUseCase: CreateTaskUseCase,
     private readonly addSubTaskUseCase: AddSubTaskUseCase,
   ) {}
@@ -164,6 +168,25 @@ export class ProjectsController {
     return this.projectRepo.getBugsForEmployee(empId);
   }
 
+  @Get('financials')
+  @ApiOperation({ summary: 'Actual expense, revenue and profit of every project (Admin only)' })
+  async getFinancials(@Req() req: Request, @Query('client_id') clientId?: string, @Query('project_id') projectId?: string) {
+    await this.assertAdmin(req.user!.emp_id);
+    return this.financials.compute({ clientId: Number(clientId) || undefined, projectId: Number(projectId) || undefined });
+  }
+
+  @Patch(':id/revenue')
+  @ApiOperation({ summary: 'Set or clear the revenue of one project (Admin only)' })
+  async setRevenue(@Req() req: Request, @Param('id', ParseIntPipe) id: number, @Body() body: { project_revenue: number | null }) {
+    await this.assertAdmin(req.user!.emp_id);
+    const v = body?.project_revenue as unknown;
+    return this.financials.setProjectRevenue(id, v === null || v === undefined || v === '' ? null : Number(v), req.user!.emp_id);
+  }
+
+  private async assertAdmin(empId: number) {
+    if (!(await this.access.isAdmin(empId))) throw new ForbiddenException('Only the Admin can see project revenue, expenses and profit.');
+  }
+
   @Get('client-options')
   @ApiOperation({ summary: 'Clients to choose from when creating or editing a project (Admin and Project Managers)' })
   async getClientOptions(@Req() req: Request) {
@@ -180,6 +203,12 @@ export class ProjectsController {
     return this.getAssignableEmployeesUseCase.execute();
   }
 
+  /** The category is a Service Fit from Master Data: the code must be one of the active rows. */
+  private async assertValidCategory(code: string): Promise<void> {
+    const codes = await this.projectRepo.activeLookupCodes('service_fit');
+    if (!codes.includes(code)) throw new BadRequestException('Please select a valid Category.');
+  }
+
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new project (Admin only)' })
@@ -191,6 +220,7 @@ export class ProjectsController {
     if (!(await this.access.isAdmin(user.emp_id))) {
       throw new ForbiddenException('Only the Admin can create a project.');
     }
+    await this.assertValidCategory(dto.category);
     const project = await this.createProjectUseCase.execute({
       ...dto,
       created_by: user.emp_id,
@@ -225,6 +255,9 @@ export class ProjectsController {
     if (!role.isAdmin) {
       // The Project Manager can edit only Additional, Tech-Stack and Deployment Details.
       input = Object.fromEntries(Object.entries(dto).filter(([k]) => PM_EDITABLE.includes(k)));
+    }
+    if (role.isAdmin && dto.category && dto.category !== role.project.category) {
+      await this.assertValidCategory(dto.category);
     }
     const membersChanging = role.isAdmin && Boolean(dto.member_ids || dto.project_manager_id);
     const before = membersChanging ? await this.access.memberIds(id) : [];
@@ -407,8 +440,9 @@ export class ProjectsController {
     const sId = sprintId ? parseInt(sprintId, 10) : undefined;
     const tasks = await this.getSprintTasksUseCase.execute(id, sId);
     if (role.isAdmin || role.isPM) return tasks;
-    // BFD 3.3: an employee sees only their own tasks in the project.
-    return tasks.filter((t: any) => (t.assignees || []).some((a: any) => (a.emp_id ?? a.employee_id) === empId));
+    // BFD 3.3: an employee sees only their own tasks in the project, and the tasks they are the QA tester of.
+    const me: Viewer = { empId, isAdmin: false, isPM: false };
+    return tasks.filter((t: any) => (t.assignees || []).some((a: any) => (a.emp_id ?? a.employee_id) === empId) || isTesterOf(me, t));
   }
 
   @Post(':id/tasks')
@@ -426,6 +460,9 @@ export class ProjectsController {
     const chosen = [...(dto.assignee_ids || []), ...(dto.sub_tasks || []).flatMap((x) => x.assignee_ids || [])];
     if (chosen.some((empId) => !members.includes(Number(empId)))) {
       throw new BadRequestException('Tasks can be assigned only to employees of this project.');
+    }
+    if (dto.qa_assignee_id && !members.includes(Number(dto.qa_assignee_id))) {
+      throw new BadRequestException('QA can be assigned only to an employee of this project.');
     }
     if (dto.sprint_id) {
       const sprints = await this.getProjectSprintsUseCase.execute(id);
@@ -456,6 +493,13 @@ export class ProjectsController {
     return task;
   }
 
+  @Get(':id/mentionable')
+  @ApiOperation({ summary: 'People who can be @mentioned in a project (team, PM and admins)' })
+  async getMentionable(@Req() req: Request, @Param('id', ParseIntPipe) id: number) {
+    await this.access.assertMember(id, req.user!.emp_id);
+    return this.access.mentionable(id);
+  }
+
   @Get(':id/discussions')
   @ApiOperation({ summary: 'Get discussion messages for a project' })
   async getProjectDiscussions(
@@ -484,7 +528,7 @@ export class ProjectsController {
       id,
       user.emp_id,
       dto.message,
-      dto.attachments,
+      sanitizeDiscussionAttachments(dto.attachments),
     );
     this.eventsService.emitToProject(id, 'discussion:new_message', msg);
 
@@ -556,6 +600,17 @@ export class ProjectsController {
     await this.access.assertMember(id, user.emp_id);
     if (!(await this.access.memberIds(id)).includes(Number(dto.assigned_to))) {
       throw new BadRequestException('A bug can be assigned only to an employee of this project.');
+    }
+    // Priority and Type are Master Data lists: the code must be one of the active rows
+    const [priorityCodes, typeCodes] = await Promise.all([
+      this.projectRepo.activeLookupCodes('bug_priority'),
+      this.projectRepo.activeLookupCodes('bug_type'),
+    ]);
+    if (dto.priority && !priorityCodes.includes(dto.priority)) {
+      throw new BadRequestException('Please select a valid Priority.');
+    }
+    if (!typeCodes.includes(dto.bug_type)) {
+      throw new BadRequestException('Please select a valid Bug Type.');
     }
     if (dto.bug_type === 'other' && !dto.other_bug_type?.trim()) {
       throw new BadRequestException('Please enter the Other Bug Type.');

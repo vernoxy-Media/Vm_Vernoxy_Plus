@@ -118,8 +118,9 @@ export function formatDateDDMMYYYY(dateStr?: string | null): string {
   return `${day}-${month}-${year}`;
 }
 
-// Format currency in Lakh: ₹X.XL
+// Format currency in Lakh: ₹X.XL. Amounts under ₹10,000 are shown in rupees, otherwise they would all read ₹0.0L.
 export function formatLakh(amountInRupees: number): string {
+  if (Math.abs(amountInRupees) < 10000) return `₹${Math.round(amountInRupees).toLocaleString('en-IN')}`;
   const lakh = amountInRupees / 100000;
   return `₹${lakh.toFixed(1)}L`;
 }
@@ -254,11 +255,12 @@ export interface ProjectsByCategoryItem {
 }
 
 export function computeProjectsByCategory(
-  projects: EnrichedProjectItem[]
+  projects: EnrichedProjectItem[],
+  categories: Array<{ key: string; label: string; color: string }> = ALL_PROJECT_CATEGORIES
 ): ProjectsByCategoryItem[] {
   const total = projects.length;
 
-  const items = ALL_PROJECT_CATEGORIES.map((cat) => {
+  const items = categories.map((cat) => {
     const count = projects.filter((p) => p.category === cat.key).length;
     const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
     return {

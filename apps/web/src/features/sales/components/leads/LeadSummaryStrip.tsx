@@ -5,7 +5,7 @@ export interface LeadSummaryStripProps {
   counters: LeadCounters;
   isLoading?: boolean;
   /** The stage that is showing now ("All" for the whole pipeline). */
-  active?: LeadStatusType | 'All';
+  active?: LeadStatusType | 'All' | 'Open';
   onSelect?: (stage: LeadStatusType | 'All') => void;
 }
 

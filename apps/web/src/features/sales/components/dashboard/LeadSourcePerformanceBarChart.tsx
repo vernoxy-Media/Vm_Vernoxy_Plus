@@ -1,112 +1,94 @@
-import React, { useState } from 'react';
-import { Info, BarChart } from 'lucide-react';
+import React from 'react';
+import { BarChart } from 'lucide-react';
 import { US05LeadSourcePerformance } from '../../types/sales-dashboard.types';
+import { ChartCard, ChartTooltip, EmptyState, LegendDot, TipRow, TipTitle, useChartTooltip } from './ChartShell';
 
 interface LeadSourcePerformanceBarChartProps {
   data?: US05LeadSourcePerformance;
 }
 
-export const LeadSourcePerformanceBarChart: React.FC<LeadSourcePerformanceBarChartProps> = ({ data }) => {
-  const [showTooltip, setShowTooltip] = useState(false);
-  const [hoveredSource, setHoveredSource] = useState<any | null>(null);
+type Source = US05LeadSourcePerformance['sources'][number];
 
+export const LeadSourcePerformanceBarChart: React.FC<LeadSourcePerformanceBarChartProps> = ({ data }) => {
+  const { ref, tip, move, hide } = useChartTooltip<Source>();
   const sources = data?.sources || [];
   const maxLeads = Math.max(...sources.map((s) => s.leads), 1);
+  const w = (v: number) => (v > 0 ? `${Math.max((v / maxLeads) * 100, 3)}%` : '0%');
 
   return (
-    <div className="relative flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs h-full">
-      {/* Header */}
-      <div className="flex items-start justify-between border-b border-slate-100 pb-3">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
-            <BarChart className="h-4 w-4" />
-          </div>
-          <div>
-            <h3 className="text-sm font-bold text-slate-900 tracking-tight">Lead Source Performance</h3>
-            <p className="text-[11px] text-slate-500">Leads, converted and lost by source</p>
-          </div>
-        </div>
-
-        <div className="relative">
-          <button
-            type="button"
-            onMouseEnter={() => setShowTooltip(true)}
-            onMouseLeave={() => setShowTooltip(false)}
-            aria-label="KPI Information"
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 transition cursor-pointer"
-          >
-            <Info className="h-4 w-4" />
-          </button>
-          {showTooltip && (
-            <div className="absolute right-0 top-7 z-30 w-64 rounded-xl bg-slate-900 p-2.5 text-[11px] text-white shadow-xl">
-              Clustered horizontal bars comparing all 8 lead sources: Leads (indigo), Converted (green) and Lost (red), with overall conversion rate % at the end.
-            </div>
+    <ChartCard
+      cardRef={ref}
+      icon={BarChart}
+      tone="indigo"
+      title="Lead Source Performance"
+      subtitle="Leads, converted and lost by source"
+      info="Clustered horizontal bars comparing all 8 lead sources: Leads (indigo), Converted (green) and Lost (red), with overall conversion rate % at the end."
+      footer="Sorted from most leads to fewest"
+      onLeave={hide}
+      tooltip={
+        <ChartTooltip tip={tip}>
+          {tip && (
+            <>
+              <TipTitle>{tip.data.source}</TipTitle>
+              <TipRow color="#4f46e5" label="Leads" value={tip.data.leads} />
+              <TipRow color="#10b981" label="Converted" value={tip.data.converted} />
+              <TipRow color="#f43f5e" label="Lost" value={tip.data.lost} />
+              <TipRow color="#94a3b8" label="Open" value={tip.data.open} />
+              <TipRow label="Conversion" value={tip.data.conversion_rate !== null ? `${tip.data.conversion_rate}%` : 'N/A'} />
+            </>
           )}
-        </div>
-      </div>
-
-      {/* Legend */}
-      <div className="flex items-center justify-center gap-4 text-[10px] font-semibold text-slate-600 my-2">
-        <span className="flex items-center gap-1">
-          <span className="h-2 w-2 rounded-xs bg-indigo-600" /> Leads
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="h-2 w-2 rounded-xs bg-emerald-500" /> Converted
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="h-2 w-2 rounded-xs bg-rose-500" /> Lost
-        </span>
-        {hoveredSource && (
-          <div className="text-center text-[10px] font-bold text-slate-700">
-            {hoveredSource.source}: {hoveredSource.leads} leads ({hoveredSource.converted} won, {hoveredSource.lost} lost, {hoveredSource.open} open)
+        </ChartTooltip>
+      }
+    >
+      {sources.length === 0 ? (
+        <EmptyState text="No lead source data." />
+      ) : (
+        <>
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+            <LegendDot color="#4f46e5" label="Leads" shape="square" />
+            <LegendDot color="#10b981" label="Converted" shape="square" />
+            <LegendDot color="#f43f5e" label="Lost" shape="square" />
           </div>
-        )}
-      </div>
 
-      {/* Rows */}
-      <div className="space-y-2.5 my-2">
-        {sources.map((s, idx) => {
-          const leadWidth = Math.round((s.leads / maxLeads) * 100);
-          const convWidth = Math.round((s.converted / maxLeads) * 100);
-          const lostWidth = Math.round((s.lost / maxLeads) * 100);
-
-          return (
-            <div
-              key={idx}
-              className="group flex flex-col gap-1 p-1 rounded-lg hover:bg-slate-50 transition cursor-pointer"
-              onMouseEnter={() => setHoveredSource(s)}
-              onMouseLeave={() => setHoveredSource(null)}
-            >
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="font-semibold text-slate-700 truncate max-w-[130px]">{s.source}</span>
-                <span className="text-[10px] font-bold text-slate-900">
-                  {s.conversion_rate !== null ? `${s.conversion_rate}% conv.` : 'N/A'}
+          <div className="space-y-1">
+            {sources.map((s) => (
+              <div
+                key={s.source}
+                onMouseMove={(e) => move(e, s)}
+                onMouseLeave={hide}
+                className="grid cursor-pointer grid-cols-[minmax(76px,112px)_1fr_auto] items-center gap-3 rounded-lg px-2 py-1.5 transition hover:bg-slate-50"
+              >
+                <span className="truncate text-xs font-medium text-slate-700" title={s.source}>
+                  {s.source}
                 </span>
+                <div className="space-y-[3px]">
+                  {[
+                    { v: s.leads, c: 'bg-indigo-600' },
+                    { v: s.converted, c: 'bg-emerald-500' },
+                    { v: s.lost, c: 'bg-rose-500' },
+                  ].map((b, i) => (
+                    <div key={i} className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                      <div className={`h-full rounded-full ${b.c} transition-all duration-300`} style={{ width: w(b.v) }} />
+                    </div>
+                  ))}
+                </div>
+                <div className="w-[68px] text-right">
+                  <div className="text-xs font-semibold tabular-nums text-slate-900">
+                    {s.conversion_rate !== null ? `${s.conversion_rate}%` : 'N/A'}
+                  </div>
+                  <div className="text-[10px] font-semibold tabular-nums">
+                    <span className="text-indigo-600">{s.leads}</span>
+                    <span className="text-slate-300"> · </span>
+                    <span className="text-emerald-600">{s.converted}</span>
+                    <span className="text-slate-300"> · </span>
+                    <span className="text-rose-500">{s.lost}</span>
+                  </div>
+                </div>
               </div>
-
-              {/* Three clustered bars */}
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-1.5">
-                  <div className="h-1.5 rounded-full bg-indigo-600 transition-all duration-300" style={{ width: `${Math.max(leadWidth, 2)}%` }} />
-                  <span className="text-[9px] font-bold text-indigo-700">{s.leads}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="h-1.5 rounded-full bg-emerald-500 transition-all duration-300" style={{ width: `${Math.max(convWidth, s.converted > 0 ? 2 : 0)}%` }} />
-                  <span className="text-[9px] font-bold text-emerald-700">{s.converted}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="h-1.5 rounded-full bg-rose-500 transition-all duration-300" style={{ width: `${Math.max(lostWidth, s.lost > 0 ? 2 : 0)}%` }} />
-                  <span className="text-[9px] font-bold text-rose-700">{s.lost}</span>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="border-t border-slate-100 pt-2 text-[11px] text-slate-400 text-center">
-        Sorted from most leads to fewest
-      </div>
-    </div>
+            ))}
+          </div>
+        </>
+      )}
+    </ChartCard>
   );
 };

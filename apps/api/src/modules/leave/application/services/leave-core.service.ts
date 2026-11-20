@@ -1,3 +1,4 @@
+import { fallbackEmployeeCode, loadEmployeeCodes } from '../../../../core/employee-code';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../../core/prisma/prisma.service';
@@ -102,9 +103,13 @@ export class LeaveCoreService {
   // ---------------------------------------------------------------------------
 
   async getSettings(db: Db = this.prisma): Promise<LeaveSettings> {
-    const [row] = await db.$queryRaw<any[]>`SELECT * FROM leave_general_settings ORDER BY setting_id ASC LIMIT 1`;
+    let [row] = await db.$queryRaw<any[]>`SELECT * FROM leave_general_settings ORDER BY setting_id ASC LIMIT 1`;
     if (!row) {
-      throw new NotFoundException('Leave General settings are missing. Please run the database migrations.');
+      // The one settings row is gone (a data reset, or a database built without the seed). Every column has a default,
+      // so put the row back instead of leaving everyone without a Leave page.
+      await db.$executeRaw`INSERT INTO leave_general_settings DEFAULT VALUES`;
+      [row] = await db.$queryRaw<any[]>`SELECT * FROM leave_general_settings ORDER BY setting_id ASC LIMIT 1`;
+      if (!row) throw new NotFoundException('Leave General settings are missing and could not be created.');
     }
     return {
       ...row,
@@ -143,7 +148,7 @@ export class LeaveCoreService {
     return {
       emp_id: e.emp_id,
       name: e.name,
-      emp_code: this.empCode(e.emp_id),
+      emp_code: (await this.codes([e.emp_id])).get(e.emp_id) ?? this.empCode(e.emp_id),
       email: e.email,
       status: e.status,
       joining_date: toDateStr(e.joining_date),
@@ -160,8 +165,14 @@ export class LeaveCoreService {
     };
   }
 
+  /** The old way of writing the code, kept only for a row that cannot be found. */
   empCode(empId: number): string {
-    return `EMP-${String(empId).padStart(4, '0')}`;
+    return fallbackEmployeeCode(empId);
+  }
+
+  /** The stored Employee IDs of these employees. */
+  codes(empIds: number[]): Promise<Map<number, string>> {
+    return loadEmployeeCodes(this.prisma, empIds);
   }
 
   async getAdminIds(db: Db = this.prisma): Promise<number[]> {

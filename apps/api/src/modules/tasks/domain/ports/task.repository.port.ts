@@ -125,6 +125,8 @@ export interface CreateTaskRepoInput {
   /** Project Task (Project Management BFD 2.7). */
   project_id?: number | null;
   sprint_id?: number | null;
+  /** Tester a finished project task goes to before approval; null for no QA step. */
+  qa_assignee_id?: number | null;
 }
 
 export interface UpdateTaskRepoInput {
@@ -139,6 +141,7 @@ export interface UpdateTaskRepoInput {
   updated_by: number;
   lead_employee_id?: number | null;
   other_task_type?: string | null;
+  qa_assignee_id?: number | null;
 }
 
 export interface MoveStageRepoInput {

@@ -34,6 +34,18 @@ export const MASTER_TABLES: ReadonlySet<string> = new Set([
   'kb_categories',
 ]);
 
+/**
+ * Settings tables that hold exactly one row. The screens fail without that row ("Leave General settings are missing"),
+ * so a flush never empties them, not even together with the master data.
+ */
+export const SINGLETON_SETTINGS: ReadonlySet<string> = new Set([
+  'leave_general_settings',
+  'expense_general_settings',
+  'complaint_settings',
+  'software_license_settings',
+  'payroll_settings',
+]);
+
 /** Rows of these tables that belong to a kept Admin (matched on the employee id). */
 export const ADMIN_OWNED_TABLES = ['employee_credentials', 'auth_sessions', 'employee_departments', 'sales_user_rights'] as const;
 
@@ -93,7 +105,7 @@ export function planFlush(allTables: string[], keep: KeepIds, includeMasterData:
   const keptWhole: string[] = [];
   for (const t of allTables) {
     if (partialNames.has(t)) continue;
-    if (structure.has(t) || (!includeMasterData && MASTER_TABLES.has(t))) keptWhole.push(t);
+    if (structure.has(t) || SINGLETON_SETTINGS.has(t) || (!includeMasterData && MASTER_TABLES.has(t))) keptWhole.push(t);
     else deleteAll.push(t);
   }
   return { deleteAll: deleteAll.sort(), partial, keptWhole: keptWhole.sort() };

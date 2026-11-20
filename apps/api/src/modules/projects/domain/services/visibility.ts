@@ -17,6 +17,10 @@ export interface Viewer {
 /** Admin and the project's manager are not limited to their own work. */
 export const seesEverything = (v: Viewer): boolean => v.isAdmin || v.isPM;
 
+/** The tester of a task (its QA assignee) sees it in the project, whatever its stage, so they can test and pass it. */
+export const isTesterOf = (v: Viewer, task: { qa_assignee_id?: number | null }): boolean =>
+  task.qa_assignee_id != null && Number(task.qa_assignee_id) === v.empId;
+
 export interface BugRef {
   assigned_to: number;
   reported_by: number;

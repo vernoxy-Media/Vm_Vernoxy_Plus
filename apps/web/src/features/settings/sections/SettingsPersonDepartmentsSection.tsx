@@ -6,7 +6,7 @@ export const SettingsPersonDepartmentsSection: React.FC = () => (
   <SettingsLookupSection
     lookupType="person_department"
     title="Person Departments"
-    description="Define department labels for contact persons at client companies (e.g. Procurement, IT, Finance). Used in CRM contact profiles."
+    description="Define department labels for contact persons at client companies (e.g. Procurement, IT, Finance). Used in Sales contact profiles."
     addLabel="Add Person Department"
     searchPlaceholder="Search person departments..."
     icon={UserSquare}

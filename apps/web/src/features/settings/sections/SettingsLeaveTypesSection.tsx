@@ -61,7 +61,7 @@ const emptyType: Partial<LeaveType> = {
 };
 
 const LeaveTypeModal: React.FC<{ open: boolean; editing: LeaveType | null; onClose: () => void }> = ({ open, editing, onClose }) => {
-  const { data: lookups } = useLeaveLookupsQuery();
+  const { data: lookups, isLoading: lookupsLoading, isError: lookupsFailed, refetch: refetchLookups } = useLeaveLookupsQuery();
   const createMut = useCreateLeaveTypeMutation();
   const updateMut = useUpdateLeaveTypeMutation();
   const [form, setForm] = useState<Partial<LeaveType>>(emptyType);
@@ -134,6 +134,17 @@ const LeaveTypeModal: React.FC<{ open: boolean; editing: LeaveType | null; onClo
     >
       <div className="space-y-4">
         {errors.general && <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700">{errors.general}</div>}
+        {(lookupsFailed || (!lookupsLoading && (!lookups?.leave_applies_to?.length || !lookups?.leave_calendar_color?.length))) && (
+          <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800">
+            <span>
+              The options for "Applies to" and "Colour in calendar" could not be loaded. Check your connection and try again. If it still fails, the leave
+              lookups are missing on the server (the leave database update has not been run).
+            </span>
+            <button type="button" onClick={() => refetchLookups()} className="shrink-0 px-3 py-1.5 rounded-lg bg-white border border-amber-300 font-semibold hover:bg-amber-100 cursor-pointer">
+              Retry
+            </button>
+          </div>
+        )}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="block text-[11px] font-semibold text-slate-700 mb-1">Leave Type Name <span className="text-rose-500">*</span></label>
@@ -175,8 +186,9 @@ const LeaveTypeModal: React.FC<{ open: boolean; editing: LeaveType | null; onClo
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="block text-[11px] font-semibold text-slate-700 mb-1">Applies to</label>
+            <label className="block text-[11px] font-semibold text-slate-700 mb-1">Applies to <span className="text-rose-500">*</span></label>
             <select value={form.applies_to || ''} onChange={(e) => set({ applies_to: e.target.value as any })} className={inputCls}>
+              <option value="" disabled>{lookupsLoading ? 'Loading...' : 'Select who it applies to'}</option>
               {(lookups?.leave_applies_to || []).map((o) => (
                 <option key={o.value} value={o.value}>{o.label}</option>
               ))}
@@ -184,10 +196,11 @@ const LeaveTypeModal: React.FC<{ open: boolean; editing: LeaveType | null; onClo
             <FieldError message={errors.applies_to} />
           </div>
           <div>
-            <label className="block text-[11px] font-semibold text-slate-700 mb-1">Colour in calendar</label>
+            <label className="block text-[11px] font-semibold text-slate-700 mb-1">Colour in calendar <span className="text-rose-500">*</span></label>
             <div className="flex items-center gap-2">
               <span className={`w-4 h-4 rounded ${colorStyle(form.calendar_color).dot}`} />
               <select value={form.calendar_color || ''} onChange={(e) => set({ calendar_color: e.target.value })} className={inputCls}>
+                <option value="" disabled>{lookupsLoading ? 'Loading...' : 'Select a colour'}</option>
                 {(lookups?.leave_calendar_color || []).map((o) => (
                   <option key={o.value} value={o.value}>{o.label}</option>
                 ))}
@@ -725,6 +738,46 @@ export const SettingsLeaveTypesSection: React.FC = () => {
               <p className="text-[10px] text-slate-400 mt-1">Half of it makes half a day.</p>
             </div>
           </div>
+          <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3.5 space-y-2.5">
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-1">Default Leave Policy</label>
+              <select
+                value={generalForm.default_policy_id ?? ''}
+                onChange={(e) =>
+                  setGeneralForm({
+                    ...generalForm,
+                    default_policy_id: e.target.value ? Number(e.target.value) : null,
+                    assign_to_employees_without_policy: false,
+                  })
+                }
+                className={inputCls}
+              >
+                <option value="">None: a policy must be given to each employee</option>
+                {policies
+                  .filter((p) => p.status === 'ACTIVE' || p.policy_id === generalForm.default_policy_id)
+                  .map((p) => (
+                    <option key={p.policy_id} value={p.policy_id}>{p.name}</option>
+                  ))}
+              </select>
+              <p className="text-[10px] text-slate-400 mt-1">A new employee gets this policy unless another one is chosen. An employee with no policy cannot apply for leave.</p>
+            </div>
+            {generalForm.default_policy_id && (general?.employees_without_policy ?? 0) > 0 && (
+              <label className="flex items-start gap-2 text-xs cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={Boolean(generalForm.assign_to_employees_without_policy)}
+                  onChange={(e) => setGeneralForm({ ...generalForm, assign_to_employees_without_policy: e.target.checked })}
+                  className="mt-0.5"
+                />
+                <span>
+                  <span className="font-semibold text-slate-800 block">
+                    Also give it now to the {general?.employees_without_policy} active {general?.employees_without_policy === 1 ? 'employee' : 'employees'} who have no policy
+                  </span>
+                  <span className="text-slate-500">They can apply for leave right away. Employees who already have a policy are not changed.</span>
+                </span>
+              </label>
+            )}
+          </div>
           <label className="flex items-start gap-2 text-xs cursor-pointer">
             <input type="checkbox" checked={generalForm.count_sandwich_leave} onChange={(e) => setGeneralForm({ ...generalForm, count_sandwich_leave: e.target.checked })} className="mt-0.5" />
             <span>
@@ -754,6 +807,8 @@ export const SettingsLeaveTypesSection: React.FC = () => {
                     approve_after_leave_started: generalForm.approve_after_leave_started,
                     year_end_processing: generalForm.year_end_processing,
                     comp_off_hours_per_day: generalForm.comp_off_hours_per_day,
+                    default_policy_id: generalForm.default_policy_id ?? null,
+                    assign_to_employees_without_policy: Boolean(generalForm.assign_to_employees_without_policy),
                   });
                   flash(true, 'General settings saved.');
                 } catch (e: any) {

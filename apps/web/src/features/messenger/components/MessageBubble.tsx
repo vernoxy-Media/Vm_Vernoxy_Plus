@@ -170,6 +170,14 @@ export const MessageBubble: React.FC<Props> = (p) => {
       data-mid={m.message_id}
       className={`group relative flex px-3 sm:px-6 ${fresh ? 'msg-pop' : ''} ${mine ? 'justify-end' : 'justify-start'} ${p.firstOfRun ? 'mt-2' : 'mt-0.5'} ${p.highlighted ? 'bg-amber-200/40' : ''} ${p.selected ? 'bg-indigo-200/40' : ''} transition-colors duration-700`}
       onClick={p.selecting ? p.onToggleSelect : undefined}
+      onDoubleClick={(e) => {
+        // Double-click (or double-tap) a message, or the empty space beside it, to reply to it, as in WhatsApp.
+        // Links, buttons and pictures keep their own click.
+        if (noMenu || p.selecting || deleted || conv.is_closed) return;
+        if ((e.target as HTMLElement).closest('a,button,img,video,audio,input,textarea')) return;
+        window.getSelection()?.removeAllRanges();
+        p.onReply();
+      }}
     >
       {p.selecting && (
         <span className={`my-auto mr-2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${p.selected ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-300 bg-white'} ${mine ? 'order-first' : ''}`} aria-hidden>

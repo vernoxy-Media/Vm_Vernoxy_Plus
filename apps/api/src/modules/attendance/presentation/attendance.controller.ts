@@ -1,3 +1,4 @@
+import { ReverseGeocoder } from '../infrastructure/geocoding/reverse-geocoder';
 import { buildAnalyticsRecords, DEFAULT_SHIFT, empCodeOf, todayInIst } from '../domain/services/attendance-analytics';
 import { TASK_TOKENS } from '../../tasks/public-api';
 import type { TaskRepositoryPort } from '../../tasks/public-api';
@@ -32,9 +33,14 @@ import {
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
+import { AttendanceDomainError } from '../domain/errors/attendance.errors';
+import { parsePunch, validateRegularization } from '../domain/services/regularization-rules';
+import { regularizationMessages, type RegularizationFacts } from '../domain/services/regularization-messages';
+import { CreateNotificationUseCase } from '../../notifications/public-api';
 import { JwtAuthGuard } from '../../auth/public-api';
 import { AttendanceAdminGuard } from './guards/attendance-admin.guard';
 import { PunchInUseCase } from '../application/use-cases/punch-in.use-case';
+import { ResumeWorkUseCase } from '../application/use-cases/resume-work.use-case';
 import { PunchOutUseCase } from '../application/use-cases/punch-out.use-case';
 import { StartBreakUseCase } from '../application/use-cases/start-break.use-case';
 import { EndBreakUseCase } from '../application/use-cases/end-break.use-case';
@@ -82,6 +88,7 @@ import {
 export class AttendanceController {
   constructor(
     private readonly punchInUseCase: PunchInUseCase,
+    private readonly resumeWorkUseCase: ResumeWorkUseCase,
     private readonly punchOutUseCase: PunchOutUseCase,
     private readonly startBreakUseCase: StartBreakUseCase,
     private readonly endBreakUseCase: EndBreakUseCase,
@@ -104,11 +111,56 @@ export class AttendanceController {
     private readonly accessPolicy: AccessPolicy,
     @Inject(ATTENDANCE_TOKENS.BIRTHDAY_REPOSITORY)
     private readonly birthdays: BirthdayRepository,
+    private readonly geocoder: ReverseGeocoder,
     @Optional() @Inject(TASK_TOKENS.TaskRepository)
     private readonly taskRepo?: TaskRepositoryPort,
+    @Optional()
+    private readonly notifications?: CreateNotificationUseCase,
   ) {}
 
   private readonly logger = new Logger('AttendanceController');
+
+  /** Sends the regularization notifications; they are best effort and never undo the request itself. */
+  private async tellAbout(
+    kind: 'requested' | 'approved' | 'rejected',
+    item: { correctionId: number; empId: number; requestId: string; workDate: string; requestType: string; employeeName?: string },
+    actor: { empId: number; name: string },
+    reason?: string,
+  ): Promise<void> {
+    if (!this.notifications) return;
+    try {
+      const facts: RegularizationFacts = {
+        requestId: item.requestId,
+        employeeName: item.employeeName || 'An employee',
+        workDate: item.workDate,
+        requestType: item.requestType,
+      };
+      const send = (recipient: number, k: string, m: { title: string; body: string }) =>
+        this.notifications!.execute({
+          recipient_id: recipient,
+          kind: k,
+          title: m.title.slice(0, 150),
+          body: m.body,
+          entity_type: 'REGULARIZATION',
+          entity_id: item.correctionId,
+          created_by: actor.empId,
+        });
+
+      if (kind === 'requested') {
+        const admins = (await this.attendanceRepo.listAdminEmpIds()).filter((id) => id !== actor.empId);
+        await Promise.allSettled(admins.map((id) => send(id, 'attendance_regularization_requested', regularizationMessages.requested(facts))));
+        // An administrator raised it for somebody else: that person is told too
+        if (item.empId !== actor.empId) {
+          await send(item.empId, 'attendance_regularization_raised', regularizationMessages.raisedForYou(actor.name, facts));
+        }
+      } else if (item.empId !== actor.empId) {
+        const m = kind === 'approved' ? regularizationMessages.approved(actor.name, facts) : regularizationMessages.rejected(actor.name, facts, reason || 'No reason given');
+        await send(item.empId, `attendance_regularization_${kind}`, m);
+      }
+    } catch (err: any) {
+      this.logger.warn(`Could not send the regularization notification: ${err?.message}`);
+    }
+  }
 
   /** Project BFD 3.4: Break and Clock-out pause the running task (it stays In Progress, timer stopped). */
   private async pauseRunningTask(empId: number, reason: string) {
@@ -150,6 +202,18 @@ export class AttendanceController {
     }
   }
 
+  @Post('me/resume')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Carry on working after a clock-out today (the time since the clock-out is kept as a break)' })
+  @ApiResponse({ status: 200, type: TodayAttendanceBlockDto })
+  async resumeWork(@Req() req: Request): Promise<TodayAttendanceBlockDto> {
+    try {
+      return await this.resumeWorkUseCase.execute(req.user!.emp_id);
+    } catch (err) {
+      throw mapAttendanceErrorToHttp(err);
+    }
+  }
+
   @Post(['check-out', 'me/punch-out'])
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Punch out for today' })
@@ -173,6 +237,20 @@ export class AttendanceController {
     const n = Number(daysParam);
     const days = Number.isInteger(n) && n >= 0 ? Math.min(n, 90) : 30;
     return this.birthdays.findUpcoming(days);
+  }
+
+  @Get('geocode')
+  @Throttle({ default: { limit: 60, ttl: 60000 } })
+  @ApiOperation({ summary: 'A readable address for a coordinate (Google when a key is set, OpenStreetMap otherwise)' })
+  @ApiQuery({ name: 'lat', required: true, type: Number })
+  @ApiQuery({ name: 'lng', required: true, type: Number })
+  async geocode(@Query('lat') lat?: string, @Query('lng') lng?: string) {
+    const latitude = Number(lat);
+    const longitude = Number(lng);
+    if (!lat || !lng || !Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
+      throw new BadRequestException('Give lat and lng as numbers: lat between -90 and 90, lng between -180 and 180.');
+    }
+    return this.geocoder.lookup(latitude, longitude);
   }
 
   @Post('me/punch-location')
@@ -430,31 +508,39 @@ export class AttendanceController {
       const viewerEmpId = req.user!.emp_id;
       const targetEmpId = dto.emp_id && (await this.isAdmin(viewerEmpId)) ? dto.emp_id : viewerEmpId;
 
-      const parseDate = (val?: string | null): Date | null => {
-        if (!val || val === '--') return null;
-        const d = new Date(val);
-        if (!isNaN(d.getTime())) return d;
-        if (/^\d{1,2}:\d{2}(:\d{2})?/.test(val)) {
-          const combined = new Date(`${dto.work_date}T${val.length === 5 ? val + ':00' : val}.000Z`);
-          if (!isNaN(combined.getTime())) return combined;
-        }
-        return null;
-      };
+      // A bare "09:30" is Indian time; a full date-time is taken as it is (see regularization-rules)
+      const parseDate = (val?: string | null): Date | null => parsePunch(val, dto.work_date);
+      const requestedCheckInAt = parseDate(dto.requested_check_in_at);
+      const requestedCheckOutAt = parseDate(dto.requested_check_out_at);
+      const currentCheckInAt = parseDate(dto.current_check_in_at);
+      const currentCheckOutAt = parseDate(dto.current_check_out_at);
 
-      return await this.attendanceRepo.createRegularization({
+      const problem = validateRegularization({
+        workDate: dto.work_date,
+        requestType: dto.request_type,
+        currentCheckIn: currentCheckInAt,
+        currentCheckOut: currentCheckOutAt,
+        requestedCheckIn: requestedCheckInAt,
+        requestedCheckOut: requestedCheckOutAt,
+      });
+      if (problem) throw new AttendanceDomainError(problem.code, problem.message, 400);
+
+      const created = await this.attendanceRepo.createRegularization({
         empId: targetEmpId,
         workDate: dto.work_date,
         requestType: dto.request_type,
-        currentCheckInAt: parseDate(dto.current_check_in_at),
-        currentCheckOutAt: parseDate(dto.current_check_out_at),
-        requestedCheckInAt: parseDate(dto.requested_check_in_at),
-        requestedCheckOutAt: parseDate(dto.requested_check_out_at),
+        currentCheckInAt,
+        currentCheckOutAt,
+        requestedCheckInAt,
+        requestedCheckOutAt,
         reason: dto.reason,
         remarks: dto.remarks,
         attachmentUrl: dto.attachment_url,
         attachmentName: dto.attachment_name,
         createdBy: viewerEmpId,
       });
+      void this.tellAbout('requested', created, { empId: viewerEmpId, name: (req.user as { name?: string }).name || 'An administrator' });
+      return created;
     } catch (err) {
       throw mapAttendanceErrorToHttp(err);
     }
@@ -498,7 +584,9 @@ export class AttendanceController {
   ) {
     try {
       const approverId = req.user!.emp_id;
-      return await this.attendanceRepo.approveRegularization(id, approverId, dto.comment);
+      const done = await this.attendanceRepo.approveRegularization(id, approverId, dto.comment);
+      void this.tellAbout('approved', done, { empId: approverId, name: (req.user as { name?: string }).name || 'An administrator' });
+      return done;
     } catch (err) {
       throw mapAttendanceErrorToHttp(err);
     }
@@ -515,7 +603,9 @@ export class AttendanceController {
   ) {
     try {
       const approverId = req.user!.emp_id;
-      return await this.attendanceRepo.rejectRegularization(id, approverId, dto.comment);
+      const done = await this.attendanceRepo.rejectRegularization(id, approverId, dto.comment);
+      void this.tellAbout('rejected', done, { empId: approverId, name: (req.user as { name?: string }).name || 'An administrator' }, dto.comment);
+      return done;
     } catch (err) {
       throw mapAttendanceErrorToHttp(err);
     }
@@ -684,8 +774,8 @@ export class AttendanceController {
     try {
       return await this.attendanceRepo.getAttendanceReports({
         reportType: query.reportType || 'daily',
-        fromDate: query.fromDate || new Date().toISOString().slice(0, 10),
-        toDate: query.toDate || query.fromDate || new Date().toISOString().slice(0, 10),
+        fromDate: query.fromDate || todayInIst(),
+        toDate: query.toDate || query.fromDate || todayInIst(),
         departmentId: query.departmentId,
         employeeId: query.employeeId ? Number(query.employeeId) : undefined,
         shiftId: query.shiftId ? Number(query.shiftId) : undefined,
@@ -711,7 +801,12 @@ export class AttendanceController {
   @UseGuards(AttendanceAdminGuard)
   @ApiOperation({ summary: 'Update working and work off days' })
   async updateWorkingDays(@Req() req: Request, @Body() body: { working_days: number[] }) {
-    await this.appSettingsRepo.saveWorkingDays(body.working_days, req.user!.emp_id);
+    const days = body?.working_days;
+    // 0 = Sunday ... 6 = Saturday. At least one working day, no repeats, nothing outside the week.
+    if (!Array.isArray(days) || days.length === 0 || days.length > 7 || days.some((d) => !Number.isInteger(d) || d < 0 || d > 6) || new Set(days).size !== days.length) {
+      throw new BadRequestException('Select at least one working day. Days must be numbers from 0 (Sunday) to 6 (Saturday), each only once.');
+    }
+    await this.appSettingsRepo.saveWorkingDays([...days].sort((a, b) => a - b), req.user!.emp_id);
     return await this.appSettingsRepo.getAttendanceSettings();
   }
 

@@ -36,30 +36,30 @@ export const ProjectKanbanColumn: React.FC<ProjectKanbanColumnProps> = ({
     <div
       id={`kanban-col-${status}`}
       ref={setNodeRef}
-      className={`w-[270px] min-w-[270px] shrink-0 flex flex-col rounded-2xl p-3 border transition-all duration-150 h-full select-none ${
+      className={`w-[270px] min-w-[270px] shrink-0 flex flex-col rounded-xl border transition-all duration-150 h-full select-none ${
         isOver
           ? 'bg-blue-50/80 border-blue-400 ring-2 ring-blue-500/20 shadow-sm'
           : isDraggingAny
-          ? 'bg-[#f4f6fa]/90 border-slate-200/90'
-          : 'bg-[#f4f6fa] border-slate-200/80'
+          ? 'bg-slate-50 border-slate-300'
+          : 'bg-slate-50 border-slate-200'
       }`}
     >
       {/* Column Header matching Image 3 (Fixed at top of column) */}
-      <div className="flex items-center justify-between px-1.5 py-1 mb-2.5 shrink-0">
+      <div className="flex items-center justify-between gap-2 border-b border-slate-200/70 px-3 py-2.5 shrink-0">
         <div className="flex items-center gap-2">
           <div className={`w-5 h-5 rounded-md flex items-center justify-center ${iconBg}`}>
             <Icon className={`w-3.5 h-3.5 ${iconColor}`} />
           </div>
-          <span className="font-bold text-xs text-slate-800 tracking-tight">{title}</span>
+          <span className="text-[12px] font-bold uppercase tracking-wide text-slate-600">{title}</span>
         </div>
-        <span className="text-[11px] font-semibold text-slate-500 px-2 py-0.5 rounded-full bg-slate-200/60">
+        <span className="inline-flex min-w-[22px] items-center justify-center rounded-full bg-white px-1.5 text-[12px] font-semibold text-slate-600 shadow-[inset_0_0_0_1px_rgb(226,232,240)]">
           {projects.length}
         </span>
       </div>
 
       {/* Cards Scrollable Container - scrolls cards vertically inside column if there are many */}
       <SortableContext items={projectIds} strategy={verticalListSortingStrategy}>
-        <div className="space-y-2.5 flex-1 min-h-0 overflow-y-auto pr-1 select-none [scrollbar-width:thin] [scrollbar-color:#cbd5e1_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-400">
+        <div className="space-y-2.5 flex-1 min-h-0 overflow-y-auto p-2 select-none [scrollbar-width:thin] [scrollbar-color:#cbd5e1_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-400">
           {/* Empty State / Drop Area matching Image 3 */}
           {projects.length === 0 ? (
             <div

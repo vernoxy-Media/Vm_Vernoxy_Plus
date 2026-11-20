@@ -440,7 +440,7 @@ export const CandidateDecisionModal: React.FC<CandidateDecisionModalProps> = ({
                     <option value="">Select Reporting Manager (Optional)</option>
                     {employees.map((emp: any) => (
                       <option key={emp.emp_id} value={emp.emp_id}>
-                        {emp.name} (EMP-{String(emp.emp_id).padStart(4, '0')})
+                        {emp.name} ({emp.employee_code || `EMP-${String(emp.emp_id).padStart(4, '0')}`})
                       </option>
                     ))}
                   </select>

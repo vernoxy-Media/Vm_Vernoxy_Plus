@@ -85,8 +85,31 @@ describe('CreateEmployeeUseCase', () => {
     dep_id: 1,
     role_id: 2,
     joining_date: '2026-10-01',
+    gender_id: 1,
+    personal_email: 'alice.personal@example.com',
+    birth_date: '1995-05-05',
+    employment_type_id: 143,
     acting_admin_id: 1,
   };
+
+  describe('required fields and input rules', () => {
+    it.each([
+      ['mob', { mob: '' }, 'mob'],
+      ['mob (missing)', { mob: undefined }, 'mob'],
+      ['gender_id', { gender_id: undefined }, 'gender_id'],
+      ['personal_email', { personal_email: '' }, 'personal_email'],
+      ['birth_date', { birth_date: undefined }, 'birth_date'],
+      ['employment_type_id', { employment_type_id: undefined }, 'employment_type_id'],
+      ['designation', { role_id: undefined, role_ids: [] }, 'role_ids'],
+      ['name with symbols', { name: 'Alice@#$' }, 'name'],
+      ['name with digits', { name: 'Alice 123' }, 'name'],
+      ['negative salary', { salary: -5 }, 'salary'],
+    ])('refuses %s', async (_label, patch, field) => {
+      await expect(useCase.execute({ ...validCommand, ...patch } as never)).rejects.toMatchObject({ field });
+      // Nothing is made up and nothing is saved
+      expect(employeeRepo.create).not.toHaveBeenCalled();
+    });
+  });
 
   it('successfully creates employee and provisions credentials atomically', async () => {
     departmentRepo.findById.mockResolvedValue({
@@ -122,6 +145,7 @@ describe('CreateEmployeeUseCase', () => {
     const createdEmp = {
       emp_id: 10,
       ...validCommand,
+      birth_date: new Date('1995-05-05'),
       mob: '+919876543210',
       status: 'Active' as const,
       joining_date: new Date('2026-10-01'),

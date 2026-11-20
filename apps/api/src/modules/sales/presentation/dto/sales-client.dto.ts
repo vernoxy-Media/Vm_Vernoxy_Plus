@@ -10,6 +10,14 @@ export class ConvertToClientBodyDto {
 
   @ApiPropertyOptional({ description: 'Win note: what was agreed, such as the PO or the scope. Saved on the lead and the client.' })
   @IsOptional() @IsString() win_note?: string;
+
+  @ApiPropertyOptional({ description: 'Admin only, optional: what the client pays for the project (INR). Ignored for everyone else.' })
+  @IsOptional() project_revenue?: number | string | null;
+}
+
+export class SetClientRevenueBodyDto {
+  @ApiPropertyOptional({ description: 'Admin only. Empty clears it.' })
+  @IsOptional() project_revenue?: number | string | null;
 }
 
 export class ReverseConversionBodyDto {

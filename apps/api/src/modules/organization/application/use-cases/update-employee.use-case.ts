@@ -11,6 +11,9 @@ import {
   ValidationDomainError,
 } from '../../domain/errors/organization.errors';
 
+import { resolveRoleSelection } from '../services/employee-role-selection';
+import { assertAmount, assertPersonName, normalizeEmergencyContacts } from '../../domain/services/employee-input-rules';
+
 export interface UpdateEmployeeCommand {
   id: number;
   name?: string;
@@ -19,6 +22,8 @@ export interface UpdateEmployeeCommand {
   dep_id?: number;
   department_ids?: number[];
   role_id?: number | null;
+  /** All designations (each must belong to one of the employee's departments). role_id is the primary one. */
+  role_ids?: number[];
   reporting_manager?: number | null;
   joining_date?: Date | string;
   exit_date?: Date | string | null;
@@ -32,6 +37,7 @@ export interface UpdateEmployeeCommand {
   emergency_contact_name?: string | null;
   emergency_contact_number?: string | null;
   emergency_contact_relation?: string | null;
+  emergency_contacts?: Array<{ name: string; relation?: string | null; number: string }>;
   employment_type_id?: number | null;
   salary?: number;
   probation_period?: string | null;
@@ -71,10 +77,12 @@ export class UpdateEmployeeUseCase {
       throw new NotFoundDomainError('Employee', command.id);
     }
 
+    // The edit form sends the department, designation and status every time, also when they are unchanged. Only a real
+    // change to one of them is a self-modification.
     OrganizationPolicyService.validateSelfModification(command.acting_admin_id, command.id, {
-      dep_id: command.dep_id,
-      role_id: command.role_id,
-      status: command.status,
+      dep_id: command.dep_id !== undefined && command.dep_id !== employee.dep_id ? command.dep_id : undefined,
+      role_id: command.role_id !== undefined && command.role_id !== employee.role_id ? command.role_id : undefined,
+      status: command.status !== undefined && command.status !== employee.status ? command.status : undefined,
     });
 
     let trimmedName: string | undefined;
@@ -83,7 +91,11 @@ export class UpdateEmployeeUseCase {
       if (!trimmedName) {
         throw new ValidationDomainError('Employee name cannot be empty', 'name');
       }
+      // A name saved long ago is left alone unless it is being changed
+      if (trimmedName !== employee.name) trimmedName = assertPersonName(trimmedName, 'name', 'Employee name');
     }
+
+    const emergencyContacts = command.emergency_contacts !== undefined ? normalizeEmergencyContacts(command.emergency_contacts) : undefined;
 
     let normalizedMob: string | undefined;
     if (command.mob !== undefined) {
@@ -109,11 +121,13 @@ export class UpdateEmployeeUseCase {
       }
     }
 
-    if (command.salary !== undefined && command.salary < 0) {
-      throw new ValidationDomainError('Salary cannot be negative', 'salary');
-    }
-    if (command.pf !== undefined && command.pf < 0) {
-      throw new ValidationDomainError('PF cannot be negative', 'pf');
+    if (command.salary !== undefined) assertAmount(command.salary, 'salary', 'Salary');
+    if (command.pf !== undefined) assertAmount(command.pf, 'pf', 'PF amount');
+
+    // Several designations: the primary one drives role_id / dep_id as before
+    const roleSelection = command.role_ids !== undefined ? resolveRoleSelection(command.role_id, command.role_ids) : undefined;
+    if (roleSelection) {
+      command = { ...command, role_id: roleSelection.primary };
     }
 
     const targetDepId = command.dep_id !== undefined ? command.dep_id : employee.dep_id;
@@ -163,6 +177,30 @@ export class UpdateEmployeeUseCase {
             throw new UnprocessableDomainError('DEPARTMENT_INACTIVE', 'The department of this designation is not active', 'department_ids');
           }
           effectiveDepId = roleDepId;
+        }
+      }
+    }
+
+    if (roleSelection) {
+      const departmentsForRoles = new Set<number>([
+        targetDepId,
+        effectiveDepId ?? targetDepId,
+        ...(command.department_ids ?? employee.departments?.map((d) => d.dep_id) ?? [employee.dep_id]),
+      ]);
+      for (const extraRoleId of roleSelection.all.filter((id) => id !== roleSelection.primary)) {
+        const extra = await this.roleRepo.findById(extraRoleId);
+        if (!extra) {
+          throw new NotFoundDomainError('Role', extraRoleId);
+        }
+        if (!extra.is_active) {
+          throw new UnprocessableDomainError('ROLE_INACTIVE', `Designation "${extra.role_name}" is inactive`, 'role_ids');
+        }
+        if (!departmentsForRoles.has(extra.dep_id)) {
+          throw new UnprocessableDomainError(
+            'ROLE_DEPARTMENT_MISMATCH',
+            `Designation "${extra.role_name}" does not belong to any of the selected departments`,
+            'role_ids',
+          );
         }
       }
     }
@@ -327,6 +365,7 @@ export class UpdateEmployeeUseCase {
       dep_id: effectiveDepId,
       department_ids: command.department_ids,
       role_id: command.role_id,
+      role_ids: roleSelection?.all,
       reporting_manager: command.reporting_manager,
       joining_date: parsedJoiningDate,
       exit_date: parsedExitDate,
@@ -337,9 +376,10 @@ export class UpdateEmployeeUseCase {
       birth_date: parsedBirthDate,
       blood_group: command.blood_group?.trim() || null,
       address: command.address?.trim() || null,
-      emergency_contact_name: command.emergency_contact_name?.trim() || null,
-      emergency_contact_number: command.emergency_contact_number?.trim() || null,
-      emergency_contact_relation: command.emergency_contact_relation?.trim() || null,
+      emergency_contact_name: emergencyContacts ? (emergencyContacts[0]?.name ?? null) : command.emergency_contact_name?.trim() || null,
+      emergency_contact_number: emergencyContacts ? (emergencyContacts[0]?.number ?? null) : command.emergency_contact_number?.trim() || null,
+      emergency_contact_relation: emergencyContacts ? (emergencyContacts[0]?.relation ?? null) : command.emergency_contact_relation?.trim() || null,
+      emergency_contacts: emergencyContacts,
       employment_type_id: command.employment_type_id,
       salary: command.salary !== undefined ? Number(command.salary) : undefined,
       pf: command.pf !== undefined ? Number(command.pf) : undefined,
@@ -359,7 +399,8 @@ export class UpdateEmployeeUseCase {
       ifsc_code: command.ifsc_code !== undefined ? (command.ifsc_code?.trim() || null) : undefined,
       leave_policy_id: command.leave_policy_id,
       termination_date: parsedTerminationDate,
-      deactivation_reason: command.deactivation_reason,
+      // Switching an employee to Inactive in the edit form needs no reason: it is recorded as Resigned unless one is chosen
+      deactivation_reason: command.deactivation_reason ?? (command.status === 'Inactive' && employee.status !== 'Inactive' ? 'Resigned' : undefined),
       deactivation_notes: command.deactivation_notes,
       updated_by: command.acting_admin_id,
     });

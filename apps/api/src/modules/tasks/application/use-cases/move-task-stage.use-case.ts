@@ -8,6 +8,7 @@ import { ApproverResolverPort } from '../../domain/ports/approver-resolver.port'
 import { TaskRepositoryPort } from '../../domain/ports/task.repository.port';
 import { canTransitionStage } from '../../domain/services/task-rules';
 import { CreateNotificationUseCase } from '../../../notifications/public-api';
+import { notifyParentAdvance } from './notify-parent-advance';
 
 export interface MoveTaskStageCommand {
   taskId: number;
@@ -35,6 +36,17 @@ export class MoveTaskStageUseCase {
     const isAssignee = existing.assignees.some((a) => a.employee_id === command.actorEmpId);
     const isLead = existing.lead_employee_id === command.actorEmpId;
 
+    // Jira-style QA step: a developer who finishes a task that has a QA assignee sends it to QA, not to approval.
+    let targetStage = command.targetStage;
+    if (existing.stage === 'in_progress' && targetStage === 'requested' && existing.qa_assignee_id && (isAssignee || isLead)) {
+      targetStage = 'in_qa';
+    }
+    if (targetStage === 'in_qa' && !existing.qa_assignee_id) {
+      throw new InvalidStageTransitionError('This task has no QA assignee, so it cannot be sent to QA.');
+    }
+    const isQaAction = existing.stage === 'in_qa';
+    const isQaTester = existing.qa_assignee_id === command.actorEmpId;
+
     // Approver actions (BFD Section 3.3): Approving a submitted task, or rejecting back to in_progress with notes
     const isApproverAction =
       (existing.stage === 'requested' && command.targetStage === 'completed') ||
@@ -44,7 +56,15 @@ export class MoveTaskStageUseCase {
     const projectManagerId = await this.taskRepo.getTaskProjectManagerId(existing.task_id);
     const isApprover = command.isAdmin || (projectManagerId !== null && projectManagerId === command.actorEmpId);
 
-    if (isApproverAction) {
+    if (isQaAction) {
+      // Only the tester (or an approver) decides whether the work passes QA.
+      if (!isQaTester && !isApprover) {
+        throw new TaskPermissionDeniedError('Only the QA assignee of this task can pass it or send it back to the developer.');
+      }
+      if (targetStage === 'in_progress' && !command.note?.trim()) {
+        throw new InvalidStageTransitionError('Please add a note describing what failed in QA.');
+      }
+    } else if (isApproverAction) {
       if (!isApprover) {
         throw new TaskPermissionDeniedError('Only the Admin, or the Project Manager for Project Tasks, can approve or send back this task.');
       }
@@ -55,13 +75,13 @@ export class MoveTaskStageUseCase {
       }
     }
 
-    const check = canTransitionStage(existing.stage, command.targetStage, isApprover);
+    const check = canTransitionStage(existing.stage, targetStage, isApprover);
     if (!check.allowed) {
       throw new InvalidStageTransitionError(check.reason || 'Invalid stage transition');
     }
 
     // Mandatory hold reason validation
-    if (command.targetStage === 'hold') {
+    if (targetStage === 'hold') {
       const reason = command.hold_reason?.trim() || command.note?.trim();
       if (!reason) {
         throw new InvalidStageTransitionError('Hold reason is mandatory when placing a task on hold');
@@ -69,7 +89,7 @@ export class MoveTaskStageUseCase {
     }
 
     // Section 3.6: Main task approval requires all sub tasks to be approved
-    if (command.targetStage === 'completed' && existing.has_sub_tasks) {
+    if (targetStage === 'completed' && existing.has_sub_tasks) {
       const subTasks = await this.taskRepo.getSubTasks(existing.task_id);
       const unapprovedSubTasks = subTasks.filter((st) => st.stage !== 'completed');
       if (unapprovedSubTasks.length > 0) {
@@ -79,16 +99,26 @@ export class MoveTaskStageUseCase {
       }
     }
 
+    const parentBefore = existing.parent_task_id ? await this.taskRepo.findById(existing.parent_task_id) : null;
+
     const updated = await this.taskRepo.moveStage(command.taskId, {
-      target_stage: command.targetStage,
+      target_stage: targetStage,
       actor_emp_id: command.actorEmpId,
       note: command.note?.trim() || null,
-      hold_reason: command.targetStage === 'hold' ? (command.hold_reason?.trim() || command.note?.trim() || null) : null,
+      hold_reason: targetStage === 'hold' ? (command.hold_reason?.trim() || command.note?.trim() || null) : null,
       self_approved: isApprover,
     });
 
     // Handle notifications asynchronously without failing the stage transition
-    this.dispatchNotifications(existing.stage, command.targetStage, updated, { ...command, isAdmin: isApprover }, projectManagerId).catch(() => {});
+    this.dispatchNotifications(existing.stage, targetStage, updated, { ...command, isAdmin: isApprover }, projectManagerId).catch(() => {});
+
+    // When the last sub-task is submitted the main task moves on by itself (to QA or Submitted): tell who is next.
+    notifyParentAdvance(
+      { taskRepo: this.taskRepo, approverResolver: this.approverResolver, createNotificationUseCase: this.createNotificationUseCase },
+      parentBefore,
+      updated,
+      { empId: command.actorEmpId, name: command.actorName },
+    ).catch(() => {});
 
     return updated;
   }
@@ -100,6 +130,51 @@ export class MoveTaskStageUseCase {
     command: MoveTaskStageCommand,
     projectManagerId: number | null = null,
   ): Promise<void> {
+    // 0a. Developer finished -> tell the tester the task is ready for QA
+    if (toStage === 'in_qa' && task.qa_assignee_id && task.qa_assignee_id !== command.actorEmpId) {
+      await this.createNotificationUseCase.execute({
+        recipient_id: task.qa_assignee_id,
+        kind: 'task_ready_for_qa',
+        title: `Submitted for QA: ${task.task_code}`,
+        body: `${command.actorName} has submitted "${task.title}" for QA. Please test it and pass or return it.`,
+        entity_type: 'task',
+        entity_id: task.task_id,
+        created_by: command.actorEmpId,
+      });
+    }
+
+    // 0b. QA failed -> send the developer(s) the tester's note
+    if (fromStage === 'in_qa' && toStage === 'in_progress') {
+      const failed = task.assignees
+        .filter((a) => a.employee_id !== command.actorEmpId)
+        .map((a) => ({
+          recipient_id: a.employee_id,
+          kind: 'task_qa_failed',
+          title: `QA Failed: ${task.task_code}`,
+          body: command.note ? `${command.actorName} returned "${task.title}" for rework: "${command.note}"` : `"${task.title}" was returned for rework after QA.`,
+          entity_type: 'task',
+          entity_id: task.task_id,
+          created_by: command.actorEmpId,
+        }));
+      if (failed.length) await this.createNotificationUseCase.executeMany(failed);
+    }
+
+    // 0c. QA passed -> let the developer(s) know
+    if (fromStage === 'in_qa' && toStage === 'requested') {
+      const passed = task.assignees
+        .filter((a) => a.employee_id !== command.actorEmpId)
+        .map((a) => ({
+          recipient_id: a.employee_id,
+          kind: 'task_qa_passed',
+          title: `QA Passed: ${task.task_code}`,
+          body: `"${task.title}" passed QA and was sent for approval.`,
+          entity_type: 'task',
+          entity_id: task.task_id,
+          created_by: command.actorEmpId,
+        }));
+      if (passed.length) await this.createNotificationUseCase.executeMany(passed);
+    }
+
     // 1. Moving to requested (Submitted) -> notify admin approvers
     if (toStage === 'requested') {
       const approverIds = await this.approverResolver.getAdminApproverIds();
@@ -109,8 +184,8 @@ export class MoveTaskStageUseCase {
         .map((id) => ({
           recipient_id: id,
           kind: 'task_review_requested',
-          title: `Review Requested: ${task.task_code}`,
-          body: `${command.actorName} submitted "${task.title}" for review`,
+          title: `Submitted for Review: ${task.task_code}`,
+          body: fromStage === 'in_qa' ? `${command.actorName} passed QA for "${task.title}". It is ready for your approval.` : `${command.actorName} has submitted "${task.title}" for your review.`,
           entity_type: 'task',
           entity_id: task.task_id,
           created_by: command.actorEmpId,

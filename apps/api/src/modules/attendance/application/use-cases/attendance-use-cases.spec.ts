@@ -1,5 +1,6 @@
 import { Clock } from '../../domain/ports/clock.port';
 import { PunchInUseCase } from './punch-in.use-case';
+import { ResumeWorkUseCase } from './resume-work.use-case';
 import { StartBreakUseCase } from './start-break.use-case';
 import { EndBreakUseCase } from './end-break.use-case';
 import { PunchOutUseCase } from './punch-out.use-case';
@@ -67,6 +68,19 @@ describe('AttendanceUseCases with TestClock', () => {
         }
         return inMemoryDay;
       }),
+      reopenAttendanceDay: jest.fn().mockImplementation(async (attId, previousCheckOutAt, resumedAt) => {
+        inMemoryDay.checkOutAt = null;
+        inMemoryDay.dayStatus = 'incomplete';
+        inMemoryBreaks.push({
+          breakId: inMemoryBreaks.length + 1,
+          attendanceId: attId,
+          startedAt: previousCheckOutAt,
+          endedAt: resumedAt,
+          durationMinutes: Math.floor((resumedAt.getTime() - previousCheckOutAt.getTime()) / 60000),
+          breakType: 'Clocked out',
+        });
+        return inMemoryDay;
+      }),
       findOpenBreak: jest.fn().mockImplementation(async (attId) => {
         return inMemoryBreaks.find((b) => !b.endedAt) || null;
       }),
@@ -99,6 +113,7 @@ describe('AttendanceUseCases with TestClock', () => {
       listRegularizations: jest.fn().mockResolvedValue([]),
       createRegularization: jest.fn(),
       cancelRegularization: jest.fn(),
+      listAdminEmpIds: jest.fn().mockResolvedValue([]),
       approveRegularization: jest.fn(),
       rejectRegularization: jest.fn(),
       bulkApproveRegularizations: jest.fn().mockResolvedValue({ successCount: 0, failedCount: 0 }),
@@ -188,6 +203,54 @@ describe('AttendanceUseCases with TestClock', () => {
       240,
       'half_day',
     );
+  });
+
+  it('refuses a second Punch In on the same day, and says so plainly after the day was closed', async () => {
+    const punchInUseCase = new PunchInUseCase(repo, clock);
+    const punchOutUseCase = new PunchOutUseCase(repo, clock);
+
+    await punchInUseCase.execute(1);
+    await expect(punchInUseCase.execute(1)).rejects.toMatchObject({ code: 'ALREADY_PUNCHED_IN', message: 'Already punched in today' });
+
+    clock.advanceMinutes(480);
+    await punchOutUseCase.execute(1);
+    await expect(punchInUseCase.execute(1)).rejects.toMatchObject({
+      code: 'ALREADY_PUNCHED_IN',
+      message: expect.stringContaining('already clocked out today'),
+    });
+  });
+
+  it('carries on after a clock-out: the same day opens again and the time away is kept as a break', async () => {
+    const punchIn = new PunchInUseCase(repo, clock);
+    const punchOut = new PunchOutUseCase(repo, clock);
+    const resume = new ResumeWorkUseCase(repo, clock);
+
+    await punchIn.execute(1); // 09:00
+    clock.advanceMinutes(120);
+    await punchOut.execute(1); // 11:00
+    clock.advanceMinutes(30); // 11:30, back at the desk
+
+    const block = await resume.execute(1);
+    expect(block.state).toBe('working');
+    expect(inMemoryDay.checkOutAt).toBeNull();
+    expect(inMemoryBreaks).toHaveLength(1);
+    expect(inMemoryBreaks[0].durationMinutes).toBe(30);
+
+    clock.advanceMinutes(90); // 13:00
+    await punchOut.execute(1);
+    // 09:00 to 13:00 is 240 minutes, of which 30 were spent clocked out: not worked, and not a break either
+    expect(inMemoryDay.breakMinutes).toBe(0);
+    expect(inMemoryDay.productionMinutes).toBe(210);
+  });
+
+  it('says plainly when there is nothing to resume', async () => {
+    const punchIn = new PunchInUseCase(repo, clock);
+    const resume = new ResumeWorkUseCase(repo, clock);
+
+    await expect(resume.execute(1)).rejects.toMatchObject({ code: 'NOT_WORKING' });
+
+    await punchIn.execute(1);
+    await expect(resume.execute(1)).rejects.toMatchObject({ code: 'ALREADY_PUNCHED_IN', message: 'You are already working.' });
   });
 
   it('rejects repeated Punch Out with AlreadyPunchedOutError when day is already closed', async () => {

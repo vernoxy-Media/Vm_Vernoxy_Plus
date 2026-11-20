@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ExternalLink } from 'lucide-react';
 import { Pagination } from '@/shared/ui/Pagination';
 import type { ProjectItem, ProjectStatus } from '../types';
+import { CategoryName } from './CategoryName';
 
 interface ProjectTableViewProps {
   projects: ProjectItem[];
@@ -121,7 +122,7 @@ export const ProjectTableView: React.FC<ProjectTableViewProps> = ({ projects, on
                     <Tile project={p} />
                     <div className="min-w-0">
                       <p className="max-w-[280px] truncate font-medium text-[color:var(--ac-main,#0052CC)] hover:underline">{p.project_name}</p>
-                      <p className="text-[12px] capitalize text-[#5E6C84]">{p.category.replace(/_/g, ' ')}</p>
+                      <p className="text-[12px] capitalize text-[#5E6C84]"><CategoryName code={p.category} other={p.other_category} /></p>
                     </div>
                   </div>
                 </td>

@@ -59,7 +59,11 @@ export class PunchInUseCase {
         leave,
         pendingLeave,
       });
-      throw new AlreadyPunchedInError('Already punched in today', { today: todayBlock });
+      // One clock-in per day. Say which of the two it is, so a person who has clocked out is not told they are "in"
+      throw new AlreadyPunchedInError(
+        existingDay.checkOutAt ? 'You have already clocked out today. If you are still working, use Resume work.' : 'Already punched in today',
+        { today: todayBlock },
+      );
     }
 
     const { workedOnNonWorkingDay } = validatePunchIn({

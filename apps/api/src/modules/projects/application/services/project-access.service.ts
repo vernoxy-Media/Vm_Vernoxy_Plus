@@ -10,6 +10,7 @@ export interface ProjectRole {
     project_id: number;
     project_name: string;
     project_manager_id: number;
+    category: string;
     start_date: Date;
     deadline: Date;
   };
@@ -36,7 +37,7 @@ export class ProjectAccessService {
   async role(projectId: number, empId: number): Promise<ProjectRole> {
     const project = await this.prisma.projects.findFirst({
       where: { project_id: projectId, deleted_at: null },
-      select: { project_id: true, project_name: true, project_manager_id: true, start_date: true, deadline: true },
+      select: { project_id: true, project_name: true, project_manager_id: true, category: true, start_date: true, deadline: true },
     });
     if (!project) throw new NotFoundException('Project not found.');
     const [isAdmin, member] = await Promise.all([
@@ -87,6 +88,22 @@ export class ProjectAccessService {
       select: { status: true, assigned_to: true, reported_by: true },
     });
     return bug ? { status: String(bug.status), assigned_to: bug.assigned_to, reported_by: bug.reported_by } : null;
+  }
+
+  /** Everyone who can be @mentioned in a project: its team, the Project Manager and every Admin. */
+  async mentionable(projectId: number): Promise<Array<{ employee_id: number; name: string; email: string; profile_picture: string | null }>> {
+    const rows = await this.prisma.$queryRaw<Array<{ emp_id: number; name: string; email: string | null; profile_picture: string | null }>>`
+      SELECT DISTINCT e.emp_id, e.name, e.email, e.profile_picture
+      FROM employees e
+      LEFT JOIN roles r ON r.role_id = e.role_id
+      WHERE e.status = 'Active' AND e.deleted_at IS NULL AND (
+        r.is_admin = true
+        OR e.emp_id IN (SELECT pm.employee_id FROM project_members pm WHERE pm.project_id = ${projectId} AND pm.deleted_at IS NULL)
+        OR e.emp_id IN (SELECT p.project_manager_id FROM projects p WHERE p.project_id = ${projectId})
+      )
+      ORDER BY e.name;
+    `;
+    return rows.map((r) => ({ employee_id: Number(r.emp_id), name: r.name, email: r.email ?? '', profile_picture: r.profile_picture ?? null }));
   }
 
   /** Active employees of the project, including the Project Manager. */

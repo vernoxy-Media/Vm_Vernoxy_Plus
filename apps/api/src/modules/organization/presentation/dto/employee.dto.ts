@@ -13,8 +13,28 @@ import {
   MaxLength,
   Min,
   MinLength,
+  ArrayMaxSize,
+  ValidateNested,
 } from 'class-validator';
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
+
+export class EmergencyContactDto {
+  @ApiProperty({ type: String, example: 'John Johnson' })
+  @IsString()
+  @MaxLength(100)
+  name!: string;
+
+  @ApiPropertyOptional({ type: String, example: 'Spouse', nullable: true })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  relation?: string | null;
+
+  @ApiProperty({ type: String, example: '+919876543219' })
+  @IsString()
+  @MaxLength(25)
+  number!: string;
+}
 
 export class EmployeePayPolicyDto {
   @ApiPropertyOptional({ type: String, format: 'date', nullable: true })
@@ -96,10 +116,15 @@ export class CreateEmployeeDto {
   @IsArray()
   department_ids?: number[];
 
-  @ApiPropertyOptional({ type: Number, example: 2, description: 'Role ID (designation)', nullable: true })
+  @ApiPropertyOptional({ type: Number, example: 2, description: 'Primary Role ID (designation)', nullable: true })
   @IsOptional()
   @IsInt()
   role_id?: number | null;
+
+  @ApiPropertyOptional({ type: [Number], example: [2, 5], description: 'All designations (multi-select). Each must belong to one of the selected departments; role_id is the primary one.' })
+  @IsOptional()
+  @IsArray()
+  role_ids?: number[];
 
   @ApiPropertyOptional({ type: Number, example: 1, description: 'Reporting manager employee ID', nullable: true })
   @IsOptional()
@@ -154,6 +179,14 @@ export class CreateEmployeeDto {
   @IsOptional()
   @IsString()
   emergency_contact_relation?: string | null;
+
+  @ApiPropertyOptional({ type: [EmergencyContactDto], description: 'All emergency contacts (up to 5). When sent they replace the single contact fields.' })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(5)
+  @ValidateNested({ each: true })
+  @Type(() => EmergencyContactDto)
+  emergency_contacts?: EmergencyContactDto[];
 
   @ApiPropertyOptional({ type: Number, example: 1, description: 'Employment Type lookup ID', nullable: true })
   @IsOptional()
@@ -294,10 +327,15 @@ export class UpdateEmployeeDto {
   @IsArray()
   department_ids?: number[];
 
-  @ApiPropertyOptional({ type: Number, example: 2, description: 'Role ID', nullable: true })
+  @ApiPropertyOptional({ type: Number, example: 2, description: 'Primary Role ID', nullable: true })
   @IsOptional()
   @IsInt()
   role_id?: number | null;
+
+  @ApiPropertyOptional({ type: [Number], example: [2, 5], description: 'All designations (multi-select). role_id is the primary one.' })
+  @IsOptional()
+  @IsArray()
+  role_ids?: number[];
 
   @ApiPropertyOptional({ type: Number, example: 1, description: 'Reporting manager employee ID', nullable: true })
   @IsOptional()
@@ -363,6 +401,14 @@ export class UpdateEmployeeDto {
   @IsOptional()
   @IsString()
   emergency_contact_relation?: string | null;
+
+  @ApiPropertyOptional({ type: [EmergencyContactDto], description: 'All emergency contacts (up to 5). When sent they replace the single contact fields.' })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(5)
+  @ValidateNested({ each: true })
+  @Type(() => EmergencyContactDto)
+  emergency_contacts?: EmergencyContactDto[];
 
   @ApiPropertyOptional({ type: Number, example: 1, nullable: true })
   @IsOptional()
@@ -546,10 +592,10 @@ export class EmployeeQueryDto {
   @IsInt()
   role_id?: number;
 
-  @ApiPropertyOptional({ type: String, description: 'Filter by status', enum: ['Active', 'Inactive', 'Onboarding'] })
+  @ApiPropertyOptional({ type: String, description: 'Filter by status. Omit for everyone except Onboarding; "All" includes Onboarding.', enum: ['Active', 'Inactive', 'Onboarding', 'All'] })
   @IsOptional()
-  @IsIn(['Active', 'Inactive', 'Onboarding'])
-  status?: 'Active' | 'Inactive' | 'Onboarding';
+  @IsIn(['Active', 'Inactive', 'Onboarding', 'All'])
+  status?: 'Active' | 'Inactive' | 'Onboarding' | 'All';
 
   @ApiPropertyOptional({ type: Number, description: 'Limit results', default: 50 })
   @IsOptional()
@@ -643,8 +689,14 @@ export class EmployeeResponseDto {
   @ApiPropertyOptional({ type: () => [EmployeeRelationDepartmentDto] })
   departments?: EmployeeRelationDepartmentDto[];
 
-  @ApiPropertyOptional({ type: Number, example: 2, nullable: true })
+  @ApiPropertyOptional({ type: Number, example: 2, nullable: true, description: 'Primary designation' })
   role_id!: number | null;
+
+  @ApiPropertyOptional({ type: [Number], example: [2, 5], description: 'Every designation the employee holds' })
+  role_ids?: number[];
+
+  @ApiPropertyOptional({ type: () => [EmployeeRelationRoleDto], description: 'Every designation with its department' })
+  roles?: EmployeeRelationRoleDto[];
 
   @ApiPropertyOptional({ type: Number, example: 1, nullable: true })
   reporting_manager!: number | null;
@@ -699,6 +751,9 @@ export class EmployeeResponseDto {
 
   @ApiPropertyOptional({ type: String, nullable: true })
   emergency_contact_relation?: string | null;
+
+  @ApiPropertyOptional({ type: [EmergencyContactDto] })
+  emergency_contacts?: EmergencyContactDto[];
 
   @ApiPropertyOptional({ type: Number, nullable: true, description: 'Assigned Leave Policy' })
   leave_policy_id?: number | null;
@@ -862,6 +917,9 @@ export class EmployeeStatsDto {
 
   @ApiProperty({ type: Number, example: 3 })
   inactive!: number;
+
+  @ApiPropertyOptional({ type: Number, example: 2, description: 'Employees still in Onboarding' })
+  onboarding?: number;
 }
 
 export class EmployeeListResponseDto {

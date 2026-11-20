@@ -24,6 +24,8 @@ export interface CreateTaskCommand {
   /** Project Task (Project Management BFD 2.7). */
   project_id?: number | null;
   sprint_id?: number | null;
+  /** QA step for a project task: who tests it after the developer finishes. */
+  qa_assignee_id?: number | null;
 }
 
 const PRIORITIES: TaskPriority[] = ['high', 'medium', 'low'];
@@ -81,6 +83,15 @@ export class CreateTaskUseCase {
 
     const allActive = await this.employeeDirectory.validateActiveEmployees(assignees);
     if (!allActive) fail('A task can be assigned only to an Active employee.');
+
+    // Optional QA step (project tasks only): the tester must be an active employee other than the developer.
+    let qaId: number | null = null;
+    if (command.qa_assignee_id) {
+      if (!command.project_id) fail('A QA assignee can be set only on a project task.');
+      qaId = Number(command.qa_assignee_id);
+      if (assignees.includes(qaId)) fail('The QA assignee must be a different person from the developer.');
+      if (!(await this.employeeDirectory.validateActiveEmployees([qaId]))) fail('QA can be assigned only to an Active employee.');
+    }
 
     let leadId: number | null = null;
     let subTasks: CreateSubTaskRepoInput[] | undefined;
@@ -145,6 +156,7 @@ export class CreateTaskUseCase {
       sub_tasks: subTasks,
       project_id: command.project_id ?? null,
       sprint_id: command.sprint_id ?? null,
+      qa_assignee_id: qaId,
     });
 
     // In-app notification when a task is assigned (BFD 2.5). Sub task employees get their own sub task.
@@ -165,6 +177,17 @@ export class CreateTaskUseCase {
       entity_id: task.task_id,
       created_by: command.creator_emp_id,
     }));
+    if (qaId && qaId !== command.creator_emp_id) {
+      inputs.push({
+        recipient_id: qaId,
+        kind: 'task_qa_assigned',
+        title: `Assigned as QA: ${task.task_code}`,
+        body: `You will test "${task.title}" once the developer finishes it.`,
+        entity_type: 'task',
+        entity_id: task.task_id,
+        created_by: command.creator_emp_id,
+      });
+    }
     if (inputs.length) await this.createNotificationUseCase.executeMany(inputs).catch(() => {});
 
     return task;

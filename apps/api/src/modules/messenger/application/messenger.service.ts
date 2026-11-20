@@ -1,3 +1,4 @@
+import { messagePreview } from '../../push/public-api';
 import type { ConversationIdCodecPort } from '../domain/ports/conversation-id-codec.port';
 import type { MessengerEventsPort } from '../domain/ports/messenger-events.port';
 import type { ConversationContext, MessengerRepositoryPort } from '../domain/ports/messenger.repository.port';
@@ -21,6 +22,7 @@ export class MessengerService {
     private readonly repo: MessengerRepositoryPort,
     private readonly events: MessengerEventsPort,
     private readonly ids: ConversationIdCodecPort,
+    private readonly desktop?: { notify(empIds: number[], payload: { title: string; body: string; url: string; tag?: string }, opts?: { urgency?: 'normal' | 'high' }): Promise<void> },
   ) {}
 
   private withPublicId<T extends ConversationView>(c: T): T {
@@ -130,6 +132,10 @@ export class MessengerService {
       knownMembers ?? this.memberIds(conversationId),
     ]);
     this.events.emitToUsers(members, 'msg:new', { message: { ...view!, starred: false } });
+    // People who are away from the app get it on their desktop, unless they muted the chat. Never holds up the sender.
+    if (this.desktop && senderId !== null && view && view.kind !== 'system') {
+      void this.pushToDesktop(view, members.filter((m) => m !== senderId)).catch(() => undefined);
+    }
     // Delivery marks never hold up the sender's request.
     const online = members.filter((m) => m !== senderId && this.events.isOnline(m));
     if (online.length) {
@@ -139,6 +145,23 @@ export class MessengerService {
         .catch(() => undefined);
     }
     return view!;
+  }
+
+  private async pushToDesktop(view: MessageView, recipients: number[]): Promise<void> {
+    const to = await this.repo.unmutedMemberIds(view.conversation_id, recipients);
+    if (to.length === 0) return;
+    const conv = await this.repo.getConversation(to[0], view.conversation_id);
+    const sender = view.sender_name ?? 'Someone';
+    await this.desktop!.notify(
+      to,
+      {
+        title: conv?.kind === 'group' ? `${sender} · ${conv.name ?? 'Group'}` : sender,
+        body: messagePreview({ kind: view.kind, body: view.body, file_name: view.file?.name ?? null }),
+        url: `/messenger/${this.ids.encode(view.conversation_id)}?m=${view.message_id}`,
+        tag: `msg-${view.conversation_id}`,
+      },
+      { urgency: 'high' },
+    );
   }
 
   private async system(conversationId: number, text: string) {

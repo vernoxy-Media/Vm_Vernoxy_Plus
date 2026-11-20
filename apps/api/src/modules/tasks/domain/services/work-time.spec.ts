@@ -1,8 +1,22 @@
-import { loggedSeconds, minutesAfter, stoppedNote, timeByEmployee, timerRunner } from './work-time';
+import { loggedSeconds, minutesAfter, phaseOf, qaSeconds, stoppedNote, timeByEmployee, timerRunner } from './work-time';
 
 const log = (action: string, employee_id: number, duration_seconds?: number, employee_name = `E${employee_id}`) => ({ action, employee_id, employee_name, duration_seconds });
 
 describe('work-time', () => {
+  describe('qaSeconds', () => {
+    it('counts only the time the tester logged in QA, while the total keeps both', () => {
+      const logs = [log('finish', 1, 600), { ...log('pause', 2, 120), phase: 'qa' }, { ...log('pause', 2, 30), phase: 'qa' }];
+      expect(qaSeconds(logs)).toBe(150);
+      expect(loggedSeconds(logs)).toBe(750);
+      expect(qaSeconds(null)).toBe(0);
+    });
+
+    it('marks work done in QA only', () => {
+      expect(phaseOf('in_qa')).toBe('qa');
+      expect(phaseOf('in_progress')).toBeUndefined();
+    });
+  });
+
   describe('minutesAfter', () => {
     it('does not round every short session up to a minute', () => {
       // 30 sessions of 10 seconds is 5 minutes, not 30

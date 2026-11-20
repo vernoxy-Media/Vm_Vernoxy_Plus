@@ -18,6 +18,7 @@ import {
   Check,
   CheckCircle2,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   ChevronUp,
   ChevronsUp,
@@ -36,6 +37,7 @@ import { JiraAvatar } from '@/shared/ui/JiraAvatar';
 import { HoldReasonModal } from '@/features/tasks/components/HoldReasonModal';
 import { StageDecisionDialog } from '@/features/tasks/components/StageDecisionDialog';
 import type { TaskStage } from '@/features/tasks/types';
+import { DUE_TONE_CLASS, dueStatus } from '@/shared/utils/schedule.utils';
 import type { ProjectTaskItem, SprintItem } from '../types';
 
 /* ──────────────── Jira (Atlassian) palette, kept in one place ──────────────── */
@@ -44,17 +46,18 @@ const JIRA = {
   subtle: 'text-[#5E6C84]',
   blue: 'text-[color:var(--ac-main,#0052CC)]',
   border: 'border-[#DFE1E6]',
-  column: 'bg-[#F4F5F7]',
-  card: 'shadow-[0_1px_1px_rgba(9,30,66,0.25),0_0_1px_rgba(9,30,66,0.31)]',
+  column: 'bg-slate-50',
+  card: 'border border-slate-200 shadow-[0_1px_2px_rgba(15,23,42,0.06)]',
 };
 
-const BTN_PRIMARY = 'inline-flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-[3px] bg-[color:var(--ac-main,#0052CC)] px-3 text-[14px] font-medium text-white transition hover:bg-[color:var(--ac-hover,#0065FF)] active:bg-[color:var(--ac-dark,#0747A6)] disabled:cursor-not-allowed disabled:opacity-50';
-const BTN_SUBTLE = 'inline-flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-[3px] bg-[rgba(9,30,66,0.04)] px-3 text-[14px] font-medium text-[#42526E] transition hover:bg-[rgba(9,30,66,0.08)] disabled:cursor-not-allowed disabled:opacity-50';
+const BTN_PRIMARY = 'inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-[color:var(--ac-main,#0052CC)] px-3.5 text-[14px] font-semibold text-white shadow-sm transition hover:bg-[color:var(--ac-hover,#0065FF)] active:bg-[color:var(--ac-dark,#0747A6)] disabled:cursor-not-allowed disabled:opacity-50';
+const BTN_SUBTLE = 'inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 text-[14px] font-medium text-[#42526E] transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50';
 
-/** The five task stages, named the way a Jira board names them. */
+/** The task stages, named the way a Jira board names them. */
 const COLUMNS = [
   { stage: 'assigned', label: 'To Do' },
   { stage: 'in_progress', label: 'In Progress' },
+  { stage: 'in_qa', label: 'In QA' },
   { stage: 'hold', label: 'On Hold' },
   { stage: 'requested', label: 'In Review' },
   { stage: 'completed', label: 'Done' },
@@ -64,6 +67,7 @@ const COLUMNS = [
 const LOZENGE: Record<string, string> = {
   assigned: 'bg-[#DFE1E6] text-[#42526E]',
   in_progress: 'bg-[color:var(--ac-50,#DEEBFF)] text-[color:var(--ac-dark,#0747A6)]',
+  in_qa: 'bg-[#FFE2BD] text-[#974F0C]',
   hold: 'bg-[#FFF0B3] text-[#172B4D]',
   requested: 'bg-[#EAE6FF] text-[#403294]',
   completed: 'bg-[#E3FCEF] text-[#006644]',
@@ -116,16 +120,15 @@ const Avatars: React.FC<{ people: Assignee[]; max?: number }> = ({ people, max =
   );
 };
 
-const todayIso = () => new Date().toISOString().slice(0, 10);
-
 const DueChip: React.FC<{ task: ProjectTaskItem }> = ({ task }) => {
   if (!task.due_date) return null;
-  const overdue = task.stage !== 'completed' && task.due_date < todayIso();
-  const label = new Date(`${task.due_date}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  const status = dueStatus(task.due_date, task.stage === 'completed');
+  const label = new Date(`${task.due_date.slice(0, 10)}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
   return (
-    <span title={overdue ? 'Overdue' : 'Due date'} className={`inline-flex items-center gap-1 rounded-[3px] px-1 py-px text-[12px] font-medium ${overdue ? 'bg-[#FFEBE6] text-[#BF2600]' : 'bg-[rgba(9,30,66,0.08)] text-[#42526E]'}`}>
+    <span title={status ? status.long : 'Due date'} className={`inline-flex items-center gap-1 rounded-md px-1.5 py-px text-[12px] font-medium ${status ? DUE_TONE_CLASS[status.tone] : 'bg-[rgba(9,30,66,0.08)] text-[#42526E]'}`}>
       <Clock className="h-3 w-3" />
       {label}
+      {status && status.tone !== 'later' && <span className="font-semibold">· {status.short}</span>}
     </span>
   );
 };
@@ -144,6 +147,7 @@ const SubtaskCount: React.FC<{ subs: ProjectTaskItem[] }> = ({ subs }) => {
 const STAGE_DOT: Record<string, string> = {
   assigned: 'bg-[#97A0AF]',
   in_progress: 'bg-[color:var(--ac-main,#0052CC)]',
+  in_qa: 'bg-[#FF8B00]',
   hold: 'bg-[#FF991F]',
   requested: 'bg-[#6554C0]',
   completed: 'bg-[#36B37E]',
@@ -194,14 +198,24 @@ const BoardCard: React.FC<{
       tabIndex={0}
       onClick={() => !overlay && onOpen(task.task_id)}
       onKeyDown={(e) => { if (e.key === 'Enter') onOpen(task.task_id); }}
-      className={`rounded-[3px] bg-white p-2.5 outline-none transition focus-visible:ring-2 focus-visible:ring-[color:var(--ac-400,#4C9AFF)] ${JIRA.card} ${draggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'} ${
-        overlay ? 'rotate-2 shadow-[0_8px_16px_-4px_rgba(9,30,66,0.25),0_0_1px_rgba(9,30,66,0.31)]' : isDragging ? 'opacity-40' : 'hover:bg-[#F4F5F7]'
+      className={`rounded-xl bg-white p-3 outline-none transition focus-visible:ring-2 focus-visible:ring-[color:var(--ac-400,#4C9AFF)] ${JIRA.card} ${draggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'} ${
+        overlay ? 'rotate-2 shadow-xl' : isDragging ? 'opacity-40' : 'hover:-translate-y-px hover:border-slate-300 hover:shadow-md'
       }`}
     >
-      <p className={`text-[14px] leading-5 ${JIRA.text}`}>{task.title}</p>
-      {task.due_date && (
-        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+      <p className={`text-[14px] font-medium leading-5 ${JIRA.text}`}>{task.title}</p>
+      {(task.due_date || task.qa_assignee_name || task.review_note) && (
+        <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1">
           <DueChip task={task} />
+          {task.review_note && (task.stage === 'assigned' || task.stage === 'in_progress') && (
+            <span title={`Returned for rework: ${task.review_note}`} className="inline-flex items-center gap-1 rounded-md bg-[#FFEBE6] px-1.5 py-px text-[12px] font-semibold text-[#BF2600]">
+              Rework
+            </span>
+          )}
+          {task.qa_assignee_name && (
+            <span title={`QA: ${task.qa_assignee_name}`} className={`inline-flex max-w-[140px] items-center gap-1 truncate rounded-md px-1.5 py-px text-[12px] font-medium ${task.stage === 'in_qa' ? 'bg-[#FFE2BD] text-[#974F0C]' : 'bg-slate-100 text-slate-600'}`}>
+              QA · {task.qa_assignee_name.split(' ')[0]}
+            </span>
+          )}
         </div>
       )}
 
@@ -242,7 +256,7 @@ const BoardCard: React.FC<{
         </div>
       )}
 
-      <div className="mt-2.5 flex items-center justify-between gap-2">
+      <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-100 pt-2.5">
         <div className="flex min-w-0 items-center gap-1.5">
           <IssueType />
           <span className={`truncate text-[12px] font-medium ${done ? 'text-[#5E6C84] line-through' : 'text-[#5E6C84]'}`}>{task.task_code}</span>
@@ -262,22 +276,60 @@ const BoardCard: React.FC<{
   );
 };
 
-const BoardColumn: React.FC<{ col: (typeof COLUMNS)[number]; count: number; children: React.ReactNode }> = ({ col, count, children }) => {
+/**
+ * One board column, the way Jira draws it. A column with nothing in it folds into a slim strip (click to open),
+ * so the columns that hold work get the room; while a card is being dragged every column opens as a drop target.
+ */
+const BoardColumn: React.FC<{
+  col: (typeof COLUMNS)[number];
+  count: number;
+  collapsed: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}> = ({ col, count, collapsed, onToggle, children }) => {
   const { setNodeRef, isOver } = useDroppable({ id: `col:${col.stage}` });
+  const dot = STAGE_DOT[col.stage] ?? STAGE_DOT.assigned;
+
+  if (collapsed) {
+    return (
+      <section
+        ref={setNodeRef}
+        aria-label={`${col.label} (collapsed)`}
+        className={`flex w-10 shrink-0 snap-start self-stretch flex-col rounded-xl border transition-colors sm:w-11 ${isOver ? 'border-[color:var(--ac-400,#4C9AFF)] bg-[color:var(--ac-50,#DEEBFF)]' : 'border-slate-200 bg-slate-50 hover:bg-slate-100'}`}
+      >
+        <button type="button" onClick={onToggle} aria-label={`Expand ${col.label}`} className="flex h-full min-h-[240px] w-full cursor-pointer flex-col items-center gap-2 rounded-xl px-1 py-3 text-slate-500 hover:text-slate-800">
+          <ChevronRight className="h-4 w-4" />
+          <span aria-hidden className={`h-2.5 w-2.5 rounded-full ${dot}`} />
+          <span className="inline-flex min-w-[20px] items-center justify-center rounded-full bg-white px-1 text-[11px] font-semibold text-slate-600 shadow-[inset_0_0_0_1px_rgb(226,232,240)]">{count}</span>
+          <span className="mt-1 whitespace-nowrap text-[12px] font-bold uppercase tracking-wide [text-orientation:mixed] [writing-mode:vertical-rl]">{col.label}</span>
+        </button>
+      </section>
+    );
+  }
+
   return (
     <section
       ref={setNodeRef}
       aria-label={col.label}
-      className={`flex min-h-[260px] w-[78vw] shrink-0 snap-start flex-col rounded-[3px] p-1.5 transition-colors sm:w-[272px] xl:w-auto ${isOver ? 'bg-[color:var(--ac-50,#DEEBFF)]' : JIRA.column}`}
+      className={`flex max-h-[calc(100dvh-16rem)] min-h-[240px] w-[78vw] max-w-[380px] shrink-0 snap-start flex-col rounded-xl border transition-colors sm:w-auto sm:min-w-[240px] sm:flex-1 sm:basis-0 ${isOver ? 'border-[color:var(--ac-400,#4C9AFF)] bg-[color:var(--ac-50,#DEEBFF)]' : `border-slate-200 ${JIRA.column}`}`}
     >
-      <header className="flex items-center gap-1.5 px-1.5 pb-2 pt-1.5">
-        <h4 className="text-[12px] font-semibold uppercase tracking-[0.02em] text-[#5E6C84]">
-          {col.label}
-          <span className="ml-1.5 font-medium">{count}</span>
-        </h4>
+      <header className="flex shrink-0 items-center gap-2 border-b border-slate-200/70 px-3 py-2.5">
+        <span aria-hidden className={`h-2.5 w-2.5 shrink-0 rounded-full ${dot}`} />
+        <h4 className="min-w-0 flex-1 truncate text-[12px] font-bold uppercase tracking-wide text-slate-600">{col.label}</h4>
+        <span className="inline-flex min-w-[22px] items-center justify-center rounded-full bg-white px-1.5 text-[12px] font-semibold text-slate-600 shadow-[inset_0_0_0_1px_rgb(226,232,240)]">{count}</span>
         {col.stage === 'completed' && <Check className="h-3.5 w-3.5 text-[#36B37E]" strokeWidth={3} />}
+        <button type="button" onClick={onToggle} title={`Collapse ${col.label}`} aria-label={`Collapse ${col.label}`} className="flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-slate-400 hover:bg-white hover:text-slate-700">
+          <ChevronLeft className="h-4 w-4" />
+        </button>
       </header>
-      <div className="flex-1 space-y-1.5">{children}</div>
+      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-2 [scrollbar-width:thin]">
+        {children}
+        {count === 0 && (
+          <div className="flex h-24 items-center justify-center rounded-lg border border-dashed border-slate-300/80 px-3 text-center text-[12px] text-slate-400">
+            {isOver ? 'Drop here' : 'No issues'}
+          </div>
+        )}
+      </div>
     </section>
   );
 };
@@ -382,8 +434,9 @@ export interface ProjectSprintBoardProps {
   sprints: SprintItem[];
   members: Array<{ employee_id: number; name: string }>;
   canManage: boolean;
-  /** Admins approve or send back work that is In Review. */
   isAdmin: boolean;
+  /** Approvers (the admin, or the project manager) approve or send back work that is In Review, and may pass QA. Defaults to isAdmin. */
+  canApprove?: boolean;
   currentEmpId?: number;
   /** When given, the parent owns Board / Backlog (for example a sidebar) and the board hides its own tabs. */
   view?: 'board' | 'list';
@@ -409,6 +462,7 @@ export const ProjectSprintBoard: React.FC<ProjectSprintBoardProps> = ({
   sprints,
   canManage,
   isAdmin,
+  canApprove: canApproveProp,
   currentEmpId,
   view: controlledView,
   onViewChange,
@@ -432,6 +486,8 @@ export const ProjectSprintBoard: React.FC<ProjectSprintBoardProps> = ({
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [allSubs, setAllSubs] = useState<Set<number>>(new Set());
   const [dragId, setDragId] = useState<number | null>(null);
+  /** Columns the user folded by hand; every column starts open, like Jira. */
+  const [colOpen, setColOpen] = useState<Record<string, boolean>>({});
   const [holdTaskId, setHoldTaskId] = useState<number | null>(null);
   const [sendBackTaskId, setSendBackTaskId] = useState<number | null>(null);
   const [completing, setCompleting] = useState(false);
@@ -498,10 +554,17 @@ export const ProjectSprintBoard: React.FC<ProjectSprintBoardProps> = ({
     return hits.length ? hits : closestCorners(args);
   };
 
-  /** Who may drag a card at all: its assignee, or an admin approving something In Review. */
+  const approver = canApproveProp ?? isAdmin;
+
+  /**
+   * Who may drag a card, by the stage it is in:
+   * To Do / In Progress / On Hold: its assignees. In QA: the QA tester, or an approver.
+   * In Review: only an approver (admin or project manager). Done: nobody.
+   */
   const canDrag = (t: ProjectTaskItem) => {
     if (t.stage === 'completed') return false;
-    if (isAdmin && t.stage === 'requested') return true;
+    if (t.stage === 'requested') return approver;
+    if (t.stage === 'in_qa') return approver || Boolean(currentEmpId && t.qa_assignee_id === currentEmpId);
     return Boolean(currentEmpId && t.assignees?.some((a) => a.emp_id === currentEmpId));
   };
 
@@ -509,6 +572,8 @@ export const ProjectSprintBoard: React.FC<ProjectSprintBoardProps> = ({
   const lockReason = (t: ProjectTaskItem): string | undefined => {
     if (t.stage === 'completed') return 'Done issues cannot be moved';
     if (canDrag(t)) return undefined;
+    if (t.stage === 'requested') return 'Only the admin or the project manager can approve or send back this issue';
+    if (t.stage === 'in_qa') return t.qa_assignee_name ? `Only ${t.qa_assignee_name} (QA) can move this issue` : 'Only the QA assignee can move this issue';
     const names = (t.assignees ?? []).map((a) => a.name).join(', ');
     return names ? `Only ${names} can move this issue` : 'Only the assignee can move this issue';
   };
@@ -540,9 +605,12 @@ export const ProjectSprintBoard: React.FC<ProjectSprintBoardProps> = ({
 
     if (task.stage === 'completed') return flash('Done issues cannot be moved.');
     if (target === 'hold') return setHoldTaskId(task.task_id);
-    if (task.stage === 'requested' && target === 'in_progress' && isAdmin) return setSendBackTaskId(task.task_id);
-    if (target === 'completed' && !isAdmin) return flash('Only an admin can approve an issue as Done.');
-    const approverMove = isAdmin && task.stage === 'requested' && (target === 'completed' || target === 'in_progress');
+    if (target === 'in_qa' && !task.qa_assignee_id) return flash('This issue has no QA assignee, so it cannot be sent to QA.');
+    if (task.stage === 'in_qa' && target === 'in_progress' && canDrag(task)) return setSendBackTaskId(task.task_id);
+    if (task.stage === 'requested' && target === 'in_progress' && approver) return setSendBackTaskId(task.task_id);
+    if (target === 'completed' && !approver) return flash('Only the admin or the project manager can approve an issue as Done.');
+    if (target === 'completed' && task.stage !== 'requested') return flash('An issue must be In Review before it can be approved as Done.');
+    const approverMove = (approver && task.stage === 'requested' && (target === 'completed' || target === 'in_progress')) || (task.stage === 'in_qa' && canDrag(task) && target === 'requested');
     if (!approverMove && !canDrag(task)) return flash('Only the assignee can move this issue.');
     onMoveStage(task.task_id, target as TaskStage);
   };
@@ -649,7 +717,7 @@ export const ProjectSprintBoard: React.FC<ProjectSprintBoardProps> = ({
   /** Jira's "To Do / In Progress / Done" counters in a group header. */
   const Counters: React.FC<{ list: ProjectTaskItem[] }> = ({ list }) => {
     const todo = list.filter((t) => t.stage === 'assigned' || t.stage === 'hold').length;
-    const doing = list.filter((t) => t.stage === 'in_progress' || t.stage === 'requested').length;
+    const doing = list.filter((t) => t.stage === 'in_progress' || t.stage === 'in_qa' || t.stage === 'requested').length;
     const done = list.filter((t) => t.stage === 'completed').length;
     const pill = 'inline-flex min-w-[20px] items-center justify-center rounded-full px-1.5 text-[12px] font-semibold';
     return (
@@ -669,7 +737,7 @@ export const ProjectSprintBoard: React.FC<ProjectSprintBoardProps> = ({
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-            <h3 className={`text-[20px] font-medium leading-7 ${JIRA.text}`}>{sprint ? sprint.sprint_name : 'All work'}</h3>
+            <h3 className={`text-[22px] font-semibold leading-8 tracking-tight ${JIRA.text}`}>{sprint ? sprint.sprint_name : 'All work'}</h3>
             {sprint && <span className={`rounded-[3px] px-1 py-px text-[11px] font-bold uppercase ${sprint.status === 'active' ? 'bg-[color:var(--ac-50,#DEEBFF)] text-[color:var(--ac-dark,#0747A6)]' : sprint.status === 'completed' ? 'bg-[#E3FCEF] text-[#006644]' : 'bg-[#DFE1E6] text-[#42526E]'}`}>{SPRINT_STATUS[sprint.status]}</span>}
             {sprint && sprintInfo && sprint.status !== 'completed' && (
               <span className={`inline-flex items-center gap-1 rounded-[3px] bg-[rgba(9,30,66,0.08)] px-1.5 py-0.5 text-[12px] font-medium ${sprintInfo.daysLeft < 0 ? 'text-[#BF2600]' : 'text-[#42526E]'}`}>
@@ -712,7 +780,7 @@ export const ProjectSprintBoard: React.FC<ProjectSprintBoardProps> = ({
               key={chip.id}
               type="button"
               onClick={() => onSprintFilter(chip.id)}
-              className={`h-7 shrink-0 cursor-pointer rounded-[3px] px-2.5 text-[13px] font-medium transition ${on ? 'bg-[color:var(--ac-50,#DEEBFF)] text-[color:var(--ac-main,#0052CC)]' : 'bg-[rgba(9,30,66,0.04)] text-[#42526E] hover:bg-[rgba(9,30,66,0.08)]'}`}
+              className={`h-8 shrink-0 cursor-pointer rounded-full px-3.5 text-[13px] font-medium transition ${on ? 'bg-[color:var(--ac-main,#0052CC)] text-white shadow-sm' : 'border border-slate-200 bg-white text-[#42526E] hover:bg-slate-50'}`}
             >
               {chip.name}
             </button>
@@ -726,7 +794,7 @@ export const ProjectSprintBoard: React.FC<ProjectSprintBoardProps> = ({
       </div>
 
       {/* Board / Backlog tabs and filters */}
-      <div className="flex flex-col gap-3 border-b-2 border-[#DFE1E6] md:flex-row md:items-end md:justify-between">
+      <div className="flex flex-col gap-3 border-b border-slate-200 md:flex-row md:items-end md:justify-between">
         <div role="tablist" aria-label="Task view" className={`-mb-0.5 flex ${controlledView ? 'hidden' : ''}`}>
           {([['board', 'Board'], ['list', 'Backlog']] as const).map(([id, label]) => (
             <button
@@ -744,12 +812,12 @@ export const ProjectSprintBoard: React.FC<ProjectSprintBoardProps> = ({
 
         <div className="flex flex-wrap items-center gap-2 pb-2">
           <div className="relative">
-            <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#5E6C84]" />
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#5E6C84]" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search this board"
-              className="h-8 w-40 rounded-[3px] border-2 border-[#DFE1E6] bg-[#FAFBFC] pl-7 pr-2 text-[14px] text-[#172B4D] placeholder:text-[#7A869A] hover:bg-[#EBECF0] focus:w-52 focus:border-[color:var(--ac-400,#4C9AFF)] focus:bg-white focus:outline-none sm:transition-all"
+              className="h-9 w-44 rounded-lg border border-slate-200 bg-white pl-8 pr-2 text-[14px] text-[#172B4D] placeholder:text-[#7A869A] hover:border-slate-300 focus:w-56 focus:border-[color:var(--ac-400,#4C9AFF)] focus:outline-none focus:ring-4 focus:ring-[color:var(--ac-50,#DEEBFF)] sm:transition-all"
             />
           </div>
 
@@ -775,7 +843,7 @@ export const ProjectSprintBoard: React.FC<ProjectSprintBoardProps> = ({
               type="button"
               aria-pressed={assigneeFilter === String(currentEmpId)}
               onClick={() => onAssigneeFilter(assigneeFilter === String(currentEmpId) ? 'all' : String(currentEmpId))}
-              className={`h-8 cursor-pointer rounded-[3px] px-2.5 text-[14px] font-medium transition ${assigneeFilter === String(currentEmpId) ? 'bg-[color:var(--ac-main,#0052CC)] text-white' : 'bg-[rgba(9,30,66,0.04)] text-[#42526E] hover:bg-[rgba(9,30,66,0.08)]'}`}
+              className={`h-9 cursor-pointer rounded-lg px-3 text-[14px] font-medium transition ${assigneeFilter === String(currentEmpId) ? 'bg-[color:var(--ac-main,#0052CC)] text-white shadow-sm' : 'border border-slate-200 bg-white text-[#42526E] hover:bg-slate-50'}`}
             >
               Only my issues
             </button>
@@ -805,11 +873,17 @@ export const ProjectSprintBoard: React.FC<ProjectSprintBoardProps> = ({
         </div>
       ) : view === 'board' ? (
         <DndContext sensors={sensors} collisionDetection={collision} onDragStart={(e: DragStartEvent) => setDragId(Number(e.active.id))} onDragCancel={() => setDragId(null)} onDragEnd={handleDragEnd}>
-          <div className="-mx-1 flex snap-x snap-mandatory gap-2 overflow-x-auto px-1 pb-3 xl:grid xl:grid-cols-5 xl:overflow-visible">
+          <div className="-mx-1 flex items-stretch gap-2 overflow-x-auto overscroll-x-contain px-1 pb-4 max-sm:snap-x max-sm:snap-proximity max-sm:scroll-px-1 [scrollbar-width:thin] sm:gap-3">
             {COLUMNS.map((col) => {
               const cards = topLevel.filter((t) => (t.stage ?? 'assigned') === col.stage);
               return (
-                <BoardColumn key={col.stage} col={col} count={cards.length}>
+                <BoardColumn
+                  key={col.stage}
+                  col={col}
+                  count={cards.length}
+                  collapsed={dragId === null && !(colOpen[col.stage] ?? true)}
+                  onToggle={() => setColOpen((cur) => ({ ...cur, [col.stage]: !(cur[col.stage] ?? true) }))}
+                >
                   {cards.map((t) => <BoardCard key={t.task_id} task={t} subs={subsOf.get(t.task_id) ?? []} draggable={canDrag(t)} lockedReason={lockReason(t)} onBlocked={flash} onOpen={onOpenTask} />)}
                 </BoardColumn>
               );

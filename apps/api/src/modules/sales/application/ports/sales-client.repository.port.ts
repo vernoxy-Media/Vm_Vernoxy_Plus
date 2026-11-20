@@ -28,6 +28,8 @@ export interface ConvertToClientData {
   /** Date-only value (00:00 UTC). */
   won_on: Date;
   win_note: string;
+  /** What the client pays for the project (Admin only, optional). */
+  project_revenue?: number | null;
   actor_emp_id: number;
 }
 
@@ -110,6 +112,8 @@ export interface SalesClientRepositoryPort {
   getConversionContext(leadId: number): Promise<ConversionContext | null>;
   getNextClientCode(): Promise<string>;
   convert(data: ConvertToClientData): Promise<ConvertToClientResult>;
+  /** Admin only: what this client pays for its project(s). `null` clears it. */
+  setProjectRevenue(clientId: number, revenue: number | null, actorEmpId: number): Promise<{ client_id: number; project_revenue: number | null } | null>;
   getClient(clientId: number): Promise<ClientDetail | null>;
   listClients(query: ClientListQuery, now: Date): Promise<ClientListResult>;
   /** The Admin sees every project of the company; anyone else only those they manage or are a member of. */

@@ -142,9 +142,24 @@ export const EmployeeDetailPage: React.FC = () => {
       } else {
         setTerminationDate(todayStr);
       }
+      setDeactivationReason('Resigned');
+      setDeactivationNotes('');
       setDeactivationError(null);
     }
   }, [isDeactivateModalOpen, employee, todayStr]);
+
+  // The three-dots menu on the list sends people here with ?edit=1 or ?deactivate=1
+  useEffect(() => {
+    if (!employee) return;
+    const wantsEdit = searchParams.get('edit') === '1';
+    const wantsDeactivate = searchParams.get('deactivate') === '1';
+    if (!wantsEdit && !wantsDeactivate) return;
+    if (wantsEdit) setIsEditProfileModalOpen(true);
+    if (wantsDeactivate && employee.status !== 'Inactive' && currentUser?.emp_id !== employee.emp_id) {
+      setIsDeactivateModalOpen(true);
+    }
+    navigate(`/admin/employees/${employee.emp_id}`, { replace: true });
+  }, [employee, searchParams, navigate, currentUser?.emp_id]);
 
   useEffect(() => {
     if (employee?.status === 'Onboarding' && !searchParams.get('tab')) {
@@ -336,11 +351,11 @@ export const EmployeeDetailPage: React.FC = () => {
 
                 <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 font-medium">
                   <span className="font-mono text-slate-500 font-medium">
-                    EMP-{String(employee.emp_id).padStart(4, '0')}
+                    {(employee as { employee_code?: string }).employee_code || `EMP-${String(employee.emp_id).padStart(4, '0')}`}
                   </span>
                   <span>&bull;</span>
                   <span className="text-slate-500 font-medium">
-                    {employee.role?.role_name || 'Designation Unassigned'}
+                    {((employee as any).roles?.length ? (employee as any).roles.map((r: any) => r.role_name).join(' · ') : employee.role?.role_name) || 'Designation Unassigned'}
                   </span>
                   <span>&bull;</span>
                   <span className="text-slate-500 font-medium">
@@ -714,7 +729,7 @@ export const EmployeeDetailPage: React.FC = () => {
                   <div>
                     <span className="text-xs text-slate-400 block font-normal">Designation</span>
                     <p className="mt-1 font-semibold text-slate-900">
-                      {(employee as any).designation?.title || employee.role?.role_name || '-'}
+                      {(employee as any).designation?.title || ((employee as any).roles?.length ? (employee as any).roles.map((r: any) => r.role_name).join(', ') : employee.role?.role_name) || '-'}
                     </p>
                   </div>
                   <div>

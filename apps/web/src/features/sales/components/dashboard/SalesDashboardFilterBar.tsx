@@ -1,25 +1,7 @@
 import React from 'react';
 import { Filter, RotateCcw } from 'lucide-react';
 import { SalesDashboardFilters } from '../../types/sales-dashboard.types';
-
-const LEAD_SOURCES = [
-  'Cold calling',
-  'Reference',
-  'Website enquiry',
-  'LinkedIn',
-  'Exhibition',
-  'Social media',
-  'Existing client',
-  'Other',
-];
-
-const SERVICE_FITS = [
-  'Website Development',
-  'CRM / ERP Software',
-  'Mobile App',
-  'Digital Marketing',
-  'Custom Software',
-];
+import { SearchableSelect } from '../common/SearchableSelect';
 
 const STATUSES = ['New', 'Contacted', 'Qualified', 'Converted', 'Lost', 'On Hold'];
 
@@ -34,6 +16,9 @@ const DATE_RANGES = [
   { id: 'custom', label: 'Custom' },
 ];
 
+const SELECT_CLS =
+  'h-9 w-full cursor-pointer rounded-xl border border-slate-200 bg-slate-50/60 px-3 text-xs font-medium text-slate-700 transition hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10';
+
 interface SalesDashboardFilterBarProps {
   filters: SalesDashboardFilters;
   onChange: (updated: Partial<SalesDashboardFilters>) => void;
@@ -41,6 +26,9 @@ interface SalesDashboardFilterBarProps {
   users: Array<{ emp_id: number; name: string }>;
   cities: string[];
   industries: Array<{ industry_id: number; name: string }>;
+  /** From Master Data (Sales > Lead Source / Service Fit). */
+  leadSources: string[];
+  serviceFits: string[];
 }
 
 export const SalesDashboardFilterBar: React.FC<SalesDashboardFilterBarProps> = ({
@@ -50,141 +38,68 @@ export const SalesDashboardFilterBar: React.FC<SalesDashboardFilterBarProps> = (
   users,
   cities,
   industries,
+  leadSources,
+  serviceFits,
 }) => {
   return (
-    <div className="rounded-2xl border border-slate-200/80 bg-white p-3.5 shadow-2xs">
-      <div className="flex flex-wrap items-center gap-2.5">
-        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mr-1">
-          <Filter className="h-3.5 w-3.5 text-blue-600" />
-          <span>Filters:</span>
+    <div className="rounded-2xl border border-slate-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_-8px_rgba(15,23,42,0.08)]">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-8">
+        <div className="col-span-full flex items-center justify-between">
+          <div className="flex items-center gap-2 text-[13px] font-bold text-slate-800">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+              <Filter className="h-3.5 w-3.5" />
+            </span>
+            <span>Filters</span>
+          </div>
+          <button
+            type="button"
+            onClick={onClear}
+            className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg px-3 text-xs font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+          >
+            <RotateCcw className="h-3 w-3" />
+            <span>Clear Filters</span>
+          </button>
         </div>
 
-        {/* Lead Source */}
-        <select
-          value={filters.lead_source?.[0] || ''}
-          onChange={(e) => onChange({ lead_source: e.target.value ? [e.target.value] : [] })}
-          className="h-8 rounded-lg border border-slate-200 bg-slate-50/70 px-2.5 text-xs font-medium text-slate-700 focus:border-blue-500 focus:bg-white focus:outline-none"
-        >
-          <option value="">Lead Source: All</option>
-          {LEAD_SOURCES.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
+        <SearchableSelect compact ariaLabel="Lead source" value={filters.lead_source?.[0] || ''} onChange={(v) => onChange({ lead_source: v ? [v] : [] })} placeholder="Lead Source: All" options={leadSources.map((x) => ({ value: x, label: x }))} />
 
-        {/* Lead By */}
-        <select
-          value={filters.lead_by || 'all'}
-          onChange={(e) => onChange({ lead_by: e.target.value })}
-          className="h-8 rounded-lg border border-slate-200 bg-slate-50/70 px-2.5 text-xs font-medium text-slate-700 focus:border-blue-500 focus:bg-white focus:outline-none"
-        >
-          <option value="all">Lead By: All</option>
-          <option value="me">Assigned to Me</option>
-          {users.map((u) => (
-            <option key={u.emp_id} value={String(u.emp_id)}>
-              {u.name}
-            </option>
-          ))}
-        </select>
+        <SearchableSelect
+          compact
+          ariaLabel="Lead by"
+          value={!filters.lead_by || filters.lead_by === 'all' ? '' : filters.lead_by}
+          onChange={(v) => onChange({ lead_by: v || 'all' })}
+          placeholder="Lead By: All"
+          options={[{ value: 'me', label: 'Assigned to me' }, ...users.map((u) => ({ value: String(u.emp_id), label: u.name }))]}
+        />
 
-        {/* Service Fit */}
-        <select
-          value={filters.service_fit?.[0] || ''}
-          onChange={(e) => onChange({ service_fit: e.target.value ? [e.target.value] : [] })}
-          className="h-8 rounded-lg border border-slate-200 bg-slate-50/70 px-2.5 text-xs font-medium text-slate-700 focus:border-blue-500 focus:bg-white focus:outline-none"
-        >
-          <option value="">Service Fit: All</option>
-          {SERVICE_FITS.map((sf) => (
-            <option key={sf} value={sf}>
-              {sf}
-            </option>
-          ))}
-        </select>
+        <SearchableSelect compact ariaLabel="Service fit" value={filters.service_fit?.[0] || ''} onChange={(v) => onChange({ service_fit: v ? [v] : [] })} placeholder="Service Fit: All" options={serviceFits.map((x) => ({ value: x, label: x }))} />
 
-        {/* Status */}
-        <select
-          value={filters.status?.[0] || ''}
-          onChange={(e) => onChange({ status: e.target.value ? [e.target.value] : [] })}
-          className="h-8 rounded-lg border border-slate-200 bg-slate-50/70 px-2.5 text-xs font-medium text-slate-700 focus:border-blue-500 focus:bg-white focus:outline-none"
-        >
-          <option value="">Status: All</option>
-          {STATUSES.map((st) => (
-            <option key={st} value={st}>
-              {st}
-            </option>
-          ))}
-        </select>
+        <SearchableSelect compact ariaLabel="Status" value={filters.status?.[0] || ''} onChange={(v) => onChange({ status: v ? [v] : [] })} placeholder="Status: All" options={STATUSES.map((x) => ({ value: x, label: x }))} />
 
-        {/* City */}
-        <select
-          value={filters.city?.[0] || ''}
-          onChange={(e) => onChange({ city: e.target.value ? [e.target.value] : [] })}
-          className="h-8 rounded-lg border border-slate-200 bg-slate-50/70 px-2.5 text-xs font-medium text-slate-700 focus:border-blue-500 focus:bg-white focus:outline-none"
-        >
-          <option value="">City: All</option>
-          {cities.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
+        <SearchableSelect compact ariaLabel="City" value={filters.city?.[0] || ''} onChange={(v) => onChange({ city: v ? [v] : [] })} placeholder="City: All" options={cities.map((x) => ({ value: x, label: x }))} />
 
-        {/* Industry */}
-        <select
-          value={filters.industry_ids?.[0] ? String(filters.industry_ids[0]) : ''}
-          onChange={(e) => onChange({ industry_ids: e.target.value ? [Number(e.target.value)] : [] })}
-          className="h-8 rounded-lg border border-slate-200 bg-slate-50/70 px-2.5 text-xs font-medium text-slate-700 focus:border-blue-500 focus:bg-white focus:outline-none"
-        >
-          <option value="">Industry: All</option>
-          {industries.map((ind) => (
-            <option key={ind.industry_id} value={String(ind.industry_id)}>
-              {ind.name}
-            </option>
-          ))}
-        </select>
+        <SearchableSelect compact ariaLabel="Industry" value={filters.industry_ids?.[0] ? String(filters.industry_ids[0]) : ''} onChange={(v) => onChange({ industry_ids: v ? [Number(v)] : [] })} placeholder="Industry: All" options={industries.map((x) => ({ value: String(x.industry_id), label: x.name }))} />
 
-        {/* Date Range */}
-        <select
-          value={filters.date_range || 'this_month'}
-          onChange={(e) => onChange({ date_range: e.target.value })}
-          className="h-8 rounded-lg border border-blue-200 bg-blue-50/50 px-2.5 text-xs font-bold text-blue-800 focus:border-blue-500 focus:bg-white focus:outline-none"
-        >
-          {DATE_RANGES.map((dr) => (
-            <option key={dr.id} value={dr.id}>
-              {dr.label}
-            </option>
-          ))}
-        </select>
+        <SearchableSelect compact required ariaLabel="Date range" value={filters.date_range || 'this_month'} onChange={(v) => onChange({ date_range: v })} placeholder="Date range" options={DATE_RANGES.map((x) => ({ value: x.id, label: x.label }))} />
 
         {/* Custom Date Pickers */}
         {filters.date_range === 'custom' && (
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 sm:col-span-2">
             <input
               type="date"
               value={filters.from || ''}
               onChange={(e) => onChange({ from: e.target.value })}
-              className="h-8 rounded-lg border border-slate-200 bg-slate-50/70 px-2 text-xs font-medium text-slate-700 focus:border-blue-500 focus:bg-white focus:outline-none"
+              className={SELECT_CLS}
             />
             <span className="text-xs text-slate-400">to</span>
             <input
               type="date"
               value={filters.to || ''}
               onChange={(e) => onChange({ to: e.target.value })}
-              className="h-8 rounded-lg border border-slate-200 bg-slate-50/70 px-2 text-xs font-medium text-slate-700 focus:border-blue-500 focus:bg-white focus:outline-none"
+              className={SELECT_CLS}
             />
           </div>
         )}
-
-        {/* Clear Filters Button */}
-        <button
-          type="button"
-          onClick={onClear}
-          className="ml-auto inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 cursor-pointer"
-        >
-          <RotateCcw className="h-3 w-3" />
-          <span>Clear Filters</span>
-        </button>
       </div>
     </div>
   );

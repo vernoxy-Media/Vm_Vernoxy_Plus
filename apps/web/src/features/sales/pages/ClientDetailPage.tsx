@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useSalesClientControllerGet } from '@vernoxy-pulse/api-client';
 import { useSalesRights } from '../hooks/useSalesRights';
 import { DetailSkeleton } from '../components/common/SkeletonLoader';
+import { ClientFinancialsCard } from '../components/clients/ClientFinancialsCard';
 import { ReverseConversionModal } from '../components/leads/ReverseConversionModal';
 import { formatDateIST, formatDateTimeIST } from '../utils/date';
 import { getInitials, getAvatarColor } from '../utils/formatters';
@@ -333,6 +334,9 @@ export const ClientDetailPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Revenue, actual cost and profit: Admin only */}
+      {isAdmin && <ClientFinancialsCard clientId={clientId} />}
 
       {/* Key Contacts Table */}
       <div className="rounded-2xl bg-white border border-slate-200/80 shadow-xs overflow-hidden">

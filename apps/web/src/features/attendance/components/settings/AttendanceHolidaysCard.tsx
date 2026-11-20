@@ -41,12 +41,12 @@ export const AttendanceHolidaysCard: React.FC<AttendanceHolidaysCardProps> = ({ 
   };
 
   return (
-    <div className="p-6 bg-white rounded-2xl border border-slate-200/90 shadow-xs space-y-4">
-      <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+    <div className="p-5 sm:p-6 bg-white rounded-3xl border border-slate-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.10)] space-y-5">
+      <div className="flex items-center justify-between pb-4 border-b border-slate-100">
         <div className="flex items-center gap-2">
           <Palmtree className="w-5 h-5 text-emerald-600" />
           <div>
-            <h3 className="text-base font-bold text-slate-900">Official Company Holidays</h3>
+            <h3 className="text-[17px] font-bold tracking-tight text-slate-900">Official Company Holidays</h3>
             <p className="text-xs text-slate-500">
               Declare public and regional holidays. Attendance target for these dates is 0 hours.
             </p>
@@ -101,14 +101,14 @@ export const AttendanceHolidaysCard: React.FC<AttendanceHolidaysCardProps> = ({ 
       ) : (
         <div className="overflow-x-auto overflow-y-auto max-h-56 rounded-xl border border-slate-200">
           <table className="w-full text-left text-xs" id="holidays-table">
-            <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase tracking-wider">
+            <thead className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur border-b border-slate-200 text-slate-500 text-[11px] font-semibold uppercase tracking-wider">
               <tr>
-                <th className="py-2.5 px-4">Date</th>
-                <th className="py-2.5 px-4">Holiday Name</th>
-                <th className="py-2.5 px-4 text-right">Action</th>
+                <th className="py-3 px-5">Date</th>
+                <th className="py-3 px-5">Holiday Name</th>
+                <th className="py-3 px-5 text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100/80">
               {holidays.map((h) => {
                 const dObj = new Date(h.date + 'T00:00:00Z');
                 const display = dObj.toLocaleDateString('en-US', {
@@ -120,13 +120,13 @@ export const AttendanceHolidaysCard: React.FC<AttendanceHolidaysCardProps> = ({ 
                 });
 
                 return (
-                  <tr key={h.id || h.date} className="hover:bg-slate-50/60 transition-colors">
-                    <td className="py-2.5 px-4 font-semibold text-slate-800 flex items-center gap-1.5">
+                  <tr key={h.id || h.date} className="hover:bg-blue-50/30 transition-colors">
+                    <td className="py-3 px-5 font-semibold text-slate-800 flex items-center gap-1.5">
                       <Calendar className="w-3.5 h-3.5 text-slate-400" />
                       {display}
                     </td>
-                    <td className="py-2.5 px-4 font-medium text-slate-700">{h.name}</td>
-                    <td className="py-2.5 px-4 text-right">
+                    <td className="py-3 px-5 font-medium text-slate-700">{h.name}</td>
+                    <td className="py-3 px-5 text-right">
                       <button
                         type="button"
                         onClick={() => handleDelete(h.id, h.name)}

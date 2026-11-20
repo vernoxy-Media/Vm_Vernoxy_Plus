@@ -39,6 +39,9 @@ export class TaskWorkLogItemDto {
 
   @ApiPropertyOptional({ type: String, nullable: true })
   note?: string | null;
+
+  @ApiPropertyOptional({ enum: ['qa'], description: 'qa = time logged by the tester while In QA; missing = development time' })
+  phase?: 'qa';
 }
 
 export class TaskAssigneeSummaryDto {
@@ -103,6 +106,15 @@ export class TaskBoardCardDto {
 
   @ApiPropertyOptional({ type: String, nullable: true })
   lead_employee_name!: string | null;
+
+  @ApiPropertyOptional({ type: Number, nullable: true, description: 'Manager of the task project' })
+  project_manager_id?: number | null;
+
+  @ApiPropertyOptional({ type: Number, nullable: true, description: 'QA assignee of a project task' })
+  qa_assignee_id?: number | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  qa_assignee_name?: string | null;
 
   @ApiPropertyOptional({ type: String, nullable: true })
   other_task_type!: string | null;
@@ -514,6 +526,12 @@ export class CreateTaskDto {
   @MaxLength(100)
   other_task_type?: string;
 
+  @ApiPropertyOptional({ type: Number, description: 'QA assignee (project tasks only)' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  qa_assignee_id?: number;
+
   @ApiPropertyOptional({ type: [CreateSubTaskDto] })
   @IsOptional()
   @IsArray()
@@ -584,11 +602,17 @@ export class UpdateTaskDto {
   @IsString()
   @MaxLength(100)
   other_task_type?: string;
+
+  @ApiPropertyOptional({ type: Number, nullable: true, description: 'QA assignee of a project task; null removes the QA step' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  qa_assignee_id?: number | null;
 }
 
 export class MoveTaskStageDto {
-  @ApiProperty({ enum: ['assigned', 'in_progress', 'hold', 'requested', 'completed'], example: 'in_progress' })
-  @IsEnum(['assigned', 'in_progress', 'hold', 'requested', 'completed'])
+  @ApiProperty({ enum: ['assigned', 'in_progress', 'in_qa', 'hold', 'requested', 'completed'], example: 'in_progress' })
+  @IsEnum(['assigned', 'in_progress', 'in_qa', 'hold', 'requested', 'completed'])
   @IsNotEmpty()
   target_stage!: TaskStage;
 

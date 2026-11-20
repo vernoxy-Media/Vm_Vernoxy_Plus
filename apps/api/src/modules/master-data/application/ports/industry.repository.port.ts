@@ -28,7 +28,11 @@ export interface IndustryRepositoryPort {
   list(params: ListIndustriesParams): Promise<{ items: IndustryWithCounts[]; next_cursor: number | null }>;
   getOptions(parentId?: number): Promise<IndustryOption[]>;
   create(data: { name: string; parent_id?: number | null; is_default?: boolean; created_by: number }): Promise<Industry>;
-  update(id: number, data: { name?: string; is_active?: boolean; updated_by: number }): Promise<Industry>;
+  update(id: number, data: { name?: string; is_active?: boolean; parent_id?: number | null; updated_by: number }): Promise<Industry>;
+  /** How many live sub-industries sit under this industry. */
+  countChildren(id: number): Promise<number>;
+  /** How many live companies use this industry as their industry or sub-industry. */
+  countCompanies(id: number): Promise<number>;
   softDelete(id: number, deleted_by: number): Promise<void>;
 }
 

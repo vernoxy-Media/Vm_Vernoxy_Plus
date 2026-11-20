@@ -57,16 +57,16 @@ export const ReimbursementsPage: React.FC = () => {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">Reimbursement</h1>
-          <p className="text-[13px] text-slate-500">Pay approved claims back directly, or add them to a Draft payroll run.</p>
+          <h1 className="text-[24px] font-medium leading-8 text-[#172B4D]">Reimbursement</h1>
+          <p className="text-[13px] text-[#6B778C]">Pay approved claims back directly, or add them to a Draft payroll run.</p>
         </div>
-        <div className="inline-flex rounded-xl border border-slate-200 bg-white p-0.5">
+        <div className="inline-flex rounded-[3px] border border-[#DFE1E6] bg-white p-0.5">
           {(['APPROVED', 'REIMBURSED'] as const).map((s) => (
             <button
               key={s}
               type="button"
               onClick={() => setStatus(s)}
-              className={`rounded-lg px-3 py-1.5 text-[12.5px] font-semibold ${status === s ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-50'}`}
+              className={`rounded-[3px] px-3 py-1 text-[13px] font-medium ${status === s ? 'bg-[#0052CC] text-white' : 'text-[#42526E] hover:bg-[#F4F5F7]'}`}
             >
               {s === 'APPROVED' ? 'Waiting for payment' : 'Reimbursed'}
             </button>
@@ -77,7 +77,7 @@ export const ReimbursementsPage: React.FC = () => {
       {toast && <Banner tone="ok">{toast}</Banner>}
 
       {status === 'APPROVED' && sel.length > 0 && (
-        <div className="sticky top-2 z-10 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 shadow-sm">
+        <div className="sticky top-2 z-10 flex flex-wrap items-center justify-between gap-3 rounded-[3px] border border-blue-200 bg-[#DEEBFF] px-4 py-3 ">
           <p className="text-[13px] font-semibold text-blue-900">
             {sel.length} claim{sel.length === 1 ? '' : 's'} of {sel[0].employee_name} · {inr(selTotal)}
           </p>
@@ -93,32 +93,32 @@ export const ReimbursementsPage: React.FC = () => {
       )}
 
       {isLoading ? (
-        <div className="flex h-48 items-center justify-center text-slate-400">
+        <div className="flex h-48 items-center justify-center text-[#6B778C]">
           <Loader2 className="h-5 w-5 animate-spin" />
         </div>
       ) : error ? (
         <Banner>{errorText(error)}</Banner>
       ) : !groups.length ? (
-        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-14 text-center text-[13px] text-slate-500">
+        <div className="rounded-[3px] border border-[#DFE1E6] bg-white px-4 py-14 text-center text-[13px] text-[#6B778C]">
           {status === 'APPROVED' ? 'No approved claims are waiting for payment.' : 'No reimbursed claims yet.'}
         </div>
       ) : (
         groups.map((g) => (
-          <div key={g.emp_id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/60 px-4 py-3">
+          <div key={g.emp_id} className="overflow-hidden rounded-[3px] border border-[#DFE1E6] bg-white ">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#EBECF0] bg-[#F4F5F7] px-4 py-3">
               <div>
-                <p className="text-[13.5px] font-bold text-slate-900">{g.name}</p>
-                <p className="text-[11.5px] text-slate-500">
+                <p className="text-[13.5px] font-bold text-[#172B4D]">{g.name}</p>
+                <p className="text-[11.5px] text-[#6B778C]">
                   {g.dept || '—'} · {g.bank || <span className="text-amber-600">No bank details on file</span>}
                 </p>
               </div>
-              <p className="text-[13px] font-bold text-slate-900">{inr(g.rows.reduce((s, r) => s + r.amount, 0))}</p>
+              <p className="text-[13px] font-bold text-[#172B4D]">{inr(g.rows.reduce((s, r) => s + r.amount, 0))}</p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[760px] text-left text-[12.5px]">
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-[#EBECF0]">
                   {g.rows.map((r) => (
-                    <tr key={r.claim_id} className="hover:bg-slate-50/70">
+                    <tr key={r.claim_id} className="hover:bg-[#F4F5F7]/70">
                       {status === 'APPROVED' && (
                         <td className="w-10 px-4 py-3">
                           <input
@@ -136,17 +136,17 @@ export const ReimbursementsPage: React.FC = () => {
                           {r.claim_no}
                         </button>
                       </td>
-                      <td className="px-3 py-3 text-slate-600">{fmtDate(r.expense_date)}</td>
-                      <td className="px-3 py-3 text-slate-700">{r.category_name || '—'}</td>
-                      <td className="px-3 py-3 text-slate-600">Approved {fmtDate(r.decided_at)}</td>
-                      <td className="px-3 py-3 text-right font-semibold text-slate-900">{inr(r.amount)}</td>
+                      <td className="px-3 py-3 text-[#42526E]">{fmtDate(r.expense_date)}</td>
+                      <td className="px-3 py-3 text-[#42526E]">{r.category_name || '—'}</td>
+                      <td className="px-3 py-3 text-[#42526E]">Approved {fmtDate(r.decided_at)}</td>
+                      <td className="px-3 py-3 text-right font-semibold text-[#172B4D]">{inr(r.amount)}</td>
                       <td className="px-4 py-3 text-right">
                         {r.status === 'REIMBURSED' ? (
-                          <span className="text-[11.5px] text-slate-500">
+                          <span className="text-[11.5px] text-[#6B778C]">
                             Paid {fmtDate(r.payment_date)} · {r.reimbursement_method === 'PAYROLL' ? 'with salary' : r.payment_mode} · {r.payment_reference_no}
                           </span>
                         ) : r.payroll_run_id ? (
-                          <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-700">
+                          <span className="rounded-[3px] bg-[#DEEBFF] px-1.5 py-0.5 text-[11px] font-bold uppercase text-[#0747A6]">
                             In {MONTHS[(r.payroll_month || 1) - 1]} {r.payroll_year} payroll
                           </span>
                         ) : (
@@ -252,14 +252,14 @@ const PayModal: React.FC<{
         {banner && <Banner>{banner}</Banner>}
         {errs.claim_ids && <Banner>{errs.claim_ids}</Banner>}
         <div>
-          <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+          <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-[#6B778C]">
             Payment Date<span className="text-rose-500">*</span>
           </label>
           <input type="date" className={inputCls} value={date} min={minDate} max={today} onChange={(e) => setDate(e.target.value)} />
           <FieldError msg={errs.payment_date} />
         </div>
         <div>
-          <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+          <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-[#6B778C]">
             Payment Mode<span className="text-rose-500">*</span>
           </label>
           <select className={inputCls} value={mode} onChange={(e) => setMode(e.target.value)}>
@@ -273,7 +273,7 @@ const PayModal: React.FC<{
           <FieldError msg={errs.payment_mode_code} />
         </div>
         <div>
-          <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+          <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-[#6B778C]">
             Reference No.<span className="text-rose-500">*</span>
           </label>
           <input className={inputCls} maxLength={80} placeholder="UTR / UPI ref / cheque no." value={ref} onChange={(e) => setRef(e.target.value)} />
@@ -329,11 +329,11 @@ const PayrollModal: React.FC<{ open: boolean; claims: ReimbursementRow[]; onClos
     >
       <div className="space-y-3">
         {err && <Banner>{err}</Banner>}
-        <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+        <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-[#6B778C]">
           Payroll Month<span className="text-rose-500">*</span>
         </label>
         {isLoading ? (
-          <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+          <Loader2 className="h-4 w-4 animate-spin text-[#6B778C]" />
         ) : runs.length ? (
           <select className={inputCls} value={runId} onChange={(e) => setRunId(e.target.value)}>
             <option value="">Select a Draft run</option>

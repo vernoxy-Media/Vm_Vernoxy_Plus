@@ -1,4 +1,4 @@
-export type TaskStage = 'assigned' | 'in_progress' | 'hold' | 'requested' | 'completed';
+export type TaskStage = 'assigned' | 'in_progress' | 'in_qa' | 'hold' | 'requested' | 'completed';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'critical';
 export type TaskSource = 'personal' | 'project' | 'quick';
 
@@ -32,6 +32,8 @@ export interface TaskWorkLogItem {
   timestamp: string;
   duration_seconds?: number;
   note?: string | null;
+  /** 'qa' when the tester logged it while the task was In QA; missing for development time. */
+  phase?: 'qa';
 }
 
 export interface TaskEntity {
@@ -56,8 +58,13 @@ export interface TaskEntity {
   project_id?: number | null;
   project_no?: string | null;
   project_name?: string | null;
+  /** Manager of the task's project; may approve or send back its submitted tasks. */
+  project_manager_id?: number | null;
   lead_employee_id: number | null;
   lead_employee_name?: string | null;
+  /** The tester a project task goes to after the developer finishes it; null when the task has no QA step. */
+  qa_assignee_id?: number | null;
+  qa_assignee_name?: string | null;
   has_sub_tasks: boolean;
   other_task_type: string | null;
   sub_tasks_count?: number;

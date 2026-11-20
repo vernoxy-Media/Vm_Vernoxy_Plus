@@ -512,7 +512,7 @@ export const GenerateDocumentModal: React.FC<GenerateDocumentModalProps> = ({
                     <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/70">
                       <span className="text-slate-400 font-semibold block text-2xs uppercase">Emp ID</span>
                       <span className="font-mono font-bold text-slate-800 text-sm">
-                        EMP-{String(employee.emp_id).padStart(4, '0')}
+                        {(employee as { employee_code?: string }).employee_code || `EMP-${String(employee.emp_id).padStart(4, '0')}`}
                       </span>
                     </div>
 

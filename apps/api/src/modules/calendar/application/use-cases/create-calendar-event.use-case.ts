@@ -2,6 +2,7 @@ import { CalendarEventEntity, CalendarEventType } from '../../domain/entities/ca
 import { CalendarConflictError, InvalidEventTimeError, InvalidMeetingLinkError } from '../../domain/errors/calendar.errors';
 import { normaliseMeetLink } from '../../domain/meeting-link';
 import { CalendarRepositoryPort } from '../../domain/ports/calendar.repository.port';
+import { CalendarNotifierPort } from '../../domain/ports/calendar-notifier.port';
 
 export interface CreateCalendarEventUseCaseInput {
   event_type: CalendarEventType;
@@ -18,7 +19,10 @@ export interface CreateCalendarEventUseCaseInput {
 }
 
 export class CreateCalendarEventUseCase {
-  constructor(private readonly calendarRepo: CalendarRepositoryPort) {}
+  constructor(
+    private readonly calendarRepo: CalendarRepositoryPort,
+    private readonly notifier?: CalendarNotifierPort,
+  ) {}
 
   async execute(input: CreateCalendarEventUseCaseInput): Promise<CalendarEventEntity> {
     const startDate = new Date(input.start_time);
@@ -46,7 +50,7 @@ export class CreateCalendarEventUseCase {
       if (conflicts.length > 0) throw new CalendarConflictError(conflicts);
     }
 
-    return this.calendarRepo.createEvent({
+    const created = await this.calendarRepo.createEvent({
       event_type: input.event_type,
       title: input.title.trim(),
       description: input.description?.trim() ?? null,
@@ -59,5 +63,22 @@ export class CreateCalendarEventUseCase {
       organizer_id: input.organizer_id,
       attendee_ids: input.attendee_ids ?? [],
     });
+
+    // Tell each invited person; a failed notification must never fail the booking.
+    const guests = Array.from(new Set(input.attendee_ids ?? [])).filter((id) => id !== input.organizer_id);
+    if (this.notifier && guests.length) {
+      this.notifier
+        .eventInvite({
+          recipient_emp_ids: guests,
+          event_id: created.event_id,
+          title: created.title,
+          event_type: input.event_type,
+          organizer_name: created.organizer_name || 'A colleague',
+          starts_at: startDate,
+          created_by: input.organizer_id,
+        })
+        .catch(() => {});
+    }
+    return created;
   }
 }

@@ -8,7 +8,7 @@ import {
   TaskStage,
 } from '../../domain/entities/task.entity';
 import { TaskNotFoundError } from '../../domain/errors/task.errors';
-import { minutesAfter, stoppedNote, timerRunner } from '../../domain/services/work-time';
+import { minutesAfter, phaseOf, stoppedNote, timerRunner } from '../../domain/services/work-time';
 import {
   AddSubTaskRepoInput,
   CreateTaskRepoInput,
@@ -21,6 +21,9 @@ import {
   TrackWorkSessionRepoInput,
   UpdateTaskRepoInput,
 } from '../../domain/ports/task.repository.port';
+
+/** When false, starting a task or sub-task never pauses the timer of another one; only its owner stops it. */
+const AUTO_PAUSE_OTHER_TASKS = false;
 
 @Injectable()
 export class PrismaTaskRepository implements TaskRepositoryPort {
@@ -64,6 +67,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
           other_task_type: input.other_task_type ?? null,
           project_id: input.project_id ?? null,
           sprint_id: input.sprint_id ?? null,
+          qa_assignee_id: input.qa_assignee_id ?? null,
         },
       });
 
@@ -123,6 +127,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
               parent_task_id: created.task_id,
               project_id: input.project_id ?? null,
               sprint_id: input.sprint_id ?? null,
+              qa_assignee_id: input.qa_assignee_id ?? null,
               stage: 'assigned',
             },
           });
@@ -200,6 +205,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
           parent_task_id: parentTaskId,
           project_id: parent.project_id,
           sprint_id: parent.sprint_id,
+          qa_assignee_id: parent.qa_assignee_id ?? null,
           stage: 'assigned',
         },
       });
@@ -293,6 +299,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
     const running = await this.prisma.tasks.findMany({
       where: {
         deleted_at: null,
+        stage: { not: 'completed' }, // a completed task is locked by the DB and cannot be updated
         is_timer_running: true,
         task_assignees: { some: { employee_id: empId, deleted_at: null } },
       },
@@ -357,6 +364,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
       if (input.allocated_minutes !== undefined) data.allocated_minutes = input.allocated_minutes;
       if (input.lead_employee_id !== undefined) data.lead_employee_id = input.lead_employee_id;
       if (input.other_task_type !== undefined) data.other_task_type = input.other_task_type;
+      if (input.qa_assignee_id !== undefined) data.qa_assignee_id = input.qa_assignee_id;
 
       await tx.tasks.update({
         where: { task_id: taskId },
@@ -454,7 +462,15 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
     return this.prisma.$transaction(async (tx) => {
       const existing = await tx.tasks.findUnique({
         where: { task_id: taskId },
-        select: { stage: true, parent_task_id: true, task_code: true },
+        select: {
+          stage: true,
+          parent_task_id: true,
+          task_code: true,
+          is_timer_running: true,
+          timer_started_at: true,
+          actual_minutes: true,
+          work_logs: true,
+        },
       });
       if (!existing) throw new Error(`Task #${taskId} not found`);
 
@@ -470,6 +486,8 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
         eventType = input.note ? 'rejected' : 'withdrawn';
       } else if (toStage === 'completed') {
         eventType = 'approved';
+      } else if (fromStage === 'in_qa' && toStage === 'in_progress') {
+        eventType = 'rejected'; // QA failed it: back to the developer, with the tester's note
       }
 
       const updateData: any = {
@@ -478,12 +496,15 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
         updated_at: new Date(),
       };
 
-      if (toStage === 'in_progress') {
+      // A running timer is only stopped by its owner (Pause / Finish / Hold), never because another task or
+      // sub-task was started. Set to true to bring back the old "one running task at a time" rule.
+      if (AUTO_PAUSE_OTHER_TASKS && toStage === 'in_progress') {
         const now = new Date();
         const otherRunningTasks = await tx.tasks.findMany({
           where: {
             task_id: { not: taskId },
             deleted_at: null,
+            stage: { not: 'completed' }, // a completed task is locked by the DB and cannot be updated
             is_timer_running: true,
             task_assignees: {
               some: { employee_id: input.actor_emp_id, deleted_at: null },
@@ -531,6 +552,32 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
         }
       }
 
+      // A task that leaves In Progress (hold, QA, review, approved) must stop its own running timer,
+      // otherwise time keeps counting on finished work.
+      // A tester's running QA timer also stops when QA fails the task, so it never turns into development time.
+      if ((toStage !== 'in_progress' || fromStage === 'in_qa') && existing.is_timer_running) {
+        const stopNow = new Date();
+        const elapsed = existing.timer_started_at
+          ? Math.max(0, Math.floor((stopNow.getTime() - new Date(existing.timer_started_at).getTime()) / 1000))
+          : 0;
+        const stopLogs = Array.isArray(existing.work_logs) ? [...(existing.work_logs as any[])] : [];
+        const runner = timerRunner(stopLogs);
+        updateData.actual_minutes = minutesAfter(stopLogs, existing.actual_minutes, elapsed);
+        updateData.is_timer_running = false;
+        updateData.timer_started_at = null;
+        stopLogs.push({
+          log_id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          employee_id: runner?.id ?? input.actor_emp_id,
+          employee_name: runner?.name || 'Employee',
+          action: toStage === 'hold' ? 'pause' : 'finish',
+          timestamp: stopNow.toISOString(),
+          duration_seconds: elapsed,
+          note: `Timer stopped automatically: task moved to ${toStage}`,
+          ...(phaseOf(fromStage) ? { phase: 'qa' } : {}),
+        });
+        updateData.work_logs = stopLogs;
+      }
+
       if (toStage === 'hold') {
         updateData.hold_reason = input.hold_reason || input.note || null;
       }
@@ -545,8 +592,11 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
         }
       }
 
-      if (input.note) {
+      if (input.note && toStage !== 'hold') {
         updateData.review_note = input.note;
+      } else if ((toStage === 'in_qa' || toStage === 'requested') && fromStage === 'in_progress') {
+        // A fresh submission: the old rework note no longer applies
+        updateData.review_note = null;
       }
 
       await tx.tasks.update({
@@ -583,7 +633,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
       if (existing.parent_task_id) {
         const parent = await tx.tasks.findUnique({
           where: { task_id: existing.parent_task_id },
-          select: { task_id: true, stage: true, task_code: true },
+          select: { task_id: true, stage: true, task_code: true, qa_assignee_id: true },
         });
 
         if (parent && parent.stage !== 'completed') {
@@ -723,30 +773,29 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
           else if (toStage === 'requested' && parent.stage === 'in_progress') {
             const siblings: any[] = await tx.tasks.findMany({
               where: { parent_task_id: existing.parent_task_id, deleted_at: null },
-              select: { task_id: true, stage: true },
+              select: { task_id: true, stage: true, qa_assignee_id: true },
             });
             const allSubmittedOrDone = siblings.every(
               (s) => s.task_id === taskId || s.stage === 'requested' || s.stage === 'completed',
             );
             if (allSubmittedOrDone) {
+              // Sub-tasks that already went through QA do not need the parent tested a second time.
+              const toQa = Boolean(parent.qa_assignee_id) && !siblings.every((x) => x.qa_assignee_id);
               await tx.tasks.update({
                 where: { task_id: existing.parent_task_id },
-                data: {
-                  stage: 'requested',
-                  requested_at: new Date(),
-                  updated_by: input.actor_emp_id,
-                  updated_at: new Date(),
-                },
+                data: toQa
+                  ? { stage: 'in_qa', updated_by: input.actor_emp_id, updated_at: new Date() }
+                  : { stage: 'requested', requested_at: new Date(), updated_by: input.actor_emp_id, updated_at: new Date() },
               });
               await tx.activity_logs.create({
                 data: {
                   entity_type: 'TASK',
                   entity_id: existing.parent_task_id,
-                  event: 'requested',
-                  summary: 'All sub-tasks submitted for approval.',
+                  event: toQa ? 'stage_changed' : 'requested',
+                  summary: toQa ? 'All sub-tasks finished. Sent to QA.' : 'All sub-tasks submitted for approval.',
                   details: {
                     from_stage: 'in_progress',
-                    to_stage: 'requested',
+                    to_stage: toQa ? 'in_qa' : 'requested',
                   },
                   performed_by: input.actor_emp_id,
                 },
@@ -776,12 +825,15 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
           is_timer_running: true,
           timer_started_at: true,
           work_logs: true,
+          qa_assignee_id: true,
         },
       });
       if (!existing) throw new Error(`Task #${taskId} not found`);
 
       // If called on parent task with sub-tasks, redirect action to the caller's assigned subtask
-      if (existing.has_sub_tasks) {
+      // The tester logs QA time on the task that is In QA itself, never on a developer's sub-task.
+      const testerOnThisTask = existing.stage === 'in_qa' && existing.qa_assignee_id === input.actor_emp_id;
+      if (existing.has_sub_tasks && !testerOnThisTask) {
         const callerSubTask = await tx.tasks.findFirst({
           where: {
             parent_task_id: taskId,
@@ -802,6 +854,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
             is_timer_running: true,
             timer_started_at: true,
             work_logs: true,
+            qa_assignee_id: true,
           },
         });
 
@@ -826,10 +879,11 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
 
         // Enforce Section 3.4 Task Working Rules: Only one task can be running (In Progress) at a time.
         // If employee has any other task currently running with active timer, pause it.
-        const otherRunningTasks = await tx.tasks.findMany({
+        const otherRunningTasks = !AUTO_PAUSE_OTHER_TASKS ? [] : await tx.tasks.findMany({
           where: {
             task_id: { not: taskId },
             deleted_at: null,
+            stage: { not: 'completed' }, // a completed task is locked by the DB and cannot be updated
             is_timer_running: true,
             task_assignees: {
               some: { employee_id: input.actor_emp_id, deleted_at: null },
@@ -895,6 +949,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
           action: existing.started_at ? 'resume' : 'start',
           timestamp: now.toISOString(),
           note: input.note || null,
+          ...(phaseOf(existing.stage) ? { phase: 'qa' } : {}),
         });
         updateData.work_logs = existingLogs;
 
@@ -968,6 +1023,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
           timestamp: now.toISOString(),
           duration_seconds: elapsedSeconds,
           note: stoppedNote(input.note, runner, { id: input.actor_emp_id, name: input.actor_name }),
+          ...(phaseOf(existing.stage) ? { phase: 'qa' } : {}),
         });
         updateData.work_logs = existingLogs;
 
@@ -1000,8 +1056,11 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
         updateData.actual_minutes = minutesAfter(existingLogs, existing.actual_minutes, elapsedSeconds);
         updateData.is_timer_running = false;
         updateData.timer_started_at = null;
-        updateData.stage = 'requested';
-        updateData.requested_at = now;
+        // A task with a QA assignee goes to QA first; without one it is submitted for approval as before.
+        const toQa = Boolean(existing.qa_assignee_id) && existing.stage !== 'in_qa';
+        updateData.stage = toQa ? 'in_qa' : 'requested';
+        updateData.review_note = null; // finished again, so an earlier rework note is closed
+        if (!toQa) updateData.requested_at = now;
 
         existingLogs.push({
           log_id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
@@ -1023,44 +1082,43 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
           data: {
             entity_type: 'TASK',
             entity_id: taskId,
-            event: 'requested',
-            summary: input.note || 'Work finished and submitted for approval',
+            event: toQa ? 'stage_changed' : 'requested',
+            summary: input.note || (toQa ? 'Work finished and sent to QA' : 'Work finished and submitted for approval'),
             details: {
               from_stage: existing.stage,
-              to_stage: 'requested',
+              to_stage: toQa ? 'in_qa' : 'requested',
               note: input.note || null,
             },
             performed_by: input.actor_emp_id,
           },
         });
 
-        if (existing.parent_task_id) {
+        if (existing.parent_task_id && !toQa) {
           const siblings: any[] = await tx.tasks.findMany({
             where: { parent_task_id: existing.parent_task_id, deleted_at: null },
-            select: { task_id: true, stage: true },
+            select: { task_id: true, stage: true, qa_assignee_id: true },
           });
           const allSubmittedOrDone = siblings.every(
             (s) => s.task_id === taskId || s.stage === 'requested' || s.stage === 'completed',
           );
           if (allSubmittedOrDone) {
+            const parentRow = await tx.tasks.findUnique({ where: { task_id: existing.parent_task_id }, select: { qa_assignee_id: true } });
+            const parentToQa = Boolean(parentRow?.qa_assignee_id) && !siblings.every((x) => x.qa_assignee_id);
             await tx.tasks.update({
               where: { task_id: existing.parent_task_id },
-              data: {
-                stage: 'requested',
-                requested_at: now,
-                updated_by: input.actor_emp_id,
-                updated_at: now,
-              },
+              data: parentToQa
+                ? { stage: 'in_qa', updated_by: input.actor_emp_id, updated_at: now }
+                : { stage: 'requested', requested_at: now, updated_by: input.actor_emp_id, updated_at: now },
             });
             await tx.activity_logs.create({
               data: {
                 entity_type: 'TASK',
                 entity_id: existing.parent_task_id,
-                event: 'requested',
-                summary: 'All sub-tasks finished and submitted for approval.',
+                event: parentToQa ? 'stage_changed' : 'requested',
+                summary: parentToQa ? 'All sub-tasks finished. Sent to QA.' : 'All sub-tasks finished and submitted for approval.',
                 details: {
                   from_stage: 'in_progress',
-                  to_stage: 'requested',
+                  to_stage: parentToQa ? 'in_qa' : 'requested',
                 },
                 performed_by: input.actor_emp_id,
               },
@@ -1179,6 +1237,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
           WHERE st_chk.parent_task_id = t.task_id AND ta_chk.employee_id = $${pIdx}
         ))
         OR (t.source = 'quick' AND t.created_by = $${pIdx})
+        OR (t.qa_assignee_id = $${pIdx} AND t.stage IN ('in_qa', 'requested', 'completed'))
       )`;
       params.push(forEmpId);
       pIdx++;
@@ -1203,7 +1262,8 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
     }
 
     if (filters?.priority) {
-      whereClause += ` AND t.priority = $${pIdx++}`;
+      // Raw SQL sends the value as text, and Postgres will not compare an enum column to text without a cast
+      whereClause += ` AND t.priority = $${pIdx++}::task_priority`;
       params.push(filters.priority);
     }
 
@@ -1213,7 +1273,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
     }
 
     if (filters?.stage) {
-      whereClause += ` AND t.stage = $${pIdx++}`;
+      whereClause += ` AND t.stage = $${pIdx++}::task_stage`;
       params.push(filters.stage);
     }
 
@@ -1352,8 +1412,10 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
     };
 
     for (const card of cards) {
-      if (columns[card.stage]) {
-        columns[card.stage].push(card);
+      // A task waiting for QA is still being worked on, so it stays in the In Progress column.
+      const key = card.stage === 'in_qa' ? 'in_progress' : card.stage;
+      if (columns[key]) {
+        columns[key].push(card);
       }
     }
 
@@ -1395,6 +1457,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
           WHERE st_chk.parent_task_id = t.task_id AND ta_chk.employee_id = $${pIdx}
         ))
         OR (t.source = 'quick' AND t.created_by = $${pIdx})
+        OR (t.qa_assignee_id = $${pIdx} AND t.stage IN ('in_qa', 'requested', 'completed'))
       )`;
       params.push(forEmpId);
     } else {
@@ -1404,12 +1467,12 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
     const sql = `
       SELECT
         COUNT(*)::int AS total,
-        COUNT(*) FILTER (WHERE t.stage IN ('assigned', 'in_progress'))::int AS todo_or_in_progress,
+        COUNT(*) FILTER (WHERE t.stage IN ('assigned', 'in_progress', 'in_qa'))::int AS todo_or_in_progress,
         COUNT(*) FILTER (WHERE t.stage = 'hold')::int AS on_hold,
         COUNT(*) FILTER (WHERE t.stage = 'requested')::int AS submitted,
         COUNT(*) FILTER (WHERE t.stage = 'completed')::int AS approved,
         COUNT(*) FILTER (WHERE t.stage = 'assigned')::int AS assigned,
-        COUNT(*) FILTER (WHERE t.stage = 'in_progress')::int AS in_progress,
+        COUNT(*) FILTER (WHERE t.stage IN ('in_progress', 'in_qa'))::int AS in_progress,
         COUNT(*) FILTER (WHERE t.stage = 'requested')::int AS requested,
         COUNT(*) FILTER (WHERE t.stage <> 'completed' AND t.due_date IS NOT NULL AND t.due_date < CURRENT_DATE)::int AS overdue,
         COUNT(*) FILTER (WHERE t.stage = 'completed' AND DATE(t.completed_at) = CURRENT_DATE)::int AS completed_today,
@@ -1487,6 +1550,7 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
         due_date: cr.due_date ? cr.due_date.toISOString().slice(0, 10) : null,
         allocated_minutes: cr.allocated_minutes,
         stage: cr.stage,
+        qa_assignee_id: cr.qa_assignee_id ?? null,
         review_note: cr.review_note,
         hold_reason: cr.hold_reason,
         source: (cr.source as TaskSource) || 'personal',
@@ -1543,8 +1607,11 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
     const project = projectId
       ? await tx.projects.findUnique({
           where: { project_id: projectId },
-          select: { project_id: true, project_no: true, project_name: true },
+          select: { project_id: true, project_no: true, project_name: true, project_manager_id: true },
         })
+      : null;
+    const qaAssignee = row.qa_assignee_id
+      ? await tx.employees.findUnique({ where: { emp_id: row.qa_assignee_id }, select: { name: true } })
       : null;
 
     return {
@@ -1568,8 +1635,11 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
       project_id: project?.project_id ?? null,
       project_no: project?.project_no ?? null,
       project_name: project?.project_name ?? null,
+      project_manager_id: project?.project_manager_id ?? null,
       lead_employee_id: row.lead_employee_id,
       lead_employee_name: row.employees_tasks_lead_employee_idToemployees?.name ?? null,
+      qa_assignee_id: row.qa_assignee_id ?? null,
+      qa_assignee_name: qaAssignee?.name ?? null,
       has_sub_tasks: Boolean(row.has_sub_tasks),
       other_task_type: row.other_task_type,
       sub_tasks_count: subTasksCount,

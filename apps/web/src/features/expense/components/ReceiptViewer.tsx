@@ -13,7 +13,7 @@ export const ReceiptViewer: React.FC<{ receipts: ReceiptItem[]; claimId: number;
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  if (!receipts.length) return <p className="text-[12.5px] text-slate-400">No receipt attached.</p>;
+  if (!receipts.length) return <p className="text-[12.5px] text-[#6B778C]">No receipt attached.</p>;
   const cur = receipts[Math.min(active, receipts.length - 1)];
 
   const pick = (i: number) => {
@@ -30,7 +30,7 @@ export const ReceiptViewer: React.FC<{ receipts: ReceiptItem[]; claimId: number;
             key={r.attachment_id}
             type="button"
             onClick={() => pick(i)}
-            className={`flex h-16 w-16 items-center justify-center overflow-hidden rounded-lg border bg-slate-50 ${i === active ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-slate-200'}`}
+            className={`flex h-16 w-16 items-center justify-center overflow-hidden rounded-[3px] border bg-[#F4F5F7] ${i === active ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-[#DFE1E6]'}`}
             title={r.file_name}
           >
             {isImage(r) ? <img src={receiptUrl(r.attachment_id)} alt={r.file_name} className="h-full w-full object-cover" /> : <FileText className="h-6 w-6 text-rose-500" />}
@@ -38,24 +38,24 @@ export const ReceiptViewer: React.FC<{ receipts: ReceiptItem[]; claimId: number;
         ))}
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-slate-50">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-3 py-2">
-          <span className="truncate text-xs font-semibold text-slate-600">{cur.file_name}</span>
+      <div className="rounded-[3px] border border-[#DFE1E6] bg-[#F4F5F7]">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#DFE1E6] px-3 py-2">
+          <span className="truncate text-xs font-semibold text-[#42526E]">{cur.file_name}</span>
           <div className="flex items-center gap-1">
             {isImage(cur) && (
               <>
-                <button type="button" className="rounded-lg p-1.5 text-slate-500 hover:bg-white" onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))} aria-label="Zoom out">
+                <button type="button" className="rounded-[3px] p-1.5 text-[#6B778C] hover:bg-white" onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))} aria-label="Zoom out">
                   <ZoomOut className="h-4 w-4" />
                 </button>
-                <button type="button" className="rounded-lg p-1.5 text-slate-500 hover:bg-white" onClick={() => setZoom((z) => Math.min(3, z + 0.25))} aria-label="Zoom in">
+                <button type="button" className="rounded-[3px] p-1.5 text-[#6B778C] hover:bg-white" onClick={() => setZoom((z) => Math.min(3, z + 0.25))} aria-label="Zoom in">
                   <ZoomIn className="h-4 w-4" />
                 </button>
-                <button type="button" className="rounded-lg p-1.5 text-slate-500 hover:bg-white" onClick={() => setRotate((r) => (r + 90) % 360)} aria-label="Rotate">
+                <button type="button" className="rounded-[3px] p-1.5 text-[#6B778C] hover:bg-white" onClick={() => setRotate((r) => (r + 90) % 360)} aria-label="Rotate">
                   <RotateCw className="h-4 w-4" />
                 </button>
               </>
             )}
-            <a href={receiptUrl(cur.attachment_id)} target="_blank" rel="noreferrer" className="rounded-lg p-1.5 text-slate-500 hover:bg-white" aria-label="Open">
+            <a href={receiptUrl(cur.attachment_id)} target="_blank" rel="noreferrer" className="rounded-[3px] p-1.5 text-[#6B778C] hover:bg-white" aria-label="Open">
               <Download className="h-4 w-4" />
             </a>
           </div>
@@ -69,7 +69,7 @@ export const ReceiptViewer: React.FC<{ receipts: ReceiptItem[]; claimId: number;
               className="max-h-full max-w-full object-contain"
             />
           ) : (
-            <iframe src={receiptUrl(cur.attachment_id)} title={cur.file_name} className="h-full w-full rounded-lg bg-white" />
+            <iframe src={receiptUrl(cur.attachment_id)} title={cur.file_name} className="h-full w-full rounded-[3px] bg-white" />
           )}
         </div>
       </div>
@@ -93,7 +93,7 @@ export const ReceiptViewer: React.FC<{ receipts: ReceiptItem[]; claimId: number;
         >
           <Download className="h-4 w-4" /> {busy ? 'Preparing…' : 'Download all'}
         </button>
-        {err && <span className="text-xs text-rose-600">{err}</span>}
+        {err && <span className="text-xs text-[#BF2600]">{err}</span>}
       </div>
     </div>
   );

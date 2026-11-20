@@ -100,7 +100,7 @@ export const SalesDashboardPage: React.FC = () => {
 
   if (isConfigLoading || (isDataLoading && !data)) {
     return (
-      <div className="p-4 sm:p-6 max-w-[1800px] mx-auto space-y-6">
+      <div className="mx-auto w-full max-w-[1800px] space-y-6 p-4 sm:p-6 lg:space-y-7 lg:p-8">
         <DashboardSkeleton kpis={8} cards={10} />
       </div>
     );
@@ -108,7 +108,7 @@ export const SalesDashboardPage: React.FC = () => {
 
   if (isError) {
     return (
-      <div className="p-4 sm:p-6 max-w-[1800px] mx-auto">
+      <div className="mx-auto w-full max-w-[1800px] p-4 sm:p-6 lg:p-8">
         <DashboardError message="Failed to fetch Sales Dashboard data from server." onRetry={() => refetch()} />
       </div>
     );
@@ -117,7 +117,7 @@ export const SalesDashboardPage: React.FC = () => {
   const allowed = config?.chart_permissions || {};
 
   return (
-    <div className="p-4 sm:p-6 max-w-[1800px] mx-auto space-y-6">
+    <div className="mx-auto w-full max-w-[1800px] space-y-6 p-4 sm:p-6 lg:space-y-7 lg:p-8">
       {/* 1. Header (Title, Subtitle, Search, Refresh, Admin Config) */}
       <SalesDashboardHeader
         searchQuery={searchQuery}
@@ -134,7 +134,9 @@ export const SalesDashboardPage: React.FC = () => {
         onChange={handleFilterChange}
         onClear={handleClearFilters}
         users={employees}
-        cities={['Surat', 'Ahmedabad', 'Vadodara', 'Rajkot', 'Mumbai', 'Pune', 'Delhi', 'Bengaluru']}
+        cities={(rawMasters?.cities || []) as string[]}
+        leadSources={(rawMasters?.lead_source || []) as string[]}
+        serviceFits={(rawMasters?.service_fit || []) as string[]}
         industries={industries.map((ind: any) => ({ industry_id: ind.id, name: ind.name }))}
       />
 
@@ -147,17 +149,21 @@ export const SalesDashboardPage: React.FC = () => {
       />
 
       {/* 4. Responsive Card Layout for 10 Visual Charts (US02 - US11) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-5">
+      <div>
+        <h2 className="text-base font-bold tracking-tight text-slate-900">Performance Analytics</h2>
+        <p className="mt-0.5 text-xs text-slate-500">Pipeline, conversion, revenue and team performance</p>
+      </div>
+      <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-2 min-[1600px]:grid-cols-3">
         {/* US02: Lead Status Overview */}
         {allowed.us02 !== false && (
-          <div className="min-h-[340px]">
+          <div className="min-h-[340px] min-w-0">
             <LeadStatusDonutChart data={data?.us02_lead_status} />
           </div>
         )}
 
         {/* US03: New Leads Added Trend */}
         {allowed.us03 !== false && (
-          <div className="min-h-[340px]">
+          <div className="min-h-[340px] min-w-0">
             <NewLeadsTrendAreaChart
               data={data?.us03_new_leads_trend}
               groupBy={us03GroupBy}
@@ -168,35 +174,35 @@ export const SalesDashboardPage: React.FC = () => {
 
         {/* US04: Lead-to-Client Conversion Trend */}
         {allowed.us04 !== false && (
-          <div className="min-h-[340px]">
+          <div className="min-h-[340px] min-w-0">
             <LeadConversionColumnChart data={data?.us04_conversion_trend} />
           </div>
         )}
 
         {/* US05: Lead Source Performance */}
         {allowed.us05 !== false && (
-          <div className="min-h-[340px]">
+          <div className="min-h-[340px] min-w-0">
             <LeadSourcePerformanceBarChart data={data?.us05_source_performance} />
           </div>
         )}
 
         {/* US06: Service Fit Demand */}
         {allowed.us06 !== false && (
-          <div className="min-h-[340px]">
+          <div className="min-h-[340px] min-w-0">
             <ServiceFitDemandDumbbellChart data={data?.us06_service_fit_demand} />
           </div>
         )}
 
         {/* US07: Lead Owner Performance */}
         {allowed.us07 !== false && (
-          <div className="min-h-[340px]">
+          <div className="min-h-[340px] min-w-0">
             <LeadOwnerHeatmap data={data?.us07_owner_performance} />
           </div>
         )}
 
         {/* US08: Lead Conversion Cycle Time */}
         {allowed.us08 !== false && (
-          <div className="min-h-[340px]">
+          <div className="min-h-[340px] min-w-0">
             <ConversionCycleTimeBarChart
               data={data?.us08_conversion_cycle_time}
               compareBy={us08CompareBy}
@@ -207,7 +213,7 @@ export const SalesDashboardPage: React.FC = () => {
 
         {/* US09: Conversation Activity Trend */}
         {allowed.us09 !== false && (
-          <div className="min-h-[340px]">
+          <div className="min-h-[340px] min-w-0">
             <ConversationActivityTrendChart
               data={data?.us09_conversation_trend}
               groupBy={us09GroupBy}
@@ -218,14 +224,14 @@ export const SalesDashboardPage: React.FC = () => {
 
         {/* US10: Revenue Generated */}
         {allowed.us10 !== false && (
-          <div className="min-h-[340px]">
+          <div className="min-h-[340px] min-w-0">
             <RevenueWaterfallChart data={data?.us10_revenue} />
           </div>
         )}
 
         {/* US11: Sales Profitability (Spans 2 columns on wide screen per reference mockup) */}
         {allowed.us11 !== false && (
-          <div className="min-h-[340px] md:col-span-2 2xl:col-span-2">
+          <div className="min-h-[340px] min-w-0 lg:col-span-2 min-[1600px]:col-span-3">
             <SalesProfitabilityComboChart data={data?.us11_profitability} />
           </div>
         )}

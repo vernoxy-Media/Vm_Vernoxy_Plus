@@ -8,6 +8,7 @@ import {
   Param,
   Req,
   Res,
+  Headers,
   ParseIntPipe,
   UseGuards,
   UseInterceptors,
@@ -21,17 +22,82 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
 import { JwtAuthGuard } from '../../../auth/presentation/guards/jwt-auth.guard';
 import { AttachmentsService } from '../../application/services/attachments.service';
+import { findStoredFile } from '../../application/services/storage-root';
+import { AttachmentFileStore, CLOUD_URL_PREFIX } from '../../application/services/attachment-file-store';
+import { Readable } from 'stream';
 import {
   CreateAttachmentDto,
   ReorderAttachmentsDto,
 } from '../dto/attachment.dto';
+import { isShareableType } from '../../../projects/domain/services/discussion-attachments';
 import * as path from 'path';
 import * as fs from 'fs';
 
 @ApiTags('Attachments')
 @Controller('attachments')
 export class AttachmentsController {
-  constructor(private readonly attachmentsService: AttachmentsService) {}
+  constructor(
+    private readonly attachmentsService: AttachmentsService,
+    private readonly store: AttachmentFileStore,
+  ) {}
+
+  // NOTE: the download route is declared first on purpose. Express matches routes in order, and
+  // ':entityType/:entityId' below would otherwise take '/7/download' and fail with "numeric string is expected".
+  // ---------------------------------------------------------------------------
+  // 3. DOWNLOAD / STREAM ATTACHMENT FILE (Publicly streamable inline)
+  // ---------------------------------------------------------------------------
+
+  @Get(':id/download')
+  @ApiOperation({ summary: 'Download or stream attachment file' })
+  async downloadAttachment(
+    @Param('id', ParseIntPipe) id: number,
+    @Res({ passthrough: true }) res: Response,
+    @Headers('range') range?: string,
+  ): Promise<StreamableFile> {
+    const attachment = await this.attachmentsService.getAttachmentById(id);
+
+    // Files kept in Cloudinary are read whole (25 MB at most); files on the local disk are streamed
+    const cloud = await this.store.readCloud(attachment.file_url);
+    let filePath: string | null = null;
+    if (!cloud) {
+      const relativePath = attachment.file_url.startsWith('/files/attachments/')
+        ? path.join('attachments', attachment.file_url.replace('/files/attachments/', ''))
+        : attachment.file_url.replace(/^[/\\]+/, '');
+      filePath = attachment.file_url.startsWith(CLOUD_URL_PREFIX) ? null : findStoredFile(relativePath);
+    }
+
+    if (!cloud && !filePath) {
+      throw new NotFoundException(`Physical file for attachment #${id} not found on server`);
+    }
+    const open = (range?: { start: number; end: number }) =>
+      cloud ? Readable.from(range ? cloud.subarray(range.start, range.end + 1) : cloud) : fs.createReadStream(filePath!, range);
+
+    const mime = attachment.mime_type || 'application/octet-stream';
+    // A page or an svg is never shown inline: it could run script. Everything else opens in the browser.
+    const inline = !['text/html', 'image/svg+xml'].includes(mime.toLowerCase().split(';')[0].trim());
+    res.set({
+      'Content-Type': mime,
+      'Content-Disposition': `${inline ? 'inline' : 'attachment'}; filename="${encodeURIComponent(attachment.file_name)}"`,
+      'Accept-Ranges': 'bytes',
+      'X-Content-Type-Options': 'nosniff',
+    });
+
+    // Videos need partial reads so the player can seek and start before the whole file is down
+    const size = cloud ? cloud.length : fs.statSync(filePath!).size;
+    const m = range ? /^bytes=(\d*)-(\d*)$/.exec(range.trim()) : null;
+    if (m && (m[1] !== '' || m[2] !== '')) {
+      const start = m[1] === '' ? Math.max(size - Number(m[2]), 0) : Number(m[1]);
+      const end = m[1] === '' || m[2] === '' ? size - 1 : Math.min(Number(m[2]), size - 1);
+      if (start >= size || start > end) {
+        res.status(416).set({ 'Content-Range': `bytes */${size}` });
+        return new StreamableFile(Buffer.alloc(0));
+      }
+      res.status(206).set({ 'Content-Range': `bytes ${start}-${end}/${size}`, 'Content-Length': String(end - start + 1) });
+      return new StreamableFile(open({ start, end }));
+    }
+    res.set({ 'Content-Length': String(size) });
+    return new StreamableFile(open());
+  }
 
   // ---------------------------------------------------------------------------
   // 1. GET ALL FOR AN ENTITY
@@ -54,43 +120,6 @@ export class AttachmentsController {
   @ApiOperation({ summary: 'Get attachment metadata by ID' })
   async getAttachmentById(@Param('id', ParseIntPipe) id: number) {
     return this.attachmentsService.getAttachmentById(id);
-  }
-
-  // ---------------------------------------------------------------------------
-  // 3. DOWNLOAD / STREAM ATTACHMENT FILE (Publicly streamable inline)
-  // ---------------------------------------------------------------------------
-
-  @Get(':id/download')
-  @ApiOperation({ summary: 'Download or stream attachment file' })
-  async downloadAttachment(
-    @Param('id', ParseIntPipe) id: number,
-    @Res({ passthrough: true }) res: Response,
-  ): Promise<StreamableFile> {
-    const attachment = await this.attachmentsService.getAttachmentById(id);
-
-    const storageCandidate1 = path.resolve(process.cwd(), 'storage');
-    const storageCandidate2 = path.resolve(__dirname, '../../../../../..', 'storage');
-    const storageRoot = fs.existsSync(storageCandidate1) ? storageCandidate1 : storageCandidate2;
-    let filePath = '';
-
-    if (attachment.file_url.startsWith('/files/attachments/')) {
-      const relativePart = attachment.file_url.replace('/files/attachments/', '');
-      filePath = path.resolve(storageRoot, 'attachments', relativePart);
-    } else {
-      filePath = path.resolve(storageRoot, attachment.file_url);
-    }
-
-    if (!fs.existsSync(filePath)) {
-      throw new NotFoundException(`Physical file for attachment #${id} not found on server`);
-    }
-
-    res.set({
-      'Content-Type': attachment.mime_type || 'application/octet-stream',
-      'Content-Disposition': `inline; filename="${encodeURIComponent(attachment.file_name)}"`,
-    });
-
-    const stream = fs.createReadStream(filePath);
-    return new StreamableFile(stream);
   }
 
   // ---------------------------------------------------------------------------
@@ -132,6 +161,9 @@ export class AttachmentsController {
     }
     if (!entityType) {
       throw new BadRequestException('entity_type is required');
+    }
+    if (entityType.trim().toLowerCase() === 'project_discussion' && !isShareableType(file.mimetype)) {
+      throw new BadRequestException('That type of file cannot be shared. Send a picture, video, PDF, document, spreadsheet or zip.');
     }
 
     const userId = req.user?.emp_id || 1;

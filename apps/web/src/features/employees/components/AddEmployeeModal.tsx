@@ -15,7 +15,6 @@ import {
   Lock,
   Upload,
   Camera,
-  HeartHandshake,
   Calendar,
   CreditCard,
   Briefcase,
@@ -30,11 +29,12 @@ import {
 } from '@/features/organization/hooks/use-organization';
 import { useLookupsQuery } from '@/features/organization/hooks/use-master-data';
 import { useAttendanceSettingsQuery, useAssignEmployeeShiftMutation } from '@/features/attendance/hooks/use-attendance-settings';
-import { useLeavePoliciesQuery } from '@/features/leave/hooks/use-leave';
+import { useLeaveGeneralSettingsQuery, useLeavePoliciesQuery } from '@/features/leave/hooks/use-leave';
 import { checkJoiningDateConflict } from '@/features/attendance/utils/joining-date-check';
 import { employeeCreateSchema, type EmployeeFormValues } from '../schemas/employee-form.schema';
 import { SetPasswordLinkField } from './SetPasswordLinkField';
-import { CountryPhoneInput, DepartmentMultiSelect, SearchableSelect, ReportingManagerSelect } from '@/shared/ui';
+import { EmergencyContactsField } from './EmergencyContactsField';
+import { CountryPhoneInput, DepartmentMultiSelect, DesignationMultiSelect, ReportingManagerSelect } from '@/shared/ui';
 
 function generateSecurePassword(length = 16): string {
   const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -104,6 +104,7 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
   const { data: deptOptions = [] } = useDepartmentOptionsQuery();
   const { data: managerOptions = [] } = useEmployeeOptionsQuery();
   const { data: genderLookups = [] } = useLookupsQuery('gender');
+  const { data: probationLookups = [] } = useLookupsQuery('probation_period');
   const { data: employmentTypeLookups = [] } = useLookupsQuery('employment_type');
   const defaultEmploymentTypes = React.useMemo(() => [
     { id: 143, label: 'Full-time' },
@@ -114,6 +115,7 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
   const effectiveEmploymentTypes = employmentTypeLookups.length > 0 ? employmentTypeLookups : defaultEmploymentTypes;
   const { data: bloodGroupLookups = [] } = useLookupsQuery('blood_group');
   const { data: leavePolicies = [] } = useLeavePoliciesQuery();
+  const { data: leaveGeneral } = useLeaveGeneralSettingsQuery();
   const { data: attendanceSettings } = useAttendanceSettingsQuery();
 
   // Mutations
@@ -135,6 +137,7 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
       office_email: '',
       mob: '',
       gender_id: '' as unknown as number,
+      emergency_contacts: [],
       emergency_contact_name: '',
       emergency_contact_number: '',
       emergency_contact_relation: '',
@@ -143,6 +146,7 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
       address: '',
       dep_id: '' as unknown as number,
       department_ids: [],
+      role_ids: [],
       role_id: '' as unknown as number,
       reporting_manager: null,
       employment_type_id: '' as unknown as number,
@@ -185,10 +189,31 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
   const primaryDepId = watch('dep_id');
   const effectiveDepIds = watchedDepIds.length > 0 ? watchedDepIds : (primaryDepId ? [Number(primaryDepId)] : undefined);
   const { data: roleOptions = [] } = useRoleOptionsQuery(effectiveDepIds);
+  const watchedRoleIds: number[] = watch('role_ids') || [];
+  // Only designations of the departments that are currently selected can be picked
+  const designationChoices = watchedDepIds.length > 0 ? (roleOptions as any[]) : [];
   const watchedPfApplicable = watch('pf_applicable');
   const watchedOtEligible = watch('ot_eligible');
   const watchedOtRateType = watch('ot_rate_type') || 'MULTIPLIER';
   const watchedJoiningDate = watch('joining_date');
+
+  // Start with the company's standard leave policy chosen, so a new employee is not left without one
+  const policyDefaulted = React.useRef(false);
+  React.useEffect(() => {
+    if (!isOpen) {
+      policyDefaulted.current = false;
+      return;
+    }
+    if (policyDefaulted.current || leavePolicies.length === 0 || form.getValues('leave_policy_id')) return;
+    // The default is the one the Admin chose in Leave Settings, General
+    const chosen = leavePolicies.find(
+      (p) => p.policy_id === leaveGeneral?.default_policy_id && String((p as { status?: string }).status ?? 'ACTIVE').toUpperCase() === 'ACTIVE',
+    );
+    if (chosen) {
+      policyDefaulted.current = true;
+      form.setValue('leave_policy_id', String(chosen.policy_id) as never);
+    }
+  }, [isOpen, leavePolicies, leaveGeneral, form]);
 
   const joiningCheck = React.useMemo(() => {
     return checkJoiningDateConflict(watchedJoiningDate, attendanceSettings, selectedShiftId);
@@ -254,20 +279,24 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
         email: values.email.trim().toLowerCase(),
         personal_email: values.personal_email?.trim() || undefined,
         office_email: values.office_email?.trim() || values.email.trim().toLowerCase(),
-        mob: values.mob?.trim() || undefined,
+        mob: values.mob.trim(),
         password: values.password!,
         dep_id: pDepId,
         department_ids: depIds,
-        role_id: values.role_id ? Number(values.role_id) : undefined,
+        role_id: values.role_ids?.[0] ?? (values.role_id ? Number(values.role_id) : undefined),
+        role_ids: values.role_ids,
         reporting_manager: values.reporting_manager ? Number(values.reporting_manager) : null,
         gender_id: values.gender_id ? Number(values.gender_id) : undefined,
-        emergency_contact_name: values.emergency_contact_name?.trim() || undefined,
-        emergency_contact_number: values.emergency_contact_number?.trim() || undefined,
-        emergency_contact_relation: values.emergency_contact_relation?.trim() || undefined,
+        // Only the rows that were actually filled in
+        emergency_contacts: (values.emergency_contacts || [])
+          .filter((c) => c.name?.trim() || c.number?.trim())
+          .map((c) => ({ name: c.name.trim(), relation: c.relation?.trim() || null, number: c.number.trim() })),
         birth_date: values.birth_date || undefined,
         blood_group: values.blood_group || undefined,
         address: values.address?.trim() || undefined,
         employment_type_id: values.employment_type_id ? Number(values.employment_type_id) : undefined,
+        // The policy chosen in the form. It used to be left out, so every new employee had "No leave policy assigned".
+        leave_policy_id: values.leave_policy_id ? Number(values.leave_policy_id) : undefined,
         joining_date: values.joining_date,
         salary: Number(values.salary || 0),
         pf: Number(values.pf || 0),
@@ -311,7 +340,7 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
         }
       }
 
-      const empCode = (createdEmp as any)?.emp_code || (createdEmp?.emp_id ? `EMP-${String(createdEmp.emp_id).padStart(4, '0')}` : '');
+      const empCode = (createdEmp as any)?.emp_code || (createdEmp as any)?.employee_code || (createdEmp?.emp_id ? `EMP-${String(createdEmp.emp_id).padStart(4, '0')}` : '');
       setSuccessToast({
         name: createdEmp?.name || values.name,
         code: empCode,
@@ -350,9 +379,11 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
   };
 
   if (!isOpen && !successToast) return null;
+  const toastOnly = !isOpen;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
+    <div className={toastOnly ? undefined : 'fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200'}>
+      {!toastOnly && (
       <div className="relative w-full max-w-4xl h-[720px] max-h-[92vh] bg-white rounded-3xl shadow-2xl border border-slate-100 flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-7 py-5 border-b border-slate-100">
@@ -409,6 +440,7 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
         {/* Scrollable Form Body */}
         <form
           ref={formContainerRef}
+          noValidate
           onSubmit={handleSubmit(onSubmit, onInvalid as never)}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT' && activeTab !== 'job') {
@@ -519,7 +551,9 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   {/* Marker 3: Gender */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700">Gender</label>
+                    <label className="text-xs font-semibold text-slate-700">
+                      Gender <span className="text-red-500">*</span>
+                    </label>
                     <select
                       {...register('gender_id')}
                       className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition cursor-pointer"
@@ -531,11 +565,14 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
                         </option>
                       ))}
                     </select>
+                    {errors.gender_id && <p className="text-[11px] text-red-500 font-medium">{errors.gender_id.message as string}</p>}
                   </div>
 
                   {/* Marker 4: Phone Number */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700">Phone Number</label>
+                    <label className="text-xs font-semibold text-slate-700">
+                      Phone Number <span className="text-red-500">*</span>
+                    </label>
                     <CountryPhoneInput
                       value={watch('mob') || ''}
                       onChange={(val) => {
@@ -548,60 +585,23 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
                 </div>
               </div>
 
-              {/* Marker 5 & 6: Emergency Contact */}
-              <div className="bg-slate-50/70 rounded-2xl p-5 border border-slate-200/80 space-y-4">
-                <div className="flex items-center gap-2 pb-2.5 border-b border-slate-200/60">
-                  <HeartHandshake className="w-4 h-4 text-rose-600" />
-                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Emergency Contact</h3>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  {/* Marker 5: Emergency Contact Name */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700">Emergency Contact Name</label>
-                    <input
-                      type="text"
-                      {...register('emergency_contact_name')}
-                      placeholder="Who to call in an emergency"
-                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                    />
-                  </div>
-
-                  {/* Relationship */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700">Relationship</label>
-                    <input
-                      type="text"
-                      {...register('emergency_contact_relation')}
-                      placeholder="How they are related (e.g. Father, Spouse)"
-                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                    />
-                  </div>
-                </div>
-
-                {/* Marker 6: Emergency Contact Number */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-700">Emergency Contact Number</label>
-                  <CountryPhoneInput
-                    value={watch('emergency_contact_number') || ''}
-                    onChange={(val) => {
-                      setValue('emergency_contact_number', val, {
-                        shouldValidate: true,
-                        shouldDirty: true,
-                      });
-                    }}
-                    placeholder="9876543210"
-                    error={errors.emergency_contact_number?.message}
-                  />
-                </div>
-              </div>
+              {/* Emergency contacts: any number up to five */}
+              <EmergencyContactsField
+                control={form.control as never}
+                register={register as never}
+                watch={watch}
+                setValue={setValue}
+                errors={errors as never}
+              />
 
               {/* Marker 7, 8, 9, 10, 11: Personal & Office Info */}
               <div className="bg-slate-50/70 rounded-2xl p-5 border border-slate-200/80 space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   {/* Marker 7: Personal Email */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700">Personal Email</label>
+                    <label className="text-xs font-semibold text-slate-700">
+                      Personal Email <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="email"
                       {...register('personal_email')}
@@ -635,7 +635,9 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   {/* Marker 9: Birth Date */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700">Birth Date</label>
+                    <label className="text-xs font-semibold text-slate-700">
+                      Birth Date <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="date"
                       {...register('birth_date')}
@@ -696,6 +698,15 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
                     onChange={(ids) => {
                       setValue('department_ids', ids, { shouldValidate: true, shouldDirty: true });
                       setValue('dep_id', ids.length > 0 ? (ids[0] as any) : ('' as any), { shouldValidate: true });
+                      // Drop designations of departments that were just removed
+                      const keep = watchedRoleIds.filter((rid) => {
+                        const r = (roleOptions as any[]).find((o) => o.role_id === rid);
+                        return r && ids.includes(r.dep_id);
+                      });
+                      if (keep.length !== watchedRoleIds.length) {
+                        setValue('role_ids', keep, { shouldValidate: true, shouldDirty: true });
+                        setValue('role_id', (keep[0] ?? '') as any, { shouldDirty: true });
+                      }
                     }}
                     placeholder="Select Department(s)..."
                     error={errors.department_ids?.message}
@@ -708,21 +719,15 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
                     <label className="text-xs font-semibold text-slate-700">
                       Designation <span className="text-red-500">*</span>
                     </label>
-                    <SearchableSelect
-                      options={roleOptions.map((r: any) => ({
-                        value: r.role_id,
-                        label: r.role_name || r.name,
-                      }))}
-                      value={watch('role_id')}
-                      onChange={(val) =>
-                        setValue('role_id', val ? Number(val) : ('' as any), {
-                          shouldValidate: true,
-                          shouldDirty: true,
-                        })
-                      }
-                      placeholder="Select Designation"
-                      searchPlaceholder="Search designation..."
-                      error={errors.role_id?.message}
+                    <DesignationMultiSelect
+                      roles={designationChoices}
+                      selectedIds={watchedRoleIds}
+                      onChange={(ids) => {
+                        setValue('role_ids', ids, { shouldValidate: true, shouldDirty: true });
+                        setValue('role_id', (ids[0] ?? '') as any, { shouldDirty: true });
+                      }}
+                      placeholder="Select Designation(s)..."
+                      error={errors.role_ids?.message}
                     />
                   </div>
 
@@ -746,7 +751,9 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
 
                   {/* Employment Type */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700">Employment Type</label>
+                    <label className="text-xs font-semibold text-slate-700">
+                      Employment Type <span className="text-red-500">*</span>
+                    </label>
                     <select
                       {...register('employment_type_id')}
                       className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition cursor-pointer"
@@ -758,6 +765,9 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
                         </option>
                       ))}
                     </select>
+                    {errors.employment_type_id && (
+                      <p className="text-[11px] text-red-500 font-medium">{errors.employment_type_id.message as string}</p>
+                    )}
                   </div>
 
                   {/* Assigned Shift */}
@@ -818,7 +828,7 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
                       {...register('leave_policy_id')}
                       className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition cursor-pointer"
                     >
-                      <option value="">Default Leave Policy</option>
+                      <option value="">No policy yet (assign later)</option>
                       {leavePolicies.map((p) => (
                         <option key={p.policy_id} value={p.policy_id}>
                           {p.name}
@@ -840,13 +850,9 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
                       className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
                     />
                     <datalist id="add-probation-options">
-                      <option value="0" />
-                      <option value="None" />
-                      <option value="30 Days" />
-                      <option value="60 Days" />
-                      <option value="90 Days (3 Months)" />
-                      <option value="6 Months" />
-                      <option value="1 Year" />
+                      {probationLookups.map((p) => (
+                        <option key={p.id} value={p.label} />
+                      ))}
                     </datalist>
                   </div>
 
@@ -1148,6 +1154,7 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
           </div>
         </form>
       </div>
+      )}
 
       {/* Confirmation Modal when Leaving with Unsaved Changes */}
       {showConfirmLeave && (
@@ -1191,9 +1198,11 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
                 <Check className="w-5 h-5 stroke-[2.5]" />
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-bold text-slate-900 leading-tight">Employee added</h4>
+                <h4 className="text-sm font-bold text-slate-900 leading-tight">
+                  Employee added{successToast.code ? ` · ${successToast.code}` : ''}
+                </h4>
                 <p className="text-xs text-slate-500 mt-0.5 truncate">
-                  {successToast.name} {successToast.code ? `(${successToast.code})` : ''} is now Active.
+                  {successToast.name} was created with Emp ID <span className="font-mono font-semibold text-slate-700">{successToast.code}</span>.
                 </p>
               </div>
               <button

@@ -145,6 +145,10 @@ export interface SalesMasters {
   states: string[];
   countries: string[];
   cities: string[];
+  /** State name -> the country it belongs to. A state that is not here is offered for every country. */
+  state_country_map: Record<string, string>;
+  /** City name -> the state it belongs to. A city that is not here is offered for every state. */
+  city_state_map: Record<string, string>;
 }
 
 export interface SalesCompanyRepositoryPort {

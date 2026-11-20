@@ -12,23 +12,13 @@ import { useLookupsQuery } from '@/features/organization/hooks/use-master-data';
 import { J_BTN_PRIMARY, J_BTN_SUBTLE, J_INPUT, JBanner, JField, JiraModal } from '@/shared/ui/JiraModal';
 import { JiraAvatar } from '@/shared/ui/JiraAvatar';
 import { ClientPicker } from './ClientPicker';
+import { TechMultiSelect, joinTech, parseTech } from './TechMultiSelect';
 
 const DEFAULT_PROJECT_TYPES = [
   { code: 'client', label: 'Client Project (VM-CL)' },
   { code: 'internal', label: 'Internal Project (VM-IN)' },
   { code: 'product', label: 'Product Project (VM-PR)' },
   { code: 'maintenance', label: 'Maintenance Project (VM-MN)' },
-];
-
-const DEFAULT_CATEGORIES = [
-  { code: 'ecom_website', label: 'E-com Website' },
-  { code: 'portfolio_website', label: 'Portfolio Website' },
-  { code: 'seo', label: 'SEO' },
-  { code: 'social_media', label: 'Social Media' },
-  { code: 'crm', label: 'CRM' },
-  { code: 'erp', label: 'ERP' },
-  { code: 'brochure', label: 'Brochure' },
-  { code: 'other', label: 'Other' },
 ];
 
 interface CreateProjectModalProps {
@@ -49,15 +39,14 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
   mode = 'create',
 }) => {
   const { data: projectTypeLookups = [] } = useLookupsQuery('project_type');
-  const { data: categoryLookups = [] } = useLookupsQuery('project_category');
+  const { data: categoryLookups = [] } = useLookupsQuery('service_fit');
 
   const projectTypeOptions = projectTypeLookups.length > 0
     ? projectTypeLookups.map((l) => ({ code: l.code, label: l.label }))
     : DEFAULT_PROJECT_TYPES;
 
-  const categoryOptions = categoryLookups.length > 0
-    ? categoryLookups.map((l) => ({ code: l.code, label: l.label }))
-    : DEFAULT_CATEGORIES;
+  // The category is a Service Fit from Master Data: the same list leads use
+  const baseCategoryOptions = categoryLookups.map((l) => ({ code: l.code, label: l.label }));
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,13 +56,22 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
   const [projectName, setProjectName] = useState('');
   const [description, setDescription] = useState('');
   const [projectType, setProjectType] = useState<ProjectType>('client');
-  const [category, setCategory] = useState<ProjectCategory>('ecom_website');
+  const [pickedCategory, setCategory] = useState<ProjectCategory>('');
+  // Until one is picked, the first Service Fit is selected. A project's own category stays selectable even when it was switched off.
+  const category = pickedCategory || baseCategoryOptions[0]?.code || '';
+  const categoryOptions = category && !baseCategoryOptions.some((o) => o.code === category)
+    ? [{ code: category, label: category.replace(/_/g, ' ') }, ...baseCategoryOptions]
+    : baseCategoryOptions;
   const [otherCategory, setOtherCategory] = useState('');
   const [projectStatus, setProjectStatus] = useState<ProjectStatus>('new');
   const [startDate, setStartDate] = useState('');
   const [deadline, setDeadline] = useState('');
   const [projectManagerId, setProjectManagerId] = useState<number | ''>('');
   const [clientName, setClientName] = useState('');
+  const [techFrontend, setTechFrontend] = useState<string[]>([]);
+  const [techBackend, setTechBackend] = useState<string[]>([]);
+  const [techCloud, setTechCloud] = useState<string[]>([]);
+  const [techDatabase, setTechDatabase] = useState<string[]>([]);
   const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
 
   // Team Member Dropdown & Search
@@ -88,25 +86,33 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
         setProjectName(initialData.project_name || '');
         setDescription(initialData.description || '');
         setProjectType(initialData.project_type || 'client');
-        setCategory(initialData.category || 'ecom_website');
+        setCategory(initialData.category || '');
         setOtherCategory(initialData.other_category || '');
         setProjectStatus(initialData.project_status || 'new');
         setStartDate(initialData.start_date ? initialData.start_date.slice(0, 10) : '');
         setDeadline(initialData.deadline ? initialData.deadline.slice(0, 10) : '');
         setProjectManagerId(initialData.project_manager_id || '');
         setClientName(initialData.client_name || '');
+        setTechFrontend(parseTech(initialData.tech_frontend));
+        setTechBackend(parseTech(initialData.tech_backend));
+        setTechCloud(parseTech(initialData.tech_cloud));
+        setTechDatabase(parseTech(initialData.tech_database));
         setSelectedMemberIds(initialData.members?.map((m) => m.employee_id) || []);
       } else {
         setProjectName('');
         setDescription('');
         setProjectType('client');
-        setCategory('ecom_website');
+        setCategory('');
         setOtherCategory('');
         setProjectStatus('new');
         setStartDate('');
         setDeadline('');
         setProjectManagerId('');
         setClientName('');
+        setTechFrontend([]);
+        setTechBackend([]);
+        setTechCloud([]);
+        setTechDatabase([]);
         setSelectedMemberIds([]);
       }
       setMemberSearch('');
@@ -151,7 +157,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
     setProjectName('');
     setDescription('');
     setProjectType('client');
-    setCategory('ecom_website');
+    setCategory('');
     setOtherCategory('');
     setProjectStatus('new');
     setStartDate('');
@@ -173,6 +179,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
     if (!deadline) e.end = 'End date / deadline is required.';
     else if (startDate && new Date(startDate) > new Date(deadline)) e.end = 'The deadline cannot be before the start date.';
     if (!projectManagerId) e.manager = 'Please select a Project Manager.';
+    if (!category) e.category = 'Please select a category.';
     if (category === 'other' && !otherCategory.trim()) e.other = 'Please specify the category.';
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -197,6 +204,10 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
         project_manager_id: Number(projectManagerId),
         member_ids: selectedMemberIds,
         client_name: clientName.trim() || undefined,
+        tech_frontend: joinTech(techFrontend),
+        tech_backend: joinTech(techBackend),
+        tech_cloud: joinTech(techCloud),
+        tech_database: joinTech(techDatabase),
         description: description.trim() || undefined,
       };
 
@@ -253,7 +264,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
             ))}
           </select>
         </JField>
-        <JField label="Category" required htmlFor="project-category">
+        <JField label="Category" required htmlFor="project-category" error={errors.category}>
           <select id="project-category" value={category} onChange={(e) => setCategory(e.target.value as ProjectCategory)} className={J_INPUT}>
             {categoryOptions.map((opt) => (
               <option key={opt.code} value={opt.code}>{opt.label}</option>
@@ -307,6 +318,18 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
       <JField label="Description" optional htmlFor="project-desc">
         <textarea id="project-desc" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What is this project about, and what should it deliver?" className={`${J_INPUT} resize-y`} />
       </JField>
+
+      {/* Tech Stack: chosen from the lists the Admin keeps in Settings. All optional. */}
+      <div className="border-t border-[#DFE1E6] pt-4">
+        <h4 className="text-[12px] font-bold uppercase tracking-[0.04em] text-[#5E6C84]">Tech stack</h4>
+        <p className="mt-0.5 text-[12px] text-[#5E6C84]">Pick all that apply. You can change this later from the project's Tech &amp; Deployment page.</p>
+      </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <TechMultiSelect lookupType="tech_frontend" label="Front-End" values={techFrontend} onChange={setTechFrontend} />
+        <TechMultiSelect lookupType="tech_backend" label="Back-End" values={techBackend} onChange={setTechBackend} />
+        <TechMultiSelect lookupType="tech_cloud" label="Cloud Platform" values={techCloud} onChange={setTechCloud} />
+        <TechMultiSelect lookupType="tech_database" label="Database" values={techDatabase} onChange={setTechDatabase} />
+      </div>
 
       {/* Team: chips for who is on the project, and a search to add more */}
       <div ref={memberDropdownRef}>

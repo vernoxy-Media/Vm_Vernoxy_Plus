@@ -83,6 +83,9 @@ export class MonthSummaryDto {
   @ApiProperty({ type: Number, example: 22 })
   scheduled_working_days!: number;
 
+  @ApiProperty({ type: Number, example: 12 })
+  working_days_so_far!: number;
+
   @ApiProperty({ type: Number, example: 20 })
   days_present!: number;
 

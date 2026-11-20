@@ -68,6 +68,7 @@ export interface RefreshResult {
 
 export interface MeResult {
   emp_id: number;
+  employee_code: string | null;
   name: string;
   email: string;
   mob: string | null;
@@ -582,6 +583,7 @@ export class AuthService {
 
     return {
       emp_id: emp.emp_id,
+      employee_code: emp.employee_code ?? null,
       name: emp.name,
       email: emp.email,
       mob: emp.mob,

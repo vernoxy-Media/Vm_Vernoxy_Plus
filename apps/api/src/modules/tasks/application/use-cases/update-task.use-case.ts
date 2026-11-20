@@ -20,6 +20,8 @@ export interface UpdateTaskCommand {
   allocated_minutes?: number | null;
   assignee_ids?: number[];
   other_task_type?: string | null;
+  /** undefined = unchanged, null = remove the QA step. */
+  qa_assignee_id?: number | null;
   actor_emp_id: number;
 }
 
@@ -94,6 +96,19 @@ export class UpdateTaskUseCase {
       cleanAssigneeIds = Array.from(new Set(command.assignee_ids));
     }
 
+    let qaId: number | null | undefined;
+    if (command.qa_assignee_id !== undefined) {
+      qaId = command.qa_assignee_id ? Number(command.qa_assignee_id) : null;
+      if (qaId) {
+        if (!existing.project_id) throw new AssigneeValidationError('A QA assignee can be set only on a project task.');
+        const devs = cleanAssigneeIds ?? existing.assignees.map((a) => a.employee_id);
+        if (devs.includes(qaId)) throw new AssigneeValidationError('The QA assignee must be a different person from the developer.');
+        if (!(await this.employeeDirectory.validateActiveEmployees([qaId]))) throw new AssigneeValidationError('QA can be assigned only to an Active employee.');
+      } else if (existing.stage === 'in_qa') {
+        throw new AssigneeValidationError('This task is waiting for QA. Pass it or send it back before removing the QA assignee.');
+      }
+    }
+
     const updated = await this.taskRepo.updateTask(command.taskId, {
       title: command.title?.trim(),
       description: command.description !== undefined ? command.description?.trim() || null : undefined,
@@ -104,6 +119,7 @@ export class UpdateTaskUseCase {
       allocated_minutes: command.allocated_minutes,
       assignee_ids: cleanAssigneeIds,
       ...(otherText !== undefined ? { other_task_type: otherText } : {}),
+      ...(qaId !== undefined ? { qa_assignee_id: qaId } : {}),
       updated_by: command.actor_emp_id,
     });
 
@@ -123,6 +139,20 @@ export class UpdateTaskUseCase {
         }));
         await this.createNotificationUseCase.executeMany(notifications).catch(() => {});
       }
+    }
+
+    if (qaId && qaId !== existing.qa_assignee_id && qaId !== command.actor_emp_id) {
+      await this.createNotificationUseCase
+        .execute({
+          recipient_id: qaId,
+          kind: 'task_qa_assigned',
+          title: `Assigned as QA: ${updated.task_code}`,
+          body: `You will test "${updated.title}" once the developer finishes it.`,
+          entity_type: 'task',
+          entity_id: updated.task_id,
+          created_by: command.actor_emp_id,
+        })
+        .catch(() => {});
     }
 
     return updated;

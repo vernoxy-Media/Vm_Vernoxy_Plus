@@ -5,12 +5,14 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../../../core/prisma/prisma.service';
 import { CreateAttachmentDto } from '../../presentation/dto/attachment.dto';
-import * as path from 'path';
-import * as fs from 'fs';
+import { AttachmentFileStore } from './attachment-file-store';
 
 @Injectable()
 export class AttachmentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly store: AttachmentFileStore,
+  ) {}
 
   // ---------------------------------------------------------------------------
   // 1. GET ATTACHMENTS
@@ -131,23 +133,8 @@ export class AttachmentsService {
   ) {
     const normalizedType = entityType.trim().toUpperCase();
 
-    // Storage directory: storage/attachments/<entityType>/<entityId>/
-    const repoRoot = path.resolve(__dirname, '../../../../../../..');
-    const storageDir = path.resolve(repoRoot, 'storage', 'attachments', normalizedType, String(entityId));
-
-    if (!fs.existsSync(storageDir)) {
-      await fs.promises.mkdir(storageDir, { recursive: true });
-    }
-
-    // Generate safe filename: <timestamp>_<sanitized_name>
-    const sanitizedName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const diskFileName = `${Date.now()}_${sanitizedName}`;
-    const diskPath = path.resolve(storageDir, diskFileName);
-
-    await fs.promises.writeFile(diskPath, file.buffer);
-
-    // Relative web URL
-    const fileUrl = `/files/attachments/${normalizedType}/${entityId}/${diskFileName}`;
+    // Cloudinary on a host that wipes its disk (Render), the local storage folder otherwise
+    const fileUrl = await this.store.save(normalizedType, entityId, file.originalname, file.buffer);
 
     return this.createAttachment(
       {

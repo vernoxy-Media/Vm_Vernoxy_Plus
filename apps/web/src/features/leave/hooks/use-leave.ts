@@ -89,6 +89,14 @@ export interface LeaveGeneralSettings {
   year_end_processing: 'AUTOMATIC' | 'MANUAL';
   comp_off_hours_per_day: number;
   leave_year_locked?: boolean;
+  /** The Leave Policy a new employee gets (chosen by the Admin) */
+  default_policy_id?: number | null;
+  /** Active employees with no policy now: they cannot apply for leave */
+  employees_without_policy?: number;
+  /** Send true to also give the default policy to those employees */
+  assign_to_employees_without_policy?: boolean;
+  /** How many employees the last save gave the default policy to */
+  assigned_now?: number;
 }
 
 export interface LeaveChangeLogItem {

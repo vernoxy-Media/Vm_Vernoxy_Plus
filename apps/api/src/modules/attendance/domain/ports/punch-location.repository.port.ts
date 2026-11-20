@@ -14,5 +14,5 @@ export interface PunchLocationRepository {
     empId: number,
     from: string,
     to: string,
-  ): Promise<Map<string, Partial<Record<PunchKind, { latitude: number; longitude: number }>>>>;
+  ): Promise<Map<string, Partial<Record<PunchKind, { latitude: number; longitude: number; accuracyM: number | null }>>>>;
 }

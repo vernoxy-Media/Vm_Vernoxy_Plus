@@ -38,6 +38,7 @@ export interface EmployeeRepositoryPort {
       dep_id: number;
       department_ids?: number[];
       role_id?: number | null;
+      role_ids?: number[];
       reporting_manager?: number | null;
       joining_date: Date;
       gender_id?: number | null;
@@ -49,6 +50,7 @@ export interface EmployeeRepositoryPort {
       emergency_contact_name?: string | null;
       emergency_contact_number?: string | null;
       emergency_contact_relation?: string | null;
+      emergency_contacts?: Array<{ name: string; relation: string | null; number: string }>;
       employment_type_id?: number | null;
       salary?: number;
       probation_period?: string | null;
@@ -82,6 +84,7 @@ export interface EmployeeRepositoryPort {
       dep_id?: number;
       department_ids?: number[];
       role_id?: number | null;
+      role_ids?: number[];
       reporting_manager?: number | null;
       joining_date?: Date;
       exit_date?: Date | null;
@@ -96,6 +99,7 @@ export interface EmployeeRepositoryPort {
       emergency_contact_name?: string | null;
       emergency_contact_number?: string | null;
       emergency_contact_relation?: string | null;
+      emergency_contacts?: Array<{ name: string; relation: string | null; number: string }>;
       employment_type_id?: number | null;
       salary?: number;
       probation_period?: string | null;
