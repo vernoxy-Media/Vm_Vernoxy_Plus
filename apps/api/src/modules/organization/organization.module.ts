@@ -1,6 +1,11 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
+import { PrismaService } from '../../core/prisma/prisma.service';
 import { StorageModule } from '../storage/public-api';
+import { DataTransferModule, DATA_TRANSFER_TOKENS, SpreadsheetWriterPort } from '../data-transfer/public-api';
+import { EmployeeImportController } from './presentation/controllers/employee-import.controller';
+import { EmployeeImportHandler } from './infrastructure/import/employee-import.handler';
+import { DownloadEmployeeTemplateUseCase } from './application/use-cases/employee-import.use-cases';
 import { DepartmentController } from './presentation/controllers/department.controller';
 import { RoleController } from './presentation/controllers/role.controller';
 import { EmployeeController } from './presentation/controllers/employee.controller';
@@ -82,10 +87,38 @@ import { AUTH_TOKENS } from '../auth/application/ports/tokens';
 import { MailPort } from '../auth/application/ports/auth.ports';
 
 @Module({
-  imports: [AuthModule, StorageModule],
-  controllers: [DepartmentController, RoleController, EmployeeController, EmployeeDocumentController],
+  imports: [AuthModule, StorageModule, DataTransferModule],
+  // EmployeeImportController comes first so "employees/import/..." is not read as "employees/:id"
+  controllers: [EmployeeImportController, DepartmentController, RoleController, EmployeeController, EmployeeDocumentController],
   providers: [
     EmployeeDocumentService,
+    EmployeeImportHandler,
+    {
+      provide: DownloadEmployeeTemplateUseCase,
+      inject: [DATA_TRANSFER_TOKENS.SPREADSHEET_WRITER, PrismaService],
+      useFactory: (writer: SpreadsheetWriterPort, prisma: PrismaService) =>
+        new DownloadEmployeeTemplateUseCase(writer, async () => {
+          const [lookups, departments, roles, policies, shifts] = await Promise.all([
+            prisma.master_lookup.findMany({
+              where: { lookup_type: { in: ['gender', 'employment_type'] }, deleted_at: null, is_active: true },
+              select: { lookup_type: true, label: true },
+              orderBy: { sort_order: 'asc' },
+            }),
+            prisma.departments.findMany({ where: { deleted_at: null, is_active: true }, select: { name: true }, orderBy: { name: 'asc' } }),
+            prisma.roles.findMany({ where: { deleted_at: null, is_active: true }, select: { role_name: true }, orderBy: { role_name: 'asc' } }),
+            prisma.leave_policies.findMany({ where: { status: 'ACTIVE' }, select: { name: true }, orderBy: { name: 'asc' } }),
+            prisma.attendance_shifts.findMany({ where: { deleted_at: null, is_active: true }, select: { shift_name: true }, orderBy: { shift_name: 'asc' } }),
+          ]);
+          return {
+            genders: lookups.filter((l) => l.lookup_type === 'gender').map((l) => l.label),
+            employmentTypes: lookups.filter((l) => l.lookup_type === 'employment_type').map((l) => l.label),
+            departments: departments.map((d) => d.name),
+            designations: Array.from(new Set(roles.map((r) => r.role_name))),
+            leavePolicies: policies.map((p) => p.name),
+            shifts: shifts.map((s) => s.shift_name),
+          };
+        }),
+    },
     // Ports Implementations
     {
       provide: DEPARTMENT_REPOSITORY_TOKEN,

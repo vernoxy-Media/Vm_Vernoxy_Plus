@@ -28,6 +28,7 @@ const SettingsPage = lazy(() => import('@/features/settings/pages/SettingsPage')
 const AttendanceSettingsPage = lazy(() => import('@/features/attendance/pages/AttendanceSettingsPage').then((m) => ({ default: m.AttendanceSettingsPage })));
 const EmployeesPage = lazy(() => import('@/features/employees/pages/EmployeesPage').then((m) => ({ default: m.EmployeesPage })));
 const EmployeeDetailPage = lazy(() => import('@/features/employees/pages/EmployeeDetailPage').then((m) => ({ default: m.EmployeeDetailPage })));
+const EmployeeImportPage = lazy(() => import('@/features/employees/pages/EmployeeImportPage').then((m) => ({ default: m.EmployeeImportPage })));
 const EmployeeFormPage = lazy(() => import('@/features/employees/pages/EmployeeFormPage').then((m) => ({ default: m.EmployeeFormPage })));
 const CandidatesPage = lazy(() => import('@/features/recruitment/pages/CandidatesPage').then((m) => ({ default: m.CandidatesPage })));
 const CandidateFormPage = lazy(() => import('@/features/recruitment/pages/CandidateFormPage').then((m) => ({ default: m.CandidateFormPage })));
@@ -487,6 +488,14 @@ export const App: React.FC = () => {
                 element={
                   <AdminRoute>
                     <EmployeesPage />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/employees/import"
+                element={
+                  <AdminRoute>
+                    <EmployeeImportPage />
                   </AdminRoute>
                 }
               />
