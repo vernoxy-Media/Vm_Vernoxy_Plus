@@ -1,68 +1,72 @@
-import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common';
-import {
-  CANDIDATE_REPOSITORY,
-  ICandidateRepository,
-  MarkDecisionParams,
-} from '../ports/candidate.repository.port';
+import { ICandidateRepository, MarkDecisionParams } from '../ports/candidate.repository.port';
+import { CandidateMailerPort } from '../ports/recruitment-services.port';
+import { CandidateAccessService } from '../services/candidate-access.service';
+import { todayInIndia } from '../services/candidate-checks';
 import { CandidateProps } from '../../domain/candidate.entity';
-import { MarkCandidateDecisionDto } from '../../presentation/dto/candidate.dto';
+import { CandidateValidationError, optionalCtc } from '../../domain/candidate-input-rules';
 
-@Injectable()
+export interface MarkDecisionInput {
+  decision: 'selected' | 'on_hold' | 'rejected';
+  final_role_id?: number;
+  final_dep_id?: number;
+  offered_ctc?: number;
+  expected_joining_date?: string;
+  reporting_manager_id?: number;
+  employment_type?: string;
+  notes?: string;
+  on_hold_review_date?: string;
+  on_hold_notes?: string;
+  rejection_reason?: string;
+  rejection_notes?: string;
+  send_regret_email?: boolean;
+}
+
+export interface MarkDecisionResult {
+  candidate: CandidateProps;
+  /** What happened to the regret email asked for with a rejection */
+  regretEmail: 'not_requested' | 'sent' | 'failed';
+}
+
 export class MarkCandidateDecisionUseCase {
   constructor(
-    @Inject(CANDIDATE_REPOSITORY)
     private readonly candidateRepository: ICandidateRepository,
+    private readonly mailer: CandidateMailerPort,
+    private readonly access: CandidateAccessService,
+    /** Where a mail failure is written for the administrator (the server log) */
+    private readonly logError: (message: string) => void = () => undefined,
   ) {}
 
-  async execute(
-    candidateId: number,
-    dto: MarkCandidateDecisionDto,
-    decisionBy?: number,
-  ): Promise<CandidateProps> {
-    const candidate = await this.candidateRepository.findById(candidateId);
-    if (!candidate) {
-      throw new NotFoundException(`Candidate with ID ${candidateId} not found.`);
-    }
+  async execute(candidateId: number, dto: MarkDecisionInput, decisionBy: number): Promise<MarkDecisionResult> {
+    const candidate = await this.access.loadForAdmin(candidateId, decisionBy, 'record a hiring decision');
 
     if (candidate.convertedToEmpId || candidate.stage === 'joined') {
-      throw new BadRequestException(
+      throw new CandidateValidationError(
         `Candidate has already been converted to employee ${candidate.convertedToEmpCode || `EMP-${candidate.convertedToEmpId}`}. Hiring decision cannot be changed.`,
       );
     }
 
-    // Specific validation according to rules
     if (dto.decision === 'rejected') {
-      if (!dto.rejection_reason) {
-        throw new BadRequestException('Rejection reason is required.');
-      }
-      if (
-        dto.rejection_reason.toLowerCase() === 'other' &&
-        (!dto.rejection_notes || !dto.rejection_notes.trim())
-      ) {
-        throw new BadRequestException('Notes are required when rejection reason is "Other".');
+      if (!dto.rejection_reason) throw new CandidateValidationError('Rejection reason is required.', 'rejection_reason');
+      if (dto.rejection_reason.toLowerCase() === 'other' && !dto.rejection_notes?.trim()) {
+        throw new CandidateValidationError('Notes are required when the rejection reason is "Other".', 'rejection_notes');
       }
     } else if (dto.decision === 'on_hold') {
-      if (!dto.on_hold_notes && !dto.notes) {
-        throw new BadRequestException('Note is required when marking a candidate On Hold.');
+      if (!dto.on_hold_notes?.trim() && !dto.notes?.trim()) {
+        throw new CandidateValidationError('A note is required when putting a candidate On Hold.', 'on_hold_notes');
       }
     } else if (dto.decision === 'selected') {
-      if (!dto.expected_joining_date) {
-        throw new BadRequestException('Expected joining date is required for selection.');
-      }
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const joiningDate = new Date(dto.expected_joining_date);
-      joiningDate.setHours(0, 0, 0, 0);
-      if (joiningDate < today) {
-        throw new BadRequestException('Expected joining date should be today or a future date, not a past date.');
+      if (!dto.expected_joining_date) throw new CandidateValidationError('Expected joining date is required for selection.', 'expected_joining_date');
+      if (dto.expected_joining_date.slice(0, 10) < todayInIndia()) {
+        throw new CandidateValidationError('Expected joining date should be today or a future date, not a past date.', 'expected_joining_date');
       }
     }
+    const offeredCtc = optionalCtc(dto.offered_ctc, 'offered_ctc', 'Offered CTC');
 
     const params: MarkDecisionParams = {
       decision: dto.decision,
       finalRoleId: dto.final_role_id || candidate.roleId,
       finalDepId: dto.final_dep_id || candidate.depId,
-      offeredCtc: dto.offered_ctc,
+      offeredCtc: offeredCtc ?? undefined,
       expectedJoiningDate: dto.expected_joining_date ? new Date(dto.expected_joining_date) : undefined,
       reportingManagerId: dto.reporting_manager_id,
       employmentType: dto.employment_type || 'Full-time',
@@ -74,6 +78,19 @@ export class MarkCandidateDecisionUseCase {
       sendRegretEmail: dto.send_regret_email,
     };
 
-    return this.candidateRepository.markDecision(candidateId, params, decisionBy);
+    const updated = await this.candidateRepository.markDecision(candidateId, params, decisionBy);
+
+    let regretEmail: MarkDecisionResult['regretEmail'] = 'not_requested';
+    if (dto.decision === 'rejected' && dto.send_regret_email) {
+      // The rejection is saved either way; the screen says whether the email went out
+      try {
+        await this.mailer.sendRegretEmail({ to: updated.email, candidateName: updated.name, position: updated.roleName ?? null });
+        regretEmail = 'sent';
+      } catch (err) {
+        regretEmail = 'failed';
+        this.logError(`Regret email for candidate #${candidateId} was not sent: ${(err as Error).message}`);
+      }
+    }
+    return { candidate: updated, regretEmail };
   }
 }

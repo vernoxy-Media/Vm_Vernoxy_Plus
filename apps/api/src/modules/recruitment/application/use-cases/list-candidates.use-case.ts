@@ -1,57 +1,29 @@
-import { Injectable, Inject } from '@nestjs/common';
-import {
-  CANDIDATE_REPOSITORY,
-  ICandidateRepository,
-  CandidateFilterParams,
-} from '../ports/candidate.repository.port';
-import { CandidateListResponseDto } from '../../presentation/dto/candidate.dto';
+import { ICandidateRepository, CandidateFilterParams } from '../ports/candidate.repository.port';
+import { CandidateAccessService } from '../services/candidate-access.service';
+import { CandidateProps } from '../../domain/candidate.entity';
+import { CandidateStats } from '../ports/candidate.repository.port';
 
-@Injectable()
+export interface CandidateListResult {
+  items: CandidateProps[];
+  total: number;
+  stats: CandidateStats;
+  /** Whether the viewer is an Admin (sees and manages everything) or sees only the candidates assigned to them */
+  scope: 'all' | 'assigned';
+}
+
 export class ListCandidatesUseCase {
   constructor(
-    @Inject(CANDIDATE_REPOSITORY)
     private readonly candidateRepo: ICandidateRepository,
+    private readonly access: CandidateAccessService,
   ) {}
 
-  async execute(params: CandidateFilterParams): Promise<CandidateListResponseDto> {
+  async execute(params: CandidateFilterParams, viewerId: number): Promise<CandidateListResult> {
+    const isAdmin = await this.access.isAdmin(viewerId);
+    const assignedTo = isAdmin ? params.assignedTo : viewerId;
     const [{ items, total }, stats] = await Promise.all([
-      this.candidateRepo.findMany(params),
-      this.candidateRepo.getStats(),
+      this.candidateRepo.findMany({ ...params, assignedTo }),
+      this.candidateRepo.getStats(isAdmin ? undefined : viewerId),
     ]);
-
-    return {
-      items: items.map((c) => ({
-        candidate_id: c.candidateId!,
-        candidate_code: c.candidateCode,
-        name: c.name,
-        phone: c.phone,
-        email: c.email,
-        gender_id: c.genderId || null,
-        current_location: c.currentLocation || null,
-        resume_url: c.resumeUrl || null,
-        resume_filename: c.resumeFilename || null,
-        role_id: c.roleId,
-        role_name: c.roleName,
-        dep_id: c.depId,
-        department_name: c.departmentName,
-        experience_type: c.experienceType,
-        exp_years: c.expYears,
-        exp_months: c.expMonths,
-        current_company: c.currentCompany || null,
-        current_designation: c.currentDesignation || null,
-        current_ctc: c.currentCtc || null,
-        expected_ctc: c.expectedCtc || null,
-        notice_period: c.noticePeriod || null,
-        key_skills: c.keySkills || [],
-        source: c.source,
-        source_portal: c.sourcePortal || null,
-        referred_by_emp_id: c.referredByEmpId || null,
-        referred_by_name: c.referredByName || null,
-        stage: c.stage,
-        created_at: c.createdAt ? c.createdAt.toISOString() : new Date().toISOString(),
-      })),
-      total,
-      stats,
-    };
+    return { items, total, stats, scope: isAdmin ? 'all' : 'assigned' };
   }
 }

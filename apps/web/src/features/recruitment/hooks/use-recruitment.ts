@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { customFetch } from '@vernoxy-pulse/api-client';
 
 export interface CandidateItem {
@@ -54,8 +54,20 @@ export interface CandidateItem {
   decision_date?: string | null;
   decision_by?: number | null;
   decision_by_name?: string | null;
+  assigned_to_emp_id?: number | null;
+  assigned_to_name?: string | null;
   created_at: string;
 }
+
+export type CandidateSortField =
+  | 'candidate_code'
+  | 'name'
+  | 'position'
+  | 'department'
+  | 'experience'
+  | 'source'
+  | 'stage'
+  | 'applied_date';
 
 export interface CandidateStats {
   total: number;
@@ -68,6 +80,8 @@ export interface CandidateListResponse {
   items: CandidateItem[];
   total: number;
   stats: CandidateStats;
+  /** all: the viewer is an Admin; assigned: only the candidates the Admin assigned to the viewer */
+  scope?: 'all' | 'assigned';
 }
 
 export interface DuplicateMatch {
@@ -110,7 +124,13 @@ export interface CreateCandidatePayload {
   source_details?: string;
   stage?: string;
   notes?: string;
+  assigned_to_emp_id?: number | null;
 }
+
+/** An edit: the fields sent replace the saved ones; null clears an optional field */
+export type UpdateCandidatePayload = {
+  [K in keyof CreateCandidatePayload]?: CreateCandidatePayload[K] | null;
+};
 
 export function useCandidatesQuery(params: {
   q?: string;
@@ -123,6 +143,8 @@ export function useCandidatesQuery(params: {
   endDate?: string;
   limit?: number;
   offset?: number;
+  sortBy?: CandidateSortField;
+  sortDir?: 'asc' | 'desc';
 }) {
   return useQuery({
     queryKey: ['candidates', params],
@@ -138,9 +160,38 @@ export function useCandidatesQuery(params: {
       if (params.endDate) searchParams.set('endDate', params.endDate);
       if (params.limit !== undefined) searchParams.set('limit', String(params.limit));
       if (params.offset !== undefined) searchParams.set('offset', String(params.offset));
+      if (params.sortBy) searchParams.set('sortBy', params.sortBy);
+      if (params.sortDir) searchParams.set('sortDir', params.sortDir);
 
       const qs = searchParams.toString();
       return customFetch<CandidateListResponse>(`/api/v1/candidates${qs ? `?${qs}` : ''}`);
+    },
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** How many candidates are assigned to the signed-in employee (for the sidebar). Admins see Recruitment anyway. */
+export function useAssignedCandidatesCountQuery(enabled: boolean) {
+  return useQuery({
+    queryKey: ['candidates', 'assigned-count'],
+    queryFn: () => customFetch<CandidateListResponse>('/api/v1/candidates?limit=1&stage=All'),
+    enabled,
+    staleTime: 5 * 60_000,
+    select: (r) => (r.scope === 'assigned' ? r.total : 0),
+  });
+}
+
+export function useAssignCandidateMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ candidateId, empId }: { candidateId: number; empId: number | null }) =>
+      customFetch<CandidateItem>(`/api/v1/candidates/${candidateId}/assignee`, {
+        method: 'PATCH',
+        body: JSON.stringify({ emp_id: empId }),
+      }),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['candidates'] });
+      queryClient.invalidateQueries({ queryKey: ['candidate', variables.candidateId] });
     },
   });
 }
@@ -232,7 +283,7 @@ export interface MarkDecisionPayload {
 export function useUpdateCandidateMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ candidateId, data }: { candidateId: number; data: Partial<CreateCandidatePayload> }) =>
+    mutationFn: ({ candidateId, data }: { candidateId: number; data: UpdateCandidatePayload }) =>
       customFetch<CandidateItem>(`/api/v1/candidates/${candidateId}`, {
         method: 'PUT',
         body: JSON.stringify(data),
@@ -264,7 +315,7 @@ export function useMarkCandidateDecisionMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ candidateId, data }: { candidateId: number; data: MarkDecisionPayload }) =>
-      customFetch<CandidateItem>(`/api/v1/candidates/${candidateId}/decision`, {
+      customFetch<CandidateItem & { regret_email?: 'not_requested' | 'sent' | 'failed' }>(`/api/v1/candidates/${candidateId}/decision`, {
         method: 'POST',
         body: JSON.stringify(data),
       }),

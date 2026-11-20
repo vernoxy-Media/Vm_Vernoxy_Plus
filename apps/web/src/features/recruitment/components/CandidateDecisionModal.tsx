@@ -21,6 +21,7 @@ import {
   useEmployeeOptionsQuery,
 } from '@/features/organization/hooks/use-organization';
 import { useLookupsQuery } from '@/features/organization/hooks/use-master-data';
+import { parseApiError } from '@/shared/utils/api-error';
 import { useAttendanceSettingsQuery } from '@/features/attendance/hooks/use-attendance-settings';
 import { checkJoiningDateConflict } from '@/features/attendance/utils/joining-date-check';
 
@@ -29,7 +30,8 @@ interface CandidateDecisionModalProps {
   onClose: () => void;
   candidate: CandidateItem | null;
   initialDecision?: 'selected' | 'on_hold' | 'rejected';
-  onSuccess?: (updated: CandidateItem) => void;
+  /** Called with the saved candidate; `regret_email` says whether the regret email was sent */
+  onSuccess?: (updated: CandidateItem & { regret_email?: 'not_requested' | 'sent' | 'failed' }) => void;
 }
 
 export const CandidateDecisionModal: React.FC<CandidateDecisionModalProps> = ({
@@ -227,8 +229,8 @@ export const CandidateDecisionModal: React.FC<CandidateDecisionModalProps> = ({
           onSuccess?.(updated);
           onClose();
         },
-        onError: (err: any) => {
-          setErrors({ submit: err?.detail || err?.message || 'Failed to save decision.' });
+        onError: (err: unknown) => {
+          setErrors({ submit: parseApiError(err, 'Failed to save decision.').message });
         },
       },
     );

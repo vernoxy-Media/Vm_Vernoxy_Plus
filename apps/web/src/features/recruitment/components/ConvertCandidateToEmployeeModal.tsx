@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { parseApiError } from '@/shared/utils/api-error';
 import {
   X,
   Loader2,
@@ -110,10 +111,11 @@ export const ConvertCandidateToEmployeeModal: React.FC<ConvertCandidateToEmploye
       if (onConverted && newEmpId) {
         onConverted(newEmpId);
       } else {
-        navigate(`/admin/recruitment/candidates/${candidate.candidate_id}?tab=documents`);
+        // The candidate's page, on its onboarding checklist (the route is /admin/recruitment/:id)
+        navigate(`/admin/recruitment/${candidate.candidate_id}?tab=onboarding`);
       }
-    } catch (err: any) {
-      setError(err?.detail || err?.message || 'Failed to convert candidate to employee. Please try again.');
+    } catch (err: unknown) {
+      setError(parseApiError(err, 'Failed to convert candidate to employee. Please try again.').message);
     }
   };
 

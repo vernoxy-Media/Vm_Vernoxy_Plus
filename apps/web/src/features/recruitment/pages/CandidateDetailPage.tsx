@@ -23,11 +23,23 @@ import {
   Lock,
   Edit,
 } from 'lucide-react';
-import { AdminLayout } from '@/shared/layouts/AdminLayout';
+import { AppLayout } from '@/shared/layouts/AppLayout';
+import { SearchableSelect } from '@/shared/ui';
+import { parseApiError } from '@/shared/utils/api-error';
+import { useAuth } from '@/features/auth/context/AuthContext';
+import { useLookupsQuery } from '@/features/organization/hooks/use-master-data';
+import { useEmployeeOptionsQuery } from '@/features/organization/hooks/use-organization';
 import {
+  useAssignCandidateMutation,
   useCandidateDetailQuery,
   useUpdateCandidateStageMutation,
 } from '../hooks/use-recruitment';
+import { decisionResultMessage, isPlainStage, isStageLocked, stageBadge } from '../utils/stages';
+
+/** The page shell: the shared layout, open to the Admin and to the employee the candidate is assigned to */
+const PageShell: React.FC<{ title?: string; fluid?: boolean; children: React.ReactNode }> = ({ children }) => (
+  <AppLayout fluid>{children}</AppLayout>
+);
 import { CandidateDecisionModal } from '../components/CandidateDecisionModal';
 import { ConvertCandidateToEmployeeModal } from '../components/ConvertCandidateToEmployeeModal';
 import { AddCandidateModal } from '../components/AddCandidateModal';
@@ -47,6 +59,21 @@ export const CandidateDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const candidateId = id ? parseInt(id, 10) : undefined;
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isAdmin = Boolean(user?.access?.can_manage_organization);
+  const base = isAdmin ? '/admin/recruitment' : '/recruitment';
+
+  const { data: stageLookups = [] } = useLookupsQuery('candidate_stage');
+  const stageLabels = React.useMemo(() => new Map(stageLookups.map((s) => [s.code.toLowerCase(), s.label])), [stageLookups]);
+  const plainStages = React.useMemo(() => stageLookups.filter((s) => isPlainStage(s.code)), [stageLookups]);
+  const { data: employeeOptions = [] } = useEmployeeOptionsQuery();
+  const assignMutation = useAssignCandidateMutation();
+  const [notice, setNotice] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
+  useEffect(() => {
+    if (!notice) return;
+    const t = setTimeout(() => setNotice(null), 5000);
+    return () => clearTimeout(t);
+  }, [notice]);
 
   const [searchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
@@ -61,7 +88,8 @@ export const CandidateDetailPage: React.FC = () => {
   const { data: candidate, isLoading, error, refetch } = useCandidateDetailQuery(candidateId);
   const updateStageMutation = useUpdateCandidateStageMutation();
 
-  const convertedEmpId = candidate?.converted_to_emp_id ? Number(candidate.converted_to_emp_id) : undefined;
+  // The employee record (onboarding, activation) is the Admin's; an assigned employee only sees the candidate
+  const convertedEmpId = isAdmin && candidate?.converted_to_emp_id ? Number(candidate.converted_to_emp_id) : undefined;
   const { data: employeeData, refetch: refetchEmployee } = useEmployeeDetailQuery(convertedEmpId);
   const { data: activationStatus } = useEmployeeActivationStatusQuery(convertedEmpId);
   const activateMutation = useActivateEmployeeMutation();
@@ -111,45 +139,15 @@ export const CandidateDetailPage: React.FC = () => {
       .join('')
       .toUpperCase();
 
-  const getStageBadge = (stageCode: string) => {
-    switch (stageCode?.toLowerCase()) {
-      case 'new':
-        return { label: 'New', bg: 'bg-blue-50 text-blue-700 border-blue-200/80', dot: 'bg-blue-500' };
-      case 'screening':
-        return { label: 'Screening', bg: 'bg-amber-50 text-amber-700 border-amber-200/80', dot: 'bg-amber-500' };
-      case 'interviewing':
-        return { label: 'Interviewing', bg: 'bg-purple-50 text-purple-700 border-purple-200/80', dot: 'bg-purple-500' };
-      case 'selected':
-        return { label: 'Selected', bg: 'bg-emerald-50 text-emerald-700 border-emerald-200/80', dot: 'bg-emerald-500' };
-      case 'on_hold':
-        return { label: 'On Hold', bg: 'bg-orange-50 text-orange-700 border-orange-200/80', dot: 'bg-orange-500' };
-      case 'rejected':
-        return { label: 'Rejected', bg: 'bg-rose-50 text-rose-700 border-rose-200/80', dot: 'bg-rose-500' };
-      case 'onboarding':
-        return { label: 'Onboarding', bg: 'bg-purple-50 text-purple-700 border-purple-200/80', dot: 'bg-purple-500' };
-      default:
-        return { label: stageCode || 'Unknown', bg: 'bg-slate-50 text-slate-700 border-slate-200', dot: 'bg-slate-400' };
-    }
-  };
+  const getStageBadge = (stageCode: string) => stageBadge(stageCode, stageLabels);
 
   const handleStageSelect = (targetStage: string) => {
     setIsStageMenuOpen(false);
-    const cid = candidate?.candidate_id ?? (candidate as any)?.candidateId ?? candidateId;
+    const cid = candidate?.candidate_id ?? candidateId;
     if (!cid) return;
 
-    if (targetStage === 'onboarding') {
-      if (candidate?.stage !== 'selected' && !candidate?.converted_to_emp_id) {
-        // Must select first!
-        setDecisionInitialStage('selected');
-        setIsDecisionModalOpen(true);
-        return;
-      }
-      setIsConvertModalOpen(true);
-      return;
-    }
-
     if (targetStage === 'selected' || targetStage === 'on_hold' || targetStage === 'rejected') {
-      setDecisionInitialStage(targetStage as any);
+      setDecisionInitialStage(targetStage);
       setIsDecisionModalOpen(true);
       return;
     }
@@ -157,25 +155,43 @@ export const CandidateDetailPage: React.FC = () => {
     updateStageMutation.mutate(
       { candidateId: cid, stage: targetStage },
       {
-        onSuccess: () => refetch(),
+        onSuccess: () => {
+          refetch();
+          setNotice({ kind: 'success', text: `Moved to ${getStageBadge(targetStage).label}.` });
+        },
+        onError: (err) => setNotice({ kind: 'error', text: parseApiError(err, 'The stage could not be changed.').message }),
+      },
+    );
+  };
+
+  const handleAssign = (empId: number | null) => {
+    if (!candidate) return;
+    assignMutation.mutate(
+      { candidateId: candidate.candidate_id, empId },
+      {
+        onSuccess: (res) => {
+          refetch();
+          setNotice({ kind: 'success', text: empId ? `Assigned to ${res.assigned_to_name ?? 'the employee'}. They have been notified.` : 'Assignment removed.' });
+        },
+        onError: (err) => setNotice({ kind: 'error', text: parseApiError(err, 'The candidate could not be assigned.').message }),
       },
     );
   };
 
   if (isLoading) {
     return (
-      <AdminLayout title="Candidate Profile" fluid>
+      <PageShell title="Candidate Profile" fluid>
         <div className="py-24 flex flex-col items-center justify-center gap-3">
           <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
           <p className="text-sm font-medium text-slate-500">Loading candidate profile...</p>
         </div>
-      </AdminLayout>
+      </PageShell>
     );
   }
 
   if (error || !candidate) {
     return (
-      <AdminLayout title="Candidate Profile" fluid>
+      <PageShell title="Candidate Profile" fluid>
         <div className="py-20 text-center max-w-md mx-auto">
           <AlertTriangle className="w-12 h-12 text-rose-500 mx-auto mb-3" />
           <h2 className="text-lg font-bold text-slate-800">Candidate Not Found</h2>
@@ -183,14 +199,14 @@ export const CandidateDetailPage: React.FC = () => {
             The candidate record does not exist or has been removed.
           </p>
           <Link
-            to="/admin/recruitment"
+            to={base}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 text-white font-medium text-sm hover:bg-blue-700 transition"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Candidates
           </Link>
         </div>
-      </AdminLayout>
+      </PageShell>
     );
   }
 
@@ -198,15 +214,27 @@ export const CandidateDetailPage: React.FC = () => {
   const isSelected = candidate.stage === 'selected';
   const isConverted = Boolean(candidate.converted_to_emp_id);
   const isAlreadyActive = employeeData?.status === 'Active' || candidate.stage === 'joined';
+  const stageLocked = isStageLocked(candidate);
 
   return (
-    <AdminLayout title={`${candidate.name} - Candidate Profile`} fluid>
+    <PageShell title={`${candidate.name} - Candidate Profile`} fluid>
       <div className="space-y-6 pb-12">
+        {notice && (
+          <div
+            role="status"
+            className={`flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium ${
+              notice.kind === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-rose-200 bg-rose-50 text-rose-700'
+            }`}
+          >
+            {notice.kind === 'success' ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+            {notice.text}
+          </div>
+        )}
         {/* Navigation Breadcrumb / Back button on Left */}
         <div className="flex items-center justify-between">
           <button
             type="button"
-            onClick={() => navigate('/admin/recruitment')}
+            onClick={() => navigate(base)}
             className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-800 transition py-1"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -237,73 +265,84 @@ export const CandidateDetailPage: React.FC = () => {
                   <div className="relative">
                     <button
                       type="button"
-                      onClick={() => !isConverted && setIsStageMenuOpen(!isStageMenuOpen)}
-                      disabled={isConverted}
+                      onClick={() => !stageLocked && setIsStageMenuOpen(!isStageMenuOpen)}
+                      disabled={stageLocked}
+                      title={stageLocked ? 'The stage cannot be changed once onboarding has started' : 'Change stage'}
                       className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold tracking-wide border ${
-                        isConverted ? 'cursor-default opacity-90' : 'cursor-pointer hover:shadow-xs'
+                        stageLocked ? 'cursor-not-allowed opacity-90' : 'cursor-pointer hover:shadow-xs'
                       } transition ${badge.bg}`}
                     >
                       <span className={`w-2 h-2 rounded-full ${badge.dot}`} />
                       <span>{badge.label}</span>
-                      {isConverted ? (
-                        <Lock className="w-3 h-3 opacity-60 ml-0.5" />
-                      ) : (
-                        <ChevronDown className="w-3.5 h-3.5 opacity-70" />
-                      )}
+                      {stageLocked ? <Lock className="w-3 h-3 opacity-60 ml-0.5" /> : <ChevronDown className="w-3.5 h-3.5 opacity-70" />}
                     </button>
 
-                    {isStageMenuOpen && (
+                    {isStageMenuOpen && !stageLocked && (
                       <div
-                        className="absolute left-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-slate-200 py-1.5 z-30 animate-in fade-in zoom-in-95 duration-150"
+                        role="menu"
+                        className="absolute left-0 mt-2 w-52 bg-white rounded-2xl shadow-xl border border-slate-200 py-1.5 z-30 animate-in fade-in zoom-in-95 duration-150"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                          Pipeline Stages
-                        </div>
-                        {['new', 'screening', 'interviewing', 'onboarding'].map((st) => (
+                        <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pipeline Stages</div>
+                        {/* The stages from Master Data, in their order: the same list as when the candidate was added */}
+                        {plainStages.map((st) => (
                           <button
-                            key={st}
+                            key={st.code}
                             type="button"
-                            onClick={() => handleStageSelect(st)}
-                            className={`w-full text-left px-3 py-1.5 text-xs font-medium hover:bg-slate-50 transition flex items-center justify-between capitalize ${
-                              candidate.stage === st ? 'text-blue-600 font-semibold bg-blue-50/50' : 'text-slate-700'
+                            role="menuitem"
+                            onClick={() => handleStageSelect(st.code)}
+                            className={`w-full text-left px-3 py-1.5 text-xs font-medium hover:bg-slate-50 transition flex items-center justify-between ${
+                              candidate.stage === st.code ? 'text-blue-600 font-semibold bg-blue-50/50' : 'text-slate-700'
                             }`}
                           >
-                            <span>{st}</span>
-                            {st === 'onboarding' && candidate.stage !== 'selected' && !candidate.converted_to_emp_id && (
-                              <span className="text-[10px] text-amber-600 font-normal ml-auto mr-1">(Select first)</span>
-                            )}
-                            {candidate.stage === st && <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />}
+                            <span>{st.label}</span>
+                            {candidate.stage === st.code && <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />}
                           </button>
                         ))}
-                        <div className="border-t border-slate-100 my-1"></div>
-                        <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                          Decisions (Form)
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleStageSelect('selected')}
-                          className="w-full text-left px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-50 transition flex items-center gap-2"
-                        >
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>Selected</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleStageSelect('on_hold')}
-                          className="w-full text-left px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-50 transition flex items-center gap-2"
-                        >
-                          <Clock className="w-3.5 h-3.5 text-amber-600" />
-                          <span>On Hold</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleStageSelect('rejected')}
-                          className="w-full text-left px-3 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-50 transition flex items-center gap-2"
-                        >
-                          <XCircle className="w-3.5 h-3.5 text-rose-600" />
-                          <span>Rejected</span>
-                        </button>
+                        {isAdmin && (
+                          <>
+                            <div className="border-t border-slate-100 my-1"></div>
+                            <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Decisions (Form)</div>
+                            <button
+                              type="button"
+                              role="menuitem"
+                              onClick={() => handleStageSelect('selected')}
+                              className="w-full text-left px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-50 transition flex items-center gap-2"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>Selected</span>
+                            </button>
+                            <button
+                              type="button"
+                              role="menuitem"
+                              onClick={() => handleStageSelect('on_hold')}
+                              className="w-full text-left px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-50 transition flex items-center gap-2"
+                            >
+                              <Clock className="w-3.5 h-3.5 text-amber-600" />
+                              <span>On Hold</span>
+                            </button>
+                            <button
+                              type="button"
+                              role="menuitem"
+                              onClick={() => handleStageSelect('rejected')}
+                              className="w-full text-left px-3 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-50 transition flex items-center gap-2"
+                            >
+                              <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                              <span>Rejected</span>
+                            </button>
+                            {isSelected && (
+                              <button
+                                type="button"
+                                role="menuitem"
+                                onClick={() => handleStageSelect('did_not_join')}
+                                className="w-full text-left px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition flex items-center gap-2"
+                              >
+                                <XCircle className="w-3.5 h-3.5 text-slate-500" />
+                                <span>Did not join</span>
+                              </button>
+                            )}
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
@@ -333,20 +372,50 @@ export const CandidateDetailPage: React.FC = () => {
                     </>
                   )}
                 </div>
+
+                {/* Who moves this candidate through the stages */}
+                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                  <User className="w-3.5 h-3.5 text-slate-400" />
+                  <span className="font-medium">Assigned to:</span>
+                  {isAdmin && !isConverted ? (
+                    <div className="w-64">
+                      <SearchableSelect
+                        id="candidate-assignee"
+                        options={employeeOptions
+                          .filter((e) => !e.status || e.status === 'Active')
+                          .map((e) => ({
+                            value: e.emp_id,
+                            label: e.employee_code ? `${e.name} (${e.employee_code})` : e.name,
+                            sublabel: e.email,
+                          }))}
+                        value={candidate.assigned_to_emp_id ?? undefined}
+                        onChange={(v) => handleAssign(v ? Number(v) : null)}
+                        placeholder="Not assigned"
+                        searchPlaceholder="Search employee..."
+                        disabled={assignMutation.isPending}
+                        clearable
+                      />
+                    </div>
+                  ) : (
+                    <span className="font-semibold text-slate-800">{candidate.assigned_to_name || 'Not assigned'}</span>
+                  )}
+                </div>
               </div>
             </div>
 
             {/* Quick Actions in Header */}
             <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
-              <button
-                type="button"
-                onClick={() => setIsEditCandidateModalOpen(true)}
-                className="px-3.5 py-2 text-xs font-semibold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                title="Edit Candidate Information"
-              >
-                <Edit className="w-3.5 h-3.5 text-slate-500" />
-                <span>Edit Candidate</span>
-              </button>
+              {isAdmin && !isConverted && (
+                <button
+                  type="button"
+                  onClick={() => setIsEditCandidateModalOpen(true)}
+                  className="px-3.5 py-2 text-xs font-semibold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                  title="Edit Candidate Information"
+                >
+                  <Edit className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Edit Candidate</span>
+                </button>
+              )}
 
               {candidate.resume_url && (
                 <a
@@ -361,7 +430,7 @@ export const CandidateDetailPage: React.FC = () => {
                 </a>
               )}
 
-              {!isConverted && (
+              {isAdmin && !isConverted && (
                 <button
                   type="button"
                   onClick={() => {
@@ -375,7 +444,7 @@ export const CandidateDetailPage: React.FC = () => {
                 </button>
               )}
 
-              {!isConverted && isSelected && (
+              {isAdmin && !isConverted && isSelected && (
                 <button
                   type="button"
                   onClick={() => setIsConvertModalOpen(true)}
@@ -386,7 +455,7 @@ export const CandidateDetailPage: React.FC = () => {
                 </button>
               )}
 
-              {isConverted && (
+              {isAdmin && isConverted && (
                 <>
                   <button
                     type="button"
@@ -493,7 +562,7 @@ export const CandidateDetailPage: React.FC = () => {
               <span className="px-1.5 py-0.2 rounded-md bg-slate-100 text-[10px] text-slate-600">1</span>
             )}
           </button>
-          {(isConverted || candidate.stage === 'onboarding') && (
+          {isAdmin && (isConverted || candidate.stage === 'onboarding') && (
             <>
               {/* Onboarding Checklist Tab matching BFD Image 1 & 4 */}
               <button
@@ -805,7 +874,7 @@ export const CandidateDetailPage: React.FC = () => {
                   <p className="text-xs text-slate-500">Record and status of the decision made by the administrator</p>
                 </div>
               </div>
-              {!isConverted && !isAlreadyActive && (
+              {isAdmin && !isConverted && !isAlreadyActive && (
                 <button
                   type="button"
                   onClick={() => {
@@ -839,7 +908,7 @@ export const CandidateDetailPage: React.FC = () => {
                       </p>
                     </div>
                   </div>
-                  {isConverted ? (
+                  {!isAdmin ? null : isConverted ? (
                     <button
                       type="button"
                       onClick={() => setActiveTab('documents')}
@@ -981,19 +1050,22 @@ export const CandidateDetailPage: React.FC = () => {
                 <Sparkles className="w-10 h-10 text-slate-300 mx-auto mb-2" />
                 <h4 className="text-sm font-semibold text-slate-700">No Final Decision Made Yet</h4>
                 <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-                  Candidate is currently in <strong>{badge.label}</strong> stage. Click 'Mark Decision' to record selection, hold, or rejection.
+                  Candidate is currently in <strong>{badge.label}</strong> stage.
+                  {isAdmin ? " Click 'Mark Decision' to record selection, hold, or rejection." : ' The Admin records the hiring decision.'}
                 </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDecisionInitialStage('selected');
-                    setIsDecisionModalOpen(true);
-                  }}
-                  className="mt-4 px-4 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-xl transition inline-flex items-center gap-1.5"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Mark Decision Now</span>
-                </button>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDecisionInitialStage('selected');
+                      setIsDecisionModalOpen(true);
+                    }}
+                    className="mt-4 px-4 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-xl transition inline-flex items-center gap-1.5"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Mark Decision Now</span>
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -1046,7 +1118,7 @@ export const CandidateDetailPage: React.FC = () => {
         )}
 
         {/* Tab 4: Onboarding Checklist matching BFD Section 8 */}
-        {activeTab === 'onboarding' && (
+        {isAdmin && activeTab === 'onboarding' && (
           <div className="space-y-6">
             {convertedEmpId && employeeData ? (
               <OnboardingChecklistTab
@@ -1096,7 +1168,7 @@ export const CandidateDetailPage: React.FC = () => {
         )}
 
         {/* Tab 5: Documents Management */}
-        {activeTab === 'documents' && (
+        {isAdmin && activeTab === 'documents' && (
           <div className="space-y-6">
             {convertedEmpId && employeeData ? (
               <EmployeeDocumentsTab
@@ -1151,7 +1223,10 @@ export const CandidateDetailPage: React.FC = () => {
         onClose={() => setIsDecisionModalOpen(false)}
         candidate={candidate}
         initialDecision={decisionInitialStage}
-        onSuccess={() => refetch()}
+        onSuccess={(updated) => {
+          refetch();
+          setNotice(decisionResultMessage(updated));
+        }}
       />
 
       {/* Convert to Employee Modal */}
@@ -1162,7 +1237,8 @@ export const CandidateDetailPage: React.FC = () => {
         onConverted={() => {
           setIsConvertModalOpen(false);
           refetch();
-          setActiveTab('documents');
+          setActiveTab('onboarding');
+          setNotice({ kind: 'success', text: `${candidate.name} is now an employee in Onboarding and appears in the Employees list.` });
         }}
       />
 
@@ -1212,6 +1288,6 @@ export const CandidateDetailPage: React.FC = () => {
         candidateToEdit={candidate}
         onSuccess={() => refetch()}
       />
-    </AdminLayout>
+    </PageShell>
   );
 };

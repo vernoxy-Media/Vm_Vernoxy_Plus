@@ -55,6 +55,9 @@ export interface CandidateProps {
   decisionDate?: Date | null;
   decisionBy?: number | null;
   decisionByName?: string | null;
+  // The employee the Admin handed this candidate to; they move it through the pipeline
+  assignedToEmpId?: number | null;
+  assignedToName?: string | null;
   createdBy?: number | null;
   createdAt?: Date;
   updatedAt?: Date;

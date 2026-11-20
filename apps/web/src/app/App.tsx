@@ -486,13 +486,14 @@ export const App: React.FC = () => {
                 }
               />
 
-              {/* Recruitment Module */}
+              {/* Recruitment Module. /recruitment is also open to an employee the Admin assigned candidates to: the page
+                  and the API show them only those candidates. */}
               <Route
                 path="/recruitment"
                 element={
-                  <AdminRoute>
+                  <ProtectedRoute>
                     <CandidatesPage />
-                  </AdminRoute>
+                  </ProtectedRoute>
                 }
               />
               <Route
@@ -506,9 +507,9 @@ export const App: React.FC = () => {
               <Route
                 path="/recruitment/:id"
                 element={
-                  <AdminRoute>
+                  <ProtectedRoute>
                     <CandidateDetailPage />
-                  </AdminRoute>
+                  </ProtectedRoute>
                 }
               />
               <Route
