@@ -62,14 +62,28 @@ describe('notificationLink', () => {
     expect(notificationLink('attendance_regularization_rejected', 12)).toBe('/attendance?tab=regularization');
   });
 
-  it('leads tasks, bugs, projects, calendar and sales to their pages', () => {
-    expect(notificationLink('task_assigned', 5)).toBe('/my-tasks');
-    expect(notificationLink('task_ready_for_qa', 5)).toBe('/my-tasks');
-    expect(notificationLink('bug_assigned', 5)).toBe('/my-tasks');
+  it('opens the task or bug itself', () => {
+    expect(notificationLink('task_assigned', 5, 'task')).toBe('/my-tasks?task=5');
+    expect(notificationLink('task_ready_for_qa', 5)).toBe('/my-tasks?task=5');
+    expect(notificationLink('task_assigned')).toBe('/my-tasks');
+    expect(notificationLink('bug_assigned', 5, 'bug')).toBe('/my-tasks?tab=bugs&bug=5');
+  });
+
+  it('leads projects, calendar and sales to their pages', () => {
     expect(notificationLink('project_member_added', 9)).toBe('/projects/9');
+    expect(notificationLink('project_discussion_mention', 9, 'project')).toBe('/projects/9');
     expect(notificationLink('calendar_invite', 3)).toBe('/calendar');
     expect(notificationLink('follow_up_assigned', 3)).toBe('/sales/follow-ups');
+    expect(notificationLink('client_converted', 11, 'LEAD')).toBe('/sales/leads/11');
+  });
+
+  it('sends an approver to the requests and the requester to their own list', () => {
+    expect(notificationLink('leave_submitted', 3, 'LEAVE_REQUEST')).toBe('/leave?tab=management');
     expect(notificationLink('leave_approved', 3)).toBe('/leave');
+    expect(notificationLink('expense_claim_submitted', 3, 'EXPENSE_CLAIM')).toBe('/expense?tab=claims');
+    expect(notificationLink('expense_claim_approved', 3, 'EXPENSE_CLAIM')).toBe('/expense');
+    expect(notificationLink('complaint_assigned', 3, 'COMPLAINT')).toBe('/complaints?tab=manage');
+    expect(notificationLink('complaint_resolved', 3, 'COMPLAINT')).toBe('/complaints');
   });
 
   it('falls back to the home page for a kind it does not know', () => {

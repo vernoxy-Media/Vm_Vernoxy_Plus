@@ -32,10 +32,18 @@ import { useSocket } from '@/shared/socket/SocketContext';
 import { useDebouncedSearch } from '../hooks/use-debounced-search';
 import { TaskManagementPage } from './TaskManagementPage';
 
-export const MyTasksView: React.FC = () => {
+export const MyTasksView: React.FC<{ initialTaskId?: number | null; onTaskClosed?: () => void }> = ({
+  initialTaskId = null,
+  onTaskClosed,
+}) => {
   const [filters, setFilters] = useState<TaskBoardQueryDto>({});
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
-  const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<number | null>(initialTaskId);
+
+  // A link such as /my-tasks?task=12 (from a notification) opens that task, also when the page is already open
+  React.useEffect(() => {
+    if (initialTaskId !== null) setSelectedTaskId(initialTaskId);
+  }, [initialTaskId]);
   const [isQuickTaskOpen, setIsQuickTaskOpen] = useState(false);
   const { socket } = useSocket();
 
@@ -207,7 +215,10 @@ export const MyTasksView: React.FC = () => {
         isOpen={selectedTaskId !== null}
         isAdmin={false}
         heading="My tasks"
-        onClose={() => setSelectedTaskId(null)}
+        onClose={() => {
+          setSelectedTaskId(null);
+          onTaskClosed?.();
+        }}
         onMoveStage={handleMoveStage}
         onTrackWorkSession={handleTrackWorkSession}
       />
@@ -232,11 +243,27 @@ export const MyTasksPage: React.FC = () => {
   const { data: rawEmployees } = useTasksControllerGetAssignableEmployees({ query: { enabled: isAdmin } });
   const people = (Array.isArray(rawEmployees) ? rawEmployees : Array.isArray((rawEmployees as any)?.data) ? (rawEmployees as any).data : []).map((e: any) => ({ id: e.emp_id as number, name: e.name as string, avatar: e.avatar_url as string | null }));
   const currentTab = searchParams.get('tab');
-  const activeTab = currentTab === 'bugs' ? 'bugs' : isAdmin && currentTab === 'management' ? 'management' : 'my-tasks';
+  // ?task=12 opens that task: an Admin's in Task management (it can open any task), anyone else's in My tasks
+  const linkedTaskId = Number(searchParams.get('task')) || null;
+  const linkedBugId = Number(searchParams.get('bug')) || null;
+  const activeTab =
+    currentTab === 'bugs'
+      ? 'bugs'
+      : isAdmin && (currentTab === 'management' || (linkedTaskId !== null && currentTab !== 'my-tasks'))
+        ? 'management'
+        : 'my-tasks';
 
   const handleTabChange = (tab: 'my-tasks' | 'bugs' | 'management') => {
     if (tab === 'my-tasks') setSearchParams({});
     else setSearchParams({ tab });
+  };
+
+  // Closing the linked task drops ?task from the address, so a reload does not open it again
+  const clearLinkedTask = () => {
+    if (!searchParams.has('task')) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete('task');
+    setSearchParams(next, { replace: true });
   };
 
   return (
@@ -253,11 +280,11 @@ export const MyTasksPage: React.FC = () => {
 
       {/* Tab Content */}
       {activeTab === 'management' && isAdmin ? (
-        <TaskManagementPage />
+        <TaskManagementPage initialTaskId={linkedTaskId} onTaskClosed={clearLinkedTask} />
       ) : activeTab === 'bugs' ? (
-        <MyBugsView isAdmin={isAdmin} people={people} />
+        <MyBugsView isAdmin={isAdmin} people={people} linkedBugId={linkedBugId} />
       ) : (
-        <MyTasksView />
+        <MyTasksView initialTaskId={linkedTaskId} onTaskClosed={clearLinkedTask} />
       )}
     </div>
   );

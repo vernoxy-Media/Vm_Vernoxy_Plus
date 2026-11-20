@@ -36,19 +36,51 @@ export function toPayload(p: PushPayload): PushPayload {
   return { title: clip(p.title.trim(), 80), body: clip(p.body.replace(/\s+/g, ' ').trim(), 180), url: p.url.startsWith('/') ? p.url : '/', ...(p.tag ? { tag: p.tag } : {}) };
 }
 
+// Notifications that ask the reader to act on someone else's request open the approver's view, not their own list
+const LEAVE_APPROVER_KINDS = new Set(['leave_submitted', 'leave_cancellation_requested', 'leave_review', 'leave_withdrawn']);
+const EXPENSE_APPROVER_KINDS = new Set([
+  'expense_claim_submitted',
+  'expense_claim_withdrawn',
+  'expense_approval_reminder',
+  'expense_approval_overdue',
+  'expense_weekly_summary',
+]);
+const COMPLAINT_HANDLER_KINDS = new Set([
+  'complaint_assigned',
+  'complaint_received',
+  'complaint_overdue',
+  'complaint_overdue_daily',
+  'complaint_review_reminder',
+  'complaint_handler_inactive',
+]);
+
 /**
- * Where a click on a notification leads. The same places as the bell and the pop-up inside the app, so a person
- * lands on the same page whichever way they open it.
+ * Where a click on a notification leads: the item it is about. The same places as the bell and the pop-up inside the
+ * app, so a person lands on the same page whichever way they open it.
+ * Keep in sync with `notificationPath` in apps/web/src/features/notifications/notification-link.ts.
  */
-export function notificationLink(kind: string, entityId?: number | null): string {
-  if (kind === 'attendance_regularization_requested' && entityId) return `/attendance?tab=regularization&request=${entityId}`;
-  if (kind.startsWith('attendance_regularization')) return '/attendance?tab=regularization';
-  if (kind.startsWith('project_') && entityId) return `/projects/${entityId}`;
-  if (kind.startsWith('task_') || kind.startsWith('bug_')) return '/my-tasks';
-  if (kind.startsWith('calendar_')) return '/calendar';
-  if (kind.startsWith('follow_up') || kind === 'lead_assigned') return '/sales/follow-ups';
-  if (kind.startsWith('leave_')) return '/leave';
-  if (kind.startsWith('expense_')) return '/expense';
+export function notificationLink(kind: string, entityId?: number | null, entityType?: string | null): string {
+  const type = (entityType ?? '').toUpperCase();
+  const id = entityId ?? null;
+  const withId = (path: string) => (id ? `${path}/${id}` : path);
+
+  if (kind.startsWith('attendance_regularization') || type === 'REGULARIZATION') {
+    return kind === 'attendance_regularization_requested' && id ? `/attendance?tab=regularization&request=${id}` : '/attendance?tab=regularization';
+  }
+  if (kind.startsWith('task_') || type === 'TASK') return id ? `/my-tasks?task=${id}` : '/my-tasks';
+  if (kind.startsWith('bug_') || type === 'BUG') return id ? `/my-tasks?tab=bugs&bug=${id}` : '/my-tasks?tab=bugs';
+  if (kind.startsWith('project_') || type === 'PROJECT') return withId('/projects');
+  if (kind.startsWith('calendar_') || type === 'CALENDAR_EVENT') return '/calendar';
+  if (kind.startsWith('follow_up') || kind === 'lead_assigned' || type === 'FOLLOW_UP') return '/sales/follow-ups';
+  if (kind === 'client_converted' || type === 'LEAD') return withId('/sales/leads');
+  if (kind.startsWith('leave_') || type === 'LEAVE_REQUEST') return LEAVE_APPROVER_KINDS.has(kind) ? '/leave?tab=management' : '/leave';
+  if (kind.startsWith('expense_') || type === 'EXPENSE_CLAIM') return EXPENSE_APPROVER_KINDS.has(kind) ? '/expense?tab=claims' : '/expense';
+  if (kind.startsWith('complaint_') || type.startsWith('COMPLAINT')) return COMPLAINT_HANDLER_KINDS.has(kind) ? '/complaints?tab=manage' : '/complaints';
+  if (kind.startsWith('perf_') || type.startsWith('PERF_')) return '/performance';
+  if (kind.startsWith('license_') || type === 'SOFTWARE_LICENSE') return kind.startsWith('license_seat_') || !id ? '/licenses?tab=my' : `/licenses/${id}`;
+  if (type === 'KB_ARTICLE' || type === 'KB_ARTICLE_VERSION') return id && type === 'KB_ARTICLE' ? `/knowledge-base/articles/${id}` : '/knowledge-base';
+  if (type === 'CANDIDATE') return withId('/recruitment');
+  if (kind === 'payroll_calculated') return '/admin/payroll';
   return '/';
 }
 

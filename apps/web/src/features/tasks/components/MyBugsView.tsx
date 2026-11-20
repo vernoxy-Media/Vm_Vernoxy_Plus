@@ -35,7 +35,11 @@ const today = () => new Date().toISOString().slice(0, 10);
 const niceDate = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
 /** Bugs from every project, as a Jira issue list. An employee sees theirs; an admin picks an employee or looks at everyone's. */
-export const MyBugsView: React.FC<{ isAdmin?: boolean; people?: FilterPerson[] }> = ({ isAdmin = false, people = [] }) => {
+export const MyBugsView: React.FC<{ isAdmin?: boolean; people?: FilterPerson[]; linkedBugId?: number | null }> = ({
+  isAdmin = false,
+  people = [],
+  linkedBugId = null,
+}) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { priority: priorityMeta } = useBugMeta();
@@ -59,6 +63,14 @@ export const MyBugsView: React.FC<{ isAdmin?: boolean; people?: FilterPerson[] }
       live = false;
     };
   }, [isAdmin, employee]);
+
+  // /my-tasks?tab=bugs&bug=9 (from a notification) opens that bug in its project. A notification only knows the bug, so
+  // its project comes from this list; a bug that is not in it simply leaves the list on screen.
+  useEffect(() => {
+    if (!linkedBugId || !bugs) return;
+    const target = bugs.find((b) => b.bug_id === linkedBugId);
+    if (target) navigate(`/projects/${target.project_id}?bug=${target.bug_id}`, { replace: true });
+  }, [linkedBugId, bugs, navigate]);
 
   const projects = useMemo(() => {
     const m = new Map<number, string>();
