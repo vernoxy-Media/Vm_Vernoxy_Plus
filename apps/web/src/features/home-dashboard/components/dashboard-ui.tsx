@@ -21,6 +21,7 @@ export const BAR_BLUE = '#2a78d6';
 export const TASK_STAGE_LABEL: Record<string, string> = {
   assigned: 'To Do',
   in_progress: 'In Progress',
+  in_qa: 'In QA',
   hold: 'On Hold',
   requested: 'In Review',
   completed: 'Done',
@@ -116,7 +117,7 @@ export const priorityTone = (p: string | null | undefined): PillTone => {
 };
 
 export const stageTone = (stage: string): PillTone =>
-  ({ assigned: 'slate', in_progress: 'blue', hold: 'amber', requested: 'purple', completed: 'emerald' } as Record<string, PillTone>)[stage] ?? 'slate';
+  ({ assigned: 'slate', in_progress: 'blue', in_qa: 'amber', hold: 'amber', requested: 'purple', completed: 'emerald' } as Record<string, PillTone>)[stage] ?? 'slate';
 
 // ---------------------------------------------------------------------------
 // Panel, KPI and empty state

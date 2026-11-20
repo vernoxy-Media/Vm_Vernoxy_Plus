@@ -20,6 +20,7 @@ export const PROJECT_STATUS_COLOR: Record<string, string> = Object.fromEntries(A
 export const TASK_STAGE_COLOR: Record<string, string> = {
   assigned: '#38bdf8',
   in_progress: '#2563eb',
+  in_qa: '#eab308',
   hold: '#f97316',
   requested: '#a855f7',
   completed: '#22c55e',

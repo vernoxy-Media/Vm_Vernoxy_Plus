@@ -80,6 +80,7 @@ export class PrismaHomeDashboardRepository implements HomeDashboardRepositoryPor
         JOIN task_assignees ta_chk ON ta_chk.task_id = st_chk.task_id AND ta_chk.deleted_at IS NULL
         WHERE st_chk.parent_task_id = t.task_id AND ta_chk.employee_id = ${empId}))
       OR (t.source = 'quick' AND t.created_by = ${empId})
+      OR (t.qa_assignee_id = ${empId} AND t.stage IN ('in_qa', 'requested', 'completed'))
     )`;
   }
 
@@ -162,7 +163,8 @@ export class PrismaHomeDashboardRepository implements HomeDashboardRepositoryPor
     const [r] = await this.prisma.$queryRaw<Row[]>`
       SELECT
         count(*)::int AS total,
-        count(*) FILTER (WHERE t.stage IN ('assigned', 'in_progress'))::int AS todo_in_progress,
+        -- In QA counts as in progress, the same as the Tasks page does
+        count(*) FILTER (WHERE t.stage IN ('assigned', 'in_progress', 'in_qa'))::int AS todo_in_progress,
         count(*) FILTER (WHERE t.stage = 'hold')::int AS on_hold,
         count(*) FILTER (WHERE t.stage = 'requested')::int AS in_review,
         count(*) FILTER (WHERE t.stage = 'completed')::int AS done,
