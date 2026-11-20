@@ -56,13 +56,14 @@ export const WorkOverview: React.FC<{ data: HomeDashboardData }> = ({ data }) =>
   return (
     <section aria-label="My Work Overview" className="space-y-3">
       <SectionHeading title="My Work Overview" />
-      <div className={kpiGrid(6)}>
+      <div className={kpiGrid(7)}>
         <KpiLink to="/my-tasks" label="My Total Tasks" value={k.total} icon={ListTodo} tone="blue" hint="Own and assigned tasks" />
         <KpiLink to="/my-tasks" label="To Do / In Progress" value={k.todo_in_progress} icon={CircleDot} tone="blue" />
         <KpiLink to="/my-tasks" label="On Hold" value={k.on_hold} icon={PauseCircle} tone="amber" />
         <KpiLink to="/my-tasks" label="In Review" value={k.in_review} icon={Eye} tone="purple" />
+        <KpiLink to="/my-tasks" label="Done" value={k.done} icon={CheckCircle2} tone="emerald" hint="Completed tasks" />
         <KpiLink to="/my-tasks" label="Overdue" value={k.overdue} icon={AlertOctagon} tone="rose" hint="Past due, not done" />
-        <KpiLink to="/my-tasks" label="Due Today" value={k.due_today} icon={CalendarClock} tone="emerald" hint={`${k.done} done in total`} />
+        <KpiLink to="/my-tasks" label="Due Today" value={k.due_today} icon={CalendarClock} tone="emerald" hint="Not done, due today" />
       </div>
     </section>
   );
@@ -89,6 +90,8 @@ export const MyTasksCard: React.FC<{ data: HomeDashboardData; className?: string
                 <p className="truncate text-xs font-medium text-slate-500">
                   {t.task_code}
                   {t.project_name ? ` · ${t.project_name}` : ''}
+                  {t.start_date ? ` · Start ${fmtDate(t.start_date)}` : ''}
+                  {t.allocated_minutes ? ` · ${Math.round((t.allocated_minutes / 60) * 10) / 10} h` : ''}
                 </p>
               </div>
               <Pill tone={priorityTone(t.priority)}>{titleCase(t.priority)}</Pill>
@@ -120,6 +123,7 @@ export const RecentProjectsCard: React.FC<{ data: HomeDashboardData; className?:
               </div>
               <p className="mb-1.5 text-xs font-medium text-slate-500">
                 {PROJECT_STATUS_LABEL[p.project_status] ?? titleCase(p.project_status)} · Deadline {fmtDate(p.deadline)}
+                {p.updated_at ? ` · Updated ${relTime(p.updated_at)}` : ''}
               </p>
               <ProgressBar value={p.progress} />
             </Link>

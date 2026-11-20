@@ -245,12 +245,12 @@ export interface Column<T> {
 }
 
 /** A compact table that scrolls inside its card on small screens; a row opens its detail screen. */
-export function DataTable<T>({ columns, rows, rowKey, rowTo }: { columns: Column<T>[]; rows: T[]; rowKey: (r: T) => string | number; rowTo?: (r: T) => string | null }) {
+export function DataTable<T>({ columns, rows, rowKey, rowTo, minWidth = 520 }: { columns: Column<T>[]; rows: T[]; rowKey: (r: T) => string | number; rowTo?: (r: T) => string | null; minWidth?: number }) {
   const navigate = useNavigate();
   if (rows.length === 0) return <EmptyLine />;
   return (
     <div className="-mx-4 overflow-x-auto px-4 sm:-mx-5 sm:px-5">
-      <table className="w-full min-w-[520px] text-left text-xs">
+      <table className="w-full text-left text-xs" style={{ minWidth }}>
         <thead>
           <tr className="border-b border-slate-100 text-[10px] font-bold uppercase tracking-wider text-slate-400">
             {columns.map((c) => (

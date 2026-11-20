@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../core/prisma/prisma.service';
+import { getPayrollSection, getPeopleSection } from './people-queries';
 import {
   AdminSection,
   AssignedComplaintsSection,
@@ -20,6 +21,9 @@ import {
   ExpenseApprovalsSection,
   HomeDashboardRepositoryPort,
   ManagedProjectsSection,
+  PayrollSection,
+  PeopleScope,
+  PeopleSection,
   SalesSection,
   TaskKpis,
 } from '../application/ports/home-dashboard.repository.port';
@@ -141,6 +145,14 @@ export class PrismaHomeDashboardRepository implements HomeDashboardRepositoryPor
     };
   }
 
+  getPeopleSection(scope: PeopleScope): Promise<PeopleSection> {
+    return getPeopleSection(this.prisma, scope);
+  }
+
+  getPayrollSection(): Promise<PayrollSection> {
+    return getPayrollSection(this.prisma);
+  }
+
   async getAssignments(empId: number): Promise<DashboardAssignments> {
     const [r] = await this.prisma.$queryRaw<Row[]>`
       SELECT
@@ -187,7 +199,7 @@ export class PrismaHomeDashboardRepository implements HomeDashboardRepositoryPor
   async getMyTasks(empId: number, limit: number): Promise<DashboardTaskItem[]> {
     const rows = await this.prisma.$queryRaw<Row[]>`
       SELECT t.task_id, t.task_code, t.title, t.project_id, pr.project_name, t.priority::text AS priority, t.stage::text AS stage,
-             to_char(t.due_date, 'YYYY-MM-DD') AS due_date,
+             to_char(t.due_date, 'YYYY-MM-DD') AS due_date, to_char(t.start_date, 'YYYY-MM-DD') AS start_date, t.allocated_minutes,
              CASE WHEN t.due_date = CURRENT_DATE THEN 'today'
                   WHEN t.due_date < CURRENT_DATE THEN 'overdue'
                   WHEN t.due_date > CURRENT_DATE THEN 'upcoming'
@@ -210,11 +222,13 @@ export class PrismaHomeDashboardRepository implements HomeDashboardRepositoryPor
       priority: r.priority,
       stage: r.stage,
       due_date: r.due_date ?? null,
+      start_date: r.start_date ?? null,
+      allocated_minutes: numOrNull(r.allocated_minutes),
       bucket: r.bucket,
     }));
   }
 
-  /** VM-004 rule 3: accessible open projects, nearest deadline first. */
+  /** VM-004 rule 3: accessible open projects, nearest deadline first. Admin (section 01): last updated first. */
   async getRecentProjects(viewer: DashboardViewer, limit: number): Promise<DashboardProjectItem[]> {
     const rows = await this.prisma.$queryRaw<Row[]>`
       SELECT p.project_id, p.project_no, p.project_name, p.project_status::text AS project_status,
@@ -223,7 +237,7 @@ export class PrismaHomeDashboardRepository implements HomeDashboardRepositoryPor
       FROM projects p
       ${this.projectProgressJoin}
       WHERE p.deleted_at IS NULL AND p.project_status NOT IN ('delivered', 'cancelled') AND ${this.projectAccess(viewer)}
-      ORDER BY p.deadline ASC NULLS LAST, p.project_id ASC
+      ORDER BY ${viewer.is_admin ? Prisma.sql`COALESCE(p.updated_at, p.created_at) DESC, p.project_id DESC` : Prisma.sql`p.deadline ASC NULLS LAST, p.project_id ASC`}
       LIMIT ${limit}`;
     return rows.map((r) => this.toProject(r));
   }
@@ -503,7 +517,7 @@ export class PrismaHomeDashboardRepository implements HomeDashboardRepositoryPor
 
   async getManagedProjects(empId: number): Promise<ManagedProjectsSection> {
     const managed = Prisma.sql`p.project_manager_id = ${empId} AND p.deleted_at IS NULL`;
-    const [[c], [tk], stages, projects, progressRows, overdue, workload] = await Promise.all([
+    const [[c], [tk], stages, projects, progressRows, overdue, workload, priorities, awaiting, upcoming, sprints] = await Promise.all([
       this.prisma.$queryRaw<Row[]>`
         SELECT count(*)::int AS managed,
                count(*) FILTER (WHERE p.project_status = 'in_progress')::int AS in_progress,
@@ -556,6 +570,46 @@ export class PrismaHomeDashboardRepository implements HomeDashboardRepositoryPor
         GROUP BY e.emp_id, e.name
         ORDER BY pending DESC, e.name ASC
         LIMIT 8`,
+      this.prisma.$queryRaw<Row[]>`
+        SELECT t.priority::text AS key, count(*)::int AS count
+        FROM tasks t JOIN projects p ON p.project_id = t.project_id
+        WHERE ${managed} AND t.deleted_at IS NULL AND t.parent_task_id IS NULL AND t.stage <> 'completed'
+        GROUP BY t.priority ORDER BY t.priority`,
+      this.prisma.$queryRaw<Row[]>`
+        SELECT t.task_id, t.title, p.project_id, p.project_name, t.stage::text AS stage, to_char(t.due_date, 'YYYY-MM-DD') AS due_date,
+               t.requested_at AS submitted_at,
+               (SELECT string_agg(e.name, ', ' ORDER BY e.name) FROM task_assignees ta JOIN employees e ON e.emp_id = ta.employee_id
+                WHERE ta.task_id = t.task_id AND ta.deleted_at IS NULL) AS assignees
+        FROM tasks t JOIN projects p ON p.project_id = t.project_id
+        WHERE ${managed} AND t.deleted_at IS NULL AND t.parent_task_id IS NULL AND t.stage = 'requested'
+        ORDER BY t.requested_at ASC NULLS LAST, t.task_id ASC
+        LIMIT 5`,
+      this.prisma.$queryRaw<Row[]>`
+        SELECT * FROM (
+          SELECT 'task' AS kind, t.task_id AS id, t.title, p.project_id,
+                 (SELECT string_agg(e.name, ', ' ORDER BY e.name) FROM task_assignees ta JOIN employees e ON e.emp_id = ta.employee_id
+                  WHERE ta.task_id = t.task_id AND ta.deleted_at IS NULL) AS owner,
+                 to_char(t.due_date, 'YYYY-MM-DD') AS date_text, t.stage::text AS status, t.due_date::timestamptz AS sort_at
+          FROM tasks t JOIN projects p ON p.project_id = t.project_id
+          WHERE ${managed} AND t.deleted_at IS NULL AND t.parent_task_id IS NULL AND t.stage <> 'completed' AND t.due_date >= CURRENT_DATE
+          UNION ALL
+          SELECT 'project', p.project_id, p.project_name, p.project_id, m.name, to_char(p.deadline, 'YYYY-MM-DD'),
+                 p.project_status::text, p.deadline::timestamptz
+          FROM projects p LEFT JOIN employees m ON m.emp_id = p.project_manager_id
+          WHERE ${managed} AND p.project_status NOT IN ('delivered', 'cancelled') AND p.deadline >= CURRENT_DATE
+        ) x
+        ORDER BY x.sort_at ASC, x.kind ASC, x.id ASC
+        LIMIT 5`,
+      this.prisma.$queryRaw<Row[]>`
+        SELECT s.sprint_id, s.sprint_name, p.project_id, p.project_name,
+               to_char(s.start_date, 'YYYY-MM-DD') AS start_date, to_char(s.end_date, 'YYYY-MM-DD') AS end_date,
+               (SELECT count(*)::int FROM tasks t WHERE t.sprint_id = s.sprint_id AND t.deleted_at IS NULL AND t.parent_task_id IS NULL) AS task_count,
+               (SELECT count(*)::int FROM tasks t WHERE t.sprint_id = s.sprint_id AND t.deleted_at IS NULL AND t.parent_task_id IS NULL
+                  AND t.stage = 'completed') AS done_count
+        FROM project_sprints s JOIN projects p ON p.project_id = s.project_id
+        WHERE ${managed} AND s.deleted_at IS NULL AND s.end_date >= CURRENT_DATE
+        ORDER BY s.start_date ASC, s.sprint_id ASC
+        LIMIT 5`,
     ]);
 
     const withTasks = progressRows.filter((r) => num(r.task_total) > 0);
@@ -587,6 +641,36 @@ export class PrismaHomeDashboardRepository implements HomeDashboardRepositoryPor
         pending: num(r.pending),
         overdue: num(r.overdue),
         allocated_minutes: num(r.allocated_minutes),
+      })),
+      priorities: counts(priorities),
+      awaiting_list: awaiting.map((r) => ({
+        task_id: num(r.task_id),
+        title: r.title,
+        assignees: r.assignees ?? null,
+        project_id: num(r.project_id),
+        project_name: r.project_name,
+        submitted_at: iso(r.submitted_at),
+        stage: r.stage,
+        due_date: r.due_date ?? null,
+      })),
+      upcoming: upcoming.map((r) => ({
+        kind: r.kind,
+        id: num(r.id),
+        title: r.title,
+        project_id: num(r.project_id),
+        owner: r.owner ?? null,
+        date: r.date_text,
+        status: r.status,
+      })),
+      sprints: sprints.map((r) => ({
+        sprint_id: num(r.sprint_id),
+        sprint_name: r.sprint_name,
+        project_id: num(r.project_id),
+        project_name: r.project_name,
+        start_date: r.start_date,
+        end_date: r.end_date,
+        task_count: num(r.task_count),
+        done_count: num(r.done_count),
       })),
     };
   }
@@ -687,6 +771,15 @@ export class PrismaHomeDashboardRepository implements HomeDashboardRepositoryPor
       attention,
       recentLeads,
       complaintQueue,
+      monthlyCandidates,
+      leadSources,
+      [won],
+      projectProgress,
+      [attendanceToday],
+      upcomingLeave,
+      onboarding,
+      [payrollExtra],
+      payrollWarnings,
     ] = await Promise.all([
       q(Prisma.sql`
         SELECT count(*)::int AS total,
@@ -795,7 +888,8 @@ export class PrismaHomeDashboardRepository implements HomeDashboardRepositoryPor
         LIMIT 5`),
       q(Prisma.sql`
         SELECT l.lead_id, COALESCE(l.company_name, co.name) AS company, o.name AS owner_name, l.lead_stage,
-               l.next_follow_up_at, COALESCE(l.updated_at, l.created_at) AS updated_at
+               l.next_follow_up_at, COALESCE(l.updated_at, l.created_at) AS updated_at,
+               (SELECT max(cc.communication_date) FROM crm_communications cc WHERE cc.lead_id = l.lead_id AND cc.deleted_at IS NULL) AS last_conversation_at
         FROM leads l
         LEFT JOIN companies co ON co.company_id = l.company_id
         LEFT JOIN employees o ON o.emp_id = l.lead_by_id
@@ -811,6 +905,81 @@ export class PrismaHomeDashboardRepository implements HomeDashboardRepositoryPor
         WHERE c.deleted_at IS NULL AND c.status = ANY(${OPEN_COMPLAINT_STATUSES}::text[])
         ORDER BY c.target_date ASC NULLS LAST, c.complaint_id ASC
         LIMIT 5`),
+      // Last six months: candidates added, and candidates who joined (by the joining date of the employee they became)
+      q(Prisma.sql`
+        SELECT to_char(m.month, 'YYYY-MM') AS month,
+               (SELECT count(*)::int FROM candidates c WHERE date_trunc('month', c.created_at) = m.month) AS added,
+               (SELECT count(*)::int FROM candidates c JOIN employees e ON e.emp_id = c.converted_to_emp_id
+                 WHERE date_trunc('month', e.joining_date::timestamptz) = m.month) AS joined
+        FROM generate_series(date_trunc('month', now()) - interval '5 months', date_trunc('month', now()), interval '1 month') AS m(month)
+        ORDER BY m.month`),
+      q(Prisma.sql`
+        SELECT COALESCE(NULLIF(btrim(l.lead_source), ''), 'Unknown') AS key, count(*)::int AS count
+        FROM leads l WHERE l.deleted_at IS NULL GROUP BY 1 ORDER BY 2 DESC, 1 ASC LIMIT 8`),
+      q(Prisma.sql`
+        SELECT
+          (SELECT count(*)::int FROM clients cl WHERE cl.deleted_at IS NULL
+             AND date_trunc('month', cl.won_on) = date_trunc('month', (now() AT TIME ZONE ${APP_TIMEZONE})::date)) AS won_this_month,
+          (SELECT count(*)::int FROM clients cl WHERE cl.deleted_at IS NULL
+             AND date_trunc('year', cl.won_on) = date_trunc('year', (now() AT TIME ZONE ${APP_TIMEZONE})::date)) AS won_this_year,
+          (SELECT count(*)::int FROM companies co WHERE co.deleted_at IS NULL AND co.is_client = true) AS companies_converted`),
+      // Progress as the Projects module computes it; the projects that are furthest behind come first
+      q(Prisma.sql`
+        SELECT p.project_id, p.project_name, p.project_status::text AS project_status, to_char(p.deadline, 'YYYY-MM-DD') AS deadline,
+               pt.total AS task_total, pt.done AS task_done
+        FROM projects p ${this.projectProgressJoin}
+        WHERE p.deleted_at IS NULL AND p.project_status NOT IN ('delivered', 'cancelled')
+        ORDER BY CASE WHEN pt.total > 0 THEN pt.done::float / pt.total ELSE 0 END ASC, p.deadline ASC, p.project_id ASC
+        LIMIT 8`),
+      // Today across all active employees (India time)
+      q(Prisma.sql`
+        SELECT
+          (SELECT count(*)::int FROM employees e WHERE e.deleted_at IS NULL AND e.status = 'Active') AS active,
+          (SELECT count(DISTINCT a.emp_id)::int FROM attendance_days a JOIN employees e ON e.emp_id = a.emp_id AND e.deleted_at IS NULL AND e.status = 'Active'
+            WHERE a.deleted_at IS NULL AND a.work_date = (now() AT TIME ZONE ${APP_TIMEZONE})::date AND a.check_in_at IS NOT NULL) AS checked_in,
+          (SELECT count(DISTINCT a.emp_id)::int FROM attendance_days a JOIN employees e ON e.emp_id = a.emp_id AND e.deleted_at IS NULL AND e.status = 'Active'
+            WHERE a.deleted_at IS NULL AND a.work_date = (now() AT TIME ZONE ${APP_TIMEZONE})::date AND a.check_in_at IS NOT NULL
+              AND a.check_out_at IS NULL) AS still_working,
+          (SELECT count(DISTINCT d.emp_id)::int FROM leave_request_days d JOIN leave_requests r ON r.request_id = d.request_id
+            JOIN employees e ON e.emp_id = d.emp_id AND e.deleted_at IS NULL AND e.status = 'Active'
+            WHERE r.status = 'APPROVED' AND d.leave_date = (now() AT TIME ZONE ${APP_TIMEZONE})::date) AS on_leave`),
+      q(Prisma.sql`
+        SELECT r.request_id, e.name AS employee_name, dep.name AS department_name, t.name AS leave_type_name,
+               to_char(min(d.leave_date), 'YYYY-MM-DD') AS from_date, to_char(max(d.leave_date), 'YYYY-MM-DD') AS to_date,
+               COALESCE(sum(d.day_fraction), 0)::float8 AS days
+        FROM leave_request_days d
+        JOIN leave_requests r ON r.request_id = d.request_id
+        JOIN employees e ON e.emp_id = d.emp_id AND e.deleted_at IS NULL
+        LEFT JOIN departments dep ON dep.dep_id = e.dep_id
+        LEFT JOIN leave_types t ON t.leave_type_id = r.leave_type_id
+        WHERE r.status = 'APPROVED' AND d.leave_date >= (now() AT TIME ZONE ${APP_TIMEZONE})::date
+        GROUP BY r.request_id, e.name, dep.name, t.name
+        ORDER BY min(d.leave_date) ASC, r.request_id ASC
+        LIMIT 5`),
+      q(Prisma.sql`
+        SELECT e.emp_id, e.name, r.role_name, d.name AS department_name, to_char(e.joining_date, 'YYYY-MM-DD') AS joining_date
+        FROM employees e
+        LEFT JOIN roles r ON r.role_id = e.role_id
+        LEFT JOIN departments d ON d.dep_id = e.dep_id
+        WHERE e.deleted_at IS NULL AND e.status = 'Onboarding'
+        ORDER BY e.joining_date DESC, e.emp_id DESC
+        LIMIT 5`),
+      // Payroll run in progress: how many employee rows are calculated, and how many carry a check (the Payroll module's own rule)
+      q(Prisma.sql`
+        SELECT count(*) FILTER (WHERE pe.calculated_at IS NOT NULL)::int AS processed,
+               count(*) FILTER (WHERE pe.flag IN ('ERROR', 'WARNING', 'JOINED_IN_MONTH', 'LEFT_IN_MONTH'))::int AS warnings
+        FROM payroll_employees pe
+        WHERE pe.payroll_run_id = (SELECT payroll_run_id FROM payroll_runs ORDER BY payroll_year DESC, payroll_month DESC LIMIT 1)`),
+      q(Prisma.sql`
+        SELECT pr.payroll_month, pr.payroll_year, pr.status::text AS run_status, pe.employee_code, pe.employee_name,
+               COALESCE(NULLIF(btrim(pe.validation_message), ''),
+                        CASE pe.flag WHEN 'JOINED_IN_MONTH' THEN 'Joined in month' WHEN 'LEFT_IN_MONTH' THEN 'Left in month' ELSE 'Calculation check' END) AS warning_type
+        FROM payroll_employees pe
+        JOIN payroll_runs pr ON pr.payroll_run_id = pe.payroll_run_id
+        WHERE pr.payroll_run_id = (SELECT payroll_run_id FROM payroll_runs ORDER BY payroll_year DESC, payroll_month DESC LIMIT 1)
+          AND pe.flag IN ('ERROR', 'WARNING', 'JOINED_IN_MONTH', 'LEFT_IN_MONTH')
+        ORDER BY (pe.flag = 'ERROR') DESC, pe.employee_name ASC
+        LIMIT 5`),
     ]);
 
     const statuses = counts(projStatuses);
@@ -819,7 +988,12 @@ export class PrismaHomeDashboardRepository implements HomeDashboardRepositoryPor
     return {
       employees: { total: num(emp?.total), active: num(emp?.active), inactive: num(emp?.inactive), onboarding: num(emp?.onboarding) },
       department_distribution: counts(deps),
-      recruitment: { total: num(cand?.total), open: num(cand?.open), stages: counts(candStages) },
+      recruitment: {
+        total: num(cand?.total),
+        open: num(cand?.open),
+        stages: counts(candStages),
+        monthly: monthlyCandidates.map((r) => ({ month: r.month, added: num(r.added), joined: num(r.joined) })),
+      },
       projects: {
         total: statuses.reduce((s, x) => s + x.count, 0),
         in_progress: statusCount('in_progress'),
@@ -844,6 +1018,10 @@ export class PrismaHomeDashboardRepository implements HomeDashboardRepositoryPor
         stages: counts(leadStages),
         follow_ups_today: num(sales?.follow_ups_today),
         follow_ups_overdue: num(sales?.follow_ups_overdue),
+        lead_sources: counts(leadSources),
+        companies_converted: num(won?.companies_converted),
+        won_this_month: num(won?.won_this_month),
+        won_this_year: num(won?.won_this_year),
       },
       leave: { pending: num(leave?.pending), cancellation_requests: num(leave?.cancellation_requests) },
       payroll: payroll
@@ -852,6 +1030,8 @@ export class PrismaHomeDashboardRepository implements HomeDashboardRepositoryPor
             payroll_year: num(payroll.payroll_year),
             status: payroll.status,
             total_employees: num(payroll.total_employees),
+            processed: num(payrollExtra?.processed),
+            warnings: num(payrollExtra?.warnings),
             total_salary: num(payroll.total_salary),
             attendance_locked: payroll.attendance_locked === true,
           }
@@ -900,7 +1080,43 @@ export class PrismaHomeDashboardRepository implements HomeDashboardRepositoryPor
         owner_name: r.owner_name ?? null,
         lead_stage: r.lead_stage ?? null,
         next_follow_up_at: iso(r.next_follow_up_at),
+        last_conversation_at: iso(r.last_conversation_at),
         updated_at: iso(r.updated_at),
+      })),
+      project_progress: projectProgress.map((r) => {
+        const p = this.toProject(r);
+        return { project_id: p.project_id, project_name: r.project_name, project_status: p.project_status, progress: p.progress, deadline: r.deadline ?? null };
+      }),
+      attendance_today: {
+        active: num(attendanceToday?.active),
+        checked_in: num(attendanceToday?.checked_in),
+        still_working: num(attendanceToday?.still_working),
+        on_leave: num(attendanceToday?.on_leave),
+        not_yet_in: Math.max(num(attendanceToday?.active) - num(attendanceToday?.checked_in) - num(attendanceToday?.on_leave), 0),
+      },
+      upcoming_leave: upcomingLeave.map((r) => ({
+        request_id: num(r.request_id),
+        employee_name: r.employee_name,
+        department_name: r.department_name ?? null,
+        leave_type_name: r.leave_type_name ?? null,
+        from_date: r.from_date,
+        to_date: r.to_date,
+        days: num(r.days),
+      })),
+      onboarding: onboarding.map((r) => ({
+        emp_id: num(r.emp_id),
+        name: r.name,
+        role_name: r.role_name ?? null,
+        department_name: r.department_name ?? null,
+        joining_date: r.joining_date ?? null,
+      })),
+      payroll_warnings: payrollWarnings.map((r) => ({
+        payroll_month: num(r.payroll_month),
+        payroll_year: num(r.payroll_year),
+        run_status: r.run_status,
+        employee_code: r.employee_code,
+        employee_name: r.employee_name,
+        warning_type: r.warning_type,
       })),
       complaint_queue: complaintQueue.map((r) => ({
         complaint_id: num(r.complaint_id),
@@ -932,7 +1148,7 @@ export class PrismaHomeDashboardRepository implements HomeDashboardRepositoryPor
     const followUpOverdue = Prisma.sql`(f.status = 'Overdue' OR (f.status = 'Pending' AND f.follow_up_on < ${overdueBefore}))`;
     const myLead = Prisma.sql`l.deleted_at IS NULL AND l.lead_by_id = ${empId}`;
 
-    const [[c], stages, leads, followUps] = await Promise.all([
+    const [[c], stages, leads, followUps, [fc], recentCompanies, recentClients] = await Promise.all([
       q(Prisma.sql`
         SELECT
           (SELECT count(*)::int FROM companies co WHERE co.deleted_at IS NULL) AS companies,
@@ -946,6 +1162,7 @@ export class PrismaHomeDashboardRepository implements HomeDashboardRepositoryPor
              AND f.follow_up_on >= ${today.from} AND f.follow_up_on < ${today.to} AND NOT ${followUpOverdue}) AS follow_ups_today,
           (SELECT count(*)::int FROM crm_follow_ups f WHERE ${followUpScope} AND ${followUpOverdue}) AS follow_ups_overdue,
           (SELECT count(*)::int FROM clients cl WHERE cl.deleted_at IS NULL AND cl.owner_id = ${empId}) AS my_clients,
+          (SELECT count(*)::int FROM companies co WHERE co.deleted_at IS NULL AND co.is_client = true) AS companies_converted,
           (SELECT count(*)::int FROM clients cl WHERE cl.deleted_at IS NULL AND cl.owner_id = ${empId}
              AND date_trunc('month', cl.won_on) = date_trunc('month', (now() AT TIME ZONE ${APP_TIMEZONE})::date)) AS won_this_month,
           (SELECT count(*)::int FROM clients cl WHERE cl.deleted_at IS NULL AND cl.owner_id = ${empId}
@@ -955,7 +1172,8 @@ export class PrismaHomeDashboardRepository implements HomeDashboardRepositoryPor
         WHERE ${myLead} GROUP BY 1 ORDER BY 2 DESC`),
       q(Prisma.sql`
         SELECT l.lead_id, COALESCE(l.company_name, co.name) AS company, l.contact_person AS contact, l.lead_stage,
-               l.lead_source, l.next_follow_up_at
+               l.lead_source, l.service_fit, l.next_follow_up_at,
+               (SELECT max(cc.communication_date) FROM crm_communications cc WHERE cc.lead_id = l.lead_id AND cc.deleted_at IS NULL) AS last_conversation_at
         FROM leads l LEFT JOIN companies co ON co.company_id = l.company_id
         WHERE ${myLead} AND l.lead_stage = ANY(${OPEN_LEAD_STAGES}::text[])
         ORDER BY l.next_follow_up_at ASC NULLS LAST, COALESCE(l.updated_at, l.created_at) DESC
@@ -963,12 +1181,42 @@ export class PrismaHomeDashboardRepository implements HomeDashboardRepositoryPor
       q(Prisma.sql`
         SELECT f.follow_up_id, f.lead_id, COALESCE(fl.company_name, co.name) AS company, f.contact_person_name AS contact,
                f.type, f.follow_up_on, f.purpose,
-               CASE WHEN ${followUpOverdue} THEN 'Overdue' ELSE f.status END AS status
+               CASE WHEN ${followUpOverdue} THEN 'Overdue' ELSE f.status END AS status, asg.name AS assigned_to_name
         FROM crm_follow_ups f
+        LEFT JOIN employees asg ON asg.emp_id = f.assigned_to
         LEFT JOIN leads fl ON fl.lead_id = f.lead_id
         LEFT JOIN companies co ON co.company_id = COALESCE(f.company_id, fl.company_id)
         WHERE ${followUpScope} AND f.status IN ('Pending', 'Overdue')
         ORDER BY f.follow_up_on ASC, f.follow_up_id ASC
+        LIMIT 5`),
+      // The five statuses of the Follow-ups screen, within the person's own scope
+      q(Prisma.sql`
+        SELECT
+          count(*) FILTER (WHERE f.status IN ('Pending', 'Overdue') AND f.follow_up_on >= ${today.from} AND f.follow_up_on < ${today.to}
+                             AND NOT ${followUpOverdue})::int AS today,
+          count(*) FILTER (WHERE ${followUpOverdue})::int AS overdue,
+          count(*) FILTER (WHERE f.status IN ('Pending', 'Overdue') AND f.follow_up_on >= ${today.to})::int AS upcoming,
+          count(*) FILTER (WHERE f.status = 'Completed')::int AS completed,
+          count(*) FILTER (WHERE f.status = 'Cancelled')::int AS cancelled
+        FROM crm_follow_ups f WHERE ${followUpScope}`),
+      // Company Database: every Sales user sees it (same as the Companies screen)
+      q(Prisma.sql`
+        SELECT co.company_id, co.name, co.company_code, co.city, COALESCE(si.name, ind.name) AS industry, co.contact_person AS contact,
+               CASE WHEN co.is_client = true THEN 'Client'
+                    WHEN EXISTS (SELECT 1 FROM leads l WHERE l.company_id = co.company_id AND l.deleted_at IS NULL
+                                   AND l.lead_stage = ANY(${OPEN_LEAD_STAGES}::text[])) THEN 'Open lead'
+                    ELSE 'Not a lead' END AS status
+        FROM companies co
+        LEFT JOIN industries ind ON ind.industry_id = co.industry_id
+        LEFT JOIN industries si ON si.industry_id = co.sub_industry_id
+        WHERE co.deleted_at IS NULL
+        ORDER BY co.created_at DESC, co.company_id DESC
+        LIMIT 5`),
+      q(Prisma.sql`
+        SELECT cl.client_id, co.name AS company_name, cl.client_code, to_char(cl.won_on, 'YYYY-MM-DD') AS won_on
+        FROM clients cl JOIN companies co ON co.company_id = cl.company_id
+        WHERE cl.deleted_at IS NULL AND cl.owner_id = ${empId}
+        ORDER BY cl.won_on DESC, cl.client_id DESC
         LIMIT 5`),
     ]);
 
@@ -982,15 +1230,40 @@ export class PrismaHomeDashboardRepository implements HomeDashboardRepositoryPor
       follow_ups_today: num(c?.follow_ups_today),
       follow_ups_overdue: num(c?.follow_ups_overdue),
       my_clients: num(c?.my_clients),
+      companies_converted: num(c?.companies_converted),
       won_this_month: num(c?.won_this_month),
       won_this_year: num(c?.won_this_year),
+      follow_up_counts: {
+        today: num(fc?.today),
+        overdue: num(fc?.overdue),
+        upcoming: num(fc?.upcoming),
+        completed: num(fc?.completed),
+        cancelled: num(fc?.cancelled),
+      },
+      recent_companies: recentCompanies.map((r) => ({
+        company_id: num(r.company_id),
+        name: r.name,
+        company_code: r.company_code ?? null,
+        city: r.city ?? null,
+        industry: r.industry ?? null,
+        contact: r.contact ?? null,
+        status: r.status,
+      })),
+      recent_clients: recentClients.map((r) => ({
+        client_id: num(r.client_id),
+        company_name: r.company_name,
+        client_code: r.client_code ?? null,
+        won_on: r.won_on,
+      })),
       leads: leads.map((r) => ({
         lead_id: num(r.lead_id),
         company: r.company ?? null,
         contact: r.contact ?? null,
         lead_stage: r.lead_stage ?? null,
         lead_source: r.lead_source ?? null,
+        service_fit: r.service_fit ?? null,
         next_follow_up_at: iso(r.next_follow_up_at),
+        last_conversation_at: iso(r.last_conversation_at),
       })),
       follow_ups: followUps.map((r) => ({
         follow_up_id: num(r.follow_up_id),
@@ -1001,6 +1274,7 @@ export class PrismaHomeDashboardRepository implements HomeDashboardRepositoryPor
         follow_up_on: iso(r.follow_up_on)!,
         purpose: r.purpose ?? null,
         status: r.status,
+        assigned_to_name: r.assigned_to_name ?? null,
       })),
     };
   }

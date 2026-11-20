@@ -66,6 +66,13 @@ export function priorityData(rows: CountByKey[], to: string): ChartDatum[] {
   return PRIORITY_ORDER.map((k) => ({ key: k, label: titleCase(k), value: rows.find((r) => r.key === k)?.count ?? 0, color: PRIORITY_COLOR[k], to }));
 }
 
+/** Same thresholds as the Project dashboard's progress chart: under 40% red, 40 to 69% amber, 70% and over green. */
+export const progressColor = (pct: number) => (pct < 40 ? '#ef4444' : pct < 70 ? '#f59e0b' : '#22c55e');
+
+export function projectProgressData(rows: Array<{ project_id: number; project_name: string; progress: number }>): ChartDatum[] {
+  return rows.map((r) => ({ key: String(r.project_id), label: r.project_name, value: r.progress, color: progressColor(r.progress), to: `/projects/${r.project_id}` }));
+}
+
 /** Candidate stages come in lower case ("on hold", "did_not_join"): normalise and merge like the Recruitment dashboard. */
 export function recruitmentStageData(rows: CountByKey[], to: string): ChartDatum[] {
   const merged = new Map<string, number>();
@@ -270,13 +277,20 @@ export const Donut: React.FC<{ data: ChartDatum[]; centerLabel: string; unit?: s
  * Horizontal bars like the Department distribution chart: right-aligned name, a 20px track, the blue gradient bar
  * (or the category's own colour), the count at the end and a floating tooltip with the share.
  */
-export const BarChartList: React.FC<{ data: ChartDatum[]; unit?: string; max?: number }> = ({ data, unit = 'items', max = 8 }) => {
+export const BarChartList: React.FC<{ data: ChartDatum[]; unit?: string; max?: number; scaleMax?: number; suffix?: string; showShare?: boolean }> = ({
+  data,
+  unit = 'items',
+  max = 8,
+  scaleMax,
+  suffix = '',
+  showShare = true,
+}) => {
   const navigate = useNavigate();
   const [hover, setHover] = useState<number | null>(null);
   const items = data.slice(0, max);
-  const peak = Math.max(1, ...items.map((d) => d.value));
+  const peak = scaleMax ?? Math.max(1, ...items.map((d) => d.value));
   const total = data.reduce((s, d) => s + d.value, 0);
-  if (items.length === 0 || total === 0) return <EmptyLine />;
+  if (items.length === 0 || (total === 0 && !scaleMax)) return <EmptyLine />;
 
   return (
     <div className="space-y-1.5 py-1">
@@ -291,8 +305,8 @@ export const BarChartList: React.FC<{ data: ChartDatum[]; unit?: string; max?: n
           {hover === i && (
             <div className="pointer-events-none absolute -top-7 right-2 z-30 flex items-center gap-2 whitespace-nowrap rounded-lg bg-slate-900 px-2.5 py-1 text-[11px] text-white shadow-lg">
               <span className="font-semibold">{d.label}:</span>
-              <span className="font-bold text-blue-300">{d.value} {unit}</span>
-              <span className="text-slate-300">({total ? Math.round((d.value / total) * 100) : 0}%)</span>
+              <span className="font-bold text-blue-300">{d.value}{suffix} {unit}</span>
+              {showShare && <span className="text-slate-300">({total ? Math.round((d.value / total) * 100) : 0}%)</span>}
             </div>
           )}
           <div className="w-28 shrink-0 truncate text-right text-[11.5px] font-semibold text-slate-700 transition-colors group-hover:text-blue-600 sm:w-36" title={d.label}>
@@ -306,9 +320,81 @@ export const BarChartList: React.FC<{ data: ChartDatum[]; unit?: string; max?: n
               />
             )}
           </div>
-          <div className="w-7 shrink-0 text-left text-xs font-bold text-slate-800">{d.value}</div>
+          <div className={`shrink-0 text-left text-xs font-bold text-slate-800 ${suffix ? 'w-10' : 'w-7'}`}>{d.value}{suffix}</div>
         </div>
       ))}
+    </div>
+  );
+};
+
+// ---------------------------------------------------------------------------
+// Monthly columns
+// ---------------------------------------------------------------------------
+
+export interface MonthlyDatum {
+  month: string; // YYYY-MM
+  a: number;
+  b: number;
+}
+
+const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/**
+ * Two columns per month (for example candidates added and candidates who joined). The legend names both series and
+ * every column carries a tooltip with its month and value, so colour is never the only way to read it.
+ */
+export const MonthlyColumns: React.FC<{ data: MonthlyDatum[]; aLabel: string; bLabel?: string; aColor?: string; bColor?: string }> = ({
+  data,
+  aLabel,
+  bLabel,
+  aColor = '#2563eb',
+  bColor = '#22c55e',
+}) => {
+  const [hover, setHover] = useState<string | null>(null);
+  const peak = Math.max(1, ...data.flatMap((d) => [d.a, d.b]));
+  if (data.length === 0 || data.every((d) => d.a === 0 && d.b === 0)) return <EmptyLine text="No movement in the last six months" />;
+  const W = 360;
+  const H = 150;
+  const padTop = 16;
+  const padBottom = 22;
+  const innerH = H - padTop - padBottom;
+  const slot = W / data.length;
+  const barW = Math.min(18, slot / 3);
+  const y = (v: number) => padTop + innerH - (v / peak) * innerH;
+  const monthName = (m: string) => MONTH_SHORT[Number(m.slice(5, 7)) - 1] ?? m;
+
+  return (
+    <div>
+      <div className="mb-2 flex items-center gap-4 text-[11px] font-semibold text-slate-600">
+        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: aColor }} /> {aLabel}</span>
+        {bLabel && <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: bColor }} /> {bLabel}</span>}
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="img" aria-label={bLabel ? `${aLabel} and ${bLabel} per month` : `${aLabel} per month`}>
+        <line x1={0} x2={W} y1={padTop + innerH} y2={padTop + innerH} stroke="#e2e8f0" />
+        {data.map((d, i) => {
+          const cx = slot * i + slot / 2;
+          const active = hover === d.month;
+          return (
+            <g key={d.month} onMouseEnter={() => setHover(d.month)} onMouseLeave={() => setHover(null)} opacity={hover && !active ? 0.45 : 1}>
+              <title>{bLabel ? `${monthName(d.month)} ${d.month.slice(0, 4)}: ${d.a} ${aLabel.toLowerCase()}, ${d.b} ${bLabel.toLowerCase()}` : `${monthName(d.month)} ${d.month.slice(0, 4)}: ${d.a} ${aLabel.toLowerCase()}`}</title>
+              <rect x={slot * i} y={0} width={slot} height={H} fill="transparent" />
+              {(bLabel ? [{ v: d.a, c: aColor, x: cx - barW - 1 }, { v: d.b, c: bColor, x: cx + 1 }] : [{ v: d.a, c: aColor, x: cx - barW / 2 }]).map((bar, k) => (
+                <g key={k}>
+                  <rect x={bar.x} y={y(bar.v)} width={barW} height={Math.max(padTop + innerH - y(bar.v), bar.v > 0 ? 2 : 0)} rx={3} fill={bar.c} />
+                  {bar.v > 0 && (
+                    <text x={bar.x + barW / 2} y={y(bar.v) - 4} textAnchor="middle" fontSize={10} fontWeight={700} fill="#0f172a">
+                      {bar.v}
+                    </text>
+                  )}
+                </g>
+              ))}
+              <text x={cx} y={H - 6} textAnchor="middle" fontSize={10} fontWeight={active ? 700 : 500} fill="#475569">
+                {monthName(d.month)}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
     </div>
   );
 };

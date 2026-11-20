@@ -1,12 +1,12 @@
 import React from 'react';
-import { Info } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { AppLayout } from '@/shared/layouts/AppLayout';
 import { DashboardError, DashboardHeader, DashboardSkeleton } from '@/shared/ui/dashboard/DashboardShell';
 import { parseApiError } from '@/shared/utils/api-error';
 import { SectionHeading } from '../components/dashboard-ui';
+import { PayrollOverview, PeopleOverview } from '../components/PeopleSections';
 import { useHomeDashboard } from '../hooks/use-home-dashboard';
-import type { DashboardProfile, DeferredProfile, HomeDashboardData } from '../types';
+import type { DashboardProfile, HomeDashboardData } from '../types';
 import {
   AttendanceCard,
   BirthdaysCard,
@@ -32,6 +32,13 @@ import {
 
 const PROFILE_TITLE: Record<DashboardProfile, string> = {
   system_admin: 'System Admin Dashboard',
+  leadership: 'Leadership Dashboard',
+  hr_manager: 'HR Manager Dashboard',
+  hr_executive: 'HR Executive Dashboard',
+  recruiter: 'Recruiter Dashboard',
+  finance_manager: 'Finance Manager Dashboard',
+  accountant: 'Accountant Dashboard',
+  payroll_executive: 'Payroll Executive Dashboard',
   sales: 'Sales Dashboard',
   business_analyst: 'Business Analyst Dashboard',
   engineering: 'Development / Engineering Dashboard',
@@ -40,34 +47,13 @@ const PROFILE_TITLE: Record<DashboardProfile, string> = {
   general: 'My Dashboard',
 };
 
-const DEFERRED_TITLE: Record<DeferredProfile, string> = {
-  leadership: 'Leadership',
-  hr_manager: 'HR Manager',
-  hr_executive: 'HR Executive',
-  recruiter: 'Recruiter',
-  finance_manager: 'Finance Manager',
-  accountant: 'Accountant',
-  payroll_executive: 'Payroll Executive',
-};
-
-/** Shown to HR, Finance and Leadership designations while their department sections wait for access approval. */
-const DeferredNotice: React.FC<{ deferred: DeferredProfile }> = ({ deferred }) => (
-  <div role="note" className="flex items-start gap-3 rounded-2xl border border-blue-100 bg-blue-50/60 p-3.5 text-xs text-blue-900">
-    <Info className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
-    <p>
-      The <span className="font-semibold">{DEFERRED_TITLE[deferred]} Dashboard</span> needs company-wide access that is not enabled for your
-      role yet. Until it is, you see your personal dashboard with only your own records.
-    </p>
-  </div>
-);
-
 const DashboardBody: React.FC<{ data: HomeDashboardData }> = ({ data }) => (
   <div className="space-y-6">
-    {data.deferred_profile && <DeferredNotice deferred={data.deferred_profile} />}
-
     {/* Role section: present only when the server granted it (Admin role / Sales module access) */}
     {data.admin && <AdminOverview admin={data.admin} />}
     {data.sales && <SalesOverview sales={data.sales} />}
+    {data.people && <PeopleOverview people={data.people} profile={data.profile} />}
+    {data.payroll && <PayrollOverview payroll={data.payroll} profile={data.profile} />}
 
     <WorkOverview data={data} />
 

@@ -1,8 +1,4 @@
-import {
-  DeferredProfile,
-  DashboardProfile,
-  resolveDashboardProfile,
-} from '../../domain/dashboard-profile';
+import { DashboardProfile, resolveDashboardProfile } from '../../domain/dashboard-profile';
 import {
   AdminSection,
   AssignedComplaintsSection,
@@ -19,12 +15,27 @@ import {
   ExpenseApprovalsSection,
   HomeDashboardRepositoryPort,
   ManagedProjectsSection,
+  PayrollSection,
+  PeopleScope,
+  PeopleSection,
   SalesSection,
   TaskKpis,
 } from '../ports/home-dashboard.repository.port';
 
 /** VM-004 global rules: lists show at most five records. */
 export const DASHBOARD_LIST_LIMIT = 5;
+
+/**
+ * What each designation of VM-004 receives. This is decided here, on the server, from the person's role: the browser
+ * never chooses what it is sent. Salary and PF are not part of any people scope.
+ */
+const PEOPLE_SCOPE: Partial<Record<DashboardProfile, PeopleScope>> = {
+  leadership: { employees: true },
+  hr_manager: { employees: true, candidates: true, attendance: true, leave: true, documents: true },
+  hr_executive: { employees: true, candidates: true, attendance: true, leave: true, documents: true },
+  recruiter: { candidates: true },
+};
+const PAYROLL_PROFILES: DashboardProfile[] = ['finance_manager', 'accountant', 'payroll_executive'];
 
 export class DashboardViewerNotFoundError extends Error {
   constructor() {
@@ -37,8 +48,6 @@ export interface HomeDashboardResult {
   generated_at: string;
   viewer: { emp_id: number; name: string; role_name: string | null; department_name: string | null };
   profile: DashboardProfile;
-  /** The VM-004 dashboard this designation will get once its access is agreed; null when none is pending. */
-  deferred_profile: DeferredProfile | null;
   assignments: { project_manager: boolean; expense_approver: boolean; complaint_handler: boolean };
   task_kpis: TaskKpis;
   my_tasks: DashboardTaskItem[];
@@ -58,6 +67,10 @@ export interface HomeDashboardResult {
   assigned_complaints: AssignedComplaintsSection | null;
   admin: AdminSection | null;
   sales: SalesSection | null;
+  /** HR, Recruiter and Leadership data; null for every other designation. */
+  people: PeopleSection | null;
+  /** Payroll processing data; only Finance Manager, Accountant and Payroll Executive. */
+  payroll: PayrollSection | null;
 }
 
 export class GetHomeDashboardUseCase {
@@ -67,7 +80,7 @@ export class GetHomeDashboardUseCase {
     const viewer = await this.repo.getViewer(empId);
     if (!viewer) throw new DashboardViewerNotFoundError();
 
-    const { profile, deferred } = resolveDashboardProfile({
+    const { profile } = resolveDashboardProfile({
       isAdmin: viewer.is_admin,
       isSales: viewer.is_sales,
       roleName: viewer.role_name,
@@ -93,6 +106,8 @@ export class GetHomeDashboardUseCase {
       assigned_complaints,
       admin,
       sales,
+      people,
+      payroll,
     ] = await Promise.all([
       this.repo.getTaskKpis(empId),
       this.repo.getMyTasks(empId, n),
@@ -112,13 +127,14 @@ export class GetHomeDashboardUseCase {
       // Role sections: decided on the server from the same access the modules use
       profile === 'system_admin' && viewer.is_admin ? this.repo.getAdminSection() : Promise.resolve(null),
       profile === 'sales' && viewer.is_sales ? this.repo.getSalesSection(empId) : Promise.resolve(null),
+      PEOPLE_SCOPE[profile] ? this.repo.getPeopleSection(PEOPLE_SCOPE[profile]!) : Promise.resolve(null),
+      PAYROLL_PROFILES.includes(profile) ? this.repo.getPayrollSection() : Promise.resolve(null),
     ]);
 
     return {
       generated_at: new Date().toISOString(),
       viewer: { emp_id: viewer.emp_id, name: viewer.name, role_name: viewer.role_name, department_name: viewer.department_name },
       profile,
-      deferred_profile: deferred,
       assignments: {
         project_manager: assignments.project_manager,
         expense_approver: isApprover,
@@ -140,6 +156,8 @@ export class GetHomeDashboardUseCase {
       assigned_complaints,
       admin,
       sales,
+      people,
+      payroll,
     };
   }
 }

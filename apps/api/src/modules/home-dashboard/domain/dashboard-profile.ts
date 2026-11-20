@@ -12,26 +12,19 @@
 
 export type DashboardProfile =
   | 'system_admin'
-  | 'sales'
-  | 'business_analyst'
-  | 'engineering'
-  | 'qa'
-  | 'design'
-  | 'general';
-
-/**
- * Designations whose dashboard (VM-004 sections 02 to 08) needs access the system does not grant yet: company-wide
- * employee, recruitment, payroll and leave data is Admin-only today. Until those permissions are agreed they get the
- * General Employee dashboard, and the page says so.
- */
-export type DeferredProfile =
   | 'leadership'
   | 'hr_manager'
   | 'hr_executive'
   | 'recruiter'
   | 'finance_manager'
   | 'accountant'
-  | 'payroll_executive';
+  | 'payroll_executive'
+  | 'sales'
+  | 'business_analyst'
+  | 'engineering'
+  | 'qa'
+  | 'design'
+  | 'general';
 
 export interface DashboardProfileInput {
   isAdmin: boolean;
@@ -42,11 +35,9 @@ export interface DashboardProfileInput {
 
 export interface DashboardProfileResult {
   profile: DashboardProfile;
-  /** Set when the designation has its own dashboard in VM-004 that is not enabled yet. */
-  deferred: DeferredProfile | null;
 }
 
-const ROLE_MAP: Record<string, DashboardProfile | DeferredProfile> = {
+const ROLE_MAP: Record<string, DashboardProfile> = {
   // 02 Leadership
   ceo: 'leadership',
   'chief executive officer': 'leadership',
@@ -87,16 +78,6 @@ const ROLE_MAP: Record<string, DashboardProfile | DeferredProfile> = {
   'video editor': 'design',
 };
 
-const DEFERRED = new Set<string>([
-  'leadership',
-  'hr_manager',
-  'hr_executive',
-  'recruiter',
-  'finance_manager',
-  'accountant',
-  'payroll_executive',
-]);
-
 /** "Sr. Software Engineer" and "senior  software-engineer" both become "senior software engineer". */
 export function normaliseRoleName(name: string | null | undefined): string {
   return (name ?? '')
@@ -109,15 +90,12 @@ export function normaliseRoleName(name: string | null | undefined): string {
 }
 
 export function resolveDashboardProfile(input: DashboardProfileInput): DashboardProfileResult {
-  if (input.isAdmin) return { profile: 'system_admin', deferred: null };
+  if (input.isAdmin) return { profile: 'system_admin' };
 
   const mapped = ROLE_MAP[normaliseRoleName(input.roleName)];
 
   // The Sales dashboard reads Sales module data, so it needs Sales access whatever the role is called.
-  if (input.isSales) return { profile: 'sales', deferred: null };
-  if (mapped === 'sales') return { profile: 'general', deferred: null };
-
-  if (mapped && DEFERRED.has(mapped)) return { profile: 'general', deferred: mapped as DeferredProfile };
-  if (mapped) return { profile: mapped as DashboardProfile, deferred: null };
-  return { profile: 'general', deferred: null };
+  if (input.isSales) return { profile: 'sales' };
+  if (mapped === 'sales') return { profile: 'general' };
+  return { profile: mapped ?? 'general' };
 }
