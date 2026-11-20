@@ -143,13 +143,14 @@ export const App: React.FC = () => {
                 }
               />
               <Route
-                path="/"
+                path="/profile"
                 element={
                   <ProtectedRoute>
                     <HomePage />
                   </ProtectedRoute>
                 }
               />
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route
                 path="/dashboard"
                 element={

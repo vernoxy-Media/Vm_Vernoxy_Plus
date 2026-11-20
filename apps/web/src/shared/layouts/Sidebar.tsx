@@ -413,7 +413,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggleC
     <div className="flex h-full flex-col bg-white">
       {/* Brand */}
       <div className={`flex h-16 shrink-0 items-center gap-2 border-b border-slate-100 ${compact ? 'justify-center px-2' : 'justify-between px-4'}`}>
-        <Link to="/" onClick={isMobile ? onCloseMobile : undefined} className="flex min-w-0 items-center gap-3" aria-label="Vernoxy Pulse home">
+        <Link to="/dashboard" onClick={isMobile ? onCloseMobile : undefined} className="flex min-w-0 items-center gap-3" aria-label="Vernoxy Pulse home">
           <Logo size={34} />
           {!compact && <span className="truncate text-[17px] font-bold tracking-tight text-slate-900">Vernoxy Pulse</span>}
         </Link>

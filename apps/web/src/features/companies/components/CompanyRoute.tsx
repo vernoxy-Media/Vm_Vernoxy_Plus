@@ -20,7 +20,7 @@ export const CompanyRoute: React.FC<{ children: React.ReactNode }> = ({ children
               Managing CRM Companies requires company administration privileges. Your current role does not have permission to access this area.
             </p>
             <Link
-              to="/"
+              to="/dashboard"
               className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700 transition-colors shadow-sm"
             >
               Return to Dashboard

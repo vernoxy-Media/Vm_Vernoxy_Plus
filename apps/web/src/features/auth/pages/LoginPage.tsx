@@ -45,7 +45,7 @@ export const LoginPage: React.FC = () => {
       });
 
       await handleLoginSuccess(response);
-      navigate('/');
+      navigate('/dashboard');
     } catch (err: any) {
       // Generic error message for all credential failures
       setServerError(err.detail || err.message || 'Invalid email or password');
