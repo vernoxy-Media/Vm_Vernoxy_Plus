@@ -327,24 +327,27 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
   return (
     <div
       id="activity-logs-card"
-      className="bg-white rounded-xl border border-[#E4E8EF] p-4 sm:p-5 space-y-4"
+      className="overflow-hidden rounded-2xl border border-[#E8EBF2] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
     >
       {/* Header: Keka "Logs" with current status and period pills */}
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex items-center gap-2 text-[13px] text-slate-600">
-          <span className={`h-2 w-2 rounded-full ${currentStatus === 'In Office' ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-          <span>Current Status: <strong className="font-semibold text-slate-800">{currentStatus}</strong></span>
+      <div className="flex flex-col gap-3 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <h3 className="text-[15px] font-bold tracking-tight text-slate-900">Activity Logs</h3>
+          <div className="flex items-center gap-2 text-xs text-slate-500">
+            <span className={`h-2 w-2 rounded-full ${currentStatus === 'In Office' ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+            <span>Current Status: <strong className="font-semibold text-slate-800">{currentStatus}</strong></span>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          <div role="group" aria-label="Period" className="inline-flex overflow-hidden rounded border border-[color:var(--ac-main,#1471DD)]">
+          <div role="group" aria-label="Period" className="inline-flex overflow-hidden rounded border border-[color:var(--ac-main,#5B4CF8)]">
             {([['7', '7 Days'], ['30', '30 Days'], ['month', 'This Month']] as const).map(([v, label]) => (
               <button
                 key={v}
                 type="button"
                 aria-pressed={preset === v}
                 onClick={() => applyPreset(v)}
-                className={`px-3.5 py-1.5 text-xs font-medium transition cursor-pointer ${preset === v ? 'bg-[color:var(--ac-main,#1471DD)] text-white' : 'bg-white text-[color:var(--ac-main,#1471DD)] hover:bg-blue-50'}`}
+                className={`px-3.5 py-1.5 text-xs font-medium transition cursor-pointer ${preset === v ? 'bg-[color:var(--ac-main,#5B4CF8)] text-white' : 'bg-white text-[color:var(--ac-main,#5B4CF8)] hover:bg-slate-50'}`}
               >
                 {label}
               </button>
@@ -356,7 +359,7 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
             value={fromDate}
             max={todayStr}
             onChange={(e) => setFromDate(e.target.value)}
-            className="rounded border border-[#D4DCE6] bg-white px-2 py-1.5 text-xs text-slate-700 focus:border-[color:var(--ac-main,#1471DD)] focus:outline-none"
+            className="rounded border border-[#D4DCE6] bg-white px-2 py-1.5 text-xs text-slate-700 focus:border-[color:var(--ac-main,#5B4CF8)] focus:outline-none"
           />
           <span className="text-xs text-slate-400">to</span>
           <input
@@ -365,7 +368,7 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
             value={toDate}
             max={todayStr}
             onChange={(e) => setToDate(e.target.value)}
-            className="rounded border border-[#D4DCE6] bg-white px-2 py-1.5 text-xs text-slate-700 focus:border-[color:var(--ac-main,#1471DD)] focus:outline-none"
+            className="rounded border border-[#D4DCE6] bg-white px-2 py-1.5 text-xs text-slate-700 focus:border-[color:var(--ac-main,#5B4CF8)] focus:outline-none"
           />
           <button
             type="button"
@@ -404,22 +407,24 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
       </div>
 
       {/* Table: DATE | ATTENDANCE VISUAL | EFFECTIVE | GROSS | ARRIVAL | LOG */}
-      <div className="hidden md:block overflow-x-auto rounded-xl border border-[#E4E8EF] scrollbar-thin">
-        <table className="w-full min-w-[860px] text-left text-xs">
-          <thead className="sticky top-0 z-10 bg-[#F8FAFC] border-b border-[#E4E8EF]">
-            <tr className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+      <div className="hidden md:block overflow-x-auto scrollbar-thin">
+        <table className="w-full min-w-[1000px] text-left text-xs">
+          <thead className="sticky top-0 z-10 border-y border-[#E8EBF2] bg-slate-50">
+            <tr className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
               <th className="py-3 pl-5 pr-4 w-[210px]">Date</th>
-              <th className="py-3 px-4 w-[360px]">Attendance visual</th>
               <th className="py-3 px-4">Effective hours</th>
               <th className="py-3 px-4">Gross hours</th>
+              <th className="py-3 px-4 w-[300px]">Timeline</th>
               <th className="py-3 px-4">Arrival</th>
+              <th className="py-3 px-4">Live state</th>
+              <th className="py-3 px-4">Status</th>
               <th className="py-3 pl-4 pr-5 text-center w-16">Log</th>
             </tr>
           </thead>
           <tbody className="bg-white">
             {filteredRecords.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-12 text-center text-slate-400">
+                <td colSpan={8} className="py-12 text-center text-slate-400">
                   No activity records found in this range.
                 </td>
               </tr>
@@ -464,7 +469,7 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
                   const note = record.status === 'holiday' ? record.holiday_name : record.status === 'leave' ? record.leave_type : null;
                   return (
                     <tr key={record.date} onClick={() => handleOpenInsight(record)} className="h-11 cursor-pointer border-b border-[#EEF1F6] bg-[#F7F6F3] hover:bg-[#F1EFEA]">
-                      <td colSpan={6} className="px-4 py-2 text-[13px] text-slate-600">
+                      <td colSpan={8} className="px-4 py-2 text-[13px] text-slate-600">
                         <span className="mr-2">{formatDateColumn(record.date)}</span>
                         {tagLabel && <span className={`rounded px-1.5 py-0.5 text-[9px] font-bold text-white ${tagCls}`}>{tagLabel}</span>}
                         {note && <span className="ml-2 text-xs text-slate-500">{note}</span>}
@@ -486,6 +491,32 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
                       {tagLabel && (
                         <span className={`rounded px-1.5 py-0.5 text-[9px] font-bold text-white ${tagCls}`}>{tagLabel}</span>
                       )}
+                    </td>
+
+                    <td className="py-2 px-4 whitespace-nowrap">
+                      {off && !record.production_seconds ? null : (
+                        <div className="flex items-center gap-2.5">
+                          <span
+                            aria-hidden
+                            className="h-5 w-5 shrink-0 rounded-full ring-1 ring-sky-200"
+                            style={{ background: `conic-gradient(var(--ac-400,#38BDF8) ${effectivePct * 3.6}deg, #F1F5F9 0deg)` }}
+                          />
+                          <span className="text-[13px] text-slate-800">{formatHrs(record.production_seconds)}</span>
+                          {overtimeMinutes(record, shift) > 0 && (
+                            <span
+                              title="Overtime: time worked beyond the day's target"
+                              className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-1.5 py-0.5 text-[10px] font-semibold text-orange-600 ring-1 ring-orange-100"
+                            >
+                              <TrendingUp className="h-3 w-3" />
+                              {hm(overtimeMinutes(record, shift))} OT
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </td>
+
+                    <td className="py-2 px-4 whitespace-nowrap text-[13px] text-slate-700">
+                      {off && !grossSec ? null : formatHrs(grossSec)}
                     </td>
 
                     <td className="py-2 px-4">
@@ -548,7 +579,7 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
                                   setMapFor({ record, x: Math.max(8, Math.min(window.innerWidth - 328, r.left - 150)), y: r.top - 196 < 8 ? r.bottom + 6 : r.top - 196 });
                                 }}
                                 onMouseLeave={() => setMapFor(null)}
-                                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sky-50 text-[color:var(--ac-main,#1471DD)] ring-1 ring-sky-100 transition hover:bg-sky-100 cursor-pointer"
+                                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sky-50 text-[color:var(--ac-main,#5B4CF8)] ring-1 ring-sky-100 transition hover:bg-sky-100 cursor-pointer"
                               >
                                 <MapPin className="h-3.5 w-3.5" />
                               </button>
@@ -564,35 +595,9 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
                       )}
                     </td>
 
-                    <td className="py-2 px-4 whitespace-nowrap">
-                      {off && !record.production_seconds ? null : (
-                        <div className="flex items-center gap-2.5">
-                          <span
-                            aria-hidden
-                            className="h-5 w-5 shrink-0 rounded-full ring-1 ring-sky-200"
-                            style={{ background: `conic-gradient(var(--ac-400,#38BDF8) ${effectivePct * 3.6}deg, #F1F5F9 0deg)` }}
-                          />
-                          <span className="text-[13px] text-slate-800">{formatHrs(record.production_seconds)}</span>
-                          {overtimeMinutes(record, shift) > 0 && (
-                            <span
-                              title="Overtime: time worked beyond the day's target"
-                              className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-1.5 py-0.5 text-[10px] font-semibold text-orange-600 ring-1 ring-orange-100"
-                            >
-                              <TrendingUp className="h-3 w-3" />
-                              {hm(overtimeMinutes(record, shift))} OT
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </td>
-
-                    <td className="py-2 px-4 whitespace-nowrap text-[13px] text-slate-700">
-                      {off && !grossSec ? null : formatHrs(grossSec)}
-                    </td>
-
                     <td className="py-2 px-4 whitespace-nowrap text-[13px]">
                       {arrival.text === '—' ? (
-                        off ? null : <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${status.className.replace(/px-3 py-0\.5 rounded-full font-bold/, '')}`}>{status.label}</span>
+                        off ? null : <span className="text-slate-300">—</span>
                       ) : arrival.lateMinutes > 0 ? (
                         <span
                           title={`Expected ${arrival.expected} · arrived ${arrival.text}`}
@@ -612,6 +617,26 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
                       ) : (
                         <span title={`Arrived ${arrival.text}`} className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">On time</span>
                       )}
+                    </td>
+
+                    <td className="py-2 px-4 whitespace-nowrap">
+                      {hasPunch ? (
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${
+                            !record.punch_out && record.date === todayStr
+                              ? 'bg-emerald-50 text-emerald-600'
+                              : 'bg-slate-100 text-slate-500'
+                          }`}
+                        >
+                          {!record.punch_out && record.date === todayStr ? 'Working' : record.punch_out ? 'Clocked out' : 'No clock-out'}
+                        </span>
+                      ) : (
+                        <span className="text-slate-300">—</span>
+                      )}
+                    </td>
+
+                    <td className="py-2 px-4 whitespace-nowrap">
+                      <span className={`text-[10px] uppercase tracking-wide ${status.className}`}>{status.label}</span>
                     </td>
 
                     <td className="py-2 px-4 text-center">
@@ -662,7 +687,7 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
                 setInsightDrawerDate(hover.record.date);
                 setInsightDrawerMode('regularize');
               }}
-              className="mt-2.5 inline-flex items-center gap-1.5 text-[13px] text-[color:var(--ac-main,#1471DD)] hover:underline cursor-pointer"
+              className="mt-2.5 inline-flex items-center gap-1.5 text-[13px] text-[color:var(--ac-main,#5B4CF8)] hover:underline cursor-pointer"
             >
               <Pencil className="h-3 w-3" /> Regularise
             </button>
@@ -712,7 +737,7 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
         )}
 
       {/* Phones: one card per day instead of a wide table */}
-      <ul className="md:hidden space-y-2.5">
+      <ul className="md:hidden space-y-2.5 px-4 pb-4">
         {filteredRecords.length === 0 ? (
           <li className="rounded-2xl border border-dashed border-[#D4DCE6] py-10 text-center text-sm text-slate-400">
             No activity records found in this range.
@@ -772,7 +797,7 @@ export const RecentAttendanceRecordsCard: React.FC<RecentAttendanceRecordsCardPr
       </ul>
 
       {filteredRecords.length > 0 && (
-        <div className="overflow-hidden rounded-xl border border-[#E4E8EF]">
+        <div className="overflow-hidden">
           <Pagination
             page={page}
             pageSize={pageSize}

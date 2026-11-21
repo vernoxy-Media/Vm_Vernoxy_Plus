@@ -82,29 +82,18 @@ export const AttendanceActionsCard: React.FC<AttendanceActionsCardProps> = ({
     };
   }, [breakDropdownOpen]);
 
-  // Format Clock: e.g. 13:51 :59 PM
-  const h24 = String(now.getHours()).padStart(2, '0');
+  const h12 = String(now.getHours() % 12 || 12).padStart(2, '0');
   const minutes = String(now.getMinutes()).padStart(2, '0');
   const seconds = String(now.getSeconds()).padStart(2, '0');
   const ampm = now.getHours() >= 12 ? 'PM' : 'AM';
 
-  // Format Date: e.g. Sun, Nov 1, 2026
+  // Format Date: e.g. Sat, Nov 21, 2026
   const dateFormatted = now.toLocaleDateString('en-US', {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
     year: 'numeric',
   });
-
-  const targetSec = today.target_seconds || 28800;
-  const workedSec = today.worked_seconds || 0;
-  const breakSec = today.break_seconds || 0;
-  const remainingSec = Math.max(0, targetSec - workedSec);
-  const pct = targetSec > 0 ? Math.min(100, Math.round((workedSec / targetSec) * 100)) : 0;
-  const hm = (sec: number) => {
-    const t = Math.max(0, Math.round(sec / 60));
-    return `${Math.floor(t / 60)}h ${String(t % 60).padStart(2, '0')}m`;
-  };
 
   // One tap on the red button only asks; a second tap within a few seconds clocks out. A clock-out by mistake used to
   // end the day with no way back.
@@ -125,14 +114,20 @@ export const AttendanceActionsCard: React.FC<AttendanceActionsCardProps> = ({
     onStartBreak(type);
   };
 
+  const btnBase =
+    'inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-[11px] font-extrabold uppercase tracking-wide transition active:scale-[0.97] disabled:opacity-50 whitespace-nowrap cursor-pointer';
+  const accentBtn = `${btnBase} bg-[color:var(--ac-main,#5B4CF8)] text-white shadow-lg shadow-[rgb(var(--ac-main-rgb,91_76_248)/0.3)] hover:bg-[color:var(--ac-dark,#4338CA)]`;
+  const redBtn = `${btnBase} bg-red-500 text-white shadow-lg shadow-red-500/30 hover:bg-red-600`;
+  const softBtn = `${btnBase} bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:cursor-not-allowed`;
+
   const primary = isOnBreak ? (
     <button
       type="button"
       disabled
       title="You cannot clock out while on break. Please resume work first."
-      className="w-full rounded-xl bg-white/15 px-5 py-4 text-base font-semibold text-white/50 cursor-not-allowed whitespace-nowrap"
+      className={`${btnBase} bg-slate-100 text-slate-400 cursor-not-allowed`}
     >
-      Web Clock-out
+      Clock-out
     </button>
   ) : isDone ? (
     <button
@@ -140,13 +135,13 @@ export const AttendanceActionsCard: React.FC<AttendanceActionsCardProps> = ({
       disabled={isPending}
       onClick={() => void onResumeWork()}
       title="Still working? This opens today again. The time since you clocked out is counted as a break."
-      className="inline-flex w-full items-center justify-center gap-2.5 rounded-xl bg-white px-5 py-4 text-base font-bold text-[color:var(--ac-dark,#1D4ED8)] shadow-md transition hover:bg-sky-50 active:scale-[0.98] disabled:opacity-60 cursor-pointer whitespace-nowrap"
+      className={accentBtn}
     >
-      {isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <LogIn className="h-5 w-5" />}
+      {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />}
       Resume work
     </button>
   ) : isWorking && confirmOut ? (
-    <div className="grid grid-cols-[1fr_auto] gap-2">
+    <div className="flex items-center gap-2">
       <button
         type="button"
         disabled={isPending}
@@ -154,16 +149,12 @@ export const AttendanceActionsCard: React.FC<AttendanceActionsCardProps> = ({
           setConfirmOut(false);
           void onPunchOut();
         }}
-        className="inline-flex items-center justify-center gap-2 rounded-xl bg-rose-500 px-4 py-4 text-base font-bold text-white shadow-md transition hover:bg-rose-600 active:scale-[0.98] disabled:opacity-60 cursor-pointer whitespace-nowrap"
+        className={redBtn}
       >
-        <LogOut className="h-5 w-5" />
+        <LogOut className="h-4 w-4" />
         Yes, clock out
       </button>
-      <button
-        type="button"
-        onClick={() => setConfirmOut(false)}
-        className="rounded-xl bg-white/15 px-4 py-4 text-sm font-semibold text-white transition hover:bg-white/25 cursor-pointer"
-      >
+      <button type="button" onClick={() => setConfirmOut(false)} className={softBtn}>
         Keep working
       </button>
     </div>
@@ -172,70 +163,49 @@ export const AttendanceActionsCard: React.FC<AttendanceActionsCardProps> = ({
       type="button"
       disabled={isPending}
       onClick={() => (isWorking ? setConfirmOut(true) : onPunchIn())}
-      className={`inline-flex w-full items-center justify-center gap-2.5 rounded-xl px-5 py-4 text-base font-bold shadow-md transition active:scale-[0.98] disabled:opacity-50 whitespace-nowrap cursor-pointer ${
-        isWorking ? 'bg-rose-500 text-white hover:bg-rose-600' : 'cta-pulse bg-white text-[color:var(--ac-dark,#1D4ED8)] hover:bg-sky-50'
-      }`}
+      className={isWorking ? redBtn : `cta-pulse ${accentBtn}`}
     >
-      {isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : isWorking ? <LogOut className="h-5 w-5" /> : <LogIn className="h-5 w-5" />}
-      {isWorking ? 'Web Clock-out' : 'Web Clock-in'}
+      {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : isWorking ? <LogOut className="h-4 w-4" /> : <LogIn className="h-4 w-4" />}
+      {isWorking ? 'Clock-out' : 'Clock-in'}
     </button>
   );
 
-  const linkCls = 'inline-flex w-full items-center justify-between gap-2 rounded-lg bg-white/10 px-3.5 py-2 text-left text-[13px] font-medium text-white transition hover:bg-white/20 cursor-pointer';
+  const statusText = isOnBreak ? 'On break' : isWorking ? (isWfh ? 'Remote clock-in' : 'Working') : isDone ? 'Clocked out' : 'Ready to clock in';
 
   return (
-    <div
+    <section
       id="attendance-actions-card"
-      className="relative flex flex-col justify-between gap-4 rounded-2xl bg-gradient-to-br from-[color:rgb(var(--tw-indigo-950,11_27_74))] via-[color:var(--ac-dark,#16358F)] to-[color:var(--ac-main,#2563EB)] p-4 text-white shadow-lg shadow-blue-900/10 sm:p-5"
+      className="flex flex-col rounded-2xl border border-[#E8EBF2] bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:p-6"
     >
-      {/* The glow is clipped on its own, so the card itself does not clip the break menu */}
-      <span aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
-        <span className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
-      </span>
-      <div className="relative flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
+      <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Actions</h3>
+
+      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
         <div>
-          <div className="flex items-baseline whitespace-nowrap font-medium leading-none text-white">
-            <span className="text-4xl sm:text-[44px] tracking-tight">{h24}:{minutes}</span>
-            <span className="ml-1 text-sm text-sky-200">:{seconds} {ampm}</span>
+          <div className="flex items-baseline whitespace-nowrap leading-none text-slate-900">
+            <span className="text-3xl font-extrabold tracking-tight sm:text-[36px]">{h12}:{minutes}</span>
+            <span className="ml-1 text-sm font-medium text-slate-500">:{seconds} {ampm}</span>
           </div>
-          <div className="mt-2 text-xs text-sky-200">{dateFormatted}</div>
-          <div className="mt-3">
-            {isOnBreak ? (
-              <span className="rounded-full bg-amber-400/90 px-3 py-1 text-[11px] font-bold text-amber-950">On Break</span>
-            ) : isWorking ? (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-400/90 px-3 py-1 text-[11px] font-bold text-emerald-950">
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-900" />
-                Working
-              </span>
-            ) : isDone ? (
-              <span className="rounded-full bg-white/20 px-3 py-1 text-[11px] font-bold text-white">Clocked out</span>
-            ) : (
-              <span className="rounded-full bg-white/20 px-3 py-1 text-[11px] font-bold text-white">Ready to Clock In</span>
-            )}
+          <div className="mt-1.5 text-xs text-slate-500">{dateFormatted}</div>
+
+          <div className="mt-3 text-[10px] font-extrabold uppercase tracking-[0.12em] text-[color:var(--ac-main,#5B4CF8)]">
+            {statusText}
           </div>
-          {today.punched_in_at && (
-            <p className="mt-3 text-xs text-sky-100/80">
-              Clocked in at{' '}
-              <span className="font-semibold text-white">
-                {new Date(today.punched_in_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-              </span>
-              {today.punched_out_at && (
-                <>
-                  {' '}· out at{' '}
-                  <span className="font-semibold text-white">
-                    {new Date(today.punched_out_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                </>
-              )}
-            </p>
-          )}
+          <label htmlFor="wfh-toggle" className="mt-1.5 inline-flex cursor-pointer select-none items-center gap-2 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+            <input
+              type="checkbox"
+              id="wfh-toggle"
+              checked={isWfh}
+              onChange={(e) => setIsWfh(e.target.checked)}
+              className="peer sr-only"
+            />
+            <span aria-hidden className="relative h-4 w-7 rounded-full bg-slate-200 transition peer-checked:bg-[color:var(--ac-main,#5B4CF8)] after:absolute after:left-0.5 after:top-0.5 after:h-3 after:w-3 after:rounded-full after:bg-white after:shadow after:transition peer-checked:after:translate-x-3" />
+            Work from home
+          </label>
         </div>
 
-        <div className="grid w-full min-w-[11rem] grid-cols-2 gap-2 sm:w-auto sm:min-w-[16rem]">
-          <div className="col-span-2">{primary}</div>
-
+        <div className="flex flex-wrap items-center gap-2.5">
           {isOnBreak ? (
-            <button type="button" disabled={isPending} onClick={() => onResumeBreak()} className={linkCls}>
+            <button type="button" disabled={isPending} onClick={() => onResumeBreak()} className={softBtn}>
               Resume Work
             </button>
           ) : (
@@ -246,16 +216,16 @@ export const AttendanceActionsCard: React.FC<AttendanceActionsCardProps> = ({
                 onClick={() => setBreakDropdownOpen((prev) => !prev)}
                 aria-haspopup="menu"
                 aria-expanded={breakDropdownOpen}
-                className={`${linkCls} inline-flex items-center gap-1 disabled:cursor-not-allowed disabled:opacity-40 ${breakDropdownOpen ? 'bg-white/25' : ''}`}
+                className={`${softBtn} ${breakDropdownOpen ? 'bg-slate-200' : ''} disabled:opacity-40`}
               >
-                Take a Break
+                Break
                 <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${breakDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
               {breakDropdownOpen && (
                 <div
                   role="menu"
                   aria-label="Select break"
-                  className="absolute left-0 top-full z-50 mt-2 w-64 max-w-[calc(100vw-2rem)] origin-top-left rounded-2xl bg-white p-1.5 shadow-2xl shadow-slate-900/25 ring-1 ring-slate-900/10 animate-in fade-in zoom-in-95"
+                  className="absolute right-0 top-full z-50 mt-2 w-64 max-w-[calc(100vw-2rem)] origin-top-right rounded-2xl bg-white p-1.5 shadow-2xl shadow-slate-900/25 ring-1 ring-slate-900/10 animate-in fade-in zoom-in-95"
                 >
                   <div className="px-2.5 pb-1 pt-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Select break</div>
                   {BREAK_OPTIONS.map((opt) => {
@@ -282,45 +252,37 @@ export const AttendanceActionsCard: React.FC<AttendanceActionsCardProps> = ({
               )}
             </div>
           )}
-
-          {onRegularize && (
-            <button type="button" onClick={onRegularize} className={`${linkCls} col-span-2`}>
-              Forgot to Clock-in/out
-            </button>
-          )}
-
-          <label htmlFor="wfh-toggle" className="inline-flex w-full cursor-pointer select-none items-center gap-2.5 rounded-lg bg-white/10 px-3.5 py-2 text-[13px] font-medium text-white transition hover:bg-white/20">
-            <input
-              type="checkbox"
-              id="wfh-toggle"
-              checked={isWfh}
-              onChange={(e) => setIsWfh(e.target.checked)}
-              className="h-3.5 w-3.5 cursor-pointer accent-white"
-            />
-            Work From Home
-          </label>
+          {primary}
         </div>
       </div>
 
-      <div className="relative mt-auto rounded-xl bg-white/10 p-3">
-          <div className="grid grid-cols-3 gap-2 text-center">
-            <div>
-              <div className="text-sm font-semibold tabular-nums">{hm(workedSec)}</div>
-              <div className="text-[10px] font-semibold uppercase tracking-wide text-sky-200/80">Worked</div>
-            </div>
-            <div>
-              <div className="text-sm font-semibold tabular-nums">{hm(breakSec)}</div>
-              <div className="text-[10px] font-semibold uppercase tracking-wide text-sky-200/80">Break</div>
-            </div>
-            <div>
-              <div className="text-sm font-semibold tabular-nums">{remainingSec > 0 ? hm(remainingSec) : 'Done'}</div>
-              <div className="text-[10px] font-semibold uppercase tracking-wide text-sky-200/80">Remaining</div>
-            </div>
-          </div>
-          <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-white/15" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Today's progress">
-            <div className="h-full rounded-full bg-sky-300 transition-all duration-700" style={{ width: `${pct}%` }} />
-          </div>
+      {(today.punched_in_at || onRegularize) && (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-2.5 text-xs text-slate-500">
+          {today.punched_in_at ? (
+            <span>
+              Clocked in at{' '}
+              <b className="font-semibold text-slate-800">
+                {new Date(today.punched_in_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+              </b>
+              {today.punched_out_at && (
+                <>
+                  {' '}· out at{' '}
+                  <b className="font-semibold text-slate-800">
+                    {new Date(today.punched_out_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                  </b>
+                </>
+              )}
+            </span>
+          ) : (
+            <span />
+          )}
+          {onRegularize && (
+            <button type="button" onClick={onRegularize} className="font-semibold text-[color:var(--ac-main,#5B4CF8)] hover:underline cursor-pointer">
+              Forgot to Clock-in/out
+            </button>
+          )}
         </div>
-    </div>
+      )}
+    </section>
   );
 };

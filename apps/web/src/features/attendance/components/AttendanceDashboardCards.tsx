@@ -122,13 +122,11 @@ export const AttendanceDashboardCards: React.FC<AttendanceDashboardCardsProps> =
   const shiftEndDisplay = formatShiftTimeDisplay(shift?.end_time, '06:30 PM');
 
   return (
-    <div className="space-y-4 sm:space-y-5 w-full">
+    <div className="space-y-4 w-full">
       {/* Keka-style summary panel: Attendance Stats | Timings | Actions */}
-      <section className="rounded-2xl border border-[#E4E8EF] bg-[#F6F7FB] p-3 sm:p-5">
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-x-5 gap-y-4 items-stretch">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-stretch">
         {/* Card 1 (Left): ATTENDANCE STATS */}
-        <div className="flex flex-col gap-2 [&>*:last-child]:flex-1">
-        <h3 className="text-[15px] font-medium text-slate-800">Attendance Stats</h3>
+        <div className="flex flex-col [&>*]:flex-1">
         <AttendanceStatsSummaryCard
           todayWorkedSeconds={liveWorkedSeconds}
           todayBreakSeconds={liveBreakSeconds}
@@ -140,8 +138,7 @@ export const AttendanceDashboardCards: React.FC<AttendanceDashboardCardsProps> =
         </div>
 
         {/* Card 2 (Middle): TIMINGS */}
-        <div className="flex flex-col gap-2 [&>*:last-child]:flex-1">
-        <h3 className="text-[15px] font-medium text-slate-800">Timings</h3>
+        <div className="flex flex-col [&>*]:flex-1">
         <AttendanceTimingsCard
           todayWorkedSeconds={liveWorkedSeconds}
           todayTargetSeconds={today.target_seconds || 28800}
@@ -153,8 +150,7 @@ export const AttendanceDashboardCards: React.FC<AttendanceDashboardCardsProps> =
         </div>
 
         {/* Card 3 (Right): ACTIONS */}
-        <div className="md:col-span-2 xl:col-span-1 flex flex-col gap-2 [&>*:last-child]:flex-1">
-        <h3 className="text-[15px] font-medium text-slate-800">Actions</h3>
+        <div className="md:col-span-2 xl:col-span-1 flex flex-col [&>*]:flex-1">
         {viewing ? (
           <div className="flex flex-1 flex-col justify-between gap-4 rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-white p-5 shadow-sm">
             <div>
@@ -187,7 +183,6 @@ export const AttendanceDashboardCards: React.FC<AttendanceDashboardCardsProps> =
         )}
         </div>
       </div>
-      </section>
 
       {/* Row 2: Monthly Attendance + Exceptions + Hours Summary */}
       <AttendanceBreakdownRow
@@ -202,7 +197,6 @@ export const AttendanceDashboardCards: React.FC<AttendanceDashboardCardsProps> =
       <UpcomingHolidays />
 
       {/* Section 3: Activity Logs */}
-      <h3 className="pt-1 text-[15px] font-medium text-slate-800">Logs</h3>
       <RecentAttendanceRecordsCard
         records={records}
         shift={shift}
