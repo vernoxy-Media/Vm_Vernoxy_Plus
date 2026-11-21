@@ -15,7 +15,11 @@ import {
   CompanySearchRow,
   EmployeeCampaignStats,
   LogCampaignCallData,
+  PositiveLeadRow,
   SalesCampaignRepositoryPort,
+  UserCallRow,
+  UserPerformanceRow,
+  UserPerformanceScope,
 } from '../../application/ports/sales-campaign.repository.port';
 import { FieldValidationError } from '../../domain/errors/sales.errors';
 import { deriveCallingStatus } from '../../domain/services/campaign.service';
@@ -405,6 +409,107 @@ export class PrismaSalesCampaignRepository implements SalesCampaignRepositoryPor
         ${MEETING_LATERAL}
        WHERE cc.deleted_at IS NULL`);
     return rows[0];
+  }
+
+  // --------------------------------------------- user-wise performance ----
+
+  /** [start of the From day, start of the day after To) in India time; either end may be open. */
+  private callWindow(scope: UserPerformanceScope, col: Prisma.Sql): Prisma.Sql[] {
+    const conds: Prisma.Sql[] = [];
+    if (scope.from) conds.push(sql`${col} >= (${scope.from}::date::timestamp AT TIME ZONE 'Asia/Kolkata')`);
+    if (scope.to) conds.push(sql`${col} < ((${scope.to}::date + 1)::timestamp AT TIME ZONE 'Asia/Kolkata')`);
+    return conds;
+  }
+
+  async userPerformance(scope: UserPerformanceScope) {
+    // Allotted / pending: companies given to the user in campaigns that run during the range.
+    const allot: Prisma.Sql[] = [sql`cc.deleted_at IS NULL`, sql`cc.assigned_to IS NOT NULL`];
+    if (scope.from) allot.push(sql`c.end_date >= ${scope.from}::date`);
+    if (scope.to) allot.push(sql`c.start_date <= ${scope.to}::date`);
+    if (scope.emp_id !== undefined) allot.push(sql`cc.assigned_to = ${scope.emp_id}`);
+    if (scope.exclude_draft) allot.push(sql`c.status <> 'Draft'`);
+    // Pending = not called by the end of the range.
+    const pendingCond = scope.to
+      ? sql`NOT EXISTS (SELECT 1 FROM crm_campaign_calls p WHERE p.campaign_company_id = cc.campaign_company_id AND p.deleted_at IS NULL
+                          AND p.called_at < ((${scope.to}::date + 1)::timestamp AT TIME ZONE 'Asia/Kolkata'))`
+      : sql`cc.call_attempts = 0`;
+
+    const calls: Prisma.Sql[] = [sql`k.deleted_at IS NULL`, ...this.callWindow(scope, sql`k.called_at`)];
+    if (scope.emp_id !== undefined) calls.push(sql`k.emp_id = ${scope.emp_id}`);
+    if (scope.exclude_draft) calls.push(sql`c.status <> 'Draft'`);
+
+    return this.prisma.$queryRaw<UserPerformanceRow[]>(sql`
+      WITH alloc AS (
+        SELECT cc.assigned_to AS emp_id, count(*)::int AS calls_allotted, count(*) FILTER (WHERE ${pendingCond})::int AS pending_calls
+          FROM crm_campaign_companies cc
+          JOIN crm_campaigns c ON c.campaign_id = cc.campaign_id AND c.deleted_at IS NULL
+         WHERE ${and(allot)}
+         GROUP BY cc.assigned_to
+      ), made AS (
+        SELECT k.emp_id, count(*)::int AS calls_done,
+               count(*) FILTER (WHERE k.call_status = 'Received')::int AS calls_received,
+               count(DISTINCT k.campaign_company_id) FILTER (WHERE k.outcome = 'Interested')::int AS positive_responses
+          FROM crm_campaign_calls k
+          JOIN crm_campaigns c ON c.campaign_id = k.campaign_id AND c.deleted_at IS NULL
+         WHERE ${and(calls)}
+         GROUP BY k.emp_id
+      )
+      SELECT e.emp_id, e.name AS emp_name,
+             COALESCE(a.calls_allotted, 0)::int AS calls_allotted,
+             COALESCE(m.calls_done, 0)::int AS calls_done,
+             COALESCE(m.calls_received, 0)::int AS calls_received,
+             COALESCE(m.positive_responses, 0)::int AS positive_responses,
+             COALESCE(a.pending_calls, 0)::int AS pending_calls
+        FROM alloc a
+        FULL JOIN made m ON m.emp_id = a.emp_id
+        JOIN employees e ON e.emp_id = COALESCE(a.emp_id, m.emp_id)
+       ORDER BY e.name, e.emp_id`);
+  }
+
+  async userCalls(scope: UserPerformanceScope & { emp_id: number }) {
+    const conds: Prisma.Sql[] = [sql`k.deleted_at IS NULL`, sql`k.emp_id = ${scope.emp_id}`, ...this.callWindow(scope, sql`k.called_at`)];
+    if (scope.exclude_draft) conds.push(sql`c.status <> 'Draft'`);
+    return this.prisma.$queryRaw<UserCallRow[]>(sql`
+      SELECT k.call_id, k.campaign_company_id, k.campaign_id, co.name AS company_name, co.contact_person, co.mobile AS contact_number,
+             c.name AS campaign_name, k.called_at AS call_date, k.call_status, k.outcome,
+             m.what_discussed, m.not_received_reason, ke.name AS called_by
+        FROM crm_campaign_calls k
+        JOIN crm_campaigns c ON c.campaign_id = k.campaign_id AND c.deleted_at IS NULL
+        JOIN companies co ON co.company_id = k.company_id
+        LEFT JOIN crm_communications m ON m.communication_id = k.communication_id
+        LEFT JOIN employees ke ON ke.emp_id = k.emp_id
+       WHERE ${and(conds)}
+       ORDER BY k.called_at DESC, k.call_id DESC
+       LIMIT 500`);
+  }
+
+  async positiveLeads(scope: UserPerformanceScope & { emp_id: number }) {
+    const conds: Prisma.Sql[] = [
+      sql`k.deleted_at IS NULL`,
+      sql`k.outcome = 'Interested'`,
+      sql`k.emp_id = ${scope.emp_id}`,
+      ...this.callWindow(scope, sql`k.called_at`),
+    ];
+    if (scope.exclude_draft) conds.push(sql`c.status <> 'Draft'`);
+
+    // One row per company, showing its latest positive call in the range.
+    return this.prisma.$queryRaw<PositiveLeadRow[]>(sql`
+      SELECT * FROM (
+        SELECT DISTINCT ON (k.campaign_company_id)
+               k.campaign_company_id, k.campaign_id, k.company_id, co.name AS company_name, co.contact_person,
+               co.mobile AS contact_number, c.name AS campaign_name, k.called_at AS call_date,
+               ${LEAD_STAGE} AS lead_status, COALESCE(ae.name, ke.name) AS assigned_user
+          FROM crm_campaign_calls k
+          JOIN crm_campaigns c ON c.campaign_id = k.campaign_id AND c.deleted_at IS NULL
+          JOIN companies co ON co.company_id = k.company_id
+          LEFT JOIN crm_campaign_companies cc ON cc.campaign_company_id = k.campaign_company_id
+          LEFT JOIN employees ae ON ae.emp_id = cc.assigned_to
+          LEFT JOIN employees ke ON ke.emp_id = k.emp_id
+         WHERE ${and(conds)}
+         ORDER BY k.campaign_company_id, k.called_at DESC, k.call_id DESC
+      ) t
+      ORDER BY t.call_date DESC
+      LIMIT 500`);
   }
 
   // ------------------------------------------------------------- calls ----

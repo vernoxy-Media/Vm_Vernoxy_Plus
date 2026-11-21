@@ -9,6 +9,7 @@ import { EmptyState } from '../components/common/EmptyState';
 import { TableSkeleton } from '../components/common/SkeletonLoader';
 import { parseApiError } from '../utils/error';
 import { CAMPAIGN_STATUSES } from '../types/campaign.types';
+import { UserPerformanceReport } from '../components/campaigns/UserPerformanceReport';
 import { CampaignStatusPill, KpiCard, ProgressBar, cardCls, inputCls, primaryBtn, secondaryBtn } from '../components/campaigns/campaign-ui';
 
 const PAGE_SIZE = 10;
@@ -51,6 +52,7 @@ const AdminView: React.FC = () => {
   const [to, setTo] = useState('');
   const [page, setPage] = useState(1);
   const [tab, setTab] = useState<'campaigns' | 'performance'>('campaigns');
+  const [perfView, setPerfView] = useState<'user' | 'assignment'>('user');
   const q = useDebounce(search.trim(), 300);
   const cityQ = useDebounce(city.trim(), 300);
 
@@ -105,7 +107,7 @@ const AdminView: React.FC = () => {
         {(
           [
             { id: 'campaigns', label: 'Campaigns' },
-            { id: 'performance', label: 'Employee-wise performance' },
+            { id: 'performance', label: 'Report' },
           ] as const
         ).map((t) => (
           <button
@@ -217,7 +219,28 @@ const AdminView: React.FC = () => {
       )}
 
       {tab === 'performance' && (
-      <section className="space-y-3" aria-label="Employee-wise performance">
+      <section className="space-y-4" aria-label="Report">
+        <div className="flex gap-2 border-b border-gray-200" role="tablist" aria-label="Performance views">
+          {(
+            [
+              { id: 'user', label: 'Campaign performance - user wise' },
+              { id: 'assignment', label: 'Campaign-wise assignment' },
+            ] as const
+          ).map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={perfView === t.id}
+              onClick={() => setPerfView(t.id)}
+              className={`-mb-px border-b-2 px-3 py-2 text-sm font-semibold transition ${perfView === t.id ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        {perfView === 'user' && <UserPerformanceReport title="" />}
+        {perfView === 'assignment' && (
         <div className="overflow-x-auto rounded-2xl border border-slate-200/80 bg-white shadow-xs">
           <table className="min-w-full text-left text-sm">
             <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
@@ -250,6 +273,7 @@ const AdminView: React.FC = () => {
             </tbody>
           </table>
         </div>
+        )}
       </section>
       )}
     </>
@@ -325,6 +349,8 @@ const EmployeeView: React.FC = () => {
           </div>
         )}
       </section>
+
+      <UserPerformanceReport title="My calling performance" />
     </>
   );
 };

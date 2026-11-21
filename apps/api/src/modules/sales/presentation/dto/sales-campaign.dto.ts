@@ -25,6 +25,12 @@ export class ListCampaignsQueryDto {
   @ApiPropertyOptional({ default: 10, maximum: 100 }) @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit?: number;
 }
 
+export class CampaignPerformanceQueryDto {
+  @ApiPropertyOptional({ description: 'YYYY-MM-DD. First day of the report.' }) @IsOptional() @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'Use the format YYYY-MM-DD.' }) from?: string;
+  @ApiPropertyOptional({ description: 'YYYY-MM-DD. Last day of the report (included).' }) @IsOptional() @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'Use the format YYYY-MM-DD.' }) to?: string;
+  @ApiPropertyOptional({ description: 'Admin only: one user. A Sales user always gets their own numbers.' }) @IsOptional() @Type(() => Number) @IsInt() emp_id?: number;
+}
+
 export class CampaignBodyDto {
   @ApiPropertyOptional() @IsOptional() @IsString() name?: string;
   @ApiPropertyOptional({ enum: CAMPAIGN_TYPES }) @IsOptional() @IsString() campaign_type?: string;

@@ -11,12 +11,16 @@ import type {
   CampaignFormValues,
   CampaignListFilters,
   CampaignListResponse,
+  CampaignPerformanceFilters,
   CampaignMasters,
   CompanySearchFilters,
   CompanySearchResponse,
   LogCallResponse,
   LogCallValues,
   MyDashboard,
+  PositiveLead,
+  UserCall,
+  UserPerformanceResponse,
   WorkloadResponse,
 } from '../types/campaign.types';
 
@@ -80,6 +84,31 @@ export function useAdminCampaignOverview(enabled = true) {
     queryKey: [...KEY, 'overview'],
     queryFn: () => customFetch<AdminOverview>(`${BASE}/dashboard/overview`),
     enabled,
+  });
+}
+
+export function useUserPerformance(filters: CampaignPerformanceFilters, enabled = true) {
+  return useQuery<UserPerformanceResponse>({
+    queryKey: [...KEY, 'user-performance', filters],
+    queryFn: () => customFetch<UserPerformanceResponse>(`${BASE}/dashboard/user-performance${qs({ ...filters })}`),
+    placeholderData: keepPreviousData,
+    enabled,
+  });
+}
+
+export function useUserCalls(filters: CampaignPerformanceFilters & { emp_id: number | undefined }) {
+  return useQuery<{ items: UserCall[] }>({
+    queryKey: [...KEY, 'user-calls', filters],
+    queryFn: () => customFetch<{ items: UserCall[] }>(`${BASE}/dashboard/user-calls${qs({ ...filters })}`),
+    enabled: filters.emp_id !== undefined,
+  });
+}
+
+export function usePositiveLeads(filters: CampaignPerformanceFilters & { emp_id: number | undefined }) {
+  return useQuery<{ items: PositiveLead[] }>({
+    queryKey: [...KEY, 'positive-leads', filters],
+    queryFn: () => customFetch<{ items: PositiveLead[] }>(`${BASE}/dashboard/positive-leads${qs({ ...filters })}`),
+    enabled: filters.emp_id !== undefined,
   });
 }
 

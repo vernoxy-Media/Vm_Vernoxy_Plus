@@ -11,6 +11,7 @@ import {
   AddCompaniesBodyDto,
   AssignBodyDto,
   CampaignBodyDto,
+  CampaignPerformanceQueryDto,
   CompanySearchQueryDto,
   ListCampaignCompaniesQueryDto,
   ListCampaignsQueryDto,
@@ -53,6 +54,24 @@ export class SalesCampaignController {
   @ApiOperation({ summary: 'Admin: campaign performance KPIs and the employee-wise performance table' })
   overview(@CurrentSalesActor() actor: SalesActor) {
     return run(() => this.campaigns.adminOverview(actor));
+  }
+
+  @Get('dashboard/user-performance')
+  @ApiOperation({ summary: 'User-wise calling summary for a date range: allotted, done, received, positive responses, pending. Admin sees everyone; a Sales user sees only their own.' })
+  userPerformance(@Query() q: CampaignPerformanceQueryDto, @CurrentSalesActor() actor: SalesActor) {
+    return run(() => this.campaigns.userPerformance(q, actor));
+  }
+
+  @Get('dashboard/user-calls')
+  @ApiOperation({ summary: "Every call one user made in the date range: company, result and what was discussed" })
+  userCalls(@Query() q: CampaignPerformanceQueryDto, @CurrentSalesActor() actor: SalesActor) {
+    return run(() => this.campaigns.userCalls(q, actor));
+  }
+
+  @Get('dashboard/positive-leads')
+  @ApiOperation({ summary: "The companies behind one user's positive responses in the date range, with the lead status each one has now" })
+  positiveLeads(@Query() q: CampaignPerformanceQueryDto, @CurrentSalesActor() actor: SalesActor) {
+    return run(() => this.campaigns.positiveLeads(q, actor));
   }
 
   @Get('company-search')

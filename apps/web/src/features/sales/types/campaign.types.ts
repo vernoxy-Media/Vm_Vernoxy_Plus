@@ -293,3 +293,55 @@ export interface LogCallResponse {
 export type AssignBody =
   | { mode: 'manual'; campaign_company_ids: number[]; emp_id: number | null }
   | { mode: 'equal'; emp_ids: number[]; campaign_company_ids?: number[] };
+
+// ---------------------------------------------- campaign performance report ----
+
+export interface CampaignPerformanceFilters {
+  from?: string;
+  to?: string;
+}
+
+export interface UserPerformanceRow {
+  emp_id: number;
+  emp_name: string;
+  calls_allotted: number;
+  calls_done: number;
+  calls_received: number;
+  positive_responses: number;
+  pending_calls: number;
+}
+
+export interface UserPerformanceResponse {
+  from: string | null;
+  to: string | null;
+  items: UserPerformanceRow[];
+}
+
+export interface PositiveLead {
+  campaign_company_id: number;
+  campaign_id: number;
+  company_id: number;
+  company_name: string;
+  contact_person: string | null;
+  contact_number: string | null;
+  campaign_name: string;
+  call_date: string;
+  lead_status: string;
+  assigned_user: string | null;
+}
+
+export interface UserCall {
+  call_id: number;
+  campaign_company_id: number;
+  campaign_id: number;
+  company_name: string;
+  contact_person: string | null;
+  contact_number: string | null;
+  campaign_name: string;
+  call_date: string;
+  call_status: string;
+  outcome: string | null;
+  what_discussed: string | null;
+  not_received_reason: string | null;
+  called_by: string | null;
+}

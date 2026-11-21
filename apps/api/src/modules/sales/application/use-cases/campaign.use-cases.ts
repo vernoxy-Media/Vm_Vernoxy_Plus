@@ -22,6 +22,7 @@ import {
   CompanySearchFilter,
   EmployeeCampaignStats,
   SalesCampaignRepositoryPort,
+  UserPerformanceScope,
 } from '../ports/sales-campaign.repository.port';
 
 export interface ListCampaignsInput extends CampaignListFilter {
@@ -432,5 +433,40 @@ export class CampaignUseCases {
         calls_today: s.calls_today,
       })),
     };
+  }
+
+  // ------------------------------------------------ campaign performance ----
+
+  /** Admin: every user. A Sales user: only their own row (whatever emp_id is sent). */
+  private performanceScope(q: { from?: string; to?: string; emp_id?: number }, actor: SalesActor): UserPerformanceScope {
+    if (q.from && q.to && q.to < q.from) {
+      throw new FieldValidationError([{ field: 'to', message: 'The To date cannot be before the From date.' }]);
+    }
+    return {
+      from: q.from || undefined,
+      to: q.to || undefined,
+      emp_id: actor.is_admin ? q.emp_id : actor.emp_id,
+      exclude_draft: !actor.is_admin,
+    };
+  }
+
+  async userPerformance(q: { from?: string; to?: string; emp_id?: number }, actor: SalesActor) {
+    const scope = this.performanceScope(q, actor);
+    const items = await this.repo.userPerformance(scope);
+    return { from: scope.from ?? null, to: scope.to ?? null, items };
+  }
+
+  async userCalls(q: { from?: string; to?: string; emp_id?: number }, actor: SalesActor) {
+    const scope = this.performanceScope(q, actor);
+    if (scope.emp_id === undefined) throw new FieldValidationError([{ field: 'emp_id', message: 'Choose a user.' }]);
+    const items = await this.repo.userCalls({ ...scope, emp_id: scope.emp_id });
+    return { items };
+  }
+
+  async positiveLeads(q: { from?: string; to?: string; emp_id?: number }, actor: SalesActor) {
+    const scope = this.performanceScope(q, actor);
+    if (scope.emp_id === undefined) throw new FieldValidationError([{ field: 'emp_id', message: 'Choose a user.' }]);
+    const items = await this.repo.positiveLeads({ ...scope, emp_id: scope.emp_id });
+    return { items };
   }
 }
