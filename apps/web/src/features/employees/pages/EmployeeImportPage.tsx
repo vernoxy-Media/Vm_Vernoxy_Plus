@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle, ArrowLeft, CheckCircle2, Download, Info, Loader2, Play, RotateCcw } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Check, CheckCircle2, Copy, Download, Info, Loader2, Play, RotateCcw } from 'lucide-react';
 import { getAccessToken } from '@vernoxy-pulse/api-client';
 import { useQueryClient } from '@tanstack/react-query';
 import { AdminLayout } from '@/shared/layouts/AdminLayout';
@@ -8,6 +8,7 @@ import { useAuthenticatedDownload } from '@/shared/hooks/use-authenticated-downl
 import { FileDropzone } from '@/features/data-transfer/components/FileDropzone';
 import { ImportSummary } from '@/features/data-transfer/components/ImportSummary';
 import { IssueTable } from '@/features/data-transfer/components/IssueTable';
+import { buildSetPasswordLink } from '../components/SetPasswordLinkField';
 
 const BASE = '/api/v1/employees/import';
 const MAX_ROWS = 100;
@@ -29,7 +30,13 @@ interface RowResult {
   code?: string;
   message?: string;
   employeeCode?: string;
+  officeEmail?: string;
   welcomeEmail?: 'requested' | 'not_requested';
+}
+
+/** The same link the Add Employee form shows and the welcome email carries. Only for an employee that was created. */
+function setPasswordLinkOf(r: RowResult): string {
+  return r.status === 'created' && r.officeEmail ? buildSetPasswordLink(r.officeEmail) : '';
 }
 
 interface ImportOutcome {
@@ -73,8 +80,10 @@ async function postFile<T>(url: string, file: File, skipInvalidRows: boolean, se
 function downloadReport(rows: RowResult[]) {
   const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const lines = [
-    ['row_number', 'status', 'employee_code', 'welcome_email', 'code', 'message'].join(','),
-    ...rows.map((r) => [r.rowNumber, r.status, r.employeeCode, r.welcomeEmail, r.code, r.message].map(esc).join(',')),
+    ['row_number', 'status', 'employee_code', 'welcome_email', 'set_password_link', 'code', 'message'].join(','),
+    ...rows.map((r) =>
+      [r.rowNumber, r.status, r.employeeCode, r.welcomeEmail, setPasswordLinkOf(r), r.code, r.message].map(esc).join(','),
+    ),
   ];
   const blob = new Blob([lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
@@ -101,6 +110,28 @@ export const EmployeeImportPage: React.FC = () => {
 
   const [isImporting, setIsImporting] = useState(false);
   const [outcome, setOutcome] = useState<ImportOutcome | null>(null);
+  const [linksCopied, setLinksCopied] = useState(false);
+
+  /** One line per created employee: Employee ID, name (office email) and the Set Password link, tab separated. */
+  const copyLinks = async (rows: RowResult[]) => {
+    const text = rows
+      .filter((r) => setPasswordLinkOf(r))
+      .map((r) => [r.employeeCode, r.message, setPasswordLinkOf(r)].join('\t'))
+      .join('\n');
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+    }
+    setLinksCopied(true);
+    window.setTimeout(() => setLinksCopied(false), 2000);
+  };
 
   const handleCheck = async () => {
     if (!file) return;
@@ -185,17 +216,40 @@ export const EmployeeImportPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="p-3.5 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-900 flex items-start gap-2.5">
+          <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-900 flex items-start gap-2.5">
             <Info className="w-4 h-4 shrink-0 mt-0.5 text-blue-600" />
-            <ul className="space-y-1 list-disc pl-4">
-              <li>The system gives every employee a new Employee ID. The report lists them after the import.</li>
-              <li>Only rows with Status = Active are imported. Other rows are skipped.</li>
-              <li>Departments, designations, employment types, shifts and leave policies must already exist in the system.</li>
-              <li>Several departments or designations go in one cell, separated by ; (for example: Admin; Finance & Accounts). The first designation is the main one.</li>
-              <li>Reporting Manager is not imported. Set it on each employee afterwards.</li>
-              <li>Every employee gets a one-time password, changed at the first sign in. Tick "Send welcome email" to mail it to each Active employee that is created.</li>
-              <li>Write dates like 20-Nov-2026. Up to {MAX_ROWS} rows per file.</li>
-            </ul>
+            <div className="space-y-3 min-w-0">
+              <p className="font-semibold text-blue-950">Before you import</p>
+              <dl className="space-y-2.5">
+                <div>
+                  <dt className="font-semibold">In the sheet</dt>
+                  <dd className="text-blue-800">
+                    Leave Employee ID out: the system gives each employee a new one. Only rows with Status = Active are imported, the others are skipped.
+                    Write dates like 20-Nov-2026. Up to {MAX_ROWS} rows per file.
+                  </dd>
+                </div>
+                <div>
+                  <dt className="font-semibold">Names must already exist</dt>
+                  <dd className="text-blue-800">
+                    Departments, designations, employment types, shifts and leave policies must be written exactly as they are named in the system.
+                  </dd>
+                </div>
+                <div>
+                  <dt className="font-semibold">More than one in a cell: separate with ;</dt>
+                  <dd className="text-blue-800">
+                    Departments and designations, for example Admin; Finance &amp; Accounts (the first designation is the main one). Up to 5 emergency
+                    contacts, in the same order in the three columns: Name "Meena; Suresh", Relationship "Mother; Father", Phone "9000000201; 9000000202".
+                  </dd>
+                </div>
+                <div>
+                  <dt className="font-semibold">After the import</dt>
+                  <dd className="text-blue-800">
+                    Reporting Manager is not imported: set it on each employee. With "Send welcome email" ticked, every employee that is created gets an
+                    email with a link to set their own password. Without it no email is sent, and they cannot sign in until you give them the link.
+                  </dd>
+                </div>
+              </dl>
+            </div>
           </div>
         </div>
 
@@ -374,7 +428,11 @@ export const EmployeeImportPage: React.FC = () => {
                 No welcome email was sent. These employees cannot sign in until they get their sign-in details.
               </p>
             )}
-            <p className="text-xs text-slate-500">The report lists every row with its new Employee ID, whether the welcome email was requested, or the reason it was skipped or failed.</p>
+            <p className="text-xs text-slate-500">
+              The report lists every row with its new Employee ID, whether the welcome email was requested, the employee's Set Password link, or the reason
+              it was skipped or failed. If an email does not arrive, send the employee their Set Password link (copy it here or take it from the report).
+              The link works once the employee is Active.
+            </p>
             <div className="flex flex-wrap items-center gap-3 pt-2">
               <button
                 type="button"
@@ -384,6 +442,16 @@ export const EmployeeImportPage: React.FC = () => {
                 <Download className="w-3.5 h-3.5 text-slate-500" />
                 Download report (CSV)
               </button>
+              {outcome.created > 0 && (
+                <button
+                  type="button"
+                  onClick={() => copyLinks(outcome.rows)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors shadow-2xs"
+                >
+                  {linksCopied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
+                  {linksCopied ? 'Copied' : 'Copy Set Password links'}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => navigate('/admin/employees')}

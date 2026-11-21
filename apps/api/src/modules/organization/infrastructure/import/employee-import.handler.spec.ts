@@ -163,6 +163,119 @@ describe('EmployeeImportHandler', () => {
       expect(createEmployee.execute.mock.calls[0][0].role_ids).toEqual([90]);
     });
 
+    it('accepts several emergency contacts, matched by position across the three columns', async () => {
+      const { handler, createEmployee } = build([
+        row(2, validRow({ emergency_name: 'Meena Sharma; Suresh Sharma', emergency_relation: 'Mother; Father', emergency_phone: '9000000201; 9000000202' })),
+      ]);
+      expect((await handler.previewFile('xlsx', buf, false)).willCreate).toBe(1);
+
+      await handler.importFile('xlsx', buf, 1, false);
+      expect(createEmployee.execute.mock.calls[0][0].emergency_contacts).toEqual([
+        { name: 'Meena Sharma', relation: 'Mother', number: '9000000201' },
+        { name: 'Suresh Sharma', relation: 'Father', number: '9000000202' },
+      ]);
+    });
+
+    it('still accepts one emergency contact, and none', async () => {
+      const one = build([row(2, validRow({ emergency_name: 'Meena Sharma', emergency_relation: 'Mother', emergency_phone: '9000000201' }))]);
+      expect((await one.handler.previewFile('xlsx', buf, false)).willCreate).toBe(1);
+      const none = build([row(2, validRow())]);
+      expect((await none.handler.previewFile('xlsx', buf, false)).willCreate).toBe(1);
+    });
+
+    it('lets the relationship be empty for all contacts', async () => {
+      const { handler, createEmployee } = build([
+        row(2, validRow({ emergency_name: 'Meena Sharma; Suresh Sharma', emergency_phone: '9000000201; 9000000202' })),
+      ]);
+      await handler.importFile('xlsx', buf, 1, false);
+      expect(createEmployee.execute.mock.calls[0][0].emergency_contacts.map((c: any) => c.relation)).toEqual([null, null]);
+    });
+
+    it('rejects names and phone numbers that do not line up', async () => {
+      const { handler } = build([row(2, validRow({ emergency_name: 'Meena Sharma; Suresh Sharma', emergency_phone: '9000000201' }))]);
+      const r = await handler.previewFile('xlsx', buf, false);
+      expect(codes(r)).toContain('EMERGENCY_CONTACT_MISMATCH');
+      expect(r.willCreate).toBe(0);
+
+      const rel = build([row(2, validRow({ emergency_name: 'A One; B Two', emergency_relation: 'Mother', emergency_phone: '9000000201; 9000000202' }))]);
+      expect(codes(await rel.handler.previewFile('xlsx', buf, false))).toContain('EMERGENCY_CONTACT_MISMATCH');
+    });
+
+    it('still names the missing part when there is only one contact', async () => {
+      const { handler } = build([row(2, validRow({ emergency_name: 'Meena Sharma' }))]);
+      const r = await handler.previewFile('xlsx', buf, false);
+      expect(r.issues.find((i) => i.severity === 'error')?.message).toMatch(/Phone number of Meena Sharma is required/);
+    });
+
+    it('rejects more than 5 emergency contacts', async () => {
+      const names = Array.from({ length: 6 }, (_, i) => `Person Number${String.fromCharCode(65 + i)}`).join('; ');
+      const phones = Array.from({ length: 6 }, (_, i) => `90000003${10 + i}`).join('; ');
+      const { handler } = build([row(2, validRow({ emergency_name: names, emergency_phone: phones }))]);
+      const r = await handler.previewFile('xlsx', buf, false);
+      expect(r.issues.find((i) => i.severity === 'error')?.message).toMatch(/At most 5 emergency contacts/);
+    });
+
+    // ---- Same answers as the Add Employee form -------------------------------------------------------------------
+    it('applies the form\'s phone rule: exactly 10 digits, +91 allowed', async () => {
+      const ok = await build([row(2, validRow({ phone: '+91 9876543210' }))]).handler.previewFile('xlsx', buf, false);
+      expect(ok.willCreate).toBe(1);
+
+      for (const phone of ['98765432', '98765432100', '+449876543210']) {
+        const r = await build([row(2, validRow({ phone }))]).handler.previewFile('xlsx', buf, false);
+        expect(r.issues.find((i) => i.severity === 'error')?.message).toBe('The phone number must be 10 digits.');
+        expect(r.willCreate).toBe(0);
+      }
+    });
+
+    it('stores the phone the way the form does, without spaces', async () => {
+      const { handler, createEmployee } = build([row(2, validRow({ phone: '+91 98765 43210' }))]);
+      await handler.importFile('xlsx', buf, 1, false);
+      expect(createEmployee.execute.mock.calls[0][0].mob).toBe('+919876543210');
+    });
+
+    it('uses Bank Transfer when the Disbursement Method is empty, like the form, and says so when bank details are missing', async () => {
+      const { handler, createEmployee } = build([row(2, validRow())]);
+      const preview = await handler.previewFile('xlsx', buf, false);
+      expect(preview.issues.find((i) => i.code === 'BANK_DETAILS_MISSING')?.message).toContain('Bank Transfer is used');
+      expect(preview.willCreate).toBe(1);
+
+      await handler.importFile('xlsx', buf, 1, false);
+      expect(createEmployee.execute.mock.calls[0][0].payment_mode).toBe('BANK_TRANSFER');
+    });
+
+    it('keeps a Disbursement Method that is given, with no warning when the bank details are there', async () => {
+      const cash = build([row(2, validRow({ payment_mode: 'Cash' }))]);
+      await cash.handler.importFile('xlsx', buf, 1, false);
+      expect(cash.createEmployee.execute.mock.calls[0][0].payment_mode).toBe('CASH');
+
+      const bank = await build([row(2, validRow({ payment_mode: 'Bank Transfer', account_number: '123456789', ifsc_code: 'HDFC0001234' }))]).handler.previewFile('xlsx', buf, false);
+      expect(codes(bank)).not.toContain('BANK_DETAILS_MISSING');
+    });
+
+    it('saves "0" for an empty Probation and Notice Period, like the form, and keeps what is written', async () => {
+      const empty = build([row(2, validRow())]);
+      await empty.handler.importFile('xlsx', buf, 1, false);
+      expect(empty.createEmployee.execute.mock.calls[0][0]).toMatchObject({ probation_period: '0', notice_period: '0' });
+
+      const given = build([row(2, validRow({ probation_period: '90 Days (3 Months)', notice_period: '30 Days' }))]);
+      await given.handler.importFile('xlsx', buf, 1, false);
+      expect(given.createEmployee.execute.mock.calls[0][0]).toMatchObject({ probation_period: '90 Days (3 Months)', notice_period: '30 Days' });
+    });
+
+    it('keeps the employee as created when only the shift cannot be saved, like the form', async () => {
+      const { handler, prisma, createEmployee } = build([row(2, validRow({ shift: 'General Shift' }))]);
+      prisma.app_settings.create.mockRejectedValueOnce(new Error('settings table is locked'));
+
+      const r = await handler.importFile('xlsx', buf, 1, false);
+
+      expect(createEmployee.execute).toHaveBeenCalledTimes(1);
+      expect(r).toMatchObject({ imported: true, created: 1, failed: 0 });
+      expect(r.rows[0]).toMatchObject({ status: 'created', employeeCode: 'EMP-0077' });
+      expect(r.rows[0].message).toContain('the shift could not be assigned');
+      // The reason stays out of the result
+      expect(JSON.stringify(r)).not.toContain('settings table is locked');
+    });
+
     it('rejects unknown master data by name', async () => {
       const { handler } = build([
         row(2, validRow({ gender: 'Robot', departments: 'Nowhere', employment_type: 'Eternal', leave_policy: 'Ghost', shift: 'Night?' })),
@@ -237,6 +350,16 @@ describe('EmployeeImportHandler', () => {
       expect(createEmployee.execute.mock.calls[0][0].skip_welcome_email).toBe(false);
       expect(r).toMatchObject({ welcomeEmailRequested: true, welcomeEmailCount: 1 });
       expect(r.rows[0].welcomeEmail).toBe('requested');
+    });
+
+    it('gives the office email of each created row, and of no other row, for the Set Password link', async () => {
+      const { handler } = build([
+        row(2, validRow()),
+        row(3, validRow({ status: 'Resigned', office_email: 'gone@vernoxy.com', phone: '9876543241' })),
+      ]);
+      const r = await handler.importFile('xlsx', buf, 1, false, false);
+      expect(r.rows.find((x) => x.rowNumber === 2)?.officeEmail).toBe('asha@vernoxy.com');
+      expect(r.rows.find((x) => x.rowNumber === 3)?.officeEmail).toBeUndefined();
     });
 
     it('says in the result that no email was requested when it is switched off', async () => {

@@ -1,4 +1,5 @@
 import {
+  assertFormPhoneNumber,
   EMPLOYEE_IMPORT_COLUMNS,
   classifyStatus,
   generateTemporaryPassword,
@@ -109,6 +110,15 @@ describe('employee import rules', () => {
     it('has a distinct header for every key', () => {
       const headers = Object.values(EMPLOYEE_IMPORT_COLUMNS).map(normalizeHeaderKey);
       expect(new Set(headers).size).toBe(headers.length);
+    });
+  });
+
+  describe('assertFormPhoneNumber (the form\'s rule: 10 digits, +91 allowed)', () => {
+    it.each(['9000000101', '+919000000101'])('accepts %s', (n) => {
+      expect(() => assertFormPhoneNumber(n)).not.toThrow();
+    });
+    it.each(['900000010', '90000001011', '919000000101', '+449000000101', '+9000000101', '1234567'])('rejects %s', (n) => {
+      expect(() => assertFormPhoneNumber(n)).toThrow('The phone number must be 10 digits.');
     });
   });
 

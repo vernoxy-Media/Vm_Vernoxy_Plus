@@ -6,6 +6,7 @@ import { DomainError } from '../../domain/errors/organization.errors';
 import { OrganizationNormalizationService } from '../../domain/services/organization-normalization.service';
 import { assertAmount, assertPersonName, normalizeEmergencyContacts } from '../../domain/services/employee-input-rules';
 import {
+  assertFormPhoneNumber,
   EMPLOYEE_IMPORT_COLUMNS,
   EMPLOYEE_IMPORT_REQUIRED,
   EmployeeImportColumnKey,
@@ -59,6 +60,8 @@ export interface EmployeeImportRowResult {
   code?: string;
   message?: string;
   employeeCode?: string;
+  /** Set on a created row only. The page builds the Set Password link of the employee from it */
+  officeEmail?: string;
   /**
    * Set on a created row only. "requested" means the welcome email was handed to the mail server, the same call the
    * Add Employee form makes. Whether it arrives is up to the mail server, as it is for the form.
@@ -216,15 +219,26 @@ export class EmployeeImportHandler {
           acting_admin_id: adminEmpId,
         });
 
-        if (item.shiftId) await this.assignShift(employee.emp_id, item.shiftId, adminEmpId);
+        // As in the Add Employee form, a shift that cannot be saved is only a warning: the employee exists, so the row is
+        // created and says what is left to do (counting it as failed would make a second import fail on "email exists")
+        let shiftNote = '';
+        if (item.shiftId) {
+          try {
+            await this.assignShift(employee.emp_id, item.shiftId, adminEmpId);
+          } catch (shiftErr) {
+            this.logger.warn(`Employee import row ${item.rowNumber}: shift not assigned (${(shiftErr as Error)?.name ?? 'error'})`);
+            shiftNote = ' - the shift could not be assigned, set it on the employee';
+          }
+        }
 
         const employeeCode =
           (employee as { employee_code?: string }).employee_code ?? `EMP-${String(employee.emp_id).padStart(4, '0')}`;
         rows.push({
           rowNumber: item.rowNumber,
           status: 'created',
-          message: `${item.displayName} (${item.officeEmail})`,
+          message: `${item.displayName} (${item.officeEmail})${shiftNote}`,
           employeeCode,
+          officeEmail: item.officeEmail,
           welcomeEmail: sendWelcomeEmail ? 'requested' : 'not_requested',
         });
         created++;
@@ -425,7 +439,15 @@ export class EmployeeImportHandler {
 
       const name = cell('full_name') ? guard(() => assertPersonName(cell('full_name'), 'name', 'Full name')) : undefined;
       const email = officeEmailRaw ? guard(() => OrganizationNormalizationService.normalizeEmail(officeEmailRaw)) : undefined;
-      const mob = cell('phone') ? guard(() => OrganizationNormalizationService.normalizeMobile(cell('phone'))) : undefined;
+      // The server's own clean-up of the number, then the form's stricter rule (10 digits), so a number the form refuses
+      // is refused here too
+      const mob = cell('phone')
+        ? guard(() => {
+            const normalized = OrganizationNormalizationService.normalizeMobile(cell('phone'));
+            assertFormPhoneNumber(normalized);
+            return normalized;
+          })
+        : undefined;
 
       if (email) {
         if (lookups.existingEmails.has(email)) error('EMAIL_EXISTS', 'An employee with this office email already exists', 'office_email');
@@ -520,12 +542,37 @@ export class EmployeeImportHandler {
         warn('REPORTING_MANAGER_IGNORED', 'Reporting manager is not imported. Set it on the employee after the import', 'reporting_manager');
       }
 
-      // Emergency contact (one)
+      // Emergency contacts: up to 5, like the form. The three columns hold the contacts side by side, separated by ;
+      // (names "Meena; Suresh", relations "Mother; Father", phones "900..1; 900..2"): the first name goes with the first
+      // relation and the first phone, and so on. One contact is the same thing with one entry in each.
       let emergencyContacts: Array<{ name: string; relation: string | null; number: string }> | undefined;
-      if (cell('emergency_name') || cell('emergency_phone') || cell('emergency_relation')) {
-        emergencyContacts = guard(() =>
-          normalizeEmergencyContacts([{ name: cell('emergency_name'), relation: cell('emergency_relation'), number: cell('emergency_phone') }]),
-        );
+      const contactNames = splitList(cell('emergency_name'));
+      const contactRelations = splitList(cell('emergency_relation'));
+      const contactPhones = splitList(cell('emergency_phone'));
+      const contactCount = Math.max(contactNames.length, contactRelations.length, contactPhones.length);
+      if (contactCount > 0) {
+        const misaligned =
+          contactCount > 1 &&
+          (contactNames.length !== contactCount ||
+            contactPhones.length !== contactCount ||
+            (contactRelations.length !== 0 && contactRelations.length !== contactCount));
+        if (misaligned) {
+          error(
+            'EMERGENCY_CONTACT_MISMATCH',
+            'Emergency contact names, relationships and phone numbers must have the same number of entries, separated by ; (the relationship may be left empty for all)',
+            'emergency_name',
+          );
+        } else {
+          emergencyContacts = guard(() =>
+            normalizeEmergencyContacts(
+              Array.from({ length: contactCount }, (_, i) => ({
+                name: contactNames[i] ?? '',
+                relation: contactRelations[i] ?? '',
+                number: contactPhones[i] ?? '',
+              })),
+            ),
+          );
+        }
       }
 
       // Money, PF, OT, payment
@@ -556,11 +603,20 @@ export class EmployeeImportHandler {
         warn('OT_MULTIPLIER_IGNORED', 'OT multiplier is ignored because OT rate calculation is empty', 'ot_multiplier');
       }
 
-      const paymentMode = mapPaymentMode(cell('payment_mode'));
+      // An empty Disbursement Method is Bank Transfer, the choice the Add Employee form starts with
+      const mappedPaymentMode = mapPaymentMode(cell('payment_mode'));
+      const paymentModeDefaulted = mappedPaymentMode === null;
+      const paymentMode = paymentModeDefaulted ? 'BANK_TRANSFER' : mappedPaymentMode;
       if (paymentMode === undefined) {
         error('UNKNOWN_PAYMENT_MODE', `Disbursement method "${cell('payment_mode')}" is not known (Bank Transfer, Cheque or Cash)`, 'payment_mode');
       } else if (paymentMode === 'BANK_TRANSFER' && (!cell('account_number') || !cell('ifsc_code'))) {
-        warn('BANK_DETAILS_MISSING', 'Bank Transfer is chosen but the account number or IFSC code is empty', 'account_number');
+        warn(
+          'BANK_DETAILS_MISSING',
+          paymentModeDefaulted
+            ? 'Disbursement Method is empty, so Bank Transfer is used (as in the Add Employee form), but the account number or IFSC code is empty'
+            : 'Bank Transfer is chosen but the account number or IFSC code is empty',
+          'account_number',
+        );
       }
 
       const rowHasError = rowIssues.some((i) => i.severity === 'error');
@@ -606,8 +662,9 @@ export class EmployeeImportHandler {
           employment_type_id: employmentTypeId!,
           salary,
           pf,
-          probation_period: cell('probation_period') || null,
-          notice_period: cell('notice_period') || null,
+          // Empty is "0", as the Add Employee form starts with
+          probation_period: cell('probation_period') || '0',
+          notice_period: cell('notice_period') || '0',
           ot_eligible: otRateType !== null,
           ot_rate_type: otRateType,
           ot_multiplier: otRateType === 'MULTIPLIER' ? otMultiplier ?? null : null,

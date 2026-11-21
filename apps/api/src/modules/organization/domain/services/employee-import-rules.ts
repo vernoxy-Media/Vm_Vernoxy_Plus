@@ -1,4 +1,5 @@
 import { randomInt } from 'crypto';
+import { ValidationDomainError } from '../errors/organization.errors';
 
 /**
  * Pure rules for the employee import sheet: which columns exist, how a cell is read, and how a temporary password
@@ -167,6 +168,17 @@ export function generateTemporaryPassword(): string {
     [chars[i], chars[j]] = [chars[j], chars[i]];
   }
   return chars.join('');
+}
+
+/**
+ * The Add Employee form accepts a phone number of exactly 10 digits, with or without +91 in front. The server alone
+ * is more open (7 to 15 digits), so the import applies the form's rule to give the same answer for the same number.
+ * `normalized` is the number after the server's own clean-up (no spaces, dashes or brackets).
+ */
+export function assertFormPhoneNumber(normalized: string): void {
+  if (!/^[0-9]{10}$/.test(normalized.replace(/^\+91/, ''))) {
+    throw new ValidationDomainError('The phone number must be 10 digits.', 'mob');
+  }
 }
 
 /** "IT; HR" / "IT, HR" / "IT|HR" -> ['IT', 'HR'] */
