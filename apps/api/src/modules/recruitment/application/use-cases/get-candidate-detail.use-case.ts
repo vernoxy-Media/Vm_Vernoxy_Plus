@@ -1,22 +1,12 @@
-import { Injectable, Inject, NotFoundException } from '@nestjs/common';
-import {
-  CANDIDATE_REPOSITORY,
-  ICandidateRepository,
-} from '../ports/candidate.repository.port';
+import { CandidateAccessService } from '../services/candidate-access.service';
 import { CandidateProps } from '../../domain/candidate.entity';
 
-@Injectable()
 export class GetCandidateDetailUseCase {
-  constructor(
-    @Inject(CANDIDATE_REPOSITORY)
-    private readonly candidateRepo: ICandidateRepository,
-  ) {}
+  constructor(private readonly access: CandidateAccessService) {}
 
-  async execute(candidateId: number): Promise<CandidateProps> {
-    const candidate = await this.candidateRepo.findById(candidateId);
-    if (!candidate) {
-      throw new NotFoundException(`Candidate with ID #${candidateId} not found.`);
-    }
+  /** The candidate, for an Admin or for the employee it is assigned to */
+  async execute(candidateId: number, viewerId: number): Promise<CandidateProps> {
+    const { candidate } = await this.access.loadVisible(candidateId, viewerId);
     return candidate;
   }
 }

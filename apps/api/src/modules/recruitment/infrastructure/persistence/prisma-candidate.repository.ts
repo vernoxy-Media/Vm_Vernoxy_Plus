@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../../../core/prisma/prisma.service';
 import {
   ICandidateRepository,
@@ -8,11 +8,48 @@ import {
   MarkDecisionParams,
 } from '../../application/ports/candidate.repository.port';
 import { CandidateProps } from '../../domain/candidate.entity';
+import { CleanCandidate, DuplicateHit } from '../../domain/candidate-input-rules';
+
+/** Stages a candidate leaves the pipeline with; "Open" means every stage except these */
+const FINISHED_STAGES = ['rejected', 'joined', 'did_not_join'];
+
+/** The candidate columns written from a cleaned candidate, the same for adding and editing */
+function candidateColumns(c: CleanCandidate) {
+  return {
+    name: c.name,
+    phone: c.phone,
+    email: c.email,
+    gender_id: c.genderId,
+    current_location: c.currentLocation,
+    resume_url: c.resumeUrl,
+    resume_filename: c.resumeFilename,
+    resume_size: c.resumeSize,
+    resume_mime: c.resumeMime,
+    role_id: c.roleId,
+    dep_id: c.depId,
+    experience_type: c.experienceType,
+    exp_years: c.expYears,
+    exp_months: c.expMonths,
+    current_company: c.currentCompany,
+    current_designation: c.currentDesignation,
+    current_ctc: c.currentCtc,
+    expected_ctc: c.expectedCtc,
+    notice_period: c.noticePeriod,
+    serving_notice_lwd: c.servingNoticeLwd,
+    key_skills: c.keySkills,
+    source: c.source,
+    source_portal: c.sourcePortal,
+    referred_by_emp_id: c.referredByEmpId,
+    consultancy_name: c.consultancyName,
+    college_name: c.collegeName,
+    source_details: c.sourceDetails,
+    notes: c.notes,
+    assigned_to_emp_id: c.assignedToEmpId,
+  };
+}
 
 @Injectable()
 export class PrismaCandidateRepository implements ICandidateRepository {
-  private readonly logger = new Logger(PrismaCandidateRepository.name);
-
   constructor(private readonly prisma: PrismaService) {}
 
   async getNextCandidateCode(): Promise<string> {
@@ -28,9 +65,7 @@ export class PrismaCandidateRepository implements ICandidateRepository {
     return `CAN-${String(nextNum).padStart(4, '0')}`;
   }
 
-  async create(
-    data: Omit<CandidateProps, 'candidateId' | 'candidateCode' | 'createdAt' | 'updatedAt'>,
-  ): Promise<CandidateProps> {
+  async create(data: CleanCandidate, createdBy?: number | null): Promise<CandidateProps> {
     return this.prisma.$transaction(
       async (tx) => {
         // Increment atomic counter
@@ -50,37 +85,11 @@ export class PrismaCandidateRepository implements ICandidateRepository {
         const created = await tx.candidates.create({
           data: {
             candidate_code: code,
-            name: data.name,
-            phone: data.phone,
-            email: data.email.toLowerCase(),
-            gender_id: data.genderId || null,
-            current_location: data.currentLocation || null,
-            resume_url: data.resumeUrl || null,
-            resume_filename: data.resumeFilename || null,
-            resume_size: data.resumeSize || null,
-            resume_mime: data.resumeMime || null,
-            role_id: data.roleId,
-            dep_id: data.depId,
-            experience_type: data.experienceType,
-            exp_years: data.expYears || 0,
-            exp_months: data.expMonths || 0,
-            current_company: data.currentCompany || null,
-            current_designation: data.currentDesignation || null,
-            current_ctc: data.currentCtc ? Number(data.currentCtc) : null,
-            expected_ctc: data.expectedCtc ? Number(data.expectedCtc) : null,
-            notice_period: data.noticePeriod || null,
-            serving_notice_lwd: data.servingNoticeLwd || null,
-            key_skills: data.keySkills || [],
-            source: data.source,
-            source_portal: data.sourcePortal || null,
-            referred_by_emp_id: data.referredByEmpId || null,
-            consultancy_name: data.consultancyName || null,
-            college_name: data.collegeName || null,
-            source_details: data.sourceDetails || null,
-            notes: data.notes || null,
-            stage: data.stage || 'open',
-            created_by: data.createdBy || null,
+            ...candidateColumns(data),
+            stage: data.stage,
+            created_by: createdBy ?? null,
           },
+          include: this.candidateInclude,
         });
 
         return this.mapToDomain(created);
@@ -99,6 +108,7 @@ export class PrismaCandidateRepository implements ICandidateRepository {
     employees_candidates_reporting_manager_idToemployees: { select: { name: true } },
     employees_candidates_decision_byToemployees: { select: { name: true } },
     employees_candidates_converted_to_emp_idToemployees: { select: { employee_code: true } },
+    employees_candidates_assigned_to_emp_idToemployees: { select: { name: true } },
   };
 
   async findById(candidateId: number): Promise<CandidateProps | null> {
@@ -155,19 +165,49 @@ export class PrismaCandidateRepository implements ICandidateRepository {
 
     if (params.stage && params.stage !== 'All') {
       if (params.stage === 'Open') {
-        where.stage = { in: ['open', 'new', 'screening', 'interviewing', 'on_hold', 'selected', 'onboarding'] };
+        // Every stage still in the pipeline, also the ones added in Master Data
+        where.stage = { notIn: FINISHED_STAGES };
       } else {
         where.stage = params.stage.toLowerCase();
       }
     }
 
+    if (params.assignedTo) {
+      where.assigned_to_emp_id = params.assignedTo;
+    }
+
+    const dir = params.sortDir === 'asc' ? 'asc' : 'desc';
+    const orderBy: any[] = (() => {
+      switch (params.sortBy) {
+        case 'candidate_code':
+          return [{ candidate_id: dir }];
+        case 'name':
+          return [{ name: dir }];
+        case 'position':
+          return [{ roles: { role_name: dir } }];
+        case 'department':
+          return [{ departments: { name: dir } }];
+        case 'experience':
+          return [{ exp_years: dir }, { exp_months: dir }];
+        case 'source':
+          return [{ source: dir }];
+        case 'stage':
+          return [{ stage: dir }];
+        case 'applied_date':
+        default:
+          return [{ created_at: dir }];
+      }
+    })();
+    // The same order every time, also between equal values, so paging never repeats or skips a candidate
+    orderBy.push({ candidate_id: dir });
+
     const [rows, total] = await Promise.all([
       this.prisma.candidates.findMany({
         where,
         include: this.candidateInclude,
-        orderBy: { candidate_id: 'desc' },
+        orderBy,
         skip: params.offset || 0,
-        take: params.limit || 10,
+        take: Math.min(Math.max(params.limit || 10, 1), 10000),
       }),
       this.prisma.candidates.count({ where }),
     ]);
@@ -178,12 +218,13 @@ export class PrismaCandidateRepository implements ICandidateRepository {
     };
   }
 
-  async getStats(): Promise<CandidateStats> {
+  async getStats(assignedTo?: number): Promise<CandidateStats> {
+    const scope = assignedTo ? { assigned_to_emp_id: assignedTo } : {};
     const [total, interviewing, selected, onboarding] = await Promise.all([
-      this.prisma.candidates.count(),
-      this.prisma.candidates.count({ where: { stage: 'interviewing' } }),
-      this.prisma.candidates.count({ where: { stage: 'selected' } }),
-      this.prisma.candidates.count({ where: { stage: 'onboarding' } }),
+      this.prisma.candidates.count({ where: scope }),
+      this.prisma.candidates.count({ where: { ...scope, stage: 'interviewing' } }),
+      this.prisma.candidates.count({ where: { ...scope, stage: 'selected' } }),
+      this.prisma.candidates.count({ where: { ...scope, stage: 'onboarding' } }),
     ]);
 
     return {
@@ -250,6 +291,82 @@ export class PrismaCandidateRepository implements ICandidateRepository {
     return matches;
   }
 
+  async findDuplicate(email: string, phone: string, excludeCandidateId?: number): Promise<DuplicateHit | null> {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+
+    const cand = await this.prisma.candidates.findFirst({
+      where: {
+        ...(excludeCandidateId ? { candidate_id: { not: excludeCandidateId } } : {}),
+        OR: [{ email: { equals: cleanEmail, mode: 'insensitive' } }, ...(cleanPhone ? [{ phone: { endsWith: cleanPhone } }] : [])],
+      },
+      select: { candidate_code: true, name: true, email: true, stage: true },
+      orderBy: { candidate_id: 'desc' },
+    });
+    if (cand) {
+      return {
+        type: 'candidate',
+        matchedOn: cand.email.toLowerCase() === cleanEmail ? 'email' : 'phone',
+        code: cand.candidate_code,
+        name: cand.name,
+        stage: cand.stage,
+      };
+    }
+
+    // A former (Inactive) employee may apply again; a current or joining employee is already on the team
+    const emp = await this.prisma.employees.findFirst({
+      where: {
+        deleted_at: null,
+        status: { in: ['Active', 'Onboarding'] },
+        OR: [
+          { email: { equals: cleanEmail, mode: 'insensitive' } },
+          { office_email: { equals: cleanEmail, mode: 'insensitive' } },
+          { personal_email: { equals: cleanEmail, mode: 'insensitive' } },
+          ...(cleanPhone ? [{ mob: { endsWith: cleanPhone } }] : []),
+        ],
+      },
+      select: { emp_id: true, employee_code: true, name: true, email: true, office_email: true, personal_email: true, status: true },
+    });
+    if (emp) {
+      const emails = [emp.email, emp.office_email, emp.personal_email].filter(Boolean).map((e) => String(e).toLowerCase());
+      return {
+        type: 'employee',
+        matchedOn: emails.includes(cleanEmail) ? 'email' : 'phone',
+        code: emp.employee_code ?? `EMP-${String(emp.emp_id).padStart(4, '0')}`,
+        name: emp.name,
+        stage: emp.status,
+      };
+    }
+    return null;
+  }
+
+  async roleBelongsToDepartment(roleId: number, depId: number): Promise<boolean> {
+    const role = await this.prisma.roles.findFirst({ where: { role_id: roleId, dep_id: depId, deleted_at: null }, select: { role_id: true } });
+    return Boolean(role);
+  }
+
+  async isActiveEmployee(empId: number): Promise<boolean> {
+    const emp = await this.prisma.employees.findFirst({ where: { emp_id: empId, deleted_at: null, status: 'Active' }, select: { emp_id: true } });
+    return Boolean(emp);
+  }
+
+  async activeStageCodes(): Promise<string[]> {
+    const rows = await this.prisma.master_lookup.findMany({
+      where: { lookup_type: 'candidate_stage', is_active: true, deleted_at: null },
+      select: { code: true },
+    });
+    return rows.map((r) => r.code.toLowerCase());
+  }
+
+  async setAssignee(candidateId: number, empId: number | null, _updatedBy?: number | null): Promise<CandidateProps> {
+    const updated = await this.prisma.candidates.update({
+      where: { candidate_id: candidateId },
+      data: { assigned_to_emp_id: empId, updated_at: new Date() },
+      include: this.candidateInclude,
+    });
+    return this.mapToDomain(updated);
+  }
+
   async updateStage(candidateId: number, stage: string, updatedBy?: number): Promise<CandidateProps> {
     const updated = await this.prisma.candidates.update({
       where: { candidate_id: candidateId },
@@ -313,59 +430,16 @@ export class PrismaCandidateRepository implements ICandidateRepository {
     return this.mapToDomain(updated);
   }
 
-  async update(candidateId: number, data: any, _adminId?: number): Promise<CandidateProps> {
-    const existing = await this.prisma.candidates.findUnique({
-      where: { candidate_id: candidateId },
-    });
+  async update(candidateId: number, data: CleanCandidate, _updatedBy?: number | null): Promise<CandidateProps> {
+    const existing = await this.prisma.candidates.findUnique({ where: { candidate_id: candidateId }, select: { candidate_id: true } });
     if (!existing) {
       throw new NotFoundException(`Candidate #${candidateId} not found`);
     }
 
-    const payload: any = {
-      updated_at: new Date(),
-    };
-
-    if (data.name !== undefined) payload.name = data.name;
-    if (data.phone !== undefined) payload.phone = data.phone;
-    if (data.email !== undefined) payload.email = data.email.trim().toLowerCase();
-    if (data.gender_id !== undefined) payload.gender_id = data.gender_id;
-    if (data.current_location !== undefined) payload.current_location = data.current_location;
-    if (data.resume_url !== undefined) payload.resume_url = data.resume_url;
-    if (data.resume_filename !== undefined) payload.resume_filename = data.resume_filename;
-    if (data.resume_size !== undefined) payload.resume_size = data.resume_size;
-    if (data.resume_mime !== undefined) payload.resume_mime = data.resume_mime;
-    if (data.role_id !== undefined) payload.role_id = data.role_id;
-    if (data.dep_id !== undefined) payload.dep_id = data.dep_id;
-    if (data.experience_type !== undefined) payload.experience_type = data.experience_type;
-    if (data.exp_years !== undefined) payload.exp_years = data.exp_years;
-    if (data.exp_months !== undefined) payload.exp_months = data.exp_months;
-    if (data.current_company !== undefined) payload.current_company = data.current_company;
-    if (data.current_designation !== undefined) payload.current_designation = data.current_designation;
-    if (data.current_ctc !== undefined) payload.current_ctc = data.current_ctc ? Number(data.current_ctc) : null;
-    if (data.expected_ctc !== undefined) payload.expected_ctc = data.expected_ctc ? Number(data.expected_ctc) : null;
-    if (data.notice_period !== undefined) payload.notice_period = data.notice_period;
-    if (data.serving_notice_lwd !== undefined) payload.serving_notice_lwd = data.serving_notice_lwd;
-    if (data.key_skills !== undefined) payload.key_skills = data.key_skills;
-    if (data.source !== undefined) {
-      payload.source = data.source;
-      payload.source_portal = data.source === 'job_portal' ? (data.source_portal || null) : null;
-      payload.referred_by_emp_id = data.source === 'employee_referral' ? (data.referred_by_emp_id || null) : null;
-      payload.consultancy_name = data.source === 'consultancy' ? (data.consultancy_name || null) : null;
-      payload.college_name = data.source === 'campus' ? (data.college_name || null) : null;
-      payload.source_details = data.source === 'other' ? (data.source_details || null) : null;
-    } else {
-      if (data.source_portal !== undefined) payload.source_portal = data.source_portal;
-      if (data.referred_by_emp_id !== undefined) payload.referred_by_emp_id = data.referred_by_emp_id;
-      if (data.consultancy_name !== undefined) payload.consultancy_name = data.consultancy_name;
-      if (data.college_name !== undefined) payload.college_name = data.college_name;
-      if (data.source_details !== undefined) payload.source_details = data.source_details;
-    }
-    if (data.notes !== undefined) payload.notes = data.notes;
-    if (data.stage !== undefined) payload.stage = data.stage;
-
+    // Every column is written from the cleaned candidate; the stage is left alone (it has its own actions)
     const updated = await this.prisma.candidates.update({
       where: { candidate_id: candidateId },
-      data: payload,
+      data: { ...candidateColumns(data), updated_at: new Date() },
       include: this.candidateInclude,
     });
 
@@ -465,7 +539,20 @@ export class PrismaCandidateRepository implements ICandidateRepository {
         },
       });
 
-      // 3. Update candidate
+      // 3. The designation, the way every other employee keeps it (employee_roles), so lists and profiles show it
+      await tx.employee_roles.upsert({
+        where: { emp_id_role_id: { emp_id: createdEmployee.emp_id, role_id: finalRoleId } },
+        create: {
+          emp_id: createdEmployee.emp_id,
+          role_id: finalRoleId,
+          dep_id: finalDepId,
+          is_primary: true,
+          created_by: adminId || null,
+        },
+        update: { dep_id: finalDepId, is_primary: true },
+      });
+
+      // 4. Update candidate
       const updatedCandidate = await tx.candidates.update({
         where: { candidate_id: candidateId },
         data: {
@@ -549,6 +636,8 @@ export class PrismaCandidateRepository implements ICandidateRepository {
       decisionDate: row.decision_date,
       decisionBy: row.decision_by,
       decisionByName: row.employees_candidates_decision_byToemployees?.name,
+      assignedToEmpId: row.assigned_to_emp_id ?? null,
+      assignedToName: row.employees_candidates_assigned_to_emp_idToemployees?.name ?? null,
       createdBy: row.created_by,
       createdAt: row.created_at,
       updatedAt: row.updated_at,

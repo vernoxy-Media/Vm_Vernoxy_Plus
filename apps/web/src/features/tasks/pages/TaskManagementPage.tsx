@@ -32,10 +32,18 @@ import { TaskFormModal } from '../components/TaskFormModal';
 import { useSocket } from '@/shared/socket/SocketContext';
 import { useDebouncedSearch } from '../hooks/use-debounced-search';
 
-export const TaskManagementPage: React.FC = () => {
+export const TaskManagementPage: React.FC<{ initialTaskId?: number | null; onTaskClosed?: () => void }> = ({
+  initialTaskId = null,
+  onTaskClosed,
+}) => {
   const [filters, setFilters] = useState<TaskBoardQueryDto>({});
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
-  const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<number | null>(initialTaskId);
+
+  // A link such as /my-tasks?task=12 (from a notification) opens that task, also when the page is already open
+  React.useEffect(() => {
+    if (initialTaskId !== null) setSelectedTaskId(initialTaskId);
+  }, [initialTaskId]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<TaskDetailDto | null>(null);
   const { socket } = useSocket();
@@ -235,7 +243,10 @@ export const TaskManagementPage: React.FC = () => {
         isOpen={selectedTaskId !== null}
         isAdmin={true}
         heading="Task management"
-        onClose={() => setSelectedTaskId(null)}
+        onClose={() => {
+          setSelectedTaskId(null);
+          onTaskClosed?.();
+        }}
         onMoveStage={handleMoveStage}
         onTrackWorkSession={handleTrackWorkSession}
         onChangeDate={handleChangeDate}

@@ -16,10 +16,13 @@ export class CreateNotificationUseCase {
   ) {}
 
   /** The same notification on the person's desktop, for when the app is not open. Best effort. */
-  private pushToDesktop(recipientId: number, n: { kind: string; title: string; body?: string | null; entity_id?: number | null }): void {
+  private pushToDesktop(
+    recipientId: number,
+    n: { kind: string; title: string; body?: string | null; entity_type?: string | null; entity_id?: number | null },
+  ): void {
     if (!this.desktop) return;
     void this.desktop
-      .notify([recipientId], { title: n.title, body: n.body ?? '', url: notificationLink(n.kind, n.entity_id), tag: `${n.kind}-${n.entity_id ?? ''}` })
+      .notify([recipientId], { title: n.title, body: n.body ?? '', url: notificationLink(n.kind, n.entity_id, n.entity_type), tag: `${n.kind}-${n.entity_id ?? ''}` })
       .catch(() => undefined);
   }
 

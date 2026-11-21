@@ -25,7 +25,8 @@ export const LeavePage: React.FC = () => {
     ...(isAdmin || isManager ? [{ id: 'calendar' as Tab, label: 'Leave Calendar' }] : []),
     ...(isAdmin ? [{ id: 'balances' as Tab, label: 'Balances' }, { id: 'reports' as Tab, label: 'Reports' }] : []),
   ];
-  const normalized: Tab = requested === 'management' ? 'requests' : (requested as Tab);
+  // "management" (e.g. from a leave request notification) is the approver's list: an Admin's Requests, a manager's Team Leave
+  const normalized: Tab = requested === 'management' ? (isAdmin ? 'requests' : 'team') : (requested as Tab);
   const active: Tab = tabs.some((t) => t.id === normalized) ? normalized : 'my-leave';
 
   const go = (tab: Tab) => setSearchParams(tab === 'my-leave' ? {} : { tab });

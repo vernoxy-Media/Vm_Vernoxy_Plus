@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell, Bug, CalendarClock, CheckCircle2, ClipboardList, FileClock, FolderKanban, X, XCircle } from 'lucide-react';
 import { useSocket } from '@/shared/socket/SocketContext';
+import { notificationPath } from '../notification-link';
 
 interface IncomingNotification {
   notification_id?: number;
@@ -23,19 +24,8 @@ interface ToastItem {
 const MAX_VISIBLE = 4;
 const VISIBLE_MS = 9000;
 
-/** Where a notification leads when the toast is clicked. */
-function destination(n: IncomingNotification): string | null {
-  const kind = n.kind ?? '';
-  if (kind.startsWith('project_') && n.entity_id) return `/projects/${n.entity_id}`;
-  if (kind.startsWith('task_') || kind.startsWith('bug_')) return '/my-tasks';
-  if (kind === 'attendance_regularization_requested' && n.entity_id) return `/attendance?tab=regularization&request=${n.entity_id}`;
-  if (kind.startsWith('attendance_regularization')) return '/attendance?tab=regularization';
-  if (kind.startsWith('calendar_')) return '/calendar';
-  if (kind.startsWith('follow_up') || kind === 'lead_assigned') return '/sales/follow-ups';
-  if (kind.startsWith('leave_')) return '/leave';
-  if (kind.startsWith('expense_')) return '/expense';
-  return null;
-}
+/** Where a notification leads when the toast is clicked: the same place as in the bell. */
+const destination = (n: IncomingNotification): string | null => notificationPath(n);
 
 function visual(kind: string): { Icon: React.ElementType; tone: string } {
   if (kind.startsWith('bug_')) return { Icon: Bug, tone: 'bg-rose-50 text-rose-600' };

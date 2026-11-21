@@ -251,6 +251,7 @@ model employees {
   calendar_events_calendar_events_organizer_idToemployees                                    calendar_events[]                 @relation("calendar_events_organizer_idToemployees")
   calendar_events_calendar_events_updated_byToemployees                                      calendar_events[]                 @relation("calendar_events_updated_byToemployees")
   candidates_candidates_converted_to_emp_idToemployees                                       candidates[]                      @relation("candidates_converted_to_emp_idToemployees")
+  candidates_candidates_assigned_to_emp_idToemployees                                        candidates[]                      @relation("candidates_assigned_to_emp_idToemployees")
   candidates_candidates_created_byToemployees                                                candidates[]                      @relation("candidates_created_byToemployees")
   candidates_candidates_decision_byToemployees                                               candidates[]                      @relation("candidates_decision_byToemployees")
   candidates_candidates_referred_by_emp_idToemployees                                        candidates[]                      @relation("candidates_referred_by_emp_idToemployees")
@@ -1780,6 +1781,8 @@ model candidates {
   send_regret_email                                    Boolean?       @default(false)
   on_hold_review_date                                  DateTime?      @db.Date
   on_hold_notes                                        String?
+  assigned_to_emp_id                                   Int?
+  employees_candidates_assigned_to_emp_idToemployees   employees?     @relation("candidates_assigned_to_emp_idToemployees", fields: [assigned_to_emp_id], references: [emp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_candidates_assigned_to_emp")
   employees_candidates_converted_to_emp_idToemployees  employees?     @relation("candidates_converted_to_emp_idToemployees", fields: [converted_to_emp_id], references: [emp_id], onUpdate: NoAction)
   employees_candidates_created_byToemployees           employees?     @relation("candidates_created_byToemployees", fields: [created_by], references: [emp_id], onUpdate: NoAction)
   employees_candidates_decision_byToemployees          employees?     @relation("candidates_decision_byToemployees", fields: [decision_by], references: [emp_id], onUpdate: NoAction)

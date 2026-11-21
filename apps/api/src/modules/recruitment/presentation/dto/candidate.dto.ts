@@ -1,15 +1,18 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import {
   IsString,
   IsEmail,
   IsNotEmpty,
   IsOptional,
   IsNumber,
+  IsInt,
   IsEnum,
+  IsIn,
   Min,
   Max,
   Matches,
   IsArray,
+  ValidateIf,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -171,6 +174,25 @@ export class CreateCandidateDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @ApiPropertyOptional({ description: 'Active employee who moves this candidate through the pipeline', example: 12, nullable: true })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt({ message: 'Please select an employee.' })
+  @Min(1, { message: 'Please select an employee.' })
+  assigned_to_emp_id?: number | null;
+}
+
+/** Editing a candidate: any field of the add form; the ones sent replace the saved values, and every rule applies. */
+export class UpdateCandidateDto extends PartialType(CreateCandidateDto) {}
+
+export class AssignCandidateDto {
+  @ApiProperty({ description: 'Active employee to hand the candidate to, or null to take it back', example: 12, nullable: true })
+  @ValidateIf((_, v) => v !== null)
+  @Type(() => Number)
+  @IsInt({ message: 'Please select an employee.' })
+  @Min(1, { message: 'Please select an employee.' })
+  emp_id!: number | null;
 }
 
 export class CheckDuplicateCandidateDto {
@@ -379,6 +401,12 @@ export class CandidateItemDto {
   @ApiPropertyOptional()
   decision_by_name?: string | null;
 
+  @ApiPropertyOptional({ nullable: true })
+  assigned_to_emp_id?: number | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  assigned_to_name?: string | null;
+
   @ApiProperty()
   created_at!: string;
 }
@@ -392,6 +420,38 @@ export class CandidateListResponseDto {
 
   @ApiProperty({ type: CandidateStatsDto })
   stats!: CandidateStatsDto;
+
+  @ApiProperty({ enum: ['all', 'assigned'], description: 'all: an Admin sees every candidate; assigned: only the ones assigned to you' })
+  scope!: 'all' | 'assigned';
+}
+
+export class CandidateListQueryDto {
+  @IsOptional() @IsString() q?: string;
+  @IsOptional() @Type(() => Number) @IsInt() roleId?: number;
+  @IsOptional() @Type(() => Number) @IsInt() depId?: number;
+  @IsOptional() @IsString() source?: string;
+  @IsOptional() @IsString() stage?: string;
+  @IsOptional() @IsString() experienceType?: string;
+  @IsOptional() @IsString() startDate?: string;
+  @IsOptional() @IsString() endDate?: string;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(10000) limit?: number;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(0) offset?: number;
+
+  @ApiPropertyOptional({ enum: ['candidate_code', 'name', 'position', 'department', 'experience', 'source', 'stage', 'applied_date'] })
+  @IsOptional()
+  @IsIn(['candidate_code', 'name', 'position', 'department', 'experience', 'source', 'stage', 'applied_date'], { message: 'Unknown sort column.' })
+  sortBy?: 'candidate_code' | 'name' | 'position' | 'department' | 'experience' | 'source' | 'stage' | 'applied_date';
+
+  @ApiPropertyOptional({ enum: ['asc', 'desc'] })
+  @IsOptional()
+  @IsIn(['asc', 'desc'])
+  sortDir?: 'asc' | 'desc';
+
+  @ApiPropertyOptional({ description: 'Admin only: the candidates assigned to this employee' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  assignedTo?: number;
 }
 
 export class UpdateCandidateStageDto {

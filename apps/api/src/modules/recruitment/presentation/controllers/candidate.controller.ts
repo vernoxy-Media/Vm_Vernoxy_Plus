@@ -14,7 +14,10 @@ import {
   Req,
   Res,
   HttpStatus,
+  HttpException,
   BadRequestException,
+  ForbiddenException,
+  NotFoundException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -40,8 +43,18 @@ import { MarkCandidateDecisionUseCase } from '../../application/use-cases/mark-c
 import { GetNextEmployeeCodeUseCase } from '../../application/use-cases/get-next-employee-code.use-case';
 import { ConvertCandidateToEmployeeUseCase } from '../../application/use-cases/convert-candidate-to-employee.use-case';
 import { UpdateCandidateUseCase } from '../../application/use-cases/update-candidate.use-case';
+import { AssignCandidateUseCase } from '../../application/use-cases/assign-candidate.use-case';
+import { CandidateAccessService } from '../../application/services/candidate-access.service';
+import {
+  CandidateAccessDeniedError,
+  CandidateNotFoundError,
+  CandidateValidationError,
+} from '../../domain/candidate-input-rules';
 import {
   CreateCandidateDto,
+  UpdateCandidateDto,
+  AssignCandidateDto,
+  CandidateListQueryDto,
   CheckDuplicateCandidateDto,
   CandidateListResponseDto,
   DuplicateMatchDto,
@@ -52,6 +65,31 @@ import {
   NextEmpCodeResponseDto,
   ConvertToEmployeeResponseDto,
 } from '../dto/candidate.dto';
+
+/** A broken rule, a hidden candidate or a refused action, as the HTTP answer the web app shows next to the field */
+function toHttp(err: unknown): never {
+  if (err instanceof CandidateValidationError) {
+    throw new BadRequestException({ detail: err.message, ...(err.field ? { field: err.field } : {}) });
+  }
+  if (err instanceof CandidateNotFoundError) throw new NotFoundException({ detail: err.message });
+  if (err instanceof CandidateAccessDeniedError) throw new ForbiddenException({ detail: err.message, code: 'FORBIDDEN' });
+  if (err instanceof HttpException) throw err;
+  throw err;
+}
+
+async function run<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (err) {
+    return toHttp(err);
+  }
+}
+
+const empIdOf = (req: any): number => {
+  const id = Number(req?.user?.emp_id);
+  if (!id) throw new ForbiddenException({ detail: 'Please sign in again.' });
+  return id;
+};
 
 function toCandidateItemDto(c: any): CandidateItemDto {
   if (!c) return c;
@@ -152,6 +190,8 @@ function toCandidateItemDto(c: any): CandidateItemDto {
       : null,
     decision_by: c.decisionBy ?? c.decision_by ?? null,
     decision_by_name: c.decisionByName ?? c.decision_by_name ?? null,
+    assigned_to_emp_id: c.assignedToEmpId ?? c.assigned_to_emp_id ?? null,
+    assigned_to_name: c.assignedToName ?? c.assigned_to_name ?? null,
     created_at: c.createdAt
       ? c.createdAt instanceof Date
         ? c.createdAt.toISOString()
@@ -178,19 +218,27 @@ export class CandidateController {
     private readonly getNextEmployeeCodeUseCase: GetNextEmployeeCodeUseCase,
     private readonly convertCandidateToEmployeeUseCase: ConvertCandidateToEmployeeUseCase,
     private readonly updateCandidateUseCase: UpdateCandidateUseCase,
+    private readonly assignCandidateUseCase: AssignCandidateUseCase,
+    private readonly access: CandidateAccessService,
   ) {}
 
   @Get('next-code')
   @ApiOperation({ summary: 'Get preview next candidate code (e.g. CAN-0001)' })
-  async getNextCode(): Promise<{ candidate_code: string }> {
-    return this.getNextCandidateCodeUseCase.execute();
+  async getNextCode(@Req() req: any): Promise<{ candidate_code: string }> {
+    return run(async () => {
+      await this.access.assertAdmin(empIdOf(req), 'add candidates');
+      return this.getNextCandidateCodeUseCase.execute();
+    });
   }
 
   @Get('next-emp-code')
   @ApiOperation({ summary: 'Get preview next employee code (e.g. EMP-0015)' })
   @ApiResponse({ status: 200, type: NextEmpCodeResponseDto })
-  async getNextEmpCode(): Promise<NextEmpCodeResponseDto> {
-    return this.getNextEmployeeCodeUseCase.execute();
+  async getNextEmpCode(@Req() req: any): Promise<NextEmpCodeResponseDto> {
+    return run(async () => {
+      await this.access.assertAdmin(empIdOf(req), 'convert candidates to employees');
+      return this.getNextEmployeeCodeUseCase.execute();
+    });
   }
 
   @Post('check-duplicate')
@@ -198,8 +246,12 @@ export class CandidateController {
   @ApiResponse({ status: 200, type: [DuplicateMatchDto] })
   async checkDuplicate(
     @Body() dto: CheckDuplicateCandidateDto,
+    @Req() req: any,
   ): Promise<DuplicateMatchDto[]> {
-    return this.checkDuplicateUseCase.execute(dto.phone, dto.email);
+    return run(async () => {
+      await this.access.assertAdmin(empIdOf(req), 'add candidates');
+      return this.checkDuplicateUseCase.execute(dto.phone, dto.email);
+    });
   }
 
   @Post('upload-resume')
@@ -217,12 +269,13 @@ export class CandidateController {
       limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
     }),
   )
-  async uploadResume(@UploadedFile() file: Express.Multer.File): Promise<{
+  async uploadResume(@UploadedFile() file: Express.Multer.File, @Req() req: any): Promise<{
     resume_url: string;
     resume_filename: string;
     resume_size: number;
     resume_mime: string;
   }> {
+    await run(() => this.access.assertAdmin(empIdOf(req), 'upload resumes'));
     if (!file) {
       throw new BadRequestException('File is required for upload.');
     }
@@ -274,108 +327,105 @@ export class CandidateController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'List candidates with KPI stats and filters' })
+  @ApiOperation({ summary: 'List candidates with KPI stats, filters and sorting (an employee sees the candidates assigned to them)' })
   @ApiResponse({ status: 200, type: CandidateListResponseDto })
-  async listCandidates(
-    @Query('q') q?: string,
-    @Query('roleId') roleId?: string,
-    @Query('depId') depId?: string,
-    @Query('source') source?: string,
-    @Query('stage') stage?: string,
-    @Query('experienceType') experienceType?: string,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
-    @Query('limit') limit?: string,
-    @Query('offset') offset?: string,
-  ): Promise<CandidateListResponseDto> {
-    return this.listCandidatesUseCase.execute({
-      q,
-      roleId: roleId ? parseInt(roleId, 10) : undefined,
-      depId: depId ? parseInt(depId, 10) : undefined,
-      source,
-      stage,
-      experienceType,
-      startDate,
-      endDate,
-      limit: limit ? parseInt(limit, 10) : 10,
-      offset: offset ? parseInt(offset, 10) : 0,
+  async listCandidates(@Query() query: CandidateListQueryDto, @Req() req: any): Promise<CandidateListResponseDto> {
+    return run(async () => {
+      const res = await this.listCandidatesUseCase.execute(
+        {
+          q: query.q,
+          roleId: query.roleId,
+          depId: query.depId,
+          source: query.source,
+          stage: query.stage,
+          experienceType: query.experienceType,
+          startDate: query.startDate,
+          endDate: query.endDate,
+          limit: query.limit ?? 10,
+          offset: query.offset ?? 0,
+          sortBy: query.sortBy,
+          sortDir: query.sortDir,
+          assignedTo: query.assignedTo,
+        },
+        empIdOf(req),
+      );
+      return { items: res.items.map(toCandidateItemDto), total: res.total, stats: res.stats, scope: res.scope };
     });
   }
 
   @Post()
-  @ApiOperation({ summary: 'Add a new candidate' })
-  async createCandidate(
-    @Body() dto: CreateCandidateDto,
-    @Req() req: any,
-  ): Promise<any> {
-    const adminId = req.user?.emp_id || 1;
-    const created = await this.createCandidateUseCase.execute(dto, adminId);
-    return toCandidateItemDto(created);
+  @ApiOperation({ summary: 'Add a new candidate (Admin)' })
+  @ApiResponse({ status: 201, type: CandidateItemDto })
+  async createCandidate(@Body() dto: CreateCandidateDto, @Req() req: any): Promise<CandidateItemDto> {
+    return run(async () => toCandidateItemDto(await this.createCandidateUseCase.execute(dto, empIdOf(req))));
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get candidate details by ID' })
+  @ApiOperation({ summary: 'Get candidate details by ID (Admin, or the employee it is assigned to)' })
   @ApiResponse({ status: 200, type: CandidateItemDto })
-  async getCandidate(
-    @Param('id', ParseIntPipe) id: number,
-  ): Promise<CandidateItemDto> {
-    const candidate = await this.getCandidateDetailUseCase.execute(id);
-    return toCandidateItemDto(candidate);
+  async getCandidate(@Param('id', ParseIntPipe) id: number, @Req() req: any): Promise<CandidateItemDto> {
+    return run(async () => toCandidateItemDto(await this.getCandidateDetailUseCase.execute(id, empIdOf(req))));
   }
 
   @Put(':id')
-  @ApiOperation({ summary: 'Update candidate details' })
+  @ApiOperation({ summary: 'Update candidate details (Admin)' })
   @ApiResponse({ status: 200, type: CandidateItemDto })
   async updateCandidate(
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: any,
+    @Body() dto: UpdateCandidateDto,
     @Req() req: any,
   ): Promise<CandidateItemDto> {
-    const adminId = req.user?.emp_id || 1;
-    const res = await this.updateCandidateUseCase.execute(id, dto, adminId);
-    return toCandidateItemDto(res);
+    return run(async () => toCandidateItemDto(await this.updateCandidateUseCase.execute(id, dto, empIdOf(req))));
+  }
+
+  @Patch(':id/assignee')
+  @ApiOperation({ summary: 'Assign the candidate to an active employee, or take it back with null (Admin)' })
+  @ApiResponse({ status: 200, type: CandidateItemDto })
+  async assignCandidate(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: AssignCandidateDto,
+    @Req() req: any,
+  ): Promise<CandidateItemDto> {
+    return run(async () => toCandidateItemDto(await this.assignCandidateUseCase.execute(id, dto.emp_id ?? null, empIdOf(req))));
   }
 
   @Patch(':id/stage')
-  @ApiOperation({ summary: 'Update candidate pipeline stage directly' })
+  @ApiOperation({ summary: 'Move the candidate to another pipeline stage (Admin, or the employee it is assigned to)' })
   @ApiResponse({ status: 200, type: CandidateItemDto })
   async updateStage(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateCandidateStageDto,
     @Req() req: any,
   ): Promise<CandidateItemDto> {
-    const adminId = req.user?.emp_id || 1;
-    const res = await this.updateCandidateStageUseCase.execute(id, dto.stage, adminId);
-    return toCandidateItemDto(res);
+    return run(async () => toCandidateItemDto(await this.updateCandidateStageUseCase.execute(id, dto.stage, empIdOf(req))));
   }
 
   @Post(':id/decision')
-  @ApiOperation({ summary: 'Mark hiring decision (Selected, On Hold, Rejected)' })
+  @ApiOperation({ summary: 'Mark hiring decision (Selected, On Hold, Rejected) and send the regret email when asked (Admin)' })
   @ApiResponse({ status: 200, type: CandidateItemDto })
   async markDecision(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: MarkCandidateDecisionDto,
     @Req() req: any,
-  ): Promise<CandidateItemDto> {
-    const adminId = req.user?.emp_id || 1;
-    const res = await this.markCandidateDecisionUseCase.execute(id, dto, adminId);
-    return toCandidateItemDto(res);
+  ): Promise<CandidateItemDto & { regret_email: 'not_requested' | 'sent' | 'failed' }> {
+    return run(async () => {
+      const res = await this.markCandidateDecisionUseCase.execute(id, dto, empIdOf(req));
+      return { ...toCandidateItemDto(res.candidate), regret_email: res.regretEmail };
+    });
   }
 
   @Post(':id/convert-to-employee')
-  @ApiOperation({ summary: 'Convert candidate to employee in onboarding stage' })
+  @ApiOperation({ summary: 'Convert a selected candidate to an employee in Onboarding (Admin)' })
   @ApiResponse({ status: 201, type: ConvertToEmployeeResponseDto })
   async convertToEmployee(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: ConvertCandidateToEmployeeDto,
     @Req() req: any,
-  ): Promise<any> {
-    const adminId = req.user?.emp_id || 1;
-    const res = await this.convertCandidateToEmployeeUseCase.execute(id, dto.office_email, adminId);
-    return {
-      employee: res.employee,
-      candidate: toCandidateItemDto(res.candidate),
-    };
+  ): Promise<ConvertToEmployeeResponseDto> {
+    return run(async () => {
+      const res = await this.convertCandidateToEmployeeUseCase.execute(id, dto.office_email, empIdOf(req));
+      return { employee: res.employee, candidate: toCandidateItemDto(res.candidate) };
+    });
   }
 }
 

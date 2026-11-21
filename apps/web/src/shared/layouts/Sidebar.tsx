@@ -45,6 +45,7 @@ import {
 } from 'lucide-react';
 import { useSalesRights } from '@/features/sales/hooks/useSalesRights';
 import { useFollowUpCounters } from '@/features/sales/hooks/useFollowUpCounters';
+import { useAssignedCandidatesCountQuery } from '@/features/recruitment/hooks/use-recruitment';
 
 export interface SidebarProps {
   isCollapsed?: boolean;
@@ -89,6 +90,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggleC
   const location = useLocation();
   const { canAccessSales, isAdmin, canImport, canExport } = useSalesRights();
   const { totalDueCount } = useFollowUpCounters();
+  // An employee who is not an Admin sees Recruitment only when the Admin assigned candidates to them
+  const isOrgAdminUser = Boolean(user?.access?.can_manage_organization);
+  const { data: assignedCandidates = 0 } = useAssignedCandidatesCountQuery(Boolean(user) && !isOrgAdminUser);
   /** Sub-menus the person opened or closed by hand; the rest follow the current page. */
   const [toggled, setToggled] = useState<Record<string, boolean>>({});
   const [query, setQuery] = useState('');
@@ -160,6 +164,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggleC
     entry('Expenses', '/expense', Receipt, own(starts('/expense', '/expenses'), expenseAdmin)),
     entry('Complaints', '/complaints', AlertCircle, own(starts('/complaints', '/complaint'), complaintAdmin)),
     entry('Licenses', '/licenses', Laptop, starts('/licenses', '/my-software')),
+    ...(!isOrgAdmin && assignedCandidates > 0
+      ? [entry('My Candidates', '/recruitment', Briefcase, starts('/recruitment'), 'my-candidates', assignedCandidates)]
+      : []),
     entry('Support', '/support', LifeBuoy, starts('/support')),
   ];
 

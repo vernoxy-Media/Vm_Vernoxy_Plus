@@ -776,7 +776,7 @@ export const EmployeeDetailPage: React.FC = () => {
                     <p className="mt-1 font-semibold text-slate-900">
                       {recruitedCandidate ? (
                         <Link
-                          to={`/admin/recruitment/candidates/${recruitedCandidate.candidate_id}`}
+                          to={`/admin/recruitment/${recruitedCandidate.candidate_id}`}
                           className="text-blue-600 hover:underline font-mono"
                         >
                           {recruitedCandidate.candidate_code || `CAN-${String(recruitedCandidate.candidate_id).padStart(4, '0')}`}
