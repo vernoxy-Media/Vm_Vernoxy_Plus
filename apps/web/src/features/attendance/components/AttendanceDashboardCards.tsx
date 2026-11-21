@@ -9,8 +9,6 @@ import { AttendanceStatsSummaryCard, AttendanceBreakdownRow } from './Attendance
 import { AttendanceTimingsCard } from './AttendanceTimingsCard';
 import { AttendanceActionsCard } from './AttendanceActionsCard';
 import { RecentAttendanceRecordsCard } from './RecentAttendanceRecordsCard';
-import { UpcomingHolidays } from './UpcomingHolidays';
-import { BirthdayCelebrations } from './BirthdayCelebrations';
 
 export interface AttendanceDashboardCardsProps {
   today: TodayAttendanceData;
@@ -192,9 +190,6 @@ export const AttendanceDashboardCards: React.FC<AttendanceDashboardCardsProps> =
         shift={shift}
       />
 
-      {/* Office holidays set by the administrator */}
-      {!viewing && <BirthdayCelebrations />}
-      <UpcomingHolidays />
 
       {/* Section 3: Activity Logs */}
       <RecentAttendanceRecordsCard

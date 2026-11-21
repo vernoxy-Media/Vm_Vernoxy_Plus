@@ -6,13 +6,13 @@ import { parseApiError } from '@/shared/utils/api-error';
 import { SectionHeading } from '../components/dashboard-ui';
 import { PayrollOverview, PeopleOverview } from '../components/PeopleSections';
 import { useHomeDashboard } from '../hooks/use-home-dashboard';
+import { BirthdayCelebrations } from '@/features/attendance/components/BirthdayCelebrations';
+import { UpcomingHolidays } from '@/features/attendance/components/UpcomingHolidays';
 import type { DashboardProfile, HomeDashboardData } from '../types';
 import {
   AttendanceCard,
-  BirthdaysCard,
   ComplaintsCard,
   ExpensesCard,
-  HolidaysCard,
   KnowledgeBaseCard,
   LeaveCard,
   MessagesCard,
@@ -49,6 +49,10 @@ const PROFILE_TITLE: Record<DashboardProfile, string> = {
 
 const DashboardBody: React.FC<{ data: HomeDashboardData }> = ({ data }) => (
   <div className="space-y-6">
+    {/* Birthdays and office holidays lead the dashboard */}
+    <BirthdayCelebrations />
+    <UpcomingHolidays />
+
     {/* Role section: present only when the server granted it (Admin role / Sales module access) */}
     {data.admin && <AdminOverview admin={data.admin} />}
     {data.sales && <SalesOverview sales={data.sales} />}
@@ -77,8 +81,6 @@ const DashboardBody: React.FC<{ data: HomeDashboardData }> = ({ data }) => (
       <SectionHeading title="People, Office & Personal Services" />
       {/* Conditional cards render nothing, so the columns follow however many cards are shown: no empty slot at the end */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-[repeat(auto-fit,minmax(240px,1fr))]">
-        <BirthdaysCard />
-        <HolidaysCard />
         <AttendanceCard data={data} />
         <LeaveCard data={data} />
         <ExpensesCard data={data} />
