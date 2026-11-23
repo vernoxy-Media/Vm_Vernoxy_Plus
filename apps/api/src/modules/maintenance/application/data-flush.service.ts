@@ -127,7 +127,7 @@ export class DataFlushService {
     let pending = statements;
     for (let pass = 0; pass < MAX_PASSES && pending.length > 0; pass++) {
       const failed: string[] = [];
-      let lastError = '';
+      const errors: string[] = [];
       for (const sql of pending) {
         await tx.$executeRawUnsafe('SAVEPOINT flush_step');
         try {
@@ -136,11 +136,13 @@ export class DataFlushService {
         } catch (err) {
           await tx.$executeRawUnsafe('ROLLBACK TO SAVEPOINT flush_step');
           failed.push(sql);
-          lastError = err instanceof Error ? err.message : String(err);
+          const msg = err instanceof Error ? err.message : String(err);
+          errors.push(`[${sql.slice(0, 60)}] ${msg.split('\n').pop() ?? msg}`);
         }
       }
       if (failed.length === pending.length) {
-        throw new UnprocessableEntityException(`The data could not be flushed, nothing was deleted. ${lastError.split('\n').pop() ?? lastError}`);
+        // Report every stuck statement (not just the last): the real blocker is usually one of the first ones.
+        throw new UnprocessableEntityException(`The data could not be flushed, nothing was deleted. Stuck: ${errors.slice(0, 5).join(' | ')}`);
       }
       pending = failed;
     }
