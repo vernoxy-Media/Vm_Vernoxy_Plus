@@ -46,7 +46,7 @@ export const MonthlyMovementComboChart: React.FC<MonthlyMovementComboChartProps>
           </div>
           <div>
             <h3 className="text-sm font-bold text-slate-900 tracking-tight">
-              5. Monthly Employee Movement
+              Monthly Employee Movement
             </h3>
             <p className="text-[11px] text-slate-500">
               Joined, Left & Net Workforce Change ({calendarYear})

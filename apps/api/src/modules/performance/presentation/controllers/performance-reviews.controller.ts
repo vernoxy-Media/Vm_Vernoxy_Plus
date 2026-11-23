@@ -8,6 +8,7 @@ import {
   SubmitReviewRatingsDto,
   SummaryQueryDto,
   TeamReviewsQueryDto,
+  PerformanceDashboardQueryDto,
 } from '../dto/performance.dto';
 
 /** Reviews are role-scoped inside the service (employee / Reporting Manager / Admin / Project Manager). */
@@ -17,6 +18,12 @@ import {
 @Controller('performance')
 export class PerformanceReviewsController {
   constructor(private readonly reviewsService: PerformanceReviewsService) {}
+
+  @Get('dashboard')
+  @ApiOperation({ summary: 'Performance Management Dashboard (KPIs, charts, rankings, and scorecards)' })
+  getDashboard(@Query() query: PerformanceDashboardQueryDto, @Req() req: any) {
+    return this.reviewsService.getPerformanceDashboard(req.user, query);
+  }
 
   @Get('reviews/my')
   @ApiOperation({ summary: 'Self Review for the open (or chosen) cycle — Screen 5' })

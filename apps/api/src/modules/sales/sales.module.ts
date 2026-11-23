@@ -89,6 +89,10 @@ import { SalesDashboardController } from './presentation/controllers/sales-dashb
 import { SalesDashboardUseCases } from './application/use-cases/sales-dashboard.use-cases';
 import { SalesDashboardRepositoryPort } from './application/ports/sales-dashboard.repository.port';
 import { PrismaSalesDashboardRepository } from './infrastructure/persistence/prisma-sales-dashboard.repository';
+import { SALES_CAMPAIGN_REPOSITORY_PORT_TOKEN, SalesCampaignRepositoryPort } from './application/ports/sales-campaign.repository.port';
+import { PrismaSalesCampaignRepository } from './infrastructure/persistence/prisma-sales-campaign.repository';
+import { CampaignUseCases } from './application/use-cases/campaign.use-cases';
+import { SalesCampaignController } from './presentation/controllers/sales-campaign.controller';
 
 const useCase = <T>(cls: new (repo: SalesCompanyRepositoryPort) => T) => ({
   provide: cls,
@@ -117,10 +121,17 @@ const leadUseCase = <T>(cls: new (repo: SalesLeadRepositoryPort) => T) => ({
     SalesReportController,
     SalesImportExportController,
     SalesDashboardController,
+    SalesCampaignController,
   ],
   providers: [
     { provide: SalesDashboardRepositoryPort, useClass: PrismaSalesDashboardRepository },
     SalesDashboardUseCases,
+    { provide: SALES_CAMPAIGN_REPOSITORY_PORT_TOKEN, useClass: PrismaSalesCampaignRepository },
+    {
+      provide: CampaignUseCases,
+      inject: [SALES_CAMPAIGN_REPOSITORY_PORT_TOKEN],
+      useFactory: (repo: SalesCampaignRepositoryPort) => new CampaignUseCases(repo),
+    },
     { provide: SALES_COMPANY_REPOSITORY_PORT_TOKEN, useClass: PrismaSalesCompanyRepository },
     { provide: SALES_ACCESS_POLICY_PORT_TOKEN, useClass: PrismaSalesAccessPolicyAdapter },
     { provide: SALES_LEAD_REPOSITORY_PORT_TOKEN, useClass: PrismaSalesLeadRepository },

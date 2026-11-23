@@ -47,7 +47,7 @@ export const SalesRoute: React.FC<SalesRouteProps> = ({ children, requireAdmin =
               The Sales module requires Sales department membership or administrator privileges.
             </p>
             <Link
-              to="/"
+              to="/dashboard"
               className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700 transition-colors shadow-xs"
             >
               Return to Dashboard

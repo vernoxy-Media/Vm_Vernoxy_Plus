@@ -7,6 +7,7 @@ import {
   ChevronDown,
   X,
 } from 'lucide-react';
+import { SearchableCombobox, type SearchableSelectOption } from '@/shared/ui';
 import { AttendanceAnalyticsFilters } from './attendance-analytics.types';
 import { getCurrentMonthRange } from './attendance-analytics.utils';
 
@@ -41,7 +42,32 @@ export const AttendanceAnalyticsFilterBar: React.FC<AttendanceAnalyticsFilterBar
     return count;
   }, [filters]);
 
-  const hasAnyFilterOrSearch = activeFiltersCount > 0 || Boolean(filters.search.trim());
+  // "All" first, then A to Z. The employee list also searches by employee ID (shown after the name).
+  const departmentOptions = useMemo<SearchableSelectOption[]>(
+    () => [
+      { value: 'All', label: 'All Departments' },
+      ...[...departments].sort((a, b) => a.name.localeCompare(b.name)).map((d) => ({ value: d.name, label: d.name })),
+    ],
+    [departments],
+  );
+  const designationOptions = useMemo<SearchableSelectOption[]>(
+    () => [
+      { value: 'All', label: 'All Designations' },
+      ...[...availableDesignations].sort((a, b) => a.localeCompare(b)).map((d) => ({ value: d, label: d })),
+    ],
+    [availableDesignations],
+  );
+  const employeeOptions = useMemo<SearchableSelectOption[]>(
+    () => [
+      { value: 'All', label: 'All Employees' },
+      ...[...employees]
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((e) => ({ value: String(e.id), label: e.name, sublabel: e.empCode })),
+    ],
+    [employees],
+  );
+
+  const hasAnyFilterOrSearch =activeFiltersCount > 0 || Boolean(filters.search.trim());
 
   const handleDatePresetChange = (preset: AttendanceAnalyticsFilters['dateRangePreset']) => {
     const now = new Date();
@@ -164,21 +190,13 @@ export const AttendanceAnalyticsFilterBar: React.FC<AttendanceAnalyticsFilterBar
           <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
             Department
           </label>
-          <div className="relative">
-            <select
-              value={filters.department}
-              onChange={(e) => onChangeFilters({ ...filters, department: e.target.value })}
-              className="w-full h-[38px] appearance-none rounded-xl border border-slate-200 bg-slate-50/50 px-3 text-xs font-medium text-slate-800 pr-8 hover:border-slate-300 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition cursor-pointer shadow-2xs"
-            >
-              <option value="All">All Departments</option>
-              {departments.map((dept) => (
-                <option key={dept.id} value={dept.name}>
-                  {dept.name}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-          </div>
+          <SearchableCombobox
+            options={departmentOptions}
+            value={filters.department}
+            onChange={(val) => onChangeFilters({ ...filters, department: val || 'All' })}
+            placeholder="All Departments"
+            ariaLabel="Department"
+          />
         </div>
 
         {/* 3. Designation (Interconnected to Department) */}
@@ -186,21 +204,13 @@ export const AttendanceAnalyticsFilterBar: React.FC<AttendanceAnalyticsFilterBar
           <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
             Designation
           </label>
-          <div className="relative">
-            <select
-              value={filters.designation}
-              onChange={(e) => onChangeFilters({ ...filters, designation: e.target.value })}
-              className="w-full h-[38px] appearance-none rounded-xl border border-slate-200 bg-slate-50/50 px-3 text-xs font-medium text-slate-800 pr-8 hover:border-slate-300 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition cursor-pointer shadow-2xs"
-            >
-              <option value="All">All Designations</option>
-              {availableDesignations.map((desig) => (
-                <option key={desig} value={desig}>
-                  {desig}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-          </div>
+          <SearchableCombobox
+            options={designationOptions}
+            value={filters.designation}
+            onChange={(val) => onChangeFilters({ ...filters, designation: val || 'All' })}
+            placeholder="All Designations"
+            ariaLabel="Designation"
+          />
         </div>
 
         {/* 4. Employee */}
@@ -208,21 +218,13 @@ export const AttendanceAnalyticsFilterBar: React.FC<AttendanceAnalyticsFilterBar
           <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
             Employee
           </label>
-          <div className="relative">
-            <select
-              value={filters.employeeId}
-              onChange={(e) => onChangeFilters({ ...filters, employeeId: e.target.value })}
-              className="w-full h-[38px] appearance-none rounded-xl border border-slate-200 bg-slate-50/50 px-3 text-xs font-medium text-slate-800 pr-8 hover:border-slate-300 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition cursor-pointer shadow-2xs"
-            >
-              <option value="All">All Employees</option>
-              {employees.map((emp) => (
-                <option key={emp.id} value={String(emp.id)}>
-                  {emp.name} ({emp.empCode})
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-          </div>
+          <SearchableCombobox
+            options={employeeOptions}
+            value={filters.employeeId}
+            onChange={(val) => onChangeFilters({ ...filters, employeeId: val || 'All' })}
+            placeholder="All Employees"
+            ariaLabel="Employee"
+          />
         </div>
 
         {/* 5. Global Search */}

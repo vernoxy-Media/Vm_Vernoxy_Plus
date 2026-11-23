@@ -21,7 +21,7 @@ export const EmployeesMostLateMarksTable: React.FC<EmployeesMostLateMarksTablePr
           </div>
           <div>
             <h3 className="text-sm font-bold text-slate-900 tracking-tight">
-              3. Employees with Most Late Marks
+              Employees with Most Late Marks
             </h3>
             <p className="text-[11px] text-slate-500">Ranked punctuality review (Top 5 + ties)</p>
           </div>

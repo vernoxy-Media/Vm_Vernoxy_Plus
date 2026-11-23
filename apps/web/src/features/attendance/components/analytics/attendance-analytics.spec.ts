@@ -6,6 +6,8 @@ import {
   filterAttendanceRecords,
   calculateAttendanceStatusOverview,
   calculateMonthlyAttendanceSummary,
+  calculateAttendanceSummaryBuckets,
+  defaultSummaryGranularity,
   calculateTopLateMarks,
   calculateDailyWorkingHoursTrend,
   calculateRegularizationRequestStatus,
@@ -345,6 +347,71 @@ describe('Attendance Management Analytics: US01 - US11 Business Logic & Calculat
       assert.strictEqual(oct.presentCount, 3);
     });
   });
+
+  describe('Attendance Summary buckets (day / week / month, with the people behind the counts)', () => {
+    const rec = (empId: number, name: string, date: string, dayStatus: EnrichedAttendanceRecord['dayStatus'], isLate = false, lateMinutes = 0): EnrichedAttendanceRecord => ({
+      ...MOCK_RECORDS[0],
+      attendanceId: empId * 1000 + Number(date.slice(8)),
+      empId, employeeName: name, workDate: date, dayStatus, isLate, lateMinutes,
+    });
+    // 2026-11-02 and 11-03 are Mon/Tue of one week, 11-09 is the next Monday
+    const data = [
+      rec(1, 'Asha', '2026-11-02', 'absent'),
+      rec(2, 'Bala', '2026-11-02', 'present', true, 20),
+      rec(3, 'Chen', '2026-11-02', 'missing_punch'),
+      rec(1, 'Asha', '2026-11-03', 'absent'),
+      rec(2, 'Bala', '2026-11-03', 'half_day', true, 40),
+      rec(1, 'Asha', '2026-11-09', 'on_leave'),
+    ];
+
+    it('counts each status per day, with missing punch as its own count', () => {
+      const days = calculateAttendanceSummaryBuckets(data, 'day');
+      assert.deepStrictEqual(days.map((d) => d.key), ['2026-11-02', '2026-11-03', '2026-11-09']);
+      const mon = days[0];
+      assert.strictEqual(mon.totalRecords, 3);
+      assert.strictEqual(mon.absentCount, 1);
+      assert.strictEqual(mon.presentCount, 1);
+      assert.strictEqual(mon.missingPunchCount, 1);
+      assert.strictEqual(mon.lateMarkCount, 1);
+    });
+
+    it('groups days into weeks that start on Monday', () => {
+      const weeks = calculateAttendanceSummaryBuckets(data, 'week');
+      assert.deepStrictEqual(weeks.map((w) => w.key), ['2026-11-02', '2026-11-09']);
+      assert.strictEqual(weeks[0].absentCount, 2);
+      assert.strictEqual(weeks[0].halfDayCount, 1);
+      assert.strictEqual(weeks[0].totalRecords, 5);
+      assert.strictEqual(weeks[1].onLeaveCount, 1);
+    });
+
+    it('groups everything into one month bar', () => {
+      const months = calculateAttendanceSummaryBuckets(data, 'month');
+      assert.strictEqual(months.length, 1);
+      assert.strictEqual(months[0].totalRecords, 6);
+      assert.strictEqual(months[0].lateMarkCount, 2); // late is separate from the status total
+    });
+
+    it('lists the employees behind absent, late and missing punch, most days first', () => {
+      const [week] = calculateAttendanceSummaryBuckets(data, 'week');
+      assert.deepStrictEqual(week.absentEmployees.map((p) => [p.employeeName, p.days]), [['Asha', 2]]);
+      assert.deepStrictEqual(week.lateEmployees.map((p) => [p.employeeName, p.days, p.lateMinutes]), [['Bala', 2, 60]]);
+      assert.deepStrictEqual(week.missingPunchEmployees.map((p) => p.employeeName), ['Chen']);
+    });
+
+    it('keeps one record per employee per date', () => {
+      const dupes = [...data, rec(1, 'Asha', '2026-11-02', 'present')];
+      const days = calculateAttendanceSummaryBuckets(dupes, 'day');
+      assert.strictEqual(days[0].totalRecords, 3);
+    });
+
+    it('picks day bars up to a month, week bars up to four months, then month bars', () => {
+      assert.strictEqual(defaultSummaryGranularity([]), 'day');
+      assert.strictEqual(defaultSummaryGranularity([rec(1, 'A', '2026-11-01', 'present'), rec(1, 'A', '2026-11-30', 'present')]), 'day');
+      assert.strictEqual(defaultSummaryGranularity([rec(1, 'A', '2026-09-01', 'present'), rec(1, 'A', '2026-11-30', 'present')]), 'week');
+      assert.strictEqual(defaultSummaryGranularity([rec(1, 'A', '2026-01-01', 'present'), rec(1, 'A', '2026-11-30', 'present')]), 'month');
+    });
+  });
+
 
   describe('US04: Employees with Most Late Marks (Ranked Data Table)', () => {
     it('ranks employees by late mark count descending and resolves ties alphabetically', () => {

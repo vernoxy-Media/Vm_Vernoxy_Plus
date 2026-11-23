@@ -57,6 +57,13 @@ describe('perf-rules', () => {
     it('needs at least 2 options for a choice question', () => {
       expect(() => normalizeQuestions([{ title: 'Pick', type: 'SINGLE_CHOICE', options: ['Yes'] }])).toThrow(RuleError);
     });
+    it('allows HR to customize suggested fixed question titles before go-live', () => {
+      const q = normalizeQuestions([], { fixed_comm: 'Professional Communication' });
+      expect(q[0].title).toBe('Professional Communication');
+      expect(q[0].id).toBe('fixed_comm');
+      expect(q[0].is_fixed).toBe(true);
+      expect(q[1].title).toBe('Behaviour');
+    });
   });
 
   describe('submission and averages (BFD Figure 1)', () => {

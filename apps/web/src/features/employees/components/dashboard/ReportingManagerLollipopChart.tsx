@@ -15,6 +15,8 @@ export const ReportingManagerLollipopChart: React.FC<ReportingManagerLollipopCha
   const navigate = useNavigate();
   const [showTooltip, setShowTooltip] = useState(false);
   const [hoveredManagerId, setHoveredManagerId] = useState<number | null>(null);
+  // Manager whose bar is expanded to list the direct reports
+  const [openManagerId, setOpenManagerId] = useState<number | null>(null);
 
   const maxReports = Math.max(1, ...managers.map((m) => m.directReportsCount));
 
@@ -37,7 +39,7 @@ export const ReportingManagerLollipopChart: React.FC<ReportingManagerLollipopCha
           </div>
           <div>
             <h3 className="text-sm font-bold text-slate-900 tracking-tight">
-              4. Reporting Manager Span of Control
+              Reporting Manager Span of Control
             </h3>
             <p className="text-[11px] text-slate-500">Active direct reports per manager</p>
           </div>
@@ -66,8 +68,8 @@ export const ReportingManagerLollipopChart: React.FC<ReportingManagerLollipopCha
         </div>
       </div>
 
-      {/* Main Lollipop Chart */}
-      <div className="flex-1 flex flex-col justify-end py-2">
+      {/* Horizontal Bar Chart */}
+      <div className="flex-1 flex flex-col justify-center py-2">
         {managers.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-14 text-center">
             <p className="text-xs font-semibold text-slate-500">
@@ -76,82 +78,71 @@ export const ReportingManagerLollipopChart: React.FC<ReportingManagerLollipopCha
           </div>
         ) : (
           <div className="w-full">
-            {/* Chart Canvas */}
-            <div className="relative h-44 w-full flex items-end justify-around gap-2 px-2 pb-2 border-b border-slate-200">
-              {/* Horizontal Reference Grid lines */}
-              <div className="absolute inset-x-0 top-0 border-b border-dashed border-slate-200 pointer-events-none" />
-              <div className="absolute inset-x-0 top-1/2 border-b border-dashed border-slate-100 pointer-events-none" />
-
+            {/* Horizontal bars, one per manager */}
+            <ul className="max-h-80 space-y-3 overflow-y-auto py-1 pr-1" aria-label="Active direct reports per manager">
               {managers.map((mgr) => {
-                const heightPct = maxReports > 0 ? (mgr.directReportsCount / maxReports) * 80 : 0;
+                const widthPct = (mgr.directReportsCount / maxReports) * 100;
                 const isHovered = hoveredManagerId === mgr.managerId;
+                const isDimmed = hoveredManagerId !== null && !isHovered;
 
                 return (
-                  <div
+                  <li
                     key={mgr.managerId}
                     onMouseEnter={() => setHoveredManagerId(mgr.managerId)}
                     onMouseLeave={() => setHoveredManagerId(null)}
-                    onClick={() => handleAllView(mgr.managerId)}
-                    className="relative flex flex-col items-center group cursor-pointer h-full justify-end"
+                    className={`transition-opacity duration-150 ${isDimmed ? 'opacity-40' : 'opacity-100'}`}
                   >
-                    {/* Tooltip */}
-                    {isHovered && (
-                      <div className="absolute -top-10 z-30 pointer-events-none px-2.5 py-1 bg-slate-900 text-white text-[11px] rounded-lg shadow-lg flex items-center gap-1.5 whitespace-nowrap">
-                        <span className="font-semibold">{mgr.managerName}:</span>
-                        <span className="font-bold text-sky-400">{mgr.directReportsCount} reports</span>
+                    <button
+                      type="button"
+                      aria-expanded={openManagerId === mgr.managerId}
+                      onClick={() => setOpenManagerId(openManagerId === mgr.managerId ? null : mgr.managerId)}
+                      title={`${mgr.managerName}: ${mgr.directReportsCount} active direct reports${mgr.isInactive ? ' (inactive manager)' : ''}. Click to see who.`}
+                      className="block w-full cursor-pointer text-left"
+                    >
+                    <div className="mb-1 flex items-center justify-between gap-2 text-xs">
+                      <span className="truncate font-semibold text-slate-700">
+                        {mgr.managerName}
                         {mgr.isInactive && (
-                          <span className="text-rose-300 text-[10px]">(Inactive Mgr)</span>
+                          <span className="ml-1.5 text-[10px] font-normal text-amber-600">Inactive</span>
                         )}
+                      </span>
+                      <strong className="text-slate-900">{mgr.directReportsCount}</strong>
+                    </div>
+                    <div className="h-3 w-full overflow-hidden rounded-full bg-slate-100">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          mgr.isInactive ? 'bg-amber-500' : 'bg-sky-500'
+                        }`}
+                        style={{ width: `${widthPct}%`, minWidth: mgr.directReportsCount > 0 ? '6px' : 0 }}
+                      />
+                    </div>
+                    </button>
+
+                    {openManagerId === mgr.managerId && (
+                      <div className="mt-2 rounded-xl border border-slate-100 bg-slate-50/70 p-2">
+                        <ul className="max-h-40 space-y-1 overflow-y-auto">
+                          {mgr.reports.map((r) => (
+                            <li key={r.empId} className="rounded-lg bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-800">
+                              {r.name}
+                            </li>
+                          ))}
+                        </ul>
+                        <button
+                          type="button"
+                          onClick={() => handleAllView(mgr.managerId)}
+                          className="mt-2 inline-flex cursor-pointer items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-800"
+                        >
+                          Open in employee list <ArrowUpRight className="h-3 w-3" />
+                        </button>
                       </div>
                     )}
-
-                    {/* Value Badge above lollipop circle */}
-                    <span
-                      style={{ bottom: `calc(${Math.max(12, heightPct)}% + 14px)` }}
-                      className="absolute text-[11px] font-bold text-slate-700 group-hover:text-sky-600 transition-colors"
-                    >
-                      {mgr.directReportsCount}
-                    </span>
-
-                    {/* Lollipop Circle Marker */}
-                    <div
-                      style={{ bottom: `${Math.max(12, heightPct)}%` }}
-                      className={`absolute w-4 h-4 rounded-full border-2 border-white shadow-sm transition-all duration-200 ${
-                        mgr.isInactive
-                          ? 'bg-amber-500 group-hover:bg-amber-600'
-                          : 'bg-sky-500 group-hover:bg-sky-600'
-                      } ${isHovered ? 'scale-130 ring-2 ring-sky-300' : ''}`}
-                    />
-
-                    {/* Lollipop Vertical Stem */}
-                    <div
-                      style={{ height: `${Math.max(12, heightPct)}%` }}
-                      className="w-0.5 bg-slate-300 group-hover:bg-sky-500 transition-colors"
-                    />
-                  </div>
+                  </li>
                 );
               })}
-            </div>
+            </ul>
 
-            {/* X-axis Labels (Manager Names) */}
-            <div className="flex justify-around items-start pt-2 px-2">
-              {managers.map((mgr) => (
-                <div
-                  key={mgr.managerId}
-                  onClick={() => handleAllView(mgr.managerId)}
-                  title={mgr.managerName}
-                  className="w-16 text-center text-[11px] font-semibold text-slate-600 truncate hover:text-sky-600 transition-colors cursor-pointer"
-                >
-                  {mgr.managerName.split(' ')[0]}
-                  {mgr.isInactive && (
-                    <span className="block text-[9px] text-amber-600 font-normal">Inactive</span>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            <p className="mt-2 text-center text-[10.5px] text-slate-400">
-              Each dot represents the number of Active employees directly reporting to that manager.
+            <p className="mt-3 text-center text-[10.5px] text-slate-400">
+              Each bar shows the number of Active employees directly reporting to that manager.
             </p>
           </div>
         )}

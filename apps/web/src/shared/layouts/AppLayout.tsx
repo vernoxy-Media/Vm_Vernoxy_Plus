@@ -53,7 +53,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
             Organization management requires administrator privileges. Your current role does not have permission to access this area.
           </p>
           <Link
-            to="/"
+            to="/dashboard"
             className="inline-flex items-center justify-center px-5 py-2.5 rounded-[14px] bg-gradient-to-r from-[color:var(--ac-main,#5B4CF8)] to-[color:var(--ac-hover,#6C63FF)] text-sm font-semibold text-white hover:from-[#4E3FE3] hover:to-[#5E55EC] transition-all duration-150 shadow-sm"
           >
             Return to Dashboard
@@ -96,7 +96,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           >
             <Menu className="w-5 h-5 stroke-[1.75]" />
           </button>
-          <Link to="/" className="flex items-center gap-2">
+          <Link to="/dashboard" className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[color:var(--ac-main,#5B4CF8)] to-[color:var(--ac-hover,#6C63FF)] text-white flex items-center justify-center font-extrabold text-base shadow-sm">
               V
             </div>

@@ -32,6 +32,7 @@ import { PerformanceModule } from './modules/performance/performance.module';
 import { MaintenanceModule } from './modules/maintenance/maintenance.module';
 import { ClientPortalModule } from './modules/client-portal/client-portal.module';
 import { PreferencesModule } from './modules/preferences/preferences.module';
+import { HomeDashboardModule } from './modules/home-dashboard/public-api';
 
 @Module({
 
@@ -70,6 +71,7 @@ import { PreferencesModule } from './modules/preferences/preferences.module';
     MaintenanceModule,
     ClientPortalModule,
     PreferencesModule,
+    HomeDashboardModule,
   ],
   controllers: [HealthController],
   providers: [

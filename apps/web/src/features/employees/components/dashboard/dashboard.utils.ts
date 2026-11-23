@@ -4,6 +4,7 @@ import {
   PREDEFINED_DEPARTMENTS,
   DepartmentDistributionItem,
   MultipleDepartmentCategoryItem,
+  MultipleDepartmentEmployee,
   ManagerSpanItem,
   MonthlyMovementItem,
   TenureCategoryItem,
@@ -38,6 +39,11 @@ export function matchDepartmentName(deptName: string, predefinedName: string): b
   const d = (deptName || '').toLowerCase().trim();
   const p = predefinedName.toLowerCase().trim();
   if (d === p) return true;
+
+  // A department that already has one of the standard names belongs to that one only.
+  // Without this, "Sales & Business Development" matched "Software Development" (both contain
+  // "develop") and "Quality Assurance" matched "UI/UX & Design" (it contains "ui").
+  if (PREDEFINED_DEPARTMENTS.some((n) => n.toLowerCase() === d)) return false;
 
   // Aliases matching predefined master order
   if (p === 'management' && (d === 'mgmt' || d === 'executive' || d === 'management')) return true;
@@ -268,7 +274,9 @@ export function computeDepartmentDistribution(
     }
 
     return {
-      departmentName: deptName,
+      // Show the department's real name when it exists, so the chart label matches the
+      // Department module and the employee list the bar links to (e.g. "Admin", not "Administration")
+      departmentName: masterMatch?.name?.trim() || deptName,
       depId: masterMatch?.dep_id,
       count,
       percentage: 0,
@@ -312,29 +320,43 @@ export function computeMultipleDepartmentAssignments(
         ignoreStatusFilter: true,
       }).filter((emp) => emp.status === 'Active');
 
-  let oneCount = 0;
-  let twoCount = 0;
-  let threeOrMoreCount = 0;
+  const oneList: MultipleDepartmentEmployee[] = [];
+  const twoList: MultipleDepartmentEmployee[] = [];
+  const threeOrMoreList: MultipleDepartmentEmployee[] = [];
 
   activeEmployees.forEach((emp) => {
-    // Count total distinct departments assigned to this employee across the organization
-    const deptIds = new Set<number>();
-    if (emp.dep_id) deptIds.add(emp.dep_id);
-    if (emp.departments) {
-      emp.departments.forEach((d) => {
-        if (d.dep_id) deptIds.add(d.dep_id);
-      });
-    }
+    // Distinct departments assigned to this employee (id -> name), primary first
+    const depts = new Map<number, string>();
+    if (emp.dep_id) depts.set(emp.dep_id, emp.department?.name ?? '');
+    (emp.departments ?? []).forEach((d) => {
+      if (!d.dep_id) return;
+      if (d.is_primary) {
+        const rest = new Map(depts);
+        depts.clear();
+        depts.set(d.dep_id, d.name);
+        rest.forEach((n, id) => { if (!depts.has(id)) depts.set(id, n); });
+      } else if (!depts.get(d.dep_id)) {
+        depts.set(d.dep_id, d.name);
+      }
+    });
 
-    const deptCount = Math.max(1, deptIds.size);
+    const item: MultipleDepartmentEmployee = {
+      empId: emp.emp_id,
+      name: emp.name,
+      departments: Array.from(depts.values()).filter(Boolean),
+    };
+    const deptCount = Math.max(1, depts.size);
     if (deptCount === 1) {
-      oneCount += 1;
+      oneList.push(item);
     } else if (deptCount === 2) {
-      twoCount += 1;
+      twoList.push(item);
     } else {
-      threeOrMoreCount += 1;
+      threeOrMoreList.push(item);
     }
   });
+  const oneCount = oneList.length;
+  const twoCount = twoList.length;
+  const threeOrMoreCount = threeOrMoreList.length;
 
   const totalEligible = activeEmployees.length;
 
@@ -345,6 +367,7 @@ export function computeMultipleDepartmentAssignments(
       count: oneCount,
       percentage: calculatePercentage(oneCount, totalEligible),
       color: '#2563eb', // Blue
+      employees: oneList,
     },
     {
       key: 'two',
@@ -352,6 +375,7 @@ export function computeMultipleDepartmentAssignments(
       count: twoCount,
       percentage: calculatePercentage(twoCount, totalEligible),
       color: '#f97316', // Orange / Amber
+      employees: twoList,
     },
     {
       key: 'three_or_more',
@@ -359,6 +383,7 @@ export function computeMultipleDepartmentAssignments(
       count: threeOrMoreCount,
       percentage: calculatePercentage(threeOrMoreCount, totalEligible),
       color: '#10b981', // Emerald / Green
+      employees: threeOrMoreList,
     },
   ];
 
@@ -381,7 +406,7 @@ export function computeReportingManagerSpan(
   }).filter((emp) => emp.status === 'Active' && emp.reporting_manager !== null && emp.reporting_manager !== undefined);
 
   // Group active reports by manager
-  const managerMap = new Map<number, { name: string; count: number; isInactive: boolean }>();
+  const managerMap = new Map<number, { name: string; count: number; isInactive: boolean; reports: Array<{ empId: number; name: string }> }>();
 
   activeDirectReports.forEach((emp) => {
     const mgrId = emp.reporting_manager!;
@@ -392,13 +417,16 @@ export function computeReportingManagerSpan(
     const isInactive = mgrRecord ? mgrRecord.status === 'Inactive' : false;
 
     const existing = managerMap.get(mgrId);
+    const report = { empId: emp.emp_id, name: emp.name };
     if (existing) {
       existing.count += 1;
+      existing.reports.push(report);
     } else {
       managerMap.set(mgrId, {
         name: mgrName,
         count: 1,
         isInactive,
+        reports: [report],
       });
     }
   });
@@ -409,6 +437,7 @@ export function computeReportingManagerSpan(
     managerName: info.name,
     isInactive: info.isInactive,
     directReportsCount: info.count,
+    reports: info.reports.sort((a, b) => a.name.localeCompare(b.name)),
   }));
 
   // If reportingManager filter is applied, show only the selected manager(s)

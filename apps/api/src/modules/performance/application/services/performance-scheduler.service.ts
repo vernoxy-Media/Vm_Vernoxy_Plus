@@ -47,8 +47,11 @@ export class PerformanceSchedulerService implements OnApplicationBootstrap, OnMo
             await this.reminders(cycle, today);
           } else if (status === 'CLOSED' && cycle.status !== 'CLOSED') {
             await this.closeCycle(cycle);
-          } else if (status === 'UPCOMING' && cycle.status !== 'UPCOMING') {
-            await this.prisma.perf_cycles.update({ where: { cycle_id: cycle.cycle_id }, data: { status: 'UPCOMING' } });
+          } else if (status === 'UPCOMING') {
+            if (cycle.status !== 'UPCOMING') {
+              await this.prisma.perf_cycles.update({ where: { cycle_id: cycle.cycle_id }, data: { status: 'UPCOMING' } });
+            }
+            await this.checkAdvanceMissingManager(cycle, today);
           }
         } catch (e: any) {
           this.logger.warn(`Performance cycle #${cycle.cycle_id} check failed: ${e?.message}`);
@@ -93,6 +96,30 @@ export class PerformanceSchedulerService implements OnApplicationBootstrap, OnMo
         body: `No form is available for these departments: ${noForm.join(', ')}. Add a form or choose All departments.`,
         entityId: cycle.cycle_id,
       });
+    }
+  }
+
+  /**
+   * Advance warning (3 days before review window opens) if any employee has no Reporting Manager.
+   */
+  private async checkAdvanceMissingManager(cycle: any, today: string) {
+    const start = Date.parse(`${toDateStr(cycle.review_start_date)}T00:00:00Z`);
+    const todayTs = Date.parse(`${today}T00:00:00Z`);
+    const diffDays = Math.round((start - todayTs) / 86400000);
+    if (diffDays <= 3 && diffDays > 0) {
+      const people = await this.reviews.eligibleEmployees(cycle);
+      const missing = people.filter((p) => !p.reporting_manager).map((p) => p.name);
+      if (missing.length) {
+        const admins = await this.access.getAdminIds();
+        const label = periodLabel(cycle);
+        const openDate = fmtDayMonth(cycle.review_start_date);
+        await this.sendOnce(admins, {
+          kind: 'perf_advance_missing_manager',
+          title: 'Advance Notice: Reporting Manager missing',
+          body: `${missing.length} employee(s) have no Reporting Manager for upcoming ${label} cycle opening on ${openDate}: ${missing.slice(0, 5).join(', ')}${missing.length > 5 ? '…' : ''}. Please assign a Reporting Manager before review window opens.`,
+          entityId: cycle.cycle_id,
+        });
+      }
     }
   }
 

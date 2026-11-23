@@ -21,7 +21,7 @@ export const RegularizedAttendanceKpiCard: React.FC<RegularizedAttendanceKpiCard
           </div>
           <div>
             <h3 className="text-sm font-bold text-slate-900 tracking-tight">
-              7. Regularized Attendance Records
+              Regularized Attendance Records
             </h3>
             <p className="text-[11px] text-slate-500">Approved attendance corrections share</p>
           </div>

@@ -62,6 +62,8 @@ export interface CreateEmployeeCommand {
   account_number?: string | null;
   ifsc_code?: string | null;
   leave_policy_id?: number | null;
+  /** Bulk import creates the account without mailing the temporary password; HR sends it later. Default: the mail goes out. */
+  skip_welcome_email?: boolean;
   acting_admin_id: number;
 }
 
@@ -301,7 +303,7 @@ export class CreateEmployeeUseCase {
       return created;
     });
 
-    if (this.mailPort) {
+    if (this.mailPort && !command.skip_welcome_email) {
       const targetOfficeEmail = (command.office_email || command.email).trim().toLowerCase();
       // Send welcome credentials email asynchronously in the background so employee creation is instant
       this.mailPort

@@ -912,14 +912,18 @@ const FormBuilder: React.FC<{ form: PerfFormItem | null; departments: Array<{ de
                   </button>
                 </div>
               )}
-              <label className="flex items-center justify-between">
+              <label className="flex items-center justify-between cursor-pointer select-none">
                 <span className="font-semibold text-slate-700">Answer is required</span>
-                <input
-                  type="checkbox"
-                  checked={sel.type === 'STAR_RATING' ? true : sel.is_required}
-                  disabled={sel.type === 'STAR_RATING'}
-                  onChange={(e) => patch(sel.id, { is_required: e.target.checked })}
-                />
+                <div className="relative inline-flex items-center">
+                  <input
+                    type="checkbox"
+                    className="sr-only peer"
+                    checked={sel.type === 'STAR_RATING' ? true : sel.is_required}
+                    disabled={sel.type === 'STAR_RATING'}
+                    onChange={(e) => patch(sel.id, { is_required: e.target.checked })}
+                  />
+                  <div className="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600 peer-disabled:opacity-60 peer-disabled:cursor-not-allowed"></div>
+                </div>
               </label>
               <div className="flex flex-col items-start gap-1.5 pt-1">
                 <button

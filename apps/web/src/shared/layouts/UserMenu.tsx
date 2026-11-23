@@ -38,7 +38,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({ compact = false }) => {
 
   const handleProfileClick = () => {
     setIsOpen(false);
-    navigate('/');
+    navigate('/profile');
   };
 
   const handleLogout = async () => {

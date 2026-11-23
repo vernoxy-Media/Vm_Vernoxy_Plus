@@ -57,7 +57,7 @@ export const WeeklyHoursHeatmapCalendar: React.FC<WeeklyHoursHeatmapCalendarProp
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-sm font-bold text-slate-900 tracking-tight">
-                9. Weekly Total Working Hours
+                Weekly Total Working Hours
               </h3>
               <span className="text-[11px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200/50">
                 {summary.weekLabel}

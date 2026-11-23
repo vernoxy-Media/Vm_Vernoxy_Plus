@@ -213,10 +213,10 @@ export class SubmitReviewRatingsDto {
   is_draft?: boolean;
 }
 
-export type ReviewPart = 'SELF' | 'MANAGER' | 'ADMIN';
+export type ReviewPart = 'SELF' | 'MANAGER' | 'ADMIN' | 'PROJECT';
 
 export class ReopenReviewDto {
-  @IsIn(['SELF', 'MANAGER', 'ADMIN'], { message: 'Please choose which review to open again.' })
+  @IsIn(['SELF', 'MANAGER', 'ADMIN', 'PROJECT'], { message: 'Please choose which review to open again.' })
   part!: ReviewPart;
 
   @IsString()
@@ -288,4 +288,33 @@ export class SubmitBulkProjectRatingsDto {
   @IsOptional()
   @IsBoolean()
   is_draft?: boolean;
+}
+
+export class PerformanceDashboardQueryDto {
+  @IsOptional()
+  @IsEnum(PerfCycleType)
+  cycle_type?: PerfCycleType;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  cycle_id?: number;
+
+  @IsOptional()
+  @IsString()
+  department_ids?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  manager_id?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  emp_id?: number;
+
+  @IsOptional()
+  @IsString()
+  status?: string;
 }

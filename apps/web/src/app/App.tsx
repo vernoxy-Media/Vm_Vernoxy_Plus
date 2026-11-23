@@ -28,6 +28,7 @@ const SettingsPage = lazy(() => import('@/features/settings/pages/SettingsPage')
 const AttendanceSettingsPage = lazy(() => import('@/features/attendance/pages/AttendanceSettingsPage').then((m) => ({ default: m.AttendanceSettingsPage })));
 const EmployeesPage = lazy(() => import('@/features/employees/pages/EmployeesPage').then((m) => ({ default: m.EmployeesPage })));
 const EmployeeDetailPage = lazy(() => import('@/features/employees/pages/EmployeeDetailPage').then((m) => ({ default: m.EmployeeDetailPage })));
+const EmployeeImportPage = lazy(() => import('@/features/employees/pages/EmployeeImportPage').then((m) => ({ default: m.EmployeeImportPage })));
 const EmployeeFormPage = lazy(() => import('@/features/employees/pages/EmployeeFormPage').then((m) => ({ default: m.EmployeeFormPage })));
 const CandidatesPage = lazy(() => import('@/features/recruitment/pages/CandidatesPage').then((m) => ({ default: m.CandidatesPage })));
 const CandidateFormPage = lazy(() => import('@/features/recruitment/pages/CandidateFormPage').then((m) => ({ default: m.CandidateFormPage })));
@@ -67,6 +68,10 @@ const SalesHistoryPage = lazy(() => import('@/features/sales/pages/HistoryPage')
 const SalesRightsPage = lazy(() => import('@/features/sales/pages/RightsPage').then((m) => ({ default: m.RightsPage })));
 const ClientDetailPage = lazy(() => import('@/features/sales/pages/ClientDetailPage').then((m) => ({ default: m.ClientDetailPage })));
 const SalesDashboardPage = lazy(() => import('@/features/sales/pages/SalesDashboardPage').then((m) => ({ default: m.SalesDashboardPage })));
+const CampaignsPage = lazy(() => import('@/features/sales/pages/CampaignsPage').then((m) => ({ default: m.CampaignsPage })));
+const CampaignFormPage = lazy(() => import('@/features/sales/pages/CampaignFormPage').then((m) => ({ default: m.CampaignFormPage })));
+const CampaignDetailPage = lazy(() => import('@/features/sales/pages/CampaignDetailPage').then((m) => ({ default: m.CampaignDetailPage })));
+const HomeDashboardPage = lazy(() => import('@/features/home-dashboard/pages/HomeDashboardPage').then((m) => ({ default: m.HomeDashboardPage })));
 
 /** Shown for a moment while the page you opened is being fetched. */
 const RouteFallback: React.FC = () => (
@@ -139,10 +144,19 @@ export const App: React.FC = () => {
                 }
               />
               <Route
-                path="/"
+                path="/profile"
                 element={
                   <ProtectedRoute>
                     <HomePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <HomeDashboardPage />
                   </ProtectedRoute>
                 }
               />
@@ -441,6 +455,22 @@ export const App: React.FC = () => {
                 path="/admin/settings/performance"
                 element={<Navigate to="/admin/settings/performance-cycles" replace />}
               />
+              <Route
+                path="/admin/performance-cycles"
+                element={<Navigate to="/admin/settings/performance-cycles" replace />}
+              />
+              <Route
+                path="/admin/performance-forms"
+                element={<Navigate to="/admin/settings/performance-forms" replace />}
+              />
+              <Route
+                path="/admin/cycle-master"
+                element={<Navigate to="/admin/settings/performance-cycles" replace />}
+              />
+              <Route
+                path="/admin/question-master"
+                element={<Navigate to="/admin/settings/performance-forms" replace />}
+              />
 
               {/* Backward-compatibility redirects for old URLs */}
               <Route
@@ -458,6 +488,14 @@ export const App: React.FC = () => {
                 element={
                   <AdminRoute>
                     <EmployeesPage />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/employees/import"
+                element={
+                  <AdminRoute>
+                    <EmployeeImportPage />
                   </AdminRoute>
                 }
               />
@@ -674,6 +712,46 @@ export const App: React.FC = () => {
                   <SalesRoute>
                     <AppLayout fluid>
                       <SalesDashboardPage />
+                    </AppLayout>
+                  </SalesRoute>
+                }
+              />
+              <Route
+                path="/sales/campaigns"
+                element={
+                  <SalesRoute>
+                    <AppLayout fluid>
+                      <CampaignsPage />
+                    </AppLayout>
+                  </SalesRoute>
+                }
+              />
+              <Route
+                path="/sales/campaigns/new"
+                element={
+                  <SalesRoute requireAdmin>
+                    <AppLayout fluid>
+                      <CampaignFormPage />
+                    </AppLayout>
+                  </SalesRoute>
+                }
+              />
+              <Route
+                path="/sales/campaigns/:id/edit"
+                element={
+                  <SalesRoute requireAdmin>
+                    <AppLayout fluid>
+                      <CampaignFormPage />
+                    </AppLayout>
+                  </SalesRoute>
+                }
+              />
+              <Route
+                path="/sales/campaigns/:id"
+                element={
+                  <SalesRoute>
+                    <AppLayout fluid>
+                      <CampaignDetailPage />
                     </AppLayout>
                   </SalesRoute>
                 }

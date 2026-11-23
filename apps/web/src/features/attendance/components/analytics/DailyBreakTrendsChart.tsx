@@ -54,7 +54,7 @@ export const DailyBreakTrendsChart: React.FC<DailyBreakTrendsChartProps> = ({
           </div>
           <div>
             <h3 className="text-sm font-bold text-slate-900 tracking-tight">
-              10. Daily Break Duration Trends
+              Daily Break Duration Trends
             </h3>
             <p className="text-[11px] text-slate-500">Average break vs assigned limit policy</p>
           </div>

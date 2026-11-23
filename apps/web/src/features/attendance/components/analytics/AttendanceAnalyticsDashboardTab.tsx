@@ -85,8 +85,8 @@ export const AttendanceAnalyticsDashboardTab: React.FC = () => {
     isLoading,
     error,
     refetch,
+    filteredRecords,
     statusOverview,
-    monthlySummary,
     topLateMarks,
     dailyWorkingHours,
     regularizationStatus,
@@ -222,7 +222,7 @@ export const AttendanceAnalyticsDashboardTab: React.FC = () => {
               <AttendanceStatusDonutChart items={statusOverview.items} totalRecords={statusOverview.totalRecords} />
             </div>
             <div className="min-h-[380px] min-w-0">
-              <MonthlyAttendanceSummaryChart items={monthlySummary} />
+              <MonthlyAttendanceSummaryChart records={filteredRecords} />
             </div>
             <div className="min-h-[380px] min-w-0">
               <EmployeesMostLateMarksTable items={topLateMarks} />

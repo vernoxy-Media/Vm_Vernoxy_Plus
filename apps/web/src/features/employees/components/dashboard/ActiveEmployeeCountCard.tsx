@@ -33,7 +33,7 @@ export const ActiveEmployeeCountCard: React.FC<ActiveEmployeeCountCardProps> = (
             <Users className="h-4 w-4" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-slate-900 tracking-tight">1. Active Employee Count</h3>
+            <h3 className="text-sm font-bold text-slate-900 tracking-tight">Active Employee Count</h3>
             <p className="text-[11px] text-slate-500">Currently active workforce</p>
           </div>
         </div>

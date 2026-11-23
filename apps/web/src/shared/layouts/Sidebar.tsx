@@ -18,6 +18,7 @@ import {
   Clock,
   Calendar,
   CalendarClock,
+  Megaphone,
   CheckSquare,
   FolderKanban,
   Banknote,
@@ -141,6 +142,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggleC
     child('Company Database', '/sales/companies', starts('/sales/companies'), 'sales-companies'),
     child('Lead Pipeline', '/sales/leads', starts('/sales/leads'), 'sales-leads'),
     child('Follow-ups', '/sales/follow-ups', starts('/sales/follow-ups'), 'sales-follow-ups', followUpBadge),
+    child('Campaign Management', '/sales/campaigns', starts('/sales/campaigns'), 'sales-campaigns'),
     child('Clients', '/sales/clients', starts('/sales/clients'), 'sales-clients'),
     child('Reports', '/sales/reports', starts('/sales/reports'), 'sales-reports'),
   ];
@@ -150,7 +152,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggleC
   ];
 
   const common: NavEntry[] = [
-    entry('Dashboard', '/', LayoutDashboard, exact('/'), 'dashboard'),
+    entry('Dashboard', '/dashboard', LayoutDashboard, exact('/dashboard'), 'dashboard'),
     entry('Attendance', '/attendance', Clock, starts('/attendance')),
     entry('Tasks', '/my-tasks', CheckSquare, own(starts('/my-tasks', '/tasks'), taskAdmin), 'my-tasks'),
     entry('Projects', '/projects', FolderKanban, starts('/projects')),
@@ -418,7 +420,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggleC
     <div className="flex h-full flex-col bg-white">
       {/* Brand */}
       <div className={`flex h-16 shrink-0 items-center gap-2 border-b border-slate-100 ${compact ? 'justify-center px-2' : 'justify-between px-4'}`}>
-        <Link to="/" onClick={isMobile ? onCloseMobile : undefined} className="flex min-w-0 items-center gap-3" aria-label="Vernoxy Pulse home">
+        <Link to="/dashboard" onClick={isMobile ? onCloseMobile : undefined} className="flex min-w-0 items-center gap-3" aria-label="Vernoxy Pulse home">
           <Logo size={34} />
           {!compact && <span className="truncate text-[17px] font-bold tracking-tight text-slate-900">Vernoxy Pulse</span>}
         </Link>
@@ -593,6 +595,8 @@ function salesIcon(idKey: string): LucideIcon {
       return Handshake;
     case 'sales-follow-ups':
       return CalendarClock;
+    case 'sales-campaigns':
+      return Megaphone;
     case 'sales-reports':
       return BarChart3;
     case 'sales-clients':

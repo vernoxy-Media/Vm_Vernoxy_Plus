@@ -18,6 +18,7 @@ import {
   User,
   UserX,
   Plus,
+  Upload,
   Search,
   ChevronDown,
   ChevronLeft,
@@ -341,6 +342,15 @@ export const EmployeesPage: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2.5 self-start sm:self-auto">
+            <button
+              type="button"
+              id="import-employees-button"
+              onClick={() => navigate('/admin/employees/import')}
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-sm font-semibold text-slate-700 shadow-xs hover:bg-slate-50 transition-colors cursor-pointer"
+            >
+              <Upload className="w-4 h-4 text-slate-500" />
+              <span>Import</span>
+            </button>
             <button
               type="button"
               id="add-employee-button"

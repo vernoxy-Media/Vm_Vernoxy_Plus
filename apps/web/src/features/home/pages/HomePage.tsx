@@ -8,6 +8,7 @@ import { Avatar } from '@/shared/ui/Avatar';
 import { UpcomingHolidays } from '@/features/attendance/components/UpcomingHolidays';
 import { BirthdayCelebrations } from '@/features/attendance/components/BirthdayCelebrations';
 import { EditProfileModal } from '@/features/employees/components/EditProfileModal';
+import { DashboardPerformanceCard } from '@/features/performance/components/DashboardPerformanceCard';
 import {
   User,
   Shield,
@@ -92,6 +93,9 @@ export const HomePage: React.FC = () => {
             </div>
           }
         />
+
+        {/* Active Performance Review Card (BFD Section 9) */}
+        <DashboardPerformanceCard />
 
         {/* Profile Card */}
         <div className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-2xs">
