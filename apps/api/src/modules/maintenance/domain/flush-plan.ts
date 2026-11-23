@@ -122,6 +122,16 @@ export function foreignKeyFixes(plan: FlushPlan, fks: ForeignKey[]): FkFix[] {
   const partial = new Map(plan.partial.map((p) => [p.table, p]));
   const fixes: FkFix[] = [];
 
+  // Two tables that both go but point at each other (leads.converted_client_id <-> clients.converted_from_lead_id)
+  // can never be deleted first, so one side of the loop is cleared up front when it may be empty.
+  const pairs = new Set(fks.map((f) => `${f.child}>${f.parent}`));
+  for (const fk of fks) {
+    if (!deleteAll.has(fk.child) || !deleteAll.has(fk.parent) || fk.child === fk.parent) continue;
+    if (fk.childCols.length !== 1 || fk.childNotNull) continue;
+    if (!pairs.has(`${fk.parent}>${fk.child}`)) continue;
+    fixes.push({ kind: 'null', sql: `UPDATE ${q(fk.child)} SET ${q(fk.childCols[0]!)} = NULL WHERE ${q(fk.childCols[0]!)} IS NOT NULL` });
+  }
+
   for (const fk of fks) {
     if (deleteAll.has(fk.child)) continue; // the whole table goes anyway
     if (fk.childCols.length !== 1 || fk.parentCols.length !== 1) continue; // composite keys point at rows that are kept together
