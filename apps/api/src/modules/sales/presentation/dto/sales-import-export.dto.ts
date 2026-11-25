@@ -18,6 +18,17 @@ export class CheckImportBodyDto {
 
   @ApiPropertyOptional({ enum: ['skip', 'update_empty'], description: 'Rows already in the database: skip them, or fill only their empty fields' })
   @IsOptional() @IsIn(['skip', 'update_empty']) existing_rows?: 'skip' | 'update_empty';
+
+  @ApiPropertyOptional({ type: [Number], description: 'Row numbers of companies to leave out of this import (preview "Exclude").' })
+  @IsOptional() @IsArray() @ArrayMaxSize(1000) @Type(() => Number) @IsInt({ each: true }) excluded_rows?: number[];
+
+  @ApiPropertyOptional({ type: 'object', additionalProperties: { type: 'object', additionalProperties: { type: 'string' } }, description: 'Row number -> (file column key -> corrected value), from the preview.' })
+  @IsOptional() @IsObject() overrides?: Record<string, Record<string, string>>;
+}
+
+export class ReportQueryDto {
+  @ApiProperty({ enum: ['success', 'failed', 'summary'] }) @IsIn(['success', 'failed', 'summary']) kind!: 'success' | 'failed' | 'summary';
+  @ApiPropertyOptional({ enum: ['xlsx', 'csv'] }) @IsOptional() @IsIn(['xlsx', 'csv']) format?: 'xlsx' | 'csv';
 }
 
 export class ExportBodyDto {

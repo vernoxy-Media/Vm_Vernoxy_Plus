@@ -81,6 +81,8 @@ import { SALES_IMPORT_TEMPLATE_PORT_TOKEN, SalesImportTemplatePort } from './app
 import { SALES_EXPORT_REPOSITORY_PORT_TOKEN, SalesExportRepositoryPort } from './application/ports/sales-export.repository.port';
 import { SALES_RIGHTS_REPOSITORY_PORT_TOKEN, SalesRightsRepositoryPort } from './application/ports/sales-rights.repository.port';
 import { PrismaSalesImportRepository } from './infrastructure/persistence/prisma-sales-import.repository';
+import { SALES_IMPORT_HISTORY_REPOSITORY_PORT_TOKEN, SalesImportHistoryRepositoryPort } from './application/ports/sales-import-history.repository.port';
+import { PrismaSalesImportHistoryRepository } from './infrastructure/persistence/prisma-sales-import-history.repository';
 import { PrismaSalesExportRepository } from './infrastructure/persistence/prisma-sales-export.repository';
 import { PrismaSalesRightsRepository } from './infrastructure/persistence/prisma-sales-rights.repository';
 import { ExcelJsSalesImportTemplateAdapter } from './infrastructure/adapters/exceljs-sales-import-template.adapter';
@@ -245,6 +247,7 @@ const leadUseCase = <T>(cls: new (repo: SalesLeadRepositoryPort) => T) => ({
         ExcelJsSpreadsheetAdapter,
         CsvSpreadsheetAdapter,
         SALES_NOTIFIER_PORT_TOKEN,
+        SALES_IMPORT_HISTORY_REPOSITORY_PORT_TOKEN,
       ],
       useFactory: (
         repo: SalesImportRepositoryPort,
@@ -255,8 +258,10 @@ const leadUseCase = <T>(cls: new (repo: SalesLeadRepositoryPort) => T) => ({
         xlsx: ExcelJsSpreadsheetAdapter,
         csv: CsvSpreadsheetAdapter,
         notifier: SalesNotifierPort,
-      ) => new ImportUseCases(repo, template, jobs, storage, inspection, { xlsx, csv }, { xlsx, csv }, notifier),
+        history: SalesImportHistoryRepositoryPort,
+      ) => new ImportUseCases(repo, template, jobs, storage, inspection, { xlsx, csv }, { xlsx, csv }, notifier, history),
     },
+    { provide: SALES_IMPORT_HISTORY_REPOSITORY_PORT_TOKEN, useClass: PrismaSalesImportHistoryRepository },
     {
       provide: ExportUseCases,
       inject: [

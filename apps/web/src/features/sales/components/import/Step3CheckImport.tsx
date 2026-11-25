@@ -20,12 +20,18 @@ import type {
 
 export interface Step3CheckImportProps {
   checkData: ImportCheckResponse;
+  /** Columns of the file that are not part of the template: they are left out of the import. */
+  ignoredColumns?: string[];
+  /** The file has no Company Name column, so nothing in it can be imported. */
+  missingCompanyName?: boolean;
   onBack: () => void;
   onConfirmed: (data: ImportConfirmResponse) => void;
 }
 
 export const Step3CheckImport: React.FC<Step3CheckImportProps> = ({
   checkData,
+  ignoredColumns = [],
+  missingCompanyName = false,
   onBack,
   onConfirmed,
 }) => {
@@ -70,7 +76,7 @@ export const Step3CheckImport: React.FC<Step3CheckImportProps> = ({
     with_errors: 0,
   };
 
-  const canImport = checkData.can_import && s.ready > 0;
+  const canImport = checkData.can_import && s.ready > 0 && !missingCompanyName;
 
   return (
     <div className="bg-white rounded-xl border border-gray-200/80 shadow-2xs p-6 space-y-6 max-w-4xl mx-auto">
@@ -102,6 +108,23 @@ export const Step3CheckImport: React.FC<Step3CheckImportProps> = ({
             <p className="font-semibold">Import Blocked</p>
             <p className="mt-0.5">{errorMessage}</p>
           </div>
+        </div>
+      )}
+
+      {missingCompanyName && (
+        <div className="p-3.5 rounded-lg border border-red-200 bg-red-50 text-xs text-red-800 flex items-start gap-2.5">
+          <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold">No "Company Name" column found</p>
+            <p className="mt-0.5">Use the official template (download it on the first step) and keep its column names.</p>
+          </div>
+        </div>
+      )}
+
+      {ignoredColumns.length > 0 && (
+        <div className="p-3.5 rounded-lg border border-amber-200 bg-amber-50 text-xs text-amber-900">
+          <p className="font-semibold">These columns are not in the template, so they will be left out:</p>
+          <p className="mt-0.5">{ignoredColumns.join(', ')}</p>
         </div>
       )}
 
@@ -203,7 +226,7 @@ export const Step3CheckImport: React.FC<Step3CheckImportProps> = ({
           className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 min-h-[44px]"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Adjust Mappings</span>
+          <span>Upload a Different File</span>
         </button>
 
         <button

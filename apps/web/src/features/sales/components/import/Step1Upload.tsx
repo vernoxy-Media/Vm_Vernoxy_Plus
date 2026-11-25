@@ -232,7 +232,7 @@ export const Step1Upload: React.FC<Step1UploadProps> = ({ onUploaded }) => {
           className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 shadow-sm transition-all min-h-[44px]"
         >
           {uploadMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-          <span>Continue to Match Columns</span>
+          <span>Upload and Check</span>
         </button>
       </div>
     </div>

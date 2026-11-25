@@ -13,6 +13,7 @@ import {
   UpdateEmptyRow,
   UpdatedRow,
 } from '../../application/ports/sales-import.repository.port';
+import { ImportedHistoryIds } from '../../application/ports/sales-import-history.repository.port';
 import { CompanyFields } from '../../domain/entities/sales-company';
 import { joinServiceFit } from '../../domain/entities/sales-lead';
 
@@ -363,10 +364,15 @@ export class PrismaSalesImportRepository implements SalesImportRepositoryPort {
     };
   }
 
-  async findUndoBlockers(batch: ImportBatch): Promise<UndoBlocker[]> {
+  async findUndoBlockers(batch: ImportBatch, imported?: ImportedHistoryIds): Promise<UndoBlocker[]> {
     const ids = batch.companies_created;
     if (ids.length === 0) return [];
     const importedLeads = batch.leads_created;
+    // Records the import itself saved from the extra sheets are not "work done since the import".
+    const own = imported ?? { communications: [], follow_ups: [], notes: [], clients: [], leads: [] };
+    const importedClientCompanies = own.clients.length
+      ? (await this.prisma.clients.findMany({ where: { client_id: { in: own.clients } }, select: { company_id: true } })).map((c) => c.company_id)
+      : [];
     const reasons = new Map<number, Set<string>>();
     const add = (companyId: number | null, reason: string) => {
       if (companyId === null) return;
@@ -376,10 +382,13 @@ export class PrismaSalesImportRepository implements SalesImportRepositoryPort {
 
     const [otherLeads, comms, notes, followUps, clients] = await Promise.all([
       this.prisma.leads.findMany({ where: { company_id: { in: ids }, deleted_at: null, lead_id: { notIn: importedLeads } }, select: { company_id: true } }),
-      this.prisma.crm_communications.findMany({ where: { company_id: { in: ids }, deleted_at: null }, select: { company_id: true } }),
-      this.prisma.crm_lead_notes.findMany({ where: { company_id: { in: ids }, deleted_at: null }, select: { company_id: true } }),
-      this.prisma.crm_follow_ups.findMany({ where: { deleted_at: null, OR: [{ company_id: { in: ids } }, { lead_id: { in: importedLeads } }] }, select: { company_id: true, lead_id: true } }),
-      this.prisma.companies.findMany({ where: { company_id: { in: ids }, is_client: true, deleted_at: null }, select: { company_id: true } }),
+      this.prisma.crm_communications.findMany({ where: { company_id: { in: ids }, deleted_at: null, communication_id: { notIn: own.communications } }, select: { company_id: true } }),
+      this.prisma.crm_lead_notes.findMany({
+        where: { company_id: { in: ids }, deleted_at: null, note_id: { notIn: own.notes }, ...(imported ? { note_type: { notIn: ['Win', 'Lost'] } } : {}) },
+        select: { company_id: true },
+      }),
+      this.prisma.crm_follow_ups.findMany({ where: { deleted_at: null, follow_up_id: { notIn: own.follow_ups }, OR: [{ company_id: { in: ids } }, { lead_id: { in: importedLeads } }] }, select: { company_id: true, lead_id: true } }),
+      this.prisma.companies.findMany({ where: { company_id: { in: ids, notIn: importedClientCompanies }, is_client: true, deleted_at: null }, select: { company_id: true } }),
     ]);
     otherLeads.forEach((r) => add(r.company_id, 'a lead was added'));
     comms.forEach((r) => add(r.company_id, 'a conversation was logged'));
@@ -390,7 +399,7 @@ export class PrismaSalesImportRepository implements SalesImportRepositoryPort {
       : new Map<number, number | null>();
     followUps.forEach((f) => add(f.company_id ?? (f.lead_id !== null ? leadOwner.get(f.lead_id) ?? null : null), 'a follow-up was scheduled'));
     // A lead of the import that moved on from "New" has been worked on.
-    const moved = await this.prisma.leads.findMany({ where: { lead_id: { in: importedLeads }, deleted_at: null, lead_stage: { not: 'New' } }, select: { company_id: true } });
+    const moved = await this.prisma.leads.findMany({ where: { lead_id: { in: importedLeads.filter((l) => !own.leads.includes(l)) }, deleted_at: null, lead_stage: { not: 'New' } }, select: { company_id: true } });
     moved.forEach((r) => add(r.company_id, 'its lead was moved on from New'));
 
     if (reasons.size === 0) return [];
